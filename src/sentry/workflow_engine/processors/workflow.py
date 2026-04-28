@@ -3,6 +3,7 @@ from collections.abc import Collection, Iterable, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
+from typing import NamedTuple
 
 import sentry_sdk
 from django.db.models import Q
@@ -75,6 +76,13 @@ class EvaluationStats:
         metrics_incr(metric_name, self.untainted, tags={"tainted": False})
 
 
+class WorkflowTriggerEvaluation(NamedTuple):
+    triggered_workflows: dict[Workflow, TriggerResult]
+    delayed_workflows: dict[Workflow, DelayedWorkflowItem]
+    stats: EvaluationStats
+    tainted: bool
+
+
 @scopedstats.timer()
 def enqueue_workflows(
     client: DelayedWorkflowClient,
@@ -136,7 +144,7 @@ def evaluate_workflow_triggers(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
     event_start_time: datetime,
-) -> tuple[dict[Workflow, TriggerResult], dict[Workflow, DelayedWorkflowItem], EvaluationStats]:
+) -> WorkflowTriggerEvaluation:
     """
     Returns a tuple of (triggered_workflows, queue_items_by_workflow, stats)
     - triggered_workflows: mapping of workflows that triggered to their evaluation result
@@ -200,7 +208,7 @@ def evaluate_workflow_triggers(
                     try:
                         detector = WorkflowEventContext.get().detector
                         detector_id = detector.id if detector else None
-                        logger.info(
+                        logger.debug(
                             "workflow_engine.process_workflows.workflow_triggered",
                             extra={
                                 "workflow_id": workflow.id,
@@ -227,7 +235,12 @@ def evaluate_workflow_triggers(
         try:
             environment = get_environment_by_event(event_data)
         except Environment.DoesNotExist:
-            return {}, {}, stats
+            return WorkflowTriggerEvaluation(
+                triggered_workflows={},
+                delayed_workflows={},
+                stats=stats,
+                tainted=True,
+            )
 
     event_id = (
         event_data.event.event_id
@@ -246,7 +259,12 @@ def evaluate_workflow_triggers(
         },
     )
 
-    return triggered_workflows, queue_items_by_workflow, stats
+    return WorkflowTriggerEvaluation(
+        triggered_workflows=triggered_workflows,
+        delayed_workflows=queue_items_by_workflow,
+        stats=stats,
+        tainted=False,
+    )
 
 
 @sentry_sdk.trace
@@ -399,7 +417,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
         try:
             environment = event_data.event.get_environment()
         except Environment.DoesNotExist:
-            logger.info(
+            logger.debug(
                 "workflow_engine.process_workflows.environment_not_found",
                 extra={"event_id": event_data.event.event_id},
             )
@@ -468,7 +486,8 @@ def process_workflows(
             raise Detector.DoesNotExist("No Detectors associated with the issue were found")
 
         log_context.add_extras(
-            detector_id=event_detectors.preferred_detector.id, group_id=event_data.group.id
+            detector_id=event_detectors.preferred_detector.id,
+            group_id=event_data.group.id,
         )
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
@@ -544,7 +563,9 @@ def process_workflows(
         )
 
     triggered_workflows, queue_items_by_workflow_id, trigger_stats = evaluate_workflow_triggers(
-        workflows, event_data, event_start_time
+        workflows,
+        event_data,
+        event_start_time,
     )
 
     workflow_evaluation_data.triggered_workflows = set(triggered_workflows.keys())
