@@ -831,7 +831,6 @@ export default typescript.config([
       'unicorn/no-object-as-default-parameter': 'off',
       'unicorn/no-process-exit': 'off',
       'unicorn/no-thenable': 'off',
-      'unicorn/no-typeof-undefined': 'off',
       'unicorn/no-unnecessary-array-flat-depth': 'off',
       'unicorn/no-unnecessary-array-splice-count': 'off',
       'unicorn/no-unnecessary-slice-end': 'off',

@@ -69,7 +69,7 @@ export function withMeta<T>(event: T): T {
   }
 
   // Return unproxied `event` if browser does not support `Proxy`
-  if (typeof window.Proxy === 'undefined' || typeof window.Reflect === 'undefined') {
+  if (window.Proxy === undefined || window.Reflect === undefined) {
     return event;
   }
 

@@ -214,7 +214,7 @@ export function Form({
     }
   };
 
-  const shouldShowFooter = typeof hideFooter === 'undefined' ? !saveOnBlur : !hideFooter;
+  const shouldShowFooter = hideFooter === undefined ? !saveOnBlur : !hideFooter;
 
   return (
     <FormContext value={contextData}>

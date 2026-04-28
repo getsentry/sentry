@@ -258,10 +258,7 @@ export class FormModel {
     // Set default value if initialData for field is undefined
     // This must take place before checking for `props.setValue` so that it can
     // be applied to `defaultValue`
-    if (
-      typeof props.defaultValue !== 'undefined' &&
-      typeof this.initialData[id] === 'undefined'
-    ) {
+    if (props.defaultValue !== undefined && this.initialData[id] === undefined) {
       this.initialData[id] =
         typeof props.defaultValue === 'function'
           ? props.defaultValue()
@@ -484,7 +481,7 @@ export class FormModel {
     // Update field state to "show save" if save on blur is disabled for this field
     // (only if contents of field differs from initial value)
     const saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
-    if (typeof saveOnBlurFieldOverride === 'undefined' || saveOnBlurFieldOverride) {
+    if (saveOnBlurFieldOverride === undefined || saveOnBlurFieldOverride) {
       return;
     }
     if (this.getFieldState(id, 'showSave') === isValueChanged) {
@@ -570,7 +567,7 @@ export class FormModel {
         const change = {old: oldValue, new: newValue};
 
         // Only use `allowUndo` option if explicitly defined
-        if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
+        if (this.options.allowUndo === undefined || this.options.allowUndo) {
           addUndoableFormChangeMessage(change, this, id);
         }
 
@@ -714,7 +711,7 @@ export class FormModel {
 
     // Fields can individually set `saveOnBlur` to `false` (note this is ignored when `undefined`)
     const saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
-    if (typeof saveOnBlurFieldOverride !== 'undefined' && !saveOnBlurFieldOverride) {
+    if (saveOnBlurFieldOverride !== undefined && !saveOnBlurFieldOverride) {
       return null;
     }
 

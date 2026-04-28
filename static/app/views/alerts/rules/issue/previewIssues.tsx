@@ -113,7 +113,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
           }
 
           const hits = resp?.getResponseHeader('X-Hits');
-          const count = typeof hits !== 'undefined' && hits ? parseInt(hits, 10) : 0;
+          const count = hits !== undefined && hits ? parseInt(hits, 10) : 0;
           setPreviewGroups(data);
           setPreviewError(false);
           setPageLinks(resp?.getResponseHeader('Link') ?? '');

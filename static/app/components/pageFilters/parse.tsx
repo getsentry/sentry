@@ -318,7 +318,7 @@ export function getStateFromQuery(
     period: period || null,
     start: start || null,
     end: end || null,
-    utc: typeof utc === 'undefined' ? null : utc === 'true',
+    utc: utc === undefined ? null : utc === 'true',
   };
 
   return state;

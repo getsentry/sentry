@@ -21,7 +21,7 @@ function isClipped(args: {clipFlex: number; clipHeight: number; height: number})
 function supportsResizeObserver(
   observerOrUndefined: unknown
 ): observerOrUndefined is ResizeObserver {
-  return typeof observerOrUndefined !== 'undefined';
+  return observerOrUndefined !== undefined;
 }
 
 /**
