@@ -291,7 +291,12 @@ function ViewModeToggle({
   viewMode: ViewMode;
 }) {
   return (
-    <SegmentedControl size="xs" value={viewMode} onChange={onViewModeChange}>
+    <SegmentedControl
+      size="xs"
+      value={viewMode}
+      onChange={onViewModeChange}
+      aria-label={t('View mode')}
+    >
       <SegmentedControl.Item
         key="single"
         icon={<IconExpand />}
