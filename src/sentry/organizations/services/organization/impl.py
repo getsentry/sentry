@@ -670,9 +670,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def find_organization_id_by_option_value(
         self, *, cell_name: str, key: str, value: str
     ) -> int | None:
-        # cell_name is consumed by the @cell_rpc_method resolver; the impl
-        # is already running inside the resolved cell.
-        del cell_name
         return (
             OrganizationOption.objects.filter(key=key, value=value)
             .order_by("organization_id")
