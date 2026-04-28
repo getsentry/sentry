@@ -119,8 +119,9 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
 };
 
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
-const EVENT_ID_PATTERN = /^[A-Fa-f0-9-]{32,36}$/;
-const SHORT_ID_PATTERN = /^\w[\w-]*-\w{3,}$/;
+const EVENT_ID_PATTERN =
+  /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
+const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
@@ -132,89 +133,55 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
   return null;
 }
 
-type ResolvedIdentifier =
-  | {
-      event: EventIdResponse['event'];
-      eventUrl: string;
-      group: Group;
-      groupUrl: string;
-      kind: 'event';
-      label: string;
-      project: Project;
-    }
-  | {
-      event: null;
-      group: Group;
-      groupUrl: string;
-      kind: 'issue';
-      label: string;
-      project: Project;
-    };
-
 function ResolvedIdentifierCommandPaletteAction() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {query} = useCommandPaletteState();
   const environments = useEnvironmentsFromUrl();
-  const isShortId = SHORT_ID_PATTERN.test(query);
   const isEventId = EVENT_ID_PATTERN.test(query);
+  const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
 
-  const {data} = useQuery({
-    ...cmdkQueryOptions({
-      queryKey: [
-        'command-palette-identifier-lookup',
-        organization.slug,
-        query,
-        isShortId,
-        environments,
-        projects,
-      ],
-      queryFn: async (): Promise<ResolvedIdentifier | null> => {
-        try {
-          if (isShortId) {
-            const shortIdLookup = await QUERY_API_CLIENT.requestPromise<ShortIdResponse>(
-              getApiUrl('/organizations/$organizationIdOrSlug/shortids/$issueId/', {
-                path: {organizationIdOrSlug: organization.slug, issueId: query},
-              })
-            );
-            const group = await QUERY_API_CLIENT.requestPromise<Group>(
-              getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  issueId: shortIdLookup.groupId,
-                },
-              }),
-              {
-                query: {
-                  ...(environments.length > 0 ? {environment: environments} : {}),
-                  expand: ['inbox', 'owners'],
-                  collapse: ['release', 'tags', 'stats'],
-                },
-              }
-            );
-            const project =
-              projects.find(p => p.slug === shortIdLookup.projectSlug) ??
-              (group.project as Project);
-            return {
-              event: null,
-              group,
-              groupUrl: `/organizations/${organization.slug}/issues/${group.id}/`,
-              kind: 'issue',
-              label: t('Issue %s', shortIdLookup.shortId),
-              project,
-            };
-          }
-
-          const eventIdLookup = await QUERY_API_CLIENT.requestPromise<EventIdResponse>(
-            getApiUrl('/organizations/$organizationIdOrSlug/eventids/$eventId/', {
-              path: {organizationIdOrSlug: organization.slug, eventId: query},
+  const {data} = useQuery<
+    | {
+        event: EventIdResponse['event'];
+        eventUrl: string;
+        group: Group;
+        groupUrl: string;
+        kind: 'event';
+        label: string;
+        project: Project;
+      }
+    | {
+        event: null;
+        group: Group;
+        groupUrl: string;
+        kind: 'issue';
+        label: string;
+        project: Project;
+      }
+    | null
+  >({
+    queryKey: [
+      'command-palette-identifier-lookup',
+      organization.slug,
+      query,
+      isShortId,
+      environments,
+      projects,
+    ],
+    queryFn: async () => {
+      try {
+        if (isShortId) {
+          const shortIdLookup: ShortIdResponse = await QUERY_API_CLIENT.requestPromise(
+            getApiUrl('/organizations/$organizationIdOrSlug/shortids/$issueId/', {
+              path: {organizationIdOrSlug: organization.slug, issueId: query},
             })
           );
-          const group = await QUERY_API_CLIENT.requestPromise<Group>(
+          const group: Group = await QUERY_API_CLIENT.requestPromise(
             getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
               path: {
                 organizationIdOrSlug: organization.slug,
-                issueId: eventIdLookup.groupId,
+                issueId: shortIdLookup.groupId,
               },
             }),
             {
@@ -226,24 +193,57 @@ function ResolvedIdentifierCommandPaletteAction() {
             }
           );
           const project =
-            projects.find(p => p.slug === eventIdLookup.projectSlug) ??
+            projects.find(p => p.slug === shortIdLookup.projectSlug) ??
             (group.project as Project);
           return {
-            event: eventIdLookup.event,
-            eventUrl: `/organizations/${organization.slug}/issues/${group.id}/events/${eventIdLookup.eventId}/`,
+            event: null,
             group,
             groupUrl: `/organizations/${organization.slug}/issues/${group.id}/`,
-            kind: 'event',
-            label: t('Event %s', eventIdLookup.eventId),
+            kind: 'issue' as const,
+            label: t('Issue %s', shortIdLookup.shortId),
             project,
           };
-        } catch {
-          return null;
         }
-      },
-      enabled: isShortId || isEventId,
-      staleTime: 30_000,
-    }),
+
+        const eventIdLookup: EventIdResponse = await QUERY_API_CLIENT.requestPromise(
+          getApiUrl('/organizations/$organizationIdOrSlug/eventids/$eventId/', {
+            path: {organizationIdOrSlug: organization.slug, eventId: query},
+          })
+        );
+        const group: Group = await QUERY_API_CLIENT.requestPromise(
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              issueId: eventIdLookup.groupId,
+            },
+          }),
+          {
+            query: {
+              ...(environments.length > 0 ? {environment: environments} : {}),
+              expand: ['inbox', 'owners'],
+              collapse: ['release', 'tags', 'stats'],
+            },
+          }
+        );
+        const project =
+          projects.find(p => p.slug === eventIdLookup.projectSlug) ??
+          (group.project as Project);
+        return {
+          event: eventIdLookup.event,
+          eventUrl: `/organizations/${organization.slug}/issues/${group.id}/events/${eventIdLookup.eventId}/`,
+          group,
+          groupUrl: `/organizations/${organization.slug}/issues/${group.id}/`,
+          kind: 'event' as const,
+          label: t('Event %s', eventIdLookup.eventId),
+          project,
+        };
+      } catch {
+        return null;
+      }
+    },
+    enabled: isShortId || isEventId,
+    staleTime: 30_000,
+    meta: {cmdk: true},
   });
 
   if (!data) {

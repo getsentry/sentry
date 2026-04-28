@@ -354,6 +354,24 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       query: '954df831ab094388ac98eee198584479',
       lookupUrl: `/organizations/${organization.slug}/eventids/954df831ab094388ac98eee198584479/`,
     },
+    {
+      body: {
+        event: {id: '954df831-ab09-4388-ac98-eee198584479'},
+        eventId: '954df831-ab09-4388-ac98-eee198584479',
+        groupId: '42',
+        organizationSlug: organization.slug,
+        projectSlug: project.slug,
+      },
+      expectedOption: /Event 954df831-ab09-4388-ac98-eee198584479/,
+      groupBody: {
+        id: '42',
+        metadata: {},
+        project: {id: project.id, slug: project.slug},
+        status: 'unresolved',
+      },
+      query: '954df831-ab09-4388-ac98-eee198584479',
+      lookupUrl: `/organizations/${organization.slug}/eventids/954df831-ab09-4388-ac98-eee198584479/`,
+    },
   ])(
     'resolves pasted identifiers for %s',
     async ({query, lookupUrl, body, groupBody, expectedOption}) => {
