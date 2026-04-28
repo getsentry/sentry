@@ -1,4 +1,3 @@
-import {t} from 'sentry/locale';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
 export enum MobileCursors {
@@ -41,18 +40,4 @@ export const YAXIS_COLUMNS: Readonly<Record<YAxis, SpanProperty>> = {
   [YAxis.SLOW_FRAMES]: 'avg(mobile.slow_frames)',
   [YAxis.FROZEN_FRAMES]: 'avg(mobile.frozen_frames)',
   [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',
-};
-
-export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
-  [YAxis.WARM_START]: t('Warm Start'),
-  [YAxis.COLD_START]: t('Cold Start'),
-  [YAxis.TTID]: t('Time To Initial Display'),
-  [YAxis.TTFD]: t('Time To Full Display'),
-  [YAxis.SLOW_FRAME_RATE]: t('Slow Frame Rate'),
-  [YAxis.FROZEN_FRAME_RATE]: t('Frozen Frame Rate'),
-  [YAxis.THROUGHPUT]: t('Throughput'),
-  [YAxis.COUNT]: t('Total Count'),
-  [YAxis.SLOW_FRAMES]: t('Slow Frames'),
-  [YAxis.FROZEN_FRAMES]: t('Frozen Frames'),
-  [YAxis.FRAMES_DELAY]: t('Frames Delay'),
 };

@@ -74,13 +74,6 @@ export type MetricValue = {
   value: string | number | undefined;
 };
 
-export const STATUS_UNKNOWN: VitalStatus = {
-  description: undefined,
-  formattedValue: undefined,
-  value: undefined,
-  score: PerformanceScore.NONE,
-};
-
 export function getColdAppStartPerformance(metric: MetricValue): VitalStatus {
   let description = '';
   let status = PerformanceScore.NONE;
@@ -134,17 +127,5 @@ export function getWarmAppStartPerformance(metric: MetricValue): VitalStatus {
     formattedValue: formatMetricValue(metric),
     score: status,
     description,
-  };
-}
-
-export function getDefaultMetricPerformance(
-  metric: MetricValue,
-  field?: string
-): VitalStatus {
-  return {
-    description: undefined,
-    formattedValue: formatMetricValue(metric, field),
-    value: metric,
-    score: PerformanceScore.NONE,
   };
 }
