@@ -41,7 +41,7 @@ describe('Sentry Application Details', () => {
       createAppRequest = MockApiClient.addMockResponse({
         url: '/sentry-apps/',
         method: 'POST',
-        body: SentryAppFixture(),
+        body: [],
       });
     });
 
