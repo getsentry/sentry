@@ -255,7 +255,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 assignee=assignee,
                 priority=priority,
             ),
-            {},
+            {
+                "environment": (snuba_query.environment.name if snuba_query.environment else None),
+            },
         )
 
     def extract_dedupe_value(self, data_packet: DataPacket[MetricUpdate]) -> int:

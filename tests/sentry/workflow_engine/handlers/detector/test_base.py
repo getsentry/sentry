@@ -282,7 +282,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             event_data = (
                 detector_occurrence.event_data.copy() if detector_occurrence.event_data else {}
             )
-        event_data["environment"] = detector.config.get("environment")
+        event_data.setdefault("environment", detector.config.get("environment"))
         event_data["timestamp"] = issue_occurrence.detection_time
         event_data["project_id"] = detector.project_id
         event_data["event_id"] = occurrence_id
