@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-import SentryAppExternalForm from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import {
+  SentryAppExternalForm,
+  type SchemaFormConfig,
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 type Props = ModalRenderProps & {
   appName: string;

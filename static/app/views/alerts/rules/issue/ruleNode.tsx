@@ -627,9 +627,9 @@ export function RuleNode({
    * @param formData Form data
    */
   const updateParentFromSentryAppRule = useCallback(
-    (formData: Record<string, string>): void => {
+    (formData: Record<string, unknown>): void => {
       for (const [name, value] of Object.entries(formData)) {
-        onPropertyChange(index, name, value);
+        onPropertyChange(index, name, value as string);
       }
     },
     [index, onPropertyChange]

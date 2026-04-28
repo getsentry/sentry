@@ -10,8 +10,10 @@ import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-import SentryAppExternalForm from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import {
+  SentryAppExternalForm,
+  type SchemaFormConfig,
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
   action: 'create' | 'link';
@@ -49,16 +51,18 @@ export function SentryAppExternalIssueForm({
       element="issue-link"
       extraFields={{groupId: group.id}}
       extraRequestBody={{projectId: group.project.id}}
-      onSubmitSuccess={(issue: PlatformExternalIssue) => {
+      onSubmitSuccess={response => {
+        // element="issue-link" always returns a PlatformExternalIssue
+        const issue = response as PlatformExternalIssue;
         onCreateExternalIssue(issue);
         onSubmitSuccess(issue);
       }}
-      // Needs to bind to access this.props
       getFieldDefault={field => {
         if (field.type === 'textarea') {
           field.maxRows = 10;
           field.autosize = true;
         }
+
         switch (field.default) {
           case 'issue.title':
             return group.title;
