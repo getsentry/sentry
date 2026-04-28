@@ -85,12 +85,21 @@ interface CommandPaletteScore {
   score: number;
 }
 
-export function CommandPalette({Body, closeModal}: ModalRenderProps) {
+interface CommandPaletteProps extends ModalRenderProps {
+  openSeerExplorer?: () => void;
+}
+
+export function CommandPalette({
+  Body,
+  closeModal,
+  openSeerExplorer,
+}: CommandPaletteProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const store = CMDKCollection.useStore();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const seerExplorerEnabled = !!openSeerExplorer;
 
   const getDocEl = useCallback(
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
@@ -432,6 +441,13 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
                       }
                     },
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === 'Tab' && seerExplorerEnabled) {
+                        e.preventDefault();
+                        closeModal?.();
+                        openSeerExplorer();
+                        return;
+                      }
+
                       if (e.key === 'Backspace' && state.query.length === 0) {
                         if (state.action) {
                           animatePop();
@@ -462,23 +478,32 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
                   })}
                 />
                 <InputGroup.TrailingItems>
-                  <AnimatePresence mode="popLayout">
-                    {state.query.length > 0 || state.action ? (
-                      <Container position="absolute" right="-8px">
-                        <MotionButton
-                          size="xs"
-                          priority="transparent"
-                          aria-label={t('Reset')}
-                          icon={<IconClose size="xs" aria-hidden />}
-                          onClick={() => {
-                            dispatch({type: 'reset'});
-                            state.input.current?.focus();
-                          }}
-                          {...makeLeadingItemAnimation(theme)}
-                        />
-                      </Container>
-                    ) : null}
-                  </AnimatePresence>
+                  {seerExplorerEnabled ? (
+                    <Flex align="center" gap="xs">
+                      <Text size="xs" variant="muted">
+                        {t('Ask Seer')}
+                      </Text>
+                      <Hotkey variant="debossed" value="tab" />
+                    </Flex>
+                  ) : (
+                    <AnimatePresence mode="popLayout">
+                      {state.query.length > 0 || state.action ? (
+                        <Container position="absolute" right="-8px">
+                          <MotionButton
+                            size="xs"
+                            priority="transparent"
+                            aria-label={t('Reset')}
+                            icon={<IconClose size="xs" aria-hidden />}
+                            onClick={() => {
+                              dispatch({type: 'reset'});
+                              state.input.current?.focus();
+                            }}
+                            {...makeLeadingItemAnimation(theme)}
+                          />
+                        </Container>
+                      ) : null}
+                    </AnimatePresence>
+                  )}
                 </InputGroup.TrailingItems>
               </InputGroup>
             );
