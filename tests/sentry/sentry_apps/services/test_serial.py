@@ -1,4 +1,3 @@
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app
 from sentry.testutils.cases import TestCase
@@ -18,12 +17,11 @@ class SerializeSentryAppTest(TestCase):
             webhook_url="https://example.com/webhook",
         )
 
-    def test_populates_creator_label_and_owner_slug(self) -> None:
+    def test_populates_creator_label(self) -> None:
         with assume_test_silo_mode_of(SentryApp):
             rpc = serialize_sentry_app(self.sentry_app)
 
         assert rpc.creator_label == "creator@example.com"
-        assert rpc.owner_slug == "my-org"
         assert rpc.owner_id == self.org.id
 
     def test_creator_label_falls_back_to_username_when_no_email(self) -> None:
@@ -37,13 +35,3 @@ class SerializeSentryAppTest(TestCase):
             rpc = serialize_sentry_app(app)
 
         assert rpc.creator_label == "someusername"
-
-    def test_owner_slug_empty_when_mapping_missing(self) -> None:
-        with assume_test_silo_mode_of(OrganizationMapping):
-            OrganizationMapping.objects.filter(organization_id=self.org.id).delete()
-
-        with assume_test_silo_mode_of(SentryApp):
-            rpc = serialize_sentry_app(self.sentry_app)
-
-        assert rpc.owner_slug == ""
-        assert rpc.owner_id == self.org.id
