@@ -84,14 +84,14 @@ export function getMessage(
  */
 export function getLocation(event: Event | BaseGroup | GroupTombstoneHelper) {
   if (isTombstone(event)) {
-    return undefined;
+    return;
   }
 
   if (event.type === EventOrGroupType.ERROR && isNativePlatform(event.platform)) {
     return event.metadata.filename || undefined;
   }
 
-  return undefined;
+  return;
 }
 
 export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | SimpleGroup) {

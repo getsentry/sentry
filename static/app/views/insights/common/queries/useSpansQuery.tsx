@@ -385,7 +385,7 @@ function processDiscoverTimeseriesResult(
   eventView: EventView
 ) {
   if (!result) {
-    return undefined;
+    return;
   }
 
   if (!eventView.yAxis) {

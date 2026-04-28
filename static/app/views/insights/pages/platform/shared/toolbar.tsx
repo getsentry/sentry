@@ -70,7 +70,7 @@ export function Toolbar({
   let addToDashboardOptions:
     | AddToSpanDashboardOptions
     | AddToSpanDashboardOptions[]
-    | undefined = undefined;
+    | undefined;
   const visualize = exploreParams?.visualize;
   if (showAddToDashboard && visualize) {
     if (visualize[0] && visualize.length === 1) {

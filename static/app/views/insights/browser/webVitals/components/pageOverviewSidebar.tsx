@@ -116,7 +116,7 @@ export function PageOverviewSidebar({
 
   const diffToColor = (diff?: number, reverse?: boolean) => {
     if (diff === undefined) {
-      return undefined;
+      return;
     }
     if (diff > 1) {
       if (reverse) {
@@ -130,7 +130,7 @@ export function PageOverviewSidebar({
       }
       return theme.colors.red400;
     }
-    return undefined;
+    return;
   };
 
   const ringSegmentColors = theme.chart.getColorPalette(4);

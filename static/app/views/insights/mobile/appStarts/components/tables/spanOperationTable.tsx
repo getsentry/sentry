@@ -180,7 +180,7 @@ export function SpanOperationTable({transaction, primaryRelease}: Props) {
 
     function generateSortLink() {
       if (!tableMeta) {
-        return undefined;
+        return;
       }
 
       let newSortDirection: Sort['kind'] = 'desc';

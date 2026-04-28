@@ -254,7 +254,7 @@ export class WidgetLegendSelectionState {
         ? location.query.unselectedSeries
             .map(legend => {
               if (legend.includes(newWidget.id!)) {
-                return undefined;
+                return;
               }
               return legend;
             })

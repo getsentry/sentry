@@ -29,7 +29,7 @@ export function useSentryEvent<T extends Event>(
 
   useLayoutEffect(() => {
     if (disabled || !eventId || !projectSlug || !organizationSlug) {
-      return undefined;
+      return;
     }
 
     setRequestState({type: 'loading'});

@@ -84,5 +84,4 @@ const StyledIconBuisness = styled(IconBusiness)`
 
 const UpsellFooterHook = HookOrDefault({
   hookName: 'component:insights-date-range-query-limit-footer',
-  defaultComponent: () => undefined,
 });

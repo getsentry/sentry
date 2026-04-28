@@ -140,7 +140,7 @@ export function EventSamplesTable({
 
     function generateSortLink() {
       if (!tableMeta) {
-        return undefined;
+        return;
       }
 
       let newSortDirection: Sort['kind'] = 'desc';

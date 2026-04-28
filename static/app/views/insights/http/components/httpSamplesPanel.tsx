@@ -326,7 +326,7 @@ export function HTTPSamplesPanel() {
 
   const samplesPlottable = useMemo(() => {
     if (!spanSamplesData) {
-      return undefined;
+      return;
     }
 
     return new Samples(spanSamplesData as TabularData, {

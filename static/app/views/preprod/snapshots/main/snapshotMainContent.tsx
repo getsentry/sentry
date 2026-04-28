@@ -323,7 +323,7 @@ function OverlayControls({
 
   useEffect(() => {
     if (!isColorPickerOpen) {
-      return undefined;
+      return;
     }
 
     function handleMouseDown(e: MouseEvent) {

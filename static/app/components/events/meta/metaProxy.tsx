@@ -37,7 +37,7 @@ export class MetaProxy {
 
           return isAnnotated(meta) ? meta : undefined;
         }
-        return undefined;
+        return;
       };
     }
 

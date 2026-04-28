@@ -337,7 +337,7 @@ function useVirtualizedItems<T extends ObjectLike>({
   return {
     items: listItems.map((_, index) => ({index, start: 0})),
     scrollElementRef: undefined,
-    itemProps: () => undefined,
+    itemProps: () => {},
     wrapperProps: {
       'data-is-virtualized': false,
     },

@@ -41,7 +41,7 @@ export function rc<T>(
 
     // A resolver can return undefined to indicate that the value should be omitted.
     if (resolvedValue === undefined) {
-      return undefined;
+      return;
     }
 
     if (first) {
@@ -103,7 +103,7 @@ function isResponsive(prop: unknown): prop is Partial<Record<BreakpointSize, any
  */
 function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
   if (sizeComponent === undefined) {
-    return undefined;
+    return;
   }
 
   return theme.radius[sizeComponent];
@@ -111,7 +111,7 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
 
 function resolveSpacing(sizeComponent: SpaceSize, theme: Theme) {
   if (sizeComponent === undefined) {
-    return undefined;
+    return;
   }
 
   return theme.space[sizeComponent] ?? theme.space['0'];
@@ -119,7 +119,7 @@ function resolveSpacing(sizeComponent: SpaceSize, theme: Theme) {
 
 function resolveMargin(sizeComponent: Margin, theme: Theme) {
   if (sizeComponent === undefined) {
-    return undefined;
+    return;
   }
 
   if (sizeComponent === 'auto') {
@@ -204,7 +204,7 @@ export function getMargin(
   theme: Theme
 ) {
   if (margin === undefined) {
-    return undefined;
+    return;
   }
 
   if (margin.length < 3) {

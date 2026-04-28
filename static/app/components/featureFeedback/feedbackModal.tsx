@@ -114,7 +114,7 @@ export function FeedbackModal<T extends Data>({
     if (projectsLoaded && location.query.project) {
       return projects.find(p => p.id === location.query.project);
     }
-    return undefined;
+    return;
   }, [projectsLoaded, projects, location.query.project]);
 
   const handleSubmit = useCallback(

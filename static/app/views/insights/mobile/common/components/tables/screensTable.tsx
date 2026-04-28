@@ -116,7 +116,7 @@ export function ScreensTable({
 
     function generateSortLink() {
       if (!data?.meta) {
-        return undefined;
+        return;
       }
 
       const nextEventView = eventView.sortOnField(field, data?.meta);

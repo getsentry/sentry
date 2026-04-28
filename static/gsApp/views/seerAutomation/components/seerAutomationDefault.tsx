@@ -47,7 +47,7 @@ export function SeerAutomationDefault() {
           OrganizationStore.onUpdate(previousOrg, {replace: true});
         };
       }
-      return undefined;
+      return;
     },
     onSuccess: org => {
       OrganizationStore.onUpdate(org);

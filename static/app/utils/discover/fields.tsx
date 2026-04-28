@@ -28,9 +28,11 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
+export type SortKind = 'asc' | 'desc';
+
 export type Sort = {
   field: string;
-  kind: 'asc' | 'desc';
+  kind: SortKind;
 };
 
 // Contains the URL field value & the related table column width.

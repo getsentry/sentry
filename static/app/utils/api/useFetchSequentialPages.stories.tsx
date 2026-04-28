@@ -73,7 +73,7 @@ export default Storybook.story('useFetchSequentialPages', story => {
         ({cursor, per_page}) => {
           pagesFetched.current++;
           if (pagesFetched.current > 2) {
-            return undefined;
+            return;
           }
 
           return [

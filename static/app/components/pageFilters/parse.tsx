@@ -35,7 +35,7 @@ export function parseStatsPeriod(input: string) {
   const result = input.match(STATS_PERIOD_PATTERN);
 
   if (!result) {
-    return undefined;
+    return;
   }
 
   const period = result[1];
@@ -71,7 +71,7 @@ function getStatsPeriodValue(maybe: ParamValue) {
     return coerceStatsPeriod(maybe);
   }
 
-  return undefined;
+  return;
 }
 
 /**
@@ -85,13 +85,13 @@ function getStatsPeriodValue(maybe: ParamValue) {
  */
 export function normalizeDateTimeString(input: Date | SingleParamValue) {
   if (!input) {
-    return undefined;
+    return;
   }
 
   const parsed = moment.utc(input);
 
   if (!parsed.isValid()) {
-    return undefined;
+    return;
   }
 
   return parsed.format('YYYY-MM-DDTHH:mm:ss.SSS');
@@ -115,7 +115,7 @@ function getDateTimeString(maybe: Date | ParamValue) {
  */
 function parseUtcValue(utc: boolean | SingleParamValue) {
   if (!defined(utc)) {
-    return undefined;
+    return;
   }
 
   return utc === true || utc === 'true' ? 'true' : 'false';
@@ -139,7 +139,7 @@ export function getUtcValue(maybe: boolean | ParamValue) {
  */
 function getProject(maybe: ParamValue) {
   if (!defined(maybe)) {
-    return undefined;
+    return;
   }
 
   if (Array.isArray(maybe)) {
@@ -155,7 +155,7 @@ function getProject(maybe: ParamValue) {
  */
 function getEnvironment(maybe: ParamValue) {
   if (!defined(maybe)) {
-    return undefined;
+    return;
   }
 
   return toArray(maybe);

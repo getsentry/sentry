@@ -197,7 +197,7 @@ export default function SentryApplicationDetails() {
   const SENTRY_APP_API_TOKENS_QUERY_KEY = makeSentryAppApiTokensQueryKey(appSlug);
 
   const {
-    data: app = undefined,
+    data: app,
     isPending,
     isError,
     refetch,

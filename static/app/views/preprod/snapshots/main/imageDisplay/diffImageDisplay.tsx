@@ -60,7 +60,7 @@ export function DiffImageDisplay({
     setDiffMaskUrl(null);
 
     if (!diffImageUrl) {
-      return undefined;
+      return;
     }
     let cancelled = false;
     fetch(diffImageUrl)

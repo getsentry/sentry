@@ -69,8 +69,8 @@ function SingleReleaseSelector({
   if (defined(selectorValue)) {
     const index = data?.findIndex(({version}) => version === selectorValue);
     const selectedRelease = defined(index) ? data?.[index] : undefined;
-    let selectedReleaseSessionCount: number | undefined = undefined;
-    let selectedReleaseDateCreated: string | undefined = undefined;
+    let selectedReleaseSessionCount: number | undefined;
+    let selectedReleaseDateCreated: string | undefined;
     if (defined(selectedRelease)) {
       selectedReleaseSessionCount = selectedRelease.count;
       selectedReleaseDateCreated = selectedRelease.dateCreated;

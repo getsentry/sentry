@@ -133,11 +133,11 @@ export function FlamegraphSpans({
 
   useEffect(() => {
     if (!spansCanvas || !spansView || !spansRenderer || !spansTextRenderer) {
-      return undefined;
+      return;
     }
 
     if (spansRequestState.type !== 'resolved') {
-      return undefined;
+      return;
     }
     const clearCanvas = () => {
       spansTextRenderer.context.clearRect(

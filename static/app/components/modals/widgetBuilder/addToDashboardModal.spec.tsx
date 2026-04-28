@@ -142,7 +142,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -172,7 +172,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -200,7 +200,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -224,7 +224,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -276,7 +276,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -310,7 +310,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -351,7 +351,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -402,7 +402,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[{...widget, widgetType: WidgetType.ERRORS}]}
         selection={defaultSelection}
@@ -464,7 +464,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -544,7 +544,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -601,7 +601,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -628,7 +628,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -673,7 +673,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -729,7 +729,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={defaultSelection}
@@ -764,7 +764,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={customSelection}
@@ -822,7 +822,7 @@ describe('add to dashboard modal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         organization={initialData.organization}
         widgets={[widget]}
         selection={customSelection}
@@ -879,7 +879,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={[textWidget]}
           selection={defaultSelection}
@@ -911,7 +911,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={[textWidget]}
           selection={defaultSelection}
@@ -953,7 +953,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={[textWidget]}
           selection={defaultSelection}
@@ -994,7 +994,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={[textWidget]}
           selection={defaultSelection}
@@ -1075,7 +1075,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={multipleWidgets}
           selection={defaultSelection}
@@ -1098,7 +1098,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={multipleWidgets}
           selection={defaultSelection}
@@ -1125,7 +1125,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={multipleWidgets}
           selection={defaultSelection}
@@ -1152,7 +1152,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={multipleWidgets}
           selection={defaultSelection}
@@ -1192,7 +1192,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={multipleWidgets}
           selection={defaultSelection}
@@ -1243,7 +1243,7 @@ describe('add to dashboard modal', () => {
           Footer={stubEl as ModalRenderProps['Footer']}
           Body={stubEl as ModalRenderProps['Body']}
           CloseButton={stubEl}
-          closeModal={() => undefined}
+          closeModal={() => {}}
           organization={initialData.organization}
           widgets={multipleWidgets}
           selection={defaultSelection}

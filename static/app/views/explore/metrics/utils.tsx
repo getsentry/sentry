@@ -13,6 +13,7 @@ import {
   SizeUnit,
   stripEquationPrefix,
   type ColumnType,
+  type Sort,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -179,7 +180,7 @@ export function getMetricsUrlFromSavedQueryUrl({
     const aggregateFields = [...visualizes, ...groupBys];
 
     const hasAggregateOrderby = defined(queryItem.aggregateOrderby);
-    let aggregateSortBys = undefined;
+    let aggregateSortBys: Sort[] | undefined;
     if (hasAggregateOrderby) {
       aggregateSortBys = queryItem.aggregateOrderby
         ? decodeSorts(queryItem.aggregateOrderby)

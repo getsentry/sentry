@@ -115,14 +115,14 @@ export function ResponseCodeCountChart({
 
 function getResponseCode(series: TimeSeries) {
   if (!series.groupBy) {
-    return undefined;
+    return;
   }
 
   const responseCodeGroupBy = series.groupBy.find(
     g => g.key === SpanFields.SPAN_STATUS_CODE
   );
   if (!responseCodeGroupBy) {
-    return undefined;
+    return;
   }
   // This should never come back as an array, this is just to keep typescript happy
   if (Array.isArray(responseCodeGroupBy.value)) {

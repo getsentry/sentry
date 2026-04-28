@@ -8,7 +8,7 @@ export const mapWebVitalToOrderBy = (
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   let webVitalKey = webVital ? WEBVITAL_TO_KEY[webVital] : undefined;
   if (!webVitalKey) {
-    return undefined;
+    return;
   }
   if (aggregateFunction) {
     webVitalKey = getAggregateAlias(`${aggregateFunction}(${webVitalKey})`);

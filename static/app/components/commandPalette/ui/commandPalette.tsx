@@ -209,7 +209,7 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
         return item;
       }
     }
-    return undefined;
+    return;
   }, [treeState.collection, sectionKeys]);
 
   useLayoutEffect(() => {
