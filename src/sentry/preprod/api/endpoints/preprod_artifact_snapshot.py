@@ -19,6 +19,7 @@ from sentry.api.bases.organization import (
     OrganizationReleasePermission,
 )
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.auth.staff import is_active_staff
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -140,6 +141,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Snapshot not found"}, status=404)
 
+        if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
+            return Response({"detail": "Snapshot not found"}, status=404)
+
         try:
             artifact.preprodsnapshotmetrics
         except PreprodSnapshotMetrics.DoesNotExist:
@@ -188,10 +192,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
-            artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
+            artifact = PreprodArtifact.objects.select_related("commit_comparison", "project").get(
                 id=snapshot_id, project__organization_id=organization.id
             )
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "Snapshot not found"}, status=404)
+
+        if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
             return Response({"detail": "Snapshot not found"}, status=404)
 
         try:
