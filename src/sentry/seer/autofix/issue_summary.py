@@ -18,7 +18,7 @@ from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
-from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
+from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_legacy_autofix
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
@@ -208,7 +208,7 @@ def _trigger_autofix_task(
             except NoSeerQuotaException:
                 pass
         else:
-            response = trigger_autofix(
+            response = trigger_legacy_autofix(
                 group=group,
                 event_id=event_id,
                 user=user,

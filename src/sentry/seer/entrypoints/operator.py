@@ -10,7 +10,7 @@ from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
-from sentry.seer.autofix.autofix import trigger_autofix, update_autofix
+from sentry.seer.autofix.autofix import trigger_legacy_autofix, update_legacy_autofix
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
@@ -472,7 +472,7 @@ class SeerAutofixOperator[CachePayloadT]:
                     return
 
             if not run_id:
-                raw_response = trigger_autofix(
+                raw_response = trigger_legacy_autofix(
                     group=group,
                     user=user,
                     referrer=AutofixReferrer.SLACK,
@@ -506,7 +506,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         )
                     return
 
-                raw_response = update_autofix(
+                raw_response = update_legacy_autofix(
                     organization_id=group.organization.id,
                     run_id=run_id,
                     payload=payload,

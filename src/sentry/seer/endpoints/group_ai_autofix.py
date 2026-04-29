@@ -32,7 +32,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.autofix.autofix import trigger_autofix
+from sentry.seer.autofix.autofix import trigger_legacy_autofix
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
@@ -313,7 +313,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         stopping_point = data.get("stopping_point")
         stopping_point = AutofixStoppingPoint(stopping_point) if stopping_point else None
 
-        return trigger_autofix(
+        return trigger_legacy_autofix(
             group=group,
             # This event_id is the event that the user is looking at when they click the "Fix" button
             event_id=data.get("event_id"),

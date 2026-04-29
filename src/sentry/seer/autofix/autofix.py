@@ -631,7 +631,7 @@ def get_all_tags_overview(
     }
 
 
-def trigger_autofix(
+def trigger_legacy_autofix(
     *,
     group: Group,
     event_id: str | None = None,
@@ -765,14 +765,14 @@ def trigger_autofix(
     )
 
 
-def update_autofix(
+def update_legacy_autofix(
     *,
     organization_id: int,
     run_id: int,
     payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
 ) -> Response:
     """
-    Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
+    Issue an update to an autofix run. Intentionally matching the output of trigger_legacy_autofix.
     """
     if payload.get("type") in CODING_PAYLOAD_TYPES:
         try:
