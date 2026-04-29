@@ -825,7 +825,11 @@ class ViewerContextAuthentication(BaseAuthentication):
             logger.warning(
                 "viewer_context_auth.failed",
                 extra={
-                    "reason": "user_not_found" if user is None else "user_inactive",
+                    "reason": "user_not_found"
+                    if user is None
+                    else "user_suspended"
+                    if getattr(user, "is_suspended", False)
+                    else "user_inactive",
                     "vc_user_id": vc.user_id,
                     "path": request.path,
                 },
