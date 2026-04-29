@@ -102,7 +102,7 @@ describe('Subscription > Notifications', () => {
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     const textbox = screen.getByRole('textbox', {
-      name: 'Update subscription consumption spend notification thresholds',
+      name: 'Subscription consumption',
     });
     await userEvent.click(textbox);
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
@@ -120,7 +120,7 @@ describe('Subscription > Notifications', () => {
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     const textbox = screen.getByRole('textbox', {
-      name: 'Update subscription consumption spend notification thresholds',
+      name: 'Subscription consumption',
     });
 
     await userEvent.click(textbox);
@@ -150,7 +150,7 @@ describe('Subscription > Notifications', () => {
     expect(await screen.findByText('90%')).toBeInTheDocument();
     await userEvent.click(
       screen.getByRole('textbox', {
-        name: 'Update subscription consumption spend notification thresholds',
+        name: 'Subscription consumption',
       })
     );
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '60%'}));
