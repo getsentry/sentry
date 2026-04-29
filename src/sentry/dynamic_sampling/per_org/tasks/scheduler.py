@@ -109,4 +109,4 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> TelemetryStatus | N
     if org_volume is None:
         return TelemetryStatus.NO_VOLUME
 
-    return
+    return None
