@@ -13,8 +13,6 @@ from sentry.tasks.llm_issue_detection import (
 from sentry.tasks.llm_issue_detection.detection import (
     START_TIME_DELTA_MINUTES,
     TRANSACTION_BATCH_SIZE,
-    _get_unprocessed_traces,
-    mark_traces_as_processed,
 )
 from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
@@ -195,97 +193,64 @@ class LLMIssueDetectionTest(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
-    @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
-    @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
-    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     def test_detect_llm_issues_full_flow(
         self,
-        mock_shuffle,
         mock_spans_query,
         mock_seer_request,
-        mock_get_unprocessed,
-        mock_mark_processed,
         mock_budget_request,
     ):
         mock_budget_request.return_value = self._budget_ok_response()
 
-        mock_shuffle.return_value = None  # shuffles in-place, mock to prevent reordering
-        mock_get_unprocessed.return_value = {"trace_id_1", "trace_id_2"}  # All unprocessed
-
         mock_spans_query.side_effect = [
-            # First call: transaction spans
             {
                 "data": [
                     {"transaction": "POST /some/thing", "sum(span.duration)": 1007},
-                    {"transaction": "GET /another/", "sum(span.duration)": 1003},
                 ],
                 "meta": {},
             },
-            # Second call: trace for transaction 1
             {
                 "data": [
                     {"trace": "trace_id_1", "precise.start_ts": 1234},
                 ],
                 "meta": {},
             },
-            # Third call: trace for transaction 2
-            {
-                "data": [
-                    {"trace": "trace_id_2", "precise.start_ts": 1234},
-                ],
-                "meta": {},
-            },
-            # Fourth call: span count query
             {
                 "data": [
                     {"trace": "trace_id_1", "count()": 50},
-                    {"trace": "trace_id_2", "count()": 100},
                 ],
                 "meta": {},
             },
         ]
 
-        # Seer returns 202 for async processing
         mock_accepted_response = Mock()
         mock_accepted_response.status = 202
         mock_seer_request.return_value = mock_accepted_response
 
         detect_llm_issues_for_org(self.organization.id)
 
-        assert mock_spans_query.call_count == 4  # 1 transactions, 2 traces, 1 span count
-        assert mock_seer_request.call_count == 1  # Single batch request
+        assert mock_spans_query.call_count == 3
+        assert mock_seer_request.call_count == 1
 
         seer_request = mock_seer_request.call_args[0][0]
         assert seer_request.project_id == self.project.id
         assert seer_request.organization_id == self.organization.id
         assert len(seer_request.traces) == 1
 
-        assert mock_mark_processed.call_count == 1
-
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
-    @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
-    @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
-    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     @patch("sentry.tasks.llm_issue_detection.detection.logger.error")
-    def test_detect_llm_issues_seer_error_no_traces_marked(
+    def test_detect_llm_issues_seer_error_logged(
         self,
         mock_logger_error,
-        mock_shuffle,
         mock_spans_query,
         mock_seer_request,
-        mock_get_unprocessed,
-        mock_mark_processed,
         mock_budget_request,
     ):
         mock_budget_request.return_value = self._budget_ok_response()
-
-        mock_shuffle.return_value = None
-        mock_get_unprocessed.return_value = {"trace_id_1"}
 
         mock_spans_query.side_effect = [
             {
@@ -307,8 +272,6 @@ class LLMIssueDetectionTest(TestCase):
 
         assert mock_seer_request.call_count == 1
         assert mock_logger_error.call_count == 1
-        # Traces NOT marked as processed on error - will be retried next run
-        assert mock_mark_processed.call_count == 0
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
@@ -380,59 +343,6 @@ class LLMIssueDetectionTest(TestCase):
 
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=business" in budget_url
-
-
-class TestTraceProcessingFunctions:
-    @pytest.mark.parametrize(
-        ("trace_ids", "mget_return", "expected"),
-        [
-            # All unprocessed (mget returns None for missing keys)
-            (["a", "b", "c"], [None, None, None], {"a", "b", "c"}),
-            # Some processed (mget returns "1" for existing keys)
-            (["a", "b", "c"], ["1", None, "1"], {"b"}),
-            # All processed
-            (["a", "b"], ["1", "1"], set()),
-            # Empty input
-            ([], [], set()),
-        ],
-    )
-    @patch("sentry.tasks.llm_issue_detection.detection.redis_clusters")
-    def test_get_unprocessed_traces(
-        self, mock_redis_clusters: Mock, trace_ids: list, mget_return: list, expected: set
-    ) -> None:
-        mock_cluster = Mock()
-        mock_redis_clusters.get.return_value = mock_cluster
-        mock_cluster.mget.return_value = mget_return
-
-        result = _get_unprocessed_traces(trace_ids)
-
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        ("trace_ids", "expected_set_calls"),
-        [
-            (["trace_123"], 1),  # Single trace
-            (["trace_1", "trace_2", "trace_3"], 3),  # Multiple traces
-            ([], 0),  # Empty list - early return, no pipeline calls
-        ],
-    )
-    @patch("sentry.tasks.llm_issue_detection.detection.redis_clusters")
-    def test_mark_traces_as_processed(
-        self, mock_redis_clusters: Mock, trace_ids: list[str], expected_set_calls: int
-    ) -> None:
-        mock_cluster = Mock()
-        mock_pipeline = Mock()
-        mock_redis_clusters.get.return_value = mock_cluster
-        mock_cluster.pipeline.return_value.__enter__ = Mock(return_value=mock_pipeline)
-        mock_cluster.pipeline.return_value.__exit__ = Mock(return_value=False)
-
-        mark_traces_as_processed(trace_ids)
-
-        assert mock_pipeline.set.call_count == expected_set_calls
-        if expected_set_calls == 0:
-            mock_cluster.pipeline.assert_not_called()
-        else:
-            mock_pipeline.execute.assert_called_once()
 
 
 class TestGetValidTraceIdsBySpanCount:
