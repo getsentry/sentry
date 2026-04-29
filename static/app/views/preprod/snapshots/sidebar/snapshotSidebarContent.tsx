@@ -43,13 +43,11 @@ interface SnapshotSidebarContentProps {
   onSelectItem: (key: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
   searchQuery: string;
-  totalItemCount: number;
   statusCounts?: StatusCounts | null;
 }
 
 export function SnapshotSidebarContent({
   items,
-  totalItemCount,
   currentItemKey,
   isAllSelected,
   searchQuery,
@@ -154,11 +152,6 @@ export function SnapshotSidebarContent({
               {t('All')}
             </Text>
           </Flex>
-          <CountBadge>
-            <Text variant="muted" size="xs">
-              {totalItemCount}
-            </Text>
-          </CountBadge>
         </SidebarItemRow>
         {items.map(renderItem)}
         {items.length === 0 && (

@@ -595,16 +595,6 @@ const NavGutter = styled('div')`
   flex-shrink: 0;
 `;
 
-const SingleViewGroup = styled(Stack)`
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.lg};
-  gap: ${p => p.theme.space.md};
-  flex: 1 1 0;
-  min-height: 0;
-`;
-
 const NavButton = styled(Button)`
   transition: transform 80ms ease;
   &[data-pressed='true'] {
