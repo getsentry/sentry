@@ -33,7 +33,6 @@ from sentry.seer.explorer.tools import get_trace_item_attributes
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
@@ -1663,7 +1662,6 @@ class TestTriggerCodingAgentLaunch:
 
 
 class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
     def test_integration_not_found_clears_handoff_project_options(self, mock_launch):
         mock_launch.side_effect = IntegrationNotFound()
@@ -1688,23 +1686,6 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
-    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_integration_not_found_skips_clear_without_feature_flag(self, mock_launch):
-        mock_launch.side_effect = IntegrationNotFound()
-
-        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
-
-        result = trigger_coding_agent_launch(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            integration_id=42,
-            run_id=99,
-        )
-
-        assert result == {"success": False, "error_code": "integration_not_found"}
-        assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
-
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
     def test_integration_not_found_skips_clear_when_project_outside_org(self, mock_launch):
         """Project IDs outside the caller org must not have their preferences mutated."""

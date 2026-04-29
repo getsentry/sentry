@@ -23,15 +23,12 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     clear_preference_automation_handoff,
     read_preference_from_sentry_db,
-    set_project_seer_preference,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client_models import Artifact
 from sentry.seer.explorer.client_utils import fetch_run_status
 from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.models import (
-    SeerApiError,
-    SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
 from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
@@ -492,29 +489,13 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         cls, project: Project, run_id: int, organization: Organization
     ) -> None:
         """Clear automation_handoff from project preferences after integration is not found."""
-        preference = read_preference_from_sentry_db(project)
-        if preference.automation_handoff is None:
-            return
-
-        updated_preference = preference.copy(update={"automation_handoff": None})
-
         try:
-            set_project_seer_preference(updated_preference)
-        except (SeerApiError, SeerApiResponseValidationError):
+            clear_preference_automation_handoff(project)
+        except Exception:
             logger.exception(
                 "autofix.on_completion_hook.clear_handoff_preference_failed",
                 extra={"run_id": run_id, "organization_id": organization.id},
             )
-            return
-
-        if features.has("organizations:seer-project-settings-dual-write", organization):
-            try:
-                clear_preference_automation_handoff(project)
-            except Exception:
-                logger.exception(
-                    "seer.write_preferences.failed",
-                    extra={"project_id": project.id, "organization_id": organization.id},
-                )
 
     @classmethod
     def _trigger_coding_agent_handoff(

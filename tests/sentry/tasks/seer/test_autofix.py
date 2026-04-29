@@ -4,11 +4,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.test import TestCase
 
-from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
 from sentry.seer.models import (
-    SeerApiError,
     SummarizeIssueResponse,
     SummarizeIssueScores,
 )
@@ -19,7 +17,6 @@ from sentry.tasks.seer.autofix import (
     generate_issue_summary_only,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
 
@@ -153,8 +150,7 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_configures_org_and_project_settings(self, mock_bulk_set: MagicMock) -> None:
+    def test_configures_org_and_project_settings(self) -> None:
         """Test that org and project settings are configured correctly."""
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
@@ -172,13 +168,14 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert project1.get_option("sentry:autofix_automation_tuning") == "medium"
         assert project2.get_option("sentry:seer_scanner_automation") is True
         assert project2.get_option("sentry:autofix_automation_tuning") == "medium"
-
-        # Projects with valid default stopping point and no org default handoff are skipped.
-        mock_bulk_set.assert_not_called()
+        # Check Seer project preferences (valid stopping point + no org-default handoff means no change)
+        assert project1.get_option("sentry:seer_automation_handoff_point") is None
+        assert project1.get_option("sentry:seer_automation_handoff_target") is None
+        assert project2.get_option("sentry:seer_automation_handoff_point") is None
+        assert project2.get_option("sentry:seer_automation_handoff_target") is None
 
     @pytest.mark.skip("DO NOT override autofix automation tuning off")
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_overrides_autofix_off_to_medium(self, mock_bulk_set: MagicMock) -> None:
+    def test_overrides_autofix_off_to_medium(self) -> None:
         """Test that projects with autofix set to off are migrated to medium."""
         project = self.create_project(organization=self.organization)
         project.update_option("sentry:autofix_automation_tuning", "off")
@@ -190,22 +187,18 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Scanner should be enabled
         assert project.get_option("sentry:seer_scanner_automation") is True
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_skips_project_with_valid_stopping_point_and_no_default_handoff(
-        self, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_skips_project_with_valid_stopping_point_and_no_default_handoff(self) -> None:
         """Project is skipped when it has a valid stopping point and the org has no default handoff (seer agent)."""
         project = self.create_project(organization=self.organization)
         project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_not_called()
+        # Existing stopping point is unchanged and no handoff is written.
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert project.get_option("sentry:seer_automation_handoff_point") is None
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_skips_project_with_valid_stopping_point_and_existing_handoff(
-        self, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_skips_project_with_valid_stopping_point_and_existing_handoff(self) -> None:
         """Project is skipped when it has a valid stopping point and an existing handoff configured."""
         project = self.create_project(organization=self.organization)
         self.organization.update_option(
@@ -221,12 +214,14 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_not_called()
+        # Existing stopping point and handoff preserved instead of being backfilled from org defaults.
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+        assert project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+        assert project.get_option("sentry:seer_automation_handoff_target") == "claude_code_agent"
+        assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
+        assert project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_project_with_valid_stopping_point_gets_handoff_from_org_defaults(
-        self, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_project_with_valid_stopping_point_gets_handoff_from_org_defaults(self) -> None:
         """Project with valid stopping point but no handoff gets org default handoff applied.
         Existing stopping point is preserved, and auto_open_prs does not override it for external agents."""
         project = self.create_project(organization=self.organization)
@@ -240,21 +235,17 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_called_once()
-        prefs = mock_bulk_set.call_args[0][1]
-        prefs_by_project = {p["project_id"]: p for p in prefs}
-        assert prefs_by_project[project.id]["automated_run_stopping_point"] == "open_pr"
-        assert prefs_by_project[project.id]["automation_handoff"] == {
-            "handoff_point": "root_cause",
-            "target": "cursor_background_agent",
-            "integration_id": 42,
-            "auto_create_pr": True,
-        }
+        # Stopping point preserved.
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        # New handoff from org defaults.
+        assert project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+        assert (
+            project.get_option("sentry:seer_automation_handoff_target") == "cursor_background_agent"
+        )
+        assert project.get_option("sentry:seer_automation_handoff_integration_id") == 42
+        assert project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_project_with_invalid_stopping_point_gets_org_default_stopping_point(
-        self, mock_bulk_set: MagicMock
-    ) -> None:
+    def test_project_with_invalid_stopping_point_gets_org_default_stopping_point(self) -> None:
         """Project with unrecognized stopping point gets org default stopping point applied.
         Existing handoff (if any) is preserved."""
         project = self.create_project(organization=self.organization)
@@ -262,6 +253,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
             "sentry:seer_default_coding_agent", "cursor_background_agent"
         )
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
 
         # "root_cause" is not in the valid set without the root-cause-stopping-point flag.
         project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
@@ -272,22 +264,13 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_called_once()
-        prefs = mock_bulk_set.call_args[0][1]
-        prefs_by_project = {p["project_id"]: p for p in prefs}
-        assert (
-            prefs_by_project[project.id]["automated_run_stopping_point"]
-            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-        )
-        assert prefs_by_project[project.id]["automation_handoff"] == {
-            "handoff_point": "root_cause",
-            "target": "claude_code_agent",
-            "integration_id": 99,
-            "auto_create_pr": False,
-        }
+        # Stopping point changed to org default.
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        # Existing handoff preserved.
+        assert project.get_option("sentry:seer_automation_handoff_target") == "claude_code_agent"
+        assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_root_cause_stopping_point_preserved_when_valid(self, mock_bulk_set: MagicMock) -> None:
+    def test_root_cause_stopping_point_preserved_when_valid(self) -> None:
         """Project with root_cause stopping point is preserved when root-cause-stopping-point flag is enabled."""
         project = self.create_project(organization=self.organization)
         project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
@@ -295,28 +278,9 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         with self.feature("organizations:root-cause-stopping-point"):
             configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_bulk_set.assert_not_called()
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "root_cause"
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_raises_on_bulk_set_api_failure(self, mock_bulk_set: MagicMock) -> None:
-        """Test that task raises on bulk SET API failure to trigger retry."""
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
-        # Force projects to take the update path so bulk_set is invoked.
-        project1.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
-        project2.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
-
-        mock_bulk_set.side_effect = SeerApiError("API error", 500)
-
-        with pytest.raises(SeerApiError):
-            configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        # Sentry DB options should still be set before the API call
-        assert project1.get_option("sentry:seer_scanner_automation") is True
-        assert project2.get_option("sentry:seer_scanner_automation") is True
-
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_sets_seat_based_tier_cache_to_true(self, mock_bulk_set: MagicMock) -> None:
+    def test_sets_seat_based_tier_cache_to_true(self) -> None:
         """Test that the seat-based tier cache is set to True after configuring org."""
         self.create_project(organization=self.organization)
 
@@ -330,8 +294,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
 
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_preserves_existing_repositories(self, mock_bulk_set: MagicMock) -> None:
+    def test_preserves_existing_repositories(self) -> None:
         """Test that existing repositories are preserved when preferences are set."""
         project = self.create_project(organization=self.organization)
         repo = self.create_repo(
@@ -346,40 +309,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        preferences = mock_bulk_set.call_args[0][1]
-        assert len(preferences) == 1
-        repos = preferences[0]["repositories"]
-        assert len(repos) == 1
-        assert repos[0]["owner"] == "existing-org"
-        assert repos[0]["name"] == "existing-repo"
-        assert repos[0]["external_id"] == "ext123"
-
-    @with_feature("organizations:seer-project-settings-dual-write")
-    @patch("sentry.tasks.seer.autofix.bulk_write_preferences_to_sentry_db")
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    def test_writes_to_sentry_db(
-        self, mock_bulk_set: MagicMock, mock_bulk_write_db: MagicMock
-    ) -> None:
-        """When dual-write flag is enabled, preferences are also written to Sentry DB."""
-        project = self.create_project(organization=self.organization)
-        repo = self.create_repo(
-            project=project,
-            provider="integrations:github",
-            external_id="ext123",
-            name="test-org/test-repo",
-        )
-        SeerProjectRepository.objects.create(project=project, repository=repo)
-        # Force the update path so dual-write happens.
-        project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        mock_bulk_write_db.assert_called_once()
-        preferences = mock_bulk_write_db.call_args[0][1]
-        assert len(preferences) == 1
-        assert preferences[0].project_id == project.id
-        assert (
-            preferences[0].automated_run_stopping_point == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-        )
-        assert preferences[0].repositories[0].owner == "test-org"
-        assert preferences[0].repositories[0].name == "test-repo"
+        seer_repos = list(SeerProjectRepository.objects.filter(project=project))
+        assert len(seer_repos) == 1
+        assert seer_repos[0].repository_id == repo.id
