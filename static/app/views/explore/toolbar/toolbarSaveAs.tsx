@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
@@ -88,10 +87,6 @@ export function ToolbarSaveAs() {
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
-  const crossEventUnsupportedTooltip = t(
-    'Cross event queries currently only support saved queries.'
-  );
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
@@ -169,12 +164,11 @@ export function ToolbarSaveAs() {
 
   items.push({
     key: 'create-alert',
-    label: hasCrossEvents ? <DisabledText>{newAlertLabel}</DisabledText> : newAlertLabel,
+    label: newAlertLabel,
     textValue: newAlertLabel,
     children: alertsUrls ?? [],
-    disabled: hasCrossEvents || !alertsUrls || alertsUrls.length === 0,
+    disabled: !alertsUrls || alertsUrls.length === 0,
     isSubmenu: true,
-    tooltip: hasCrossEvents ? crossEventUnsupportedTooltip : undefined,
   });
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
@@ -210,9 +204,7 @@ export function ToolbarSaveAs() {
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
     isSubmenu: chartOptions.length > 1 ? true : false,
-    label: hasCrossEvents ? (
-      <DisabledText>{t('Dashboard widget')}</DisabledText>
-    ) : (
+    label: (
       <Feature
         hookName="feature-disabled:dashboards-edit"
         features="organizations:dashboards-edit"
@@ -221,11 +213,10 @@ export function ToolbarSaveAs() {
         {t('Dashboard widget')}
       </Feature>
     ),
-    disabled: hasCrossEvents || disableAddToDashboard,
+    disabled: disableAddToDashboard,
     children: chartOptions.length > 1 ? chartOptions : undefined,
-    tooltip: hasCrossEvents ? crossEventUnsupportedTooltip : undefined,
     onAction: () => {
-      if (hasCrossEvents || disableAddToDashboard || chartOptions.length > 1) {
+      if (disableAddToDashboard || chartOptions.length > 1) {
         return undefined;
       }
 
@@ -299,33 +290,28 @@ export function ToolbarSaveAs() {
   return (
     <SaveStyledToolbarSection data-test-id="section-save-as">
       <Grid flow="column" align="center" gap="md">
-        <Tooltip
-          disabled={!hasCrossEvents}
-          title={t('Saving cross event queries is not supported during early access.')}
-        >
-          <DropdownMenu
-            isDisabled={hasCrossEvents}
-            items={items}
-            trigger={triggerProps => (
-              <SaveAsButton
-                {...triggerProps}
-                priority={shouldHighlightSaveButton ? 'primary' : 'default'}
-                aria-label={t('Save as')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
+        <DropdownMenu
+          items={items}
+          trigger={triggerProps => (
+            <SaveAsButton
+              {...triggerProps}
+              priority={shouldHighlightSaveButton ? 'primary' : 'default'}
+              aria-label={t('Save as')}
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
 
-                  triggerProps.onClick?.(e);
-                }}
-              >
-                {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-              </SaveAsButton>
-            )}
-          />
-        </Tooltip>
+                triggerProps.onClick?.(e);
+              }}
+            >
+              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+            </SaveAsButton>
+          )}
+        />
+
         <WideLinkButton
           aria-label={t('Compare')}
-          disabled={hasCrossEvents || !canCompareQueries}
+          disabled={!canCompareQueries}
           onClick={() =>
             trackAnalytics('trace_explorer.compare', {
               organization,
@@ -345,11 +331,9 @@ export function ToolbarSaveAs() {
             })),
           })}
           tooltipProps={
-            hasCrossEvents
-              ? {title: t('Comparing queries is not supported during early access.')}
-              : canCompareQueries
-                ? undefined
-                : {title: t('Add two or more charts to compare chart queries.')}
+            canCompareQueries
+              ? undefined
+              : {title: t('Add two or more charts to compare chart queries.')}
           }
         >
           {t('Compare Queries')}

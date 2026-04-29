@@ -886,7 +886,7 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('disables save as and compare when cross events are present', async () => {
+  it('allows save as and compare when cross events are present', async () => {
     render(<ExploreToolbar />, {
       organization,
       additionalWrapper: Wrapper,
@@ -895,6 +895,10 @@ describe('ExploreToolbar', () => {
           pathname: '/traces/',
           query: {
             crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
+            visualize: [
+              '{"chartType":1,"yAxes":["p95(span.duration)"]}',
+              '{"chartType":1,"yAxes":["count(span.duration)"]}',
+            ],
           },
         },
       },
@@ -902,10 +906,9 @@ describe('ExploreToolbar', () => {
 
     const section = await screen.findByTestId('section-save-as');
 
-    expect(within(section).getByRole('button', {name: 'Save as'})).toBeDisabled();
+    expect(within(section).getByRole('button', {name: 'Save as'})).toBeEnabled();
 
-    // Compare Queries button should be disabled (LinkButton renders with role="button")
-    expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(
+    expect(within(section).getByRole('button', {name: 'Compare'})).not.toHaveAttribute(
       'aria-disabled',
       'true'
     );
