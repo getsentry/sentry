@@ -4129,6 +4129,16 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Cells
+
+# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
+register(
+    "provision_organization_in_cell.record_analytics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # SCM
 
 register(
