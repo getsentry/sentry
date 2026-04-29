@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -46,6 +47,34 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         org_volume = get_eap_organization_volume(organization, time_interval=timedelta(hours=1))
+
+        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=2, indexed=2)
+
+    def test_get_eap_organization_volume_with_spans_measure(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+                self.create_span(
+                    {"is_segment": False},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=1),
+                ),
+            ]
+        )
+
+        org_volume = get_eap_organization_volume(
+            organization, time_interval=timedelta(hours=1), measure=SamplingMeasure.SPANS
+        )
 
         assert org_volume == OrganizationDataVolume(org_id=organization.id, total=2, indexed=2)
 
