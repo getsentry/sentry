@@ -42,8 +42,6 @@ export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCa
         return 'success';
       case CodingAgentStatus.FAILED:
         return 'danger';
-      case CodingAgentStatus.PENDING:
-      case CodingAgentStatus.RUNNING:
       default:
         return 'info';
     }

@@ -112,8 +112,6 @@ export function AIContentRenderer({
       return (
         <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
       );
-
-    case 'plain-text':
     default:
       if (inline) {
         return <Fragment>{text}</Fragment>;

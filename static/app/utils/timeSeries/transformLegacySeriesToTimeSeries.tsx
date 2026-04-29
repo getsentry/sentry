@@ -133,8 +133,6 @@ function mapAggregationTypeToValueTypeAndUnit(
       return {valueType: 'score', valueUnit: null};
     case 'percentage':
       return {valueType: 'percentage', valueUnit: null};
-    case 'integer':
-    case 'number':
     default:
       return {valueType: 'number', valueUnit: null};
   }

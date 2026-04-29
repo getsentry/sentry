@@ -284,8 +284,6 @@ export const getIntegrationSourceUrl = (
       }
       return url.toString();
     }
-    case 'github':
-    case 'github_enterprise':
     default:
       if (lineNo === null) {
         return sourceUrl;

@@ -53,7 +53,6 @@ export function UsageAlert({subscription, usage}: Props) {
         );
       case UsageAction.REQUEST_UPGRADE:
         return t('Bug your organization owner to upgrade your plan to avoid data loss.');
-      case UsageAction.SEND_TO_CHECKOUT:
       default:
         return t('Upgrade your plan to avoid data loss.');
     }

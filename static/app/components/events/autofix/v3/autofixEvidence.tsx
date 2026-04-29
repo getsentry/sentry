@@ -122,7 +122,6 @@ function getTelemetryEvidenceLabel(dataset?: string) {
     case 'metrics':
     case 'tracemetrics':
       return t('Query: Metrics');
-    case 'spans':
     default:
       return t('Query: Spans');
   }

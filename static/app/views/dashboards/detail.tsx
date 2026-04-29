@@ -981,7 +981,6 @@ class DashboardDetail extends Component<Props, State> {
         });
         break;
       }
-      case DashboardState.VIEW:
       default: {
         this.setState({
           dashboardState: DashboardState.VIEW,

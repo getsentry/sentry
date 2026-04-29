@@ -64,7 +64,6 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
       return '10bytes';
     case FieldValueType.PERCENTAGE:
       return '0.5';
-    case FieldValueType.STRING:
     default:
       return '""';
   }

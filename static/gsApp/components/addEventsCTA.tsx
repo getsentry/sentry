@@ -181,7 +181,6 @@ function AddEventsCTA(props: Props) {
           {t('Request Upgrade')}
         </Button>
       );
-    case 'send_to_checkout':
     default:
       return (
         <LinkButton

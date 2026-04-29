@@ -154,7 +154,6 @@ export function PageLayout(props: Props) {
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
-        case Tab.TRANSACTION_SUMMARY:
         default:
           return transactionSummaryRouteWithQuery(routeQuery);
       }

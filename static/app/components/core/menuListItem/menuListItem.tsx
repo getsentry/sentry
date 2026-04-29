@@ -36,7 +36,6 @@ function getTextColor({
       return theme.tokens.content.accent;
     case 'danger':
       return theme.tokens.content.danger;
-    case 'default':
     default:
       return theme.tokens.content.primary;
   }
@@ -52,7 +51,6 @@ const getVerticalPadding = (size: FormSize | undefined, theme: Theme) => {
       return theme.space.xs;
     case 'sm':
       return theme.space.sm;
-    case 'md':
     default:
       return theme.space.md;
   }

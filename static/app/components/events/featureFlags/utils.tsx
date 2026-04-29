@@ -16,7 +16,6 @@ const getOrderByLabel = (sort: string) => {
       return t('Z-A');
     case OrderBy.OLDEST:
       return t('Oldest First');
-    case OrderBy.NEWEST:
     default:
       return t('Newest First');
   }

@@ -369,7 +369,6 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return TraceMetricsConfig;
     case WidgetType.PREPROD_APP_SIZE:
       return MobileAppSizeConfig;
-    case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;
   }

@@ -420,8 +420,6 @@ function shouldConfirm(
     }
     case ConfirmAction.BOOKMARK:
       return selectedIdsSet.size > 1;
-    case ConfirmAction.MERGE:
-    case ConfirmAction.DELETE:
     default:
       return true; // By default, should confirm ...
   }

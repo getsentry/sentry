@@ -107,7 +107,6 @@ function getErrorMessage(
       );
     case StatusCheckErrorType.API_ERROR:
       return t('A temporary API error occurred while posting the status check.');
-    case StatusCheckErrorType.UNKNOWN:
     default:
       return t('An error occurred while posting the status check to %s.', providerName);
   }

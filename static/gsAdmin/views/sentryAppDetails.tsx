@@ -85,7 +85,6 @@ export function SentryAppDetails() {
         onAction: () => onUpdateMutation.mutate({status: 'unpublished'}),
       };
       break;
-    case 'internal':
     default:
       publishingAction = undefined;
   }

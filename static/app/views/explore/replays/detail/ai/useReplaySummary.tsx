@@ -63,8 +63,6 @@ const shouldPoll = (
       return true;
 
     // Final states
-    case ReplaySummaryStatus.COMPLETED:
-    case ReplaySummaryStatus.ERROR:
     default:
       return false;
   }

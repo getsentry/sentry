@@ -134,8 +134,6 @@ class ReleaseIssues extends Component<Props, State> {
       case IssuesType.REGRESSED:
         query.setFilterValues('regressed_in_release', [version]);
         break;
-      case IssuesType.RESOLVED:
-      case IssuesType.ALL:
       default:
         query.setFilterValues('release', [version]);
     }
@@ -216,7 +214,6 @@ class ReleaseIssues extends Component<Props, State> {
             ]).formatString(),
           },
         };
-      case IssuesType.NEW:
       default:
         return {
           endpoint: {

@@ -201,7 +201,6 @@ export function MonitorForm({
         rv['config.schedule.frequency'] = config.schedule[0];
         rv['config.schedule.interval'] = config.schedule[1];
         break;
-      case 'crontab':
       default:
         rv['config.schedule'] = config.schedule;
         rv['config.timezone'] = config.timezone;

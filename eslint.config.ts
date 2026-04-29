@@ -834,7 +834,6 @@ export default typescript.config([
       'unicorn/no-unreadable-array-destructuring': 'off',
       'unicorn/no-useless-promise-resolve-reject': 'off',
       'unicorn/no-useless-spread': 'off',
-      'unicorn/no-useless-switch-case': 'off',
       'unicorn/numeric-separators-style': 'off',
       'unicorn/prefer-add-event-listener': 'off',
       'unicorn/prefer-at': 'off',

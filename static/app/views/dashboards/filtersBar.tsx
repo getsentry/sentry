@@ -81,11 +81,6 @@ function getDataCategoriesFromWidgets(
       case WidgetType.LOGS:
         categories.add(DataCategory.LOG_ITEM);
         break;
-      case WidgetType.ERRORS:
-      case WidgetType.DISCOVER:
-      case WidgetType.ISSUE:
-      case WidgetType.RELEASE:
-      case WidgetType.METRICS:
       default:
         // For error-like widgets, use TRANSACTIONS as a safe default
         // since it has the most permissive date range

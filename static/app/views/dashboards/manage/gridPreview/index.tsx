@@ -30,7 +30,6 @@ function MiniWidget({displayType, color}: {color: string; displayType: DisplayTy
       return <NumberPreview color={color} />;
     case DisplayType.TABLE:
       return <TablePreview />;
-    case DisplayType.LINE:
     default:
       return <LinePreview color={color} />;
   }

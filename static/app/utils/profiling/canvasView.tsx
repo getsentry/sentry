@@ -106,8 +106,6 @@ export class CanvasView<T extends {configSpace: Rect}> {
         );
         return;
       }
-      case 'anchorBottom':
-      case 'anchorTop':
       default: {
         this.configSpace = new Rect(
           0,

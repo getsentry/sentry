@@ -100,7 +100,6 @@ export default function TempestSettings() {
     switch (tab) {
       case 'devkit-crashes':
         return t('DevKit Crashes');
-      case 'retail':
       default:
         return t('Retail');
     }

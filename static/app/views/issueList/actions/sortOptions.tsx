@@ -31,7 +31,6 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('Number of events.');
     case IssueSortOptions.USER:
       return t('Number of users affected.');
-    case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
   }

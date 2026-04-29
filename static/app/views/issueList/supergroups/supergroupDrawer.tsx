@@ -453,8 +453,6 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
           return pageSelected && selectedIdsSet.size > 1;
         case ConfirmAction.BOOKMARK:
           return selectedIdsSet.size > 1;
-        case ConfirmAction.MERGE:
-        case ConfirmAction.DELETE:
         default:
           return true;
       }

@@ -258,10 +258,6 @@ class ProjectCharts extends Component<Props, State> {
       case DisplayModes.ANR_RATE:
       case DisplayModes.FOREGROUND_ANR_RATE:
         return t('Total Users');
-      case DisplayModes.APDEX:
-      case DisplayModes.FAILURE_RATE:
-      case DisplayModes.TPM:
-      case DisplayModes.TRANSACTIONS:
       default:
         return t('Total Transactions');
     }

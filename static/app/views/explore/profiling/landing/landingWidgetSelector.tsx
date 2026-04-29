@@ -172,7 +172,6 @@ export function LandingWidgetSelector({
           onDataState={onDataState}
         />
       );
-    case 'slowest functions':
     default:
       return (
         <SlowestFunctionsWidget

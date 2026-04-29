@@ -309,7 +309,6 @@ function getBreadcrumbColorConfig(
         icon: theme.tokens.content.accent,
         iconBorder: theme.tokens.border.transparent.accent.moderate,
       };
-    case BreadcrumbType.DEBUG:
     default:
       return {
         title: theme.tokens.content.primary,

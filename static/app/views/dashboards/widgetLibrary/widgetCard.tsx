@@ -18,7 +18,6 @@ export function getWidgetIcon(displayType: DisplayType): React.ReactNode {
       return <StyledIconArrow />;
     case DisplayType.AREA:
       return <StyledIconGraphArea />;
-    case DisplayType.LINE:
     default:
       return <StyledIconGraph />;
   }

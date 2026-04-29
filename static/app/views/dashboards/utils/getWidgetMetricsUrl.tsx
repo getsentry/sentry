@@ -92,8 +92,6 @@ function getChartTypeFromDisplayType(displayType: DisplayType): ChartType {
       return ChartType.AREA;
     case DisplayType.BAR:
       return ChartType.BAR;
-    case DisplayType.TABLE:
-    case DisplayType.BIG_NUMBER:
     default:
       return ChartType.LINE;
   }

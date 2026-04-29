@@ -24,7 +24,6 @@ function getFilterSelector(
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:
       return NumericFilterSelector;
-    case FieldValueType.STRING:
     default:
       return FilterSelector;
   }

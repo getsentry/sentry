@@ -468,8 +468,6 @@ function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any |
         key = token.key.value;
         break;
       }
-      case Token.KEY_AGGREGATE:
-      case Token.KEY_EXPLICIT_TAG:
       default: {
         Sentry.captureMessage(`Unsupported key type for filter, got ${token.key.type}`);
         info(fmt`Unsupported key type for filter, got ${token.key.type}`);

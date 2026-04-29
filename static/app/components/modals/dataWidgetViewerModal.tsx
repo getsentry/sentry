@@ -594,7 +594,6 @@ function DataWidgetViewerModal(props: Props) {
             {renderTable}
           </ReleaseWidgetQueries>
         );
-      case WidgetType.DISCOVER:
       default:
         return (
           <WidgetQueries
@@ -941,7 +940,6 @@ function OpenButton({
     case WidgetType.PREPROD_APP_SIZE:
       // Mobile app size widgets are not integrated with Explore or Discover
       return null;
-    case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(

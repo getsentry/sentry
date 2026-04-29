@@ -101,7 +101,6 @@ function getSiblingImportsSetupConfiguration(siblingOption: string): string {
           import {createRouter} from "vue-router";
           import router from "./router";
           `;
-    case VueVersion.VUE2:
     default:
       return `import Vue from "vue";
           import Router from "vue-router";`;
@@ -113,7 +112,6 @@ function getSiblingSuffix(siblingOption: string): string {
     case VueVersion.VUE3:
       return `app.use(router);
       app.mount("#app");`;
-    case VueVersion.VUE2:
     default:
       return `new Vue({
         router,

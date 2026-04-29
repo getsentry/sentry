@@ -16,7 +16,6 @@ export function getPreprodBuildsDisplay(
       return PreprodBuildsDisplay.DISTRIBUTION;
     case PreprodBuildsDisplay.SNAPSHOT:
       return PreprodBuildsDisplay.SNAPSHOT;
-    case PreprodBuildsDisplay.SIZE:
     default:
       return PreprodBuildsDisplay.SIZE;
   }

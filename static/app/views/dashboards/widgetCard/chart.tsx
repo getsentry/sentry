@@ -881,7 +881,6 @@ function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
     case 'area':
     case 'top_n':
       return <AreaChart stacked {...chartProps} />;
-    case 'line':
     default:
       return <LineChart {...chartProps} />;
   }

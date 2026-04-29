@@ -46,7 +46,6 @@ export function getSortLabel(key: string) {
       return t('Users');
     case IssueSortOptions.INBOX:
       return t('Date Added');
-    case IssueSortOptions.DATE:
     default:
       return t('Last Seen');
   }

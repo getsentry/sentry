@@ -229,7 +229,6 @@ const Dot = styled('span')<{active: boolean; pillColor: PillColor}>`
         return p.theme.tokens.graphics.danger.vibrant;
       case 'warning':
         return p.theme.tokens.graphics.warning.vibrant;
-      case 'muted':
       default:
         return p.theme.tokens.content.secondary;
     }

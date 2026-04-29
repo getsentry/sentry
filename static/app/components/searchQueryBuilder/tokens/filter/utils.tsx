@@ -263,8 +263,6 @@ export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
       return FieldValueType.NUMBER;
     case Token.VALUE_PERCENTAGE:
       return FieldValueType.PERCENTAGE;
-    case Token.VALUE_TEXT:
-    case Token.VALUE_TEXT_LIST:
     default:
       return FieldValueType.STRING;
   }

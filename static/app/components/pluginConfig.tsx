@@ -129,8 +129,6 @@ function mapPluginField(field: BackendPluginField): JsonFormAdapterFieldConfig {
       return {...base, type: 'email', default: defaultValue};
     case 'url':
       return {...base, type: 'url', default: defaultValue};
-    case 'string':
-    case 'text':
     default:
       return {...base, type: 'text', default: defaultValue};
   }

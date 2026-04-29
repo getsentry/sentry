@@ -145,7 +145,6 @@ function OrganizationDeveloperSettings() {
     switch (tab) {
       case 'internal':
         return renderInternalIntegrations();
-      case 'public':
       default:
         return renderPublicIntegrations();
     }

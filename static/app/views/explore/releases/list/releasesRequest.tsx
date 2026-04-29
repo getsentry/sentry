@@ -65,7 +65,6 @@ export function sessionDisplayToField(display: ReleasesDisplayOption) {
   switch (display) {
     case ReleasesDisplayOption.USERS:
       return SessionFieldWithOperation.USERS;
-    case ReleasesDisplayOption.SESSIONS:
     default:
       return SessionFieldWithOperation.SESSIONS;
   }

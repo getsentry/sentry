@@ -89,7 +89,6 @@ export function NetworkDetailsContent(props: Props) {
           )}
         </OverflowFluidHeight>
       );
-    case 'details':
     default:
       return (
         <OverflowFluidHeight>

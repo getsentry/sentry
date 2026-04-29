@@ -178,9 +178,6 @@ export function performanceTypeToTrendParameterLabel(
         label: TrendParameterLabel.LCP,
         column: TrendParameterColumn.LCP,
       };
-    case ProjectPerformanceType.ANY:
-    case ProjectPerformanceType.BACKEND:
-    case ProjectPerformanceType.FRONTEND_OTHER:
     default:
       return {
         label: TrendParameterLabel.DURATION,

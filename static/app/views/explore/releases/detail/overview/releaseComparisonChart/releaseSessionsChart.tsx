@@ -80,8 +80,6 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.UNHANDLED_USERS:
       case ReleaseComparisonChartType.CRASHED_USERS:
         return defined(value) ? `${value}%` : '\u2015';
-      case ReleaseComparisonChartType.SESSION_COUNT:
-      case ReleaseComparisonChartType.USER_COUNT:
       default:
         return typeof value === 'number' ? value.toLocaleString() : value;
     }
@@ -117,8 +115,6 @@ class ReleaseSessionsChart extends Component<Props> {
             color: theme.tokens.content.secondary,
           },
         };
-      case ReleaseComparisonChartType.SESSION_COUNT:
-      case ReleaseComparisonChartType.USER_COUNT:
       default:
         return undefined;
     }
@@ -175,8 +171,6 @@ class ReleaseSessionsChart extends Component<Props> {
         return [colors[13]];
       case ReleaseComparisonChartType.CRASHED_USERS:
         return [theme.colors.red400];
-      case ReleaseComparisonChartType.SESSION_COUNT:
-      case ReleaseComparisonChartType.USER_COUNT:
       default:
         return undefined;
     }

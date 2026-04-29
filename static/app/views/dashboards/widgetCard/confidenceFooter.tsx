@@ -185,7 +185,6 @@ function getExploreChartType(displayType: DisplayType) {
     case DisplayType.AREA:
     case DisplayType.TOP_N:
       return ChartType.AREA;
-    case DisplayType.LINE:
     default:
       return ChartType.LINE;
   }

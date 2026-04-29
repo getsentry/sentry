@@ -29,7 +29,6 @@ function ReplayCurrentTimeNew() {
       const startTimestamp = replay?.getStartTimestampMs() ?? 0;
       return <DateTime date={currentTime.timeMs + startTimestamp} seconds timeOnly />;
     }
-    case 'relative':
     default:
       return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
   }

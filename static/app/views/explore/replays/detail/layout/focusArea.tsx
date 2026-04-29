@@ -69,7 +69,6 @@ export function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
           <Playlist />
         </AnalyticsArea>
       );
-    case TabKey.BREADCRUMBS:
     default: {
       return (
         <AnalyticsArea name="breadcrumbs_tab">

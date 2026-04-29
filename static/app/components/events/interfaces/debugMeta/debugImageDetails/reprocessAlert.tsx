@@ -81,7 +81,6 @@ export function ReprocessAlert({
         return t(
           'This event cannot be reprocessed because a required attachment is missing'
         );
-      case ReprocessableEventReason.UNPROCESSED_EVENT_NOT_FOUND:
       default:
         return t('This event cannot be reprocessed');
     }

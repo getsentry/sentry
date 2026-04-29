@@ -86,7 +86,6 @@ export function useSpanSamplesWebVitalsQuery({
       field = SpanFields.TTFB;
       ratioField = SpanFields.TTFB_SCORE_RATIO;
       break;
-    case 'inp':
     default:
       field = SpanFields.INP;
       ratioField = SpanFields.INP_SCORE_RATIO;

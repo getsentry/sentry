@@ -310,7 +310,6 @@ export function isStacktraceNewestFirst() {
       return true;
     case StacktraceOrder.MOST_RECENT_LAST:
       return false;
-    case StacktraceOrder.DEFAULT:
     default:
       return true;
   }
