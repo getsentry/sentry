@@ -100,8 +100,6 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'build_configuration_name',
   'build_number',
   'build_version',
-  'git_base_ref',
-  'git_head_ref',
   'platform_name',
 ];
 
@@ -115,10 +113,7 @@ const PREPROD_IMAGE_FIELDS = [
   'images_unchanged',
 ] as const;
 
-export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [
-  'git_pr_number',
-  ...PREPROD_IMAGE_FIELDS,
-];
+export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [...PREPROD_IMAGE_FIELDS];
 
 export const SENTRY_PREPROD_BOOLEAN_TAGS: string[] = ['is_approved'];
 
