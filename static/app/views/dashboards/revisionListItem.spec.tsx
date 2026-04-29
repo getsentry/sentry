@@ -132,7 +132,13 @@ describe('RevisionListItem', () => {
 
     const avatarUrl = 'https://example.com/avatar.jpg';
     renderItem({
-      createdBy: {id: '42', name: 'Alice', email: 'alice@example.com', avatarUrl},
+      createdBy: {
+        id: '42',
+        name: 'Alice',
+        email: 'alice@example.com',
+        avatarType: 'upload',
+        avatarUrl,
+      },
     });
 
     expect(await screen.findByRole('img', {name: 'Alice'})).toHaveAttribute(
