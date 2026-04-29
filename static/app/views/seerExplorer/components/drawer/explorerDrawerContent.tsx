@@ -455,4 +455,7 @@ const DrawerContentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  contain: inline-size;
+  container-type: inline-size;
+  container-name: seer-explorer-root;
 `;
