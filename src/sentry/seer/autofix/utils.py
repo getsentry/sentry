@@ -554,11 +554,16 @@ def _write_preferences_to_sentry_db(
         # Lock project rows to serialize concurrent preference writes.
         list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
 
-        # Delete existing project repos and branch overrides. Leave rows whose
-        # repository is no longer active so disabled-repo prefs are preserved.
-        SeerProjectRepository.objects.filter(
-            project_id__in=project_ids,
-            repository__status=ObjectStatus.ACTIVE,
+        # Preferences for disabled repos are preserved so they restore when re-enabled.
+        disabled_repo_ids = set(
+            SeerProjectRepository.objects.filter(
+                project_id__in=project_ids,
+                repository__status=ObjectStatus.DISABLED,
+            ).values_list("repository_id", flat=True)
+        )
+
+        SeerProjectRepository.objects.filter(project_id__in=project_ids).exclude(
+            repository_id__in=disabled_repo_ids
         ).delete()
 
         # Collect project repos to create.
@@ -575,6 +580,10 @@ def _write_preferences_to_sentry_db(
                             "external_id": repo_def.external_id,
                         },
                     )
+                    continue
+
+                # Don't create a new row if that repo has been disabled.
+                if repo_def.repository_id in disabled_repo_ids:
                     continue
 
                 project_repos_to_create.append(
