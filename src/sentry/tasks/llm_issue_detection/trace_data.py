@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 LOWER_SPAN_LIMIT = 20
 UPPER_SPAN_LIMIT = 500
-TRACE_SAMPLE_SIZE = 1
+TRACE_SAMPLE_SIZE = 5
 
 
 def get_valid_trace_ids_by_span_count(

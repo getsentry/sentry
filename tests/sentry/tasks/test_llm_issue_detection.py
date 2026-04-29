@@ -391,7 +391,7 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         self.ten_mins_ago = before_now(minutes=10)
 
     @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
-    def test_returns_single_trace(self, mock_span_count) -> None:
+    def test_returns_sampled_traces(self, mock_span_count) -> None:
         mock_span_count.side_effect = lambda trace_ids, *args: {tid: 50 for tid in trace_ids}
 
         trace_id_1 = uuid.uuid4().hex
@@ -426,5 +426,6 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
             self.project.id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=30
         )
 
-        assert len(evidence_traces) == 1
-        assert evidence_traces[0].trace_id in {trace_id_1, trace_id_2}
+        assert len(evidence_traces) == 2
+        result_trace_ids = {t.trace_id for t in evidence_traces}
+        assert result_trace_ids == {trace_id_1, trace_id_2}
