@@ -9,10 +9,6 @@ jest.mock('@react-aria/utils', () => ({
 
 const {isMac} = jest.requireMock<{isMac: jest.Mock}>('@react-aria/utils');
 
-function keyToKey(k: string): string {
-  return k;
-}
-
 function keyToCode(k: string): string {
   if (k === '/') {
     return 'Slash';
@@ -29,10 +25,10 @@ function keyToCode(k: string): string {
 describe('useHotkeys', () => {
   let events: Record<string, (evt: any) => void> = {};
 
-  function makeKeyEventFixture(keyName: string, options: any = {}) {
+  function makeKeyEventFixture(key: string, options: any = {}) {
     return {
-      key: keyToKey(keyName),
-      code: keyToCode(keyName),
+      key,
+      code: keyToCode(key),
       preventDefault: jest.fn(),
       ...options,
     };
@@ -338,6 +334,8 @@ describe('useHotkeys', () => {
     });
 
     expect(callback).toHaveBeenCalled();
+  });
+
   describe('mod modifier', () => {
     afterEach(() => {
       isMac.mockReturnValue(false);
