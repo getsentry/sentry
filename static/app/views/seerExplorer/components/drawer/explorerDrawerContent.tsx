@@ -44,6 +44,7 @@ export function ExplorerDrawerContent({
 
   const [inputValue, setInputValue] = useState('');
   const [showThinking, setShowThinking] = useState(false);
+  const [isHistoryDropdownOpen, setIsHistoryDropdownOpen] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -206,6 +207,7 @@ export function ExplorerDrawerContent({
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
+      onResume: () => setIsHistoryDropdownOpen(true),
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
@@ -328,6 +330,8 @@ export function ExplorerDrawerContent({
         isEmptyState={isEmptyState}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
+        isHistoryDropdownOpen={isHistoryDropdownOpen}
+        onHistoryDropdownOpenChange={setIsHistoryDropdownOpen}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={

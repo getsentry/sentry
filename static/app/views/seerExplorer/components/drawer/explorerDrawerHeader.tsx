@@ -22,6 +22,7 @@ interface ExplorerDrawerHeaderProps {
   onChangeSession: (runId: number) => void;
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
+  onHistoryDropdownOpenChange: (isOpen: boolean) => void;
   onNewChatClick: () => void;
   onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
@@ -32,6 +33,7 @@ interface ExplorerDrawerHeaderProps {
   showContextEngineToggle: boolean;
   showThinking: boolean;
   showThinkingToggle: boolean;
+  isHistoryDropdownOpen?: boolean;
 }
 
 export function ExplorerDrawerHeader({
@@ -49,6 +51,8 @@ export function ExplorerDrawerHeader({
   showThinking,
   showThinkingToggle,
   onShowThinkingToggle,
+  isHistoryDropdownOpen,
+  onHistoryDropdownOpenChange,
 }: ExplorerDrawerHeaderProps) {
   // Session history query
   const {
@@ -62,11 +66,12 @@ export function ExplorerDrawerHeader({
 
   const onHistoryOpenChange = useCallback(
     (isOpen: boolean) => {
+      onHistoryDropdownOpenChange(isOpen);
       if (isOpen) {
         refetchSessionHistory();
       }
     },
-    [refetchSessionHistory]
+    [onHistoryDropdownOpenChange, refetchSessionHistory]
   );
 
   // Session history menu items
@@ -199,6 +204,7 @@ export function ExplorerDrawerHeader({
           items={sessionMenuItems}
           size="xs"
           position="bottom-end"
+          isOpen={isHistoryDropdownOpen}
           onOpenChange={onHistoryOpenChange}
           triggerProps={{
             'aria-label': t('Chat history'),

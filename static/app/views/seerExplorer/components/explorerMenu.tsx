@@ -12,6 +12,7 @@ interface SlashCommandHandlers {
   onLangfuse?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
+  onResume?: () => void;
 }
 
 interface ExplorerMenuProps {
@@ -287,6 +288,7 @@ function useSlashCommands({
   onFeedback,
   onLangfuse,
   onConversations,
+  onResume,
 }: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
@@ -298,6 +300,16 @@ function useSlashCommands({
         description: 'Start a new session',
         handler: onNew,
       },
+      ...(onResume
+        ? [
+            {
+              title: '/resume',
+              key: '/resume',
+              description: 'Resume a previous session',
+              handler: onResume,
+            },
+          ]
+        : []),
       ...(onMaxSize
         ? [
             {
@@ -351,6 +363,7 @@ function useSlashCommands({
     ],
     [
       onNew,
+      onResume,
       onMaxSize,
       onMedSize,
       onFeedback,
