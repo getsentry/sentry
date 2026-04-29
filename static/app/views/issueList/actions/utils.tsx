@@ -182,7 +182,7 @@ export const COLUMN_BREAKPOINTS = {
   ASSIGNEE: '500px',
 };
 
-export function getSelectedProjectIds({
+function getSelectedProjectIds({
   selectedGroupIds,
   selection,
 }: {
