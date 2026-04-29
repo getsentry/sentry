@@ -641,7 +641,7 @@ def query_trace_data(
     # Attributes added only for metric tagging that should not appear in the response
     metric_only_attributes = metric_attributes - set(additional_attributes or [])
 
-    if referrer is None or not is_valid_referrer(referrer):
+    if referrer is None or referrer == "" or not is_valid_referrer(referrer):
         referrer = Referrer.API_TRACE_VIEW_GET_EVENTS.value
 
     errors_query = _errors_query(snuba_params, trace_id, error_id)
