@@ -160,6 +160,8 @@ def make_signed_seer_api_request(
     if retries is not None:
         options["retries"] = retries
 
+    request_target = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+
     with metrics.timer(
         "seer.request_to_seer",
         sample_rate=1.0,
@@ -167,7 +169,7 @@ def make_signed_seer_api_request(
     ):
         return connection_pool.urlopen(
             method,
-            parsed.path,
+            request_target,
             body=body,
             headers=headers,
             **options,

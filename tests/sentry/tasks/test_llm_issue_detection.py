@@ -347,6 +347,40 @@ class LLMIssueDetectionTest(TestCase):
         mock_get_transactions.assert_not_called()
         mock_seer_request.assert_not_called()
 
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
+    @patch(
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
+    )
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    def test_plan_tier_forwarded_to_seer(
+        self, mock_budget_request, mock_get_transactions, mock_seer_request
+    ):
+        mock_budget_request.return_value = self._budget_ok_response()
+        mock_get_transactions.return_value = []
+
+        detect_llm_issues_for_org(self.organization.id, plan_tier="team")
+
+        budget_url = mock_budget_request.call_args[0][1]
+        assert "plan_tier=team" in budget_url
+
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
+    @patch(
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
+    )
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    def test_plan_tier_defaults_to_business(
+        self, mock_budget_request, mock_get_transactions, mock_seer_request
+    ):
+        mock_budget_request.return_value = self._budget_ok_response()
+        mock_get_transactions.return_value = []
+
+        detect_llm_issues_for_org(self.organization.id)
+
+        budget_url = mock_budget_request.call_args[0][1]
+        assert "plan_tier=business" in budget_url
+
 
 class TestTraceProcessingFunctions:
     @pytest.mark.parametrize(

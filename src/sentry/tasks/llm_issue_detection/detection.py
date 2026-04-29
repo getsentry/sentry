@@ -107,6 +107,7 @@ class IssueDetectionRequest(BaseModel):
     organization_id: int
     project_id: int
     org_slug: str
+    plan_tier: str = "business"
 
 
 def make_issue_detection_request(
@@ -281,7 +282,7 @@ def _is_org_eligible(org_id: int) -> bool:
     namespace=issues_tasks,
     processing_deadline_duration=180,  # 3 minutes
 )
-def detect_llm_issues_for_org(org_id: int) -> None:
+def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     """
     Process a single organization for LLM issue detection.
 
@@ -321,7 +322,7 @@ def detect_llm_issues_for_org(org_id: int) -> None:
 
     budget_response = make_signed_seer_api_request(
         seer_issue_detection_connection_pool,
-        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{org_id}",
+        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{org_id}?plan_tier={plan_tier}",
         body=b"",
         method="GET",
         timeout=SEER_TIMEOUT_S,
@@ -371,6 +372,7 @@ def detect_llm_issues_for_org(org_id: int) -> None:
         organization_id=org_id,
         project_id=project_id,
         org_slug=organization.slug,
+        plan_tier=plan_tier,
     )
 
     viewer_context = SeerViewerContext(organization_id=org_id)
