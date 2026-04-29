@@ -20,7 +20,13 @@ REPORT_VERSION = "104"
 
 class AppleCrashReport:
     def __init__(
-        self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
+        self,
+        threads=None,
+        context=None,
+        debug_images=None,
+        symbolicated=False,
+        exceptions=None,
+        prioritized_thread_id=None,
     ):
         """
         Create an Apple crash report from the provided data.
@@ -31,6 +37,9 @@ class AppleCrashReport:
         self.context = context
         self.symbolicated = symbolicated
         self.exceptions = exceptions if exceptions else []
+        self.prioritized_thread_id = (
+            str(prioritized_thread_id) if prioritized_thread_id is not None else None
+        )
         self.image_addrs_to_vmaddrs = {}
 
         # Remove frames that don't have an `instruction_addr` and convert
@@ -212,6 +221,12 @@ class AppleCrashReport:
         rv = []
         exceptions = self.exceptions or []
         threads = self.threads or []
+
+        if self.prioritized_thread_id is not None:
+            threads = sorted(
+                threads,
+                key=lambda t: str(t.get("id")) != self.prioritized_thread_id,
+            )
 
         # Process threads first, tracking which ones produced output.
         # When an exception's thread_id matches a thread that produced
