@@ -62,7 +62,9 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
 
         for (const keyset of keysets) {
           const keys = keyset.split('+').map(k => canonicalize(k));
-          const unusedModifiers = MODIFIER_KEYS.filter(modifier => !keys.includes(modifier));
+          const unusedModifiers = MODIFIER_KEYS.filter(
+            modifier => !keys.includes(modifier)
+          );
 
           const allKeysPressed =
             keys.every(key => matchesKey(key, evt)) &&
