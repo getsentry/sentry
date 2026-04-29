@@ -334,9 +334,6 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
 
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert Repository.objects.count() == 0
-
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_truncated_fetch_skips_disable(self, mock_get_repos: MagicMock, _: MagicMock) -> None:
         from sentry.shared_integrations.exceptions import ApiPaginationTruncated
