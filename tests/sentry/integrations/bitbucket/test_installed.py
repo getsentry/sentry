@@ -469,9 +469,9 @@ class BitbucketInstalledEndpointTest(APITestCase):
     def test_weak_installation_verification_fails(self, mock_record_event: MagicMock) -> None:
         with override_options({"integrations.bitbucket.weak-installation-verification": True}):
             responses.add(
-                responses.POST,
+                responses.GET,
                 "https://api.bitbucket.org/2.0/addons",
-                status=400,
+                status=403,
             )
             responses.add(
                 responses.GET,
@@ -486,3 +486,23 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert_halt_metric(
                 mock_record_event, AtlassianConnectFailureReason.INVALID_SHARED_SECRET
             )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_weak_installation_verification_succeeds(self, mock_record_event: MagicMock) -> None:
+        with override_options({"integrations.bitbucket.weak-installation-verification": True}):
+            responses.add(
+                responses.GET,
+                "https://api.bitbucket.org/2.0/addons",
+                json={},
+                status=200,
+            )
+            responses.add(
+                responses.GET,
+                "https://api.bitbucket.org/2.0/repositories/sentryuser/repo/hooks",
+                json={"values": [{"description": "sentry-bitbucket-repo-hook"}]},
+            )
+            response = self.client.post(self.path, data=self.team_data_from_bitbucket)
+            assert response.status_code == 200
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 3)
