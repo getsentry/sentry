@@ -175,6 +175,7 @@ export function PrimaryNavigationHelpMenu() {
     },
     {
       key: 'actions',
+      hidden: !openForm,
       children: [
         {
           key: 'give-feedback',
