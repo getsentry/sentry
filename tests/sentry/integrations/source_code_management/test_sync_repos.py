@@ -1,8 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
 import responses
-from taskbroker_client.retry import RetryTaskError
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
@@ -303,7 +301,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert Repository.objects.count() == 0
 
     @responses.activate
-    def test_rate_limited_raises_for_retry(self, _: MagicMock) -> None:
+    def test_rate_limited_halts_without_retry(self, _: MagicMock) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -314,9 +312,24 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             },
         )
 
-        with self.feature("organizations:github-repo-auto-sync"), pytest.raises(RetryTaskError):
-            with self.tasks():
-                sync_repos_for_org(self.oi.id)
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_installation_suspended_halts_without_retry(
+        self, mock_get_repositories: MagicMock, _: MagicMock
+    ) -> None:
+        from sentry.shared_integrations.exceptions import ApiForbiddenError
+
+        mock_get_repositories.side_effect = ApiForbiddenError(
+            '{"message":"This installation has been suspended"}'
+        )
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
@@ -671,3 +684,120 @@ class SyncReposForOrgVstsTestCase(TestCase):
 
         assert len(repos) == 2
         assert repos[0].provider == "integrations:vsts"
+
+    def _create_vsts_integration(self) -> OrganizationIntegration:
+        from sentry.users.models.identity import Identity
+
+        integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts-account-id",
+            name="MyVSTSAccount",
+            metadata={"domain_name": "https://myvstsaccount.visualstudio.com/"},
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="vsts"),
+            user=self.user,
+            external_id="vsts123",
+            data={
+                "access_token": "123456789",
+                "expires": 9999999999,
+                "refresh_token": "rxxx",
+                "token_type": "jwt-bearer",
+            },
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+        return OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+    @patch("sentry.integrations.vsts.integration.VstsIntegration.get_repositories")
+    def test_vsts_wrapped_unauthorized_halts_without_retry(
+        self, mock_get_repositories: MagicMock
+    ) -> None:
+        from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationError
+
+        def _wrap_unauthorized(*args: object, **kwargs: object) -> None:
+            # Mirror VSTS's real wrapping: raise IntegrationError from inside the
+            # ApiUnauthorized except block so __context__ is populated.
+            try:
+                raise ApiUnauthorized("bad token")
+            except ApiUnauthorized:
+                raise IntegrationError(
+                    "Unauthorized: either your access token was invalid or you do not have access"
+                )
+
+        mock_get_repositories.side_effect = _wrap_unauthorized
+
+        oi = self._create_vsts_integration()
+        with self.feature("organizations:vsts-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.vsts.integration.VstsIntegration.get_repositories")
+    def test_vsts_wrapped_identity_not_valid_halts_without_retry(
+        self, mock_get_repositories: MagicMock
+    ) -> None:
+        # VSTS wraps IdentityNotValid in IntegrationError with ERR_INTERNAL,
+        # so the message does NOT contain "Unauthorized". The sync code must
+        # still halt by detecting the original via __context__.
+        from sentry.auth.exceptions import IdentityNotValid
+        from sentry.shared_integrations.exceptions import IntegrationError
+
+        def _wrap_identity_not_valid(*args: object, **kwargs: object) -> None:
+            try:
+                raise IdentityNotValid()
+            except IdentityNotValid:
+                raise IntegrationError(
+                    "An internal error occurred with the integration and the Sentry team has been notified"
+                )
+
+        mock_get_repositories.side_effect = _wrap_identity_not_valid
+
+        oi = self._create_vsts_integration()
+        with self.feature("organizations:vsts-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+
+@control_silo_test
+class SyncReposForOrgBrokenIdentityTestCase(TestCase):
+    @patch("sentry.integrations.gitlab.integration.GitlabIntegration.get_repositories")
+    def test_identity_not_valid_halts_without_retry(self, mock_get_repositories: MagicMock) -> None:
+        from sentry.auth.exceptions import IdentityNotValid
+        from sentry.users.models.identity import Identity
+
+        integration = self.create_provider_integration(
+            provider="gitlab",
+            name="Example Gitlab",
+            external_id="example.gitlab.com:group-x",
+            metadata={
+                "instance": "example.gitlab.com",
+                "base_url": "https://example.gitlab.com",
+                "domain_name": "example.gitlab.com/group-x",
+                "verify_ssl": False,
+                "group_id": 1,
+                "webhook_secret": "secret123",
+            },
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="gitlab", config={}),
+            user=self.user,
+            external_id="gitlab123",
+            data={"access_token": "123456789"},
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        mock_get_repositories.side_effect = IdentityNotValid()
+
+        with self.feature("organizations:gitlab-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0

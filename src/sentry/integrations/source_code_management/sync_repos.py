@@ -17,6 +17,7 @@ from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import features
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -29,12 +30,16 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.utils.metrics import IntegrationEventLifecycle
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiPaginationTruncated,
+    ApiUnauthorized,
+    IntegrationError,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -93,6 +98,39 @@ def _has_feature(flag: str, org: object) -> bool:
         return False
 
 
+def _halt_broken_integration(
+    lifecycle: IntegrationEventLifecycle,
+    exc: BaseException,
+    integration_id: int,
+    organization_id: int,
+    provider_key: str,
+    reason: str,
+) -> None:
+    """Record a known broken-integration failure without retrying or paging.
+
+    These are expected terminal states (expired OAuth token, suspended app
+    install, etc.) that the periodic sync can't recover from. We halt the
+    lifecycle so no Sentry issue is created, bump a counter that can be
+    dashboarded to watch the broken-integration population, and let the task
+    return cleanly (no retry).
+    """
+    lifecycle.record_halt(exc, create_issue=False)
+    metrics.incr(
+        "scm.repo_sync.get_repositories_failed",
+        tags={"provider": provider_key, "reason": reason},
+        sample_rate=1.0,
+    )
+    logger.info(
+        "sync_repos_for_org.broken_integration",
+        extra={
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "provider": provider_key,
+            "reason": reason,
+        },
+    )
+
+
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.sync_repos_for_org",
     namespace=integrations_control_tasks,
@@ -124,7 +162,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         integration_id=integration.id,
         organization_id=rpc_org.id,
         provider_key=provider_key,
-    ).capture():
+    ).capture() as lifecycle:
         installation = integration.get_installation(organization_id=rpc_org.id)
         assert isinstance(installation, RepositoryIntegration)
 
@@ -152,15 +190,57 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 tags={"provider": provider_key},
                 sample_rate=1.0,
             )
+        except IdentityNotValid as e:
+            _halt_broken_integration(
+                lifecycle, e, integration.id, rpc_org.id, provider_key, "identity_not_valid"
+            )
+            return
         except ApiError as e:
+            # Rate-limit check first — GitHub surfaces rate limiting as a 403,
+            # so it must be detected before the suspended-install branch.
             if installation.is_rate_limited_error(e):
-                logger.info(
-                    "sync_repos_for_org.rate_limited",
-                    extra={
-                        "integration_id": integration.id,
-                        "organization_id": rpc_org.id,
-                    },
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, "rate_limited"
                 )
+                return
+            if isinstance(e, ApiUnauthorized):
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
+                )
+                return
+            # GitHub returns 403 "This installation has been suspended" when the
+            # user has suspended the app install. Treat as a dead integration.
+            # Gated to GitHub providers to avoid swallowing unrelated "suspended"
+            # 403s from other providers.
+            if (
+                provider_key in ("github", "github_enterprise")
+                and isinstance(e, ApiForbiddenError)
+                and "suspended" in str(e)
+            ):
+                _halt_broken_integration(
+                    lifecycle,
+                    e,
+                    integration.id,
+                    rpc_org.id,
+                    provider_key,
+                    "installation_suspended",
+                )
+                return
+            raise
+        except IntegrationError as e:
+            # VSTS's get_repositories re-wraps ApiError/IdentityNotValid into an
+            # IntegrationError via message_from_error. Message text isn't a
+            # reliable signal: ApiUnauthorized maps to ERR_UNAUTHORIZED but
+            # IdentityNotValid maps to ERR_INTERNAL ("An internal error..."),
+            # which wouldn't match a "Unauthorized" string match. Python sets
+            # __context__ to the original exception when you raise inside an
+            # except block, so inspect that directly.
+            cause = e.__context__
+            if provider_key == "vsts" and isinstance(cause, (IdentityNotValid, ApiUnauthorized)):
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
+                )
+                return
             raise
 
         provider_external_ids = {repo["external_id"] for repo in provider_repos}
