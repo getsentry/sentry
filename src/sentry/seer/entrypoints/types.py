@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
 from sentry.models.organization import Organization
+from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.sentry_apps.metrics import SentryAppEventType
 
 
@@ -48,6 +49,30 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         Called when an autofix run has been started successfully.
 
         Example Usage: Adding an :hourglass: reaction, sending a temporary message, etc.
+        """
+        ...
+
+    def on_trigger_handoff_already_exists(
+        self, *, run_id: int, target: CodingAgentProviderType, has_complete_stage: bool
+    ) -> None:
+        """
+        Called when a coding-agent handoff was already launched for the run
+
+        Example Usage: Sending a 'handoff in progress' message, etc.
+        """
+        ...
+
+    def on_trigger_handoff_error(self, *, error: str) -> None:
+        """Called when a coding-agent handoff failed to start.'
+
+        Example Usage: Sending a 'Cursor failed to start' message, etc.
+        """
+        ...
+
+    def on_trigger_handoff_success(self, *, run_id: int, target: CodingAgentProviderType) -> None:
+        """Called when a coding-agent handoff has been launched successfully.
+
+        Example Usage: Mentioning the hand-off agent, etc.
         """
         ...
 

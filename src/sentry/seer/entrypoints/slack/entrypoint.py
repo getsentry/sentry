@@ -8,6 +8,7 @@ from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
@@ -16,7 +17,7 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
@@ -63,6 +64,9 @@ class SlackAutofixCachePayload(TypedDict):
     integration_id: int
     group_link: str
     threads: list[SlackThreadDetails]
+    # Captured at cache creation. When set, the Slack ROOT_CAUSE update swaps the
+    # next-stage trigger button for a "Hand off to ..." button.
+    handoff_target: CodingAgentProviderType | None
 
 
 class SlackAgentCachePayload(TypedDict):
@@ -89,6 +93,32 @@ class SlackPendingMentionPayload(TypedDict):
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
+
+
+def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
+    """Read the project's coding-agent handoff target from preferences, or None."""
+    from sentry.seer.autofix.utils import read_preference_from_sentry_db
+
+    try:
+        handoff = read_preference_from_sentry_db(project).automation_handoff
+    except Exception:
+        logger.exception(
+            "seer.entrypoint.slack.read_handoff_target_failed",
+            extra={"project_id": project.id},
+        )
+        return None
+    if handoff is None:
+        return None
+
+    try:
+        target = CodingAgentProviderType(handoff.target)
+    except ValueError:
+        logger.exception(
+            "seer.entrypoint.slack.invalid_handoff_target",
+            extra={"handoff_target": handoff.target},
+        )
+        return None
+    return target
 
 
 def _get_missing_scope_settings_url(
@@ -214,7 +244,12 @@ class SlackAutofixEntrypoint(
         )
 
     def _update_existing_message(
-        self, *, run_id: int, has_complete_stage: bool, include_user: bool
+        self,
+        *,
+        run_id: int,
+        has_complete_stage: bool,
+        include_user: bool,
+        handoff_target: CodingAgentProviderType | None = None,
     ) -> None:
         """
         Updates the clicked message as 'in-progress' with a given run_id.
@@ -226,6 +261,7 @@ class SlackAutofixEntrypoint(
             group_id=self.group.id,
             current_point=self.autofix_stopping_point,
             group_link=self.get_group_link(self.group),
+            handoff_target=handoff_target,
         )
         update_existing_message(
             request=self.slack_request,
@@ -254,6 +290,37 @@ class SlackAutofixEntrypoint(
             run_id=run_id, has_complete_stage=has_complete_stage, include_user=False
         )
 
+    def on_trigger_handoff_error(self, *, error: str) -> None:
+        send_thread_update(
+            install=self.install,
+            thread=self.thread,
+            data=SeerAutofixError(error_message=error),
+            ephemeral_user_id=self.slack_request.user_id,
+        )
+
+    def on_trigger_handoff_success(self, *, run_id: int, target: CodingAgentProviderType) -> None:
+        self._update_existing_message(
+            run_id=run_id,
+            has_complete_stage=False,
+            include_user=True,
+            handoff_target=target,
+        )
+
+    def on_trigger_handoff_already_exists(
+        self,
+        *,
+        run_id: int,
+        target: CodingAgentProviderType,
+        has_complete_stage: bool,
+    ) -> None:
+        # We don't include the user since we don't know that they started the agent handoff.
+        self._update_existing_message(
+            run_id=run_id,
+            has_complete_stage=has_complete_stage,
+            include_user=False,
+            handoff_target=target,
+        )
+
     def create_autofix_cache_payload(self) -> SlackAutofixCachePayload:
         return SlackAutofixCachePayload(
             threads=[self.thread],
@@ -262,6 +329,7 @@ class SlackAutofixEntrypoint(
             project_id=self.group.project_id,
             group_id=self.group.id,
             group_link=self.get_group_link(self.group),
+            handoff_target=_get_handoff_target(self.group.project),
         )
 
     @staticmethod
@@ -307,6 +375,7 @@ class SlackAutofixEntrypoint(
                         "current_point": AutofixStoppingPoint.ROOT_CAUSE,
                         "summary": summary,
                         "steps": steps,
+                        "handoff_target": cache_payload.get("handoff_target"),
                     }
                 )
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:
@@ -562,6 +631,7 @@ def prepare_slack_thread_for_autofix_updates(
                     project_id=group.project_id,
                     group_id=group.id,
                     group_link=SlackAutofixEntrypoint.get_group_link(group),
+                    handoff_target=_get_handoff_target(group.project),
                 ),
             )
     except UnableToAcquireLock:

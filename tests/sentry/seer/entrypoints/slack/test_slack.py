@@ -12,7 +12,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentCachePayload,
@@ -28,6 +28,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     send_thread_update,
     update_existing_message,
 )
+from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.testutils.cases import TestCase
 
 
@@ -109,7 +110,37 @@ class SlackAutofixEntrypointTest(TestCase):
         ep.on_trigger_autofix_success(run_id=MOCK_RUN_ID)
         mock_update_message.assert_called_once()
 
-    def test_create_autofix_cache_payload(self) -> None:
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_handoff_error(self, mock_send_threaded_ephemeral_message):
+        ep = self._get_entrypoint()
+        ep.on_trigger_handoff_error(error="boom")
+        mock_send_threaded_ephemeral_message.assert_called_once()
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_on_trigger_handoff_success(self, mock_update_message):
+        self.slack_request.data = {
+            "message": {"ts": self.thread_ts, "text": "Issue notification", "blocks": []}
+        }
+        ep = self._get_entrypoint()
+        ep.on_trigger_handoff_success(
+            run_id=MOCK_RUN_ID,
+            target=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+        )
+        mock_update_message.assert_called_once()
+        renderable = mock_update_message.call_args.kwargs["renderable"]
+        # Footer working text should mention the target.
+        assert any(
+            "Handing off to Cursor" in (block.text.text if getattr(block, "text", None) else "")
+            for block in renderable["blocks"]
+        )
+
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    def test_create_autofix_cache_payload(self, mock_read_pref) -> None:
+        mock_read_pref.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.group.project.id,
+            repositories=[],
+        )
         ep = self._get_entrypoint()
         cache_payload = ep.create_autofix_cache_payload()
         SlackAutofixCachePayload(**cache_payload)
@@ -119,6 +150,23 @@ class SlackAutofixEntrypointTest(TestCase):
         assert cache_payload["project_id"] == self.group.project.id
         assert cache_payload["group_id"] == self.group.id
         assert cache_payload["threads"] == [self.thread]
+        assert cache_payload["handoff_target"] is None
+
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    def test_create_autofix_cache_payload_captures_handoff_target(self, mock_read_pref) -> None:
+        mock_read_pref.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.group.project.id,
+            repositories=[],
+            automation_handoff=SeerAutomationHandoffConfiguration(
+                handoff_point="root_cause",
+                target=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+                integration_id=789,
+            ),
+        )
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_autofix_cache_payload()
+        assert cache_payload["handoff_target"] == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     def test_on_autofix_update(self, mock_schedule_all_thread_updates):
