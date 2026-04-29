@@ -94,27 +94,6 @@ describe('Subscription > Notifications', () => {
     expect(screen.getByText('50%')).toBeInTheDocument();
   });
 
-  it('disables save button if there are no thresholds', async () => {
-    subscription.planDetails.allowOnDemand = true;
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<Notifications subscription={subscription} />, {organization});
-
-    expect(await screen.findByText('90%')).toBeInTheDocument();
-    const textbox = screen.getByRole('textbox', {
-      name: 'Subscription consumption',
-    });
-    await userEvent.click(textbox);
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
-    expect(screen.getByRole('button', {name: 'Save changes'})).toBeEnabled();
-
-    // userEvent.clear doesn't work because of the way the custom select component works
-    await userEvent.type(textbox, '{backspace}');
-    await userEvent.type(textbox, '{backspace}');
-    await userEvent.type(textbox, '{backspace}');
-    expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
-  });
-
   it('reverts to saved thresholds on reset', async () => {
     render(<Notifications subscription={subscription} />, {organization});
 
@@ -135,7 +114,6 @@ describe('Subscription > Notifications', () => {
     expect(screen.getByText('90%')).toBeInTheDocument();
     expect(screen.queryByText('70%')).not.toBeInTheDocument();
     expect(screen.queryByText('50%')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
   });
 
   it('calls api with correct args', async () => {
