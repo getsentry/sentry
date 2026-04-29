@@ -112,7 +112,11 @@ describe('AutofixEvidence', () => {
     it('renders "Query: Metrics" for metrics dataset', () => {
       const props = resolveProps(
         makeToolCall('telemetry_live_search'),
-        makeToolLink('telemetry_live_search', {dataset: 'metrics', query: 'test'})
+        makeToolLink('telemetry_live_search', {
+          dataset: 'metrics',
+          query: 'test',
+          trace_metric: {name: 'tool.duration', type: 'distribution', unit: 'second'},
+        })
       );
       render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
       expect(screen.getByText('Query: Metrics')).toBeInTheDocument();
@@ -121,7 +125,11 @@ describe('AutofixEvidence', () => {
     it('renders "Query: Metrics" for tracemetrics dataset', () => {
       const props = resolveProps(
         makeToolCall('telemetry_live_search'),
-        makeToolLink('telemetry_live_search', {dataset: 'tracemetrics', query: 'test'})
+        makeToolLink('telemetry_live_search', {
+          dataset: 'tracemetrics',
+          query: 'test',
+          trace_metric: {name: 'tool.duration', type: 'distribution', unit: 'second'},
+        })
       );
       render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
       expect(screen.getByText('Query: Metrics')).toBeInTheDocument();

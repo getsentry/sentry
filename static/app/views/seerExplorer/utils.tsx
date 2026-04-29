@@ -8,6 +8,7 @@ import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedb
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,6 +19,17 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {
+  defaultAggregateSortBys,
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  type TraceMetric,
+} from 'sentry/views/explore/metrics/metricQuery';
+import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {
   Block,
   ToolCall,
@@ -508,6 +520,121 @@ function validateIso(val: unknown): string | undefined {
   return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
 }
 
+function getStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  return typeof value === 'string' ? [value] : [];
+}
+
+function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | null {
+  const rawTraceMetric = params.trace_metric;
+  if (
+    !rawTraceMetric ||
+    typeof rawTraceMetric !== 'object' ||
+    typeof rawTraceMetric.name !== 'string' ||
+    typeof rawTraceMetric.type !== 'string'
+  ) {
+    return null;
+  }
+
+  const traceMetric: TraceMetric = {
+    name: rawTraceMetric.name,
+    type: rawTraceMetric.type,
+  };
+  if (typeof rawTraceMetric.unit === 'string') {
+    traceMetric.unit = rawTraceMetric.unit;
+  }
+  return traceMetric;
+}
+
+function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
+  const visualize = new VisualizeFunction(yAxis);
+  const aggregate = visualize.parsedFunction?.name;
+  if (!aggregate) {
+    return yAxis;
+  }
+
+  return makeMetricsAggregate({aggregate, traceMetric});
+}
+
+function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
+  return makeMetricsAggregate({
+    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
+    traceMetric,
+  });
+}
+
+function parseMetricsSort(
+  sort: unknown,
+  normalizedYAxesByOriginal: Map<string, string>
+): Sort | undefined {
+  if (typeof sort !== 'string' || !sort) {
+    return undefined;
+  }
+
+  const kind = sort.startsWith('-') ? 'desc' : 'asc';
+  const sortField = sort.replace(/^-/, '');
+  const normalizedYAxis = normalizedYAxesByOriginal.get(sortField);
+  if (normalizedYAxis) {
+    return {field: normalizedYAxis, kind};
+  }
+
+  const sortFunction = new VisualizeFunction(sortField).parsedFunction;
+  if (sortFunction) {
+    for (const mappedYAxis of normalizedYAxesByOriginal.values()) {
+      const yAxisFunction = new VisualizeFunction(mappedYAxis).parsedFunction;
+      if (yAxisFunction?.name === sortFunction.name) {
+        return {field: mappedYAxis, kind};
+      }
+    }
+  }
+
+  return {field: sortField, kind};
+}
+
+function buildMetricsQueryParam(params: Record<string, any>): string[] | undefined {
+  const traceMetric = getTraceMetricFromParams(params);
+  if (!traceMetric) {
+    return undefined;
+  }
+
+  const mode = params.mode === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES;
+  const base = defaultMetricQuery();
+
+  // Seer y-axes use short names like "avg(duration)"; normalize them to fully
+  // qualified metric aggregates like "avg(metrics.foo.duration)".
+  const yAxes = getStringArray(params.y_axes);
+  const resolvedYAxes = yAxes.length ? yAxes : [getDefaultMetricYAxis(traceMetric)];
+  const normalizedYAxesByOriginal = resolvedYAxes.reduce((map, yAxis) => {
+    map.set(yAxis, getMetricYAxis(yAxis, traceMetric));
+    return map;
+  }, new Map<string, string>());
+  // VisualizeFunction instances that the Explore page uses to render charts.
+  const visualizes = resolvedYAxes.map(
+    yAxis => new VisualizeFunction(normalizedYAxesByOriginal.get(yAxis)!)
+  );
+
+  const aggregateFields: AggregateField[] = [
+    ...getStringArray(params.group_by).map(groupBy => ({groupBy})),
+    ...visualizes,
+  ];
+  const sortBys = parseMetricsSort(params.sort, normalizedYAxesByOriginal);
+
+  const queryParams = base.queryParams.replace({
+    query: typeof params.query === 'string' ? params.query : '',
+    mode,
+    aggregateFields,
+    aggregateSortBys:
+      mode === Mode.AGGREGATE && sortBys
+        ? [sortBys]
+        : defaultAggregateSortBys(aggregateFields),
+    sortBys: mode === Mode.SAMPLES && sortBys ? [sortBys] : base.queryParams.sortBys,
+  });
+
+  return [encodeMetricQueryParams({metric: traceMetric, queryParams})];
+}
+
 /**
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
@@ -617,13 +744,12 @@ export function buildToolLinkUrl(
       }
 
       if (dataset === 'metrics' || dataset === 'tracemetrics') {
-        // TODO: The metrics explore page reads metric-specific state (metric name,
-        // type, aggregations, group bys) from a JSON-encoded `metric` URL param.
-        // Currently we only pass page filter params (project, statsPeriod, etc.)
-        // which means the search query context is lost on navigation. To fully
-        // preserve context, the Seer backend should include structured metric
-        // metadata (name, type, unit) in tool_link params so we can build the
-        // `metric` param here via encodeMetricsQueryParams().
+        const metric = buildMetricsQueryParam(toolLink.params);
+        if (!metric) {
+          return null;
+        }
+        queryParams.metric = metric;
+
         return {
           pathname: `/organizations/${orgSlug}/explore/metrics/`,
           query: queryParams,
