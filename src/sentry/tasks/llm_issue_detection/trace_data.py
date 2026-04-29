@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 LOWER_SPAN_LIMIT = 20
 UPPER_SPAN_LIMIT = 500
+TRACE_SAMPLE_SIZE = 5
 
 
 def get_valid_trace_ids_by_span_count(
@@ -194,13 +195,17 @@ def get_project_top_transaction_traces_for_llm_detection(
         sampling_mode="NORMAL",
     )
 
+    transaction_rows = transactions_result.get("data", [])
+    random.shuffle(transaction_rows)
+    transaction_rows = transaction_rows[:TRACE_SAMPLE_SIZE]
+
     trace_ids: list[str] = []
     seen_names: set[str] = set()
     seen_trace_ids: set[str] = set()
     random_offset = random.randint(1, 8)
     trace_snuba_params = _build_snuba_params(start_time + timedelta(minutes=random_offset))
 
-    for row in transactions_result.get("data", []):
+    for row in transaction_rows:
         transaction_name = row.get("transaction")
         if not transaction_name:
             continue

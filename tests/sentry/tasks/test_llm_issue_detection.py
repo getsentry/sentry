@@ -532,6 +532,7 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
 
         assert len(evidence_traces) == 2
 
-        # trace_id_2 prevails over trace_id_1 because transaction span duration was higher
-        assert evidence_traces[0].trace_id == trace_id_2
-        assert evidence_traces[1].trace_id == trace_id_3
+        result_trace_ids = {t.trace_id for t in evidence_traces}
+        # One of trace_id_1/trace_id_2 is deduped since their transactions normalize the same
+        assert trace_id_3 in result_trace_ids
+        assert len(result_trace_ids & {trace_id_1, trace_id_2}) == 1
