@@ -10,8 +10,6 @@ interface SlashCommandHandlers {
   onNew: () => void;
   onConversations?: () => void;
   onLangfuse?: () => void;
-  onMaxSize?: () => void;
-  onMedSize?: () => void;
   onResume?: () => void;
 }
 
@@ -282,8 +280,6 @@ export function useExplorerMenu({
 }
 
 function useSlashCommands({
-  onMaxSize,
-  onMedSize,
   onNew,
   onFeedback,
   onLangfuse,
@@ -307,26 +303,6 @@ function useSlashCommands({
               key: '/resume',
               description: 'Resume a previous session',
               handler: onResume,
-            },
-          ]
-        : []),
-      ...(onMaxSize
-        ? [
-            {
-              title: '/max-size',
-              key: '/max-size',
-              description: 'Expand panel to full viewport height',
-              handler: onMaxSize,
-            },
-          ]
-        : []),
-      ...(onMedSize
-        ? [
-            {
-              title: '/med-size',
-              key: '/med-size',
-              description: 'Set panel to medium size (default)',
-              handler: onMedSize,
             },
           ]
         : []),
@@ -361,16 +337,7 @@ function useSlashCommands({
           ]
         : []),
     ],
-    [
-      onNew,
-      onResume,
-      onMaxSize,
-      onMedSize,
-      onFeedback,
-      onLangfuse,
-      onConversations,
-      isSentryEmployee,
-    ]
+    [onNew, onResume, onFeedback, onLangfuse, onConversations, isSentryEmployee]
   );
 }
 
