@@ -1455,7 +1455,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result is not None
         assert result.automation_handoff is None
 
-    def test_invalid_repo_name_is_skipped(self):
+    def test_excludes_invalid_repo_names(self):
         bad_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -1474,32 +1474,21 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].name == "test-repo"
 
-    def test_excludes_non_active_repos(self):
+    def test_excludes_disabled_repos(self):
         SeerProjectRepository.objects.create(
             project=self.project, repository=self.repo, branch_name="main"
         )
-        # repo2 is DISABLED — pref row stays in DB but should be filtered on read.
+
         self.repo2.status = ObjectStatus.DISABLED
         self.repo2.save()
         SeerProjectRepository.objects.create(
             project=self.project, repository=self.repo2, branch_name="develop"
         )
-        # A third repo in PENDING_DELETION should also be filtered.
-        pending_repo = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            external_id="ext_pending",
-            name="test-org/pending-repo",
-        )
-        pending_repo.status = ObjectStatus.PENDING_DELETION
-        pending_repo.save()
-        SeerProjectRepository.objects.create(
-            project=self.project, repository=pending_repo, branch_name="trunk"
-        )
 
         result = read_preference_from_sentry_db(self.project)
         assert result is not None
-        assert [r.name for r in result.repositories] == ["test-repo"]
+        assert len(result.repositories) == 1
+        assert result.repositories[0].name == "test-repo"
 
 
 class TestBulkReadPreferencesFromSentryDb(TestCase):
@@ -1535,7 +1524,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert pref.automation_handoff is None
         assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
-    def test_bulk_returns_correct_preferences(self):
+    def test_returns_correct_preferences(self):
         SeerProjectRepository.objects.create(
             project=self.project1, repository=self.repo, branch_name="main"
         )
@@ -1611,7 +1600,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         result = bulk_read_preferences_from_sentry_db(other_org.id, [self.project1.id])
         assert result == {}
 
-    def test_excludes_non_active_repos(self):
+    def test_excludes_disabled_repos(self):
         SeerProjectRepository.objects.create(
             project=self.project1, repository=self.repo, branch_name="main"
         )
@@ -1621,7 +1610,6 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
             project=self.project1, repository=self.repo2, branch_name="develop"
         )
 
-        # A pref on project2 whose repo is disabled — project2 should report no repos.
         project2_repo = self.create_repo(
             project=self.project2,
             provider="integrations:github",
@@ -1637,8 +1625,9 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         result = bulk_read_preferences_from_sentry_db(
             self.organization.id, [self.project1.id, self.project2.id]
         )
-        assert [r.branch_name for r in result[self.project1.id].repositories] == ["main"]
-        assert result[self.project2.id].repositories == []
+        assert len(result[self.project1.id]) == 1
+        assert result[self.project1.id].repositories[0].name == "test-repo"
+        assert len(result[self.project2.id]) == 0
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):

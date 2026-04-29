@@ -161,6 +161,14 @@ class TestIsAutofixEnabled(TestCase):
 
         assert is_autofix_enabled(self.organization)
 
+    def test_disabled_repository(self) -> None:
+        repo = self.create_repo(project=self.project)
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        repo.status = ObjectStatus.DISABLED
+        repo.save()
+
+        assert not is_autofix_enabled(self.organization)
+
     def test_no_projects(self) -> None:
         repo = self.create_repo(project=self.project)
         SeerProjectRepository.objects.create(project=self.project, repository=repo)
@@ -175,14 +183,6 @@ class TestIsAutofixEnabled(TestCase):
         )
         repo = self.create_repo(project=inactive_project)
         SeerProjectRepository.objects.create(project=inactive_project, repository=repo)
-
-        assert not is_autofix_enabled(self.organization)
-
-    def test_disabled_repository(self) -> None:
-        repo = self.create_repo(project=self.project)
-        repo.status = ObjectStatus.DISABLED
-        repo.save()
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
         assert not is_autofix_enabled(self.organization)
 
