@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -345,8 +344,6 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     )
     if not evidence_traces:
         return
-
-    random.shuffle(evidence_traces)
 
     all_trace_ids = [t.trace_id for t in evidence_traces]
     unprocessed_ids = _get_unprocessed_traces(all_trace_ids)
