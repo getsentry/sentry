@@ -376,14 +376,19 @@ export function IssueListMarkAllCommandPaletteAction(
       <CMDKAction
         display={{label: t('Assigned to'), icon: <IconUser />}}
         keywords={['assign', 'owner', 'assignee']}
-        prompt={t('Search assignees...')}
       >
-        <AssignActionItems
-          onBulkUpdate={handleBulkUpdateAll}
-          onConfirmBulkUpdate={(actionLabel, onConfirm) =>
-            confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
-          }
-        />
+        <CMDKAction
+          display={{label: t('Assign to'), icon: <IconUser />}}
+          keywords={['assign', 'owner', 'assignee']}
+          prompt={t('Search assignees...')}
+        >
+          <AssignActionItems
+            onBulkUpdate={handleBulkUpdateAll}
+            onConfirmBulkUpdate={(actionLabel, onConfirm) =>
+              confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
+            }
+          />
+        </CMDKAction>
       </CMDKAction>
       <CMDKAction
         display={{label: t('Resolved'), icon: <IconCheckmark />}}
