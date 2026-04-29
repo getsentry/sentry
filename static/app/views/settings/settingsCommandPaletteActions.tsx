@@ -67,7 +67,7 @@ type SettingsFieldSection = {
   icon?: ReactNode;
 };
 
-export function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
+function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
   const allFields = getSearchMap();
 
   const routeTitleMap = new Map<string, string>();
