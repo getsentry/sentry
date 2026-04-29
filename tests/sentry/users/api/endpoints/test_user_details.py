@@ -708,6 +708,14 @@ class UserDetailsSuspensionTest(UserDetailsTest):
         resp = self.get_error_response(self.superuser.id, isSuspended="true", status_code=400)
         assert "suspend your own account" in str(resp.data).lower()
 
+    def test_superuser_cannot_suspend_sentry_app_user(self) -> None:
+        sentry_app = self.create_sentry_app(name="test-app", organization=self.organization)
+        self.login_as(user=self.superuser, superuser=True)
+        resp = self.get_error_response(
+            sentry_app.proxy_user.id, isSuspended="true", status_code=400
+        )
+        assert "sentry app" in str(resp.data).lower()
+
     def test_get_includes_is_suspended(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         resp = self.get_success_response(self.user.id, method="get")

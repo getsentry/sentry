@@ -210,9 +210,12 @@ class SuperuserUserSerializer(BaseUserSerializer):
         fields = ("name", "username", "is_active", "is_suspended")
 
     def validate_is_suspended(self, value: bool) -> bool:
-        request = self.context.get("request")
-        if value and request and self.instance and request.user.id == self.instance.id:
-            raise serializers.ValidationError("You cannot suspend your own account.")
+        if value and self.instance:
+            request = self.context.get("request")
+            if request and request.user.id == self.instance.id:
+                raise serializers.ValidationError("You cannot suspend your own account.")
+            if self.instance.is_sentry_app:
+                raise serializers.ValidationError("Cannot suspend Sentry App proxy users.")
         return value
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
