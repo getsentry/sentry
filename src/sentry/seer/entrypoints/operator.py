@@ -300,6 +300,113 @@ class SeerAutofixOperator[CachePayloadT]:
                 }
             )
 
+    def trigger_handoff(
+        self,
+        *,
+        group: Group,
+        run_id: int,
+    ) -> None:
+        from sentry.locks import locks
+        from sentry.seer.autofix.autofix_agent import trigger_coding_agent_handoff
+        from sentry.seer.autofix.utils import (
+            CodingAgentProviderType,
+            CodingAgentStatus,
+            read_preference_from_sentry_db,
+        )
+        from sentry.utils.locking import UnableToAcquireLock
+
+        event_lifecycle = SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_HANDOFF,
+            entrypoint_key=self.entrypoint.key,
+        )
+
+        with event_lifecycle.capture() as lifecycle:
+            lifecycle.add_extras({"group_id": str(group.id), "run_id": str(run_id)})
+
+            handoff_config = read_preference_from_sentry_db(group.project).automation_handoff
+            if handoff_config is None:
+                # Handoff was unset between message render and click.
+                lifecycle.record_halt(halt_reason="no_handoff_configured")
+                return
+
+            try:
+                target = CodingAgentProviderType(handoff_config.target)
+            except ValueError:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error handing off to the agent"
+                    )
+                lifecycle.record_failure(failure_reason="invalid_handoff_target")
+                return
+
+            lifecycle.add_extras(
+                {"target": target.value, "integration_id": str(handoff_config.integration_id)}
+            )
+
+            try:
+                autofix_state = get_autofix_state(
+                    run_id=run_id, organization_id=group.organization.id
+                )
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
+
+            lock_key = f"autofix:trigger_handoff:{self.entrypoint.key}:{group.id}:{run_id}"
+            lock = locks.get(lock_key, duration=30, name="autofix_trigger_handoff")
+            try:
+                with lock.acquire():
+                    agents = list(autofix_state.coding_agents.values()) if autofix_state else []
+                    non_failed = [a for a in agents if a.status != CodingAgentStatus.FAILED]
+                    if non_failed:
+                        has_complete_stage = any(
+                            a.status == CodingAgentStatus.COMPLETED for a in non_failed
+                        )
+                        lifecycle.add_extra("active_agents", str(len(non_failed)))
+                        with SeerOperatorEventLifecycleMetric(
+                            interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ALREADY_EXISTS,
+                            entrypoint_key=self.entrypoint.key,
+                        ).capture():
+                            self.entrypoint.on_trigger_handoff_already_exists(
+                                run_id=run_id, target=target, has_complete_stage=has_complete_stage
+                            )
+                        lifecycle.record_halt(halt_reason="agent_already_active")
+                        return
+                    trigger_coding_agent_handoff(
+                        group=group,
+                        run_id=run_id,
+                        referrer=AutofixReferrer.SLACK,
+                        integration_id=handoff_config.integration_id,
+                    )
+            except UnableToAcquireLock as e:
+                lifecycle.record_halt(halt_reason=e)
+                return
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error while launching the coding agent"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_SUCCESS,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_handoff_success(run_id=run_id, target=target)
+
     def trigger_autofix_legacy(
         self,
         *,

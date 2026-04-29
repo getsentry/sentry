@@ -288,16 +288,11 @@ export default function DataDownload() {
   };
 
   const renderOpenInButton = () => {
-    const {
-      query = {
-        type: ExportQueryType.ISSUES_BY_TAG,
-        info: {},
-      },
-    } = download;
+    const {query} = download;
 
     // default to IssuesByTag because we don't want to
     // display this unless we're sure its a discover query
-    const {type = ExportQueryType.ISSUES_BY_TAG} = query;
+    const {type} = query;
 
     return type === 'Discover' || type === 'Explore' ? (
       <Fragment>

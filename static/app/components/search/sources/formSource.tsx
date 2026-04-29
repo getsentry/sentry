@@ -9,7 +9,7 @@ import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import type {ChildProps, Result} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
 
-type FormSearchField = {
+export type FormSearchField = {
   description: React.ReactNode;
   field: {name: string};
   route: string;
@@ -102,7 +102,7 @@ function getOldFormFields(): FormSearchField[] {
   });
 }
 
-function getSearchMap() {
+export function getSearchMap() {
   if (ALL_FORM_FIELDS_CACHED !== null) {
     return ALL_FORM_FIELDS_CACHED;
   }
