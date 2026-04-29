@@ -327,7 +327,7 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-          {organization.features.includes('seer-issue-view') && (
+          {organization.features.includes('autofix-on-explorer') && (
             <CMDKAction display={{label: t('Autofix')}}>
               <CMDKAction
                 display={{label: t('Recently Run')}}

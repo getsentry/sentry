@@ -13,7 +13,7 @@ export default function AutofixRecentlyRunPage() {
   const organization = useOrganization();
 
   return (
-    <Feature features="seer-issue-view" renderDisabled>
+    <Feature features="autofix-on-explorer" renderDisabled>
       <IssueListContainer title={label}>
         <PageFiltersContainer>
           <NoProjectMessage organization={organization}>
