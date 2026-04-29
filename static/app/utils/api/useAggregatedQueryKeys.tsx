@@ -1,11 +1,14 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQueryClient, type UseQueryOptions} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
 import {defined} from 'sentry/utils';
+import {type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {
+  type ApiQueryKey,
+  parseQueryKey,
+  safeParseQueryKey,
+} from 'sentry/utils/api/apiQueryKey';
 import {uniq} from 'sentry/utils/array/uniq';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
 
 const BUFFER_WAIT_MS = 20;
 
@@ -13,17 +16,19 @@ interface Props<AggregatableQueryKey, Data> {
   /**
    * The queryKey reducer
    *
-   * Takes the buffered "aggregates" and outputs an ApiQueryKey.
+   * Takes the buffered "aggregates" and outputs queryOptions.
    * Must not have side-effects.
    */
-  getQueryKey: (ids: readonly AggregatableQueryKey[]) => ApiQueryKey;
+  getQueryOptions: (
+    ids: readonly AggregatableQueryKey[]
+  ) => UseQueryOptions<ApiResponse<Data>, Error, Data, ApiQueryKey>;
 
   /**
    * Data reducer, to integrate new requests with the previous state
    */
   responseReducer: (
     prevState: undefined | Data,
-    result: ApiResult,
+    result: ApiResponse<Data>,
     aggregates: readonly AggregatableQueryKey[]
   ) => undefined | Data;
 
@@ -74,12 +79,12 @@ function isQueryKeyInList(queryList: unknown[]) {
  * - After `buffer()` has stopped being called for BUFFER_WAIT_MS, or if
  *   bufferLimit items are queued, then `getQueryKey()` function will be called.
  * - The new queryKey will be used to fetch some data.
- * - You will implement `responseReducer(prev: Data, result: ApiResult)` which
+ * - You will implement `responseReducer(prev: Data, result: ApiResponse<Data>)` which
  *   combines `defaultData` with the data that was fetched with the queryKey.
  */
 export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   cacheKey,
-  getQueryKey,
+  getQueryOptions,
   onError,
   responseReducer,
   bufferLimit = 50,
@@ -87,23 +92,30 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   const queryClient = useQueryClient();
   const cache = queryClient.getQueryCache();
 
-  const key = getQueryKey([]).at(0);
+  const url = parseQueryKey(getQueryOptions([]).queryKey).url;
+
+  const isApiQueryKeyForUrl = useCallback(
+    (queryKey: readonly unknown[]): boolean => {
+      return safeParseQueryKey(queryKey)?.url === url;
+    },
+    [url]
+  );
 
   // The query keys that this instance cares about
   const prevQueryKeys = useRef<AggregatableQueryKey[]>([]);
 
   const readCache = useCallback(
     () =>
-      cache
-        .findAll({queryKey: [key]})
-        // eslint-disable-next-line @sentry/no-query-data-type-parameters
-        .map(({queryKey}) => queryClient.getQueryData<ApiResult>(queryKey))
-        .filter(defined)
+      queryClient
+        .getQueriesData<ApiResponse<Data>>({
+          predicate: ({queryKey}) => isApiQueryKeyForUrl(queryKey),
+        })
+        .flatMap(([, val]) => (defined(val) ? [val] : []))
         .reduce<Data | undefined>(
           (prevValue, val) => responseReducer(prevValue, val, prevQueryKeys.current),
           undefined
         ),
-    [cache, key, queryClient, responseReducer]
+    [isApiQueryKeyForUrl, queryClient, responseReducer]
   );
 
   // The counts for each query key that this instance cares about
@@ -113,7 +125,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
 
   const fetchData = useCallback(() => {
     const allQueuedQueries = cache.findAll({
-      queryKey: ['aggregate', cacheKey, key, 'queued'],
+      queryKey: ['aggregate', cacheKey, url, 'queued'],
     });
 
     const queuedQueriesBatch = allQueuedQueries.slice(0, bufferLimit);
@@ -129,29 +141,23 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
 
     try {
       queryClient.removeQueries({
-        queryKey: ['aggregate', cacheKey, key, 'queued'],
+        queryKey: ['aggregate', cacheKey, url, 'queued'],
         predicate: isQueryKeyInBatch,
       });
       queuedAggregatableBatch.forEach(queryKey => {
         // eslint-disable-next-line @sentry/no-query-data-type-parameters
         queryClient.setQueryData<boolean>(
-          ['aggregate', cacheKey, key, 'inFlight', queryKey],
+          ['aggregate', cacheKey, url, 'inFlight', queryKey],
           true
         );
       });
 
-      const queryKey = getQueryKey(queuedAggregatableBatch);
-      queryClient
-        .fetchQuery({
-          queryKey,
-          queryFn: fetchDataQuery,
-        })
-        .finally(() => {
-          queryClient.removeQueries({
-            queryKey: ['aggregate', cacheKey, key, 'inFlight'],
-            predicate: isQueryKeyInBatch,
-          });
+      queryClient.fetchQuery(getQueryOptions(queuedAggregatableBatch)).finally(() => {
+        queryClient.removeQueries({
+          queryKey: ['aggregate', cacheKey, url, 'inFlight'],
+          predicate: isQueryKeyInBatch,
         });
+      });
 
       if (allQueuedQueries.length > queuedQueriesBatch.length) {
         fetchData();
@@ -159,7 +165,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
     } catch (error) {
       onError?.(error as Error);
     }
-  }, [bufferLimit, cache, cacheKey, getQueryKey, key, onError, queryClient]);
+  }, [bufferLimit, cache, cacheKey, getQueryOptions, url, onError, queryClient]);
 
   const clearTimer = useCallback(() => {
     if (timer.current) {
@@ -188,7 +194,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       // Get queryKeys for any cached data related to these aggregates.
       const existingQueryKeys = cache
         .findAll({
-          queryKey: ['aggregate', cacheKey, key],
+          queryKey: ['aggregate', cacheKey, url],
           predicate: isQueryKeyInList(prevQueryKeys.current),
         })
         .map(({queryKey}) => queryKey[4] as AggregatableQueryKey);
@@ -198,15 +204,14 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
 
       // Cache sentinel data for the new cacheKeys
       newQueryKeys
-        .map(agg => ['aggregate', cacheKey, key, 'queued', agg])
-        // eslint-disable-next-line @sentry/no-query-data-type-parameters
-        .forEach(queryKey => queryClient.setQueryData<boolean>(queryKey, true));
+        .map(agg => ['aggregate', cacheKey, url, 'queued', agg])
+        .forEach(queryKey => queryClient.setQueryData(queryKey, true));
 
       if (newQueryKeys.length) {
         setData(readCache());
         // Grab anything in the queue, including the newQueryKeys
         const existingQueuedQueries = cache.findAll({
-          queryKey: ['aggregate', cacheKey, key, 'queued'],
+          queryKey: ['aggregate', cacheKey, url, 'queued'],
         });
         if (existingQueuedQueries.length >= bufferLimit) {
           clearTimer();
@@ -222,7 +227,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       cacheKey,
       clearTimer,
       fetchData,
-      key,
+      url,
       queryClient,
       readCache,
       setTimer,
@@ -230,13 +235,12 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   );
 
   useEffect(() => {
-    const unsubscribe = cache.subscribe(result => {
-      if (result.type === 'updated' && result.query.queryKey.at(0) === key) {
+    return cache.subscribe(result => {
+      if (result.type === 'updated' && isApiQueryKeyForUrl(result.query.queryKey)) {
         setData(readCache());
       }
     });
-    return unsubscribe;
-  }, [key, cache, queryClient, readCache]);
+  }, [cache, isApiQueryKeyForUrl, readCache]);
 
   return useMemo(() => ({buffer, data}), [buffer, data]);
 }
