@@ -1002,7 +1002,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         with sentry_sdk.start_span(op="snuba_group_query") as span:
             group_ids = list(
-                group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
+                group_queryset.using_replica()
+                .order_by("-last_seen")
+                .values_list("id", flat=True)[: max_candidates + 1]
             )
             span.set_data("Max Candidates", max_candidates)
             span.set_data("Result Size", len(group_ids))
