@@ -359,6 +359,7 @@ export function IssueListMarkAllCommandPaletteAction(
       <CMDKAction
         display={{label: t('Assigned to'), icon: <IconUser />}}
         keywords={['assign', 'owner', 'assignee']}
+        prompt={t('Search assignees...')}
       >
         <AssignActions
           onBulkUpdate={handleBulkUpdateAll}
