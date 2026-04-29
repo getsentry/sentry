@@ -9,6 +9,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.eap.write import (
     produce_preprod_build_distribution_to_eap,
     produce_preprod_size_metric_to_eap,
+    produce_preprod_snapshot_comparison_to_eap,
 )
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
@@ -16,6 +17,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import TestCase
 
 
@@ -310,4 +312,149 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
         assert "codesigning_type" not in attrs
         assert "profile_name" not in attrs
         assert "build_configuration_name" not in attrs
+        assert "git_head_sha" not in attrs
+
+
+class WritePreprodSnapshotComparisonToEAPTest(TestCase):
+    @patch("sentry.preprod.eap.write._eap_producer.produce")
+    def test_write_preprod_snapshot_comparison_encodes_all_fields_correctly(self, mock_produce):
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="abc123",
+            base_sha="def456",
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+        )
+
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id="com.example.app",
+            commit_comparison=commit_comparison,
+        )
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=head_artifact,
+            build_version="1.2.3",
+            build_number=100,
+            app_name="Example App",
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id="com.example.app",
+        )
+
+        head_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            image_count=12,
+        )
+        base_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            image_count=10,
+        )
+        comparison = PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_added=3,
+            images_removed=1,
+            images_changed=2,
+            images_unchanged=6,
+            images_renamed=1,
+            images_skipped=0,
+        )
+
+        produce_preprod_snapshot_comparison_to_eap(
+            comparison=comparison,
+            organization=self.organization,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
+
+        mock_produce.assert_called_once()
+        topic, payload = mock_produce.call_args[0]
+
+        assert topic.name == "snuba-items"
+
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+        trace_item = codec.decode(payload.value)
+
+        assert trace_item.organization_id == self.organization.id
+        assert trace_item.project_id == self.project.id
+        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_PREPROD
+        assert trace_item.retention_days == 90
+
+        attrs = trace_item.attributes
+
+        assert attrs["preprod_artifact_id"].int_value == head_artifact.id
+        assert attrs["snapshot_comparison_id"].int_value == comparison.id
+        assert attrs["head_snapshot_metrics_id"].int_value == head_metrics.id
+        assert attrs["base_snapshot_metrics_id"].int_value == base_metrics.id
+        assert attrs["sub_item_type"].string_value == "snapshot_comparison"
+
+        assert attrs["image_count"].int_value == 12
+        assert attrs["images_added"].int_value == 3
+        assert attrs["images_removed"].int_value == 1
+        assert attrs["images_changed"].int_value == 2
+        assert attrs["images_unchanged"].int_value == 6
+        assert attrs["images_renamed"].int_value == 1
+        assert attrs["images_skipped"].int_value == 0
+
+        assert attrs["app_id"].string_value == "com.example.app"
+        assert attrs["app_name"].string_value == "Example App"
+        assert attrs["build_version"].string_value == "1.2.3"
+        assert attrs["build_number"].int_value == 100
+
+        assert attrs["git_head_sha"].string_value == "abc123"
+        assert attrs["git_base_sha"].string_value == "def456"
+        assert attrs["git_head_ref"].string_value == "feature/test"
+        assert attrs["git_base_ref"].string_value == "main"
+        assert attrs["git_pr_number"].int_value == 42
+
+    @patch("sentry.preprod.eap.write._eap_producer.produce")
+    def test_write_preprod_snapshot_comparison_handles_optional_fields(self, mock_produce):
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        head_metrics = PreprodSnapshotMetrics.objects.create(preprod_artifact=head_artifact)
+        base_metrics = PreprodSnapshotMetrics.objects.create(preprod_artifact=base_artifact)
+        comparison = PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+        )
+
+        produce_preprod_snapshot_comparison_to_eap(
+            comparison=comparison,
+            organization=self.organization,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
+
+        mock_produce.assert_called_once()
+        topic, payload = mock_produce.call_args[0]
+
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+        trace_item = codec.decode(payload.value)
+
+        attrs = trace_item.attributes
+
+        assert attrs["sub_item_type"].string_value == "snapshot_comparison"
+        assert attrs["images_added"].int_value == 0
+        assert attrs["image_count"].int_value == 0
+
+        assert "app_name" not in attrs
+        assert "build_number" not in attrs
         assert "git_head_sha" not in attrs

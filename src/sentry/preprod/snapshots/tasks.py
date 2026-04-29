@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.eap.write import produce_preprod_snapshot_comparison_to_eap
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
@@ -738,6 +739,24 @@ def compare_snapshots(
                 "date_updated",
             ]
         )
+
+        try:
+            organization = head_artifact.project.organization
+            produce_preprod_snapshot_comparison_to_eap(
+                comparison=comparison,
+                organization=organization,
+                organization_id=organization.id,
+                project_id=head_artifact.project_id,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to write preprod snapshot comparison to EAP",
+                extra={
+                    "snapshot_comparison_id": comparison.id,
+                    "head_artifact_id": head_artifact_id,
+                    "base_artifact_id": base_artifact_id,
+                },
+            )
 
         time_now = timezone.now()
 

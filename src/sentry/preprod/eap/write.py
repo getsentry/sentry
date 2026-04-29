@@ -23,6 +23,7 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
 )
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
@@ -244,6 +245,93 @@ def produce_preprod_build_distribution_to_eap(
         received=received,
         retention_days=quotas.backend.get_event_retention(
             organization=organization, category=DataCategory.INSTALLABLE_BUILD
+        )
+        or 90,
+        attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
+        client_sample_rate=1.0,
+        server_sample_rate=1.0,
+    )
+
+    topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+    payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
+    _eap_producer.produce(ArroyoTopic(topic), payload)
+
+
+def produce_preprod_snapshot_comparison_to_eap(
+    comparison: PreprodSnapshotComparison,
+    organization: Organization,
+    organization_id: int,
+    project_id: int,
+) -> None:
+    """
+    Write a PreprodSnapshotComparison to EAP as a TRACE_ITEM_TYPE_PREPROD trace item.
+
+    One row per comparison. Should only be called after the comparison has reached
+    SUCCESS state and the image counts are committed.
+    """
+    proto_timestamp = Timestamp()
+    proto_timestamp.FromDatetime(comparison.date_updated)
+
+    received = Timestamp()
+    received.FromDatetime(comparison.date_updated)
+
+    head_metrics = comparison.head_snapshot_metrics
+    head_artifact = head_metrics.preprod_artifact
+
+    # Group with the head artifact's other preprod rows so search joins by trace_id.
+    trace_id = get_preprod_trace_id(head_artifact.id)
+
+    item_id_str = f"snapshot_comparison_{comparison.id}"
+    item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
+
+    mobile_app_info = head_artifact.get_mobile_app_info()
+    attributes: dict[str, Any] = {
+        "preprod_artifact_id": head_artifact.id,
+        "snapshot_comparison_id": comparison.id,
+        "head_snapshot_metrics_id": comparison.head_snapshot_metrics_id,
+        "base_snapshot_metrics_id": comparison.base_snapshot_metrics_id,
+        "sub_item_type": "snapshot_comparison",
+        "image_count": head_metrics.image_count,
+        "images_added": comparison.images_added,
+        "images_changed": comparison.images_changed,
+        "images_removed": comparison.images_removed,
+        "images_renamed": comparison.images_renamed,
+        "images_skipped": comparison.images_skipped,
+        "images_unchanged": comparison.images_unchanged,
+        "platform_name": (
+            "apple" if head_artifact.is_ios() else "android" if head_artifact.is_android() else None
+        ),
+        "app_id": head_artifact.app_id,
+        "app_name": mobile_app_info.app_name if mobile_app_info else None,
+        "build_version": mobile_app_info.build_version if mobile_app_info else None,
+        "build_number": mobile_app_info.build_number if mobile_app_info else None,
+    }
+
+    if head_artifact.commit_comparison is not None:
+        commit_comparison = head_artifact.commit_comparison
+        attributes.update(
+            {
+                "git_head_sha": commit_comparison.head_sha,
+                "git_base_sha": commit_comparison.base_sha,
+                "git_provider": commit_comparison.provider,
+                "git_head_repo_name": commit_comparison.head_repo_name,
+                "git_base_repo_name": commit_comparison.base_repo_name,
+                "git_head_ref": commit_comparison.head_ref,
+                "git_base_ref": commit_comparison.base_ref,
+                "git_pr_number": commit_comparison.pr_number,
+            }
+        )
+
+    trace_item = EAPTraceItem(
+        organization_id=organization_id,
+        project_id=project_id,
+        item_id=item_id,
+        item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+        timestamp=proto_timestamp,
+        trace_id=trace_id,
+        received=received,
+        retention_days=quotas.backend.get_event_retention(
+            organization=organization, category=DataCategory.SIZE_ANALYSIS
         )
         or 90,
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},

@@ -84,6 +84,41 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             search_type="boolean",
         ),
         ResolvedAttribute(
+            public_alias="image_count",
+            internal_name="image_count",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="images_added",
+            internal_name="images_added",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="images_changed",
+            internal_name="images_changed",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="images_removed",
+            internal_name="images_removed",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="images_renamed",
+            internal_name="images_renamed",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="images_skipped",
+            internal_name="images_skipped",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="images_unchanged",
+            internal_name="images_unchanged",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
             public_alias="timestamp",
             internal_name="sentry.timestamp",
             internal_type=constants.DOUBLE,
