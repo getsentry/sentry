@@ -124,11 +124,15 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
 }
 
 export function SettingsCommandPaletteActions() {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const sections = useMemo(
-    () => getSettingsFieldSections(organization.slug),
-    [organization.slug]
+    () => (organization ? getSettingsFieldSections(organization.slug) : []),
+    [organization]
   );
+
+  if (sections.length === 0) {
+    return null;
+  }
 
   return (
     <CommandPaletteSlot name="page">
