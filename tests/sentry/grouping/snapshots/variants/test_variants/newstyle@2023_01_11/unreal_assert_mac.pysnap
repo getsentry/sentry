@@ -108,7 +108,7 @@ app:
         type*
           "EXC_BAD_ACCESS"
         value (ignored because stacktrace takes precedence)
-          "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
+          "p__commonOp__fn__fn__makeReturn__fn__<int>_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
 --------------------------------------------------------------------------
 system:
   hash: "57493ac3e558feffb778cf170a7fd986"
@@ -217,4 +217,4 @@ system:
         type*
           "EXC_BAD_ACCESS"
         value (ignored because stacktrace takes precedence)
-          "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
+          "p__commonOp__fn__fn__makeReturn__fn__<int>_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."

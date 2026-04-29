@@ -73,14 +73,28 @@ const Container = styled('div')`
   justify-content: center;
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
+
+  @container seer-explorer-root (max-width: 400px) {
+    padding: ${p => p.theme.space.xl};
+  }
 `;
 
 const SuggestionButton = styled(Button)`
-  height: 28px;
+  height: auto;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 16px;
+
+  > span:last-child {
+    white-space: normal;
+    text-wrap: balance;
+  }
+
+  @container seer-explorer-root (max-width: 500px) {
+    flex-grow: 1;
+    width: 100%;
+  }
 `;
 
 const Text = styled('div')`

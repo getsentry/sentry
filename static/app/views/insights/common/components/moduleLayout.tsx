@@ -10,12 +10,8 @@ export const Third = styled('div')`
   grid-column: span 4;
 `;
 
-export const Half = styled('div')`
-  grid-column: span 12;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: span 6;
-  }
+export const TwoThirds = styled('div')`
+  grid-column: span 8;
 `;
 
 export const Full = styled('div')`

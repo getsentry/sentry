@@ -433,7 +433,7 @@ export default typescript.config([
       'import/no-duplicates': 'error',
       'import/no-extraneous-dependencies': [
         'error',
-        {includeTypes: true, devDependencies: ['!eslint.config.ts']},
+        {includeTypes: true, devDependencies: true},
       ],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',

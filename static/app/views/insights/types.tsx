@@ -352,7 +352,7 @@ type NonNullableStringFields =
 
 type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
 
-export type SpanStringFields = NullableStringFields | NonNullableStringFields;
+type SpanStringFields = NullableStringFields | NonNullableStringFields;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE
