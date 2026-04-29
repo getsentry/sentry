@@ -1,3 +1,4 @@
+import type React from 'react';
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -172,111 +173,49 @@ export function SnapshotMainContent({
 
   const groupName = isItemUngrouped(selectedItem) ? null : selectedItem.name;
 
-  const renderSingleViewCard = ({
-    headerProps,
-    body,
-    rightControls,
-  }: {
-    body: React.ReactNode;
-    headerProps: Omit<React.ComponentProps<typeof CardHeader>, 'isDark' | 'onToggleDark'>;
-    rightControls?: React.ReactNode;
-  }) => {
-    const card = (
-      <SingleViewCard isDark={isDark} isSelected={false}>
-        <CardHeader {...headerProps} isDark={isDark} onToggleDark={toggleDark} />
-        <SingleViewBody>{body}</SingleViewBody>
-      </SingleViewCard>
-    );
-    return (
-      <Flex
-        direction="column"
-        gap="0"
-        padding="0"
-        height="100%"
-        width="100%"
-        background="secondary"
-      >
-        <Flex align="center" justify="between" gap="md" padding="md xl">
-          {toggle}
-          <Flex align="center" gap="md">
-            {rightControls}
-            {soloDiffToggle}
-          </Flex>
-        </Flex>
-        <Separator orientation="horizontal" />
-        <SingleViewScroll>
-          <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
-            <Flex direction="column" flex="1" minWidth="0">
-              <DarkAware isDark={isDark}>
-                {groupName ? (
-                  <SingleViewGroup>
-                    <GroupHeader name={groupName} />
-                    {card}
-                  </SingleViewGroup>
-                ) : (
-                  card
-                )}
-              </DarkAware>
-            </Flex>
-            <NavGutter>
-              <Tooltip title={t('Previous')} skipWrapper>
-                <Button
-                  size="sm"
-                  icon={<IconArrow direction="up" />}
-                  aria-label={t('Previous snapshot')}
-                  disabled={!canNavigatePrev}
-                  onClick={() => onNavigateSingleView('prev')}
-                />
-              </Tooltip>
-              <Tooltip title={t('Next')} skipWrapper>
-                <Button
-                  size="sm"
-                  icon={<IconArrow direction="down" />}
-                  aria-label={t('Next snapshot')}
-                  disabled={!canNavigateNext}
-                  onClick={() => onNavigateSingleView('next')}
-                />
-              </Tooltip>
-            </NavGutter>
-          </Flex>
-        </SingleViewScroll>
-      </Flex>
-    );
-  };
-
   if (selectedItem.type === 'changed') {
     const currentPair = selectedItem.pairs[variantIndex];
     if (!currentPair) {
       return null;
     }
     const image = currentPair.head_image;
-    return renderSingleViewCard({
-      headerProps: {
-        displayName: image.display_name,
-        fileName: image.image_file_name,
-        status: DiffStatus.CHANGED,
-        diffPercent: currentPair.diff,
-        copyData: currentPair,
-        copyUrl: buildSnapshotLink(image.image_file_name),
-      },
-      rightControls: (
-        <Fragment>
-          {diffMode === 'split' && (
-            <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
-          )}
-          <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
-        </Fragment>
-      ),
-      body: (
-        <DiffImageDisplay
-          pair={currentPair}
-          imageBaseUrl={imageBaseUrl}
-          diffImageBaseUrl={diffImageBaseUrl}
-          overlayColor={overlayColor}
-          diffMode={diffMode}
-        />
-      ),
-    });
+    return (
+      <SingleViewLayout
+        isDark={isDark}
+        onToggleDark={toggleDark}
+        groupName={groupName}
+        toggle={toggle}
+        soloDiffToggle={soloDiffToggle}
+        canNavigatePrev={canNavigatePrev}
+        canNavigateNext={canNavigateNext}
+        onNavigateSingleView={onNavigateSingleView}
+        headerProps={{
+          displayName: image.display_name,
+          fileName: image.image_file_name,
+          status: DiffStatus.CHANGED,
+          diffPercent: currentPair.diff,
+          copyData: currentPair,
+          copyUrl: buildSnapshotLink(image.image_file_name),
+        }}
+        rightControls={
+          <Fragment>
+            {diffMode === 'split' && (
+              <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
+            )}
+            <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
+          </Fragment>
+        }
+        body={
+          <DiffImageDisplay
+            pair={currentPair}
+            imageBaseUrl={imageBaseUrl}
+            diffImageBaseUrl={diffImageBaseUrl}
+            overlayColor={overlayColor}
+            diffMode={diffMode}
+          />
+        }
+      />
+    );
   }
 
   if (selectedItem.type === 'renamed') {
@@ -286,16 +225,26 @@ export function SnapshotMainContent({
     }
     const image = currentPair.head_image;
     const imageUrl = `${imageBaseUrl}${image.key}/`;
-    return renderSingleViewCard({
-      headerProps: {
-        displayName: image.display_name,
-        fileName: image.image_file_name,
-        status: DiffStatus.RENAMED,
-        copyData: currentPair,
-        copyUrl: buildSnapshotLink(image.image_file_name),
-      },
-      body: <SingleImageDisplay imageUrl={imageUrl} alt={getImageName(image)} />,
-    });
+    return (
+      <SingleViewLayout
+        isDark={isDark}
+        onToggleDark={toggleDark}
+        groupName={groupName}
+        toggle={toggle}
+        soloDiffToggle={soloDiffToggle}
+        canNavigatePrev={canNavigatePrev}
+        canNavigateNext={canNavigateNext}
+        onNavigateSingleView={onNavigateSingleView}
+        headerProps={{
+          displayName: image.display_name,
+          fileName: image.image_file_name,
+          status: DiffStatus.RENAMED,
+          copyData: currentPair,
+          copyUrl: buildSnapshotLink(image.image_file_name),
+        }}
+        body={<SingleImageDisplay imageUrl={imageUrl} alt={getImageName(image)} />}
+      />
+    );
   }
 
   const currentImage = selectedItem.images[variantIndex];
@@ -314,16 +263,114 @@ export function SnapshotMainContent({
     status = DiffStatus.UNCHANGED;
   }
 
-  return renderSingleViewCard({
-    headerProps: {
-      displayName: currentImage.display_name,
-      fileName: currentImage.image_file_name,
-      status,
-      copyData: currentImage,
-      copyUrl: buildSnapshotLink(currentImage.image_file_name),
-    },
-    body: <SingleImageDisplay imageUrl={imageUrl} alt={getImageName(currentImage)} />,
-  });
+  return (
+    <SingleViewLayout
+      isDark={isDark}
+      onToggleDark={toggleDark}
+      groupName={groupName}
+      toggle={toggle}
+      soloDiffToggle={soloDiffToggle}
+      canNavigatePrev={canNavigatePrev}
+      canNavigateNext={canNavigateNext}
+      onNavigateSingleView={onNavigateSingleView}
+      headerProps={{
+        displayName: currentImage.display_name,
+        fileName: currentImage.image_file_name,
+        status,
+        copyData: currentImage,
+        copyUrl: buildSnapshotLink(currentImage.image_file_name),
+      }}
+      body={<SingleImageDisplay imageUrl={imageUrl} alt={getImageName(currentImage)} />}
+    />
+  );
+}
+
+function SingleViewLayout({
+  isDark,
+  onToggleDark,
+  groupName,
+  toggle,
+  soloDiffToggle,
+  canNavigatePrev,
+  canNavigateNext,
+  onNavigateSingleView,
+  headerProps,
+  body,
+  rightControls,
+}: {
+  body: React.ReactNode;
+  canNavigateNext: boolean;
+  canNavigatePrev: boolean;
+  groupName: string | null;
+  headerProps: Omit<React.ComponentProps<typeof CardHeader>, 'isDark' | 'onToggleDark'>;
+  isDark: boolean;
+  onNavigateSingleView: (direction: 'prev' | 'next') => void;
+  onToggleDark: () => void;
+  soloDiffToggle: React.ReactNode;
+  toggle: React.ReactNode;
+  rightControls?: React.ReactNode;
+}) {
+  const card = (
+    <SingleViewCard isDark={isDark} isSelected={false}>
+      <CardHeader {...headerProps} isDark={isDark} onToggleDark={onToggleDark} />
+      <SingleViewBody>{body}</SingleViewBody>
+    </SingleViewCard>
+  );
+  return (
+    <Flex
+      direction="column"
+      gap="0"
+      padding="0"
+      height="100%"
+      width="100%"
+      background="secondary"
+    >
+      <Flex align="center" justify="between" gap="md" padding="md xl">
+        {toggle}
+        <Flex align="center" gap="md">
+          {rightControls}
+          {soloDiffToggle}
+        </Flex>
+      </Flex>
+      <Separator orientation="horizontal" />
+      <SingleViewScroll>
+        <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
+          <Flex direction="column" flex="1" minWidth="0">
+            <DarkAware isDark={isDark}>
+              {groupName ? (
+                <SingleViewGroup>
+                  <GroupHeader name={groupName} />
+                  {card}
+                </SingleViewGroup>
+              ) : (
+                card
+              )}
+            </DarkAware>
+          </Flex>
+          <NavGutter>
+            <Tooltip title={t('Previous')} skipWrapper>
+              <Button
+                size="sm"
+                icon={<IconArrow direction="up" />}
+                aria-label={t('Previous snapshot')}
+                disabled={!canNavigatePrev}
+                onClick={() => onNavigateSingleView('prev')}
+              />
+            </Tooltip>
+            <Tooltip title={t('Next')} skipWrapper>
+              <Button
+                size="sm"
+                icon={<IconArrow direction="down" />}
+                aria-label={t('Next snapshot')}
+                disabled={!canNavigateNext}
+                onClick={() => onNavigateSingleView('next')}
+              />
+            </Tooltip>
+          </NavGutter>
+        </Flex>
+      </SingleViewScroll>
+    </Flex>
+  );
 }
 
 function SoloDiffToggle({

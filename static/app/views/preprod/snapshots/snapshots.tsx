@@ -1,19 +1,10 @@
-import {
-  Fragment,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
@@ -27,7 +18,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {ComparisonState, DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
@@ -45,7 +35,7 @@ import {SnapshotMainContent, type ViewMode} from './main/snapshotMainContent';
 import {DIFF_TYPE_ORDER, SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
 function imageGroupKey(img: SnapshotImage): string {
-  return img.group ?? img.display_name ?? img.image_file_name;
+  return img.group ?? img.image_file_name;
 }
 
 function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
@@ -108,7 +98,6 @@ function itemMaxDiff(item: SidebarItem): number {
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
@@ -261,8 +250,9 @@ export default function SnapshotsPage() {
       }));
   }, [data, comparisonType]);
 
-  const memberHaystacks = useMemo(
-    () => sidebarItems.map(buildMemberHaystacks),
+  // Pre-computed lowercase text per image/pair for fast substring search filtering
+  const memberSearchKeys = useMemo(
+    () => sidebarItems.map(buildMemberSearchKeys),
     [sidebarItems]
   );
 
@@ -282,7 +272,7 @@ export default function SnapshotsPage() {
         base.push(item);
         continue;
       }
-      const narrowed = narrowItemBySearch(item, memberHaystacks[i]!, trimmedQuery);
+      const narrowed = narrowItemBySearch(item, memberSearchKeys[i]!, trimmedQuery);
       if (narrowed) {
         base.push(narrowed);
       }
@@ -301,7 +291,7 @@ export default function SnapshotsPage() {
     });
   }, [
     sidebarItems,
-    memberHaystacks,
+    memberSearchKeys,
     deferredSearchQuery,
     deferredActiveStatuses,
     sortBy,
@@ -590,37 +580,18 @@ export default function SnapshotsPage() {
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
       <Stack flex={1}>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <SnapshotHeaderContent
-              data={data}
-              isSoloView={isSoloView}
-              onToggleView={handleToggleView}
-            />
-            <TopBar.Slot name="actions">
-              <SnapshotHeaderActions
-                data={data}
-                organizationSlug={organization.slug}
-                apiUrl={snapshotApiUrl}
-              />
-            </TopBar.Slot>
-          </Fragment>
-        ) : (
-          <Layout.Header paddingTop="0" paddingBottom="0" unified>
-            <SnapshotHeaderContent
-              data={data}
-              isSoloView={isSoloView}
-              onToggleView={handleToggleView}
-            />
-            <Layout.HeaderActions style={{alignSelf: 'center'}}>
-              <SnapshotHeaderActions
-                data={data}
-                organizationSlug={organization.slug}
-                apiUrl={snapshotApiUrl}
-              />
-            </Layout.HeaderActions>
-          </Layout.Header>
-        )}
+        <SnapshotHeaderContent
+          data={data}
+          isSoloView={isSoloView}
+          onToggleView={handleToggleView}
+        />
+        <TopBar.Slot name="actions">
+          <SnapshotHeaderActions
+            data={data}
+            organizationSlug={organization.slug}
+            apiUrl={snapshotApiUrl}
+          />
+        </TopBar.Slot>
 
         {isComparisonProcessing ? processingContent : snapshotContent}
       </Stack>
@@ -647,7 +618,7 @@ const DragHandle = styled('div')`
   }
 `;
 
-function imageHaystack(image: SnapshotImage): string {
+function imageSearchKey(image: SnapshotImage): string {
   const parts: string[] = [];
   if (image.display_name) parts.push(image.display_name);
   if (image.image_file_name) parts.push(image.image_file_name);
@@ -655,31 +626,32 @@ function imageHaystack(image: SnapshotImage): string {
   return parts.join('\n').toLowerCase();
 }
 
-function buildMemberHaystacks(item: SidebarItem): string[] {
+// Builds one lowercase search key per image/pair, joining all searchable metadata
+function buildMemberSearchKeys(item: SidebarItem): string[] {
   const groupNameLower = item.name ? item.name.toLowerCase() : '';
   if (item.type === 'changed' || item.type === 'renamed') {
     return item.pairs.map(pair => {
-      const head = imageHaystack(pair.head_image);
-      const base = imageHaystack(pair.base_image);
+      const head = imageSearchKey(pair.head_image);
+      const base = imageSearchKey(pair.base_image);
       return groupNameLower ? `${groupNameLower}\n${head}\n${base}` : `${head}\n${base}`;
     });
   }
   return item.images.map(image => {
-    const h = imageHaystack(image);
+    const h = imageSearchKey(image);
     return groupNameLower ? `${groupNameLower}\n${h}` : h;
   });
 }
 
 function narrowItemBySearch(
   item: SidebarItem,
-  memberHaystacksForItem: string[],
+  memberSearchKeysForItem: string[],
   query: string
 ): SidebarItem | null {
   if (item.type === 'changed' || item.type === 'renamed') {
     const kept: SnapshotDiffPair[] = [];
     let allMatched = true;
     for (let i = 0; i < item.pairs.length; i++) {
-      if (memberHaystacksForItem[i]!.includes(query)) {
+      if (memberSearchKeysForItem[i]!.includes(query)) {
         kept.push(item.pairs[i]!);
       } else {
         allMatched = false;
@@ -692,7 +664,7 @@ function narrowItemBySearch(
   const kept: SnapshotImage[] = [];
   let allMatched = true;
   for (let i = 0; i < item.images.length; i++) {
-    if (memberHaystacksForItem[i]!.includes(query)) {
+    if (memberSearchKeysForItem[i]!.includes(query)) {
       kept.push(item.images[i]!);
     } else {
       allMatched = false;
