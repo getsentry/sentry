@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
@@ -16,6 +18,10 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+
+
+def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
+    return int(row.get(column, 0))
 
 
 def get_eap_organization_volume(
@@ -54,9 +60,10 @@ def get_eap_organization_volume(
     if not data:
         return None
 
-    total = int(data[0].get("count()"))
+    row = data[0]
+    total = _get_aggregate_int(row, "count()")
     if total <= 0:
         return None
-    indexed = int(data[0].get("count_sample()"))
+    indexed = _get_aggregate_int(row, "count_sample()")
 
     return OrganizationDataVolume(org_id=organization.id, total=total, indexed=indexed)
