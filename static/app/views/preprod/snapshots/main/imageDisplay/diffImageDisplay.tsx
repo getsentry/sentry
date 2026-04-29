@@ -10,6 +10,7 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
+import {useBufferedImageUrl} from './useBufferedImageUrl';
 import {useSyncedD3Zoom} from './useD3Zoom';
 import {
   ZoomableArea,
@@ -88,6 +89,8 @@ function SplitView({
 }: SplitViewProps) {
   const [zoom1, zoom2] = useSyncedD3Zoom();
   const showOverlay = diffMaskUrl && overlayColor !== TRANSPARENT_COLOR;
+  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
+  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
   return (
     <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
       <Flex direction="column" gap="sm" minHeight="0">
@@ -101,7 +104,12 @@ function SplitView({
               height="100%"
               style={zoomTransformStyle(zoom1.transform)}
             >
-              <ZoomableImage src={baseImageUrl} alt={t('Base')} />
+              <ZoomableImage
+                src={displayBaseUrl}
+                alt={t('Base')}
+                loading="eager"
+                decoding="async"
+              />
             </Flex>
           </ZoomContainer>
         </ZoomableArea>
@@ -119,7 +127,12 @@ function SplitView({
               style={zoomTransformStyle(zoom2.transform)}
             >
               <ImageWrapper>
-                <ZoomableImage src={headImageUrl} alt={t('Current Branch')} />
+                <ZoomableImage
+                  src={displayHeadUrl}
+                  alt={t('Current Branch')}
+                  loading="eager"
+                  decoding="async"
+                />
                 {showOverlay && (
                   <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
                 )}
@@ -144,17 +157,29 @@ function WipeView({
   baseImageUrl: string;
   headImageUrl: string;
 }) {
+  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
+  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
   return (
     <Flex flex="1" minHeight="0">
       <ContentSliderDiff.Body
         before={
           <Flex justify="center" align="center" height="100%">
-            <ConstrainedImage src={baseImageUrl} alt={t('Base')} />
+            <ConstrainedImage
+              src={displayBaseUrl}
+              alt={t('Base')}
+              loading="eager"
+              decoding="async"
+            />
           </Flex>
         }
         after={
           <Flex justify="center" align="center" height="100%">
-            <ConstrainedImage src={headImageUrl} alt={t('Current Branch')} />
+            <ConstrainedImage
+              src={displayHeadUrl}
+              alt={t('Current Branch')}
+              loading="eager"
+              decoding="async"
+            />
           </Flex>
         }
         minHeight="200px"
@@ -174,6 +199,8 @@ function OnionView({
   onOpacityChange: (value: number) => void;
   opacity: number;
 }) {
+  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
+  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
   return (
     <Flex
       direction="column"
@@ -191,9 +218,19 @@ function OnionView({
         background="secondary"
       >
         <OnionContainer>
-          <ConstrainedImage src={baseImageUrl} alt={t('Base')} />
+          <ConstrainedImage
+            src={displayBaseUrl}
+            alt={t('Base')}
+            loading="eager"
+            decoding="async"
+          />
           <OnionOverlayLayer style={{opacity: opacity / 100}}>
-            <ConstrainedImage src={headImageUrl} alt={t('Current Branch')} />
+            <ConstrainedImage
+              src={displayHeadUrl}
+              alt={t('Current Branch')}
+              loading="eager"
+              decoding="async"
+            />
           </OnionOverlayLayer>
         </OnionContainer>
       </Flex>
