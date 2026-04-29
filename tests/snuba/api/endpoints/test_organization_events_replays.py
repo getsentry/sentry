@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.snuba.utils import PUBLIC_DATASET_LABELS
 from sentry.testutils.cases import ReplayBreadcrumbType, ReplayEAPTestCase, SnubaTestCase
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -117,7 +118,9 @@ class OrganizationEventsReplaysEndpointTest(
             }
         )
         assert response.status_code == 400, response.content
-        assert "dataset must be one of" in response.data["detail"]
+        assert (
+            response.data["detail"] == f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}"
+        )
 
     def test_count_rage_and_dead_clicks(self) -> None:
         response = self.do_request(

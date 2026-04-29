@@ -59,8 +59,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import (
     DATASET_LABELS,
-    DATASET_OPTIONS,
-    FEATURE_FLAGGED_DATASETS,
+    PUBLIC_DATASET_LABELS,
     get_dataset,
 )
 from sentry.users.models.user import User
@@ -159,14 +158,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         elif dataset_label == SupportedTraceItemType.REPLAYS.value and not features.has(
             "organizations:events-use-replays-dataset", organization, actor=request.user
         ):
-            raise ParseError(
-                detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys() - FEATURE_FLAGGED_DATASETS)}"
-            )
+            raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)
         if result is None:
-            raise ParseError(
-                detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys() - FEATURE_FLAGGED_DATASETS)}"
-            )
+            raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         sentry_sdk.set_tag("query.dataset", dataset_label)
         return result
 
