@@ -102,7 +102,7 @@ PREBUILT_SAVED_QUERIES = [
     },
     {
         "prebuilt_id": 5,
-        "prebuilt_version": 2,
+        "prebuilt_version": 1,
         "name": "LLM Calls",
         "dataset": "spans",
         "query": [
