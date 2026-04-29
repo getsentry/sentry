@@ -118,7 +118,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     # does the application subscribe to `event.alert`,
     # meaning can it be used in alert rules as a {service} ?
     is_alertable = models.BooleanField(default=False)
-    is_disabled = models.BooleanField(default=False)
+    is_disabled = models.BooleanField(default=False, db_default=False)
 
     # does the application need to wait for verification
     # on behalf of the external service to know if its installations
