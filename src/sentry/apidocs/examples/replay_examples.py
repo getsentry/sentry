@@ -278,7 +278,6 @@ class ReplayExamples:
                             "email": "some.body@sentry.io",
                             "avatarUrl": "https://gravatar.com/avatar/d93522a35cb64c13991104bd73d44519d93522a35cb64c13991104bd73d44519?s=32&d=mm",
                             "isActive": True,
-                            "isSuspended": False,
                             "hasPasswordAuth": False,
                             "isManaged": False,
                             "dateJoined": "2022-07-25T23:36:29.593212Z",
