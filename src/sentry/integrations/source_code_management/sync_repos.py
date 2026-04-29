@@ -36,8 +36,8 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    ApiPaginationTruncated,
     ApiForbiddenError,
+    ApiPaginationTruncated,
     ApiUnauthorized,
     IntegrationError,
 )
