@@ -104,8 +104,8 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 export type ReadableSavedQuery = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   // ExploreSavedQueryDataset
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   dateAdded: string;
   dateUpdated: string;
   id: number;
