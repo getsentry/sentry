@@ -48,6 +48,15 @@ type ToolFormatter = (
   toolLinkParams?: Record<string, any> | null
 ) => string;
 
+function getDefaultedTimeRangeSuffix(
+  toolLinkParams?: Record<string, any> | null
+): string {
+  if (toolLinkParams?.time_range_defaulted && toolLinkParams?.stats_period === '7d') {
+    return ' in the last 7 days';
+  }
+  return '';
+}
+
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
   runId: number | null
@@ -110,9 +119,11 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     if (dataset === 'metrics' || dataset === 'tracemetrics') {
+      const metricsInfo = projectInfo || ' in seer';
+      const displayQuestion = `${question}${getDefaultedTimeRangeSuffix(resultMetadata)}`;
       return isLoading
-        ? `Querying metrics${projectInfo}: '${question}'...`
-        : `Queried metrics${projectInfo}: '${question}'`;
+        ? `Querying metrics${metricsInfo}: '${displayQuestion}'...`
+        : `Queried metrics${metricsInfo}: '${displayQuestion}'`;
     }
 
     // Default to spans dataset

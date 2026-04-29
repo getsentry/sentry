@@ -1,7 +1,11 @@
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {buildToolLinkUrl, postProcessLLMMarkdown} from 'sentry/views/seerExplorer/utils';
+import {
+  buildToolLinkUrl,
+  getToolsStringFromBlock,
+  postProcessLLMMarkdown,
+} from 'sentry/views/seerExplorer/utils';
 
 describe('postProcessLLMMarkdown', () => {
   describe('issue short ID linkification', () => {
@@ -125,5 +129,95 @@ describe('buildToolLinkUrl', () => {
     );
 
     expect(result).toBeNull();
+  });
+});
+
+describe('getToolsStringFromBlock', () => {
+  it('shows defaulted metrics time range in tool text', () => {
+    const tools = getToolsStringFromBlock({
+      id: 'block',
+      loading: false,
+      timestamp: '',
+      message: {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'tc-1',
+            function: 'telemetry_live_search',
+            args: JSON.stringify({
+              dataset: 'tracemetrics',
+              question: 'p95 of char count metric grouped by environment',
+              project_slugs: [],
+            }),
+          },
+        ],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'tc-1',
+          tool_call_function: 'telemetry_live_search',
+          content: '',
+        },
+      ],
+      tool_links: [
+        {
+          kind: 'telemetry_live_search',
+          params: {
+            dataset: 'tracemetrics',
+            stats_period: '7d',
+            time_range_defaulted: true,
+          },
+        },
+      ],
+    });
+
+    expect(tools).toEqual([
+      "Queried metrics in seer: 'p95 of char count metric grouped by environment in the last 7 days'",
+    ]);
+  });
+
+  it('does not show defaulted metrics time range for explicit ranges', () => {
+    const tools = getToolsStringFromBlock({
+      id: 'block',
+      loading: false,
+      timestamp: '',
+      message: {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'tc-1',
+            function: 'telemetry_live_search',
+            args: JSON.stringify({
+              dataset: 'tracemetrics',
+              question: 'p95 of char count metric grouped by environment',
+              project_slugs: [],
+            }),
+          },
+        ],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'tc-1',
+          tool_call_function: 'telemetry_live_search',
+          content: '',
+        },
+      ],
+      tool_links: [
+        {
+          kind: 'telemetry_live_search',
+          params: {
+            dataset: 'tracemetrics',
+            stats_period: '7d',
+            time_range_defaulted: false,
+          },
+        },
+      ],
+    });
+
+    expect(tools).toEqual([
+      "Queried metrics in seer: 'p95 of char count metric grouped by environment'",
+    ]);
   });
 });
