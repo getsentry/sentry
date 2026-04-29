@@ -234,9 +234,9 @@ type UseTraceOptions = {
   traceSlug?: string;
 };
 
-export function useTrace(
-  options: UseTraceOptions
-): UseApiQueryResult<TraceTree.Trace, RequestError> {
+export type TraceQueryResult = UseApiQueryResult<TraceTree.Trace, RequestError>;
+
+export function useTrace(options: UseTraceOptions): TraceQueryResult {
   const filters = usePageFilters();
   const organization = useOrganization();
   const query = qs.parse(location.search);
