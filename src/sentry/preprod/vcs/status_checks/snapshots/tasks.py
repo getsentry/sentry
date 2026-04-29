@@ -14,17 +14,19 @@ from sentry.preprod.models import (
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.size.tasks import (
-    GITHUB_STATUS_CHECK_STATUS_MAPPING,
-    get_status_check_client,
-    get_status_check_provider,
-    update_posted_status_check,
-)
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
+)
+from sentry.preprod.vcs.status_checks.status_check_provider import (
+    GITHUB_STATUS_CHECK_STATUS_MAPPING,
+)
+from sentry.preprod.vcs.status_checks.utils import (
+    get_status_check_client,
+    get_status_check_provider,
+    update_posted_status_check,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
