@@ -61,10 +61,8 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
         const keysets = toArray(hotkey.match).map(keys => keys.toLowerCase());
 
         for (const keyset of keysets) {
-          const keys = keyset.split('+').map(canonicalize);
-          const unusedModifiers = MODIFIER_KEYS.filter(
-            modifier => !keys.includes(modifier)
-          );
+          const keys = keyset.split('+').map(k => canonicalize(k));
+          const unusedModifiers = MODIFIER_KEYS.filter(modifier => !keys.includes(modifier));
 
           const allKeysPressed =
             keys.every(key => matchesKey(key, evt)) &&
