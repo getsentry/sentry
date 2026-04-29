@@ -63,6 +63,81 @@ def _get_utc_iso_without_timezone(dt: datetime) -> str:
     return dt.astimezone(UTC).isoformat().replace("+00:00", "")
 
 
+class TestSeerExplorerQueryDefaults(TestCase):
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_table_query_defaults_missing_time_range_to_seven_days(
+        self, mock_client_get: Mock
+    ) -> None:
+        mock_client_get.return_value = Mock(data={"data": [], "meta": {}})
+
+        execute_table_query(
+            org_id=self.organization.id,
+            dataset="tracemetrics",
+            fields=["timestamp"],
+            per_page=1,
+        )
+
+        params = mock_client_get.call_args.kwargs["params"]
+        assert params["statsPeriod"] == "7d"
+        assert "start" not in params
+        assert "end" not in params
+
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_timeseries_query_defaults_missing_time_range_to_seven_days(
+        self, mock_client_get: Mock
+    ) -> None:
+        mock_client_get.return_value = Mock(data={"data": []})
+
+        execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="tracemetrics",
+            y_axes=["count()"],
+            query="",
+        )
+
+        params = mock_client_get.call_args.kwargs["params"]
+        assert params["statsPeriod"] == "7d"
+        assert "start" not in params
+        assert "end" not in params
+
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_table_query_preserves_explicit_absolute_range(self, mock_client_get: Mock) -> None:
+        mock_client_get.return_value = Mock(data={"data": [], "meta": {}})
+        start = "2026-01-01T00:00:00"
+        end = "2026-01-02T00:00:00"
+
+        execute_table_query(
+            org_id=self.organization.id,
+            dataset="tracemetrics",
+            fields=["timestamp"],
+            per_page=1,
+            start=start,
+            end=end,
+        )
+
+        params = mock_client_get.call_args.kwargs["params"]
+        assert "statsPeriod" not in params
+        assert params["start"] == start
+        assert params["end"] == end
+
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_timeseries_query_preserves_explicit_stats_period(self, mock_client_get: Mock) -> None:
+        mock_client_get.return_value = Mock(data={"data": []})
+
+        execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="tracemetrics",
+            y_axes=["count()"],
+            query="",
+            stats_period="24h",
+        )
+
+        params = mock_client_get.call_args.kwargs["params"]
+        assert params["statsPeriod"] == "24h"
+        assert "start" not in params
+        assert "end" not in params
+
+
 class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     default_span_fields = [
         "id",
