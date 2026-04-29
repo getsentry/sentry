@@ -477,7 +477,7 @@ class TestHasProjectConnectedRepos(TestCase):
     def test_returns_false_when_no_repos(self):
         assert has_project_connected_repos(self.organization, self.project) is False
 
-    def test_returns_false_when_only_disabled_repos(self):
+    def test_returns_false_when_only_inactive_repos(self):
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -1025,8 +1025,8 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert repos[1].repository_id == repo2.id
         assert repos[1].instructions == "Deploy carefully"
 
-    def test_preserves_existing_seer_project_repository_for_disabled_repo(self) -> None:
-        """Test that SeerProjectRepository rows pointing at disabled repos
+    def test_preserves_existing_seer_project_repository_for_inactive_repo(self) -> None:
+        """Test that SeerProjectRepository rows pointing at inactive repos
         don't get deleted when omitted from the payload."""
         disabled_repo = self.create_repo(
             project=self.project,
@@ -1069,7 +1069,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert project_repos_by_repo_id[disabled_repo.id].instructions == "kept across writes"
         assert project_repos_by_repo_id[self.repo.id].branch_name == "branch-2"
 
-    def test_skips_new_seer_project_repository_for_disabled_repo(self) -> None:
+    def test_skips_new_seer_project_repository_for_inactive_repo(self) -> None:
         """If a repo is disabled and its ID appears in the payload, any
         existing SeerProjectRepository for that repo should be preserved
         and no new row should be created."""
@@ -1474,7 +1474,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].name == "test-repo"
 
-    def test_excludes_disabled_repos(self):
+    def test_excludes_inactive_repos(self):
         SeerProjectRepository.objects.create(
             project=self.project, repository=self.repo, branch_name="main"
         )
@@ -1600,7 +1600,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         result = bulk_read_preferences_from_sentry_db(other_org.id, [self.project1.id])
         assert result == {}
 
-    def test_excludes_disabled_repos(self):
+    def test_excludes_inactive_repos(self):
         SeerProjectRepository.objects.create(
             project=self.project1, repository=self.repo, branch_name="main"
         )
