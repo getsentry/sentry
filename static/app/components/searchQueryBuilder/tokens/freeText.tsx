@@ -269,6 +269,8 @@ function SearchQueryBuilderInputInternal({
     searchSource,
     recentSearches,
     currentInputValueRef,
+    consumeReopenDropdownOnQueryClear,
+    reopenDropdownOnQueryClear,
   } = useSearchQueryBuilder();
 
   const resetInputValue = useCallback(() => {
@@ -288,6 +290,8 @@ function SearchQueryBuilderInputInternal({
     });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;
+  const shouldReopenDropdownOnFocus =
+    reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
 
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
@@ -660,6 +664,12 @@ function SearchQueryBuilderInputInternal({
         onKeyDown={onKeyDown}
         onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
+        openOnFocus={shouldReopenDropdownOnFocus}
+        onFocus={() => {
+          if (shouldReopenDropdownOnFocus) {
+            consumeReopenDropdownOnQueryClear();
+          }
+        }}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
         maxOptions={maxOptions}
         onPaste={onPaste}
