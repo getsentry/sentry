@@ -49,6 +49,29 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert org_volume == OrganizationDataVolume(org_id=organization.id, total=2, indexed=2)
 
+    def test_get_eap_organization_volume_returns_raw_and_extrapolated_counts(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "measurements": {"server_sample_rate": {"value": 0.1}},
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+            ]
+        )
+
+        org_volume = get_eap_organization_volume(organization, time_interval=timedelta(hours=1))
+
+        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=1)
+
     def test_get_eap_organization_volume_without_traffic(self) -> None:
         organization = self.create_organization()
         self.create_project(organization=organization)

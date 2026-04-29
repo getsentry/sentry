@@ -38,7 +38,7 @@ def get_eap_organization_volume(
             organization=organization,
         ),
         query_string="is_transaction:true",
-        selected_columns=["count()"],
+        selected_columns=["count()", "count_sample()"],
         orderby=None,
         offset=0,
         limit=1,
@@ -54,8 +54,9 @@ def get_eap_organization_volume(
     if not data:
         return None
 
-    total = int(data[0].get("count()", 0))
+    total = int(data[0].get("count()"))
     if total <= 0:
         return None
+    indexed = int(data[0].get("count_sample()"))
 
-    return OrganizationDataVolume(org_id=organization.id, total=total, indexed=total)
+    return OrganizationDataVolume(org_id=organization.id, total=total, indexed=indexed)
