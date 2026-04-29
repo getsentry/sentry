@@ -341,10 +341,14 @@ def get_proxy_headers() -> dict[str, str] | None:
         return None
 
 
-def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:
+def fetch_run_status(
+    run_id: int,
+    organization: Organization,
+    viewer_context: SeerViewerContext | None = None,
+) -> SeerRunState:
     """Fetch current run status from Seer."""
     body = ExplorerStateRequest(run_id=run_id, organization_id=organization.id)
-    response = make_explorer_state_request(body)
+    response = make_explorer_state_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
@@ -362,12 +366,13 @@ def poll_until_done(
     organization: Organization,
     poll_interval: float,
     poll_timeout: float,
+    viewer_context: SeerViewerContext | None = None,
 ) -> SeerRunState:
     """Poll the run status until completion, error, awaiting_user_input, or timeout."""
     start_time = time.time()
 
     while True:
-        result = fetch_run_status(run_id, organization)
+        result = fetch_run_status(run_id, organization, viewer_context=viewer_context)
 
         # Check if run is complete
         if result.status in ("completed", "error", "awaiting_user_input"):
