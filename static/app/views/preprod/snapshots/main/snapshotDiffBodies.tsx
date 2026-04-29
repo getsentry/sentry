@@ -55,7 +55,7 @@ export const SplitPairBody = memo(function SplitPairBody({
           <ZoomViewport ref={zoom1.containerRef}>
             <ZoomTransformLayer style={zoomTransformStyle(zoom1.transform)}>
               <Container position="relative" display="inline-block" maxWidth="100%">
-                <ImageEl
+                <ConstrainedImg
                   src={baseUrl}
                   alt={`${altPrefix} (base)`}
                   loading="lazy"
@@ -76,7 +76,7 @@ export const SplitPairBody = memo(function SplitPairBody({
           <ZoomViewport ref={zoom2.containerRef}>
             <ZoomTransformLayer style={zoomTransformStyle(zoom2.transform)}>
               <Container position="relative" display="inline-block" maxWidth="100%">
-                <ImageEl
+                <ConstrainedImg
                   src={headUrl}
                   alt={`${altPrefix} (head)`}
                   loading="lazy"
@@ -135,7 +135,7 @@ export const ImageColumn = memo(function ImageColumn({
       </Container>
       <Flex justify="center" padding="xl">
         <Container position="relative" display="inline-block" maxWidth="100%">
-          <ImageEl
+          <ConstrainedImg
             src={src}
             alt={alt}
             loading="lazy"
@@ -305,7 +305,8 @@ export const OnionCardBody = memo(function OnionCardBody({
   );
 });
 
-const ImageEl = styled('img')`
+// Named to avoid collision with the core <Image> component and the global Image constructor
+const ConstrainedImg = styled('img')`
   display: block;
   width: auto;
   height: auto;
