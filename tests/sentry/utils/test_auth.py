@@ -53,6 +53,18 @@ class EmailAuthBackendTest(TestCase):
         result = self.backend.authenticate(HttpRequest(), username="foo", password="pizza")
         self.assertEqual(result, None)
 
+    def test_suspended_user_cannot_authenticate(self) -> None:
+        self.user.update(is_suspended=True)
+        result = self.backend.authenticate(HttpRequest(), username="foo", password="bar")
+        self.assertIsNone(result)
+
+    def test_user_can_authenticate_rejects_suspended(self) -> None:
+        self.user.update(is_suspended=True)
+        assert self.backend.user_can_authenticate(self.user) is False
+
+    def test_user_can_authenticate_allows_active(self) -> None:
+        assert self.backend.user_can_authenticate(self.user) is True
+
 
 @control_silo_test
 class GetLoginRedirectTest(TestCase):
@@ -163,6 +175,11 @@ class LoginTest(TestCase):
         assert login(request, self.user)
         assert request.user == self.user
         assert request.session["_nonce"] == self.user.session_nonce
+
+    def test_suspended_user_cannot_login(self) -> None:
+        self.user.update(is_suspended=True)
+        request = self._make_request()
+        assert not login(request, self.user)
 
 
 def test_sso_expiry_default() -> None:

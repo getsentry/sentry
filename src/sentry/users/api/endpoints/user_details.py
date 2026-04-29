@@ -203,17 +203,18 @@ class UserSerializer(BaseUserSerializer):
 
 class SuperuserUserSerializer(BaseUserSerializer):
     is_active = serializers.BooleanField()
+    is_suspended = serializers.BooleanField(required=False)
 
     class Meta:
         model = User
-        fields = ("name", "username", "is_active")
+        fields = ("name", "username", "is_active", "is_suspended")
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         request = self.context.get("request")
         should_audit = False
 
         if request:
-            privileged_fields = {"is_active", "is_staff", "is_superuser"}
+            privileged_fields = {"is_active", "is_staff", "is_superuser", "is_suspended"}
             changed_fields = {
                 field
                 for field in privileged_fields
@@ -222,6 +223,10 @@ class SuperuserUserSerializer(BaseUserSerializer):
             should_audit = bool(changed_fields)
 
         user = super().update(instance, validated_data)
+
+        if "is_suspended" in validated_data and validated_data["is_suspended"]:
+            user.refresh_session_nonce()
+            user.save(update_fields=["session_nonce"])
 
         if should_audit and request:
             audit_logger.info(
@@ -243,7 +248,7 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
 
     class Meta:
         model = User
-        fields = ("name", "username", "is_active", "is_staff", "is_superuser")
+        fields = ("name", "username", "is_active", "is_suspended", "is_staff", "is_superuser")
 
 
 class DeleteUserSerializer(serializers.Serializer[User]):

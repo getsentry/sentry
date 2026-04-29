@@ -314,6 +314,9 @@ def login(
 
     Returns boolean indicating if the user was logged in.
     """
+    if getattr(user, "is_suspended", False):
+        return False
+
     if passed_2fa is None:
         passed_2fa = request.session.get(MFA_SESSION_KEY, "") == str(user.id)
 
@@ -434,6 +437,8 @@ class EmailAuthBackend(ModelBackend):
     ) -> User | None:
         for user in find_users(username):
             try:
+                if not self.user_can_authenticate(user):
+                    continue
                 if is_demo_mode_enabled() and is_demo_user(user):
                     return user
                 if user.password:
@@ -449,6 +454,8 @@ class EmailAuthBackend(ModelBackend):
         return None
 
     def user_can_authenticate(self, user: User | AnonymousUser | None) -> bool:
+        if user is not None and getattr(user, "is_suspended", False):
+            return False
         return True
 
     def get_user(self, user_id: int) -> RpcUser | None:  # type: ignore[override]  # XXX: HC "pretends" to be the user model

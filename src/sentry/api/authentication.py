@@ -524,6 +524,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if not isinstance(token, SystemToken) and user and not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
+        if not isinstance(token, SystemToken) and user and getattr(user, "is_suspended", False):
+            raise AuthenticationFailed("User account is suspended")
+
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
@@ -815,7 +818,7 @@ class ViewerContextAuthentication(BaseAuthentication):
             return None
 
         user = user_service.get_user(user_id=vc.user_id)
-        if user is None or not user.is_active:
+        if user is None or not user.is_active or getattr(user, "is_suspended", False):
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
             # during X-Viewer-Context propagation (Seer code mode callbacks).
             # Remove once the auth issue is resolved.
