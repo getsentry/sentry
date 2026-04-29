@@ -148,14 +148,24 @@ def is_in_transition(project: Project) -> bool:
     Determine if a project is currently in a grouping transition, i.e., that it has a valid
     secondary grouping config defined and that it's secondary grouping expiry date hasn't passed.
     """
+    primary_grouping_config = project.get_option("sentry:grouping_config")
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
 
-    return (
-        bool(secondary_grouping_config)
-        and secondary_grouping_config in GROUPING_CONFIG_CLASSES.keys()
-        and (secondary_grouping_expiry or 0) >= time.time()
+    if not secondary_grouping_config and not secondary_grouping_expiry:
+        return False
+
+    secondary_is_invalid_or_expired = (
+        secondary_grouping_config not in GROUPING_CONFIG_CLASSES.keys()
+        or secondary_grouping_config == primary_grouping_config
+        or (secondary_grouping_expiry or 0) < time.time()
     )
+
+    if secondary_is_invalid_or_expired:
+        _clean_up_expired_config_options(project.id)
+        return False
+
+    return True
 
 
 def _clean_up_expired_config_options(project_id: int) -> None:
