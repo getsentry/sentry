@@ -136,7 +136,7 @@ describe('User Details', () => {
       });
 
       const suspendedElements = await screen.findAllByText('Suspended');
-      expect(suspendedElements.length).toBeGreaterThanOrEqual(1);
+      expect(suspendedElements).toHaveLength(2);
 
       await userEvent.click(screen.getAllByRole('button', {name: 'Users Actions'})[0]!);
       expect(screen.getByText('Unsuspend Account')).toBeInTheDocument();
@@ -190,7 +190,7 @@ describe('User Details', () => {
       });
 
       const suspendedElements = await screen.findAllByText('Suspended');
-      expect(suspendedElements.length).toBeGreaterThanOrEqual(2);
+      expect(suspendedElements).toHaveLength(2);
     });
   });
 });
