@@ -228,7 +228,7 @@ class SuperuserUserSerializer(BaseUserSerializer):
             }
             should_audit = bool(changed_fields)
 
-        if validated_data.get("is_suspended"):
+        if validated_data.get("is_suspended") and not instance.is_suspended:
             instance.refresh_session_nonce()
 
         user = super().update(instance, validated_data)

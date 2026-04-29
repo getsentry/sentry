@@ -690,6 +690,14 @@ class UserDetailsSuspensionTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert user.session_nonce == old_nonce
 
+    def test_suspend_already_suspended_does_not_invalidate_sessions(self) -> None:
+        self.user.update(is_suspended=True)
+        old_nonce = self.user.session_nonce
+        self.login_as(user=self.superuser, superuser=True)
+        self.get_success_response(self.user.id, isSuspended="true")
+        user = User.objects.get(id=self.user.id)
+        assert user.session_nonce == old_nonce
+
     def test_regular_user_cannot_suspend(self) -> None:
         user2 = self.create_user(email="target@example.com")
         self.login_as(user=self.user)
