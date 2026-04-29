@@ -8,11 +8,16 @@ describe('useReplayForCriticalFlow', () => {
   const flush = jest.fn();
   const setTag = Sentry.setTag as jest.Mock;
   const getReplay = Sentry.getReplay as jest.Mock;
+  const originalRandom = Math.random;
 
   beforeEach(() => {
     flush.mockReset();
     setTag.mockReset();
     getReplay.mockReset();
+  });
+
+  afterEach(() => {
+    Math.random = originalRandom;
   });
 
   it('tags and flushes when enabled and replay is registered', () => {
@@ -29,6 +34,30 @@ describe('useReplayForCriticalFlow', () => {
 
     expect(flush).toHaveBeenCalledTimes(2);
     expect(setTag).toHaveBeenLastCalledWith('critical_flow', undefined);
+  });
+
+  it('forces a replay when the mount falls within sampleRate', () => {
+    getReplay.mockReturnValue({flush});
+    Math.random = () => 0.1;
+
+    renderHookWithProviders(() =>
+      useReplayForCriticalFlow({flowName: 'scm_onboarding', sampleRate: 0.3})
+    );
+
+    expect(flush).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing when the mount falls outside sampleRate', () => {
+    getReplay.mockReturnValue({flush});
+    Math.random = () => 0.5;
+
+    renderHookWithProviders(() =>
+      useReplayForCriticalFlow({flowName: 'scm_onboarding', sampleRate: 0.3})
+    );
+
+    expect(getReplay).not.toHaveBeenCalled();
+    expect(setTag).not.toHaveBeenCalled();
+    expect(flush).not.toHaveBeenCalled();
   });
 
   it('does nothing when disabled', () => {

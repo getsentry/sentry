@@ -202,6 +202,7 @@ export function OnboardingWithoutContext() {
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
     enabled: hasScmOnboarding,
+    sampleRate: 0.3,
   });
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);

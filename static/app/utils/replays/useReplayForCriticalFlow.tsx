@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 interface Options {
@@ -12,6 +12,13 @@ interface Options {
    * who aren't actually in the flow (e.g. wrong experiment cohort).
    */
   enabled?: boolean;
+  /**
+   * Probability [0, 1] that a given mount forces a full session replay.
+   * Independent of getsentry's global session sample rate — users in that
+   * sample are already recording regardless of this value. Defaults to 1.0
+   * (force every user in the flow).
+   */
+  sampleRate?: number;
 }
 
 /**
@@ -20,14 +27,22 @@ interface Options {
  *
  * Why: getsentry runs at 5% session sample / 100% on-error sample. That's
  * the right default for the whole app, but for high-value funnels we want
- * every successful run too — not just the ones that errored.
+ * a representative slice of successful runs too — not just the ones that
+ * errored.
  *
  * No-op when the Replay integration isn't registered (dev, self-hosted,
  * or before getsentry's lazy init has finished).
  */
-export function useReplayForCriticalFlow({flowName, enabled = true}: Options) {
+export function useReplayForCriticalFlow({
+  flowName,
+  enabled = true,
+  sampleRate = 1,
+}: Options) {
+  // Decide once per mount so the effect is stable across re-renders.
+  const [shouldForce] = useState(() => Math.random() < sampleRate);
+
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !shouldForce) {
       return undefined;
     }
 
@@ -48,5 +63,5 @@ export function useReplayForCriticalFlow({flowName, enabled = true}: Options) {
       replay.flush();
       Sentry.setTag('critical_flow', undefined);
     };
-  }, [enabled, flowName]);
+  }, [enabled, shouldForce, flowName]);
 }
