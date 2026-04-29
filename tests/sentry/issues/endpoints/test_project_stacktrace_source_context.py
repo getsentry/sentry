@@ -36,7 +36,8 @@ class ProjectStacktraceSourceContextTest(APITestCase):
         self.login_as(self.user)
         self.project.update_option("sentry:scm_source_context_enabled", True)
 
-    def test_feature_flag_required(self) -> None:
+    def test_project_option_required(self) -> None:
+        self.project.update_option("sentry:scm_source_context_enabled", False)
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
@@ -44,44 +45,31 @@ class ProjectStacktraceSourceContextTest(APITestCase):
         )
         assert response.status_code == 404
 
-    def test_project_option_required(self) -> None:
-        self.project.update_option("sentry:scm_source_context_enabled", False)
-        with self.feature("organizations:scm-source-context"):
-            response = self.get_response(
-                self.organization.slug,
-                self.project.slug,
-                qs_params={"file": "src/main.py", "lineNo": "10", "platform": "python"},
-            )
-            assert response.status_code == 404
-
     def test_missing_filepath(self) -> None:
-        with self.feature("organizations:scm-source-context"):
-            response = self.get_response(
-                self.organization.slug,
-                self.project.slug,
-                qs_params={"lineNo": "10", "platform": "python"},
-            )
-            assert response.status_code == 400
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"lineNo": "10", "platform": "python"},
+        )
+        assert response.status_code == 400
 
     def test_missing_lineno(self) -> None:
-        with self.feature("organizations:scm-source-context"):
-            response = self.get_response(
-                self.organization.slug,
-                self.project.slug,
-                qs_params={"file": "src/main.py", "platform": "python"},
-            )
-            assert response.status_code == 400
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": "src/main.py", "platform": "python"},
+        )
+        assert response.status_code == 400
 
     def test_no_code_mappings(self) -> None:
         self.code_mapping.delete()
-        with self.feature("organizations:scm-source-context"):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                qs_params={"file": "src/main.py", "lineNo": "10", "platform": "python"},
-            )
-            assert response.data["error"] == "no_code_mappings_for_project"
-            assert response.data["context"] == []
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": "src/main.py", "lineNo": "10", "platform": "python"},
+        )
+        assert response.data["error"] == "no_code_mappings_for_project"
+        assert response.data["context"] == []
 
     @patch("sentry.integrations.utils.source_context.integration_service")
     def test_successful_fetch(self, mock_service: MagicMock) -> None:
@@ -100,20 +88,19 @@ class ProjectStacktraceSourceContextTest(APITestCase):
 
         mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
 
-        with self.feature("organizations:scm-source-context"):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                qs_params={
-                    "file": "src/app/main.py",
-                    "lineNo": "10",
-                    "platform": "python",
-                },
-            )
-            assert response.data["error"] is None
-            assert len(response.data["context"]) == 11
-            assert response.data["context"][5] == [10, "line10"]
-            assert response.data["sourceUrl"] == "https://github.com/file"
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": "src/app/main.py",
+                "lineNo": "10",
+                "platform": "python",
+            },
+        )
+        assert response.data["error"] is None
+        assert len(response.data["context"]) == 11
+        assert response.data["context"][5] == [10, "line10"]
+        assert response.data["sourceUrl"] == "https://github.com/file"
 
     @patch("sentry.integrations.utils.source_context.integration_service")
     def test_file_not_found(self, mock_service: MagicMock) -> None:
@@ -129,15 +116,14 @@ class ProjectStacktraceSourceContextTest(APITestCase):
         mock_install.get_client.return_value = mock_client
         mock_client.get_file.side_effect = ApiError("Not Found", code=404)
 
-        with self.feature("organizations:scm-source-context"):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                qs_params={
-                    "file": "src/app/main.py",
-                    "lineNo": "10",
-                    "platform": "python",
-                },
-            )
-            assert response.data["error"] == "file_not_found"
-            assert response.data["context"] == []
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": "src/app/main.py",
+                "lineNo": "10",
+                "platform": "python",
+            },
+        )
+        assert response.data["error"] == "file_not_found"
+        assert response.data["context"] == []
