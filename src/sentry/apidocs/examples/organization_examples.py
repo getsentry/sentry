@@ -302,7 +302,6 @@ class OrganizationExamples:
                 ],
                 "defaultSeerScannerAutomation": True,
                 "enableSeerCoding": True,
-                "enableSeerEnhancedAlerts": True,
                 "autoOpenPrs": False,
                 "defaultCodingAgent": "seer",
                 "defaultCodingAgentIntegrationId": None,

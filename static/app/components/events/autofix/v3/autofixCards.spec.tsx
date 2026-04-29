@@ -224,9 +224,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Copy as Markdown'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 
@@ -322,9 +320,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Copy as Markdown'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 
@@ -436,9 +432,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Copy as Markdown'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 
@@ -779,9 +773,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Copy as Markdown'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 });

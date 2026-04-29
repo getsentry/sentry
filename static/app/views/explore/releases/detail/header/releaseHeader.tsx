@@ -26,7 +26,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {ReleaseActions, releaseFeedbackOptions} from './releaseActions';
 
@@ -47,7 +46,6 @@ export function ReleaseHeader({
   releaseMeta,
   refetchData,
 }: Props) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
@@ -155,73 +153,42 @@ export function ReleaseHeader({
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="title">
-            <Breadcrumbs
-              crumbs={[
-                {
-                  to: makeReleasesPathname({organization, path: '/'}),
-                  label: t('Releases'),
-                  preservePageFilters: true,
-                },
-                {
-                  label: (
-                    <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
-                      {titleContent}
-                    </Flex>
-                  ),
-                },
-              ]}
-            />
-          </TopBar.Slot>
-        ) : (
-          <React.Fragment>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  to: makeReleasesPathname({organization, path: '/'}),
-                  label: t('Releases'),
-                  preservePageFilters: true,
-                },
-                {label: t('Release Details')},
-              ]}
-            />
-            <Layout.Title>{titleContent}</Layout.Title>
-          </React.Fragment>
-        )}
-      </Layout.HeaderContent>
-
-      {hasPageFrameFeature ? (
-        <React.Fragment>
-          <TopBar.Slot name="actions">
-            <ReleaseActions
-              projectSlug={project.slug}
-              release={release}
-              releaseMeta={releaseMeta}
-              refetchData={refetchData}
-              showFeedbackButton={false}
-            />
-          </TopBar.Slot>
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              feedbackOptions={releaseFeedbackOptions}
-              aria-label={t('Give Feedback')}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        </React.Fragment>
-      ) : (
-        <Layout.HeaderActions>
-          <ReleaseActions
-            projectSlug={project.slug}
-            release={release}
-            releaseMeta={releaseMeta}
-            refetchData={refetchData}
+        <TopBar.Slot name="title">
+          <Breadcrumbs
+            crumbs={[
+              {
+                to: makeReleasesPathname({organization, path: '/'}),
+                label: t('Releases'),
+                preservePageFilters: true,
+              },
+              {
+                label: (
+                  <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
+                    {titleContent}
+                  </Flex>
+                ),
+              },
+            ]}
           />
-        </Layout.HeaderActions>
-      )}
-
+        </TopBar.Slot>
+      </Layout.HeaderContent>
+      <TopBar.Slot name="actions">
+        <ReleaseActions
+          projectSlug={project.slug}
+          release={release}
+          releaseMeta={releaseMeta}
+          refetchData={refetchData}
+          showFeedbackButton={false}
+        />
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          feedbackOptions={releaseFeedbackOptions}
+          aria-label={t('Give Feedback')}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
       <Layout.HeaderTabs value={getActiveTabTo()}>
         <TabList>
           {tabs.map(tab => (
