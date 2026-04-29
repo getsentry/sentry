@@ -493,6 +493,16 @@ class SlackActionEndpoint(Endpoint):
                             user=identity_user,
                         )
                     defer_attachment_update = True
+                elif action.name == SlackAction.SEER_AUTOFIX_HANDOFF:
+                    with self.record_event(
+                        MessagingInteractionType.SEER_AUTOFIX_HANDOFF, group, request
+                    ).capture():
+                        self.handle_seer_autofix_handoff(
+                            slack_request=slack_request,
+                            action=action,
+                            group=group,
+                        )
+                    defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
@@ -612,6 +622,31 @@ class SlackActionEndpoint(Endpoint):
             "seer.slack.trigger_autofix",
             tags={"stopping_point": str(stopping_point), "is_continuation": str(is_continuation)},
         )
+
+    def handle_seer_autofix_handoff(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        action: BlockKitMessageAction,
+        group: Group,
+    ) -> None:
+        entrypoint = SlackAutofixEntrypoint(
+            slack_request=slack_request,
+            action=action,
+            group=group,
+            organization_id=group.project.organization_id,
+        )
+        run_id = entrypoint.autofix_run_id
+        if run_id is None:
+            _logger.info(
+                "seer.slack.trigger_handoff.missing_run_id",
+                extra={
+                    "group_id": group.id,
+                    "organization_id": group.project.organization_id,
+                },
+            )
+            return
+        SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(group=group, run_id=int(run_id))
 
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
