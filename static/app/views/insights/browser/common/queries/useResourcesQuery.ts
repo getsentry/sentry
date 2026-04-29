@@ -5,33 +5,17 @@ import {
 } from 'sentry/views/insights/browser/resources/constants';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import type {ModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import type {ValidSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const {
   SPAN_DOMAIN,
-  SPAN_GROUP,
   SPAN_OP,
-  SPAN_SELF_TIME,
   RESOURCE_RENDER_BLOCKING_STATUS,
-  HTTP_RESPONSE_CONTENT_LENGTH,
   FILE_EXTENSION,
   USER_GEO_SUBREGION,
-  NORMALIZED_DESCRIPTION,
 } = SpanFields;
 
-type Props = {
-  referrer: string;
-  sort: ValidSort;
-  cursor?: string;
-  defaultResourceTypes?: string[];
-  limit?: number;
-  query?: string;
-};
-
-export const DEFAULT_RESOURCE_FILTERS = [
+const DEFAULT_RESOURCE_FILTERS = [
   'has:sentry.normalized_description',
   '!sentry.normalized_description:"browser-extension://*"',
 ];
@@ -58,44 +42,7 @@ export const getResourcesEventViewQuery = (
   ];
 };
 
-export const useResourcesQuery = ({
-  sort,
-  defaultResourceTypes,
-  query,
-  limit,
-  cursor,
-  referrer,
-}: Props) => {
-  const resourceFilters = useResourceModuleFilters();
-
-  const queryConditions = [
-    ...(query ? [] : getResourcesEventViewQuery(resourceFilters, defaultResourceTypes)),
-    query,
-  ];
-
-  return useSpans(
-    {
-      sorts: [sort],
-      search: queryConditions.join(' '),
-      cursor,
-      limit: limit || 100,
-      fields: [
-        NORMALIZED_DESCRIPTION,
-        SPAN_OP,
-        'count()',
-        `avg(${SPAN_SELF_TIME})`,
-        'epm()',
-        SPAN_GROUP,
-        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-        'project.id',
-        `sum(${SPAN_SELF_TIME})`,
-      ],
-    },
-    referrer
-  );
-};
-
-export const getDomainFilter = (selectedDomain: string | undefined) => {
+const getDomainFilter = (selectedDomain: string | undefined) => {
   if (!selectedDomain) {
     return [];
   }
