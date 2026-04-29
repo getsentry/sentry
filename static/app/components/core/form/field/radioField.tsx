@@ -67,7 +67,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
       <RadioContext value={contextValue}>
         <Flex role="radiogroup" aria-labelledby={labelId} gap="sm" align="center">
           {children}
-          {indicator ?? <Flex width="14px" flexShrink={0} />}
+          {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
           <FieldMeta.Status disabled={disabled} />
         </Flex>
       </RadioContext>
