@@ -601,14 +601,18 @@ function buildMetricsQueryParam(params: Record<string, any>): string[] | undefin
 
   const mode = params.mode === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES;
   const base = defaultMetricQuery();
-  const normalizedYAxesByOriginal = new Map<string, string>();
+
+  // Seer y-axes use short names like "avg(duration)"; normalize them to fully
+  // qualified metric aggregates like "avg(metrics.foo.duration)".
   const yAxes = getStringArray(params.y_axes);
-  const visualizes = (yAxes.length ? yAxes : [getDefaultMetricYAxis(traceMetric)]).map(
-    yAxis => {
-      const normalizedYAxis = getMetricYAxis(yAxis, traceMetric);
-      normalizedYAxesByOriginal.set(yAxis, normalizedYAxis);
-      return new VisualizeFunction(normalizedYAxis);
-    }
+  const resolvedYAxes = yAxes.length ? yAxes : [getDefaultMetricYAxis(traceMetric)];
+  const normalizedYAxesByOriginal = resolvedYAxes.reduce((map, yAxis) => {
+    map.set(yAxis, getMetricYAxis(yAxis, traceMetric));
+    return map;
+  }, new Map<string, string>());
+  // VisualizeFunction instances that the Explore page uses to render charts.
+  const visualizes = resolvedYAxes.map(
+    yAxis => new VisualizeFunction(normalizedYAxesByOriginal.get(yAxis)!)
   );
 
   const aggregateFields: AggregateField[] = [
@@ -622,10 +626,10 @@ function buildMetricsQueryParam(params: Record<string, any>): string[] | undefin
     mode,
     aggregateFields,
     aggregateSortBys:
-      mode === Mode.AGGREGATE && seerSort
-        ? [seerSort]
+      mode === Mode.AGGREGATE && sortBys
+        ? [sortBys]
         : defaultAggregateSortBys(aggregateFields),
-    sortBys: mode === Mode.SAMPLES && seerSort ? [seerSort] : base.queryParams.sortBys,
+    sortBys: mode === Mode.SAMPLES && sortBys ? [sortBys] : base.queryParams.sortBys,
   });
 
   return [encodeMetricQueryParams({metric: traceMetric, queryParams})];
