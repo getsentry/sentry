@@ -77,9 +77,7 @@ RPC_DATASETS = {
     UptimeResults,
 }
 DATASET_LABELS = {
-    value: key
-    for key, value in DATASET_OPTIONS.items()
-    if key not in DEPRECATED_LABELS and key not in FEATURE_FLAGGED_DATASETS
+    value: key for key, value in DATASET_OPTIONS.items() if key not in DEPRECATED_LABELS
 }
 
 
