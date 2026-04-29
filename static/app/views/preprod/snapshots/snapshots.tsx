@@ -31,8 +31,12 @@ import type {
 import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
-import {SnapshotMainContent, type ViewMode} from './main/snapshotMainContent';
-import {DIFF_TYPE_ORDER, SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
+import {SnapshotMainContent} from './main/snapshotMainContent';
+import {
+  DIFF_TYPE_ORDER,
+  type SidebarGroup,
+  SnapshotSidebarContent,
+} from './sidebar/snapshotSidebarContent';
 
 function imageGroupKey(img: SnapshotImage): string {
   return img.group ?? img.image_file_name;
@@ -129,7 +133,11 @@ export default function SnapshotsPage() {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGroup, setSelectedGroup] = useQueryState('selectedGroup', parseAsString);
+  const pushHistory = {history: 'push' as const};
+  const [selectedGroup, setSelectedGroup] = useQueryState(
+    'selectedGroup',
+    parseAsString.withOptions(pushHistory)
+  );
   const [variantIndex, setVariantIndex] = useState(0);
   const palette = theme.chart.getColorPalette(10);
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
@@ -140,21 +148,27 @@ export default function SnapshotsPage() {
     'snapshot-diff-mode',
     'split'
   );
-  const [viewMode, setViewMode] = useLocalStorageState<ViewMode>(
-    'snapshot-view-mode',
-    'list'
+  const [viewMode, setViewMode] = useQueryState(
+    'view',
+    parseAsStringLiteral(['list', 'single'] as const)
+      .withDefault('list')
+      .withOptions(pushHistory)
   );
   const [activeStatusList, setActiveStatusList] = useQueryState(
     'selectedTypes',
-    parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus))).withDefault([])
+    parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus)))
+      .withDefault([])
+      .withOptions(pushHistory)
   );
   const [selectedSnapshotKey, setSelectedSnapshotKey] = useQueryState(
     'selectedSnapshot',
-    parseAsString
+    parseAsString.withOptions(pushHistory)
   );
   const [sortBy, setSortBy] = useQueryState(
     'sortBy',
-    parseAsStringLiteral(['diff', 'alpha'] as const).withDefault('diff')
+    parseAsStringLiteral(['diff', 'alpha'] as const)
+      .withDefault('diff')
+      .withOptions(pushHistory)
   );
   const activeStatuses = useMemo(() => new Set(activeStatusList), [activeStatusList]);
 
@@ -303,21 +317,41 @@ export default function SnapshotsPage() {
     sortBy,
   ]);
 
+  const sidebarGroups = useMemo<SidebarGroup[]>(() => {
+    const merged = new Map<string, SidebarGroup>();
+    for (const item of filteredItems) {
+      const existing = merged.get(item.name);
+      const count =
+        item.type === 'changed' || item.type === 'renamed'
+          ? item.pairs.length
+          : item.images.length;
+      if (existing) {
+        existing.count += count;
+      } else {
+        merged.set(item.name, {key: item.name, name: item.name, count});
+      }
+    }
+    return [...merged.values()];
+  }, [filteredItems]);
+
   const isAllSelected = selectedGroup === null;
-  // If the user has a selectedGroup but filters hide it, return null rather
-  // than silently falling back to filteredItems[0] — that would display an
-  // item the user never picked while their URL param still points elsewhere.
-  const currentItem = selectedGroup
-    ? (filteredItems.find(i => i.key === selectedGroup) ?? null)
-    : (filteredItems[0] ?? null);
-  const currentItemKey = currentItem?.key ?? null;
+  const hasMatchingItems =
+    selectedGroup !== null && filteredItems.some(i => i.name === selectedGroup);
+  const currentItem = hasMatchingItems
+    ? (filteredItems.find(i => i.name === selectedGroup) ?? null)
+    : isAllSelected
+      ? (filteredItems[0] ?? null)
+      : null;
 
   const listItems = useMemo(() => {
     if (isAllSelected) {
       return filteredItems;
     }
-    return currentItem ? [currentItem] : [];
-  }, [isAllSelected, filteredItems, currentItem]);
+    if (!selectedGroup) {
+      return [];
+    }
+    return filteredItems.filter(i => i.name === selectedGroup);
+  }, [isAllSelected, filteredItems, selectedGroup]);
 
   const statusCounts = useMemo<Record<DiffStatus, number> | null>(() => {
     if (comparisonType !== 'diff') {
@@ -445,7 +479,7 @@ export default function SnapshotsPage() {
 
       // Left/Right flip between single and list view.
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        const nextMode = e.key === 'ArrowLeft' ? 'single' : 'list';
+        const nextMode = e.key === 'ArrowLeft' ? 'list' : 'single';
         if (nextMode !== navRef.current.viewMode) {
           e.preventDefault();
           navRef.current.setViewMode(nextMode);
@@ -515,8 +549,8 @@ export default function SnapshotsPage() {
         }}
       >
         <SnapshotSidebarContent
-          items={filteredItems}
-          currentItemKey={currentItemKey}
+          groups={sidebarGroups}
+          currentItemKey={selectedGroup}
           isAllSelected={isAllSelected}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
