@@ -316,6 +316,7 @@ type InterfaceChromeHooks = {
  */
 type OnboardingHooks = {
   'onboarding:block-hide-sidebar': () => boolean;
+  'onboarding:scm-flow-replay-tracker': () => React.ReactNode;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 

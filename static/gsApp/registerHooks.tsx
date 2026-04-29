@@ -62,6 +62,7 @@ import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import {OrgStatsProfilingBanner} from 'getsentry/hooks/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/hooks/rootRoutes';
+import {ScmFlowReplayTracker} from 'getsentry/hooks/scmFlowReplayTracker';
 import {ScmGithubMultiOrgInstall} from 'getsentry/hooks/scmGithubMultiOrgInstall';
 import {seerSettingsRoutes} from 'getsentry/hooks/seerSettingsRoutes';
 import {ComponentWrapper as EnhancedOrganizationStats} from 'getsentry/hooks/spendVisibility/enhancedIndex';
@@ -185,6 +186,14 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    */
   'onboarding:targeted-onboarding-header': ({source}: {source: string}) => (
     <TargetedOnboardingHeader source={source} key="targeted-onboarding-header" />
+  ),
+
+  /**
+   * Force a session replay for the SCM onboarding cohort so we get
+   * representative funnel coverage for debugging.
+   */
+  'onboarding:scm-flow-replay-tracker': () => (
+    <ScmFlowReplayTracker key="scm-flow-replay-tracker" />
   ),
 
   /**
