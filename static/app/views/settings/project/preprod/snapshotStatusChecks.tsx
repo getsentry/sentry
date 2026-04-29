@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -35,8 +35,13 @@ export function SnapshotStatusChecks() {
   const {project} = useProjectSettingsOutlet();
   const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
     useSnapshotStatusChecks(project);
+  const [statusChecksEnabled, setStatusChecksEnabled] = useState(enabled);
 
   const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+
+  useEffect(() => {
+    setStatusChecksEnabled(enabled);
+  }, [enabled]);
 
   const mutationOptions = {
     mutationFn: (data: Partial<Schema>) =>
@@ -46,6 +51,11 @@ export function SnapshotStatusChecks() {
         data,
       }),
     onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
+  };
+
+  const enabledMutationOptions = {
+    ...mutationOptions,
+    onError: () => setStatusChecksEnabled(enabled),
   };
 
   const failureConditionFields = [
@@ -81,7 +91,7 @@ export function SnapshotStatusChecks() {
         name="preprodSnapshotStatusChecksEnabled"
         schema={schema}
         initialValue={enabled}
-        mutationOptions={mutationOptions}
+        mutationOptions={enabledMutationOptions}
       >
         {field => (
           <field.Layout.Row
@@ -90,12 +100,18 @@ export function SnapshotStatusChecks() {
               'Sentry will post status checks based on snapshot changes in your builds.'
             )}
           >
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch
+              checked={field.state.value}
+              onChange={value => {
+                setStatusChecksEnabled(value);
+                field.handleChange(value);
+              }}
+            />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
 
-      {enabled ? (
+      {statusChecksEnabled ? (
         <Fragment>
           {failureConditionFields.map(({name, initialValue, label, hintText}) => (
             <AutoSaveForm

@@ -132,6 +132,42 @@ describe('SnapshotStatusChecks', () => {
     );
   });
 
+  it('immediately hides failure condition toggles when status checks are disabled', async () => {
+    const project = ProjectFixture({options: {}});
+    const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    const mock = MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      method: 'PUT',
+      body: {},
+    });
+
+    render(<SnapshotStatusChecks />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    await userEvent.click(
+      await screen.findByRole('checkbox', {name: 'Enable Snapshot Status Checks'})
+    );
+
+    expect(
+      screen.getByText('Enable status checks to configure failure conditions')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Fail on Changed Snapshots'})
+    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(mock).toHaveBeenCalledWith(
+        projectEndpoint,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {preprodSnapshotStatusChecksEnabled: false},
+        })
+      )
+    );
+  });
+
   it('hides per-category toggles and shows a hint when status checks are disabled', async () => {
     const project = ProjectFixture({
       options: {},
