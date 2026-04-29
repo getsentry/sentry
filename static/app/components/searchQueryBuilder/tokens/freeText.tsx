@@ -293,6 +293,13 @@ function SearchQueryBuilderInputInternal({
   const shouldReopenDropdownOnFocus =
     reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
 
+  useEffect(() => {
+    if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
+      consumeReopenDropdownOnQueryClear();
+      setIsOpen(true);
+    }
+  }, [shouldReopenDropdownOnFocus, consumeReopenDropdownOnQueryClear]);
+
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
   if (trimmedTokenValue !== prevValue) {

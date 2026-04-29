@@ -327,8 +327,8 @@ describe('SearchQueryBuilder', () => {
     });
 
     it.each([
-      ['Backspace', '{Meta>}{Backspace}{/Meta}'],
-      ['Delete', '{Meta>}{Delete}{/Meta}'],
+      ['Backspace', '{Control>}{Backspace}{/Control}'],
+      ['Delete', '{Control>}{Delete}{/Control}'],
     ])(
       'clears the query and reopens suggestions with Cmd+%s from an open token dropdown',
       async (_key, keyboardInput) => {
@@ -352,7 +352,7 @@ describe('SearchQueryBuilder', () => {
 
         await waitFor(() => {
           expect(
-            screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+            screen.queryByRole('row', {name: 'browser.name:Firefox'})
           ).not.toBeInTheDocument();
         });
 
