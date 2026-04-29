@@ -124,6 +124,10 @@ class ProjectMemberSerializer(serializers.Serializer):
     )
     preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
     preprodSnapshotPrCommentsOnlyIfDiff = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsPostOnAdded = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsPostOnRemoved = serializers.BooleanField(
+        required=False, allow_null=True
+    )
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -177,6 +181,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodDistributionPrCommentsEnabledByCustomer",
         "preprodSnapshotPrCommentsEnabled",
         "preprodSnapshotPrCommentsOnlyIfDiff",
+        "preprodSnapshotPrCommentsPostOnAdded",
+        "preprodSnapshotPrCommentsPostOnRemoved",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -930,6 +936,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_snapshot_pr_comments_only_if_diff"] = result[
                     "preprodSnapshotPrCommentsOnlyIfDiff"
                 ]
+        if "preprodSnapshotPrCommentsPostOnAdded" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_added",
+                result["preprodSnapshotPrCommentsPostOnAdded"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_added"] = result[
+                    "preprodSnapshotPrCommentsPostOnAdded"
+                ]
+        if "preprodSnapshotPrCommentsPostOnRemoved" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_removed",
+                result["preprodSnapshotPrCommentsPostOnRemoved"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_removed"] = (
+                    result["preprodSnapshotPrCommentsPostOnRemoved"]
+                )
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
                 project.delete_option("sentry:debug_files_role")
