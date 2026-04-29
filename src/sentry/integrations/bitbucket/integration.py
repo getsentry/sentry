@@ -311,7 +311,9 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             secret = generate_token()
             if options.get("integrations.bitbucket.weak-installation-verification"):
                 client = BitbucketInstallationClient(
-                    shared_secret=state["sharedSecret"], base_url="https://api.bitbucket.org"
+                    shared_secret=state["sharedSecret"],
+                    external_id=state["clientKey"],
+                    base_url="https://api.bitbucket.org",
                 )
                 try:
                     client.verify_shared_secret(state["sharedSecret"])

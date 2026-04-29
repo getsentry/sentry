@@ -24,13 +24,13 @@ class AtlassianConnectFailureReason(StrEnum):
     EXPIRED_SIGNATURE = "Signature is expired"
     QUERY_HASH_MISMATCH = "Query hash mismatch"
     UNABLE_TO_VERIFY_ASYMMETRIC_JWT = "Unable to verify asymmetric installation JWT"
-    FAILED_TO_RETRIEVE_TOKEN = "Failed to retrieve token from request headers"
     FAILED_TO_FETCH_KEY_ID = "Failed to fetch key_id (kid)"
     MISSING_KEY_ID = "Missing key_id (kid)"
     INVALID_KEY_ID = "JWT contained invalid key_id (kid)"
     EXPIRED_SIGNATURE_TOKEN = "Expired signature"
     INVALID_SIGNATURE_TOKEN = "JWT contained invalid signature"
     COULD_NOT_DECODE_JWT = "Could not decode JWT token"
+    INVALID_SHARED_SECRET = "Invalid shared secret"
 
 
 class AtlassianConnectValidationError(Exception):

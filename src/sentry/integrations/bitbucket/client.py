@@ -236,9 +236,14 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
 
 class BitbucketInstallationClient(ApiClient):
-    def __init__(self, shared_secret: str, base_url: str):
+    def __init__(self, shared_secret: str, external_id: str, base_url: str):
         self.shared_secret = shared_secret
         self.base_url = base_url
+        self.external_id = external_id
+        super().__init__(
+            verify_ssl=True,
+            logging_context=None,
+        )
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         assert prepared_request.url is not None
@@ -253,11 +258,11 @@ class BitbucketInstallationClient(ApiClient):
             "qsh": get_query_hash(
                 uri=path, method=prepared_request.method.upper(), query_params=url_params
             ),
-            "sub": self.subject,
+            "sub": self.external_id,
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
         prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
         return prepared_request
 
-    def verify_shared_secret(self, shared_secret: str) -> bool:
+    def verify_shared_secret(self, shared_secret: str) -> None:
         return self.get(BitbucketAPIPath.addons, params={"shared_secret": shared_secret})
