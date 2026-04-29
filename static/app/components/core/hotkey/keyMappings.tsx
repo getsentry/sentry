@@ -118,7 +118,7 @@ export function matchesKey(name: string, event: KeyboardEvent): boolean {
   }
 
   if (key.length === 1) {
-    if (event.key.toLowerCase() === key) {
+    if (event.key?.toLowerCase() === key) {
       return true;
     }
     const code = codeForChar(key);
