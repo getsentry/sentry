@@ -143,6 +143,7 @@ class ResultsHeader extends Component<Props, State> {
         updateCallback={() => this.fetchData()}
         yAxis={yAxis}
         isHomepage={isHomepage}
+        hasPageFrameFeature={hasPageFrameFeature}
         setHomepageQuery={updatedHomepageQuery => {
           this.setState({
             homepageQuery: getSavedQueryWithDataset(updatedHomepageQuery) as SavedQuery,
@@ -165,7 +166,7 @@ class ResultsHeader extends Component<Props, State> {
       </Fragment>
     );
 
-    const breadcrumbAndInput = (
+    const legacyBreadcrumbAndInput = (
       <Fragment>
         <DiscoverBreadcrumb
           eventView={eventView}
@@ -182,6 +183,16 @@ class ResultsHeader extends Component<Props, State> {
       </Fragment>
     );
 
+    const pageFrameBreadcrumb = (
+      <DiscoverBreadcrumb
+        eventView={eventView}
+        organization={organization}
+        location={location}
+        isHomepage={isHomepage}
+        savedQuery={savedQuery}
+      />
+    );
+
     return (
       <Layout.Header>
         {hasPageFrameFeature ? (
@@ -190,7 +201,7 @@ class ResultsHeader extends Component<Props, State> {
               {isHomepage ? (
                 <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
               ) : hasDiscoverQueryFeature ? (
-                breadcrumbAndInput
+                pageFrameBreadcrumb
               ) : (
                 title
               )}
@@ -205,7 +216,7 @@ class ResultsHeader extends Component<Props, State> {
                   <Layout.Title>{title}</Layout.Title>
                 </GuideAnchor>
               ) : hasDiscoverQueryFeature ? (
-                breadcrumbAndInput
+                legacyBreadcrumbAndInput
               ) : (
                 // Only has discover-basic
                 <Layout.Title>{title}</Layout.Title>

@@ -187,6 +187,10 @@ Use the right AGENTS.md for the area you're working in:
 
 Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
 
+## Viewer/Organization Context
+
+- Viewer identity is wired through the app via the `ViewerContext` contextvar; use `sentry.viewer_context.get_viewer_context()` instead of explicitly threading org/user identity when the current viewer is in scope.
+
 ## Agent Skills
 
 Skills under `.agents/skills/` should follow the same current-practice conventions as the rest of the repo:

@@ -10,6 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -31,6 +32,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 )
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     DetailedWorkflowEngineDetectorSerializer,
+    WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.logic import (
     AlreadyDeletedError,
@@ -146,7 +148,31 @@ def update_alert_rule(
             # The user has requested a new Slack channel and we tell the client to check again in a bit
             return Response({"uuid": client.uuid}, status=202)
         else:
-            return Response(serialize(validator.save(), request.user), status=status.HTTP_200_OK)
+            updated_rule = validator.save()
+            if features.has(
+                "organizations:workflow-engine-metric-alert-endpoints-put", organization
+            ):
+                try:
+                    detector = Detector.objects.get(
+                        alertruledetector__alert_rule_id=updated_rule.id
+                    )
+                    return Response(
+                        serialize(
+                            detector,
+                            request.user,
+                            WorkflowEngineDetectorSerializer(),
+                        ),
+                        status=status.HTTP_200_OK,
+                    )
+                except Detector.DoesNotExist:
+                    logger.error(
+                        "Alert rule was not dual written. Returning serialized rule instead of detector",
+                        extra={"rule_id": updated_rule.id},
+                    )
+                    return Response(
+                        serialize(updated_rule, request.user), status=status.HTTP_200_OK
+                    )
+            return Response(serialize(updated_rule, request.user), status=status.HTTP_200_OK)
 
     return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 

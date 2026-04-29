@@ -140,10 +140,20 @@ runs:
       run: |
         sentry init
 
+        # Prevent git from spawning background gc/maintenance processes during
+        # dependency clones, which races with shutil.copytree (git 2.54 regression).
+        git config --global gc.auto 0
+        git config --global maintenance.auto 0
+        git config --global fetch.writeCommitGraph false
+
         # This is necessary to bring up devservices with appropriate sentry config
         cd "$WORKDIR"
 
         timeout "${DEVSERVICES_TIMEOUT}m" devservices up --mode "$DEVSERVICES_MODE"
+
+        git config --global --unset gc.auto
+        git config --global --unset maintenance.auto
+        git config --global --unset fetch.writeCommitGraph
 
         # have tests listen on the docker gateway ip so loopback can occur
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"

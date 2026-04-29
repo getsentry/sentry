@@ -25,6 +25,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -59,7 +60,7 @@ class ExplorerChatRequest(TypedDict):
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
     enable_coding: NotRequired[bool]
-    enable_code_mode_tools: NotRequired[bool]
+    enable_code_mode_tools: NotRequired[str]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
@@ -241,7 +242,18 @@ def collect_user_org_context(
     all_projects = Project.objects.filter(
         organization=organization, status=ObjectStatus.ACTIVE
     ).values("id", "slug")
-    all_org_projects = [{"id": p["id"], "slug": p["slug"]} for p in all_projects]
+
+    prefs_by_pid = bulk_read_preferences_from_sentry_db(
+        organization.id, [p["id"] for p in all_projects]
+    )
+    repos_by_pid = {
+        str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
+    }
+
+    all_org_projects = [
+        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
+        for p in all_projects
+    ]
 
     if user is None or isinstance(user, AnonymousUser):
         return {
@@ -275,7 +287,10 @@ def collect_user_org_context(
         .distinct()
         .values("id", "slug")
     )
-    user_projects = [{"id": p["id"], "slug": p["slug"]} for p in my_projects]
+    user_projects = [
+        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
+        for p in my_projects
+    ]
 
     # Handle name attribute - SentryUser has name
     user_name: str | None = None
@@ -392,18 +407,28 @@ def _render_node(node: dict[str, Any], depth: int) -> str:
 _MAX_ROOT_NODES = 10
 
 
+def _get_priority(node: dict[str, Any]) -> int:
+    priority = node.get("priority")
+    return priority if isinstance(priority, int) else 0
+
+
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     """Convert an LLMContextSnapshot dict to a markdown string.
 
-    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
+    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "priority": int, "data": ..., "children": [...]}]}``
     The top-level nodes list may contain multiple root nodes (e.g. a dashboard
-    and a widget-builder sidebar rendered as siblings).  At most ``_MAX_ROOT_NODES``
-    are rendered to guard against runaway token usage.
+    and a widget-builder sidebar rendered as siblings).  Nodes are sorted by
+    ``priority`` (descending, default 0) and only nodes at the highest
+    priority level are rendered.  At most ``_MAX_ROOT_NODES`` are emitted to
+    guard against runaway token usage.
     """
     nodes = snapshot.get("nodes", [])
     if not nodes:
         return ""
+    sorted_nodes = sorted(nodes, key=_get_priority, reverse=True)
+    top_priority = _get_priority(sorted_nodes[0])
+    selected = [n for n in sorted_nodes if _get_priority(n) == top_priority][:_MAX_ROOT_NODES]
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    return preamble + "\n".join(_render_node(node, 0) for node in nodes[:_MAX_ROOT_NODES])
+    return preamble + "\n".join(_render_node(node, 0) for node in selected)

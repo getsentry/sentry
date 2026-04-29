@@ -14,14 +14,12 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isPolling: false,
   isError: false,
   runId: null,
-  deletedFromIndex: null,
   waitingForInterrupt: false,
   overrideCtxEngEnable: true,
-  overrideCodeModeEnable: false,
+  overrideCodeModeEnable: 'off',
   sendMessage: jest.fn(),
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
-  deleteFromIndex: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   createPR: jest.fn(),
@@ -32,7 +30,8 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 describe('ExplorerDrawerContent', () => {
   const organization = OrganizationFixture({
     openMembership: true,
-    features: ['seer-explorer'],
+    features: ['seer-explorer', 'gen-ai-features'],
+    hideAiFeatures: false,
   });
 
   beforeEach(() => {

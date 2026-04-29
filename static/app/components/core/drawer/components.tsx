@@ -1,10 +1,11 @@
-import {createContext, Fragment, useContext} from 'react';
+import {createContext, Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import type {DrawerOptions} from '@sentry/scraps/drawer';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -63,19 +64,22 @@ function DrawerPanel({
       drawerWidth,
       enabled: resizable,
     });
+  const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
 
   // Calculate actual drawer width in pixels
   const actualDrawerWidth =
     (window.innerWidth * (enabled ? persistedWidthPercent : 100)) / 100;
 
   return (
-    <DrawerContainer>
+    <DrawerContainer mode={mode}>
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
           mode={mode}
           ariaLabel={ariaLabel}
           position="right"
-          ref={mergeRefs(panelRef, ref)}
+          ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
+            setTooltipContainer(node)
+          )}
           panelWidth="var(--drawer-width)" // Initial width only
           className="drawer-panel"
         >
@@ -94,9 +98,11 @@ function DrawerPanel({
             For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
             when it's button is pressed.
           */}
-          <DrawerContentContext value={{onClose, ariaLabel}}>
-            {children}
-          </DrawerContentContext>
+          <TooltipContext value={{container: tooltipContainer}}>
+            <DrawerContentContext value={{onClose, ariaLabel}}>
+              {children}
+            </DrawerContentContext>
+          </TooltipContext>
         </DrawerSlidePanel>
       </DrawerWidthContext.Provider>
     </DrawerContainer>
@@ -182,7 +188,7 @@ const Header = styled('header')<{
   padding: ${p => p.theme.space.lg};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
-  padding-left: ${p => (p.hideCloseButton ? '24px' : p.theme.space.xl)};
+  padding-left: ${p => p.theme.space.lg};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   ${p =>
@@ -202,10 +208,13 @@ export const DrawerBody = styled('aside')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const DrawerContainer = styled('div')`
+const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
   position: fixed;
   inset: 0;
-  z-index: ${p => p.theme.zIndex.drawer};
+  /* Passive drawers have no backdrop, so elevate above tooltip to keep
+     behind-page tooltips from rendering over the drawer. */
+  z-index: ${p =>
+    p.mode === 'passive' ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.drawer};
   pointer-events: none;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -219,6 +228,14 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   position: relative;
   pointer-events: auto;
   height: 100%;
+
+  /* Extend the panel's background 20px past its right edge so the bounce-in
+     overshoot doesn't briefly expose the page beneath. A box-shadow is used
+     (vs. a pseudo-element) because the panel's own overflow: auto would clip
+     anything positioned outside its bounds. */
+  box-shadow:
+    20px 0 0 ${p => p.theme.tokens.background.overlay},
+    ${p => p.theme.shadow.high};
 
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
   --drawer-min-width: ${MIN_WIDTH_PERCENT}%;

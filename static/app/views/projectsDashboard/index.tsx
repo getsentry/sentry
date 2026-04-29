@@ -233,7 +233,7 @@ function Dashboard() {
       <Layout.Header unified>
         <Layout.HeaderContent unified>
           <Layout.Title>
-            {t('Projects')}
+            {t('All Projects')}
             <PageHeadingQuestionTooltip
               docsUrl="https://docs.sentry.io/product/projects/"
               title={t(

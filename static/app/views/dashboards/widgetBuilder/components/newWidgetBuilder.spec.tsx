@@ -347,6 +347,7 @@ describe('NewWidgetBuilder', () => {
     expect(data.visualize).toEqual(['count()']);
     expect(data.fields).toEqual(['browser.name']);
     expect(data.query).toEqual(['browser.name:Firefox']);
+    expect(node.priority).toBe(1);
     expect(data.dashboardTitle).toBe('Dashboard');
     expect(data.dashboardWidgetCount).toBe(0);
     expect(data.dashboardFilters).toEqual([]);

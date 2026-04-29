@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
 
@@ -38,7 +39,6 @@ import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';

@@ -135,7 +135,6 @@ export type SeerAnalyticsEventsParameters = {
     referrer: string;
     surface: 'global_panel';
   };
-  'seer.explorer.rethink_requested': Record<string, unknown>;
   'seer.explorer.session_copied_to_clipboard': Record<string, unknown>;
   'seer.explorer.session_created': {
     referrer: string;
@@ -170,7 +169,6 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
   'seer.explorer.message_sent': 'Seer Explorer: Message Sent',
   'seer.explorer.session_created': 'Seer Explorer: Session Created',
-  'seer.explorer.rethink_requested': 'Seer Explorer: Rethink Requested',
   'seer.explorer.session_copied_to_clipboard':
     'Seer Explorer: Session Copied to Clipboard',
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',

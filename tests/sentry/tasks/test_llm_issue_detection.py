@@ -9,7 +9,6 @@ from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
     detect_llm_issues_for_org,
-    run_llm_issue_detection,
 )
 from sentry.tasks.llm_issue_detection.detection import (
     START_TIME_DELTA_MINUTES,
@@ -40,23 +39,6 @@ class LLMIssueDetectionTest(TestCase):
         response.status = 200
         response.data = b'{"has_budget": true}'
         return response
-
-    @patch("sentry.tasks.llm_issue_detection.detection.CursoredScheduler")
-    def test_calls_scheduler_tick_with_validate_item(self, mock_scheduler_cls):
-        with self.options({"issue-detection.llm-detection.enabled": True}):
-            run_llm_issue_detection()
-
-        mock_scheduler_cls.assert_called_once()
-        call_kwargs = mock_scheduler_cls.call_args.kwargs
-        assert call_kwargs["validate_item"] is not None
-        mock_scheduler_cls.return_value.tick.assert_called_once()
-
-    @patch("sentry.tasks.llm_issue_detection.detection.CursoredScheduler")
-    def test_skips_when_disabled(self, mock_scheduler_cls):
-        with self.options({"issue-detection.llm-detection.enabled": False}):
-            run_llm_issue_detection()
-
-        mock_scheduler_cls.assert_not_called()
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
@@ -136,7 +118,7 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.level == "warning"
 
         assert occurrence.fingerprint == [
-            f"1-{AIDetectedGeneralGroupType.type_id}-slow-database-query"
+            f"1-{AIDetectedGeneralGroupType.type_id}-test_transaction"
         ]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
@@ -168,7 +150,7 @@ class LLMIssueDetectionTest(TestCase):
         assert "timestamp" in event_data
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_create_issue_occurrence_uses_group_for_fingerprint_when_set(
+    def test_create_issue_occurrence_fingerprint_uses_transaction_name(
         self, mock_produce_occurrence
     ):
         detected_issue = DetectedIssue(
@@ -187,7 +169,7 @@ class LLMIssueDetectionTest(TestCase):
             project=self.project,
         )
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
-        assert occurrence.fingerprint == [f"1-{AIDetectedDBGroupType.type_id}-n+1-database-queries"]
+        assert occurrence.fingerprint == [f"1-{AIDetectedDBGroupType.type_id}-get-/api"]
         assert occurrence.type == AIDetectedDBGroupType
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")

@@ -1,3 +1,4 @@
+import {QueryClientProvider, type InfiniteData} from '@tanstack/react-query';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -5,12 +6,11 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiResult} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import type {InfiniteData} from 'sentry/utils/queryClient';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
@@ -40,7 +40,7 @@ const mockUsePageFilters = jest.mocked(usePageFilters);
 jest.mock('sentry/utils/useNavigate');
 const mockUseNavigate = jest.mocked(useNavigate);
 
-type CachedQueryData = InfiniteData<ApiResult<EventsLogsResult>, LogPageParam>;
+type CachedQueryData = InfiniteData<ApiResponse<EventsLogsResult>, LogPageParam>;
 
 const linkHeaders = {
   Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/teams/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/teams/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
@@ -147,11 +147,9 @@ describe('useInfiniteLogsQuery', () => {
 
     const queryCache = queryClient.getQueryCache();
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
-    const infiniteQueryKey = queryKeys.find(
-      key => Array.isArray(key) && key[key.length - 1] === 'infinite'
-    );
+    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.isInfinite)!;
 
-    let cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
 
     expect(cachedData.pageParams).toHaveLength(2);
 
@@ -159,7 +157,7 @@ describe('useInfiniteLogsQuery', () => {
 
     expect(mocks.previousPageMock).toHaveBeenCalled();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
 
     expect(cachedData.pageParams).toHaveLength(3);
 
@@ -230,17 +228,15 @@ describe('useInfiniteLogsQuery', () => {
 
     const queryCache = queryClient.getQueryCache();
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
-    const infiniteQueryKey = queryKeys.find(
-      key => Array.isArray(key) && key[key.length - 1] === 'infinite'
-    );
+    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.isInfinite)!;
 
-    let cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(2);
     expect(cachedData.pageParams).toHaveLength(2);
 
     rerender();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(1); // Only the initial page should remain
     expect(cachedData.pageParams).toHaveLength(1);
 
@@ -252,7 +248,7 @@ describe('useInfiniteLogsQuery', () => {
 
     rerender();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(1);
     expect(cachedData.pageParams).toHaveLength(1);
 
@@ -318,6 +314,26 @@ describe('useInfiniteLogsQuery', () => {
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
         }),
       })
+    );
+  });
+
+  it('passes highFidelity in the request data so the cache key reflects the mode', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+    const mockRequest = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([{id: '1', timestamp_precise: '100', timestamp: '100'}]),
+      headers: linkHeaders,
+    });
+
+    renderHookWithProviders(() => useInfiniteLogsQuery({highFidelity: true}), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest).toHaveBeenCalledWith(
+      eventsEndpoint,
+      expect.objectContaining({data: {highFidelity: true}})
     );
   });
 

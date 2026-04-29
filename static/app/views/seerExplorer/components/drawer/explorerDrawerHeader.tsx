@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -11,39 +11,39 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis, IconAdd, IconTimer, IconCopy} from 'sentry/icons';
+import {IconAdd, IconClock, IconCopy, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface ExplorerDrawerHeaderProps {
-  copySessionEnabled: boolean;
+  isEmptyState: boolean;
   onChangeSession: (runId: number) => void;
-  onCopySessionClick: () => void;
+  onCopyLinkClick: (() => void) | undefined;
+  onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
-  onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
-  overrideCodeModeEnable: boolean;
+  onShowThinkingToggle: () => void;
   overrideCtxEngEnable: boolean;
-  showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
+  showThinking: boolean;
+  showThinkingToggle: boolean;
 }
 
 export function ExplorerDrawerHeader({
+  isEmptyState,
   onNewChatClick,
   onChangeSession,
-  copySessionEnabled,
   onCopySessionClick,
+  onCopyLinkClick,
   showContextEngineToggle,
   overrideCtxEngEnable,
   onOverrideCtxEngEnableToggle,
-  showCodeModeToggle,
-  overrideCodeModeEnable,
-  onOverrideCodeModeEnableToggle,
+  showThinking,
+  showThinkingToggle,
+  onShowThinkingToggle,
 }: ExplorerDrawerHeaderProps) {
-  const [mode, setMode] = useState<'more-actions' | 'session-history'>('more-actions');
-
   // Session history query
   const {
     sessionMenuItems: rawSessionMenuItems,
@@ -54,35 +54,13 @@ export function ExplorerDrawerHeader({
     onChangeSession,
   });
 
-  const onOpenChange = useCallback((isOpen: boolean) => {
-    if (!isOpen) {
-      // Switch back to default actions on menu close
-      setMode('more-actions');
-    }
-  }, []);
-
-  // Default menu items
-  const moreActions: MenuItemProps[] = useMemo(
-    () => [
-      {
-        key: 'session-history',
-        label: t('History'),
-        leadingItems: <IconTimer />,
-        onAction: () => {
-          refetchSessionHistory();
-          setMode('session-history');
-        },
-        closeOnSelect: false,
-      },
-      {
-        key: 'copy-conversation',
-        label: t('Copy conversation to clipboard'),
-        leadingItems: <IconCopy />,
-        onAction: onCopySessionClick,
-        disabled: !copySessionEnabled,
-      },
-    ],
-    [onCopySessionClick, copySessionEnabled, refetchSessionHistory]
+  const onHistoryOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) {
+        refetchSessionHistory();
+      }
+    },
+    [refetchSessionHistory]
   );
 
   // Session history menu items
@@ -119,19 +97,15 @@ export function ExplorerDrawerHeader({
     ];
   }, [rawSessionMenuItems, isPending, isError]);
 
-  const menuItems = useMemo(() => {
-    if (mode === 'session-history') {
-      return sessionMenuItems;
-    }
-    return moreActions;
-  }, [mode, sessionMenuItems, moreActions]);
-
   return (
     <DrawerHeader hideBar hideCloseButtonText>
-      <FeatureBadge
-        type="beta"
-        tooltipProps={{title: t('This feature is in beta and may change')}}
-      />
+      <Flex align="center" gap="xs" height="100%">
+        <Text size="md">{t('Seer Agent')}</Text>
+        <FeatureBadge
+          type="beta"
+          tooltipProps={{title: t('This feature is in beta and may change')}}
+        />
+      </Flex>
       <Flex flex="1" />
       <Flex gap="md">
         {showContextEngineToggle && (
@@ -155,44 +129,63 @@ export function ExplorerDrawerHeader({
             </Flex>
           </Tooltip>
         )}
-        {showCodeModeToggle && (
+        {showThinkingToggle && (
           <Tooltip
             title={
-              overrideCodeModeEnable
-                ? t('Code mode enabled (click to disable)')
-                : t('Code mode disabled (click to enable)')
+              showThinking
+                ? t('Hide thinking blocks (click to hide)')
+                : t('Show thinking blocks (click to show)')
             }
           >
             <Flex align="center" gap="xs" padding="xs sm" height="100%">
               <Switch
                 size="sm"
-                checked={overrideCodeModeEnable}
-                onChange={onOverrideCodeModeEnableToggle}
-                aria-label={t('Toggle code mode')}
+                checked={showThinking}
+                onChange={onShowThinkingToggle}
+                aria-label={t('Toggle thinking blocks')}
               />
               <Text size="sm" variant="muted">
-                {t('CM')}
+                {t('Show thinking')}
               </Text>
             </Flex>
           </Tooltip>
         )}
+        <Button
+          icon={<IconCopy />}
+          onClick={onCopySessionClick}
+          disabled={!onCopySessionClick}
+          priority="default"
+          size="xs"
+          aria-label={t('Copy conversation to clipboard')}
+          tooltipProps={{title: t('Copy conversation to clipboard')}}
+        />
+        <Button
+          icon={<IconLink />}
+          onClick={onCopyLinkClick}
+          disabled={!onCopyLinkClick}
+          priority="default"
+          size="xs"
+          aria-label={t('Copy link to current chat and web page')}
+          tooltipProps={{title: t('Copy link to current chat and web page')}}
+        />
         <DropdownMenu
-          items={menuItems}
+          items={sessionMenuItems}
           size="xs"
           position="bottom-end"
-          onOpenChange={onOpenChange}
+          onOpenChange={onHistoryOpenChange}
           triggerProps={{
-            'aria-label': t('More actions'),
-            tooltipProps: {title: t('More actions')},
-            icon: <IconEllipsis />,
+            'aria-label': t('Chat history'),
+            tooltipProps: {title: t('Chat history')},
+            icon: <IconClock />,
             showChevron: false,
-            priority: 'transparent',
-            size: 'zero',
+            priority: 'default',
+            size: 'xs',
           }}
         />
         <Button
           icon={<IconAdd />}
           onClick={onNewChatClick}
+          disabled={isEmptyState}
           priority="default"
           size="xs"
           aria-label={t('Start a new chat (/new)')}
