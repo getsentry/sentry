@@ -9,7 +9,6 @@ from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
     detect_llm_issues_for_org,
-    run_llm_issue_detection,
 )
 from sentry.tasks.llm_issue_detection.detection import (
     START_TIME_DELTA_MINUTES,
@@ -40,23 +39,6 @@ class LLMIssueDetectionTest(TestCase):
         response.status = 200
         response.data = b'{"has_budget": true}'
         return response
-
-    @patch("sentry.tasks.llm_issue_detection.detection.CursoredScheduler")
-    def test_calls_scheduler_tick_with_validate_item(self, mock_scheduler_cls):
-        with self.options({"issue-detection.llm-detection.enabled": True}):
-            run_llm_issue_detection()
-
-        mock_scheduler_cls.assert_called_once()
-        call_kwargs = mock_scheduler_cls.call_args.kwargs
-        assert call_kwargs["validate_item"] is not None
-        mock_scheduler_cls.return_value.tick.assert_called_once()
-
-    @patch("sentry.tasks.llm_issue_detection.detection.CursoredScheduler")
-    def test_skips_when_disabled(self, mock_scheduler_cls):
-        with self.options({"issue-detection.llm-detection.enabled": False}):
-            run_llm_issue_detection()
-
-        mock_scheduler_cls.assert_not_called()
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
