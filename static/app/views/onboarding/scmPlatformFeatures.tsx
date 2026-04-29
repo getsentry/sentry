@@ -575,7 +575,11 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                     {tct(
                       'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
                       {
-                        bold: <Text as="span" bold variant="accent" />,
+                        bold: (
+                          <Text as="span" bold variant="accent">
+                            {null}
+                          </Text>
+                        ),
                       }
                     )}
                   </Text>

@@ -22,9 +22,9 @@ type FeatureMeta = {
   description: string;
   icon: ComponentType<SVGIconProps>;
   label: string;
+  volume: string;
+  volumeTooltip: string;
   alwaysEnabled?: boolean;
-  volume?: string;
-  volumeTooltip?: string;
 };
 
 const FEATURE_META: Record<ProductSolution, FeatureMeta> = {

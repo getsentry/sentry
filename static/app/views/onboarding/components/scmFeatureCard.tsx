@@ -18,11 +18,11 @@ interface ScmFeatureCardProps {
   isSelected: boolean;
   label: string;
   onClick: () => void;
+  volume: string;
+  volumeTooltip: string;
   alwaysEnabled?: boolean;
   disabled?: boolean;
   disabledReason?: ReactNode;
-  volume?: string;
-  volumeTooltip?: string;
 }
 
 export function ScmFeatureCard({
