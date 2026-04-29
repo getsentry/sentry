@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from sentry import features
-from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
 from sentry.models.organization import Organization
@@ -198,14 +198,7 @@ class SlackAutofixEntrypoint(
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
-        has_feature_flag = features.has("organizations:seer-slack-workflows", organization)
-        has_enhanced_alerts = bool(
-            organization.get_option(
-                "sentry:enable_seer_enhanced_alerts",
-                default=ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
-            )
-        )
-        return has_feature_flag and has_enhanced_alerts
+        return features.has("organizations:seer-slack-workflows", organization)
 
     @staticmethod
     def get_group_link(group: Group) -> str:

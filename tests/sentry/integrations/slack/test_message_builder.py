@@ -904,7 +904,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
         self.project.update_option("sentry:seer_scanner_automation", True)
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
 
         mock_summary = {
             "headline": "Custom AI Title",
@@ -1009,7 +1008,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
         self.project.update_option("sentry:seer_scanner_automation", True)
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
 
         mock_summary = {
             "headline": "Custom AI Title",
@@ -1104,7 +1102,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         }
     )
     def test_autofix_button_shown_when_all_conditions_met(self, mock_quota: MagicMock) -> None:
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group).build()
         assert self._has_autofix_button(blocks)
@@ -1119,22 +1116,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     def test_autofix_button_hidden_without_slack_workflows_flag(
         self, mock_quota: MagicMock
     ) -> None:
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
-        group = self.create_group(project=self.project)
-        blocks = SlackIssuesMessageBuilder(group).build()
-        assert not self._has_autofix_button(blocks)
-
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature(
-        {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-slack-workflows": True,
-        }
-    )
-    def test_autofix_button_hidden_without_enhanced_alerts_option(
-        self, mock_quota: MagicMock
-    ) -> None:
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group).build()
         assert not self._has_autofix_button(blocks)
@@ -1147,7 +1128,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         }
     )
     def test_autofix_button_hidden_on_unfurl(self, mock_quota: MagicMock) -> None:
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group, is_unfurl=True).build()
         assert not self._has_autofix_button(blocks)
@@ -1160,7 +1140,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         }
     )
     def test_autofix_button_hidden_when_no_other_actions(self, mock_quota: MagicMock) -> None:
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group, issue_details=True).build()
         assert not self._has_autofix_button(blocks)
