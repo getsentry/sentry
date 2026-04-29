@@ -21,12 +21,12 @@ import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flam
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {TransactionSpan} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {useProfileTransaction} from 'sentry/views/explore/profiling/profilesProvider';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
 import {ProfileDetails} from './profileDetails';
@@ -38,11 +38,11 @@ interface FlamegraphDrawerProps {
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
   profileGroup: ProfileGroup;
-  profileTransaction: ReturnType<typeof useProfileTransaction> | null;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
   onResize?: MouseEventHandler<HTMLElement>;
   onResizeReset?: MouseEventHandler<HTMLElement>;
+  transactionSpan?: TransactionSpan;
 }
 
 const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
@@ -265,11 +265,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       />
       {props.profileGroup.type === 'transaction' ? (
         <ProfileDetails
-          transaction={
-            props.profileTransaction?.type === 'resolved'
-              ? props.profileTransaction.data
-              : null
-          }
+          transactionSpan={props.transactionSpan ?? null}
           projectId={params.projectId!}
           profileGroup={props.profileGroup}
         />
