@@ -51,6 +51,21 @@ export const PolicyRevisionSchema: FieldObject[] = [
     label: 'URL',
     placeholder: 'e.g. https://example.com/terms-of-service/',
     help: 'If the policy is hosted at an external URL, enter it here.',
+    validate: ({id, form}) => {
+      const value = form[id];
+      if (!value) {
+        return [];
+      }
+      try {
+        const parsed = new URL(value);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return [[id, 'URL must use http or https protocol']];
+        }
+      } catch {
+        return [[id, 'Please enter a valid URL']];
+      }
+      return [];
+    },
   },
   {
     name: 'file',
