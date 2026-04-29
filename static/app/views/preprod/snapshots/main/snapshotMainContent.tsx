@@ -94,6 +94,14 @@ export function SnapshotMainContent({
   const [pressedDir, setPressedDir] = useState<'up' | 'down' | null>(null);
   const toggleDark = () => setIsDark(v => !v);
 
+  const handleOpenSnapshot = useCallback(
+    (key: string) => {
+      onSelectSnapshot?.(key);
+      onViewModeChange('single');
+    },
+    [onSelectSnapshot, onViewModeChange]
+  );
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (viewMode !== 'single') {
@@ -132,10 +140,7 @@ export function SnapshotMainContent({
   );
   const hasChangedInList = listItems.some(i => i.type === 'changed');
   const sortDropdown =
-    viewMode === 'list' &&
-    onSortByChange &&
-    comparisonType !== 'solo' &&
-    hasChangedInList ? (
+    onSortByChange && comparisonType !== 'solo' && hasChangedInList ? (
       <SortDropdown value={sortBy} onChange={onSortByChange} />
     ) : null;
   const listDiffControls =
@@ -167,11 +172,11 @@ export function SnapshotMainContent({
         background="secondary"
       >
         <Flex align="center" justify="between" gap="md" padding="md 2xl md 0">
-          <Flex align="center" gap="md">
+          <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {toggle}
             {sortDropdown}
           </Flex>
-          <Flex align="center" gap="md">
+          <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {listDiffControls}
             {soloDiffToggle}
           </Flex>
@@ -183,6 +188,7 @@ export function SnapshotMainContent({
           headBranch={headBranch}
           selectedSnapshotKey={selectedSnapshotKey}
           onSelectSnapshot={onSelectSnapshot}
+          onOpenSnapshot={handleOpenSnapshot}
           diffMode={diffMode}
           overlayColor={overlayColor}
           diffImageBaseUrl={diffImageBaseUrl}
@@ -195,7 +201,10 @@ export function SnapshotMainContent({
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
         <Flex align="center" justify="between" gap="md" padding="md xl">
-          {toggle}
+          <Flex align="center" gap="md">
+            {toggle}
+            {sortDropdown}
+          </Flex>
           {soloDiffToggle}
         </Flex>
         <Separator orientation="horizontal" />
@@ -450,16 +459,16 @@ function ViewModeToggle({
       aria-label={t('View mode')}
     >
       <SegmentedControl.Item
-        key="single"
-        icon={<IconExpand />}
-        aria-label={t('Single image view')}
-        tooltip={t('Single image view')}
-      />
-      <SegmentedControl.Item
         key="list"
         icon={<IconList />}
         aria-label={t('List view')}
         tooltip={t('List view')}
+      />
+      <SegmentedControl.Item
+        key="single"
+        icon={<IconExpand />}
+        aria-label={t('Single image view')}
+        tooltip={t('Single image view')}
       />
     </SegmentedControl>
   );

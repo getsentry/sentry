@@ -160,9 +160,15 @@ export default function SnapshotsPage() {
 
   const handleToggleStatus = useCallback(
     (status: DiffStatus) => {
-      setActiveStatusList(prev =>
-        prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
-      );
+      setActiveStatusList(prev => {
+        if (prev.length === 0) {
+          return [status];
+        }
+        if (prev.length === 1 && prev[0] === status) {
+          return [];
+        }
+        return prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status];
+      });
     },
     [setActiveStatusList]
   );
@@ -490,6 +496,12 @@ export default function SnapshotsPage() {
     </Flex>
   );
 
+  const handleDeselectSnapshot = () => {
+    if (selectedSnapshotKey) {
+      setSelectedSnapshotKey(null);
+    }
+  };
+
   const snapshotContent = (
     <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
       <Flex
@@ -580,7 +592,7 @@ export default function SnapshotsPage() {
 
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
-      <Stack flex={1}>
+      <Stack flex={1} onClick={handleDeselectSnapshot}>
         <SnapshotHeaderContent
           data={data}
           isSoloView={isSoloView}

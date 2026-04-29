@@ -112,10 +112,10 @@ export const ImageColumn = memo(function ImageColumn({
 }: {
   alt: string;
   image: SnapshotImage;
-  label: string;
   src: string;
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
+  label?: string | null;
   overlayColor?: string;
   withLeftBorder?: boolean;
 }) {
@@ -126,11 +126,13 @@ export const ImageColumn = memo(function ImageColumn({
       : null;
   return (
     <Stack minWidth="0" borderLeft={withLeftBorder ? 'secondary' : undefined}>
-      <Container padding="sm xl" borderBottom="secondary">
-        <Text size="xs" variant="muted" ellipsis monospace>
-          {label}
-        </Text>
-      </Container>
+      {label && (
+        <Container padding="sm xl" borderBottom="secondary">
+          <Text size="xs" variant="muted" ellipsis monospace>
+            {label}
+          </Text>
+        </Container>
+      )}
       <Flex justify="center" padding="xl">
         <Container position="relative" display="inline-block" maxWidth="100%">
           <ConstrainedImg

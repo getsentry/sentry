@@ -22,6 +22,7 @@ interface SnapshotListViewProps {
   diffImageBaseUrl?: string;
   diffMode?: DiffMode;
   headBranch?: string | null;
+  onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
   selectedSnapshotKey?: string | null;
@@ -146,6 +147,7 @@ export function SnapshotListView({
   headBranch,
   selectedSnapshotKey,
   onSelectSnapshot,
+  onOpenSnapshot,
   diffMode = 'split',
   overlayColor,
   diffImageBaseUrl,
@@ -179,7 +181,6 @@ export function SnapshotListView({
     return {order, groupIdxByKey, positionByKey};
   }, [groups]);
 
-  // Auto-scroll once on mount if URL has selectedSnapshot; card clicks never trigger scroll
   const initialSnapshotKey = useRef(selectedSnapshotKey ?? null).current;
   const didInitialScroll = useRef(false);
   useEffect(() => {
@@ -187,19 +188,35 @@ export function SnapshotListView({
       return;
     }
     const targetIdx = flatIndex.groupIdxByKey.get(initialSnapshotKey);
-    if (targetIdx !== undefined) {
-      virtualizer.scrollToIndex(targetIdx, {align: 'start'});
-      didInitialScroll.current = true;
+    if (targetIdx === undefined) {
+      return;
     }
+    didInitialScroll.current = true;
+    virtualizer.scrollToIndex(targetIdx, {align: 'start'});
+    requestAnimationFrame(() => {
+      const el = scrollRef.current?.querySelector<HTMLElement>(
+        `[data-snapshot-key="${CSS.escape(initialSnapshotKey)}"]`
+      );
+      if (el) {
+        el.scrollIntoView({block: 'start'});
+      }
+    });
   }, [groups, initialSnapshotKey, flatIndex, virtualizer]);
 
   const keyNavRef = useRef({
     flatIndex,
     selectedSnapshotKey,
     onSelectSnapshot,
+    onOpenSnapshot,
     virtualizer,
   });
-  keyNavRef.current = {flatIndex, selectedSnapshotKey, onSelectSnapshot, virtualizer};
+  keyNavRef.current = {
+    flatIndex,
+    selectedSnapshotKey,
+    onSelectSnapshot,
+    onOpenSnapshot,
+    virtualizer,
+  };
   useEffect(() => {
     function scrollCardIntoView(key: string, block: ScrollLogicalPosition) {
       const cardEl = scrollRef.current?.querySelector<HTMLElement>(
@@ -227,7 +244,12 @@ export function SnapshotListView({
     }
 
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== ' ') {
+      if (
+        e.key !== 'ArrowUp' &&
+        e.key !== 'ArrowDown' &&
+        e.key !== ' ' &&
+        e.key !== 'Enter'
+      ) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -238,8 +260,17 @@ export function SnapshotListView({
         flatIndex: idx,
         selectedSnapshotKey: currentKey,
         onSelectSnapshot: onSelect,
+        onOpenSnapshot: onOpen,
       } = keyNavRef.current;
       if (idx.order.length === 0) {
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (currentKey && onOpen) {
+          e.preventDefault();
+          onOpen(currentKey);
+        }
         return;
       }
 
@@ -307,6 +338,7 @@ export function SnapshotListView({
                 headBranch={headBranch}
                 selectedSnapshotKey={selectedSnapshotKey ?? null}
                 onSelectSnapshot={onSelectSnapshot}
+                onOpenSnapshot={onOpenSnapshot}
                 diffMode={diffMode}
                 overlayColor={overlayColor}
                 diffImageBaseUrl={diffImageBaseUrl}
@@ -325,6 +357,7 @@ const GroupContainer = memo(function GroupContainer({
   headBranch,
   selectedSnapshotKey,
   onSelectSnapshot,
+  onOpenSnapshot,
   diffMode,
   overlayColor,
   diffImageBaseUrl,
@@ -335,6 +368,7 @@ const GroupContainer = memo(function GroupContainer({
   selectedSnapshotKey: string | null;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
+  onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
 }) {
@@ -348,7 +382,7 @@ const GroupContainer = memo(function GroupContainer({
         pair={card.pair}
         cardType={card.cardType}
         imageBaseUrl={imageBaseUrl}
-        headBranch={headBranch}
+        headBranch={card.cardType === 'changed' ? headBranch : undefined}
         isSelected={isSelected}
         copyUrl={copyUrl}
         diffMode={diffMode}
@@ -356,6 +390,7 @@ const GroupContainer = memo(function GroupContainer({
         diffImageBaseUrl={diffImageBaseUrl}
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
+        onOpenSnapshot={onOpenSnapshot}
       />
     ) : (
       <ImageCard
@@ -363,11 +398,11 @@ const GroupContainer = memo(function GroupContainer({
         image={card.image}
         cardType={card.cardType}
         imageBaseUrl={imageBaseUrl}
-        headBranch={headBranch}
         isSelected={isSelected}
         copyUrl={copyUrl}
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
+        onOpenSnapshot={onOpenSnapshot}
       />
     );
   });
