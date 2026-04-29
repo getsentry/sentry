@@ -68,6 +68,9 @@ from sentry.organizations.absolute_url import customer_domain_path
         ("/prevent/", "/prevent/"),
         ("/prevent/tokens/", "/prevent/tokens/"),
         ("/prevent/tests/", "/prevent/tests/"),
+        # Top-level seer routes should remain as-is (not the /settings/seer/ ones)
+        ("/seer/", "/seer/"),
+        ("/seer/workflows/", "/seer/workflows/"),
         # Seer org settings: strip org slug but keep /settings/seer/... paths
         ("/settings/acme/seer/", "/settings/seer/"),
         ("/settings/acme/seer/repos/", "/settings/seer/repos/"),
