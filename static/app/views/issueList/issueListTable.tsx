@@ -97,6 +97,7 @@ export function IssueListTable({
               <IssueSelectionProvider visibleGroupIds={groupIds}>
                 <IssueListBulkCommandPaletteActions
                   query={query}
+                  queryCount={queryCount}
                   selection={selection}
                   groupIds={groupIds}
                   onActionTaken={onActionTaken}
