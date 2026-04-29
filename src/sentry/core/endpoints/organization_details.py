@@ -55,8 +55,6 @@ from sentry.constants import (
     ENABLE_SEER_CODING_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    GITHUB_COMMENT_BOT_DEFAULT,
-    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
@@ -231,24 +229,6 @@ ORG_OPTIONS = (
         HIDE_AI_FEATURES_DEFAULT,
     ),
     (
-        "githubPRBot",
-        "sentry:github_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "githubNudgeInvite",
-        "sentry:github_nudge_invite",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "gitlabPRBot",
-        "sentry:gitlab_pr_bot",
-        bool,
-        GITLAB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -388,9 +368,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    githubNudgeInvite = serializers.BooleanField(required=False)
-    githubPRBot = serializers.BooleanField(required=False)
-    gitlabPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -1122,22 +1099,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
                                           }
                                           ```
                                           """,
-        required=False,
-    )
-
-    # github features
-    githubPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
-        required=False,
-    )
-    githubNudgeInvite = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
-        required=False,
-    )
-
-    # gitlab features
-    gitlabPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
         required=False,
     )
 
