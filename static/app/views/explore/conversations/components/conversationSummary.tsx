@@ -11,6 +11,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -39,6 +40,15 @@ interface ConversationSummaryProps {
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
+}
+
+const VISIBLE_TRACE_COUNT = 5;
+const VISIBLE_TOOL_COUNT = 5;
+
+function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
+  return normalizeUrl(
+    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
+  );
 }
 
 interface ConversationAggregates {
@@ -168,11 +178,31 @@ export function ConversationAggregatesBar({
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
-            {aggregates.toolNames.map(name => (
+            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
               <Tag key={name} variant="info">
                 {name}
               </Tag>
             ))}
+            {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+              <DropdownMenu
+                size="sm"
+                triggerLabel={
+                  <Text size="sm" variant="muted">
+                    {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                  </Text>
+                }
+                triggerProps={{
+                  size: 'zero',
+                  priority: 'transparent',
+                  showChevron: false,
+                }}
+                items={aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => ({
+                  key: name,
+                  label: <Tag variant="info">{name}</Tag>,
+                  textValue: name,
+                }))}
+              />
+            )}
           </ToolTagsRow>
         )
       )}
@@ -229,7 +259,7 @@ export function ConversationSummary({
             <Text size="sm" variant="muted">
               {traces.length === 1 ? t('Trace') : t('Traces')}
             </Text>
-            {traces.map((trace, i) => (
+            {traces.slice(0, VISIBLE_TRACE_COUNT).map((trace, i) => (
               <Flex key={trace.traceId} align="baseline" gap="xs">
                 {i > 0 && (
                   <Text size="sm" variant="muted">
@@ -237,16 +267,39 @@ export function ConversationSummary({
                   </Text>
                 )}
                 <StyledLink
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/explore/traces/trace/${trace.traceId}/?node=span-${trace.spanId}`
-                  )}
+                  to={getTraceUrl(organization.slug, trace.traceId, trace.spanId)}
                 >
-                  <Text size="sm" monospace>
+                  <Text size="sm" monospace variant="accent">
                     {trace.traceId.slice(0, 8)}
                   </Text>
                 </StyledLink>
               </Flex>
             ))}
+            {traces.length > VISIBLE_TRACE_COUNT && (
+              <DropdownMenu
+                size="sm"
+                triggerLabel={
+                  <Text size="sm" variant="muted">
+                    {t('+%s more', traces.length - VISIBLE_TRACE_COUNT)}
+                  </Text>
+                }
+                triggerProps={{
+                  size: 'zero',
+                  priority: 'transparent',
+                  showChevron: false,
+                }}
+                items={traces.slice(VISIBLE_TRACE_COUNT).map(trace => ({
+                  key: trace.traceId,
+                  label: (
+                    <Text size="sm" monospace>
+                      {trace.traceId.slice(0, 8)}
+                    </Text>
+                  ),
+                  textValue: trace.traceId,
+                  to: getTraceUrl(organization.slug, trace.traceId, trace.spanId),
+                }))}
+              />
+            )}
           </Flex>
         )}
       </Flex>

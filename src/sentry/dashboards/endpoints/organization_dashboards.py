@@ -104,11 +104,9 @@ class PrebuiltDashboard(TypedDict, total=False):
 # coded in the frontend and we rely on matching prebuilt_id to populate the dashboard and widget display.
 # Prebuilt dashboard database records are purely for tracking things like starred status, last viewed, etc.
 #
-# Note A: This is stored differently from the `default-overview` prebuilt dashboard, which we should
-# deprecate once this feature is released.
-# Note B: Consider storing all dashboard and widget data in the database instead of relying on matching
+# Note A: Consider storing all dashboard and widget data in the database instead of relying on matching
 # prebuilt_id on the frontend, if there are issues.
-# Note C: These titles should match the configs in the `PREBUILT_DASHBOARDS` constant in the frontend so that the results returned by the API match the titles in the frontend.
+# Note B: These titles should match the configs in the `PREBUILT_DASHBOARDS` constant in the frontend so that the results returned by the API match the titles in the frontend.
 PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
@@ -442,8 +440,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if should_filter_by_prebuilt_ids:
             dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
 
-        prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
-
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
@@ -566,43 +562,17 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         list_serializer = DashboardListSerializer()
 
-        def handle_results(results: list[Dashboard | dict[str, Any]]) -> list[dict[str, Any]]:
-            serialized = []
-            dashboards = []
-            for item in results:
-                if isinstance(item, dict):
-                    cloned = item.copy()
-                    widgets = cloned.pop("widgets", [])
-                    cloned["widgetDisplay"] = [w["displayType"] for w in widgets]
-                    cloned["widgetPreview"] = [
-                        {"displayType": w["displayType"], "layout": None} for w in widgets
-                    ]
-                    serialized.append(cloned)
-                else:
-                    dashboards.append(item)
-
-            serialized.extend(
-                serialize(
-                    dashboards,
-                    request.user,
-                    serializer=list_serializer,
-                    context={"organization": organization},
-                )
+        def handle_results(results: list[Dashboard]) -> list[dict[str, Any]]:
+            return serialize(
+                results,
+                request.user,
+                serializer=list_serializer,
+                context={"organization": organization},
             )
-            return serialized
-
-        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt", "onlyPrebuilt"}
-        render_pre_built_dashboard = True
-        if HIDE_PREBUILT_FILTERS.intersection(filters) or should_filter_by_prebuilt_ids:
-            render_pre_built_dashboard = False
-        elif pin_by and pin_by == "favorites":
-            # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show
-            # This allows the prebuilt dashboard to appear when users have no dashboards yet
-            render_pre_built_dashboard = not dashboards.exists()
 
         return self.paginate(
             request=request,
-            sources=([prebuilt, dashboards] if render_pre_built_dashboard else [dashboards]),
+            sources=[dashboards],
             paginator_cls=ChainPaginator,
             on_results=handle_results,
         )
