@@ -305,7 +305,7 @@ export enum IssueTitle {
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
 }
 
-export const ISSUE_TYPE_TO_ISSUE_TITLE = {
+const ISSUE_TYPE_TO_ISSUE_TITLE = {
   error: IssueTitle.ERROR,
 
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,

@@ -250,7 +250,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
     .filter(team => team === 'myteams' || !isNaN(team));
 };
 
-export const decodeProjects = (location: Location): number[] => {
+const decodeProjects = (location: Location): number[] => {
   if (!location.query?.project) {
     return [];
   }

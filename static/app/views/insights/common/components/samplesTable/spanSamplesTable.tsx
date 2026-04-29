@@ -43,7 +43,7 @@ type Keys =
   | 'span.description';
 export type SamplesTableColumnHeader = GridColumnHeader<Keys>;
 
-export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
+const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
   {
     key: 'span_id',
     name: 'Span ID',

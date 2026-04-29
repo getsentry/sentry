@@ -1,13 +1,10 @@
 import {t} from 'sentry/locale';
-import {RateUnit} from 'sentry/utils/discover/fields';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 
 export const MODULE_TITLE = t('Assets');
 export const DATA_TYPE = t('Asset');
 export const DATA_TYPE_PLURAL = t('Assets');
 export const BASE_URL = 'assets'; // Name of the data shown (singular)
-
-export const RESOURCE_THROUGHPUT_UNIT = RateUnit.PER_MINUTE;
 
 export const DEFAULT_RESOURCE_TYPES = [
   ResourceSpanOps.SCRIPT,
