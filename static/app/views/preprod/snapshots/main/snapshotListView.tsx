@@ -67,6 +67,7 @@ const HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
 const CARD_GAP = 16;
 const GROUP_PADDING = 32;
+const ROW_PADDING_BOTTOM = 16;
 const LIST_CONTENT_WIDTH_ASSUMPTION = 900;
 
 function estimateCardHeight(image: SnapshotImage, splitColumns: boolean) {
@@ -124,9 +125,9 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
       name: item.name,
       cards,
       isUngrouped: ungrouped,
-      estimatedHeight: ungrouped
-        ? cardsHeight
-        : HEADER_HEIGHT + cardsHeight + GROUP_PADDING,
+      estimatedHeight:
+        (ungrouped ? cardsHeight : HEADER_HEIGHT + cardsHeight + GROUP_PADDING) +
+        ROW_PADDING_BOTTOM,
     });
   }
   return groups;
