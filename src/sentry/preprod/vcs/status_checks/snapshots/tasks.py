@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry.integrations.github.status_check import GitHubCheckStatus
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
@@ -14,6 +16,7 @@ from sentry.preprod.models import (
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.github_retry import github_api_call_with_retries
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
@@ -50,6 +53,7 @@ FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_rena
     namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
+    retry=Retry(times=5, delay=60 * 5),
 )
 def create_preprod_snapshot_status_check_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
@@ -273,19 +277,22 @@ def create_preprod_snapshot_status_check_task(
     target_url = get_preprod_artifact_url(url_artifact, view_type="snapshots")
 
     try:
-        check_id = provider.create_status_check(
-            repo=commit_comparison.head_repo_name,
-            sha=commit_comparison.head_sha,
-            status=status,
-            title=title,
-            subtitle=subtitle,
-            text=None,
-            summary=summary,
-            external_id=str(preprod_artifact.id),
-            target_url=target_url,
-            started_at=preprod_artifact.date_added,
-            completed_at=completed_at,
-            approve_action_identifier=approve_action_identifier,
+        check_id = github_api_call_with_retries(
+            lambda: provider.create_status_check(
+                repo=commit_comparison.head_repo_name,
+                sha=commit_comparison.head_sha,
+                status=status,
+                title=title,
+                subtitle=subtitle,
+                text=None,
+                summary=summary,
+                external_id=str(preprod_artifact.id),
+                target_url=target_url,
+                started_at=preprod_artifact.date_added,
+                completed_at=completed_at,
+                approve_action_identifier=approve_action_identifier,
+            ),
+            log_prefix="preprod.snapshot_status_checks",
         )
     except Exception as e:
         extra: dict[str, Any] = {

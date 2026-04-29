@@ -12,6 +12,7 @@ from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
+from sentry.preprod.vcs.github_retry import github_api_call_with_retries
 from sentry.preprod.vcs.pr_comments.snapshot_templates import format_snapshot_pr_comment
 from sentry.preprod.vcs.pr_comments.tasks import find_existing_comment_id, save_pr_comment_result
 from sentry.shared_integrations.exceptions import ApiError
@@ -197,11 +198,14 @@ def create_preprod_snapshot_pr_comment_task(
 
         try:
             if existing_comment_id:
-                client.update_comment(
-                    repo=cc.head_repo_name,
-                    issue_id=str(cc.pr_number),
-                    comment_id=str(existing_comment_id),
-                    data={"body": comment_body},
+                github_api_call_with_retries(
+                    lambda: client.update_comment(
+                        repo=cc.head_repo_name,
+                        issue_id=str(cc.pr_number),
+                        comment_id=str(existing_comment_id),
+                        data={"body": comment_body},
+                    ),
+                    log_prefix="preprod.snapshot_pr_comments",
                 )
                 comment_id = existing_comment_id
                 logger.info(
@@ -209,10 +213,13 @@ def create_preprod_snapshot_pr_comment_task(
                     extra={"artifact_id": artifact.id, "comment_id": comment_id},
                 )
             else:
-                resp = client.create_comment(
-                    repo=cc.head_repo_name,
-                    issue_id=str(cc.pr_number),
-                    data={"body": comment_body},
+                resp = github_api_call_with_retries(
+                    lambda: client.create_comment(
+                        repo=cc.head_repo_name,
+                        issue_id=str(cc.pr_number),
+                        data={"body": comment_body},
+                    ),
+                    log_prefix="preprod.snapshot_pr_comments",
                 )
                 comment_id = str(resp["id"])
                 logger.info(

@@ -271,10 +271,11 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
 
         mock_get_client.assert_not_called()
 
+    @patch("sentry.preprod.vcs.github_retry.time.sleep")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.build_changes_map")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
-    def test_handles_api_error(self, mock_format, mock_get_client, mock_build_changes_map):
+    def test_handles_api_error(self, mock_format, mock_get_client, mock_build_changes_map, _mock_sleep):
         mock_client = Mock()
         mock_client.create_comment.side_effect = ApiError("rate limited", code=429)
         mock_get_client.return_value = mock_client
@@ -293,11 +294,12 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         assert snapshots["success"] is False
         assert snapshots["error_type"] == "api_error"
 
+    @patch("sentry.preprod.vcs.github_retry.time.sleep")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.build_changes_map")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
     def test_retry_after_update_failure_uses_update(
-        self, mock_format, mock_get_client, mock_build_changes_map
+        self, mock_format, mock_get_client, mock_build_changes_map, _mock_sleep
     ):
         mock_client = Mock()
         mock_get_client.return_value = mock_client
@@ -348,11 +350,12 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         )
         mock_client.create_comment.assert_not_called()
 
+    @patch("sentry.preprod.vcs.github_retry.time.sleep")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.build_changes_map")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
     def test_retry_after_create_failure_creates_again(
-        self, mock_format, mock_get_client, mock_build_changes_map
+        self, mock_format, mock_get_client, mock_build_changes_map, _mock_sleep
     ):
         mock_client = Mock()
         mock_get_client.return_value = mock_client
