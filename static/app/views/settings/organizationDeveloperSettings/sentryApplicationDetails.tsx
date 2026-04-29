@@ -16,6 +16,7 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
+import type {ApiResult} from 'sentry/api';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -197,13 +198,31 @@ export default function SentryApplicationDetails() {
   const SENTRY_APP_API_TOKENS_QUERY_KEY = makeSentryAppApiTokensQueryKey(appSlug);
 
   const {
-    data: app = undefined,
+    data: app,
     isPending,
     isError,
     refetch,
   } = useApiQuery<SentryApp>(SENTRY_APP_QUERY_KEY, {
     staleTime: 30000,
     enabled: isEditingApp,
+    placeholderData: () => {
+      if (!appSlug) {
+        return undefined;
+      }
+
+      // eslint-disable-next-line @sentry/no-query-data-type-parameters
+      const listData = queryClient.getQueryData<ApiResult<SentryApp[]>>([
+        getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ]);
+
+      if (listData) {
+        const found = listData[0].find(item => item.slug === appSlug);
+        return found ? [found, listData[1], listData[2]] : undefined;
+      }
+      return undefined;
+    },
   });
   const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
     SENTRY_APP_API_TOKENS_QUERY_KEY,

@@ -138,6 +138,53 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     expect(tags.filter(tag => tag.key === 'log.duration')).toHaveLength(1);
   });
 
+  it('short-circuits longer searches when a shorter prefix returned empty', async () => {
+    const mockEmpty = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
+      initialProps: {
+        itemType: TraceItemDataset.LOGS,
+      },
+    });
+
+    const firstTags = await result.current('met');
+    expect(firstTags).toHaveLength(0);
+    expect(mockEmpty).toHaveBeenCalledTimes(1);
+
+    const secondTags = await result.current('metrics');
+    expect(secondTags).toHaveLength(0);
+    expect(mockEmpty).toHaveBeenCalledTimes(1);
+  });
+
+  it('still fetches when the prefix search returned results', async () => {
+    const mockWithResults = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'meta.field',
+          name: 'meta.field',
+          kind: FieldKind.TAG,
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
+      initialProps: {
+        itemType: TraceItemDataset.LOGS,
+      },
+    });
+
+    await result.current('met');
+    expect(mockWithResults).toHaveBeenCalledTimes(1);
+
+    await result.current('metrics');
+    expect(mockWithResults).toHaveBeenCalledTimes(2);
+  });
+
   it('appends extraTags that are not in fetched results', async () => {
     mockTraceItemAttributeKeysByType({
       body: [

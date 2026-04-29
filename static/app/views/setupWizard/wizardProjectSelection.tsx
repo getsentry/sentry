@@ -73,7 +73,7 @@ function errorIsHasNoDsnError(e: unknown): boolean | undefined {
 
 export function WizardProjectSelection({
   hash,
-  organizations = [],
+  organizations,
 }: {
   hash: string;
   organizations: OrganizationWithRegion[];

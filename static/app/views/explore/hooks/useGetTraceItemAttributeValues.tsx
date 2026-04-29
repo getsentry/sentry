@@ -94,7 +94,7 @@ export function useGetTraceItemAttributeValues({
   traceItemType,
   projectIds,
   datetime,
-  type = 'string',
+  type,
   query: filterQuery,
 }: UseGetTraceItemAttributeValuesProps) {
   const api = useApi();

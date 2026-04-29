@@ -197,12 +197,18 @@ function MetricsEquationVisualizeContent({
       {functionQueries.length > 0 && <FunctionColumnHeaders />}
       {functionQueries.map(metricQuery => {
         const isReferenced = referencedLabels.has(metricQuery.label ?? '');
+        const deleteDisabledReason =
+          functionQueries.length <= 1
+            ? t('At least one metric is required')
+            : isReferenced
+              ? t('This metric is used in an equation')
+              : undefined;
         return (
           <RowProvider key={metricQuery.label ?? ''} metricQuery={metricQuery}>
             <MetricToolbar
               metricQuery={metricQuery}
               referenceMap={referenceMap}
-              canDelete={functionQueries.length > 1 && !isReferenced}
+              deleteDisabledReason={deleteDisabledReason}
               isSelected={selectedLabel === metricQuery.label}
               onRowSelection={onRowSelection}
               projectIds={projectIds}
@@ -218,7 +224,6 @@ function MetricsEquationVisualizeContent({
             <MetricToolbar
               metricQuery={equationQuery}
               referenceMap={referenceMap}
-              canDelete
               isSelected={selectedLabel === equationQuery.label}
               onRowSelection={onRowSelection}
               onReferenceLabelsChange={setEquationReferencedLabels}
@@ -328,18 +333,18 @@ function EquationColumnHeader() {
 function MetricToolbar({
   metricQuery,
   referenceMap,
-  canDelete,
+  deleteDisabledReason,
   isSelected,
   onRowSelection,
   onReferenceLabelsChange,
   projectIds,
   environments,
 }: {
-  canDelete: boolean;
   isSelected: boolean;
   metricQuery: MetricQuery;
   onRowSelection: (label: string) => void;
   referenceMap: Record<string, string>;
+  deleteDisabledReason?: string;
   environments?: string[];
   onReferenceLabelsChange?: (labels: string[]) => void;
   projectIds?: number[];
@@ -408,7 +413,7 @@ function MetricToolbar({
           </Flex>
           <AggregateDropdown traceMetric={traceMetric} singleSelect />
           <Filter traceMetric={traceMetric} />
-          <DeleteMetricButton disabled={!canDelete} />
+          <DeleteMetricButton disabledReason={deleteDisabledReason} />
         </Fragment>
       ) : isVisualizeEquation(visualize) ? (
         <Fragment>
