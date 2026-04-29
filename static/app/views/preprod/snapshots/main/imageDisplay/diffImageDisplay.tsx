@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
@@ -38,74 +38,37 @@ export function DiffImageDisplay({
   overlayColor,
   diffMode,
 }: DiffImageDisplayProps) {
-  const [diffMaskUrl, setDiffMaskUrl] = useState<string | null>(null);
   const [onionOpacity, setOnionOpacity] = useState(50);
-  const blobUrlRef = useRef<string | null>(null);
 
   const baseImageUrl = `${imageBaseUrl}${pair.base_image.key}/`;
   const headImageUrl = `${imageBaseUrl}${pair.head_image.key}/`;
-  const diffImageUrl = pair.diff_image_key
+  const diffMaskUrl = pair.diff_image_key
     ? `${diffImageBaseUrl}${pair.diff_image_key}/`
     : null;
 
-  useEffect(() => {
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
-    setDiffMaskUrl(null);
-
-    if (!diffImageUrl) {
-      return undefined;
-    }
-    let cancelled = false;
-    fetch(diffImageUrl)
-      .then(r => {
-        if (!r.ok) {
-          throw new Error(`Failed to fetch diff image: ${r.status}`);
-        }
-        return r.blob();
-      })
-      .then(blob => {
-        if (!cancelled) {
-          const url = URL.createObjectURL(blob);
-          blobUrlRef.current = url;
-          setDiffMaskUrl(url);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
-  }, [diffImageUrl]);
-
   return (
     <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
-      {diffMode === 'split' && (
+      <HiddenWhenInactive active={diffMode === 'split'}>
         <SplitView
           baseImageUrl={baseImageUrl}
           headImageUrl={headImageUrl}
           overlayColor={overlayColor}
           diffMaskUrl={diffMaskUrl}
         />
-      )}
+      </HiddenWhenInactive>
 
-      {diffMode === 'wipe' && (
+      <HiddenWhenInactive active={diffMode === 'wipe'}>
         <WipeView baseImageUrl={baseImageUrl} headImageUrl={headImageUrl} />
-      )}
+      </HiddenWhenInactive>
 
-      {diffMode === 'onion' && (
+      <HiddenWhenInactive active={diffMode === 'onion'}>
         <OnionView
           baseImageUrl={baseImageUrl}
           headImageUrl={headImageUrl}
           opacity={onionOpacity}
           onOpacityChange={setOnionOpacity}
         />
-      )}
+      </HiddenWhenInactive>
     </Flex>
   );
 }
@@ -124,6 +87,7 @@ function SplitView({
   diffMaskUrl,
 }: SplitViewProps) {
   const [zoom1, zoom2] = useSyncedD3Zoom();
+  const showOverlay = diffMaskUrl && overlayColor !== TRANSPARENT_COLOR;
   return (
     <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
       <Flex direction="column" gap="sm" minHeight="0">
@@ -156,7 +120,7 @@ function SplitView({
             >
               <ImageWrapper>
                 <ZoomableImage src={headImageUrl} alt={t('Current Branch')} />
-                {diffMaskUrl && overlayColor !== TRANSPARENT_COLOR && (
+                {showOverlay && (
                   <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
                 )}
               </ImageWrapper>
@@ -291,4 +255,8 @@ const OnionOverlayLayer = styled('div')`
   left: 0;
   width: 100%;
   height: 100%;
+`;
+
+const HiddenWhenInactive = styled('div')<{active: boolean}>`
+  display: ${p => (p.active ? 'contents' : 'none')};
 `;

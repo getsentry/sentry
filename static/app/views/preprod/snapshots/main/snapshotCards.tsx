@@ -10,9 +10,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 // eslint-disable-next-line no-restricted-imports
-import {darkTheme} from 'sentry/utils/theme/theme';
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {
   SnapshotDiffPair,
@@ -38,7 +39,10 @@ export function DarkAware({
   if (!isDark) {
     return <Fragment>{children}</Fragment>;
   }
-  return <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>;
+  const siteIsDark = ConfigStore.get('theme') === 'dark';
+  return (
+    <ThemeProvider theme={siteIsDark ? lightTheme : darkTheme}>{children}</ThemeProvider>
+  );
 }
 
 export const PairCard = memo(function PairCard({
@@ -258,12 +262,14 @@ export const CardHeader = memo(function CardHeader({
       <Flex align="center" gap="sm" onClick={e => e.stopPropagation()}>
         {status && <StatusBadge status={status} diffPercent={diffPercent} />}
         <IconButton
-          aria-label={isDark ? t('Switch to light preview') : t('Switch to dark preview')}
+          aria-label={isDark ? t('Light preview') : t('Dark preview')}
+          tooltip={isDark ? t('Light preview') : t('Dark preview')}
           icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
           onClick={onToggleDark}
         />
         <IconButton
           aria-label={t('Copy link to this snapshot')}
+          tooltip={t('Copy link')}
           icon={<IconLink size="sm" />}
           onClick={() =>
             copy(copyUrl, {successMessage: t('Copied link to this snapshot')})
@@ -341,12 +347,14 @@ function IconButton({
   icon,
   'aria-label': ariaLabel,
   onClick,
+  tooltip,
 }: {
   'aria-label': string;
   icon: React.ReactNode;
   onClick?: () => void;
+  tooltip?: string;
 }) {
-  return (
+  const button = (
     <Button
       size="xs"
       priority="transparent"
@@ -354,6 +362,14 @@ function IconButton({
       aria-label={ariaLabel}
       onClick={onClick}
     />
+  );
+  if (!tooltip) {
+    return button;
+  }
+  return (
+    <Tooltip title={tooltip} skipWrapper>
+      {button}
+    </Tooltip>
   );
 }
 
