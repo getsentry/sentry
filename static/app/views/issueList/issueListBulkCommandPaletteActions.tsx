@@ -171,8 +171,12 @@ export function IssueListBulkCommandPaletteActions({
     [selectedIdsSet]
   );
 
-  const canResolve = selectedIssues.some(issue => issue.status !== GroupStatus.RESOLVED);
-  const canArchive = selectedIssues.some(issue => issue.status !== GroupStatus.IGNORED);
+  const canResolve =
+    allInQuerySelected ||
+    selectedIssues.some(issue => issue.status !== GroupStatus.RESOLVED);
+  const canArchive =
+    allInQuerySelected ||
+    selectedIssues.some(issue => issue.status !== GroupStatus.IGNORED);
 
   function getSelectedIds(): string[] | undefined {
     return allInQuerySelected
