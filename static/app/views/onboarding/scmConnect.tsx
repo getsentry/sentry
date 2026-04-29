@@ -148,6 +148,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
           background="secondary"
           radius="lg"
           border="secondary"
+          layout="position"
         >
           {SCM_INFO_SECTIONS.map(section => (
             <Stack key={section.title} gap="xl" padding="2xl">
