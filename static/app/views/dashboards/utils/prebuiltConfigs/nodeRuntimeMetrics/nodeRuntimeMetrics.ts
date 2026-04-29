@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nodeRuntimeMetrics/settings';
@@ -23,20 +24,10 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            traceMetricField(
-              'avg',
-              'node.runtime.event_loop.utilization',
-              'gauge',
-              'none'
-            ),
+            traceMetricField('avg', 'node.runtime.event_loop.utilization', 'gauge', null),
           ],
           aggregates: [
-            traceMetricField(
-              'avg',
-              'node.runtime.event_loop.utilization',
-              'gauge',
-              'none'
-            ),
+            traceMetricField('avg', 'node.runtime.event_loop.utilization', 'gauge', null),
           ],
           columns: [],
           conditions: '',
@@ -57,10 +48,10 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', 'none'),
+            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', null),
           ],
           aggregates: [
-            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', 'none'),
+            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', null),
           ],
           columns: [],
           conditions: '',
@@ -81,10 +72,20 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            traceMetricField('sum', 'node.runtime.process.uptime', 'counter', 'second'),
+            traceMetricField(
+              'sum',
+              'node.runtime.process.uptime',
+              'counter',
+              DurationUnit.SECOND
+            ),
           ],
           aggregates: [
-            traceMetricField('sum', 'node.runtime.process.uptime', 'counter', 'second'),
+            traceMetricField(
+              'sum',
+              'node.runtime.process.uptime',
+              'counter',
+              DurationUnit.SECOND
+            ),
           ],
           columns: [],
           conditions: '',
@@ -112,14 +113,24 @@ const MEMORY_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            traceMetricField('avg', 'node.runtime.mem.rss', 'gauge', 'byte'),
-            traceMetricField('avg', 'node.runtime.mem.heap_total', 'gauge', 'byte'),
-            traceMetricField('avg', 'node.runtime.mem.heap_used', 'gauge', 'byte'),
+            traceMetricField('avg', 'node.runtime.mem.rss', 'gauge', SizeUnit.BYTE),
+            traceMetricField(
+              'avg',
+              'node.runtime.mem.heap_total',
+              'gauge',
+              SizeUnit.BYTE
+            ),
+            traceMetricField('avg', 'node.runtime.mem.heap_used', 'gauge', SizeUnit.BYTE),
           ],
           aggregates: [
-            traceMetricField('avg', 'node.runtime.mem.rss', 'gauge', 'byte'),
-            traceMetricField('avg', 'node.runtime.mem.heap_total', 'gauge', 'byte'),
-            traceMetricField('avg', 'node.runtime.mem.heap_used', 'gauge', 'byte'),
+            traceMetricField('avg', 'node.runtime.mem.rss', 'gauge', SizeUnit.BYTE),
+            traceMetricField(
+              'avg',
+              'node.runtime.mem.heap_total',
+              'gauge',
+              SizeUnit.BYTE
+            ),
+            traceMetricField('avg', 'node.runtime.mem.heap_used', 'gauge', SizeUnit.BYTE),
           ],
           columns: [],
           conditions: '',
@@ -146,10 +157,10 @@ const CORRELATION_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', 'none'),
+            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', null),
           ],
           aggregates: [
-            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', 'none'),
+            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', null),
           ],
           columns: [],
           conditions: '',
