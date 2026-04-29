@@ -6,26 +6,60 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
+// Sparse user shape that both the API response (after normalization) and a full
+// User object satisfy, so callers can pass either without mapping.
 export type RevisionCreatedBy = Pick<
   AvatarUser,
-  'email' | 'id' | 'name' | 'avatarUrl'
-> & {
+  'id' | 'name' | 'email' | 'avatar' | 'avatarUrl'
+>;
+
+// Raw shape returned by the revisions API — avatarType/avatarUrl are flat fields.
+type RawRevisionCreatedBy = {
+  email: string;
+  id: string;
+  name: string;
   avatarType?: Avatar['avatarType'] | null;
+  avatarUrl?: string | null;
 };
 
-export type DashboardRevision = {
-  createdBy: RevisionCreatedBy | null;
+type RawDashboardRevision = {
+  createdBy: RawRevisionCreatedBy | null;
   dateCreated: string;
   id: string;
   source: 'edit' | 'edit-with-agent' | 'pre-restore';
   title: string;
 };
 
+export type DashboardRevision = Omit<RawDashboardRevision, 'createdBy'> & {
+  createdBy: RevisionCreatedBy | null;
+};
+
+function normalizeRevision(raw: RawDashboardRevision): DashboardRevision {
+  return {
+    ...raw,
+    createdBy: raw.createdBy
+      ? {
+          id: raw.createdBy.id,
+          name: raw.createdBy.name,
+          email: raw.createdBy.email,
+          avatarUrl: raw.createdBy.avatarUrl ?? undefined,
+          avatar: raw.createdBy.avatarType
+            ? {
+                avatarType: raw.createdBy.avatarType,
+                avatarUrl: raw.createdBy.avatarUrl ?? null,
+                avatarUuid: null,
+              }
+            : undefined,
+        }
+      : null,
+  };
+}
+
 const REVISIONS_PATH =
   '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/' as const;
 
 export function getDashboardRevisionsQueryKey(orgSlug: string, dashboardId: string) {
-  return apiOptions.as<DashboardRevision[]>()(REVISIONS_PATH, {
+  return apiOptions.as<RawDashboardRevision[]>()(REVISIONS_PATH, {
     path: {organizationIdOrSlug: orgSlug, dashboardId},
     staleTime: 30_000,
   }).queryKey;
@@ -37,12 +71,13 @@ interface UseDashboardRevisionsOptions {
 
 export function useDashboardRevisions({dashboardId}: UseDashboardRevisionsOptions) {
   const organization = useOrganization();
-  return useQuery(
-    apiOptions.as<DashboardRevision[]>()(REVISIONS_PATH, {
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<RawDashboardRevision[]>()(REVISIONS_PATH, {
       path: {organizationIdOrSlug: organization.slug, dashboardId},
       staleTime: 30_000,
     })
   );
+  return {data: data?.map(normalizeRevision), isPending, isError};
 }
 
 const REVISION_DETAILS_PATH =

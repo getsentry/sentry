@@ -136,8 +136,7 @@ describe('RevisionListItem', () => {
         id: '42',
         name: 'Alice',
         email: 'alice@example.com',
-        avatarType: 'upload',
-        avatarUrl,
+        avatar: {avatarType: 'upload', avatarUrl, avatarUuid: null},
       },
     });
 
@@ -156,7 +155,7 @@ describe('RevisionListItem', () => {
         id: '42',
         name: 'Alice',
         email: 'alice@example.com',
-        avatarType: 'gravatar',
+        avatar: {avatarType: 'gravatar', avatarUrl: null, avatarUuid: null},
       },
     });
 

@@ -14,20 +14,16 @@ import type {User} from 'sentry/types/user';
 import type {TagVariant} from 'sentry/utils/theme';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import type {DashboardRevision, RevisionCreatedBy} from './hooks/useDashboardRevisions';
+import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisionDetails} from './hooks/useDashboardRevisions';
 import {DISPLAY_TYPE_ICONS} from './widgetBuilder/components/typeSelector';
 import type {WidgetChange} from './dashboardRevisionsDiff';
 import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
 import type {DashboardDetails} from './types';
 
-function isUser(createdBy: User | RevisionCreatedBy): createdBy is User {
-  return 'ip_address' in createdBy;
-}
-
 interface RevisionListItemProps {
   baseRevisionId: string | null;
-  createdBy: User | RevisionCreatedBy | null;
+  createdBy: DashboardRevision['createdBy'];
   dashboardId: string;
   dateCreated: string | null;
   isSelected: boolean;
@@ -95,22 +91,7 @@ export function RevisionListItem({
   const isError = (!snapshotOverride && isSnapshotError) || isBaseError;
 
   const userForAvatar = createdBy
-    ? isUser(createdBy)
-      ? createdBy
-      : ({
-          id: createdBy.id,
-          name: createdBy.name,
-          email: createdBy.email,
-          ip_address: '',
-          username: createdBy.email,
-          avatar: createdBy.avatarType
-            ? {
-                avatarType: createdBy.avatarType,
-                avatarUrl: createdBy.avatarUrl ?? null,
-                avatarUuid: null,
-              }
-            : undefined,
-        } as User)
+    ? ({...createdBy, ip_address: '', username: createdBy.email} as User)
     : null;
 
   return (
