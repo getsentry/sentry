@@ -134,12 +134,14 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Block index to insert at. When provided, truncates blocks after this point for retry-from-step.",
     )
+
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
         # Stopping points take precedence and forces full automation from `root_cause`
         if stopping_point:
             data["step"] = "root_cause"
         return data
+
 
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])

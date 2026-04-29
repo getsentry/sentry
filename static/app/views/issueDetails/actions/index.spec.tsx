@@ -601,6 +601,5 @@ describe('GroupActions', () => {
         props: {actor: expect.objectContaining({name: 'Ada Lovelace'})},
       });
     });
-
   });
 });
