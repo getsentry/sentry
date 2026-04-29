@@ -1,7 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {setWindowLocation} from 'sentry-test/utils';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {FlamegraphRendererDOM as mockFlameGraphRenderer} from 'sentry/utils/profiling/renderers/testUtils';
@@ -90,13 +89,17 @@ describe('Flamegraph', () => {
   beforeEach(() => {
     const project = ProjectFixture({slug: 'foo-project'});
     act(() => ProjectsStore.loadInitialData([project]));
-    setWindowLocation('http://localhost/');
   });
 
   it('renders a missing profile', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/foo-project/profiling/profiles/profile-id/',
       statusCode: 404,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
     });
 
     render(<ProfilesAndTransactionProvider />, {
@@ -128,8 +131,8 @@ describe('Flamegraph', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/foo-project/events/${flamechart.transaction.id}/`,
-      statusCode: 404,
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
     });
 
     render(<ProfilesAndTransactionProvider />, {
@@ -162,18 +165,21 @@ describe('Flamegraph', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/foo-project/events/${flamechart.transaction.id}/`,
-      statusCode: 404,
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
     });
-
-    setWindowLocation(
-      'http://localhost/?colorCoding=by+library&query=&sorting=alphabetical&tid=0&view=bottom+up'
-    );
 
     render(<ProfilesAndTransactionProvider />, {
       initialRouterConfig: {
         location: {
           pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+          query: {
+            colorCoding: 'by library',
+            query: '',
+            sorting: 'alphabetical',
+            tid: '0',
+            view: 'bottom up',
+          },
         },
         route: '/explore/profiling/profile/:projectId/:eventId/',
         children: [
@@ -202,16 +208,17 @@ describe('Flamegraph', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/foo-project/events/${flamechart.transaction.id}/`,
-      statusCode: 404,
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
     });
-
-    setWindowLocation('http://localhost/?query=profiling+transaction');
 
     render(<ProfilesAndTransactionProvider />, {
       initialRouterConfig: {
         location: {
           pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+          query: {
+            query: 'profiling transaction',
+          },
         },
         route: '/explore/profiling/profile/:projectId/:eventId/',
         children: [

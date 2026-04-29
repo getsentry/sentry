@@ -47,6 +47,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
+import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
 import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
@@ -880,76 +881,84 @@ function IssueListOverview({
   const hasPageFrame = useHasPageFrameFeature();
 
   return (
-    <Stack flex={1}>
-      <IssueListCommandPaletteActions
-        query={query}
-        sort={sort}
-        onSortChange={onSortChange}
-        onQueryChange={onSearch}
-      />
-      <IssueViewsHeader
-        selectedProjectIds={selection.projects}
-        title={title}
-        description={titleDescription}
-        realtimeActive={realtimeActive}
-        onRealtimeChange={onRealtimeChange}
-        headerActions={headerActions}
-      />
-      <StyledBody>
-        <Grid
-          area="content"
-          padding={hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}}
-        >
-          <IssuesDataConsentBanner source="issues" />
-          <IssueListFilters
-            query={query}
-            sort={sort}
-            onSortChange={onSortChange}
-            onSearch={onSearch}
-          />
-          <IssueListTable
-            selection={selection}
-            query={query}
-            queryCount={modifiedQueryCount}
-            onSelectStatsPeriod={onSelectStatsPeriod}
-            onActionTaken={onActionTaken}
-            onDelete={onDelete}
-            statsPeriod={getGroupStatsPeriod()}
-            groupIds={groupIds}
-            allResultsVisible={allResultsVisible()}
-            displayReprocessingActions={displayReprocessingActions}
-            memberList={memberList}
-            selectedProjectIds={selection.projects}
-            issuesLoading={issuesLoading || supergroupsLoading}
-            statsLoading={statsLoading}
-            supergroupLookup={supergroupLookup}
-            error={error}
-            refetchGroups={fetchData}
-            paginationCaption={
-              !issuesLoading && modifiedQueryCount > 0
-                ? tct('[start]-[end] of [total]', {
-                    start: numPreviousIssues + 1,
-                    end: numPreviousIssues + numIssuesOnPage,
-                    total: (
-                      <QueryCount
-                        hideParens
-                        hideIfEmpty={false}
-                        count={modifiedQueryCount}
-                        max={queryMaxCount || 100}
-                      />
-                    ),
-                  })
-                : null
+    <IssueSelectionProvider visibleGroupIds={groupIds}>
+      <Stack flex={1}>
+        <IssueListCommandPaletteActions
+          groupIds={groupIds}
+          query={query}
+          queryCount={modifiedQueryCount}
+          selection={selection}
+          sort={sort}
+          onSortChange={onSortChange}
+          onQueryChange={onSearch}
+          onActionTaken={onActionTaken}
+        />
+        <IssueViewsHeader
+          selectedProjectIds={selection.projects}
+          title={title}
+          description={titleDescription}
+          realtimeActive={realtimeActive}
+          onRealtimeChange={onRealtimeChange}
+          headerActions={headerActions}
+        />
+        <StyledBody>
+          <Grid
+            area="content"
+            padding={
+              hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}
             }
-            pageLinks={pageLinks}
-            onCursor={onCursorChange}
-            paginationAnalyticsEvent={paginationAnalyticsEvent}
-            issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
-            pageSize={MAX_ITEMS}
-          />
-        </Grid>
-      </StyledBody>
-    </Stack>
+          >
+            <IssuesDataConsentBanner source="issues" />
+            <IssueListFilters
+              query={query}
+              sort={sort}
+              onSortChange={onSortChange}
+              onSearch={onSearch}
+            />
+            <IssueListTable
+              selection={selection}
+              query={query}
+              queryCount={modifiedQueryCount}
+              onSelectStatsPeriod={onSelectStatsPeriod}
+              onActionTaken={onActionTaken}
+              onDelete={onDelete}
+              statsPeriod={getGroupStatsPeriod()}
+              groupIds={groupIds}
+              allResultsVisible={allResultsVisible()}
+              displayReprocessingActions={displayReprocessingActions}
+              memberList={memberList}
+              selectedProjectIds={selection.projects}
+              issuesLoading={issuesLoading || supergroupsLoading}
+              statsLoading={statsLoading}
+              supergroupLookup={supergroupLookup}
+              error={error}
+              refetchGroups={fetchData}
+              paginationCaption={
+                !issuesLoading && modifiedQueryCount > 0
+                  ? tct('[start]-[end] of [total]', {
+                      start: numPreviousIssues + 1,
+                      end: numPreviousIssues + numIssuesOnPage,
+                      total: (
+                        <QueryCount
+                          hideParens
+                          hideIfEmpty={false}
+                          count={modifiedQueryCount}
+                          max={queryMaxCount || 100}
+                        />
+                      ),
+                    })
+                  : null
+              }
+              pageLinks={pageLinks}
+              onCursor={onCursorChange}
+              paginationAnalyticsEvent={paginationAnalyticsEvent}
+              issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+              pageSize={MAX_ITEMS}
+            />
+          </Grid>
+        </StyledBody>
+      </Stack>
+    </IssueSelectionProvider>
   );
 }
 

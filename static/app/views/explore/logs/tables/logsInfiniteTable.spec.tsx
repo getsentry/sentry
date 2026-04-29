@@ -468,7 +468,6 @@ describe('LogsInfiniteTable', () => {
             query: 'replay_id:[abc123def456,abc123eef457]',
             start: '2025-04-10T08:00:00.000Z',
             end: '2025-04-10T10:00:00.000Z',
-            statsPeriod: undefined,
           }),
         })
       );
