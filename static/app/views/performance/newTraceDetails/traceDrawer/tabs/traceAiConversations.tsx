@@ -126,7 +126,6 @@ export function TraceAiConversations({
                     nodeTraceMap={nodeTraceMap}
                     isLoading={isLoading}
                     error={error}
-                    conversationId={item.conversationId}
                     selectedSpanId={selectedSpanId}
                     onSelectSpan={handleSelectSpan}
                   />
@@ -165,7 +164,6 @@ function TraceConversationHeader({
 }
 
 function TraceConversationChat({
-  conversationId,
   nodes,
   nodeTraceMap,
   isLoading,
@@ -173,7 +171,6 @@ function TraceConversationChat({
   selectedSpanId,
   onSelectSpan,
 }: {
-  conversationId: string;
   error: boolean;
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
@@ -181,8 +178,6 @@ function TraceConversationChat({
   onSelectSpan: (spanId: string) => void;
   selectedSpanId: string | null;
 }) {
-  const organization = useOrganization();
-
   const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
     selectedSpanId,
@@ -199,17 +194,8 @@ function TraceConversationChat({
   }
 
   if (nodes.length === 0) {
-    const conversationUrl = normalizeUrl(
-      `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${conversationId}/`
-    );
     return (
-      <EmptyMessage
-        action={
-          <LinkButton size="sm" to={conversationUrl}>
-            {t('Show full conversation')}
-          </LinkButton>
-        }
-      >
+      <EmptyMessage>
         {t('No chat messages in this portion of the conversation')}
       </EmptyMessage>
     );
