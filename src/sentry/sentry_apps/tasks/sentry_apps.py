@@ -180,7 +180,7 @@ def _webhook_issue_data(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    processing_deadline_duration=8,
+    processing_deadline_duration=12,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
@@ -281,35 +281,6 @@ def send_alert_webhook_v2(
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-
-
-@instrumented_task(
-    name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook",
-    namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
-    silo_mode=SiloMode.CELL,
-)
-@retry_decorator
-def send_alert_webhook(
-    rule: str,
-    sentry_app_id: int,
-    instance_id: str,
-    group_id: int,
-    occurrence_id: str,
-    additional_payload_key: str | None = None,
-    additional_payload: Mapping[str, Any] | None = None,
-    **kwargs: Any,
-):
-    send_alert_webhook_v2(
-        rule_label=rule,
-        sentry_app_id=sentry_app_id,
-        instance_id=instance_id,
-        group_id=group_id,
-        occurrence_id=occurrence_id,
-        additional_payload_key=additional_payload_key,
-        additional_payload=additional_payload,
-        **kwargs,
-    )
 
 
 def _process_resource_change(

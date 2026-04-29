@@ -198,7 +198,7 @@ class SeerExplorerClient:
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
         enable_coding: bool = False,
-        enable_code_mode_tools: bool = False,
+        enable_code_mode_tools: str = "off",
         max_iterations: int | None = None,
     ):
         self.organization = organization
@@ -285,7 +285,7 @@ class SeerExplorerClient:
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
             enable_code_mode_tools=self.enable_code_mode_tools,
-            proxy_headers=get_proxy_headers() if self.enable_code_mode_tools else None,
+            proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
         if self.reasoning_effort is not None:
@@ -387,7 +387,7 @@ class SeerExplorerClient:
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
             enable_code_mode_tools=self.enable_code_mode_tools,
-            proxy_headers=get_proxy_headers() if self.enable_code_mode_tools else None,
+            proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
         if prompt_metadata:

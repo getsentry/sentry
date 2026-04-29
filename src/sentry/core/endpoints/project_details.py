@@ -115,6 +115,8 @@ class ProjectMemberSerializer(serializers.Serializer):
     preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnChanged = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnRenamed = serializers.BooleanField(required=False)
     preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
@@ -170,6 +172,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSnapshotStatusChecksEnabled",
         "preprodSnapshotStatusChecksFailOnAdded",
         "preprodSnapshotStatusChecksFailOnRemoved",
+        "preprodSnapshotStatusChecksFailOnChanged",
+        "preprodSnapshotStatusChecksFailOnRenamed",
         "preprodDistributionPrCommentsEnabledByCustomer",
         "preprodSnapshotPrCommentsEnabled",
         "preprodSnapshotPrCommentsOnlyIfDiff",
@@ -894,6 +898,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_removed"] = (
                     result["preprodSnapshotStatusChecksFailOnRemoved"]
+                )
+        if result.get("preprodSnapshotStatusChecksFailOnChanged") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_changed",
+                result["preprodSnapshotStatusChecksFailOnChanged"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_changed"] = (
+                    result["preprodSnapshotStatusChecksFailOnChanged"]
+                )
+        if result.get("preprodSnapshotStatusChecksFailOnRenamed") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_renamed",
+                result["preprodSnapshotStatusChecksFailOnRenamed"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_renamed"] = (
+                    result["preprodSnapshotStatusChecksFailOnRenamed"]
                 )
         if "preprodDistributionPrCommentsEnabledByCustomer" in result:
             if project.update_option(

@@ -3,9 +3,6 @@ from __future__ import annotations
 import abc
 from typing import Any
 
-from django import forms
-from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel
 
@@ -19,7 +16,6 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.utils.http import absolute_uri
@@ -59,51 +55,6 @@ class CodingAgentIntegrationProvider(IntegrationProvider, abc.ABC):
     def get_agent_key(self) -> str:
         """Return the unique key for the coding agent."""
         pass
-
-
-class CodingAgentPipelineView(abc.ABC):
-    """Base pipeline view for coding agent integration setup forms."""
-
-    @abc.abstractmethod
-    def get_form_class(self) -> type[forms.Form]:
-        pass
-
-    @abc.abstractmethod
-    def get_template_name(self) -> str:
-        pass
-
-    def get_state_key(self) -> str:
-        """Key to bind form data to pipeline state. Override for custom binding."""
-        return "config"
-
-    def get_form_kwargs(
-        self, request: HttpRequest, pipeline: IntegrationPipeline
-    ) -> dict[str, Any]:
-        """Override to pass extra kwargs to the form constructor."""
-        return {}
-
-    def bind_state(self, pipeline: IntegrationPipeline, form: forms.Form) -> None:
-        """Bind form data to pipeline state. Override for custom binding logic."""
-        pipeline.bind_state(self.get_state_key(), form.cleaned_data)
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        form_kwargs = self.get_form_kwargs(request, pipeline)
-
-        if request.method == "POST":
-            form = self.get_form_class()(request.POST, **form_kwargs)
-            if form.is_valid():
-                self.bind_state(pipeline, form)
-                return pipeline.next_step()
-        else:
-            form = self.get_form_class()(**form_kwargs)
-
-        from sentry.web.helpers import render_to_response
-
-        return render_to_response(
-            template=self.get_template_name(),
-            context={"form": form},
-            request=request,
-        )
 
 
 class CodingAgentIntegration(IntegrationInstallation, abc.ABC):

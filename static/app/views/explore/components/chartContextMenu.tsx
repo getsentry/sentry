@@ -187,6 +187,6 @@ export function ChartContextMenu({
   );
 }
 
-const DisabledText = styled('span')`
+export const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;
