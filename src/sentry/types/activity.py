@@ -32,6 +32,7 @@ class ActivityType(Enum):
 
     SET_PRIORITY = 26
     DELETED_ATTACHMENT = 27
+    REFERENCED_IN_COMMIT = 28
 
 
 # Warning: This must remain in this EXACT order.
@@ -65,6 +66,7 @@ CHOICES = tuple(
         ActivityType.SET_ESCALATING,  # 25
         ActivityType.SET_PRIORITY,  # 26
         ActivityType.DELETED_ATTACHMENT,  # 27
+        ActivityType.REFERENCED_IN_COMMIT,  # 28
     ]
 )
 

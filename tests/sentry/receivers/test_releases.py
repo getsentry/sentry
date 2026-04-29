@@ -43,23 +43,28 @@ class ResolvedInCommitTest(TestCase):
     Tests for resolved_in_commit signal handler.
 
     With "organizations:defer-commit-resolution" flag ON (new behavior):
-    Commits with "Fixes ISSUE-123" create GroupLinks and Activity entries,
-    but do NOT immediately resolve issues. Resolution happens when a release is
-    created that includes these commits, via update_group_resolutions().
+    Commits with "Fixes ISSUE-123" create GroupLinks and REFERENCED_IN_COMMIT
+    Activity entries, but do NOT immediately resolve issues. Resolution happens
+    when a release is created that includes these commits, via update_group_resolutions().
 
     With flag OFF (legacy behavior): Issues are immediately resolved when commits
     are pushed.
     """
 
     def assertLinkedFromCommitDeferred(self, group, commit):
-        """Assert that a GroupLink, Activity, and GroupHistory were created, but issue is NOT resolved."""
+        """Assert that a GroupLink and Activity were created, but issue is NOT resolved."""
         assert GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
-        assert Activity.objects.filter(
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.REFERENCED_IN_COMMIT.value,
+        )
+        assert activity.data == {"commit": commit.id}
+        assert not Activity.objects.filter(
             group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
         ).exists()
-        assert GroupHistory.objects.filter(
+        assert not GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
         # Issue should NOT be resolved immediately - resolution happens via releases
@@ -74,6 +79,9 @@ class ResolvedInCommitTest(TestCase):
         ).exists()
         assert Activity.objects.filter(
             group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
+        ).exists()
+        assert not Activity.objects.filter(
+            group=group, type=ActivityType.REFERENCED_IN_COMMIT.value
         ).exists()
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
