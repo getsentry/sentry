@@ -41,7 +41,9 @@ interface SearchQueryBuilderContextData {
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitSeer: boolean;
+  clearSearchQuery: (options?: {reopenDropdown?: boolean}) => void;
   committedQuery: string;
+  consumeReopenDropdownOnQueryClear: () => void;
   currentInputValueRef: React.RefObject<string>;
   disabled: boolean;
   disallowFreeText: boolean;
@@ -65,6 +67,7 @@ interface SearchQueryBuilderContextData {
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
+  reopenDropdownOnQueryClear: boolean;
   searchSource: string;
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
@@ -136,6 +139,7 @@ export function SearchQueryBuilderProvider({
 
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
+  const [reopenDropdownOnQueryClear, setReopenDropdownOnQueryClear] = useState(false);
   const currentInputValueRef = useRef<string>('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
@@ -241,6 +245,24 @@ export function SearchQueryBuilderProvider({
     searchSource,
     onSearch,
   });
+
+  const clearSearchQuery = useCallback(
+    ({reopenDropdown = false}: {reopenDropdown?: boolean} = {}) => {
+      currentInputValueRef.current = '';
+      askSeerNLQueryRef.current = null;
+      askSeerSuggestedQueryRef.current = null;
+      setDisplayAskSeerFeedback(false);
+      setReopenDropdownOnQueryClear(reopenDropdown);
+      dispatch({type: 'CLEAR'});
+      handleSearch('');
+    },
+    [dispatch, handleSearch]
+  );
+
+  const consumeReopenDropdownOnQueryClear = useCallback(() => {
+    setReopenDropdownOnQueryClear(false);
+  }, []);
+
   const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
@@ -265,6 +287,8 @@ export function SearchQueryBuilderProvider({
       getTagKeys,
       getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
+      clearSearchQuery,
+      consumeReopenDropdownOnQueryClear,
       wrapperRef,
       actionBarRef,
       handleSearch,
@@ -283,6 +307,7 @@ export function SearchQueryBuilderProvider({
       filterKeyAliases,
       gaveSeerConsent: true,
       currentInputValueRef,
+      reopenDropdownOnQueryClear,
       displayAskSeerFeedback,
       setDisplayAskSeerFeedback,
       askSeerNLQueryRef,
@@ -294,6 +319,8 @@ export function SearchQueryBuilderProvider({
     aiSearchBadgeType,
     autoSubmitSeer,
     caseInsensitive,
+    clearSearchQuery,
+    consumeReopenDropdownOnQueryClear,
     disabled,
     disallowFreeText,
     disallowLogicalOperators,
@@ -316,6 +343,7 @@ export function SearchQueryBuilderProvider({
     placeholder,
     portalTarget,
     recentSearches,
+    reopenDropdownOnQueryClear,
     namespace,
     replaceRawSearchKeys,
     searchSource,

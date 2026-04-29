@@ -326,6 +326,47 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('combobox')).toHaveFocus();
     });
 
+    it.each([
+      ['Backspace', '{Control>}{Backspace}{/Control}'],
+      ['Delete', '{Control>}{Delete}{/Control}'],
+    ])(
+      'clears the query and reopens suggestions with Cmd+%s from an open token dropdown',
+      async (_key, keyboardInput) => {
+        const mockOnChange = jest.fn();
+        const mockOnSearch = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:Firefox"
+            onChange={mockOnChange}
+            onSearch={mockOnSearch}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        expect(await screen.findByRole('option', {name: 'Firefox'})).toBeInTheDocument();
+
+        await userEvent.keyboard(keyboardInput);
+
+        await waitFor(() => {
+          expect(
+            screen.queryByRole('row', {name: 'browser.name:Firefox'})
+          ).not.toBeInTheDocument();
+        });
+
+        const input = screen.getByRole('combobox', {name: 'Add a search term'});
+        expect(input).toHaveFocus();
+        expect(await screen.findByRole('option', {name: 'age'})).toBeInTheDocument();
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
+        });
+        expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
+      }
+    );
+
     it('is hidden at small sizes', async () => {
       Object.defineProperty(Element.prototype, 'clientWidth', {value: 100});
       const mockOnChange = jest.fn();
