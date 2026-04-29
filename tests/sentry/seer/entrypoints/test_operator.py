@@ -550,7 +550,7 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.handoff_already_exists == []
 
     @patch(
-        "sentry.seer.explorer.client_utils.fetch_run_status",
+        "sentry.seer.entrypoints.operator.fetch_run_status",
         side_effect=Exception("seer down"),
     )
     @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
