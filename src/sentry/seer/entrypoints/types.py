@@ -9,6 +9,18 @@ class SeerEntrypointKey(StrEnum):
     SLACK = "slack"
 
 
+class AgentReferrer(StrEnum):
+    """
+    Identifies the surface that triggered a Seer Agent run.
+
+    Parallels ``AutofixReferrer`` (sentry.seer.autofix.constants) but for the
+    agent trigger path rather than the autofix step path.
+    """
+
+    SLACK = "slack"
+    UNKNOWN = "unknown"
+
+
 class SeerAutofixEntrypoint[CachePayloadT](Protocol):
     """
     Protocol for entrypoints that support autofix workflows.
