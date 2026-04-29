@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
-import {Pagination} from 'sentry/components/pagination';
 import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';

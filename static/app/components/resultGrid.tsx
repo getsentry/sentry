@@ -5,9 +5,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {RequestOptions} from 'sentry/api';
-import {Pagination} from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';

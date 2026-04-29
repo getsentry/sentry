@@ -6,6 +6,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
@@ -18,7 +19,6 @@ import {
   projectPlatformToDocsMap,
 } from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
 import {IconDelete, IconUpload} from 'sentry/icons';

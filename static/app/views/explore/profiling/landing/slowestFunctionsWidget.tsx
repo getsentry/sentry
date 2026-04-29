@@ -10,6 +10,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -21,7 +22,6 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {ScoreBar} from 'sentry/components/scoreBar';
 import {TextOverflow} from 'sentry/components/textOverflow';

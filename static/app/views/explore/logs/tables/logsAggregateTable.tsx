@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Pagination} from 'sentry/components/pagination';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';

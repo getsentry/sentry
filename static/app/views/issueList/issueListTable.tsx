@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
+
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';

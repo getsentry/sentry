@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -13,7 +14,6 @@ import {
   extractSelectionParameters,
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
-import {Pagination} from 'sentry/components/pagination';
 import {renderSortableHeaderCell} from 'sentry/components/replays/renderSortableHeaderCell';
 import type {
   GridColumnHeader,

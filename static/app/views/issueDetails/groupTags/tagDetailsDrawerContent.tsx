@@ -7,6 +7,7 @@ import type {LocationDescriptor} from 'history';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -20,7 +21,6 @@ import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import {Pagination} from 'sentry/components/pagination';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

@@ -7,8 +7,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
-import {Pagination, type CursorHandler} from 'sentry/components/pagination';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
