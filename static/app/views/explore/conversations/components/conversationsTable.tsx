@@ -155,12 +155,27 @@ type CellContentProps = ComponentPropsWithRef<'div'> & {
   text: string;
 };
 
-function CellContent({text, ...props}: CellContentProps) {
+function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
-    <SingleLineMarkdown {...props}>
+    <SingleLineMarkdown ref={ref} {...props}>
       <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
+  );
+}
+
+export function InputOutputTooltipCell({text}: {text: string}) {
+  return (
+    <Tooltip
+      title={<TooltipContent text={text} />}
+      showOnlyOnOverflow
+      maxWidth={800}
+      isHoverable
+      skipWrapper
+      position="right"
+    >
+      <CellContent text={text} />
+    </Tooltip>
   );
 }
 
@@ -226,16 +241,7 @@ const BodyCell = memo(function BodyCell({
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
-                <Tooltip
-                  title={<TooltipContent text={dataRow.firstInput} />}
-                  showOnlyOnOverflow
-                  maxWidth={800}
-                  isHoverable
-                  skipWrapper
-                  position="right"
-                >
-                  <CellContent text={dataRow.firstInput} />
-                </Tooltip>
+                <InputOutputTooltipCell text={dataRow.firstInput} />
               ) : (
                 <Text variant="muted">&mdash;</Text>
               )}
@@ -245,16 +251,7 @@ const BodyCell = memo(function BodyCell({
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (
-                <Tooltip
-                  title={<TooltipContent text={dataRow.lastOutput} />}
-                  showOnlyOnOverflow
-                  maxWidth={800}
-                  isHoverable
-                  skipWrapper
-                  position="right"
-                >
-                  <CellContent text={dataRow.lastOutput} />
-                </Tooltip>
+                <InputOutputTooltipCell text={dataRow.lastOutput} />
               ) : (
                 <Text variant="muted">&mdash;</Text>
               )}
