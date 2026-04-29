@@ -131,6 +131,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             date_added__lt=args["end"],
         )
 
+        group_by: tuple[str, ...]
         if monitor_environment_map:
             check_ins = check_ins.filter(monitor_environment_id__in=monitor_environment_map.keys())
         else:
