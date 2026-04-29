@@ -14,7 +14,7 @@ export function getBackendPipelineType(type: PipelineType): string {
 /**
  * A single step in a pipeline definition.
  */
-export interface PipelineStepDefinition<StepId extends string = string> {
+interface PipelineStepDefinition<StepId extends string = string> {
   /**
    * The React component rendered for this step. Receives step data,
    * an advance callback, and error state via {@link PipelineStepProps}.

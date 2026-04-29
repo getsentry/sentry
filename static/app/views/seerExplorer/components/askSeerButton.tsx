@@ -49,7 +49,9 @@ export function AskSeerButton() {
           visibility={state === 'thinking' ? 'hidden' : undefined}
         >
           <Container>{t('Ask Seer')}</Container>
-          <Hotkey value="command+/" variant="debossed" />
+          <Container display={{xs: 'none', md: 'inline-block'}}>
+            <Hotkey value="command+/" variant="debossed" />
+          </Container>
         </Flex>
         <ThinkingIndicator state={state} />
         <MessageIndicator state={state} isOpen={isOpen} />
