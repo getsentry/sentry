@@ -18,7 +18,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function useReleases(
+function useReleases(
   searchTerm: string | undefined,
   sortBy: ReleasesSortOption | undefined
 ) {
