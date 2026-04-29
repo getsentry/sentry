@@ -4,7 +4,6 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -58,9 +57,6 @@ export function DataConsentForm({subscription}: {subscription: Subscription}) {
         setting: 'aggregatedDataConsent',
         value: variables.aggregatedDataConsent,
       });
-    },
-    onError: () => {
-      addErrorMessage(t('Unable to save change'));
     },
   });
 
