@@ -573,13 +573,9 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                   <IconBusiness size="lg" variant="accent" />
                   <Text size="md" density="comfortable">
                     {tct(
-                      'You’ve got [bold] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                      'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
                       {
-                        bold: (
-                          <Text as="span" bold variant="accent">
-                            unlimited volume for 14 days
-                          </Text>
-                        ),
+                        bold: <Text as="span" bold variant="accent" />,
                       }
                     )}
                   </Text>
