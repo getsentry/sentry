@@ -99,7 +99,7 @@ export function ScmFeatureSelectionCards({
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
   return (
-    <Flex direction="column" gap="xl" width="100%" justify="center">
+    <Stack gap="xl" width="100%" justify="center">
       <Flex justify="between" align="center">
         <Heading as="h3" size="xl">
           {t('What do you want to instrument?')}
@@ -132,6 +132,6 @@ export function ScmFeatureSelectionCards({
           );
         })}
       </Stack>
-    </Flex>
+    </Stack>
   );
 }

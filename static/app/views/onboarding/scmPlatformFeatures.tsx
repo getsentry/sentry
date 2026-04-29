@@ -22,6 +22,7 @@ import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {platforms} from 'sentry/data/platforms';
 import {IconBroadcast, IconGeneric, IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
@@ -446,7 +447,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
           {t('Create your first project')}
         </Heading>
         <LayoutGroup>
-          <MotionStack maxWidth={SCM_STEP_CONTENT_WIDTH} gap="md" paddingTop="2xl">
+          <MotionStack maxWidth={SCM_STEP_CONTENT_WIDTH} gap="md" paddingTop="sm">
             <Heading as="h3" size="xl">
               {t('Choose your SDK')}
             </Heading>
@@ -561,7 +562,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
           )}
           <MotionStack layout="position" maxWidth={SCM_STEP_CONTENT_WIDTH} width="100%">
             {availableFeatures.length > 0 && (
-              <Stack gap="2xl" paddingTop="3xl">
+              <Stack gap="2xl" paddingTop="xs">
                 <Flex
                   padding="lg"
                   background="secondary"
@@ -571,12 +572,15 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                 >
                   <IconBusiness size="lg" variant="accent" />
                   <Text size="md" density="comfortable">
-                    {t('You’ve got ')}
-                    <Text as="span" bold variant="accent">
-                      {t('unlimited volume for 14 days')}
-                    </Text>
-                    {t(
-                      ' to try out everything. After that, free plan volumes apply ⋅ No credit card required'
+                    {tct(
+                      'You’ve got [bold] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                      {
+                        bold: (
+                          <Text as="span" bold variant="accent">
+                            unlimited volume for 14 days
+                          </Text>
+                        ),
+                      }
                     )}
                   </Text>
                 </Flex>
@@ -589,29 +593,37 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               </Stack>
             )}
           </MotionStack>
+          <MotionStack
+            layout="position"
+            direction="row"
+            align="center"
+            justify="between"
+            width="100%"
+            maxWidth={SCM_STEP_CONTENT_WIDTH}
+            paddingTop="sm"
+          >
+            <Flex align="center">{genBackButton?.()}</Flex>
+            <Flex align="center" gap="md">
+              <Button
+                priority="primary"
+                analyticsEventKey="onboarding.scm_platform_features_continue_clicked"
+                analyticsEventName="Onboarding: SCM Platform Features Continue Clicked"
+                analyticsParams={{
+                  platform: currentPlatformKey ?? '',
+                  source: showDetectedPlatforms ? 'detected' : 'manual',
+                  features: currentFeatures,
+                }}
+                onClick={handleContinue}
+                disabled={
+                  !currentPlatformKey || createProject.isPending || autoCreateDataPending
+                }
+                busy={createProject.isPending}
+              >
+                {t('Continue')}
+              </Button>
+            </Flex>
+          </MotionStack>
         </LayoutGroup>
-        <Flex justify="between" width="100%" paddingTop="3xl">
-          <Flex align="center">{genBackButton?.()}</Flex>
-          <Flex align="center" gap="md">
-            <Button
-              priority="primary"
-              analyticsEventKey="onboarding.scm_platform_features_continue_clicked"
-              analyticsEventName="Onboarding: SCM Platform Features Continue Clicked"
-              analyticsParams={{
-                platform: currentPlatformKey ?? '',
-                source: showDetectedPlatforms ? 'detected' : 'manual',
-                features: currentFeatures,
-              }}
-              onClick={handleContinue}
-              disabled={
-                !currentPlatformKey || createProject.isPending || autoCreateDataPending
-              }
-              busy={createProject.isPending}
-            >
-              {t('Continue')}
-            </Button>
-          </Flex>
-        </Flex>
       </Stack>
     </Stack>
   );

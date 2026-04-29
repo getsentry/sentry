@@ -33,12 +33,12 @@ export function ScmFeatureCard({
   disabled,
   disabledReason,
   onClick,
-  alwaysEnabled,
   volume,
   volumeTooltip,
 }: ScmFeatureCardProps) {
   return (
     <ScmCardButton
+      disabled={disabled}
       onClick={onClick}
       role="checkbox"
       aria-checked={isSelected}
@@ -87,34 +87,21 @@ export function ScmFeatureCard({
                 {volume}
               </Tag>
             </Tooltip>
-            {alwaysEnabled ? (
-              <Tooltip
-                title={disabledReason}
-                disabled={!disabledReason}
-                delay={500}
-                style={{height: '100%'}}
-              >
-                <Switch
-                  checked={isSelected}
-                  disabled={disabled}
-                  onChange={onClick}
-                  role="presentation"
-                  tabIndex={-1}
-                  readOnly
-                  size="sm"
-                />
-              </Tooltip>
-            ) : (
+            <Tooltip
+              title={disabledReason}
+              disabled={!disabledReason}
+              delay={500}
+              style={{height: '100%'}}
+            >
               <Switch
                 checked={isSelected}
                 disabled={disabled}
-                onChange={onClick}
                 role="presentation"
                 tabIndex={-1}
                 readOnly
                 size="sm"
               />
-            )}
+            </Tooltip>
           </Flex>
         </Flex>
       </ScmSelectableContainer>

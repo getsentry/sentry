@@ -146,14 +146,8 @@ export function NewWelcomeUI(props: StepProps) {
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
             {hasScmOnboarding ? (
               <Stack gap="lg">
-                <Heading as="h2" size="4xl">
-                  <Text as="span" bold>
-                    {t('Code breaks.')}
-                  </Text>
-                  <br />
-                  <Text as="span" bold>
-                    {t('We’ll help you fix it faster')}
-                  </Text>
+                <Heading as="h2" size="4xl" wrap="pre-line">
+                  {t("Code breaks.\nWe'll help you fix it faster")}
                 </Heading>
                 <Text variant="muted" size="xl" density="comfortable">
                   {t('Monitor, debug, and fix your code, all in one place.')}
@@ -214,14 +208,16 @@ export function NewWelcomeUI(props: StepProps) {
           </MotionGrid>
 
           {hasScmOnboarding ? (
-            <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
-              <Button
-                priority="primary"
-                onClick={handleComplete}
-                data-test-id="onboarding-welcome-start"
-              >
-                {t('Let’s get started')}
-              </Button>
+            <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
+              <Flex width="100%" justify="end">
+                <Button
+                  priority="primary"
+                  onClick={handleComplete}
+                  data-test-id="onboarding-welcome-start"
+                >
+                  {t('Let’s get started')}
+                </Button>
+              </Flex>
             </MotionContainer>
           ) : (
             <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>

@@ -772,16 +772,18 @@ describe('Onboarding', () => {
 
       // Should auto-select the existing integration and show connected view
       expect(
-        await screen.findByText('Connected to GitHub org getsentry')
+        await screen.findByText('Connected to GitHub  getsentry')
       ).toBeInTheDocument();
     });
 
-    it('skip for now advances to next step without skipping onboarding', async () => {
+    it('continue without a repo advances to next step without skipping onboarding', async () => {
       const {router} = renderOnboarding('scm-connect');
 
       expect(await screen.findByText('Connect your code')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Skip for now'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Continue without a repo'})
+      );
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(

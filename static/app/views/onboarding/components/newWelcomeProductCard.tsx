@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -19,16 +18,13 @@ interface NewWelcomeProductCardProps {
   product: ProductOption;
 }
 
-const CardContainer = styled(Container)<{seer?: boolean}>``;
-
-const MotionCardContainer = motion.create(CardContainer);
+const MotionCardContainer = motion.create(Container);
 
 export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
-  const {icon, title, description, badge, id} = product;
-  const consideredSeerCard = id === OnboardingWelcomeProductId.SEER;
+  const {icon, title, description, badge} = product;
 
   return (
-    <MotionCardContainer seer={consideredSeerCard}>
+    <MotionCardContainer>
       <Grid
         columns="min-content 1fr"
         rows="min-content min-content"
