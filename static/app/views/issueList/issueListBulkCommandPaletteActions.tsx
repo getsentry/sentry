@@ -356,13 +356,17 @@ export function IssueListMarkAllCommandPaletteAction(
       }}
       keywords={['issues', 'all issues', 'bulk', 'resolve', 'archive', 'assign']}
     >
-      <AssignActions
-        label={t('Assigned to')}
-        onBulkUpdate={handleBulkUpdateAll}
-        onConfirmBulkUpdate={(actionLabel, onConfirm) =>
-          confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
-        }
-      />
+      <CMDKAction
+        display={{label: t('Assigned to'), icon: <IconUser />}}
+        keywords={['assign', 'owner', 'assignee']}
+      >
+        <AssignActions
+          onBulkUpdate={handleBulkUpdateAll}
+          onConfirmBulkUpdate={(actionLabel, onConfirm) =>
+            confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
+          }
+        />
+      </CMDKAction>
       <CMDKAction
         display={{label: t('Resolved'), icon: <IconCheckmark />}}
         keywords={['resolve', 'fix', 'done', 'close']}
