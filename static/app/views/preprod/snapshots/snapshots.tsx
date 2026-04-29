@@ -37,7 +37,7 @@ import type {
 import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
-import {SnapshotMainContent} from './main/snapshotMainContent';
+import {SnapshotMainContent, type ViewMode} from './main/snapshotMainContent';
 import {DIFF_TYPE_ORDER, SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
 export default function SnapshotsPage() {
@@ -97,6 +97,10 @@ export default function SnapshotsPage() {
     palette.at(-5) ?? palette[0]
   );
   const [diffMode, setDiffMode] = useState<DiffMode>('split');
+  const [viewMode, setViewMode] = useLocalStorageState<ViewMode>(
+    'snapshot-view-mode',
+    'list'
+  );
 
   const {
     size: sidebarWidth,
@@ -408,10 +412,13 @@ export default function SnapshotsPage() {
           onVariantChange={setVariantIndex}
           imageBaseUrl={imageBaseUrl}
           diffImageBaseUrl={diffImageBaseUrl}
+          items={filteredItems}
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
           diffMode={diffMode}
           onDiffModeChange={setDiffMode}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
       </Flex>
     </Flex>

@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconExpand, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
@@ -20,20 +21,79 @@ import {
   TRANSPARENT_COLOR,
 } from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
+import {SnapshotListView} from './snapshotListView';
+
+export type ViewMode = 'single' | 'list';
 
 interface SnapshotMainContentProps {
   diffImageBaseUrl: string;
   diffMode: DiffMode;
   imageBaseUrl: string;
+  items: SidebarItem[];
   onDiffModeChange: (mode: DiffMode) => void;
   onOverlayColorChange: (color: string) => void;
   onVariantChange: (index: number) => void;
+  onViewModeChange: (mode: ViewMode) => void;
   overlayColor: string;
   selectedItem: SidebarItem | null;
   variantIndex: number;
+  viewMode: ViewMode;
 }
 
 export function SnapshotMainContent({
+  selectedItem,
+  variantIndex,
+  onVariantChange,
+  imageBaseUrl,
+  diffImageBaseUrl,
+  items,
+  overlayColor,
+  onOverlayColorChange,
+  diffMode,
+  onDiffModeChange,
+  viewMode,
+  onViewModeChange,
+}: SnapshotMainContentProps) {
+  if (viewMode === 'list') {
+    return (
+      <Flex direction="column" flex="1" minHeight="0" width="100%">
+        <Flex justify="end" padding="md">
+          <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+        </Flex>
+        <Separator orientation="horizontal" />
+        <SnapshotListView
+          items={items}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          diffMode={diffMode}
+          overlayColor={overlayColor}
+        />
+      </Flex>
+    );
+  }
+
+  return (
+    <Flex direction="column" flex="1" minHeight="0" width="100%">
+      <Flex justify="end" padding="md">
+        <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+      </Flex>
+      <Separator orientation="horizontal" />
+      <SingleViewContent
+        selectedItem={selectedItem}
+        variantIndex={variantIndex}
+        onVariantChange={onVariantChange}
+        imageBaseUrl={imageBaseUrl}
+        diffImageBaseUrl={diffImageBaseUrl}
+        overlayColor={overlayColor}
+        onOverlayColorChange={onOverlayColorChange}
+        diffMode={diffMode}
+        onDiffModeChange={onDiffModeChange}
+      />
+    </Flex>
+  );
+}
+
+function SingleViewContent({
   selectedItem,
   variantIndex,
   onVariantChange,
@@ -43,7 +103,17 @@ export function SnapshotMainContent({
   onOverlayColorChange,
   diffMode,
   onDiffModeChange,
-}: SnapshotMainContentProps) {
+}: {
+  diffImageBaseUrl: string;
+  diffMode: DiffMode;
+  imageBaseUrl: string;
+  onDiffModeChange: (mode: DiffMode) => void;
+  onOverlayColorChange: (color: string) => void;
+  onVariantChange: (index: number) => void;
+  overlayColor: string;
+  selectedItem: SidebarItem | null;
+  variantIndex: number;
+}) {
   if (!selectedItem) {
     return (
       <Flex align="center" justify="center" padding="3xl" width="100%">
@@ -238,6 +308,36 @@ export function SnapshotMainContent({
       <Separator orientation="horizontal" />
       <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
     </Flex>
+  );
+}
+
+function ViewModeToggle({
+  viewMode,
+  onViewModeChange,
+}: {
+  onViewModeChange: (mode: ViewMode) => void;
+  viewMode: ViewMode;
+}) {
+  return (
+    <SegmentedControl
+      size="xs"
+      value={viewMode}
+      onChange={onViewModeChange}
+      aria-label={t('View mode')}
+    >
+      <SegmentedControl.Item
+        key="single"
+        icon={<IconExpand />}
+        aria-label={t('Single image view')}
+        tooltip={t('Single image view')}
+      />
+      <SegmentedControl.Item
+        key="list"
+        icon={<IconList />}
+        aria-label={t('List view')}
+        tooltip={t('List view')}
+      />
+    </SegmentedControl>
   );
 }
 
