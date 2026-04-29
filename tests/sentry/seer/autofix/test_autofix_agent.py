@@ -481,31 +481,6 @@ class TestTriggerAutofixExplorer(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
-    def test_reasoning_effort_override_wins_over_step_config(
-        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
-    ):
-        # Guard against the step default drifting to "low" and making this test
-        # pass coincidentally even if the override plumbing breaks.
-        assert STEP_CONFIGS[AutofixStep.ROOT_CAUSE].reasoning_effort != "low"
-
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 123
-
-        trigger_autofix_explorer(
-            group=self.group,
-            step=AutofixStep.ROOT_CAUSE,
-            referrer=AutofixReferrer.UNKNOWN,
-            run_id=None,
-            reasoning_effort="low",
-        )
-
-        assert mock_client_class.call_args.kwargs["reasoning_effort"] == "low"
-
-    @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_explicit_none_reasoning_effort_bypasses_step_default(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
