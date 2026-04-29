@@ -99,7 +99,7 @@ export default function SnapshotsPage() {
   const [diffMode, setDiffMode] = useState<DiffMode>('split');
   const [viewMode, setViewMode] = useLocalStorageState<ViewMode>(
     'snapshot-view-mode',
-    'single'
+    'list'
   );
 
   const {

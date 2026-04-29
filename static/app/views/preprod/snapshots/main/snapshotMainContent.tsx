@@ -72,128 +72,66 @@ export function SnapshotMainContent({
     );
   }
 
-  const body = renderBody();
-
   return (
     <Flex direction="column" flex="1" minHeight="0" width="100%">
       <Flex justify="end" padding="md">
         <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
       </Flex>
       <Separator orientation="horizontal" />
-      {body}
+      <SingleViewContent
+        selectedItem={selectedItem}
+        variantIndex={variantIndex}
+        onVariantChange={onVariantChange}
+        imageBaseUrl={imageBaseUrl}
+        diffImageBaseUrl={diffImageBaseUrl}
+        overlayColor={overlayColor}
+        onOverlayColorChange={onOverlayColorChange}
+        diffMode={diffMode}
+        onDiffModeChange={onDiffModeChange}
+      />
     </Flex>
   );
+}
 
-  function renderBody() {
-    if (!selectedItem) {
-      return (
-        <Flex align="center" justify="center" padding="3xl" width="100%">
-          <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
-        </Flex>
-      );
+function SingleViewContent({
+  selectedItem,
+  variantIndex,
+  onVariantChange,
+  imageBaseUrl,
+  diffImageBaseUrl,
+  overlayColor,
+  onOverlayColorChange,
+  diffMode,
+  onDiffModeChange,
+}: {
+  diffImageBaseUrl: string;
+  diffMode: DiffMode;
+  imageBaseUrl: string;
+  onDiffModeChange: (mode: DiffMode) => void;
+  onOverlayColorChange: (color: string) => void;
+  onVariantChange: (index: number) => void;
+  overlayColor: string;
+  selectedItem: SidebarItem | null;
+  variantIndex: number;
+}) {
+  if (!selectedItem) {
+    return (
+      <Flex align="center" justify="center" padding="3xl" width="100%">
+        <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
+      </Flex>
+    );
+  }
+
+  if (selectedItem.type === 'changed') {
+    const currentPair = selectedItem.pairs[variantIndex];
+    if (!currentPair) {
+      return null;
     }
-
-    if (selectedItem.type === 'changed') {
-      const currentPair = selectedItem.pairs[variantIndex];
-      if (!currentPair) {
-        return null;
-      }
-      const totalVariants = selectedItem.pairs.length;
-      return (
-        <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-          <Flex align="center" justify="between" gap="md" padding="xl">
-            <Flex align="center" gap="md">
-              {totalVariants > 1 && (
-                <VariantNavigation
-                  variantIndex={variantIndex}
-                  totalVariants={totalVariants}
-                  onVariantChange={onVariantChange}
-                />
-              )}
-              <Stack gap="md">
-                <Flex align="center" gap="md">
-                  {currentPair.head_image.display_name && (
-                    <Text size="lg" bold>
-                      {currentPair.head_image.display_name}
-                    </Text>
-                  )}
-                  <ImageFileName fileName={currentPair.head_image.image_file_name} />
-                </Flex>
-                {totalVariants > 1 && (
-                  <Text variant="muted" size="sm">
-                    {t('Variant %s / %s', variantIndex + 1, totalVariants)}
-                  </Text>
-                )}
-              </Stack>
-            </Flex>
-            {diffMode === 'split' && (
-              <OverlayControls
-                overlayColor={overlayColor}
-                onOverlayColorChange={onOverlayColorChange}
-              />
-            )}
-          </Flex>
-          <Separator orientation="horizontal" />
-          <DiffImageDisplay
-            pair={currentPair}
-            imageBaseUrl={imageBaseUrl}
-            diffImageBaseUrl={diffImageBaseUrl}
-            overlayColor={overlayColor}
-            diffMode={diffMode}
-            onDiffModeChange={onDiffModeChange}
-          />
-        </Flex>
-      );
-    }
-
-    if (selectedItem.type === 'solo') {
-      const currentImage = selectedItem.images[variantIndex];
-      if (!currentImage) {
-        return null;
-      }
-      const displayName = getImageName(currentImage);
-      const totalVariants = selectedItem.images.length;
-      const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
-
-      return (
-        <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-          <Flex align="center" gap="md" padding="xl">
-            {totalVariants > 1 && (
-              <VariantNavigation
-                variantIndex={variantIndex}
-                totalVariants={totalVariants}
-                onVariantChange={onVariantChange}
-              />
-            )}
-            <Stack gap="md">
-              <Text size="lg" bold>
-                {displayName}
-              </Text>
-              {totalVariants > 1 && (
-                <Text variant="muted" size="sm">
-                  {t('Variant %s / %s', variantIndex + 1, totalVariants)}
-                </Text>
-              )}
-            </Stack>
-          </Flex>
-          <Separator orientation="horizontal" />
-          <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
-        </Flex>
-      );
-    }
-
-    if (selectedItem.type === 'renamed') {
-      const currentPair = selectedItem.pairs[variantIndex];
-      if (!currentPair) {
-        return null;
-      }
-      const totalVariants = selectedItem.pairs.length;
-      const imageUrl = `${imageBaseUrl}${currentPair.head_image.key}/`;
-      const displayName = getImageName(currentPair.head_image);
-
-      return (
-        <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-          <Flex align="center" gap="md" padding="xl">
+    const totalVariants = selectedItem.pairs.length;
+    return (
+      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+        <Flex align="center" justify="between" gap="md" padding="xl">
+          <Flex align="center" gap="md">
             {totalVariants > 1 && (
               <VariantNavigation
                 variantIndex={variantIndex}
@@ -208,42 +146,79 @@ export function SnapshotMainContent({
                     {currentPair.head_image.display_name}
                   </Text>
                 )}
-                <ImageFileName
-                  fileName={currentPair.head_image.image_file_name}
-                  previousFileName={currentPair.base_image.image_file_name}
-                />
+                <ImageFileName fileName={currentPair.head_image.image_file_name} />
               </Flex>
-              <Flex align="center" gap="sm">
+              {totalVariants > 1 && (
                 <Text variant="muted" size="sm">
-                  ({t('Renamed')})
+                  {t('Variant %s / %s', variantIndex + 1, totalVariants)}
                 </Text>
-                {totalVariants > 1 && (
-                  <Text variant="muted" size="sm">
-                    {t('Variant %s / %s', variantIndex + 1, totalVariants)}
-                  </Text>
-                )}
-              </Flex>
+              )}
             </Stack>
           </Flex>
-          <Separator orientation="horizontal" />
-          <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
+          {diffMode === 'split' && (
+            <OverlayControls
+              overlayColor={overlayColor}
+              onOverlayColorChange={onOverlayColorChange}
+            />
+          )}
         </Flex>
-      );
-    }
+        <Separator orientation="horizontal" />
+        <DiffImageDisplay
+          pair={currentPair}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          overlayColor={overlayColor}
+          diffMode={diffMode}
+          onDiffModeChange={onDiffModeChange}
+        />
+      </Flex>
+    );
+  }
 
-    // added, removed, unchanged
+  if (selectedItem.type === 'solo') {
     const currentImage = selectedItem.images[variantIndex];
     if (!currentImage) {
       return null;
     }
     const displayName = getImageName(currentImage);
-    const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
     const totalVariants = selectedItem.images.length;
-    const STATUS_LABELS: Record<string, string> = {
-      added: t('Added'),
-      removed: t('Removed'),
-    };
-    const statusLabel = STATUS_LABELS[selectedItem.type] ?? t('Unchanged');
+    const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
+
+    return (
+      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+        <Flex align="center" gap="md" padding="xl">
+          {totalVariants > 1 && (
+            <VariantNavigation
+              variantIndex={variantIndex}
+              totalVariants={totalVariants}
+              onVariantChange={onVariantChange}
+            />
+          )}
+          <Stack gap="md">
+            <Text size="lg" bold>
+              {displayName}
+            </Text>
+            {totalVariants > 1 && (
+              <Text variant="muted" size="sm">
+                {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+              </Text>
+            )}
+          </Stack>
+        </Flex>
+        <Separator orientation="horizontal" />
+        <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
+      </Flex>
+    );
+  }
+
+  if (selectedItem.type === 'renamed') {
+    const currentPair = selectedItem.pairs[variantIndex];
+    if (!currentPair) {
+      return null;
+    }
+    const totalVariants = selectedItem.pairs.length;
+    const imageUrl = `${imageBaseUrl}${currentPair.head_image.key}/`;
+    const displayName = getImageName(currentPair.head_image);
 
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
@@ -257,16 +232,19 @@ export function SnapshotMainContent({
           )}
           <Stack gap="md">
             <Flex align="center" gap="md">
-              {currentImage.display_name && (
+              {currentPair.head_image.display_name && (
                 <Text size="lg" bold>
-                  {currentImage.display_name}
+                  {currentPair.head_image.display_name}
                 </Text>
               )}
-              <ImageFileName fileName={currentImage.image_file_name} />
+              <ImageFileName
+                fileName={currentPair.head_image.image_file_name}
+                previousFileName={currentPair.base_image.image_file_name}
+              />
             </Flex>
             <Flex align="center" gap="sm">
               <Text variant="muted" size="sm">
-                ({statusLabel})
+                ({t('Renamed')})
               </Text>
               {totalVariants > 1 && (
                 <Text variant="muted" size="sm">
@@ -281,6 +259,56 @@ export function SnapshotMainContent({
       </Flex>
     );
   }
+
+  // added, removed, unchanged
+  const currentImage = selectedItem.images[variantIndex];
+  if (!currentImage) {
+    return null;
+  }
+  const displayName = getImageName(currentImage);
+  const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
+  const totalVariants = selectedItem.images.length;
+  const STATUS_LABELS: Record<string, string> = {
+    added: t('Added'),
+    removed: t('Removed'),
+  };
+  const statusLabel = STATUS_LABELS[selectedItem.type] ?? t('Unchanged');
+
+  return (
+    <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+      <Flex align="center" gap="md" padding="xl">
+        {totalVariants > 1 && (
+          <VariantNavigation
+            variantIndex={variantIndex}
+            totalVariants={totalVariants}
+            onVariantChange={onVariantChange}
+          />
+        )}
+        <Stack gap="md">
+          <Flex align="center" gap="md">
+            {currentImage.display_name && (
+              <Text size="lg" bold>
+                {currentImage.display_name}
+              </Text>
+            )}
+            <ImageFileName fileName={currentImage.image_file_name} />
+          </Flex>
+          <Flex align="center" gap="sm">
+            <Text variant="muted" size="sm">
+              ({statusLabel})
+            </Text>
+            {totalVariants > 1 && (
+              <Text variant="muted" size="sm">
+                {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+              </Text>
+            )}
+          </Flex>
+        </Stack>
+      </Flex>
+      <Separator orientation="horizontal" />
+      <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
+    </Flex>
+  );
 }
 
 function ViewModeToggle({
