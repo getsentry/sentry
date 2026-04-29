@@ -21,9 +21,13 @@ import type {WidgetChange} from './dashboardRevisionsDiff';
 import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
 import type {DashboardDetails} from './types';
 
+function isUser(createdBy: User | RevisionCreatedBy): createdBy is User {
+  return 'ip_address' in createdBy;
+}
+
 interface RevisionListItemProps {
   baseRevisionId: string | null;
-  createdBy: RevisionCreatedBy | null;
+  createdBy: User | RevisionCreatedBy | null;
   dashboardId: string;
   dateCreated: string | null;
   isSelected: boolean;
@@ -91,20 +95,22 @@ export function RevisionListItem({
   const isError = (!snapshotOverride && isSnapshotError) || isBaseError;
 
   const userForAvatar = createdBy
-    ? ({
-        id: createdBy.id,
-        name: createdBy.name,
-        email: createdBy.email,
-        ip_address: '',
-        username: createdBy.email,
-        avatar: createdBy.avatarType
-          ? {
-              avatarType: createdBy.avatarType,
-              avatarUrl: createdBy.avatarUrl ?? null,
-              avatarUuid: null,
-            }
-          : undefined,
-      } as User)
+    ? isUser(createdBy)
+      ? createdBy
+      : ({
+          id: createdBy.id,
+          name: createdBy.name,
+          email: createdBy.email,
+          ip_address: '',
+          username: createdBy.email,
+          avatar: createdBy.avatarType
+            ? {
+                avatarType: createdBy.avatarType,
+                avatarUrl: createdBy.avatarUrl ?? null,
+                avatarUuid: null,
+              }
+            : undefined,
+        } as User)
     : null;
 
   return (

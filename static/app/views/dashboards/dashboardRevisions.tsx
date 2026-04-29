@@ -138,17 +138,7 @@ function DashboardRevisionsModal({
                 isSelected={isNewestVersionSelected}
                 onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
                 revisionSource={revisions?.[0]?.source ?? 'edit'}
-                createdBy={
-                  dashboardCreatedBy
-                    ? {
-                        id: dashboardCreatedBy.id,
-                        name: dashboardCreatedBy.name,
-                        email: dashboardCreatedBy.email,
-                        avatarType: dashboardCreatedBy.avatar?.avatarType,
-                        avatarUrl: dashboardCreatedBy.avatar?.avatarUrl ?? undefined,
-                      }
-                    : null
-                }
+                createdBy={dashboardCreatedBy ?? null}
                 dateCreated={null}
                 dashboardId={dashboardId}
                 baseRevisionId={displayedRevisions[0]?.id ?? null}
