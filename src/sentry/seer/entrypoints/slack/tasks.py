@@ -201,7 +201,7 @@ def process_mention_for_slack(
             extra={
                 "referrer": SeerEntrypointKey.SLACK,
                 "organization_id": organization.id,
-                "user_email": user.email,
+                "user_id": user.id,
                 "integration_id": integration_id,
                 "run_id": run_id,
                 "thread_ts": thread_ts or ts,
