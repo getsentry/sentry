@@ -112,7 +112,7 @@ function VitalMeter({
   onClick,
   transaction,
   isAggregateMode = true,
-  showTooltip = true,
+  showTooltip,
 }: VitalMeterProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();

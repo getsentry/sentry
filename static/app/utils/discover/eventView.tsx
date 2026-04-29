@@ -1099,7 +1099,7 @@ export class EventView {
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
+  getQuery(inputQuery?: string | string[] | null): string {
     const queryParts: string[] = [];
 
     if (this.query) {

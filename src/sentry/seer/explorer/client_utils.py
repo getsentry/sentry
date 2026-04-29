@@ -60,7 +60,7 @@ class ExplorerChatRequest(TypedDict):
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
     enable_coding: NotRequired[bool]
-    enable_code_mode_tools: NotRequired[bool]
+    enable_code_mode_tools: NotRequired[str]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]

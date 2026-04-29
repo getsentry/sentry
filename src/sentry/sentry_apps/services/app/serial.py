@@ -49,6 +49,7 @@ def serialize_sentry_app(
         status=SentryAppStatus.as_str(app.status),
         metadata=app.metadata,
         avatars=[serialize_sentry_app_avatar(avatar) for avatar in avatars],
+        creator_label=app.creator_label,
     )
 
 
