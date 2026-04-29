@@ -8,7 +8,11 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Panel} from 'sentry/components/panels/panel';
@@ -67,6 +71,7 @@ function GDPREditModal({
     },
     onError: () => {
       clearIndicators();
+      addErrorMessage(t('Unable to save change'));
     },
   });
 
