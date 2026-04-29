@@ -103,10 +103,12 @@ export function createEapDetectorConfig(
       return [transformEventsStatsComparisonSeries(data)];
     },
     fromApiAggregate: aggregate => {
-      return fromApiAggregate?.(aggregate) ?? translateAggregateTag(aggregate);
+      aggregate = translateAggregateTag(aggregate);
+      return fromApiAggregate?.(aggregate) ?? aggregate;
     },
     toApiAggregate: aggregate => {
-      return toApiAggregate?.(aggregate) ?? translateAggregateTagBack(aggregate);
+      aggregate = translateAggregateTagBack(aggregate);
+      return toApiAggregate?.(aggregate) ?? aggregate;
     },
     supportedDetectionTypes: ['static', 'percent', 'dynamic'],
     getDiscoverDataset: () => discoverDataset,

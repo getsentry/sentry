@@ -7,10 +7,6 @@ import {MetricsDetectorSearchBar} from 'sentry/views/detectors/datasetConfig/com
 import {createEapDetectorConfig} from 'sentry/views/detectors/datasetConfig/eapBase';
 import {transformEventsStatsToSeries} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 import {getApiAggregateString} from 'sentry/views/detectors/datasetConfig/utils/getApiAggregateString';
-import {
-  translateAggregateTag,
-  translateAggregateTagBack,
-} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
 
 export const DetectorMetricsConfig = createEapDetectorConfig({
   name: t('Application Metrics'),
@@ -41,11 +37,9 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
     if (isEquation(aggregate)) {
       return stripEquationPrefix(aggregate);
     }
-
-    return translateAggregateTag(aggregate);
+    return aggregate;
   },
   toApiAggregate: aggregate => {
-    aggregate = translateAggregateTagBack(aggregate);
     return getApiAggregateString(aggregate);
   },
 });
