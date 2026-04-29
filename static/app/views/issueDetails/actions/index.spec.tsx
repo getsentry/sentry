@@ -59,6 +59,12 @@ const organization = OrganizationFixture({
   slug: 'org',
 });
 
+const seerOrganization = OrganizationFixture({
+  id: '4660',
+  slug: 'org',
+  features: ['gen-ai-features', 'autofix-on-explorer'],
+});
+
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
   useIssueDetailsTour: () => mockTour(),
@@ -599,6 +605,72 @@ describe('GroupActions', () => {
       expect(setPriorityAction?.display.icon).toMatchObject({props: {bars: 3}});
       expect(assignAction?.display.icon).toMatchObject({
         props: {actor: expect.objectContaining({name: 'Ada Lovelace'})},
+      });
+    });
+
+    it('starts Seer autofix through PR creation from cmdk', async () => {
+      const autofixGetMock = MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+        match: [MockApiClient.matchQuery({mode: 'explorer'})],
+        body: {autofix: null},
+      });
+      const autofixPostMock = MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+        method: 'POST',
+        match: [MockApiClient.matchQuery({mode: 'explorer'})],
+        body: {run_id: 42},
+      });
+
+      const treeRef: {
+        current: Array<CollectionTreeNode<CMDKActionData>>;
+      } = {current: []};
+      render(
+        <CommandPaletteProvider>
+          <GlobalModal />
+          <GroupActions
+            group={group}
+            project={project}
+            disabled={false}
+            event={EventStacktraceExceptionFixture()}
+          />
+          <SlotOutlets />
+          <CommandPaletteTree
+            onTree={tree => {
+              treeRef.current = tree;
+            }}
+          />
+        </CommandPaletteProvider>,
+        {organization: seerOrganization}
+      );
+
+      await waitFor(() => {
+        expect(autofixGetMock).toHaveBeenCalled();
+        expect(treeRef.current.length).toBeGreaterThan(0);
+      });
+
+      const issueTaskGroup = treeRef.current[0];
+      const seerAction = issueTaskGroup?.children.find(
+        child => child.display.label === 'Fix with Seer'
+      );
+
+      expect(seerAction).toBeDefined();
+      expect('onAction' in (seerAction?.data ?? {})).toBe(true);
+
+      if (seerAction && 'onAction' in seerAction.data) {
+        seerAction.data.onAction();
+      }
+
+      await waitFor(() => {
+        expect(autofixPostMock).toHaveBeenCalledWith(
+          `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+          expect.objectContaining({
+            data: {
+              step: 'root_cause',
+              stopping_point: 'open_pr',
+            },
+            query: {mode: 'explorer'},
+          })
+        );
       });
     });
   });
