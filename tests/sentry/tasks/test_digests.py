@@ -84,7 +84,7 @@ class DeliverDigestTest(TestCase):
         @contextmanager
         def raise_lock_error(*args, **kwargs):
             raise UnableToAcquireLock("test lock contention")
-            yield
+            yield  # type: ignore[unreachable]
 
         with mock.patch.object(sentry, "digests") as digests:
             digests.backend.digest = raise_lock_error
