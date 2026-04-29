@@ -562,11 +562,6 @@ export function useExplorerAutofix(
          * The run id where we want to start the step. If not specified, a new run is created
          */
         runId?: number;
-        /**
-         * When provided, the backend continues the autofix workflow until this stage.
-         */
-        stoppingPoint?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
-        /**
          * Additional context from the user. If specified, it is added to the builtin prompt
          */
         userContext?: string;
@@ -587,10 +582,6 @@ export function useExplorerAutofix(
 
         if (startStepOptions?.userContext) {
           data.user_context = startStepOptions.userContext;
-        }
-
-        if (startStepOptions?.stoppingPoint) {
-          data.stopping_point = startStepOptions.stoppingPoint;
         }
 
         const response = await api.requestPromise(
