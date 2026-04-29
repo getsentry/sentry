@@ -120,7 +120,7 @@ export function SortableWidget(props: Props) {
   };
 
   const onWidgetTableResizeColumn = (columns: TabularColumn[]) => {
-    const widths = columns.map(column => column.width as number);
+    const widths = columns.map(column => column.width!);
     setTableWidths(widths);
   };
 

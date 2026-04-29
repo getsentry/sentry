@@ -28,6 +28,8 @@ import {fieldContext, formContext, useFormContext} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const InvalidInput = document.querySelector(
       `#${CSS.escape(formApi.formId)} [aria-invalid="true"]`
     ) as HTMLInputElement;

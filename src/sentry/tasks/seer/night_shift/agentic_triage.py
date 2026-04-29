@@ -22,6 +22,13 @@ from sentry.tasks.seer.night_shift.triage_tools import (
     get_event_details_agentic_triage,
     get_issue_details_agentic_triage,
 )
+from sentry.tasks.seer.night_shift.tweaks import (
+    DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
+    DEFAULT_INTELLIGENCE_LEVEL,
+    DEFAULT_REASONING_EFFORT,
+    IntelligenceLevel,
+    ReasoningEffort,
+)
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
@@ -40,6 +47,10 @@ def agentic_triage_strategy(
     projects: Sequence[Project],
     organization: Organization,
     max_candidates: int,
+    *,
+    intelligence_level: IntelligenceLevel = DEFAULT_INTELLIGENCE_LEVEL,
+    reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
+    extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Select candidates via fixability scoring, then use the Seer Explorer agent
@@ -52,12 +63,22 @@ def agentic_triage_strategy(
     if not scored:
         return [], None
 
-    return _triage_candidates(scored, organization)
+    return _triage_candidates(
+        scored,
+        organization,
+        intelligence_level=intelligence_level,
+        reasoning_effort=reasoning_effort,
+        extra_triage_instructions=extra_triage_instructions,
+    )
 
 
 def _triage_candidates(
     candidates: list[ScoredCandidate],
     organization: Organization,
+    *,
+    intelligence_level: IntelligenceLevel,
+    reasoning_effort: ReasoningEffort,
+    extra_triage_instructions: str,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Start a Seer Explorer run to investigate candidate issues and return
@@ -74,8 +95,8 @@ def _triage_candidates(
             user=None,
             category_key="night_shift",
             category_value=f"org-{organization.id}",
-            intelligence_level="high",
-            reasoning_effort="high",
+            intelligence_level=intelligence_level,
+            reasoning_effort=reasoning_effort,
             custom_tools=[
                 get_event_details_agentic_triage,
                 get_issue_details_agentic_triage,
@@ -83,7 +104,7 @@ def _triage_candidates(
         )
 
         agent_run_id = client.start_run(
-            prompt=_build_triage_prompt(candidates),
+            prompt=_build_triage_prompt(candidates, extra_triage_instructions),
             artifact_key="triage_verdicts",
             artifact_schema=_TriageResponse,
         )
@@ -137,7 +158,7 @@ def _triage_candidates(
     )
 
     return [
-        TriageResult(group=groups_by_id[v.group_id], action=v.action)
+        TriageResult(group=groups_by_id[v.group_id], action=v.action, reason=v.reason)
         for v in triage_response.verdicts
         if v.group_id in groups_by_id and v.action != TriageAction.SKIP
     ], agent_run_id
@@ -209,6 +230,7 @@ def _poll_with_logging(
 
 def _build_triage_prompt(
     candidates: list[ScoredCandidate],
+    extra_triage_instructions: str,
 ) -> str:
     candidates_block = "\n".join(
         f"- group_id={c.group.id} | title={c.group.title or 'Unknown error'!r} "
@@ -217,6 +239,12 @@ def _build_triage_prompt(
         f"| first_seen={c.group.first_seen.isoformat()} "
         f"| priority={priority_label(c.group.priority) or 'unknown'}"
         for c in candidates
+    )
+
+    extras_block = (
+        f"\n\nAdditional instructions from project owners:\n{extra_triage_instructions}\n"
+        if extra_triage_instructions
+        else ""
     )
 
     return textwrap.dedent(f"""\
@@ -268,8 +296,13 @@ def _build_triage_prompt(
         the issue is to be fixable (0.0 = not fixable, 1.0 = very fixable). Use it as
         a signal but verify with your own investigation.
 
-        Provide a brief reason for each decision.
+        For each verdict, fill the `reason` field. For `autofix` and `root_cause_only`
+        verdicts, the `reason` is handed off as context to the downstream autofix agent
+        — write it like a debugging note to the next agent. Include the suspected file
+        and function, the bug mechanism in one or two sentences, and a sketch of the
+        fix direction so the next agent can resume your investigation instead of
+        starting over. For `skip` verdicts, a brief justification is sufficient.
 
         Candidates:
-        {candidates_block}
+        {candidates_block}{extras_block}
     """)

@@ -5,6 +5,7 @@ import {
   makeFormatTo,
   makeTimelineFormatter,
 } from 'sentry/utils/profiling/units/units';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import type {Profile} from './profile/profile';
 
@@ -71,26 +72,32 @@ class SpanChart {
       const previousTreeNode = orphanTree.root;
       let previous: SpanChartNode | null = null;
       for (const span of tree.orphanedSpans) {
-        const duration = span.timestamp - span.start_timestamp;
-        const start = span.start_timestamp - tree.root.span.start_timestamp;
+        const duration =
+          span[SpanFields.PRECISE_FINISH_TS] - span[SpanFields.PRECISE_START_TS];
+        const start =
+          span[SpanFields.PRECISE_START_TS] - tree.root.span[SpanFields.PRECISE_START_TS];
         const end = start + duration;
 
         const spanFitsInPreviousRow =
-          previous && previous.node.span.timestamp < span.start_timestamp;
+          previous &&
+          previous.node.span[SpanFields.PRECISE_FINISH_TS] <
+            span[SpanFields.PRECISE_START_TS];
 
         const depth = spanFitsInPreviousRow
           ? this.depth
           : Math.max(this.depth, this.depth + 1);
         this.depth = depth;
 
+        const op = span[SpanFields.SPAN_OP];
+        const description = span[SpanFields.SPAN_DESCRIPTION];
         const spanChartNode: SpanChartNode = {
           duration: this.toFinalUnit(duration),
           start: this.toFinalUnit(start),
           end: this.toFinalUnit(end),
           text:
-            span.op && span.description
-              ? span.op + ': ' + span.description
-              : span.op || span.description || '<unknown span>',
+            op && description
+              ? op + ': ' + description
+              : op || description || '<unknown span>',
           node: new SpanTreeNode(span),
           depth,
           parent: this.root,
@@ -104,8 +111,10 @@ class SpanChart {
           previousTreeNode.children.push(
             new SpanTreeNode({
               ...span,
-              start_timestamp: previous!.node.span.timestamp,
-              timestamp: previous!.node.span.timestamp + duration,
+              [SpanFields.PRECISE_START_TS]:
+                previous!.node.span[SpanFields.PRECISE_FINISH_TS],
+              [SpanFields.PRECISE_FINISH_TS]:
+                previous!.node.span[SpanFields.PRECISE_FINISH_TS] + duration,
             })
           );
         } else {
@@ -113,8 +122,9 @@ class SpanChart {
           orphanTree.root.children.push(
             new SpanTreeNode({
               ...span,
-              start_timestamp: tree.root.span.start_timestamp,
-              timestamp: tree.root.span.start_timestamp + duration,
+              [SpanFields.PRECISE_START_TS]: tree.root.span[SpanFields.PRECISE_START_TS],
+              [SpanFields.PRECISE_FINISH_TS]:
+                tree.root.span[SpanFields.PRECISE_START_TS] + duration,
             })
           );
         }
@@ -124,8 +134,8 @@ class SpanChart {
     }
 
     const duration = this.toFinalUnit(
-      Math.max(...this.spanTrees.map(t => t.root.span.timestamp)) -
-        Math.min(...this.spanTrees.map(t => t.root.span.start_timestamp))
+      Math.max(...this.spanTrees.map(t => t.root.span[SpanFields.PRECISE_FINISH_TS])) -
+        Math.min(...this.spanTrees.map(t => t.root.span[SpanFields.PRECISE_START_TS]))
     );
 
     this.configSpace =
@@ -140,7 +150,7 @@ class SpanChart {
     depthOffset: number,
     cb: (node: SpanChartNode) => void
   ): number {
-    const transactionStart = tree.root.span.start_timestamp;
+    const transactionStart = tree.root.span[SpanFields.PRECISE_START_TS];
 
     // We only want to collect the root most node once
     const queue: Array<[SpanChartNode | null, SpanTreeNode]> =
@@ -156,22 +166,26 @@ class SpanChart {
       while (children_at_depth-- !== 0) {
         const [parent, node] = queue.shift()!;
 
-        const duration = node.span.timestamp - node.span.start_timestamp;
-        const start = node.span.start_timestamp - transactionStart;
+        const duration =
+          node.span[SpanFields.PRECISE_FINISH_TS] -
+          node.span[SpanFields.PRECISE_START_TS];
+        const start = node.span[SpanFields.PRECISE_START_TS] - transactionStart;
         const end = start + duration;
 
         if (duration <= 0) {
           continue;
         }
 
+        const op = node.span[SpanFields.SPAN_OP];
+        const description = node.span[SpanFields.SPAN_DESCRIPTION];
         const spanChartNode: SpanChartNode = {
           duration: this.toFinalUnit(duration),
           start: this.toFinalUnit(start),
           end: this.toFinalUnit(end),
           text:
-            node.span.op && node.span.description
-              ? node.span.op + ': ' + node.span.description
-              : node.span.op || node.span.description || '<unknown span>',
+            op && description
+              ? op + ': ' + description
+              : op || description || '<unknown span>',
           node,
           depth: depth + depthOffset,
           parent,
