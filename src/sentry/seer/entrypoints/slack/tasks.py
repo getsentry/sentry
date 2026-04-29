@@ -26,7 +26,7 @@ from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
     ProcessMentionHaltReason,
 )
-from sentry.seer.entrypoints.types import AgentReferrer
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.users.services.user import RpcUser
@@ -199,7 +199,7 @@ def process_mention_for_slack(
         _logger.info(
             "seer.slack.process_mention.success",
             extra={
-                "referrer": AgentReferrer.SLACK.value,
+                "referrer": SeerEntrypointKey.SLACK,
                 "organization_id": organization.id,
                 "user_id": user.id,
                 "integration_id": integration_id,
