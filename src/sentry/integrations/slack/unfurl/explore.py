@@ -227,6 +227,16 @@ def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
     return "line"
 
 
+def _aggregate_sorts_are_valid(
+    sort_values: list[str], y_axes: list[str], group_bys: list[str]
+) -> bool:
+    # Mirrors the frontend's validateAggregateSort: drop sort if any entry
+    # references a field that isn't a current yAxis or groupBy, so the unfurl
+    # falls back to the default `-yAxes[0]` sort like the Explore UI does.
+    valid_targets = set(y_axes) | set(group_bys)
+    return all(sv.lstrip("-") in valid_targets for sv in sort_values)
+
+
 def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """
     Extracts explore arguments from the explore link's query string.
@@ -309,7 +319,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         query.setlist("query", query_values)
 
     sort_values = raw_query.getlist(dataset_config["sort_key"])
-    if sort_values:
+    if sort_values and _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
         query.setlist("sort", sort_values)
 
     # Metrics stores query and sort inside the metric JSON param
