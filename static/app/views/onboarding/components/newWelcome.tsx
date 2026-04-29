@@ -208,17 +208,15 @@ export function NewWelcomeUI(props: StepProps) {
           </MotionGrid>
 
           {hasScmOnboarding ? (
-            <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
-              <Flex width="100%" justify="end">
-                <Button
-                  priority="primary"
-                  onClick={handleComplete}
-                  data-test-id="onboarding-welcome-start"
-                >
-                  {t('Let’s get started')}
-                </Button>
-              </Flex>
-            </MotionContainer>
+            <MotionFlex {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%" justify="end">
+              <Button
+                priority="primary"
+                onClick={handleComplete}
+                data-test-id="onboarding-welcome-start"
+              >
+                {t('Let’s get started')}
+              </Button>
+            </MotionFlex>
           ) : (
             <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
               <Flex align="center" gap="md" justify="center">
