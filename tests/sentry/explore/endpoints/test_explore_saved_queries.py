@@ -1,6 +1,10 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.explore.endpoints.explore_saved_queries import (
+    sync_prebuilt_queries,
+    sync_prebuilt_queries_starred,
+)
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
@@ -50,7 +54,7 @@ class ExploreSavedQueriesTest(APITestCase):
             response = self.client.get(self.url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 5
+        assert len(response.data) == 6
 
         # Prebuilt query
         assert response.data[0]["name"] == "All Transactions"
@@ -87,13 +91,13 @@ class ExploreSavedQueriesTest(APITestCase):
         assert not response.data[0]["expired"]
 
         # User saved query
-        assert response.data[3]["name"] == "Test query"
-        assert sorted(response.data[3]["projects"]) == sorted(self.project_ids)
-        assert response.data[3]["range"] == "24h"
-        assert response.data[3]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
-        assert "createdBy" in response.data[3]
-        assert response.data[3]["createdBy"]["username"] == self.user.username
-        assert not response.data[3]["expired"]
+        assert response.data[4]["name"] == "Test query"
+        assert sorted(response.data[4]["projects"]) == sorted(self.project_ids)
+        assert response.data[4]["range"] == "24h"
+        assert response.data[4]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
+        assert "createdBy" in response.data[4]
+        assert response.data[4]["createdBy"]["username"] == self.user.username
+        assert not response.data[4]["expired"]
 
     def test_get_name_filter(self) -> None:
         with self.feature(self.features):
@@ -310,7 +314,7 @@ class ExploreSavedQueriesTest(APITestCase):
         with self.feature(self.features):
             response = self.client.get(self.url, data={"exclude": "owned", "sortBy": "dateAdded"})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 5
+        assert len(response.data) == 6
         assert response.data[0]["name"] == "Shared query"
 
     def test_get_query_last_visited(self) -> None:
@@ -341,7 +345,7 @@ class ExploreSavedQueriesTest(APITestCase):
         with self.feature(self.features):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 4
+        assert len(response.data) == 5
 
         # Unstars prebuilt queries
         ExploreSavedQueryStarred.objects.filter(
@@ -354,6 +358,95 @@ class ExploreSavedQueriesTest(APITestCase):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user.id)
+
+        starred = list(
+            ExploreSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id, starred=True
+            )
+            .order_by("position")
+            .select_related("explore_saved_query")
+        )
+
+        expected_names = sorted(
+            ExploreSavedQuery.objects.filter(
+                organization=self.org, prebuilt_id__isnull=False
+            ).values_list("name", flat=True)
+        )
+        assert [s.explore_saved_query.name for s in starred] == expected_names
+        assert [s.position for s in starred] == list(range(1, len(expected_names) + 1))
+
+    def test_sync_prebuilt_starred_inserts_new_prebuilt_alphabetically_for_existing_user(
+        self,
+    ) -> None:
+        # Seed all prebuilts as if the user had synced previously.
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user.id)
+
+        # Simulate a "new prebuilt added later" by removing the starred record for
+        # one prebuilt that lives alphabetically in the middle of the list, then
+        # compacting the remaining positions.
+        sorted_names = sorted(
+            ExploreSavedQuery.objects.filter(
+                organization=self.org, prebuilt_id__isnull=False
+            ).values_list("name", flat=True)
+        )
+        middle_index = len(sorted_names) // 2
+        middle_name = sorted_names[middle_index]
+        middle_query = ExploreSavedQuery.objects.get(organization=self.org, name=middle_name)
+        ExploreSavedQueryStarred.objects.filter(
+            organization=self.org, user_id=self.user.id, explore_saved_query=middle_query
+        ).delete()
+        for idx, row in enumerate(
+            ExploreSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id
+            ).order_by("position"),
+            start=1,
+        ):
+            row.position = idx
+            row.save()
+
+        sync_prebuilt_queries_starred(self.org, self.user.id)
+
+        starred = list(
+            ExploreSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id, starred=True
+            )
+            .order_by("position")
+            .select_related("explore_saved_query")
+        )
+
+        # User has not customized order, so the new prebuilt is inserted at its
+        # alphabetical position rather than appended at the end.
+        assert [s.explore_saved_query.name for s in starred] == sorted_names
+        assert [s.position for s in starred] == list(range(1, len(sorted_names) + 1))
+        assert starred[middle_index].explore_saved_query.name == middle_name
+
+    def test_sync_prebuilt_starred_preserves_user_custom_order(self) -> None:
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user.id)
+
+        original_ids = list(
+            ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
+            .order_by("position")
+            .values_list("explore_saved_query_id", flat=True)
+        )
+        reversed_ids = list(reversed(original_ids))
+        ExploreSavedQueryStarred.objects.reorder_starred_queries(
+            self.org, self.user.id, reversed_ids
+        )
+
+        sync_prebuilt_queries_starred(self.org, self.user.id)
+
+        after_ids = list(
+            ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
+            .order_by("position")
+            .values_list("explore_saved_query_id", flat=True)
+        )
+        assert after_ids == reversed_ids
 
     def test_get_starred_queries(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
@@ -395,7 +488,7 @@ class ExploreSavedQueriesTest(APITestCase):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert (
-            len(response.data) == 5
+            len(response.data) == 6
         )  # Only one query should be returned because the other query is starred by a different user
         assert response.data[0]["name"] == "Starred query A"
         assert response.data[0]["starred"] is True
@@ -451,7 +544,7 @@ class ExploreSavedQueriesTest(APITestCase):
         with self.feature(self.features):
             response = self.client.get(self.url, data={"sortBy": "mostStarred"})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 7
+        assert len(response.data) == 8
         assert response.data[0]["name"] == "Most starred query"
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 1
@@ -562,7 +655,7 @@ class ExploreSavedQueriesTest(APITestCase):
             response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 9
+        assert len(response.data) == 10
         assert response.data[0]["name"] == "Query B"
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 2
@@ -1104,16 +1197,16 @@ class ExploreSavedQueriesTest(APITestCase):
             response_with_flag = self.client.get(self.url, data={"sortBy": ["name"]})
 
         assert response_with_flag.status_code == 200, response_with_flag.content
-        assert len(response_with_flag.data) == 6
+        assert len(response_with_flag.data) == 7
 
-        assert response_with_flag.data[5]["name"] == "Z - Segment span query"
-        assert response_with_flag.data[5]["dataset"] == "segment_spans"
+        assert response_with_flag.data[6]["name"] == "Z - Segment span query"
+        assert response_with_flag.data[6]["dataset"] == "segment_spans"
 
         with self.feature(self.features):
             response_without_flag = self.client.get(self.url)
 
         assert response_without_flag.status_code == 200, response_without_flag.content
-        assert len(response_without_flag.data) == 5
+        assert len(response_without_flag.data) == 6
 
     def test_post_metrics_dataset_with_metric_field(self) -> None:
         with self.feature(self.features):
