@@ -650,6 +650,7 @@ export function CommandPalette({
             keyDownHandler={() => true}
             overlayIsOpen
             virtualized
+            virtualizedListPadding={0}
             size="md"
             aria-label={t('Search results')}
             selectionMode="none"
