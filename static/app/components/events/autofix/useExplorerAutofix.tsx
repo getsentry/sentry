@@ -144,8 +144,7 @@ interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
-const POLL_INTERVAL = 500;
-const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
+const POLL_INTERVAL = 1000;
 
 function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
@@ -197,10 +196,17 @@ const isActivelyProcessing = (
     state => state.pr_creation_status === 'creating'
   );
 
+  const anyCodingAgentsRunning = Object.values(autofixState.coding_agents ?? {}).some(
+    codingAgent =>
+      codingAgent.status === CodingAgentStatus.PENDING ||
+      codingAgent.status === CodingAgentStatus.RUNNING
+  );
+
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
-    anyPRCreating
+    anyPRCreating ||
+    anyCodingAgentsRunning
   );
 };
 
@@ -212,19 +218,9 @@ const getPollInterval = (
   autofixState: ExplorerAutofixState | null,
   runStarted: boolean
 ): number | false => {
-  // No run and nothing started - don't poll
-  if (!autofixState && !runStarted) {
-    return false;
-  }
-
   // Actively processing - poll fast
   if (isActivelyProcessing(autofixState, runStarted)) {
     return POLL_INTERVAL;
-  }
-
-  // Has a run but not actively processing - poll slow to catch external updates
-  if (autofixState) {
-    return IDLE_POLL_INTERVAL;
   }
 
   return false;
