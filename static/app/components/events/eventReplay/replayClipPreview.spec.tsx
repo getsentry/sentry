@@ -6,9 +6,10 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {ResponseMeta} from 'sentry/api';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import ReplayClipPreview from './replayClipPreview';
 
@@ -160,7 +161,9 @@ describe('ReplayClipPreview', () => {
         attachmentError: undefined,
         attachments: [],
         errors: [],
-        fetchError: {status: 400} as RequestError,
+        fetchError: new RequestError('GET', '/replay/', new Error('bad request'), {
+          status: 400,
+        } as ResponseMeta),
         isError: true,
         isPending: false,
         onRetry: jest.fn(),
@@ -182,7 +185,9 @@ describe('ReplayClipPreview', () => {
       return {
         attachments: [],
         errors: [],
-        fetchError: {status: 429} as RequestError,
+        fetchError: new RequestError('GET', '/replay/', new Error('throttled'), {
+          status: 429,
+        } as ResponseMeta),
         attachmentError: undefined,
         isError: true,
         isPending: false,
@@ -206,7 +211,11 @@ describe('ReplayClipPreview', () => {
         attachments: [],
         errors: [],
         fetchError: undefined,
-        attachmentError: [{status: 429} as RequestError],
+        attachmentError: [
+          new RequestError('GET', '/replay/', new Error('throttled'), {
+            status: 429,
+          } as ResponseMeta),
+        ],
         isError: true,
         isPending: false,
         onRetry: jest.fn(),

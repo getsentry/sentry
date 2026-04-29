@@ -4,7 +4,7 @@ import {InlineCode} from '@sentry/scraps/code';
 
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -32,15 +32,16 @@ export default Storybook.story('useFetchSequentialPages', story => {
     const {pages, isFetching} = useFetchSequentialPages<{data: unknown}>({
       enabled: true,
       initialCursor: undefined,
-      getQueryKey: useCallback(
-        ({cursor, per_page}) => {
-          return [
-            getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+      getQueryOptions: useCallback(
+        ({cursor, per_page}) =>
+          apiOptions.as<{data: unknown}>()(
+            '/organizations/$organizationIdOrSlug/projects/',
+            {
               path: {organizationIdOrSlug: organization.slug},
-            }),
-            {query: {cursor, per_page}},
-          ];
-        },
+              query: {cursor, per_page},
+              staleTime: Infinity,
+            }
+          ),
         [organization.slug]
       ),
       perPage: 20,
@@ -54,8 +55,8 @@ export default Storybook.story('useFetchSequentialPages', story => {
           `pages`. The UI doesn't incrementally render as data is coming in.
         </p>
         <p>
-          Note that <code>getQueryKey</code> needs to be a stable reference, so wrap it
-          with <code>useCallback</code>.
+          Note that <code>getQueryOptions</code> needs to be a stable reference, so wrap
+          it with <code>useCallback</code>.
         </p>
         <StructuredEventData data={{pages: pages.length, isFetching}} />
       </Fragment>
@@ -69,19 +70,21 @@ export default Storybook.story('useFetchSequentialPages', story => {
     const {pages, isFetching} = useFetchSequentialPages<{data: unknown}>({
       enabled: true,
       initialCursor: undefined,
-      getQueryKey: useCallback(
+      getQueryOptions: useCallback(
         ({cursor, per_page}) => {
           pagesFetched.current++;
           if (pagesFetched.current > 2) {
             return undefined;
           }
 
-          return [
-            getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+          return apiOptions.as<{data: unknown}>()(
+            '/organizations/$organizationIdOrSlug/projects/',
+            {
               path: {organizationIdOrSlug: organization.slug},
-            }),
-            {query: {cursor, per_page}},
-          ];
+              query: {cursor, per_page},
+              staleTime: Infinity,
+            }
+          );
         },
         [organization.slug]
       ),
@@ -92,8 +95,8 @@ export default Storybook.story('useFetchSequentialPages', story => {
       <Fragment>
         <p>
           You can stop a series of requests from continuing by returning a{' '}
-          <InlineCode>undefined</InlineCode> from the <InlineCode>getQueryKey</InlineCode>{' '}
-          callback.
+          <InlineCode>undefined</InlineCode> from the{' '}
+          <InlineCode>getQueryOptions</InlineCode> callback.
         </p>
         <p>Here we limit the number of pages to 2</p>
         <StructuredEventData data={{pages: pages.length, isFetching}} />

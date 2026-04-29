@@ -1,29 +1,31 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import type {UseQueryOptions} from '@tanstack/react-query';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {parseLinkHeader, type ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {fetchDataQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
-interface Props {
+interface Props<Data> {
   /**
    * Whether or not to start fetching when the hook is mounted
    */
   enabled: boolean;
 
   /**
-   * Generate the queryKey to use, given the pagination params
-   * If `undefined` is returned iteration will not continue
+   * Generate the queryOptions to use, given the pagination params.
+   * If `undefined` is returned iteration will not continue.
    */
-  getQueryKey: (pagination: {
+  getQueryOptions: (pagination: {
     cursor: string;
     per_page: number;
-  }) => undefined | ApiQueryKey;
+  }) => undefined | UseQueryOptions<ApiResponse<Data>, Error, Data, ApiQueryKey>;
 
   /**
    * You must set the page size to be used.
    *
-   * This will be passed back as an argument into getQueryKey
+   * This will be passed back as an argument into getQueryOptions
    */
   perPage: number;
 
@@ -38,7 +40,7 @@ interface Props {
 interface ResponsePage<Data> {
   data: undefined | Data;
   error: unknown;
-  getResponseHeader: ((header: string) => string | null) | undefined;
+  headers: ApiResponse['headers'] | undefined;
   isError: boolean;
   isFetching: boolean;
   status: 'pending' | 'error' | 'success';
@@ -46,9 +48,9 @@ interface ResponsePage<Data> {
 
 interface State<Data> {
   error: unknown;
-  getLastResponseHeader: ((header: string) => string | null) | undefined;
   isError: boolean;
   isFetching: boolean;
+  lastResponseHeaders: ApiResponse['headers'] | undefined;
   pages: Data[];
   status: 'pending' | 'error' | 'success';
 }
@@ -92,17 +94,17 @@ interface State<Data> {
  */
 export function useFetchSequentialPages<Data>({
   enabled,
-  getQueryKey,
+  getQueryOptions,
   initialCursor,
   perPage,
-}: Props): State<Data> {
+}: Props<Data>): State<Data> {
   const queryClient = useQueryClient();
 
   const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
   const [state, setState] = useState<State<Data>>({
     pages: [],
     error: undefined,
-    getLastResponseHeader: undefined,
+    lastResponseHeaders: undefined,
     status: 'pending',
     isError: false,
     isFetching: enabled,
@@ -118,33 +120,28 @@ export function useFetchSequentialPages<Data>({
       try {
         while (parsedHeader?.results) {
           const cursor = parsedHeader.cursor;
-          const queryKey = getQueryKey({cursor, per_page: perPage});
-          if (!queryKey) {
+          const queryOptions = getQueryOptions({cursor, per_page: perPage});
+          if (!queryOptions) {
             break;
           }
-          const [data, , resp] = await queryClient.fetchQuery({
-            queryKey,
-            queryFn: fetchDataQuery<Data>,
-            staleTime: Infinity,
-          });
+          const response = await queryClient.fetchQuery(queryOptions);
 
           responsePages.current.set(cursor, {
-            data,
+            data: response.json,
             error: undefined,
-            getResponseHeader: resp?.getResponseHeader,
+            headers: response.headers,
             status: 'success',
             isError: false,
             isFetching: false,
           });
 
-          const pageLinks = resp?.getResponseHeader('Link') ?? null;
-          parsedHeader = parseLinkHeader(pageLinks)?.next;
+          parsedHeader = parseLinkHeader(response.headers.Link ?? null)?.next;
         }
       } catch (error) {
         responsePages.current.set(parsedHeader?.cursor!, {
           data: undefined,
           error,
-          getResponseHeader: undefined,
+          headers: undefined,
           status: 'error',
           isError: true,
           isFetching: false,
@@ -154,7 +151,7 @@ export function useFetchSequentialPages<Data>({
         setState({
           pages: values.map(value => value.data).filter(defined),
           error: values.map(value => value.error).at(0),
-          getLastResponseHeader: values.at(-1)?.getResponseHeader,
+          lastResponseHeaders: values.at(-1)?.headers,
           status: values.some(value => value.status === 'error')
             ? 'error'
             : values.some(value => value.status === 'pending')
@@ -165,7 +162,7 @@ export function useFetchSequentialPages<Data>({
         });
       }
     },
-    [initialCursor, getQueryKey, perPage, queryClient]
+    [initialCursor, getQueryOptions, perPage, queryClient]
   );
 
   useEffect(() => {
