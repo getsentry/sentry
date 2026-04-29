@@ -695,6 +695,11 @@ class UserDetailsSuspensionTest(UserDetailsTest):
         self.login_as(user=self.user)
         self.get_error_response(user2.id, isSuspended="true", status_code=403)
 
+    def test_superuser_cannot_suspend_self(self) -> None:
+        self.login_as(user=self.superuser, superuser=True)
+        resp = self.get_error_response(self.superuser.id, isSuspended="true", status_code=400)
+        assert "suspend your own account" in str(resp.data).lower()
+
     def test_get_includes_is_suspended(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         resp = self.get_success_response(self.user.id, method="get")

@@ -209,6 +209,12 @@ class SuperuserUserSerializer(BaseUserSerializer):
         model = User
         fields = ("name", "username", "is_active", "is_suspended")
 
+    def validate_is_suspended(self, value: bool) -> bool:
+        request = self.context.get("request")
+        if value and request and request.user.id == self.instance.id:
+            raise serializers.ValidationError("You cannot suspend your own account.")
+        return value
+
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         request = self.context.get("request")
         should_audit = False
@@ -222,11 +228,10 @@ class SuperuserUserSerializer(BaseUserSerializer):
             }
             should_audit = bool(changed_fields)
 
-        user = super().update(instance, validated_data)
+        if validated_data.get("is_suspended"):
+            instance.refresh_session_nonce()
 
-        if "is_suspended" in validated_data and validated_data["is_suspended"]:
-            user.refresh_session_nonce()
-            user.save(update_fields=["session_nonce"])
+        user = super().update(instance, validated_data)
 
         if should_audit and request:
             audit_logger.info(
