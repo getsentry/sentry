@@ -1625,9 +1625,9 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         result = bulk_read_preferences_from_sentry_db(
             self.organization.id, [self.project1.id, self.project2.id]
         )
-        assert len(result[self.project1.id]) == 1
+        assert len(result[self.project1.id].repositories) == 1
         assert result[self.project1.id].repositories[0].name == "test-repo"
-        assert len(result[self.project2.id]) == 0
+        assert len(result[self.project2.id].repositories) == 0
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
