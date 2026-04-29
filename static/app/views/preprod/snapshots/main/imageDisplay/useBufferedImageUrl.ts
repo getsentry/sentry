@@ -12,12 +12,15 @@ export function useBufferedImageUrl(targetUrl: string): string {
     let cancelled = false;
     const img = new Image();
     img.src = targetUrl;
-    img.decode().finally(() => {
-      if (!cancelled) {
-        activeUrlRef.current = targetUrl;
-        setDisplayUrl(targetUrl);
-      }
-    });
+    img
+      .decode()
+      .catch(() => undefined)
+      .then(() => {
+        if (!cancelled) {
+          activeUrlRef.current = targetUrl;
+          setDisplayUrl(targetUrl);
+        }
+      });
 
     return () => {
       cancelled = true;
