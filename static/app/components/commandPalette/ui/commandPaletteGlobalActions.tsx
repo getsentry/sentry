@@ -600,6 +600,18 @@ export function GlobalCommandPaletteActions() {
           display={{label: t('Project Settings'), icon: <IconSettings />}}
           limit={4}
         >
+          {currentProjects.map(project => (
+            <CMDKAction
+              key={`current-dsn-${project.slug}`}
+              display={{
+                label: t('Client Keys (DSN) - %s', project.slug),
+                icon: <ProjectAvatar project={project} size={16} />,
+                trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
+              }}
+              keywords={[t('dsn'), t('client keys'), project.slug]}
+              to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
+            />
+          ))}
           {visibleProjectSettingsNavItems.map(navItem => {
             const suffix = navItem.path.replace(
               '/settings/:orgId/projects/:projectId/',

@@ -25,6 +25,8 @@ const productionEntryPoints = [
   // TODO: Remove when used
   'static/app/views/settings/organizationRepositories/connectProviderDropdown.tsx',
   'static/app/views/settings/organizationRepositories/noIntegrationsEmptyState.tsx',
+  'static/app/views/settings/organizationRepositories/scmRepositoryTable.tsx',
+  'static/app/views/settings/organizationRepositories/useRepoSearch.tsx',
 ];
 
 const testingEntryPoints = [

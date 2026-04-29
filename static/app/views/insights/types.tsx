@@ -55,6 +55,7 @@ export enum SpanFields {
   TRANSACTION_EVENT_ID = 'transaction.event_id',
   SPAN_SELF_TIME = 'span.self_time',
   TRACE = 'trace',
+  TRACE_PARENT_SPAN = 'trace.parent_span',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
   REPLAYID = 'replayId',
@@ -78,6 +79,7 @@ export enum SpanFields {
   PRECISE_START_TS = 'precise.start_ts',
   PRECISE_FINISH_TS = 'precise.finish_ts',
   OS_NAME = 'os.name',
+  OS_VERSION = 'os.version',
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
@@ -144,6 +146,8 @@ export enum SpanFields {
 
   // Mobile fields
   DEVICE_CLASS = 'device.class',
+  DEVICE_MODEL = 'device.model',
+  DEVICE_MANUFACTURER = 'device.manufacturer',
   APP_VITALS_START_COLD_VALUE = 'app.vitals.start.cold.value',
   APP_VITALS_START_WARM_VALUE = 'app.vitals.start.warm.value',
   APP_VITALS_START_TYPE = 'app.vitals.start.type',
@@ -307,6 +311,7 @@ type NonNullableStringFields =
   | SpanFields.MCP_RESOURCE_URI
   | SpanFields.MCP_PROMPT_NAME
   | SpanFields.TRACE
+  | SpanFields.TRACE_PARENT_SPAN
   | SpanFields.PROFILEID
   | SpanFields.PROFILE_ID
   | SpanFields.REPLAYID
@@ -325,6 +330,8 @@ type NonNullableStringFields =
   | SpanFields.SDK_NAME
   | SpanFields.SDK_VERSION
   | SpanFields.DEVICE_CLASS
+  | SpanFields.DEVICE_MODEL
+  | SpanFields.DEVICE_MANUFACTURER
   | SpanFields.SPAN_ACTION
   | SpanFields.SPAN_DOMAIN
   | SpanFields.MESSAGING_MESSAGE_BODY_SIZE
@@ -342,7 +349,9 @@ type NonNullableStringFields =
   | SpanFields.TRANSACTION
   | SpanFields.TRANSACTION_METHOD
   | SpanFields.RELEASE
+  | SpanFields.ENVIRONMENT
   | SpanFields.OS_NAME
+  | SpanFields.OS_VERSION
   | SpanFields.SPAN_STATUS_CODE
   | SpanFields.SPAN_AI_PIPELINE_GROUP
   | SpanFields.PROJECT

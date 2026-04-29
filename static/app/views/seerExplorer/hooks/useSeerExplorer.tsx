@@ -114,8 +114,24 @@ export const useSeerExplorer = () => {
     'seer-explorer.override.ctx-eng',
     true
   );
+  type CodeModeValue = 'off' | 'on' | 'only';
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
-    useLocalStorageState<boolean>('seer-explorer.override.code-mode', true);
+    useLocalStorageState<CodeModeValue>(
+      'seer-explorer.override.code-mode',
+      (storedValue?: unknown): CodeModeValue => {
+        if (storedValue === 'off' || storedValue === 'on' || storedValue === 'only') {
+          return storedValue;
+        }
+        // Migrate legacy boolean values
+        if (storedValue === true) {
+          return 'on';
+        }
+        if (storedValue === false) {
+          return 'off';
+        }
+        return 'on'; // default
+      }
+    );
 
   const [runId, setRunId] = useSeerExplorerRunId();
 
@@ -139,7 +155,7 @@ export const useSeerExplorer = () => {
     {
       insertIndex: number;
       orgSlug: string;
-      overrideCodeModeEnable: boolean;
+      overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
       pageName: string;
       query: string;
