@@ -53,6 +53,11 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
 
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
+      // Skip IME composition events — event.key may be undefined or 'Process'
+      // and hotkeys should never fire while the user is composing a character.
+      if (evt.isComposing) {
+        return;
+      }
       for (const hotkey of hotkeysRef.current) {
         if (hotkey.enabled === false) {
           continue;
