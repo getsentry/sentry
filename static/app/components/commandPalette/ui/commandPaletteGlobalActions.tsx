@@ -116,12 +116,7 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
-const helpSearch = new SentryGlobalSearch([
-  'docs',
-  'zendesk_sentry_articles',
-  'develop',
-  'blog',
-]);
+const helpSearch = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
 const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
