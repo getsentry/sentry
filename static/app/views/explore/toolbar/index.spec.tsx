@@ -886,7 +886,26 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('allows save as and compare when cross events are present', async () => {
+  it('allows save as when cross events are present', async () => {
+    render(<ExploreToolbar />, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
+          },
+        },
+      },
+    });
+
+    const section = await screen.findByTestId('section-save-as');
+
+    expect(within(section).getByRole('button', {name: 'Save as'})).toBeEnabled();
+  });
+
+  it('disables compare when cross events are present', async () => {
     render(<ExploreToolbar />, {
       organization,
       additionalWrapper: Wrapper,
@@ -906,9 +925,7 @@ describe('ExploreToolbar', () => {
 
     const section = await screen.findByTestId('section-save-as');
 
-    expect(within(section).getByRole('button', {name: 'Save as'})).toBeEnabled();
-
-    expect(within(section).getByRole('button', {name: 'Compare'})).not.toHaveAttribute(
+    expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );

@@ -87,6 +87,7 @@ export function ToolbarSaveAs() {
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
@@ -311,7 +312,7 @@ export function ToolbarSaveAs() {
 
         <WideLinkButton
           aria-label={t('Compare')}
-          disabled={!canCompareQueries}
+          disabled={hasCrossEvents || !canCompareQueries}
           onClick={() =>
             trackAnalytics('trace_explorer.compare', {
               organization,
@@ -331,9 +332,11 @@ export function ToolbarSaveAs() {
             })),
           })}
           tooltipProps={
-            canCompareQueries
-              ? undefined
-              : {title: t('Add two or more charts to compare chart queries.')}
+            hasCrossEvents
+              ? {title: t('Cross-event queries cannot be compared.')}
+              : canCompareQueries
+                ? undefined
+                : {title: t('Add two or more charts to compare chart queries.')}
           }
         >
           {t('Compare Queries')}
