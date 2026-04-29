@@ -1,23 +1,19 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {logger} from '@sentry/react';
-import type {QueryClient, InfiniteData} from '@tanstack/react-query';
+import type {QueryClient} from '@tanstack/react-query';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
-import {type ApiResult} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {
-  fetchDataQuery,
-  type ApiQueryKey,
-  type QueryKeyEndpointOptions,
-} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -80,7 +76,7 @@ export function useExploreLogsTableRow(props: {
   });
 }
 
-function useLogsQueryKey({
+function useLogsApiOptions({
   limit,
   referrer,
   highFidelity,
@@ -133,45 +129,36 @@ function useLogsQueryKey({
 
   const orderby = eventViewPayload.sort;
 
-  const params = {
-    data: {
-      highFidelity,
-    },
-    query: {
-      ...eventViewPayload,
-      ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
-      ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
-      cursor,
-      orderby,
-      per_page: limit ? limit : undefined,
-      referrer,
-      sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
-      caseInsensitive: caseInsensitive ? '1' : undefined,
-    },
-    pageFiltersReady,
-    eventView,
+  const query = {
+    ...eventViewPayload,
+    ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
+    ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
+    cursor,
+    orderby,
+    per_page: limit ? limit : undefined,
+    referrer,
+    sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
+    caseInsensitive: caseInsensitive ? '1' : undefined,
   };
 
-  const endpointSuffix =
-    frozenTraceIds || frozenReplayInfo.replayId ? 'trace-logs' : 'events';
+  const path = {organizationIdOrSlug: organization.slug};
+  const data = {highFidelity};
 
-  const queryKey: ApiQueryKey = [
-    getApiUrl(`/organizations/$organizationIdOrSlug/${endpointSuffix}/`, {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-    params,
-  ];
+  const infiniteApiOptions =
+    frozenTraceIds || frozenReplayInfo.replayId
+      ? apiOptions.asInfinite<EventsLogsResult>()(
+          '/organizations/$organizationIdOrSlug/trace-logs/',
+          {path, query, data, staleTime: 0}
+        )
+      : apiOptions.asInfinite<EventsLogsResult>()(
+          '/organizations/$organizationIdOrSlug/events/',
+          {path, query, data, staleTime: 0}
+        );
 
-  return {
-    queryKey,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
+  return {infiniteApiOptions, eventView, pageFiltersReady};
 }
 
-export function useLogsQueryKeyWithInfinite({
+export function useLogsApiOptionsWithInfinite({
   referrer,
   autoRefresh,
   highFidelity,
@@ -180,14 +167,17 @@ export function useLogsQueryKeyWithInfinite({
   referrer: string;
   highFidelity?: boolean;
 }) {
-  const {queryKey, other} = useLogsQueryKey({
+  const {infiniteApiOptions, eventView, pageFiltersReady} = useLogsApiOptions({
     limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
     referrer,
     highFidelity,
   });
   return {
-    queryKey: [...queryKey, 'infinite'] as QueryKey,
-    other,
+    infiniteApiOptions,
+    other: {
+      eventView,
+      pageFiltersReady,
+    },
   };
 }
 
@@ -204,11 +194,11 @@ function getPageParam(
 ) {
   const isGetPreviousPage = pageDirection === 'previous';
   return (
-    result: ApiResult<EventsLogsResult>,
+    result: ApiResponse<EventsLogsResult>,
     _: unknown,
     pageParam: LogPageParam
   ): LogPageParam => {
-    const [pageData, _statusText, response] = result;
+    const pageData = result.json;
     const sortBy = getTimeBasedSortBy(sortBys);
 
     if (!sortBy) {
@@ -226,8 +216,7 @@ function getPageParam(
       : undefined;
 
     if (highFidelity || isFlexTimePageParam(pageParam)) {
-      const pageLinkHeader = response?.getResponseHeader('Link') ?? null;
-      const links = parseLinkHeader(pageLinkHeader);
+      const links = parseLinkHeader(result.headers.Link ?? null);
       const link = isGetPreviousPage ? links.previous : links.next;
 
       if (!link?.results) {
@@ -400,21 +389,17 @@ function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePage
   return defined(pageParam) && 'cursor' in pageParam;
 }
 
-type QueryKey = [
-  url: ReturnType<typeof getApiUrl>,
-  endpointOptions: QueryKeyEndpointOptions,
-  'infinite',
-];
+type LogsInfiniteApiOptions = ReturnType<typeof useLogsApiOptions>['infiniteApiOptions'];
+type QueryKey = LogsInfiniteApiOptions['queryKey'];
 
 /**
  * `maxPages` is evaluated before `useInfiniteQuery` returns `data`, so we base it on the
  * query cache (same snapshot React Query will use for this key).
  */
 function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): number {
-  // eslint-disable-next-line @sentry/no-query-data-type-parameters
-  const cached = client.getQueryData<InfiniteData<ApiResult<EventsLogsResult>>>(queryKey);
+  const cached = client.getQueryData(queryKey);
   const rows =
-    cached?.pages?.reduce((n, page) => n + (page[0]?.data?.length ?? 0), 0) ?? 0;
+    cached?.pages?.reduce((n, page) => n + (page.json?.data?.length ?? 0), 0) ?? 0;
   return rows < LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES
     ? MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED
     : MAX_LOGS_INFINITE_QUERY_PAGES;
@@ -438,17 +423,18 @@ export function useInfiniteLogsQuery({
   // disable high fidelity mode.
   highFidelity = autoRefreshHasInitialized ? false : highFidelity;
 
-  const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
+  const {infiniteApiOptions, other} = useLogsApiOptionsWithInfinite({
     referrer: _referrer,
     autoRefresh,
     highFidelity,
   });
+  const queryKeyWithInfinite = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
 
   const sortBys = useQueryParamsSortBys();
 
   const getPreviousPageParam = useCallback(
-    (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
+    (data: ApiResponse<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
       getPageParam(
         'previous',
         sortBys.slice(),
@@ -458,7 +444,7 @@ export function useInfiniteLogsQuery({
     [sortBys, autoRefresh, highFidelity]
   );
   const getNextPageParam = useCallback(
-    (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
+    (data: ApiResponse<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
       getPageParam(
         'next',
         sortBys.slice(),
@@ -473,69 +459,61 @@ export function useInfiniteLogsQuery({
     [autoRefresh, sortBys]
   );
 
-  const queryResult = useInfiniteQuery<
-    ApiResult<EventsLogsResult>,
-    Error,
-    InfiniteData<ApiResult<EventsLogsResult>>,
-    QueryKey,
-    LogPageParam
-  >({
+  const queryResult = useInfiniteQuery({
     queryKey: queryKeyWithInfinite,
-    queryFn: async ({
-      pageParam,
-      queryKey: [url, endpointOptions],
-      client,
-      signal,
-      meta,
-    }): Promise<ApiResult<EventsLogsResult>> => {
-      let response = await fetchDataQuery({
-        queryKey: [
-          url,
-          {
-            ...endpointOptions,
-            query: getParamBasedQuery(endpointOptions?.query, pageParam),
-          },
-        ],
+    queryFn: async ({pageParam, queryKey, client, signal, meta}) => {
+      const {url, options: baseOptions} = parseQueryKey(queryKey);
+
+      // Build a v2 (non-infinite) query key for apiFetch — we drive pagination via
+      // the query body, not via Link cursors, so we don't need apiFetchInfinite.
+      const fetchContext = {
         client,
         signal,
         meta,
+      };
+
+      let response = await apiFetch<EventsLogsResult>({
+        ...fetchContext,
+        queryKey: [
+          {infinite: false, version: 'v2'},
+          url,
+          {
+            ...baseOptions,
+            query: getParamBasedQuery(baseOptions?.query, pageParam),
+          },
+        ],
       });
 
-      let result = response[0] as EventsLogsResult | undefined;
-
       if (
-        !result?.data?.length && // no matches found
-        result?.meta?.dataScanned === 'partial' && // partial scan performed
-        !endpointOptions?.data?.highFidelity // not high fidelity mode
+        !response.json?.data?.length && // no matches found
+        response.json?.meta?.dataScanned === 'partial' && // partial scan performed
+        !baseOptions?.data?.highFidelity // not high fidelity mode
       ) {
-        endpointOptions = {
-          ...endpointOptions,
-          query: {...endpointOptions.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+        const retryOptions: QueryKeyEndpointOptions = {
+          ...baseOptions,
+          query: {...baseOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
         };
-        response = await fetchDataQuery({
+        response = await apiFetch<EventsLogsResult>({
+          ...fetchContext,
           queryKey: [
+            {infinite: false, version: 'v2'},
             url,
             {
-              ...endpointOptions,
-              query: getParamBasedQuery(endpointOptions?.query, pageParam),
+              ...retryOptions,
+              query: getParamBasedQuery(retryOptions.query, pageParam),
             },
           ],
-          client,
-          signal,
-          meta,
         });
-
-        result = response[0] as EventsLogsResult | undefined;
       }
 
-      if (pageParam?.querySortDirection && Array.isArray(result?.data)) {
+      if (pageParam?.querySortDirection && Array.isArray(response.json?.data)) {
         // We reverse the data if the query sort direction has been changed from the table sort direction.
-        response[0] = {
-          ...(response[0] as {data?: EventsLogsResult['data']}),
-          data: [...result.data].reverse(),
+        return {
+          ...response,
+          json: {...response.json, data: response.json.data.toReversed()},
         };
       }
-      return response as ApiResult<EventsLogsResult>;
+      return response;
     },
     getPreviousPageParam,
     getNextPageParam,
@@ -562,56 +540,52 @@ export function useInfiniteLogsQuery({
 
   useEffect(() => {
     // Remove empty pages from the query data. In the case of auto refresh it's possible that the most recent page in time is empty.
-    queryClient.setQueryData(
-      queryKeyWithInfinite,
-      (oldData: InfiniteData<ApiResult<EventsLogsResult>> | undefined) => {
-        if (!oldData) {
-          return oldData;
-        }
+    queryClient.setQueryData(queryKeyWithInfinite, oldData => {
+      if (!oldData) {
+        return oldData;
+      }
 
-        if (highFidelity) {
-          // When high fidelity is enabled, the strategy for cleaning out the cached data is a little different.
-          // Each page contains the cursor to the next page so we can't just remove empty pages. Instead, we
-          // remove all empty pages excluding the first and last page. Those are always kept around.
-          // And allow react-query to pop off pages from the ends as needed once we reach max pages.
-          const keepPages = oldData.pages.map((page, index) => {
-            // always keep the first and last page
-            if (index === 0 || index === oldData.pages.length - 1) {
-              return true;
-            }
-            const [pageData] = page;
-            const pageLength = pageData.data?.length ?? 0;
-            return pageLength !== 0;
-          });
+      if (highFidelity) {
+        // When high fidelity is enabled, the strategy for cleaning out the cached data is a little different.
+        // Each page contains the cursor to the next page so we can't just remove empty pages. Instead, we
+        // remove all empty pages excluding the first and last page. Those are always kept around.
+        // And allow react-query to pop off pages from the ends as needed once we reach max pages.
+        const keepPages = oldData.pages.map((page, index) => {
+          // always keep the first and last page
+          if (index === 0 || index === oldData.pages.length - 1) {
+            return true;
+          }
+          const pageLength = page.json?.data?.length ?? 0;
+          return pageLength !== 0;
+        });
 
-          const pages = oldData.pages.filter((_, index) => keepPages[index]);
-          const pageParams = oldData.pageParams.filter((_, index) => keepPages[index]);
-
-          return {
-            pages,
-            pageParams,
-          };
-        }
-
-        const pageIndexWithMostRecentTimestamp =
-          getTimeBasedSortBy(sortBys)?.kind === 'asc' ? 0 : oldData.pages.length - 1;
-
-        if (
-          (oldData.pages?.[pageIndexWithMostRecentTimestamp]?.[0]?.data?.length ?? 0) > 0
-        ) {
-          return oldData;
-        }
+        const pages = oldData.pages.filter((_, index) => keepPages[index]);
+        const pageParams = oldData.pageParams.filter((_, index) => keepPages[index]);
 
         return {
-          pages: oldData.pages.filter(
-            (_, index) => index !== pageIndexWithMostRecentTimestamp
-          ),
-          pageParams: oldData.pageParams.filter(
-            (_, index) => index !== pageIndexWithMostRecentTimestamp
-          ),
+          pages,
+          pageParams,
         };
       }
-    );
+
+      const pageIndexWithMostRecentTimestamp =
+        getTimeBasedSortBy(sortBys)?.kind === 'asc' ? 0 : oldData.pages.length - 1;
+
+      if (
+        (oldData.pages?.[pageIndexWithMostRecentTimestamp]?.json?.data?.length ?? 0) > 0
+      ) {
+        return oldData;
+      }
+
+      return {
+        pages: oldData.pages.filter(
+          (_, index) => index !== pageIndexWithMostRecentTimestamp
+        ),
+        pageParams: oldData.pageParams.filter(
+          (_, index) => index !== pageIndexWithMostRecentTimestamp
+        ),
+      };
+    });
   }, [highFidelity, queryClient, queryKeyWithInfinite, sortBys]);
 
   const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
@@ -629,7 +603,7 @@ export function useInfiniteLogsQuery({
       return;
     }
 
-    const bytesScanned = lastPage[0].meta?.bytesScanned;
+    const bytesScanned = lastPage.json.meta?.bytesScanned;
     if (!defined(bytesScanned)) {
       return;
     }
@@ -639,9 +613,9 @@ export function useInfiniteLogsQuery({
 
   const _data = useMemo(() => {
     const usedRowIds = new Set();
-    const filteredData =
-      data?.pages.flatMap(([pageData]) =>
-        pageData.data.filter(row => {
+    return (
+      data?.pages.flatMap(page =>
+        page.json.data.filter(row => {
           if (usedRowIds.has(row[OurLogKnownFieldKey.ID])) {
             return false;
           }
@@ -653,20 +627,19 @@ export function useInfiniteLogsQuery({
           usedRowIds.add(row[OurLogKnownFieldKey.ID]);
           return true;
         })
-      ) ?? [];
-
-    return filteredData;
+      ) ?? []
+    );
   }, [data, virtualStreamedTimestamp]);
 
   const pageCount = data?.pages?.length;
   const _meta = useMemo<EventsMetaType>(() => {
     return (
       data?.pages.reduce(
-        (acc, [pageData]) => {
+        (acc, page) => {
           return {
-            ...pageData.meta,
-            fields: {...acc.fields, ...pageData.meta?.fields},
-            units: {...acc.units, ...pageData.meta?.units},
+            ...page.json.meta,
+            fields: {...acc.fields, ...page.json.meta?.fields},
+            units: {...acc.units, ...page.json.meta?.units},
           };
         },
         {fields: {}, units: {}}
@@ -683,7 +656,7 @@ export function useInfiniteLogsQuery({
   }, [hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage, isError, autoRefresh]);
 
   const nextPageLink = parseLinkHeader(
-    data?.pages?.[data.pages.length - 1]?.[2]?.getResponseHeader('Link') ?? null
+    data?.pages?.[data.pages.length - 1]?.headers.Link ?? null
   )?.next;
   const nextPageHasData = nextPageLink?.results ?? false;
   const nextPageCursor = nextPageLink?.cursor;
@@ -696,13 +669,13 @@ export function useInfiniteLogsQuery({
     [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
   );
 
-  const dataScannedList = data?.pages?.map(page => page[0].meta?.dataScanned);
+  const dataScannedList = data?.pages?.map(page => page.json.meta?.dataScanned);
   const dataScanned = defined(dataScannedList)
     ? dataScannedList.includes('partial')
       ? ('partial' as const)
       : ('full' as const)
     : undefined;
-  const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
+  const lastPageLength = data?.pages?.[data.pages.length - 1]?.json?.data?.length ?? 0;
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
 
   const canAutoFetchNextPage =
@@ -781,8 +754,8 @@ function useAutoFetchWindow({
   const timesFetched = useRef(0);
 
   const queryKeyHash = useMemo(() => {
-    const [url, endpointOptions] = queryKey;
-    return JSON.stringify([url, endpointOptions?.query]);
+    const {url, options} = parseQueryKey(queryKey);
+    return JSON.stringify([url, options?.query]);
   }, [queryKey]);
 
   useEffect(() => {
