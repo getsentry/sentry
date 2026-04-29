@@ -174,16 +174,16 @@ class TestLaunchCodingAgents(TestCase):
     @patch("sentry.seer.explorer.coding_agent_handoff.GithubCopilotAgentClient")
     @patch("sentry.seer.explorer.coding_agent_handoff.github_copilot_identity_service")
     @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_copilot_insufficient_premium_quota_returns_quota_failure_type(
+    def test_copilot_insufficient_premium_quota_412_returns_quota_failure_type(
         self,
         mock_features,
         mock_identity_service,
         mock_copilot_client_class,
         mock_store,
     ):
-        """Test that Copilot 403 'insufficient premium quota' errors return github_copilot_insufficient_quota failure_type.
+        """Test that Copilot 412 'insufficient premium quota' errors return github_copilot_insufficient_quota failure_type.
 
-        When GitHub Copilot returns a 403 whose body mentions insufficient premium
+        When GitHub Copilot returns a 412 whose body mentions insufficient premium
         quota, the user has Copilot but has exhausted their premium request budget.
         This is distinct from being unlicensed, so we surface a dedicated failure type
         so the frontend can guide the user to upgrade or wait for the next cycle.
@@ -194,7 +194,8 @@ class TestLaunchCodingAgents(TestCase):
         mock_client_instance = MagicMock()
         mock_copilot_client_class.return_value = mock_client_instance
         mock_client_instance.launch.side_effect = ApiError(
-            "insufficient premium quota to create assignment", code=403
+            '{"documentation_url":"https://docs.github.com/rest","message":"insufficient premium quota to create assignment"}',
+            code=412,
         )
 
         result = launch_coding_agents(

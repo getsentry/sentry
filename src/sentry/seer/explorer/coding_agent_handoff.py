@@ -24,6 +24,8 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.seer.autofix.coding_agent import (
     _validate_and_get_integration,
+    classify_github_copilot_api_error,
+    extract_api_error_message_from_api_error,
     sanitize_branch_name,
     store_coding_agent_states_to_seer,
 )
@@ -146,16 +148,15 @@ def launch_coding_agents(
                 if api_message:
                     error_message = api_message
             elif isinstance(e, ApiError):
-                if e.code == 403 and is_github_copilot:
-                    if e.text and "not licensed" in e.text.lower():
-                        failure_type = "github_copilot_not_licensed"
-                        error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
-                    elif e.text and "premium quota" in e.text.lower():
-                        failure_type = "github_copilot_insufficient_quota"
-                        error_message = "Your GitHub Copilot plan does not have enough premium request quota to launch a coding agent. Upgrade your plan or wait for the next billing cycle."
-                    else:
-                        failure_type = "github_app_permissions"
-                        error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                api_message = extract_api_error_message_from_api_error(e)
+                if api_message:
+                    error_message = api_message
+
+                if is_github_copilot and (
+                    copilot_failure := classify_github_copilot_api_error(e, repo_name)
+                ):
+                    failure_type, error_message = copilot_failure
+                    if failure_type == "github_app_permissions":
                         try:
                             github_integrations = integration_service.get_integrations(
                                 organization_id=organization.id,

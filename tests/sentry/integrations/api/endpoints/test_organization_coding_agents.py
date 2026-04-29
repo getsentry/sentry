@@ -1223,7 +1223,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
     @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.coding_agent.GithubCopilotAgentClient")
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
-    def test_copilot_insufficient_premium_quota_returns_quota_failure_type(
+    def test_copilot_insufficient_premium_quota_412_returns_quota_failure_type(
         self,
         mock_identity_service,
         mock_copilot_client_class,
@@ -1232,9 +1232,9 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
         mock_get_autofix_state,
         mock_get_providers,
     ):
-        """Test POST endpoint returns failure_type=github_copilot_insufficient_quota for Copilot 403 quota errors.
+        """Test POST endpoint returns failure_type=github_copilot_insufficient_quota for Copilot 412 quota errors.
 
-        When GitHub Copilot returns a 403 whose body mentions insufficient premium
+        When GitHub Copilot returns a 412 whose body mentions insufficient premium
         quota, the user has Copilot but has exhausted their premium request budget.
         This is distinct from a GitHub App permissions issue or being unlicensed, so
         we surface a dedicated failure type for the frontend to render upgrade guidance.
@@ -1249,7 +1249,8 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
         mock_client_instance = MagicMock()
         mock_copilot_client_class.return_value = mock_client_instance
         mock_client_instance.launch.side_effect = ApiError(
-            "insufficient premium quota to create assignment", code=403
+            '{"documentation_url":"https://docs.github.com/rest","message":"insufficient premium quota to create assignment"}',
+            code=412,
         )
 
         mock_get_autofix_state.return_value = self._create_mock_autofix_state()

@@ -215,6 +215,46 @@ def _extract_repos_from_solution(autofix_state: AutofixState) -> list[str]:
     return list(repos)
 
 
+def extract_api_error_message_from_api_error(error: ApiError) -> str | None:
+    if isinstance(error.json, dict):
+        nested_error = error.json.get("error")
+        if isinstance(nested_error, dict):
+            message = nested_error.get("message")
+            if isinstance(message, str) and message:
+                return message
+
+        message = error.json.get("message")
+        if isinstance(message, str) and message:
+            return message
+
+    return error.text or None
+
+
+def classify_github_copilot_api_error(error: ApiError, repo_name: str) -> tuple[str, str] | None:
+    error_message = extract_api_error_message_from_api_error(error)
+    error_text = " ".join(part for part in (error.text, error_message) if part).lower()
+
+    if "not licensed" in error_text:
+        return (
+            "github_copilot_not_licensed",
+            "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription.",
+        )
+
+    if "premium quota" in error_text:
+        return (
+            "github_copilot_insufficient_quota",
+            "Your GitHub Copilot plan does not have enough premium request quota to launch a coding agent. Upgrade your plan or wait for the next billing cycle.",
+        )
+
+    if error.code == 403:
+        return (
+            "github_app_permissions",
+            f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'.",
+        )
+
+    return None
+
+
 def _launch_agents_for_repos(
     autofix_state: AutofixState,
     run_id: int,
@@ -361,16 +401,11 @@ def _launch_agents_for_repos(
             github_installation_id: str | None = None
             if isinstance(e, ApiError):
                 url_part = f" ({e.url})" if e.url else ""
-                if e.code == 403 and client is not None:
-                    if e.text and "not licensed" in e.text.lower():
-                        failure_type = "github_copilot_not_licensed"
-                        error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
-                    elif e.text and "premium quota" in e.text.lower():
-                        failure_type = "github_copilot_insufficient_quota"
-                        error_message = "Your GitHub Copilot plan does not have enough premium request quota to launch a coding agent. Upgrade your plan or wait for the next billing cycle."
-                    else:
-                        failure_type = "github_app_permissions"
-                        error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                if client is not None and (
+                    copilot_failure := classify_github_copilot_api_error(e, repo_name)
+                ):
+                    failure_type, error_message = copilot_failure
+                    if failure_type == "github_app_permissions":
                         if repo and repo.integration_id:
                             try:
                                 sentry_integration = integration_service.get_integration(
