@@ -1092,7 +1092,7 @@ export function generateAggregateFields(
     const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
-      if (typeof overrides === 'undefined') {
+      if (overrides === undefined) {
         return param;
       }
       return {
@@ -1101,7 +1101,7 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => param.defaultValue !== undefined)) {
       const newField = `${func}(${parameters
         .map((param: any) => param.defaultValue)
         .join(',')})`;

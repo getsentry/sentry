@@ -56,6 +56,8 @@ import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/cont
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
@@ -310,6 +312,7 @@ export function PrimaryNavigationFooterItems() {
 
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   return (
     <Fragment>
@@ -330,7 +333,14 @@ export function PrimaryNavigationFooterItems() {
             icon: <IconSearch />,
             onClick: () => {
               if (organization.features.includes('cmd-k-supercharged')) {
-                toggleCommandPalette({}, organization, state, dispatch, 'button');
+                toggleCommandPalette(
+                  {},
+                  organization,
+                  state,
+                  dispatch,
+                  'button',
+                  isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+                );
               } else {
                 openHelpSearchModal({organization});
               }

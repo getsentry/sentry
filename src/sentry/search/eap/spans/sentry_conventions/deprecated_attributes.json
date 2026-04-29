@@ -1,12 +1,196 @@
 {
-  "_generated": "This file is generated. Do not modify it directly. See scripts/generate_deprecated_attributes_json.ts in (sentry/sentry-conventions)[https://github.com/getsentry/sentry-conventions]",
+  "_generated": "This file is generated. Do not modify it directly. See scripts/generate_deprecated_attributes_json.ts",
   "attributes": [
+    {
+      "key": "app_start_cold",
+      "brief": "The duration of a cold app start in milliseconds",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1234.56,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "alias": ["app.vitals.start.cold.value"],
+      "deprecation": {
+        "replacement": "app.vitals.start.cold.value",
+        "reason": "Replaced by app.vitals.start.cold.value to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [323],
+          "description": "Added and deprecated in favor of app.vitals.start.cold.value"
+        }
+      ]
+    },
+    {
+      "key": "app_start_type",
+      "brief": "Mobile app start variant. Either cold or warm.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "cold",
+      "alias": ["app.vitals.start.type"],
+      "deprecation": {
+        "replacement": "app.vitals.start.type",
+        "reason": "Replaced by app.vitals.start.type to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [313],
+          "description": "Deprecated in favor of app.vitals.start.type"
+        },
+        {
+          "version": "0.1.0",
+          "prs": [127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "app_start_warm",
+      "brief": "The duration of a warm app start in milliseconds",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1234.56,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "alias": ["app.vitals.start.warm.value"],
+      "deprecation": {
+        "replacement": "app.vitals.start.warm.value",
+        "reason": "Replaced by app.vitals.start.warm.value to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [323],
+          "description": "Added and deprecated in favor of app.vitals.start.warm.value"
+        }
+      ]
+    },
+    {
+      "key": "cls",
+      "brief": "The value of the recorded Cumulative Layout Shift (CLS) web vital",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 0.2361,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "replacement": "browser.web_vital.cls.value",
+        "reason": "The CLS web vital is now recorded as a browser.web_vital.cls.value attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.cls.value"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [229],
+          "description": "Added and deprecated attribute to document JS SDK's current behaviour"
+        }
+      ]
+    },
+    {
+      "key": "connectionType",
+      "brief": "Specifies the type of the current connection (e.g. wifi, ethernet, cellular , etc).",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "wifi",
+      "sdks": ["javascript-browser"],
+      "alias": ["network.connection.type", "device.connection_type"],
+      "deprecation": {
+        "replacement": "network.connection.type",
+        "reason": "Old namespace-less attribute, to be replaced with network.connection.type for span-first future",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [279],
+          "description": "Added and deprecated attribute to document JS SDK's current behaviour"
+        }
+      ]
+    },
+    {
+      "key": "deviceMemory",
+      "brief": "The estimated total memory capacity of the device, only a rough estimation in gigabytes.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "8 GB",
+      "sdks": ["javascript-browser"],
+      "alias": ["device.memory.estimated_capacity"],
+      "deprecation": {
+        "replacement": "device.memory.estimated_capacity",
+        "reason": "Old namespace-less attribute, to be replaced with device.memory.estimated_capacity for span-first future",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [281],
+          "description": "Added and deprecated attribute to document JS SDK's current behaviour"
+        }
+      ]
+    },
+    {
+      "key": "effectiveConnectionType",
+      "brief": "Specifies the estimated effective type of the current connection (e.g. slow-2g, 2g, 3g, 4g).",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "4g",
+      "sdks": ["javascript-browser"],
+      "alias": ["network.connection.effective_type"],
+      "deprecation": {
+        "replacement": "network.connection.effective_type",
+        "reason": "Old namespace-less attribute, to be replaced with network.connection.effective_type for span-first future",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [279],
+          "description": "Added and deprecated attribute to document JS SDK's current behaviour"
+        }
+      ]
+    },
     {
       "key": "environment",
       "brief": "The sentry environment.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "production",
@@ -14,14 +198,69 @@
         "_status": null,
         "replacement": "sentry.environment"
       },
-      "alias": ["sentry.environment"]
+      "alias": ["sentry.environment"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "fcp",
+      "brief": "The time it takes for the browser to render the first piece of meaningful content on the screen",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 547.6951,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "browser.web_vital.fcp.value",
+        "reason": "This attribute is being deprecated in favor of browser.web_vital.fcp.value"
+      },
+      "alias": ["browser.web_vital.fcp.value"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [235]
+        }
+      ]
+    },
+    {
+      "key": "fp",
+      "brief": "The time it takes for the browser to render the first pixel on the screen",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 477.1926,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "browser.web_vital.fp.value",
+        "reason": "This attribute is being deprecated in favor of browser.web_vital.fp.value"
+      },
+      "alias": ["browser.web_vital.fp.value"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [235]
+        }
+      ]
     },
     {
       "key": "fs_error",
       "brief": "The error message of a file system error.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "deprecation": {
@@ -30,14 +269,95 @@
         "reason": "This attribute is not part of the OpenTelemetry specification and error.type fits much better."
       },
       "example": "ENOENT: no such file or directory",
-      "sdks": ["javascript-node"]
+      "sdks": ["javascript-node"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "hardwareConcurrency",
+      "brief": "The number of logical CPU cores available.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "14",
+      "sdks": ["javascript-browser"],
+      "alias": ["device.processor_count"],
+      "deprecation": {
+        "replacement": "device.processor_count",
+        "reason": "Old namespace-less attribute, to be replaced with device.processor_count for span-first future",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [281, 300],
+          "description": "Added and deprecated attribute to document JS SDK's current behaviour"
+        }
+      ]
+    },
+    {
+      "key": "inp",
+      "brief": "The value of the recorded Interaction to Next Paint (INP) web vital",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 200,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "replacement": "browser.web_vital.inp.value",
+        "reason": "The INP web vital is now recorded as a browser.web_vital.inp.value attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.inp.value"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [229],
+          "description": "Added and deprecated attribute to document JS SDK's current behaviour"
+        }
+      ]
+    },
+    {
+      "key": "lcp",
+      "brief": "The value of the recorded Largest Contentful Paint (LCP) web vital",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 2500,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "replacement": "browser.web_vital.lcp.value",
+        "reason": "The LCP web vital is now recorded as a browser.web_vital.lcp.value attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.lcp.value"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [229],
+          "description": "Added and deprecated attribute to document JS SDK's current behaviour"
+        }
+      ]
     },
     {
       "key": "method",
       "brief": "The HTTP method used.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "GET",
@@ -46,29 +366,23 @@
         "replacement": "http.request.method"
       },
       "alias": ["http.request.method"],
-      "sdks": ["javascript-browser", "javascript-node"]
-    },
-    {
-      "key": "profile_id",
-      "brief": "The id of the sentry profile.",
-      "type": "string",
-      "pii": {
-        "key": "false"
-      },
-      "is_in_otel": false,
-      "example": "123e4567e89b12d3a456426614174000",
-      "deprecation": {
-        "_status": null,
-        "replacement": "sentry.profile_id"
-      },
-      "alias": ["sentry.profile_id"]
+      "sdks": ["javascript-browser", "javascript-node"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "release",
       "brief": "The sentry release.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "production",
@@ -76,7 +390,16 @@
         "_status": null,
         "replacement": "sentry.release"
       },
-      "alias": ["sentry.release"]
+      "alias": ["sentry.release"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "replay_id",
@@ -91,14 +414,23 @@
         "_status": null,
         "replacement": "sentry.replay_id"
       },
-      "alias": ["sentry.replay_id"]
+      "alias": ["sentry.replay_id"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "route",
       "brief": "The matched route, that is, the path template in the format used by the respective server framework. Also used by mobile SDKs to indicate the current route in the application.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "App\\Controller::indexAction",
@@ -107,14 +439,81 @@
         "replacement": "http.route"
       },
       "alias": ["http.route"],
-      "sdks": ["php-laravel", "javascript-reactnative"]
+      "sdks": ["php-laravel", "javascript-reactnative"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 74]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "time_to_full_display",
+      "brief": "The duration of time to full display in milliseconds",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1234.56,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "alias": ["app.vitals.ttfd.value"],
+      "deprecation": {
+        "replacement": "app.vitals.ttfd.value",
+        "reason": "Replaced by app.vitals.ttfd.value to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [313],
+          "description": "Added and deprecated in favor of app.vitals.ttfd.value"
+        }
+      ]
+    },
+    {
+      "key": "time_to_initial_display",
+      "brief": "The duration of time to initial display in milliseconds",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1234.56,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "alias": ["app.vitals.ttid.value"],
+      "deprecation": {
+        "replacement": "app.vitals.ttid.value",
+        "reason": "Replaced by app.vitals.ttid.value to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [313],
+          "description": "Added and deprecated in favor of app.vitals.ttid.value"
+        }
+      ]
     },
     {
       "key": "transaction",
       "brief": "The sentry transaction (segment name).",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "GET /",
@@ -122,7 +521,39 @@
         "_status": null,
         "replacement": "sentry.transaction"
       },
-      "alias": ["sentry.transaction"]
+      "alias": ["sentry.transaction"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ttfb",
+      "brief": "The value of the recorded Time To First Byte (TTFB) web vital in milliseconds",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 194,
+      "alias": ["browser.web_vital.ttfb.value"],
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "browser.web_vital.ttfb.value",
+        "reason": "This attribute is being deprecated in favor of browser.web_vital.ttfb.value"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [235]
+        }
+      ]
     },
     {
       "key": "url",
@@ -138,14 +569,46 @@
         "replacement": "url.full"
       },
       "alias": ["url.full", "http.url"],
-      "sdks": ["javascript-browser", "javascript-node"]
+      "sdks": ["javascript-browser", "javascript-node"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ai.citations",
+      "brief": "References or sources cited by the AI model in its response.",
+      "type": "string[]",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": ["Citation 1", "Citation 2"],
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
     },
     {
       "key": "ai.completion_tokens.used",
       "brief": "The number of tokens used to respond to the message.",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 10,
@@ -154,35 +617,89 @@
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.usage.output_tokens"
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [57, 61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ai.documents",
+      "brief": "Documents or content chunks used as context for the AI model.",
+      "type": "string[]",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": ["document1.txt", "document2.pdf"],
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
     },
     {
       "key": "ai.finish_reason",
       "brief": "The reason why the model stopped generating.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "COMPLETE",
       "deprecation": {
         "_status": null,
-        "replacement": "gen_ai.response.finish_reason"
-      }
+        "replacement": "gen_ai.response.finish_reasons"
+      },
+      "alias": ["gen_ai.response.finish_reasons"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108, 127]
+        }
+      ]
     },
     {
       "key": "ai.frequency_penalty",
       "brief": "Used to reduce repetitiveness of generated tokens. The higher the value, the stronger a penalty is applied to previously present tokens, proportional to how many times they have already appeared in the prompt or prior generation.",
       "type": "double",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 0.5,
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.request.frequency_penalty"
-      }
+      },
+      "alias": ["gen_ai.request.frequency_penalty"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108]
+        }
+      ]
     },
     {
       "key": "ai.function_call",
@@ -196,42 +713,138 @@
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.tool.name"
-      }
+      },
+      "alias": ["gen_ai.tool.name"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108]
+        }
+      ]
     },
     {
       "key": "ai.generation_id",
       "brief": "Unique identifier for the completion.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "gen_123abc",
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.response.id"
-      }
+      },
+      "alias": ["gen_ai.response.id"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108, 127]
+        }
+      ]
+    },
+    {
+      "key": "ai.input_messages",
+      "brief": "The input messages sent to the model",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "[{\"role\": \"user\", \"message\": \"hello\"}]",
+      "alias": ["gen_ai.request.messages"],
+      "sdks": ["python"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.request.messages"
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [65, 119]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ai.is_search_required",
+      "brief": "Boolean indicating if the model needs to perform a search.",
+      "type": "boolean",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": false,
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
+    },
+    {
+      "key": "ai.metadata",
+      "brief": "Extra metadata passed to an AI pipeline step.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "{\"user_id\": 123, \"session_id\": \"abc123\"}",
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55, 127]
+        }
+      ]
     },
     {
       "key": "ai.model.provider",
       "brief": "The provider of the model.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "openai",
       "deprecation": {
         "_status": null,
-        "replacement": "gen_ai.system"
-      }
+        "replacement": "gen_ai.provider.name"
+      },
+      "alias": ["gen_ai.provider.name", "gen_ai.system"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [253]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [57, 61, 108, 127]
+        }
+      ]
     },
     {
       "key": "ai.model_id",
       "brief": "The vendor-specific ID of the model used.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "gpt-4",
@@ -240,28 +853,94 @@
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.response.model"
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [57, 61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ai.pipeline.name",
+      "brief": "The name of the AI pipeline.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "Autofix Pipeline",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.pipeline.name"
+      },
+      "alias": ["gen_ai.pipeline.name"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [53, 76, 108, 127]
+        }
+      ]
+    },
+    {
+      "key": "ai.preamble",
+      "brief": "For an AI model call, the preamble parameter. Preambles are a part of the prompt used to adjust the model's overall behavior and conversation style.",
+      "type": "string",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": "You are now a clown.",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.system_instructions"
+      },
+      "alias": ["gen_ai.system_instructions"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
     },
     {
       "key": "ai.presence_penalty",
       "brief": "Used to reduce repetitiveness of generated tokens. Similar to frequency_penalty, except that this penalty is applied equally to all tokens that have already appeared, regardless of their exact frequencies.",
       "type": "double",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 0.5,
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.request.presence_penalty"
-      }
+      },
+      "alias": ["gen_ai.request.presence_penalty"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108]
+        }
+      ]
     },
     {
       "key": "ai.prompt_tokens.used",
       "brief": "The number of tokens used to process just the prompt.",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 20,
@@ -270,70 +949,381 @@
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.usage.input_tokens"
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [57, 61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ai.raw_prompting",
+      "brief": "When enabled, the user’s prompt will be sent to the model without any pre-processing.",
+      "type": "boolean",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": true,
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
+    },
+    {
+      "key": "ai.response_format",
+      "brief": "For an AI model call, the format of the response",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "json_object",
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55, 127]
+        }
+      ]
+    },
+    {
+      "key": "ai.responses",
+      "brief": "The response messages sent back by the AI model.",
+      "type": "string[]",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": ["hello", "world"],
+      "sdks": ["python"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.response.text"
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [65, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ai.search_queries",
+      "brief": "Queries used to search for relevant context or documents.",
+      "type": "string[]",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": ["climate change effects", "renewable energy"],
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
+    },
+    {
+      "key": "ai.search_results",
+      "brief": "Results returned from search queries for context.",
+      "type": "string[]",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": ["search_result_1, search_result_2"],
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
     },
     {
       "key": "ai.seed",
       "brief": "The seed, ideally models given the same seed and same other parameters will produce the exact same output.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": "1234567890",
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.request.seed"
-      }
+      },
+      "alias": ["gen_ai.request.seed"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108, 127]
+        }
+      ]
+    },
+    {
+      "key": "ai.streaming",
+      "brief": "Whether the request was streamed back.",
+      "type": "boolean",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": true,
+      "sdks": ["python"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.response.streaming"
+      },
+      "alias": ["gen_ai.response.streaming"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [76, 108]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ai.tags",
+      "brief": "Tags that describe an AI pipeline step.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "{\"executed_function\": \"add_integers\"}",
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55, 127]
+        }
+      ]
     },
     {
       "key": "ai.temperature",
       "brief": "For an AI model call, the temperature parameter. Temperature essentially means how random the output will be.",
       "type": "double",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 0.1,
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.request.temperature"
-      }
+      },
+      "alias": ["gen_ai.request.temperature"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108]
+        }
+      ]
+    },
+    {
+      "key": "ai.texts",
+      "brief": "Raw text inputs provided to the model.",
+      "type": "string[]",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": ["Hello, how are you?", "What is the capital of France?"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.input.messages"
+      },
+      "alias": ["gen_ai.input.messages"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
+    },
+    {
+      "key": "ai.tool_calls",
+      "brief": "For an AI model call, the tool calls that were made.",
+      "type": "string[]",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": ["tool_call_1", "tool_call_2"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.response.tool_calls"
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [55, 65]
+        }
+      ]
+    },
+    {
+      "key": "ai.tools",
+      "brief": "For an AI model call, the functions that are available",
+      "type": "string[]",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": ["function_1", "function_2"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.request.available_tools"
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [55, 65, 127]
+        }
+      ]
     },
     {
       "key": "ai.top_k",
       "brief": "Limits the model to only consider the K most likely next tokens, where K is an integer (e.g., top_k=20 means only the 20 highest probability tokens are considered).",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 35,
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.request.top_k"
-      }
+      },
+      "alias": ["gen_ai.request.top_k"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108]
+        }
+      ]
     },
     {
       "key": "ai.top_p",
       "brief": "Limits the model to only consider tokens whose cumulative probability mass adds up to p, where p is a float between 0 and 1 (e.g., top_p=0.7 means only tokens that sum up to 70% of the probability mass are considered).",
       "type": "double",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 0.7,
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.request.top_p"
-      }
+      },
+      "alias": ["gen_ai.request.top_p"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55, 57, 61, 108]
+        }
+      ]
+    },
+    {
+      "key": "ai.total_cost",
+      "brief": "The total cost for the tokens used.",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 12.34,
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.cost.total_tokens"
+      },
+      "alias": ["gen_ai.cost.total_tokens"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [53]
+        }
+      ]
     },
     {
       "key": "ai.total_tokens.used",
       "brief": "The total number of tokens used to process the prompt.",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 30,
@@ -341,7 +1331,213 @@
       "deprecation": {
         "_status": null,
         "replacement": "gen_ai.usage.total_tokens"
-      }
+      },
+      "alias": ["gen_ai.usage.total_tokens"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [57, 61, 108]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "ai.warnings",
+      "brief": "Warning messages generated during model execution.",
+      "type": "string[]",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": ["Token limit exceeded"],
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [264]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [55]
+        }
+      ]
+    },
+    {
+      "key": "app.app_build",
+      "brief": "Internal build identifier, as it appears on the platform.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "example": "1",
+      "alias": ["app.build"],
+      "deprecation": {
+        "replacement": "app.build",
+        "reason": "Deprecated in favor of app.build",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [296],
+          "description": "Added and deprecated app.app_build in favor of app.build"
+        }
+      ]
+    },
+    {
+      "key": "app.app_identifier",
+      "brief": "Version-independent application identifier, often a dotted bundle ID.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "example": "com.example.myapp",
+      "alias": ["app.identifier"],
+      "deprecation": {
+        "replacement": "app.identifier",
+        "reason": "Deprecated in favor of app.identifier",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [296],
+          "description": "Added and deprecated app.app_identifier in favor of app.identifier"
+        }
+      ]
+    },
+    {
+      "key": "app.app_name",
+      "brief": "Human readable application name, as it appears on the platform.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "example": "My App",
+      "alias": ["app.name"],
+      "deprecation": {
+        "replacement": "app.name",
+        "reason": "Deprecated in favor of app.name",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [296],
+          "description": "Added and deprecated app.app_name in favor of app.name"
+        }
+      ]
+    },
+    {
+      "key": "app.app_start_time",
+      "brief": "Formatted UTC timestamp when the user started the application.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "example": "2025-01-01T00:00:00.000Z",
+      "alias": ["app.start_time"],
+      "deprecation": {
+        "replacement": "app.start_time",
+        "reason": "Deprecated in favor of app.start_time",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [296],
+          "description": "Added and deprecated app.app_start_time in favor of app.start_time"
+        }
+      ]
+    },
+    {
+      "key": "app.app_version",
+      "brief": "Human readable application version, as it appears on the platform.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "sdks": [
+        "sentry.cocoa",
+        "sentry.java.android",
+        "sentry.javascript.react-native",
+        "sentry.dart.flutter"
+      ],
+      "example": "1.0.0",
+      "alias": ["app.version"],
+      "deprecation": {
+        "replacement": "app.version",
+        "reason": "Deprecated in favor of app.version",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [296],
+          "description": "Added and deprecated app.app_version in favor of app.version"
+        }
+      ]
+    },
+    {
+      "key": "cls.source.<key>",
+      "brief": "The HTML elements or components responsible for the layout shift. <key> is a numeric index from 1 to N",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "body > div#app",
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "replacement": "browser.web_vital.cls.source.<key>",
+        "reason": "The CLS source is now recorded as a browser.web_vital.cls.source.<key> attribute.",
+        "_status": "backfill"
+      },
+      "has_dynamic_suffix": true,
+      "alias": ["browser.web_vital.cls.source.<key>"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [234]
+        }
+      ]
     },
     {
       "key": "code.filepath",
@@ -356,14 +1552,23 @@
         "_status": null,
         "replacement": "code.file.path"
       },
-      "alias": ["code.file.path"]
+      "alias": ["code.file.path"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "code.function",
       "brief": "The method or function name, or equivalent (usually rightmost part of the code unit's name).",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "server_request",
@@ -371,14 +1576,23 @@
         "_status": null,
         "replacement": "code.function.name"
       },
-      "alias": ["code.function.name"]
+      "alias": ["code.function.name"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 74]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "code.lineno",
       "brief": "The line number in code.filepath best representing the operation. It SHOULD point within the code unit named in code.function",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 42,
@@ -386,14 +1600,27 @@
         "_status": null,
         "replacement": "code.line.number"
       },
-      "alias": ["code.lineno"]
+      "alias": ["code.line.number"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61, 108]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "code.namespace",
       "brief": "The 'namespace' within which code.function is defined. Usually the qualified class or module name, such that code.namespace + some separator + code.function form a unique identifier for the code unit.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "http.handler",
@@ -401,14 +1628,47 @@
         "_status": null,
         "replacement": "code.function.name",
         "reason": "code.function.name should include the namespace."
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 74]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "connection.rtt",
+      "brief": "Specifies the estimated effective round-trip time of the current connection, in milliseconds.",
+      "type": "integer",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 100,
+      "sdks": ["javascript-browser"],
+      "alias": ["network.connection.rtt"],
+      "deprecation": {
+        "replacement": "network.connection.rtt",
+        "reason": "Old attribute name (no official namespace), to be replaced with network.connection.rtt for span-first future",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [279],
+          "description": "Added and deprecated attribute to document JS SDK's current behaviour"
+        }
+      ]
     },
     {
       "key": "db.name",
       "brief": "The name of the database being accessed.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "customers",
@@ -416,22 +1676,44 @@
         "_status": null,
         "replacement": "db.namespace"
       },
-      "alias": ["db.namespace"]
+      "alias": ["db.namespace"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "db.operation",
       "brief": "The name of the operation being executed.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "SELECT",
       "deprecation": {
-        "_status": null,
+        "_status": "normalize",
         "replacement": "db.operation.name"
       },
-      "alias": ["db.operation.name"]
+      "alias": ["db.operation.name"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [199]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "db.sql.bindings",
@@ -447,44 +1729,489 @@
         "reason": "Instead of adding every binding in the db.sql.bindings attribute, add them as individual entires with db.query.parameter.<key>."
       },
       "example": ["1", "foo"],
-      "sdks": ["php-laravel"]
+      "sdks": ["php-laravel"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "db.statement",
       "brief": "The database statement being executed.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "SELECT * FROM users",
       "deprecation": {
-        "_status": null,
+        "_status": "normalize",
         "replacement": "db.query.text"
       },
-      "alias": ["db.query.text"]
+      "alias": ["db.query.text"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [199]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "db.system",
       "brief": "An identifier for the database management system (DBMS) product being used. See [OpenTelemetry docs](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md#notes-and-well-known-identifiers-for-dbsystem) for a list of well-known identifiers.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "postgresql",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "db.system.name"
       },
-      "alias": ["db.system.name"]
+      "alias": ["db.system.name"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [199, 224]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "device.connection_type",
+      "brief": "The internet connection type currently being used by the device.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "wifi",
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "network.connection.type",
+        "reason": "This attribute is being deprecated in favor of network.connection.type"
+      },
+      "alias": ["network.connection.type", "connectionType"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [303],
+          "description": "Added and deprecated device.connection_type in favor of network.connection.type"
+        }
+      ]
+    },
+    {
+      "key": "frames.delay",
+      "brief": "The sum of all delayed frame durations in seconds during the lifetime of the span. For more information see [frames delay](https://develop.sentry.dev/sdk/performance/frames-delay/).",
+      "type": "integer",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 5,
+      "alias": ["app.vitals.frames.delay.value"],
+      "deprecation": {
+        "replacement": "app.vitals.frames.delay.value",
+        "reason": "Replaced by app.vitals.frames.delay.value to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [313],
+          "description": "Deprecated in favor of app.vitals.frames.delay.value"
+        },
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "frames.frozen",
+      "brief": "The number of frozen frames rendered during the lifetime of the span.",
+      "type": "integer",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 3,
+      "alias": ["app.vitals.frames.frozen.count"],
+      "deprecation": {
+        "replacement": "app.vitals.frames.frozen.count",
+        "reason": "Replaced by app.vitals.frames.frozen.count to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [313],
+          "description": "Deprecated in favor of app.vitals.frames.frozen.count"
+        },
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "frames.slow",
+      "brief": "The number of slow frames rendered during the lifetime of the span.",
+      "type": "integer",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1,
+      "alias": ["app.vitals.frames.slow.count"],
+      "deprecation": {
+        "replacement": "app.vitals.frames.slow.count",
+        "reason": "Replaced by app.vitals.frames.slow.count to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [313],
+          "description": "Deprecated in favor of app.vitals.frames.slow.count"
+        },
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "frames.total",
+      "brief": "The number of total frames rendered during the lifetime of the span.",
+      "type": "integer",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 60,
+      "alias": ["app.vitals.frames.total.count"],
+      "deprecation": {
+        "replacement": "app.vitals.frames.total.count",
+        "reason": "Replaced by app.vitals.frames.total.count to align with the app.vitals.* namespace for mobile performance attributes",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [313],
+          "description": "Deprecated in favor of app.vitals.frames.total.count"
+        },
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.prompt",
+      "brief": "The input messages sent to the model",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": true,
+      "example": "[{\"role\": \"user\", \"message\": \"hello\"}]",
+      "deprecation": {
+        "_status": null,
+        "reason": "Deprecated from OTEL, use gen_ai.input.messages with the new format instead."
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [74, 108, 119]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.request.available_tools",
+      "brief": "The available tools for the model. It has to be a stringified version of an array of objects.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "[{\"name\": \"get_weather\", \"description\": \"Get the weather for a given location\"}, {\"name\": \"get_news\", \"description\": \"Get the news for a given topic\"}]",
+      "alias": [],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.tool.definitions"
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [221]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [63, 127]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.request.messages",
+      "brief": "The messages passed to the model. It has to be a stringified version of an array of objects. The `role` attribute of each object must be `\"user\"`, `\"assistant\"`, `\"tool\"`, or `\"system\"`. For messages of the role `\"tool\"`, the `content` can be a string or an arbitrary object with information about the tool call. For other messages the `content` can be either a string or a list of objects in the format `{type: \"text\", text:\"...\"}`.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "[{\"role\": \"system\", \"content\": \"Generate a random number.\"}, {\"role\": \"user\", \"content\": [{\"text\": \"Generate a random number between 0 and 10.\", \"type\": \"text\"}]}, {\"role\": \"tool\", \"content\": {\"toolCallId\": \"1\", \"toolName\": \"Weather\", \"output\": \"rainy\"}}]",
+      "alias": ["ai.input_messages"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.input.messages"
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [221]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [63, 74, 108, 119, 122]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.response.text",
+      "brief": "The model's response text messages. It has to be a stringified version of an array of response text messages.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "[\"The weather in Paris is rainy and overcast, with temperatures around 57°F\", \"The weather in London is sunny and warm, with temperatures around 65°F\"]",
+      "alias": [],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.output.messages"
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [221]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [63, 74]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.response.tool_calls",
+      "brief": "The tool calls in the model's response. It has to be a stringified version of an array of objects.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "[{\"name\": \"get_weather\", \"arguments\": {\"location\": \"Paris\"}}]",
+      "alias": [],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.output.messages"
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [221]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [63, 74]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.system",
+      "brief": "The provider of the model.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": true,
+      "example": "openai",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.provider.name"
+      },
+      "alias": ["ai.model.provider", "gen_ai.provider.name"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [253]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [57, 127]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.system.message",
+      "brief": "The system instructions passed to the model.",
+      "type": "string",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": "You are a helpful assistant",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.system_instructions"
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [221]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [62]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.tool.input",
+      "brief": "The input of the tool being used. It has to be a stringified version of the input to the tool.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "{\"location\": \"Paris\"}",
+      "alias": ["gen_ai.tool.call.arguments"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.tool.call.arguments"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [265]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [63, 74]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.tool.message",
+      "brief": "The response from a tool or function call passed to the model.",
+      "type": "string",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": "rainy, 57°F",
+      "alias": ["gen_ai.tool.call.result", "gen_ai.tool.output"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.tool.call.result"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [265]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [62]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.tool.output",
+      "brief": "The output of the tool being used. It has to be a stringified version of the output of the tool.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "rainy, 57°F",
+      "alias": ["gen_ai.tool.call.result", "gen_ai.tool.message"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.tool.call.result"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [265]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [63, 74]
+        }
+      ]
+    },
+    {
+      "key": "gen_ai.tool.type",
+      "brief": "The type of tool being used.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": true,
+      "example": "function",
+      "deprecation": {
+        "_status": null,
+        "reason": "The gen_ai.tool.type attribute is deprecated and should no longer be set."
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [62, 127]
+        }
+      ]
     },
     {
       "key": "gen_ai.usage.completion_tokens",
       "brief": "The number of tokens used in the GenAI response (completion).",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 10,
@@ -492,14 +2219,27 @@
         "_status": null,
         "replacement": "gen_ai.usage.output_tokens"
       },
-      "alias": ["ai.completion_tokens.used", "gen_ai.usage.output_tokens"]
+      "alias": ["ai.completion_tokens.used", "gen_ai.usage.output_tokens"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "gen_ai.usage.prompt_tokens",
       "brief": "The number of tokens used in the GenAI input (prompt).",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 20,
@@ -507,29 +2247,51 @@
         "_status": null,
         "replacement": "gen_ai.usage.input_tokens"
       },
-      "alias": ["ai.prompt_tokens.used", "gen_ai.usage.input_tokens"]
+      "alias": ["ai.prompt_tokens.used", "gen_ai.usage.input_tokens"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.client_ip",
       "brief": "Client address - domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "true"
       },
       "is_in_otel": true,
       "example": "example.com",
       "deprecation": {
         "_status": null,
-        "replacement": "http.client_ip"
+        "replacement": "client.address"
       },
-      "alias": ["client.address"]
+      "alias": ["client.address"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 106, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.flavor",
       "brief": "The actual version of the protocol used for network communication.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "1.1",
@@ -537,14 +2299,23 @@
         "_status": null,
         "replacement": "network.protocol.version"
       },
-      "alias": ["network.protocol.version"]
+      "alias": ["network.protocol.version", "net.protocol.version"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.host",
       "brief": "The domain name.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "example.com",
@@ -553,14 +2324,23 @@
         "replacement": "server.address",
         "reason": "Deprecated, use one of `server.address` or `client.address`, depending on the usage"
       },
-      "alias": ["server.address", "client.address"]
+      "alias": ["server.address", "client.address", "http.server_name", "net.host.name"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.method",
       "brief": "The HTTP method used.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "GET",
@@ -568,14 +2348,23 @@
         "_status": null,
         "replacement": "http.request.method"
       },
-      "alias": ["http.request.method"]
+      "alias": ["http.request.method"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.response_content_length",
       "brief": "The encoded body size of the response (in bytes).",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 123,
@@ -583,10 +2372,19 @@
         "_status": "backfill",
         "replacement": "http.response.body.size"
       },
-      "alias": [
-        "http.response.body.size",
-        "http.response.header.content-length",
-        "http.response.header['content-length']"
+      "alias": ["http.response.body.size", "http.response.header.content-length"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61, 106]
+        },
+        {
+          "version": "0.0.0"
+        }
       ]
     },
     {
@@ -594,7 +2392,7 @@
       "brief": "The transfer size of the response (in bytes).",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": false,
       "example": 456,
@@ -602,14 +2400,27 @@
         "_status": "backfill",
         "replacement": "http.response.size"
       },
-      "alias": ["http.response.size"]
+      "alias": ["http.response.size"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.scheme",
       "brief": "The URI scheme component identifying the used protocol.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "https",
@@ -617,14 +2428,23 @@
         "_status": null,
         "replacement": "url.scheme"
       },
-      "alias": ["url.scheme"]
+      "alias": ["url.scheme"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.server_name",
       "brief": "The server domain name",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "example.com",
@@ -632,14 +2452,23 @@
         "_status": null,
         "replacement": "server.address"
       },
-      "alias": ["server.address"]
+      "alias": ["server.address", "net.host.name", "http.host"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.status_code",
       "brief": "The status code of the HTTP response.",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 404,
@@ -647,7 +2476,20 @@
         "_status": null,
         "replacement": "http.response.status_code"
       },
-      "alias": ["http.response.status_code"]
+      "alias": ["http.response.status_code"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.target",
@@ -662,7 +2504,16 @@
         "_status": null,
         "replacement": "url.path",
         "reason": "This attribute is being deprecated in favor of url.path and url.query"
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.url",
@@ -677,14 +2528,23 @@
         "_status": null,
         "replacement": "url.full"
       },
-      "alias": ["url.full", "http.url"]
+      "alias": ["url.full", "url"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "http.user_agent",
       "brief": "Value of the HTTP User-Agent header sent by the client.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1",
@@ -692,14 +2552,185 @@
         "_status": null,
         "replacement": "user_agent.original"
       },
-      "alias": ["user_agent.original"]
+      "alias": ["user_agent.original"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "lcp.element",
+      "brief": "The dom element responsible for the largest contentful paint.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "img",
+      "deprecation": {
+        "replacement": "browser.web_vital.lcp.element",
+        "reason": "The LCP element is now recorded as a browser.web_vital.lcp.element attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.lcp.element"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [233]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "lcp.id",
+      "brief": "The id of the dom element responsible for the largest contentful paint.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "#hero",
+      "deprecation": {
+        "replacement": "browser.web_vital.lcp.id",
+        "reason": "The LCP id is now recorded as a browser.web_vital.lcp.id attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.lcp.id"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [233]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "lcp.loadTime",
+      "brief": "The time it took for the LCP element to be loaded",
+      "type": "integer",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1402,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "replacement": "browser.web_vital.lcp.load_time",
+        "reason": "The LCP load time is now recorded as a browser.web_vital.lcp.load_time attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.lcp.load_time"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [233]
+        }
+      ]
+    },
+    {
+      "key": "lcp.renderTime",
+      "brief": "The time it took for the LCP element to be rendered",
+      "type": "integer",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1685,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "replacement": "browser.web_vital.lcp.render_time",
+        "reason": "The LCP render time is now recorded as a browser.web_vital.lcp.render_time attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.lcp.render_time"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [233]
+        }
+      ]
+    },
+    {
+      "key": "lcp.size",
+      "brief": "The size of the largest contentful paint element.",
+      "type": "integer",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1234,
+      "deprecation": {
+        "replacement": "browser.web_vital.lcp.size",
+        "reason": "The LCP size is now recorded as a browser.web_vital.lcp.size attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.lcp.size"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [233]
+        },
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "lcp.url",
+      "brief": "The url of the dom element responsible for the largest contentful paint.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "https://example.com",
+      "deprecation": {
+        "replacement": "browser.web_vital.lcp.url",
+        "reason": "The LCP url is now recorded as a browser.web_vital.lcp.url attribute.",
+        "_status": "backfill"
+      },
+      "alias": ["browser.web_vital.lcp.url"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [233]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.host.ip",
       "brief": "Local address of the network connection - IP address or Unix domain socket name.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "192.168.0.1",
@@ -707,14 +2738,23 @@
         "_status": null,
         "replacement": "network.local.address"
       },
-      "alias": ["network.local.address"]
+      "alias": ["network.local.address", "net.sock.host.addr"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.host.name",
       "brief": "Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "example.com",
@@ -722,14 +2762,23 @@
         "_status": null,
         "replacement": "server.address"
       },
-      "alias": ["server.address"]
+      "alias": ["server.address", "http.server_name", "http.host"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.host.port",
       "brief": "Server port number.",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 1337,
@@ -737,14 +2786,27 @@
         "_status": null,
         "replacement": "server.port"
       },
-      "alias": ["server.port"]
+      "alias": ["server.port"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.peer.ip",
       "brief": "Peer address of the network connection - IP address or Unix domain socket name.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "192.168.0.1",
@@ -752,14 +2814,23 @@
         "_status": null,
         "replacement": "network.peer.address"
       },
-      "alias": ["network.peer.address"]
+      "alias": ["network.peer.address", "net.sock.peer.addr"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.peer.name",
       "brief": "Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "example.com",
@@ -767,14 +2838,23 @@
         "_status": null,
         "replacement": "server.address",
         "reason": "Deprecated, use server.address on client spans and client.address on server spans."
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.peer.port",
       "brief": "Peer port number.",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 1337,
@@ -782,14 +2862,27 @@
         "_status": null,
         "replacement": "server.port",
         "reason": "Deprecated, use server.port on client spans and client.port on server spans."
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.protocol.name",
       "brief": "OSI application layer or non-OSI equivalent.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "http",
@@ -797,14 +2890,23 @@
         "_status": null,
         "replacement": "network.protocol.name"
       },
-      "alias": ["network.protocol.name"]
+      "alias": ["network.protocol.name"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.protocol.version",
       "brief": "The actual version of the protocol used for network communication.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "1.1",
@@ -812,14 +2914,23 @@
         "_status": null,
         "replacement": "network.protocol.version"
       },
-      "alias": ["network.protocol.version"]
+      "alias": ["network.protocol.version", "http.flavor"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.sock.family",
       "brief": "OSI transport and network layer",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "inet",
@@ -827,14 +2938,23 @@
         "_status": null,
         "replacement": "network.transport",
         "reason": "Deprecated, use network.transport and network.type."
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.sock.host.addr",
       "brief": "Local address of the network connection mapping to Unix domain socket name.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "/var/my.sock",
@@ -842,14 +2962,23 @@
         "_status": null,
         "replacement": "network.local.address"
       },
-      "alias": ["network.local.address"]
+      "alias": ["network.local.address", "net.host.ip"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.sock.host.port",
       "brief": "Local port number of the network connection.",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 8080,
@@ -857,14 +2986,27 @@
         "_status": null,
         "replacement": "network.local.port"
       },
-      "alias": ["network.local.port"]
+      "alias": ["network.local.port"],
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.sock.peer.addr",
       "brief": "Peer address of the network connection - IP address",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "192.168.0.1",
@@ -872,43 +3014,73 @@
         "_status": null,
         "replacement": "network.peer.address"
       },
-      "alias": ["network.peer.address"]
+      "alias": ["network.peer.address", "net.peer.ip"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 108, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.sock.peer.name",
       "brief": "Peer address of the network connection - Unix domain socket name",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "/var/my.sock",
       "deprecation": {
         "_status": null,
-        "replacement": "",
-        "reason": "Deprecated, no replacement at this time"
-      }
+        "reason": "Deprecated from OTEL, no replacement at this time"
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 119, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.sock.peer.port",
       "brief": "Peer port number of the network connection.",
       "type": "integer",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": 8080,
       "deprecation": {
         "_status": null,
         "replacement": "network.peer.port"
-      }
+      },
+      "changelog": [
+        {
+          "version": "0.4.0",
+          "prs": [228]
+        },
+        {
+          "version": "0.1.0",
+          "prs": [61]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
     },
     {
       "key": "net.transport",
       "brief": "OSI transport layer or inter-process communication method.",
       "type": "string",
       "pii": {
-        "key": "false"
+        "key": "maybe"
       },
       "is_in_otel": true,
       "example": "tcp",
@@ -916,7 +3088,86 @@
         "_status": null,
         "replacement": "network.transport"
       },
-      "alias": ["network.transport"]
+      "alias": ["network.transport"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [61, 127]
+        },
+        {
+          "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "os.build",
+      "brief": "The build ID of the operating system.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "1234567890",
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "os.build_id"
+      },
+      "alias": ["os.build_id"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [301],
+          "description": "Added os.build attribute, deprecated in favor of os.build_id"
+        }
+      ]
+    },
+    {
+      "key": "performance.activationStart",
+      "brief": "The time between initiating a navigation to a page and the browser activating the page",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1.983,
+      "sdks": ["javascript-browser"],
+      "alias": ["browser.performance.navigation.activation_start"],
+      "deprecation": {
+        "reason": "The activationStart is now recorded as the browser.performance.navigation.activation_start attribute.",
+        "replacement": "browser.performance.navigation.activation_start",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [321],
+          "description": "Added performance.activationStart attribute"
+        }
+      ]
+    },
+    {
+      "key": "performance.timeOrigin",
+      "brief": "The browser's performance.timeOrigin timestamp representing the time when the pageload was initiated",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "alias": ["browser.performance.time_origin"],
+      "is_in_otel": false,
+      "example": 1776185678.886,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "reason": "The timeOrigin is now recorded as the browser.performance.time_origin attribute.",
+        "replacement": "browser.performance.time_origin",
+        "_status": "backfill"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [321],
+          "description": "Added performance.timeOrigin attribute"
+        }
+      ]
     },
     {
       "key": "query.<key>",
@@ -932,7 +3183,205 @@
         "replacement": "url.query",
         "reason": "Instead of sending items individually in query.<key>, they should be sent all together with url.query."
       },
-      "example": "query.id='123'"
+      "example": "query.id='123'",
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [103]
+        }
+      ]
+    },
+    {
+      "key": "resource.deployment.environment",
+      "brief": "The software deployment environment name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "production",
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "sentry.environment"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [266]
+        }
+      ]
+    },
+    {
+      "key": "resource.deployment.environment.name",
+      "brief": "The software deployment environment name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "production",
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "sentry.environment"
+      },
+      "changelog": [
+        {
+          "version": "0.3.1",
+          "prs": [196]
+        }
+      ]
+    },
+    {
+      "key": "sentry.browser.name",
+      "brief": "The name of the browser.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "Chrome",
+      "deprecation": {
+        "_status": null,
+        "replacement": "browser.name"
+      },
+      "alias": ["browser.name"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [139]
+        }
+      ]
+    },
+    {
+      "key": "sentry.browser.version",
+      "brief": "The version of the browser.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "120.0.6099.130",
+      "deprecation": {
+        "_status": null,
+        "replacement": "browser.version"
+      },
+      "alias": ["browser.version"],
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [139]
+        }
+      ]
+    },
+    {
+      "key": "sentry.report_event",
+      "brief": "(Deprecated) The event that caused the SDK to report CLS or LCP (pagehide or navigation)",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "pagehide",
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "reason": "The report event is now recorded as a browser.web_vital.lcp.report_event or browser.web_vital.cls.report_event attribute. No backfill required.",
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [320],
+          "description": "Added sentry.report_event attribute"
+        }
+      ]
+    },
+    {
+      "key": "sentry.segment_id",
+      "brief": "The segment ID of a span",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "051581bf3cb55c13",
+      "alias": ["sentry.segment.id"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "sentry.segment.id"
+      },
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "prs": [124]
+        }
+      ]
+    },
+    {
+      "key": "sentry.source",
+      "brief": "The source of a span, also referred to as transaction source. Known values are:  `'custom'`, `'url'`, `'route'`, `'component'`, `'view'`, `'task'`. '`source`' describes a parametrized route, while `'url'` describes the full URL, potentially containing identifiers.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "route",
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "sentry.span.source",
+        "reason": "This attribute is being deprecated in favor of sentry.span.source"
+      },
+      "changelog": [
+        {
+          "version": "0.5.0"
+        }
+      ]
+    },
+    {
+      "key": "sentry.trace.parent_span_id",
+      "brief": "The span id of the span that was active when the log was collected. This should not be set if there was no active span.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "b0e6f15b45c36b12",
+      "deprecation": {
+        "_status": null
+      },
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [287],
+          "description": "Deprecate `sentry.trace.parent_span_id`"
+        },
+        {
+          "version": "0.1.0",
+          "prs": [116]
+        }
+      ]
+    },
+    {
+      "key": "ttfb.requestTime",
+      "brief": "The time it takes for the server to process the initial request and send the first byte of a response to the user's browser",
+      "type": "double",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": 1554.5814,
+      "sdks": ["javascript-browser"],
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "browser.web_vital.ttfb.request_time",
+        "reason": "This attribute is being deprecated in favor of browser.web_vital.ttfb.request_time"
+      },
+      "alias": ["browser.web_vital.ttfb.request_time"],
+      "changelog": [
+        {
+          "version": "0.5.0",
+          "prs": [235]
+        }
+      ]
     }
   ]
 }
