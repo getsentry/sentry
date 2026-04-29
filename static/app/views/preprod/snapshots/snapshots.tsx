@@ -536,7 +536,7 @@ export default function SnapshotsPage() {
           listItems={listItems}
           isSoloView={isSoloView}
           onToggleSoloView={handleToggleView}
-          comparisonType={data?.comparison_type}
+          comparisonType={comparisonType}
           headBranch={data?.vcs_info?.head_ref}
           selectedSnapshotKey={selectedSnapshotKey}
           onSelectSnapshot={setSelectedSnapshotKey}
