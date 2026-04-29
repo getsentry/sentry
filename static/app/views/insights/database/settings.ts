@@ -8,7 +8,6 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {ModuleName} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
 export const DATA_TYPE = t('Query');
@@ -16,12 +15,6 @@ export const DATA_TYPE_PLURAL = t('Queries');
 export const BASE_URL = 'database';
 
 export const EXCLUDED_DB_OPS = ['db.sql.room', 'db.redis'];
-
-export const BASE_FILTERS = {
-  'span.category': ModuleName.DB,
-  '!span.op': `[${EXCLUDED_DB_OPS.join(',')}]`,
-  has: 'sentry.normalized_description',
-};
 
 export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
   'sentry.python': '1.29.2',

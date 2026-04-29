@@ -6,14 +6,6 @@ export const Layout = styled('div')`
   gap: ${p => p.theme.space.xl};
 `;
 
-export const Half = styled('div')`
-  grid-column: span 12;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: span 6;
-  }
-`;
-
 export const Full = styled('div')`
   grid-column: span 12;
 `;
