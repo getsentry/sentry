@@ -2,11 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -38,7 +37,6 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function LogsContent() {
   const organization = useOrganization();
@@ -126,7 +124,6 @@ function LogsHeader() {
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -150,61 +147,35 @@ function LogsHeader() {
 
   const hasBreadcrumb = Boolean(title && defined(pageId));
 
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        {documentTitle}
-        <TopBar.Slot name="title">
-          {hasBreadcrumb ? (
-            <ExploreBreadcrumb
-              traceItemDataset={TraceItemDataset.LOGS}
-              savedQueryName={savedQuery?.name}
-            />
-          ) : (
-            title || t('Logs')
-          )}
-          {titleTooltip}
-        </TopBar.Slot>
-        {defined(onboardingProject) && (
-          <TopBar.Slot name="actions">
-            <SetupLogsButton />
-          </TopBar.Slot>
-        )}
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            feedbackOptions={logsFeedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-      </Fragment>
-    );
-  }
-
   return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        {documentTitle}
+    <Fragment>
+      {documentTitle}
+      <TopBar.Slot name="title">
         {hasBreadcrumb ? (
           <ExploreBreadcrumb
             traceItemDataset={TraceItemDataset.LOGS}
             savedQueryName={savedQuery?.name}
           />
-        ) : null}
-        <Layout.Title>
-          {title || t('Logs')}
-          {titleTooltip}
-        </Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <FeedbackButton feedbackOptions={logsFeedbackOptions} />
-          {defined(onboardingProject) && <SetupLogsButton />}
-        </Grid>
-      </Layout.HeaderActions>
-    </Layout.Header>
+        ) : (
+          title || t('Logs')
+        )}
+        {titleTooltip}
+      </TopBar.Slot>
+      {defined(onboardingProject) && (
+        <TopBar.Slot name="actions">
+          <SetupLogsButton />
+        </TopBar.Slot>
+      )}
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          feedbackOptions={logsFeedbackOptions}
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 
@@ -212,7 +183,6 @@ function SetupLogsButton() {
   const organization = useOrganization();
   const projects = useProjects();
   const pageFilters = usePageFilters();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   let project = projects.projects?.[0];
 
   const filtered = projects.projects?.filter(p =>
@@ -236,7 +206,6 @@ function SetupLogsButton() {
       priority="primary"
       href="https://docs.sentry.io/product/explore/logs/getting-started/"
       external
-      size={hasPageFrameFeature ? undefined : 'xs'}
       onClick={() => {
         trackAnalytics('logs.explorer.setup_button_clicked', {
           organization,

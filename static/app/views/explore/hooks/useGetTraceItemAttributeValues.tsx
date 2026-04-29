@@ -70,7 +70,7 @@ function traceItemAttributeValuesQueryKey({
   if (datetime) {
     Object.entries(normalizeDateTimeParams(datetime)).forEach(([key, value]) => {
       if (value !== undefined) {
-        query[key] = value as string | string[];
+        query[key] = value!;
       }
     });
   }
@@ -94,7 +94,7 @@ export function useGetTraceItemAttributeValues({
   traceItemType,
   projectIds,
   datetime,
-  type = 'string',
+  type,
   query: filterQuery,
 }: UseGetTraceItemAttributeValuesProps) {
   const api = useApi();

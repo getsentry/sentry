@@ -373,6 +373,21 @@ export function GroupActivityItem({
         }
         return tct('[author] marked this issue as resolved in a commit', {author});
       }
+      case GroupActivityType.REFERENCED_IN_COMMIT: {
+        if (activity.data.commit) {
+          return tct('[author] referenced this issue in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+          });
+        }
+        return tct('[author] referenced this issue in a commit', {author});
+      }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;

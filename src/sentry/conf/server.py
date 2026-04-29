@@ -1210,10 +1210,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
-    "llm-issue-detection": {
-        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": timedelta(minutes=5),
-    },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": crontab("0", "*", "*", "*", "*"),

@@ -325,7 +325,7 @@ export function ResultGrid(props: Props) {
             queryKey={filterKey}
             value={state.filters[filterKey]!}
             path={path ?? ''}
-            {...(filters?.[filterKey] as FilterConfig)}
+            {...filters?.[filterKey]!}
           />
         ))}
       </div>

@@ -170,6 +170,22 @@ function MyComponent() {
 }
 ```
 
+Matching is layout-aware: an AZERTY user pressing the key labeled `K` fires `command+k`, and shortcuts like `command+shift+1` continue to work regardless of how `Shift+1` produces a character on the user's layout.
+
+### Conditional hotkeys
+
+Use `enabled` to gate a hotkey on state without rebuilding the array. While `enabled` is `false` the callback never fires and `preventDefault` is never called, so the key reaches other listeners unchanged.
+
+```jsx
+useHotkeys([
+  {
+    match: 'Escape',
+    enabled: isPanelOpen,
+    callback: closePanel,
+  },
+]);
+```
+
 ## Accessibility
 
 Both `<Hotkey>` and `<Kbd>` render semantic `<kbd>` HTML elements. `<Hotkey>` uses nested `<kbd>` elements (an outer `<kbd>` wrapping inner `<kbd>` elements for each key), which is the correct HTML semantics for a key combination.
