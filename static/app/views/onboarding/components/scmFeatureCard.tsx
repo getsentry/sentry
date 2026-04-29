@@ -81,17 +81,12 @@ export function ScmFeatureCard({
             </Container>
           </Grid>
           <Flex align="start" gap="sm">
-            <Tooltip title={volumeTooltip} delay={100} style={{height: '100%'}}>
+            <Tooltip title={volumeTooltip} delay={100}>
               <Tag variant="muted" icon={<IconInfo size="sm" />}>
                 {volume}
               </Tag>
             </Tooltip>
-            <Tooltip
-              title={disabledReason}
-              disabled={!disabledReason}
-              delay={500}
-              style={{height: '100%'}}
-            >
+            <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
               <Switch
                 checked={isSelected}
                 disabled={disabled}

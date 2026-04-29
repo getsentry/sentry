@@ -441,13 +441,13 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     (!currentPlatformKey || currentPlatformIsDetected);
 
   return (
-    <Stack align="center" gap="2xl" flexGrow={1}>
-      <Stack maxWidth={SCM_STEP_CONTENT_WIDTH} gap="3xl">
+    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
+      <Stack gap="3xl" maxWidth={SCM_STEP_CONTENT_WIDTH}>
         <Heading as="h2" size="4xl">
           {t('Create your first project')}
         </Heading>
         <LayoutGroup>
-          <MotionStack maxWidth={SCM_STEP_CONTENT_WIDTH} gap="md" paddingTop="sm">
+          <Stack gap="md" paddingTop="sm">
             <Heading as="h3" size="xl">
               {t('Choose your SDK')}
             </Heading>
@@ -456,7 +456,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                 'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
               )}
             </Text>
-          </MotionStack>
+          </Stack>
           {showDetectedPlatforms ? (
             <MotionStack
               key="detected"
@@ -464,7 +464,6 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               animate={{opacity: 1}}
               gap="md"
               width="100%"
-              maxWidth={SCM_STEP_CONTENT_WIDTH}
             >
               <Flex justify="between" align="center">
                 <Flex align="center" gap="sm">
@@ -495,7 +494,6 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                       md: `repeat(${resolvedPlatforms.length}, minmax(200px, 1fr))`,
                     }}
                     width={{xs: '100%', md: 'auto'}}
-                    maxWidth={{xs: SCM_STEP_CONTENT_WIDTH, md: 'auto'}}
                     justify="center"
                     gap="md"
                     role="radiogroup"
@@ -519,7 +517,6 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               key="manual"
               gap="md"
               width="100%"
-              maxWidth={SCM_STEP_CONTENT_WIDTH}
               initial={{opacity: 0}}
               animate={{opacity: 1}}
             >
@@ -560,7 +557,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               />
             </MotionStack>
           )}
-          <MotionStack layout="position" maxWidth={SCM_STEP_CONTENT_WIDTH} width="100%">
+          <MotionStack layout="position" width="100%">
             {availableFeatures.length > 0 && (
               <Stack gap="2xl" paddingTop="xs">
                 <Flex
@@ -599,7 +596,6 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
             align="center"
             justify="between"
             width="100%"
-            maxWidth={SCM_STEP_CONTENT_WIDTH}
             paddingTop="sm"
           >
             <Flex align="center">{genBackButton?.()}</Flex>
@@ -625,7 +621,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
           </MotionStack>
         </LayoutGroup>
       </Stack>
-    </Stack>
+    </Flex>
   );
 }
 
