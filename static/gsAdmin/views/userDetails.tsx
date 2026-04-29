@@ -227,7 +227,10 @@ export function UserDetails() {
     <DetailsPage
       rootName="Users"
       name={user.name === user.email ? user.email : `${user.name} (${user.email})`}
-      badges={[{name: 'Inactive', level: 'warning', visible: !user.isActive}]}
+      badges={[
+        {name: 'Inactive', level: 'warning', visible: !user.isActive},
+        {name: 'Suspended', level: 'danger', visible: user.isSuspended},
+      ]}
       actions={[
         {
           key: 'edit-permissions',
@@ -262,8 +265,22 @@ export function UserDetails() {
           key: 'reactivate',
           name: 'Reactivate Account',
           help: 'Restores this account allowing the user to login.',
-          visible: !user.isActive,
+          visible: !user.isActive && !user.isSuspended,
           onAction: () => onUpdateMutation.mutate({isActive: 1}),
+        },
+        {
+          key: 'suspend',
+          name: 'Suspend Account',
+          help: 'Prevent this user from logging in. Account and data are preserved.',
+          visible: user.isActive && !user.isSuspended,
+          onAction: () => onUpdateMutation.mutate({isSuspended: true}),
+        },
+        {
+          key: 'unsuspend',
+          name: 'Unsuspend Account',
+          help: 'Allow this user to log in again.',
+          visible: user.isSuspended,
+          onAction: () => onUpdateMutation.mutate({isSuspended: false}),
         },
       ]}
       sections={[
