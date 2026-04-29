@@ -596,6 +596,7 @@ export enum GroupActivityType {
   SET_RESOLVED_BY_AGE = 'set_resolved_by_age',
   SET_RESOLVED_IN_RELEASE = 'set_resolved_in_release',
   SET_RESOLVED_IN_COMMIT = 'set_resolved_in_commit',
+  REFERENCED_IN_COMMIT = 'referenced_in_commit',
   SET_RESOLVED_IN_PULL_REQUEST = 'set_resolved_in_pull_request',
   SET_UNRESOLVED = 'set_unresolved',
   SET_IGNORED = 'set_ignored',
@@ -763,6 +764,13 @@ interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
+interface GroupActivityReferencedInCommit extends GroupActivityBase {
+  data: {
+    commit?: Commit;
+  };
+  type: GroupActivityType.REFERENCED_IN_COMMIT;
+}
+
 interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
     pullRequest?: PullRequest;
@@ -899,6 +907,7 @@ export type GroupActivity =
   | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
+  | GroupActivityReferencedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen
   | GroupActivityMerge

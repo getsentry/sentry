@@ -130,7 +130,7 @@ describe('ChangePlanAction', () => {
 
     // Verify at least one plan option is displayed
     expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
-    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+    await userEvent.click(screen.getAllByRole('radio')[0]!);
 
     // Verify checkout categories are displayed
     expect(screen.getAllByRole('textbox')).toHaveLength(
@@ -153,7 +153,7 @@ describe('ChangePlanAction', () => {
 
     // Verify tab change changes plan options displayed
     expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
-    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+    await userEvent.click(screen.getAllByRole('radio')[0]!);
 
     // Verify tab change changes categories displayed
     expect(screen.getAllByRole('textbox')).toHaveLength(
@@ -216,7 +216,7 @@ describe('ChangePlanAction', () => {
     });
 
     // Select a plan
-    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+    await userEvent.click(screen.getAllByRole('radio')[0]!);
 
     // Select reserved volumes
     await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
@@ -262,7 +262,7 @@ describe('ChangePlanAction', () => {
       expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+    await userEvent.click(screen.getAllByRole('radio')[0]!);
 
     await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
     await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
@@ -371,7 +371,7 @@ describe('ChangePlanAction', () => {
     expect(screen.getByTestId('change-plan-label-test_test_monthly')).toBeInTheDocument();
 
     // Select a plan
-    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+    await userEvent.click(screen.getAllByRole('radio')[0]!);
 
     // Select reserved volumes
     await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '50,000');
@@ -421,19 +421,19 @@ describe('ChangePlanAction', () => {
       await waitFor(() => {
         expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
       });
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+      await userEvent.click(screen.getAllByRole('radio')[0]!);
 
       expect(screen.getByText('Seer')).toBeInTheDocument();
 
       const am2Tab = screen.getByRole('tab', {name: 'AM2'});
       await userEvent.click(am2Tab);
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+      await userEvent.click(screen.getAllByRole('radio')[0]!);
 
       expect(screen.getByText('Seer')).toBeInTheDocument();
 
       const am1Tab = screen.getByRole('tab', {name: 'AM1'});
       await userEvent.click(am1Tab);
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+      await userEvent.click(screen.getAllByRole('radio')[0]!);
 
       expect(screen.getByText('Seer')).toBeInTheDocument();
     });
@@ -460,7 +460,7 @@ describe('ChangePlanAction', () => {
       });
 
       // Select a plan to make the Available Products section visible
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+      await userEvent.click(screen.getAllByRole('radio')[0]!);
 
       // Verify Seer budget checkbox is checked when subscription has Seer budget
       const seerCheckbox = screen.getByRole('checkbox', {
@@ -478,7 +478,7 @@ describe('ChangePlanAction', () => {
       });
 
       // Select a plan to make the Available Products section visible
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+      await userEvent.click(screen.getAllByRole('radio')[0]!);
 
       // Verify Seer budget checkbox is unchecked when subscription has no Seer budget
       const seerCheckbox = screen.getByRole('checkbox', {
@@ -503,7 +503,7 @@ describe('ChangePlanAction', () => {
       });
 
       // Select a plan
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+      await userEvent.click(screen.getAllByRole('radio')[0]!);
 
       // Check the Seer budget checkbox
       const seerCheckbox = screen.getByRole('checkbox', {
@@ -563,7 +563,7 @@ describe('ChangePlanAction', () => {
       });
 
       // Select a plan
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+      await userEvent.click(screen.getAllByRole('radio')[0]!);
 
       // Verify Seer budget checkbox is unchecked (default state)
       const seerCheckbox = screen.getByRole('checkbox', {

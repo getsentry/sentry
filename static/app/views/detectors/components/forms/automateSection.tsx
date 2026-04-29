@@ -23,7 +23,7 @@ export function AutomateSection({step}: {step?: number}) {
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
 
   const project = useDetectorFormProject();
-  const workflowIds = useFormField('workflowIds') as string[];
+  const workflowIds = useFormField('workflowIds')!;
   const setWorkflowIds = useCallback(
     (newWorkflowIds: string[]) =>
       formContext.form?.setValue('workflowIds', newWorkflowIds),

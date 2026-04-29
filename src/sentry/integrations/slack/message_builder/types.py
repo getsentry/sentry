@@ -27,6 +27,7 @@ class SlackAction(StrEnum):
     LINK_TO_SEER = "link_to_seer"
 
     SEER_AUTOFIX_START = "seer_autofix_start"
+    SEER_AUTOFIX_HANDOFF = "seer_autofix_handoff"
     SEER_AUTOFIX_VIEW_IN_SENTRY = "seer_autofix_view_in_sentry"
     SEER_AUTOFIX_VIEW_PR = "seer_autofix_view_pr"
 

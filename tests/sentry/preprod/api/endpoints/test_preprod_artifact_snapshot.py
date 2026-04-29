@@ -581,3 +581,61 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 404
         assert response.data["detail"] == "Snapshot metrics not found"
+
+    def test_get_snapshot_returns_404_for_member_without_project_access(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        artifact, _, _, _, _ = self._create_artifact_with_manifest()
+        team = self.create_team(organization=self.org)
+        outsider = self.create_user(is_superuser=False)
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[team])
+        self.login_as(user=outsider)
+
+        url = self._get_detail_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(url)
+
+        assert response.status_code == 404
+
+
+class ProjectPreprodSnapshotDeleteTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+
+    def _delete_url(self, snapshot_id):
+        return reverse(
+            "sentry-api-0-project-preprod-snapshots-detail",
+            args=[self.org.slug, snapshot_id],
+        )
+
+    def _create_snapshot_artifact(self):
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id="com.example.app",
+        )
+        PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=artifact,
+            image_count=0,
+            extras={"manifest_key": f"{self.org.id}/{self.project.id}/{artifact.id}/manifest.json"},
+        )
+        return artifact
+
+    def test_delete_returns_404_for_member_without_project_access(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        artifact = self._create_snapshot_artifact()
+        team = self.create_team(organization=self.org)
+        outsider = self.create_user(is_superuser=False)
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[team])
+        self.login_as(user=outsider)
+
+        url = self._delete_url(artifact.id)
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.delete(url)
+
+        assert response.status_code == 404
+        assert PreprodArtifact.objects.filter(id=artifact.id).exists()

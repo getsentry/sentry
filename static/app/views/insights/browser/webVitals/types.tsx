@@ -134,4 +134,3 @@ export const DEFAULT_INDEXED_SPANS_SORT: Sort = {
   kind: 'desc',
   field: 'timestamp',
 };
-
