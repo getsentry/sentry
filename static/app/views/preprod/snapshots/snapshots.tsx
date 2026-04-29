@@ -279,29 +279,37 @@ export default function SnapshotsPage() {
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const deferredActiveStatuses = useDeferredValue(activeStatuses);
 
-  const filteredItems = useMemo(() => {
+  const searchFilteredItems = useMemo(() => {
     const trimmedQuery = deferredSearchQuery.trim().toLowerCase();
-    const hasStatusFilter = deferredActiveStatuses.size > 0;
-    const base: SidebarItem[] = [];
+    if (!trimmedQuery) {
+      return sidebarItems;
+    }
+    const result: SidebarItem[] = [];
     for (let i = 0; i < sidebarItems.length; i++) {
-      const item = sidebarItems[i]!;
-      if (hasStatusFilter && !deferredActiveStatuses.has(item.type as DiffStatus)) {
-        continue;
-      }
-      if (!trimmedQuery) {
-        base.push(item);
-        continue;
-      }
-      const narrowed = narrowItemBySearch(item, memberSearchKeys[i]!, trimmedQuery);
+      const narrowed = narrowItemBySearch(
+        sidebarItems[i]!,
+        memberSearchKeys[i]!,
+        trimmedQuery
+      );
       if (narrowed) {
-        base.push(narrowed);
+        result.push(narrowed);
       }
     }
+    return result;
+  }, [sidebarItems, memberSearchKeys, deferredSearchQuery]);
+
+  const filteredItems = useMemo(() => {
+    const hasStatusFilter = deferredActiveStatuses.size > 0;
+    const base = hasStatusFilter
+      ? searchFilteredItems.filter(item =>
+          deferredActiveStatuses.has(item.type as DiffStatus)
+        )
+      : searchFilteredItems;
 
     if (sortBy === 'alpha') {
-      return base.sort((a, b) => a.name.localeCompare(b.name));
+      return [...base].sort((a, b) => a.name.localeCompare(b.name));
     }
-    return base.sort((a, b) => {
+    return [...base].sort((a, b) => {
       const diffA = itemMaxDiff(a);
       const diffB = itemMaxDiff(b);
       if (diffA !== diffB) {
@@ -309,13 +317,7 @@ export default function SnapshotsPage() {
       }
       return (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
     });
-  }, [
-    sidebarItems,
-    memberSearchKeys,
-    deferredSearchQuery,
-    deferredActiveStatuses,
-    sortBy,
-  ]);
+  }, [searchFilteredItems, deferredActiveStatuses, sortBy]);
 
   const sidebarGroups = useMemo<SidebarGroup[]>(() => {
     const merged = new Map<string, SidebarGroup>();
@@ -364,13 +366,16 @@ export default function SnapshotsPage() {
       [DiffStatus.RENAMED]: 0,
       [DiffStatus.UNCHANGED]: 0,
     };
-    for (const item of sidebarItems) {
+    const source = selectedGroup
+      ? searchFilteredItems.filter(i => i.name === selectedGroup)
+      : searchFilteredItems;
+    for (const item of source) {
       if (item.type in counts) {
         counts[item.type as DiffStatus]++;
       }
     }
     return counts;
-  }, [sidebarItems, comparisonType]);
+  }, [searchFilteredItems, selectedGroup, comparisonType]);
 
   // Clamp variantIndex when the selected item changes implicitly (e.g. search
   // filtering selects a new item with fewer variants).

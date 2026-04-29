@@ -88,7 +88,11 @@ export function SnapshotSidebarContent({
         isSelected={isSelected}
         onClick={e => {
           e.stopPropagation();
-          onSelectItem(group.key);
+          if (isSelected) {
+            onSelectAll();
+          } else {
+            onSelectItem(group.key);
+          }
         }}
       >
         <Flex align="center" gap="sm" flex="1" minWidth="0">
@@ -124,7 +128,18 @@ export function SnapshotSidebarContent({
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={t('Search components...')}
+            placeholder={
+              currentItemKey
+                ? t(
+                    'Search %s %s components...',
+                    groups.find(g => g.key === currentItemKey)?.count ?? '',
+                    currentItemKey
+                  )
+                : t(
+                    'Search %s components...',
+                    groups.reduce((sum, g) => sum + g.count, 0)
+                  )
+            }
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />
