@@ -62,7 +62,6 @@ import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import {OrgStatsProfilingBanner} from 'getsentry/hooks/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/hooks/rootRoutes';
-import {ScmFlowReplayTracker} from 'getsentry/hooks/scmFlowReplayTracker';
 import {ScmGithubMultiOrgInstall} from 'getsentry/hooks/scmGithubMultiOrgInstall';
 import {seerSettingsRoutes} from 'getsentry/hooks/seerSettingsRoutes';
 import {ComponentWrapper as EnhancedOrganizationStats} from 'getsentry/hooks/spendVisibility/enhancedIndex';
@@ -74,6 +73,7 @@ import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDat
 import {useExperiment} from 'getsentry/hooks/useExperiment';
 import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
 import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
+import {useReplayForCriticalFlow} from 'getsentry/hooks/useReplayForCriticalFlow';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
 
@@ -189,14 +189,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   ),
 
   /**
-   * Force a session replay for the SCM onboarding cohort so we get
-   * representative funnel coverage for debugging.
-   */
-  'onboarding:scm-flow-replay-tracker': () => (
-    <ScmFlowReplayTracker key="scm-flow-replay-tracker" />
-  ),
-
-  /**
    * Get list of organization roles
    */
   'member-invite-modal:organization-roles': getOrgRoles,
@@ -267,6 +259,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
   'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
   'react-hook:use-experiment': useExperiment,
+  'react-hook:use-replay-for-critical-flow': useReplayForCriticalFlow,
   'react-hook:use-product-billing-access': useProductBillingAccess,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />

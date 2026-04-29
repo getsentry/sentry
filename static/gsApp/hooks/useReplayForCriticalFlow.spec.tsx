@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useReplayForCriticalFlow} from 'getsentry/utils/replays/useReplayForCriticalFlow';
+import {useReplayForCriticalFlow} from 'getsentry/hooks/useReplayForCriticalFlow';
 
 describe('useReplayForCriticalFlow', () => {
   const flush = jest.fn();
