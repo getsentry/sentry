@@ -13,7 +13,7 @@ import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
-import {getApiAggregateString} from 'sentry/views/detectors/datasetConfig/metrics';
+import {getApiAggregateString} from 'sentry/views/detectors/datasetConfig/utils/getApiAggregateString';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {
