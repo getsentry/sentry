@@ -166,7 +166,7 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <Flex align="center" justify="between" gap="md" padding="md xl">
+        <Flex align="center" justify="between" gap="md" padding="md 2xl md 0">
           <Flex align="center" gap="md">
             {toggle}
             {sortDropdown}
@@ -578,6 +578,7 @@ const SingleViewScroll = styled('div')`
   width: 100%;
   overflow: auto;
   padding: ${p => p.theme.space.xl};
+  padding-left: 0;
   display: flex;
   flex-direction: column;
 `;
@@ -618,6 +619,8 @@ const SingleViewBody = styled('div')`
 
 const ColorPickerWrapper = styled('div')`
   position: relative;
+  display: flex;
+  align-items: center;
 `;
 
 const ColorPickerDropdown = styled('div')`

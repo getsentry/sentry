@@ -1,4 +1,4 @@
-import {memo, useEffect, useState} from 'react';
+import {memo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -38,11 +38,10 @@ export const SplitPairBody = memo(function SplitPairBody({
 }) {
   const [zoom1, zoom2] = useSyncedD3Zoom({wheelRequiresModifier: true});
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
-  const diffMaskUrl = useDiffMaskBlobUrl(
+  const diffMaskUrl =
     hasVisibleOverlay && diffImageKey && diffImageBaseUrl
       ? `${diffImageBaseUrl}${diffImageKey}/`
-      : null
-  );
+      : null;
   return (
     <Container position="relative">
       <Grid columns="1fr 1fr" gap="0">
@@ -84,8 +83,8 @@ export const SplitPairBody = memo(function SplitPairBody({
                   width={headImage.width || undefined}
                   height={headImage.height || undefined}
                 />
-                {hasVisibleOverlay && overlayColor && diffMaskUrl && (
-                  <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
+                {diffMaskUrl && (
+                  <DiffOverlay $overlayColor={overlayColor!} $maskUrl={diffMaskUrl} />
                 )}
               </Container>
             </ZoomTransformLayer>
@@ -121,11 +120,10 @@ export const ImageColumn = memo(function ImageColumn({
   withLeftBorder?: boolean;
 }) {
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
-  const diffMaskUrl = useDiffMaskBlobUrl(
+  const diffMaskUrl =
     hasVisibleOverlay && diffImageKey && diffImageBaseUrl
       ? `${diffImageBaseUrl}${diffImageKey}/`
-      : null
-  );
+      : null;
   return (
     <Stack minWidth="0" borderLeft={withLeftBorder ? 'secondary' : undefined}>
       <Container padding="sm xl" borderBottom="secondary">
@@ -143,46 +141,14 @@ export const ImageColumn = memo(function ImageColumn({
             width={image.width || undefined}
             height={image.height || undefined}
           />
-          {hasVisibleOverlay && overlayColor && diffMaskUrl && (
-            <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
+          {diffMaskUrl && (
+            <DiffOverlay $overlayColor={overlayColor!} $maskUrl={diffMaskUrl} />
           )}
         </Container>
       </Flex>
     </Stack>
   );
 });
-
-function useDiffMaskBlobUrl(diffImageUrl: string | null) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!diffImageUrl) {
-      setBlobUrl(null);
-      return undefined;
-    }
-    let cancelled = false;
-    let createdUrl: string | null = null;
-    fetch(diffImageUrl)
-      .then(r =>
-        r.ok ? r.blob() : Promise.reject(new Error(`diff fetch failed: ${r.status}`))
-      )
-      .then(blob => {
-        if (cancelled) {
-          return;
-        }
-        createdUrl = URL.createObjectURL(blob);
-        setBlobUrl(createdUrl);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-      if (createdUrl) {
-        URL.revokeObjectURL(createdUrl);
-      }
-      setBlobUrl(null);
-    };
-  }, [diffImageUrl]);
-  return blobUrl;
-}
 
 const WIPE_MIN_HEIGHT = 160;
 
