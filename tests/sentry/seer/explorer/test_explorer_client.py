@@ -949,3 +949,188 @@ class TestSeerRunStateCodeChanges(TestCase):
         assert len(result["owner/repo1"]) == 1
         assert result["owner/repo1"][0].patch.type == "A"
         assert result["owner/repo1"][0].patch.added == 100
+
+
+class TestStartRunExplorerIndexTrigger(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+        access_patcher = patch(
+            "sentry.seer.explorer.client.has_seer_access_with_detail",
+            return_value=(True, None),
+        )
+        access_patcher.start()
+        self.addCleanup(access_patcher.stop)
+        context_patcher = patch(
+            "sentry.seer.explorer.client.collect_user_org_context",
+            return_value={},
+        )
+        context_patcher.start()
+        self.addCleanup(context_patcher.stop)
+
+    def _mock_chat_response(self, run_id: int = 123, **flags: bool | None) -> MagicMock:
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": run_id, **flags}
+        return mock_response
+
+    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    def test_triggers_indexing_when_explorer_index_missing(self, mock_chat, mock_dispatch):
+        mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
+        mock_dispatch.return_value = iter([])
+        project = self.create_project(organization=self.organization)
+        project.flags.has_transactions = True
+        project.save()
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with self.options(
+            {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
+        ):
+            run_id = client.start_run("Why are my errors spiking?")
+
+        assert run_id == 123
+        mock_dispatch.assert_called_once()
+        projects_batch = list(mock_dispatch.call_args[0][0])
+        assert (project.id, self.organization.id) in projects_batch
+
+    @patch("sentry.seer.explorer.client.index_org_project_knowledge")
+    @patch("sentry.seer.explorer.client.build_service_map")
+    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    def test_triggers_indexing_when_org_project_context_missing(
+        self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
+    ):
+        mock_chat.return_value = self._mock_chat_response(has_org_project_context=False)
+        mock_dispatch.return_value = iter([])
+        project = self.create_project(organization=self.organization)
+        project.flags.has_transactions = True
+        project.save()
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with self.options(
+            {
+                "seer.explorer_index.enable": True,
+                "seer.explorer_index.killswitch.enable": False,
+                "explorer.context_engine_indexing.enable": True,
+            }
+        ):
+            run_id = client.start_run("Why are my errors spiking?")
+
+        assert run_id == 123
+        mock_dispatch.assert_not_called()
+        mock_index_knowledge.apply_async.assert_called_once_with(args=[self.organization.id])
+        mock_build_service_map.apply_async.assert_called_once_with(args=[self.organization.id])
+
+    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    def test_excludes_projects_without_transactions_from_batch(self, mock_chat, mock_dispatch):
+        mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
+        mock_dispatch.return_value = iter([])
+        project_with_txns = self.create_project(organization=self.organization)
+        project_with_txns.flags.has_transactions = True
+        project_with_txns.save()
+        project_without_txns = self.create_project(organization=self.organization)
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with self.options(
+            {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
+        ):
+            client.start_run("Why are my errors spiking?")
+
+        projects_batch = list(mock_dispatch.call_args[0][0])
+        assert (project_with_txns.id, self.organization.id) in projects_batch
+        assert (project_without_txns.id, self.organization.id) not in projects_batch
+
+    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    def test_skips_indexing_when_index_present(self, mock_chat, mock_dispatch):
+        mock_chat.return_value = self._mock_chat_response(
+            has_explorer_index=True, has_org_project_context=True
+        )
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with self.options({"seer.explorer_index.enable": True}):
+            run_id = client.start_run("Why are my errors spiking?")
+
+        assert run_id == 123
+        mock_dispatch.assert_not_called()
+
+    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    def test_skips_indexing_when_flags_absent_from_response(self, mock_chat, mock_dispatch):
+        mock_chat.return_value = self._mock_chat_response()
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with self.options({"seer.explorer_index.enable": True}):
+            run_id = client.start_run("Why are my errors spiking?")
+
+        assert run_id == 123
+        mock_dispatch.assert_not_called()
+
+    @patch("sentry.seer.explorer.client.index_org_project_knowledge")
+    @patch("sentry.seer.explorer.client.build_service_map")
+    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    def test_skips_indexing_when_enable_option_off(
+        self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
+    ):
+        mock_chat.return_value = self._mock_chat_response(
+            has_explorer_index=False, has_org_project_context=False
+        )
+        project = self.create_project(organization=self.organization)
+        project.flags.has_transactions = True
+        project.save()
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with self.options(
+            {"seer.explorer_index.enable": False, "explorer.context_engine_indexing.enable": True}
+        ):
+            client.start_run("Why are my errors spiking?")
+
+        mock_dispatch.assert_not_called()
+        mock_index_knowledge.apply_async.assert_not_called()
+        mock_build_service_map.apply_async.assert_not_called()
+
+    @patch("sentry.seer.explorer.client.index_org_project_knowledge")
+    @patch("sentry.seer.explorer.client.build_service_map")
+    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    def test_skips_indexing_when_killswitch_on(
+        self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
+    ):
+        mock_chat.return_value = self._mock_chat_response(
+            has_explorer_index=False, has_org_project_context=False
+        )
+        project = self.create_project(organization=self.organization)
+        project.flags.has_transactions = True
+        project.save()
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with self.options(
+            {
+                "seer.explorer_index.enable": True,
+                "seer.explorer_index.killswitch.enable": True,
+                "explorer.context_engine_indexing.enable": True,
+            }
+        ):
+            client.start_run("Why are my errors spiking?")
+
+        mock_dispatch.assert_not_called()
+        mock_index_knowledge.apply_async.assert_not_called()
+        mock_build_service_map.apply_async.assert_not_called()
+
+    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    def test_skips_indexing_when_no_projects_with_transactions(self, mock_chat, mock_dispatch):
+        mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
+        self.create_project(organization=self.organization)
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with self.options(
+            {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
+        ):
+            client.start_run("Why are my errors spiking?")
+
+        mock_dispatch.assert_not_called()
