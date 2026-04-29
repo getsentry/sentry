@@ -157,7 +157,6 @@ describe('RevisionListItem', () => {
         name: 'Alice',
         email: 'alice@example.com',
         avatarType: 'gravatar',
-        avatarUrl: null,
       },
     });
 
