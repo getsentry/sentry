@@ -72,6 +72,10 @@ const config: KnipConfig = {
   ignore: [
     // api-docs has its own package.json with its own dependencies
     'api-docs/**',
+    // TODO: remove once preprod snapshot list view lands
+    'static/app/views/preprod/snapshots/main/snapshotCards.tsx',
+    'static/app/views/preprod/snapshots/main/snapshotDiffBodies.tsx',
+    'static/app/views/preprod/snapshots/main/snapshotListView.tsx',
   ],
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
