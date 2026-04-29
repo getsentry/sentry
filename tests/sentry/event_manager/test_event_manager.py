@@ -2913,7 +2913,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
             assert group.location() == "/books/"
             assert group.level == 40
-            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_category == GroupCategory.DB_QUERY
             assert group.issue_type == PerformanceNPlusOneGroupType
             assert isinstance(event, GroupEvent)
             assert event.occurrence

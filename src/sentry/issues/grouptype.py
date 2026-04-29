@@ -89,10 +89,20 @@ class GroupCategory(IntEnum):
     CONFIGURATION = 19
 
 
+# Categories that replaced GroupCategory.PERFORMANCE for span-evidence performance issue types
+PERFORMANCE_ISSUE_CATEGORIES = frozenset(
+    {
+        GroupCategory.DB_QUERY,
+        GroupCategory.FRONTEND,
+        GroupCategory.MOBILE,
+        GroupCategory.HTTP_CLIENT,
+    }
+)
+
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
-    GroupCategory.PERFORMANCE,
     GroupCategory.FEEDBACK,
+    *PERFORMANCE_ISSUE_CATEGORIES,
 )
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 

@@ -3169,7 +3169,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
     def test_performance_query(self) -> None:
         with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+            results = self.make_query(search_filter_query="issue.category:frontend my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
             results = self.make_query(
@@ -3195,7 +3195,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
                 self.error_group_1,
             ]
             results = self.make_query(
-                search_filter_query="issue.category:[performance, error] my_tag:1"
+                search_filter_query="issue.category:[frontend, error] my_tag:1"
             )
             assert list(results) == [
                 self.perf_group_1,
@@ -3218,7 +3218,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3229,7 +3229,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3240,7 +3240,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3299,7 +3299,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert result["data"][0]["transaction_name"] == transaction_name
             assert result["data"][0]["group_id"] == created_group.id
 
-            results = self.make_query(search_filter_query="issue.category:performance tea")
+            results = self.make_query(search_filter_query="issue.category:frontend tea")
             assert set(results) == {created_group}
 
             results2 = self.make_query(search_filter_query="tea")
