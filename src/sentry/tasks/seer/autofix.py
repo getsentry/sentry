@@ -6,7 +6,7 @@ from django.utils import timezone
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import (
     ObjectStatus,
@@ -21,7 +21,6 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
-    bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
     get_autofix_state,
     get_org_default_seer_automation_handoff,
@@ -206,7 +205,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     Sets:
     - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium" or "off"
-    - Seer API (all projects): automated_run_stopping_point="code_changes" or "open_pr"
+    - Seer project preferences (all projects): automated_run_stopping_point="code_changes" or "open_pr",
+      and automation_handoff backfilled from the org defaults (when set) for projects that don't already
+      have one configured.
 
     Ignores:
     - Org-level: enable_seer_coding
@@ -281,17 +282,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         )
 
     if len(preferences_to_set) > 0:
-        bulk_set_project_preferences(
-            organization_id, [preference.dict() for preference in preferences_to_set]
-        )
-
-        if features.has("organizations:seer-project-settings-dual-write", organization):
-            try:
-                bulk_write_preferences_to_sentry_db(projects, preferences_to_set)
-            except Exception:
-                logger.exception(
-                    "seer.write_preferences.failed", extra={"organization_id": organization_id}
-                )
+        bulk_write_preferences_to_sentry_db(projects, preferences_to_set)
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated
@@ -303,6 +294,6 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             "org_id": organization.id,
             "org_slug": organization.slug,
             "projects_configured": len(project_ids),
-            "preferences_set_via_api": len(preferences_to_set),
+            "preferences_set": len(preferences_to_set),
         },
     )
