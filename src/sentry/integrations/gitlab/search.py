@@ -79,7 +79,7 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
                 [
                     {
                         "label": project["name_with_namespace"],
-                        "value": project["path_with_namespace"],
+                        "value": str(project["id"]),
                     }
                     for project in response
                 ]

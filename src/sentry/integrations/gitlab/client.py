@@ -221,7 +221,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         See https://docs.gitlab.com/ee/api/projects.html#get-single-project
         """
-        return self.get(GitLabApiClientPath.project.format(project=project_id))
+        return self.get(
+            GitLabApiClientPath.project.format(project=quote(str(project_id), safe=""))
+        )
 
     def get_issue(self, project_id, issue_id):
         """Get an issue
@@ -238,7 +240,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         See https://docs.gitlab.com/ee/api/issues.html#new-issue
         """
-        return self.post(GitLabApiClientPath.issues.format(project=project), data=data)
+        return self.post(
+            GitLabApiClientPath.issues.format(project=quote(str(project), safe="")), data=data
+        )
 
     def get_issue_awards(self, project_id: str, issue_id: str):
         return self.get(
