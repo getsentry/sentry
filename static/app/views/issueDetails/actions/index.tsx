@@ -150,7 +150,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     if (!event) {
       return '';
     }
-    return getStacktraceBody({event}).join('\n\n');
+    const result = getStacktraceBody({event});
+    return result && Array.isArray(result) ? result.join('\n\n') : '';
   }, [event]);
 
   const {
