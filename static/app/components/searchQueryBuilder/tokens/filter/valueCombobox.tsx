@@ -263,6 +263,10 @@ export function tokenSupportsMultipleValues(
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null
 ): boolean {
+  if (fieldDefinition?.allowMultipleValues === false) {
+    return false;
+  }
+
   switch (token.filter) {
     case FilterType.TEXT: {
       // The search parser defaults to the text type, so we need to do further
