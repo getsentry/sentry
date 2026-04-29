@@ -4,6 +4,7 @@ import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -67,6 +68,13 @@ function SpikeProtectionProjectToggle({
             }),
           onSuccess: (_data, variables) => {
             const newValue = variables.enabled;
+            ProjectsStore.onUpdateSuccess({
+              ...project,
+              options: {
+                ...project.options,
+                [SPIKE_PROTECTION_OPTION_DISABLED]: !newValue,
+              },
+            });
             addSuccessMessage(
               tct('[action] spike protection for [project]', {
                 action: newValue ? t('Enabled') : t('Disabled'),
