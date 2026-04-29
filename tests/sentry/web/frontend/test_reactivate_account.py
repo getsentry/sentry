@@ -36,8 +36,7 @@ class ReactivateAccountTest(TestCase):
 
         resp = self.client.post(self.path, data={"op": "confirm"})
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/reactivate-account.html")
-        assert resp.context["is_suspended"] is True
+        self.assertTemplateUsed(resp, "sentry/account-suspended.html")
 
         from sentry.users.models.user import User
 
