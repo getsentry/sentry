@@ -249,7 +249,9 @@ function getAISpanAttributes({
   return highlightedAttributes;
 }
 
-function isPresentModel(value: string | number | boolean | undefined) {
+function isPresentModel(
+  value: string | number | boolean | undefined
+): value is string | number | boolean {
   return Boolean(value) && value?.toString() !== 'null';
 }
 
