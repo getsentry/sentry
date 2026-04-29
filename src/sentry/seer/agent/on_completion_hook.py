@@ -15,9 +15,9 @@ class OnCompletionHookDefinition(BaseModel):
 
 
 class AgentOnCompletionHook(ABC):
-    """Base class for Explorer on-completion hooks.
+    """Base class for the agent on-completion hooks.
 
-    Hooks are called when an Explorer agent run completes (regardless of status).
+    Hooks are called when an agent run completes (regardless of status).
 
     Example:
         class MyCompletionHook(AgentOnCompletionHook):

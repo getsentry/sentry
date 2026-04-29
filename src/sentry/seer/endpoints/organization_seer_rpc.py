@@ -105,7 +105,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_issue_filter_keys": map_org_id_param(get_issue_filter_keys),
     "get_filter_key_values": map_org_id_param(get_filter_key_values),
     #
-    # Explorer (cross-project)
+    # Agent (cross-project)
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_repository_definition": get_repository_definition,
     "execute_table_query": map_org_id_param(execute_table_query),
@@ -123,7 +123,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
     #
-    # Explorer eval tooling
+    # Agent eval tooling
     "export_agent_indexes": map_org_id_param(export_agent_indexes),
 }
 
@@ -135,7 +135,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
 # - `organization_id` (int): Organization ID, auto-injected and validated
 # - `project_id` (int): Project ID, must be provided in request args and validated
 public_project_seer_method_registry: dict[str, Callable] = {
-    # Explorer - project-scoped methods
+    # Agent - project-scoped methods
     "get_transactions_for_project": accept_organization_id_param(rpc_get_transactions_for_project),
     "get_trace_for_transaction": accept_organization_id_param(rpc_get_trace_for_transaction),
     "get_profiles_for_trace": accept_organization_id_param(rpc_get_profiles_for_trace),

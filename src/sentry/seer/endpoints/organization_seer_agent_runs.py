@@ -37,7 +37,7 @@ class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Get a list of explorer runs for the organization.
+        Get a list of agent runs for the organization.
 
         By default, results are scoped to the requesting user. Pass ``owner=false``
         to return runs from all users (e.g. system-created night-shift runs).

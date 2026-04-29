@@ -65,7 +65,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         if not project.flags.has_transactions:
             continue
 
-        # Check open team membership (Explorer requires this for context)
+        # Check open team membership (the agent requires this for context)
         if not project.organization.flags.allow_joinleave:
             continue
 

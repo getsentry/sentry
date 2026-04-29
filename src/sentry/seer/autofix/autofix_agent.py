@@ -89,7 +89,7 @@ class AutofixStep(StrEnum):
             case AutofixStoppingPoint.OPEN_PR:
                 # This depends on the last step being
                 # code changes and we should look for
-                # the PR elsewhere in the explorer results
+                # the PR elsewhere in the agent results
                 return AutofixStep.CODE_CHANGES
             case _:
                 raise ValueError(f"Unsupported AutofixStoppingPoint: {autofix_stopping_point}")
@@ -243,7 +243,7 @@ def trigger_autofix_agent(
     insert_index: int | None = None,
 ) -> int:
     """
-    Start or continue an Explorer-based autofix run.
+    Start or continue an agent-based autofix run.
 
     Args:
         group: The Sentry group (issue) to analyze
@@ -367,7 +367,7 @@ def trigger_autofix_agent(
 
 def get_autofix_agent_state(organization: Organization, group_id: int):
     """
-    Get the current state of an Explorer-based autofix run for a group.
+    Get the current state of an agent-based autofix run for a group.
 
     Args:
         organization: The organization
@@ -505,14 +505,14 @@ def trigger_coding_agent_handoff(
     user_id: int | None = None,
 ) -> dict[str, list]:
     """
-    Trigger a coding agent handoff for an existing Explorer-based autofix run.
+    Trigger a coding agent handoff for an existing agent-based autofix run.
 
     This fetches the current run state, generates a prompt from artifacts
     (root cause, solution, file patches), and launches coding agents.
 
     Args:
         group: The Sentry group (issue)
-        run_id: The existing Explorer run ID
+        run_id: The existing agent run ID
         integration_id: The coding agent integration ID (e.g., Cursor)
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)

@@ -129,7 +129,7 @@ def run_missing_sdk_integration_detector_for_project_task(
     organization_id: int, project_id: int, repo_name: str
 ) -> list[str] | None:
     """
-    Detect missing SDK integrations for a project using Seer Explorer.
+    Detect missing SDK integrations for a project using Seer Agent.
 
     Returns:
         List of missing integration names, or None if detection failed.

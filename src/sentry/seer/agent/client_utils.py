@@ -1,5 +1,5 @@
 """
-Internal helpers for Seer Explorer client.
+Internal helpers for Seer Agent client.
 
 This module contains implementation details that should not be imported directly.
 Use the public client functions from client.py instead.
@@ -190,7 +190,7 @@ def has_seer_agent_access_with_detail(
     actor: SentryUser | AnonymousUser | RpcUser | None = None,
 ) -> tuple[bool, str | None]:
     """
-    Check if the actor has access to Seer Explorer.
+    Check if the actor has access to Seer Agent.
 
     This wraps has_seer_access_with_detail with an additional check for the
     seer-explorer feature flag and open team membership.
@@ -204,9 +204,9 @@ def has_seer_agent_access_with_detail(
         return False, error
 
     feature_names = [
-        # Access to seer explorer
+        # Access to seer agent
         "organizations:seer-explorer",
-        # Access to seer explorer powered autofix
+        # Access to seer agent powered autofix
         "organizations:autofix-on-explorer",
     ]
 
@@ -223,7 +223,7 @@ def has_seer_agent_access_with_detail(
     if not any(bool(org_features.get(feature_name)) for feature_name in feature_names):
         return False, "Feature flag not enabled"
 
-    # Check open team membership (Explorer requires this for context)
+    # Check open team membership (the agent requires this for context)
     if not organization.flags.allow_joinleave:
         return (
             False,
@@ -238,7 +238,7 @@ def collect_user_org_context(
     organization: Organization,
     request: Request | None = None,
 ) -> dict[str, Any]:
-    """Collect user and organization context for a new Explorer run."""
+    """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(
         organization=organization, status=ObjectStatus.ACTIVE
     ).values("id", "slug")
@@ -266,7 +266,7 @@ def collect_user_org_context(
     except OrganizationMember.DoesNotExist:
         # User is not a member of this organization (e.g., superuser accessing foreign org)
         logger.warning(
-            "User attempted to access Seer Explorer for organization they are not a member of",
+            "User attempted to access Seer Agent for organization they are not a member of",
             extra={
                 "user_id": user.id,
                 "organization_id": organization.id,
@@ -382,7 +382,7 @@ def poll_until_done(
         elapsed = time.time() - start_time
         if elapsed >= poll_timeout:
             logger.warning(
-                "Seer Explorer run polling timed out",
+                "Seer Agent run polling timed out",
                 extra={"run_id": run_id, "elapsed": elapsed},
             )
             raise TimeoutError(f"Seer run {run_id} polling exceeded {poll_timeout}s")

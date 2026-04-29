@@ -1,9 +1,9 @@
 """
-Celery Tasks for Explorer Service Map
+Celery Tasks for Agent Service Map
 
 This module contains periodic tasks that analyze distributed traces to extract
 service dependency graphs and send them to Seer for hierarchical retrieval.
-The service map helps Explorer understand which services call which others.
+The service map helps the agent understand which services call which others.
 """
 
 from __future__ import annotations

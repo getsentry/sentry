@@ -67,7 +67,7 @@ class SeerAgentChatSerializer(serializers.Serializer):
     query = serializers.CharField(
         required=True,
         allow_blank=False,
-        help_text="The user's query to send to the Seer Explorer.",
+        help_text="The user's query to send to the Seer Agent.",
     )
     insert_index = serializers.IntegerField(
         required=False,
@@ -134,7 +134,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, run_id: int | None = None
     ) -> Response:
         """
-        Get the current state of a Seer Explorer session.
+        Get the current state of a Seer Agent session.
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
@@ -164,7 +164,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 status=500,
             )
         except ValueError:
-            logger.exception("Error getting Explorer run state")
+            logger.exception("Error getting agent run state")
             return Response({"session": None}, status=404)
 
     def post(

@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 class SeerAgentClient:
     """
-    A simple client for Seer Explorer, our general debugging agent.
+    A simple client for the Seer Agent, our general debugging agent.
 
     This provides a class-based interface for Sentry developers to build agentic features
     with full Sentry context.
@@ -126,7 +126,7 @@ class SeerAgentClient:
             @classmethod
             def execute(cls, organization: Organization, run_id: int) -> None:
                 # Called when the agent completes (regardless of status)
-                send_notification(organization, f"Explorer run {run_id} completed")
+                send_notification(organization, f"agent run {run_id} completed")
 
         client = SeerAgentClient(
             organization,
@@ -231,7 +231,7 @@ class SeerAgentClient:
         if bool(category_key) != bool(category_value):
             raise ValueError("category_key and category_value must be provided together")
 
-        # Validate base Seer access on init (Explorer-specific flag checks are done at the endpoint level)
+        # Validate base Seer access on init (agent-specific flag checks are done at the endpoint level)
         has_access, error = has_seer_access_with_detail(organization, user)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
@@ -255,7 +255,7 @@ class SeerAgentClient:
         override_ce_enable: bool = True,
     ) -> int:
         """
-        Start a new Seer Explorer session.
+        Start a new Seer Agent session.
 
         Args:
             prompt: The initial task/query for the agent
@@ -409,7 +409,7 @@ class SeerAgentClient:
         request: Request | None = None,
     ) -> int:
         """
-        Continue an existing Seer Explorer session. This allows you to add follow-up queries to an ongoing conversation.
+        Continue an existing Seer Agent session. This allows you to add follow-up queries to an ongoing conversation.
 
         Args:
             run_id: The run ID from start_run()
@@ -474,7 +474,7 @@ class SeerAgentClient:
         poll_timeout: float = 600.0,
     ) -> SeerRunState:
         """
-        Get the status/result of a Seer Explorer session.
+        Get the status/result of a Seer Agent session.
 
         Args:
             run_id: The run ID returned from start_run()
@@ -543,7 +543,7 @@ class SeerAgentClient:
         end: datetime | None = None,
     ) -> list[AgentRunWithPrs] | list[AgentRun]:
         """
-        Get a list of Seer Explorer runs for the organization with optional filters.
+        Get a list of Seer Agent runs for the organization with optional filters.
 
         Args:
             category_key: Optional category key to filter by (e.g., "bug-fixer")
@@ -684,13 +684,13 @@ class SeerAgentClient:
         user_id: int | None = None,
     ) -> dict[str, list]:
         """
-        Launch coding agents for an Explorer run.
+        Launch coding agents for an agent run.
 
         This triggers coding agents (e.g., Cursor) to work on code changes.
         The caller provides the prompt and target repos.
 
         Args:
-            run_id: The Explorer run ID (used to store coding agent state)
+            run_id: The agent run ID (used to store coding agent state)
             integration_id: The coding agent integration ID (for org-installed integrations)
             prompt: The instruction/prompt for the coding agent
             repos: List of SeerRepoDefinition objects with full repo metadata

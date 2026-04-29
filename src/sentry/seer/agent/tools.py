@@ -73,7 +73,7 @@ def _get_full_trace_id(
     Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
     TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
     This can be done with a materialized string column for the first 8 chars and a secondary index.
-    Alternatively we can try more consistent ways of passing the full ID to Explorer.
+    Alternatively we can try more consistent ways of passing the full ID to the agent.
     """
     now = datetime.now(timezone.utc)
     window_days = 14
@@ -969,7 +969,7 @@ def _get_recommended_event(
     return fallback_event or get_latest_event()
 
 
-# Activity types to include in issue details for Seer Explorer (manual actions only)
+# Activity types to include in issue details for Seer Agent (manual actions only)
 _SEER_EXPLORER_ACTIVITY_TYPES = [
     ActivityType.NOTE.value,
     ActivityType.SET_RESOLVED.value,

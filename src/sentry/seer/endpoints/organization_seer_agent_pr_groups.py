@@ -39,7 +39,7 @@ class OrganizationSeerAgentPRGroupsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Get a list of issues that have a PR created from Seer Explorer
+        Get a list of issues that have a PR created from Seer Agent
 
         Query Parameters:
             None
@@ -102,7 +102,7 @@ class OrganizationSeerAgentPRGroupsEndpoint(OrganizationEndpoint):
                     serialized_group = groups_by_id.get(str(run.group_id))
                     if serialized_group is None:
                         logger.warning(
-                            "Seer Explorer PR: group not found",
+                            "Seer Agent PR: group not found",
                             extra={
                                 "group_id": run.group_id,
                                 "project_ids": project_ids,
@@ -110,7 +110,7 @@ class OrganizationSeerAgentPRGroupsEndpoint(OrganizationEndpoint):
                         )
                 else:
                     logger.warning(
-                        "Seer Explorer PR: run has no group_id",
+                        "Seer Agent PR: run has no group_id",
                         extra={
                             "run_id": run.run_id,
                             "project_ids": project_ids,

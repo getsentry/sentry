@@ -860,7 +860,7 @@ EXPLORER_FLAGS = [
 
 @with_feature("organizations:gen-ai-features")
 class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
-    """Tests for feature flag routing to Explorer-based autofix."""
+    """Tests for feature flag routing to the agent-based autofix."""
 
     def _get_url(self, group_id: int, mode: str | None = None) -> str:
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"

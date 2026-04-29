@@ -1,7 +1,7 @@
 """
-Coding agent launch support for Explorer runs.
+Coding agent launch support for agent runs.
 
-This module provides functions to launch coding agents from Explorer runs.
+This module provides functions to launch coding agents from agent runs.
 It reuses the core coding agent infrastructure from sentry.seer.autofix.coding_agent.
 """
 
@@ -82,12 +82,12 @@ def launch_coding_agents(
     user_id: int | None = None,
 ) -> dict[str, list]:
     """
-    Launch coding agents for an Explorer run.
+    Launch coding agents for an agent run.
 
     Args:
         organization: The organization
         integration_id: The coding agent integration ID (for org-installed integrations)
-        run_id: The Explorer run ID (used to store coding agent state)
+        run_id: The agent run ID (used to store coding agent state)
         prompt: The instruction/prompt for the coding agent
         repos: List of SeerRepoDefinition objects with full repo metadata
         branch_name_base: Base name for the branch (random suffix will be added)

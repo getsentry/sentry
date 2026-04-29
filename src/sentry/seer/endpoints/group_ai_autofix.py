@@ -81,7 +81,7 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
 
 
 class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
-    """Serializer for Explorer-based autofix requests."""
+    """Serializer for the agent-based autofix requests."""
 
     step = serializers.ChoiceField(
         required=False,
@@ -173,9 +173,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return False
 
         feature_names = [
-            # Access to seer explorer
+            # Access to seer agent
             "organizations:seer-explorer",
-            # Access to seer explorer powered autofix
+            # Access to seer agent powered autofix
             "organizations:autofix-on-explorer",
         ]
 
@@ -230,7 +230,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         return self._post_legacy(request, group)
 
     def _post_agent(self, request: Request, group: Group) -> Response:
-        """Handle POST for Explorer-based autofix."""
+        """Handle POST for the agent-based autofix."""
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -358,7 +358,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         return self._get_legacy(request, group)
 
     def _get_agent(self, request: Request, group: Group) -> Response:
-        """Handle GET for Explorer-based autofix."""
+        """Handle GET for the agent-based autofix."""
         try:
             state = get_autofix_agent_state(group.organization, group.id)
         except SeerPermissionError as e:
@@ -379,7 +379,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     organization_id=group.organization.id,
                 )
 
-        # Return the Explorer state directly - frontend will handle the format
+        # Return the agent state directly - frontend will handle the format
         return Response(
             {
                 "autofix": {

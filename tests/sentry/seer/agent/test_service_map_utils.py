@@ -1,8 +1,8 @@
 """
-Tests for Explorer Service Map Tasks
+Tests for Agent Service Map Tasks
 
 Tests the service map building, graph analysis, and task execution
-for the Explorer service map feature.
+for the agent service map feature.
 """
 
 from datetime import datetime, timedelta, timezone

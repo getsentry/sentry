@@ -194,7 +194,7 @@ def _trigger_autofix_task(
         else:
             user = AnonymousUser()
 
-        # Route to explorer-based autofix if both feature flags are enabled
+        # Route to agent-based autofix if both feature flags are enabled
         run_id: int | None = None
         if features.has("organizations:autofix-on-explorer", group.organization):
             try:

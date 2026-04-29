@@ -60,7 +60,7 @@ def _validate_with_serializer(
 
 class DashboardOnCompletionHook(AgentOnCompletionHook):
     """
-    Hook called when a dashboard generation Explorer run completes.
+    Hook called when a dashboard generation agent run completes.
 
     Validates the generated dashboard artifact first against the
     GeneratedDashboard Pydantic model (schema-level: blocklisted functions,

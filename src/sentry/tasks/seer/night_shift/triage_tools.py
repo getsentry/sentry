@@ -44,13 +44,13 @@ class GetEventDetailsAgenticTriageParams(BaseModel):
     )
 
 
-# Class name intentionally snake_case — the Explorer custom-tool machinery
+# Class name intentionally snake_case — the agent custom-tool machinery
 # uses `__name__` as the tool name the agent sees, and we want this to read
 # like a tool identifier (`get_event_details_agentic_triage`).
 class get_event_details_agentic_triage(  # noqa: N801
     AgentTool[GetEventDetailsAgenticTriageParams]
 ):
-    """Custom Explorer tool for Night Shift agentic triage.
+    """Custom agent tool for Night Shift agentic triage.
 
     Returns the same underlying event data as Seer's built-in `get_event_details`,
     but renders it in the markdown format used by sentry-mcp (`formatEventOutput`)
@@ -137,7 +137,7 @@ class GetIssueDetailsAgenticTriageParams(BaseModel):
 class get_issue_details_agentic_triage(  # noqa: N801
     AgentTool[GetIssueDetailsAgenticTriageParams]
 ):
-    """Custom Explorer tool for Night Shift agentic triage.
+    """Custom agent tool for Night Shift agentic triage.
 
     Returns the same underlying issue metadata as Seer's built-in `get_issue_details`,
     but reformats it as triage-tuned markdown: header (title/culprit/priority/counts/

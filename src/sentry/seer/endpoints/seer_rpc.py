@@ -919,7 +919,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_event_filter_keys": get_event_filter_keys,
     "get_event_filter_key_values": get_event_filter_key_values,
     #
-    # Explorer
+    # Agent
     "get_transactions_for_project": rpc_get_transactions_for_project,
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,

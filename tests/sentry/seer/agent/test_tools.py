@@ -965,7 +965,7 @@ class _Actor(BaseModel):
 
 class _IssueMetadata(BaseModel):
     """
-    A subset of BaseGroupSerializerResponse fields useful for Seer Explorer. In prod we send the full response.
+    A subset of BaseGroupSerializerResponse fields useful for Seer Agent. In prod we send the full response.
     """
 
     id: int
@@ -996,7 +996,7 @@ class _IssueMetadata(BaseModel):
 
 class _SentryEventData(BaseModel):
     """
-    Required fields for the serialized events used by Seer Explorer.
+    Required fields for the serialized events used by Seer Agent.
     """
 
     title: str

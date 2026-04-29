@@ -39,7 +39,7 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization: Organization, run_id: int) -> Response:
         """
-        Send an update event to explorer for a given run.
+        Send an update event to the agent for a given run.
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:

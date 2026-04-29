@@ -1,5 +1,5 @@
 """
-Pydantic models for Seer Explorer client.
+Pydantic models for Seer Agent client.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ class Message(BaseModel):
 
 
 class Artifact(BaseModel):
-    """An artifact generated during an Explorer run."""
+    """An artifact generated during an agent run."""
 
     key: str
     data: dict[str, Any] | None = None
@@ -150,7 +150,7 @@ class ToolResult(BaseModel):
 
 
 class MemoryBlock(BaseModel):
-    """A block in the Explorer agent's conversation/memory."""
+    """A block in the agent's conversation/memory."""
 
     id: str
     message: Message
@@ -196,7 +196,7 @@ class CodingAgentResult(BaseModel):
 
 
 class CodingAgentState(BaseModel):
-    """State of a coding agent launched from an Explorer run."""
+    """State of a coding agent launched from an agent run."""
 
     id: str
     status: Literal["pending", "running", "completed", "failed"]
@@ -245,7 +245,7 @@ class UsageAccumulator(BaseModel):
 
 
 class SeerRunState(BaseModel):
-    """State of a Seer Explorer session."""
+    """State of a Seer Agent session."""
 
     run_id: int
     blocks: list[MemoryBlock]
@@ -360,7 +360,7 @@ class CustomToolDefinition(BaseModel):
 
 
 class AgentRun(BaseModel):
-    """A single Explorer run record with metadata."""
+    """A single agent run record with metadata."""
 
     run_id: int
     title: str
@@ -375,7 +375,7 @@ class AgentRun(BaseModel):
 
 
 class AgentRunWithPrs(AgentRun):
-    """A single Explorer run record with PR metadata."""
+    """A single agent run record with PR metadata."""
 
     group_id: int | None = None
     repo_pr_states: dict[str, RepoPRState] | None = None

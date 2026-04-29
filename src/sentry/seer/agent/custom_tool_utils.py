@@ -13,7 +13,7 @@ ParamsT = TypeVar("ParamsT", bound=BaseModel)
 
 
 class AgentTool(ABC, Generic[ParamsT]):
-    """Base class for custom Explorer tools.
+    """Base class for custom agent tools.
 
     Define parameters via a Pydantic model.
 

@@ -14,7 +14,7 @@ class TestOrganizationSeerAgentUpdate(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.organization = self.create_organization(owner=self.user)
-        # Explorer requires open team membership
+        # the agent requires open team membership
         self.organization.flags.allow_joinleave = True
         self.organization.save()
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/123/"

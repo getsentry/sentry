@@ -62,7 +62,7 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
 
 class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
-    Hook called when an Explorer-based autofix run completes.
+    Hook called when an agent-based autofix run completes.
 
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
@@ -72,7 +72,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
         """
-        Execute the hook when the Explorer agent completes a step.
+        Execute the hook when the agent completes a step.
 
         Args:
             organization: The organization context
