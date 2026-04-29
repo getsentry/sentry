@@ -256,7 +256,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     """
     Process a single organization for LLM issue detection.
 
-    Picks one random active project, selects 1 trace, and sends to Seer.
+    Picks one active project, selects traces based on plan tier, and sends to Seer.
     Budget enforcement happens on the Seer side.
     """
     from sentry.tasks.llm_issue_detection.trace_data import (  # circular imports
