@@ -120,9 +120,8 @@ class LatestBuildModeTest(LatestBuildTestBase):
         assert build["gitInfo"]["prNumber"] == 42
         assert build["isInstallable"] is True
         assert build["installUrl"] is not None
-        assert build["installInfo"] is not None
-        assert build["installInfo"]["link"] == build["installUrl"]
-        datetime.fromisoformat(build["installInfo"]["expiresAt"])
+        assert build["installUrlExpiresAt"] is not None
+        datetime.fromisoformat(build["installUrlExpiresAt"])
         assert build["downloadCount"] == 5
         assert build["releaseNotes"] == "Bug fixes."
         assert build["installGroups"] == ["beta"]
