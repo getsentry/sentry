@@ -1,4 +1,4 @@
-import {memo, useState} from 'react';
+import {memo, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -6,6 +6,7 @@ import {Slider} from '@sentry/scraps/slider';
 import {Text} from '@sentry/scraps/text';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
@@ -53,16 +54,12 @@ export const SplitPairBody = memo(function SplitPairBody({
           </Container>
           <ZoomViewport ref={zoom1.containerRef}>
             <ZoomTransformLayer style={zoomTransformStyle(zoom1.transform)}>
-              <Container position="relative" display="inline-block" maxWidth="100%">
-                <ConstrainedImg
-                  src={baseUrl}
-                  alt={`${altPrefix} (base)`}
-                  loading="lazy"
-                  decoding="async"
-                  width={baseImage.width || undefined}
-                  height={baseImage.height || undefined}
-                />
-              </Container>
+              <LazyImage
+                src={baseUrl}
+                alt={`${altPrefix} (base)`}
+                width={baseImage.width || undefined}
+                height={baseImage.height || undefined}
+              />
             </ZoomTransformLayer>
           </ZoomViewport>
         </Stack>
@@ -75,11 +72,9 @@ export const SplitPairBody = memo(function SplitPairBody({
           <ZoomViewport ref={zoom2.containerRef}>
             <ZoomTransformLayer style={zoomTransformStyle(zoom2.transform)}>
               <Container position="relative" display="inline-block" maxWidth="100%">
-                <ConstrainedImg
+                <LazyImage
                   src={headUrl}
                   alt={`${altPrefix} (head)`}
-                  loading="lazy"
-                  decoding="async"
                   width={headImage.width || undefined}
                   height={headImage.height || undefined}
                 />
@@ -135,11 +130,9 @@ export const ImageColumn = memo(function ImageColumn({
       )}
       <Flex justify="center" padding="xl">
         <Container position="relative" display="inline-block" maxWidth="100%">
-          <ConstrainedImg
+          <LazyImage
             src={src}
             alt={alt}
-            loading="lazy"
-            decoding="async"
             width={image.width || undefined}
             height={image.height || undefined}
           />
@@ -273,8 +266,53 @@ export const OnionCardBody = memo(function OnionCardBody({
   );
 });
 
-// Named to avoid collision with the core <Image> component and the global Image constructor
-const ConstrainedImg = styled('img')`
+function LazyImage({
+  src,
+  alt,
+  width,
+  height,
+}: {
+  alt: string;
+  src: string;
+  height?: number;
+  width?: number;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const onLoad = useCallback(() => setLoaded(true), []);
+  const refCallback = useCallback((el: HTMLImageElement | null) => {
+    (imgRef as React.MutableRefObject<HTMLImageElement | null>).current = el;
+    if (el?.complete && el.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
+  const displayHeight =
+    width && height ? `${Math.min(height, MAX_IMAGE_HEIGHT)}px` : `${MAX_IMAGE_HEIGHT}px`;
+  return (
+    <Container position="relative" display="inline-block" maxWidth="100%">
+      {!loaded && (
+        <Placeholder
+          width={width ? `${width}px` : '100%'}
+          height={displayHeight}
+          style={{maxWidth: '100%', maxHeight: `${MAX_IMAGE_HEIGHT}px`}}
+        />
+      )}
+      <HiddenUntilLoaded
+        ref={refCallback}
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        width={width || undefined}
+        height={height || undefined}
+        onLoad={onLoad}
+        style={loaded ? undefined : {position: 'absolute', top: 0, left: 0, opacity: 0}}
+      />
+    </Container>
+  );
+}
+
+const HiddenUntilLoaded = styled('img')`
   display: block;
   width: auto;
   height: auto;
