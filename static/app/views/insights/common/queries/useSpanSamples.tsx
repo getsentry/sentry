@@ -43,7 +43,7 @@ export type SpanSample = Pick<
   | SpanFields.TRACE
 >;
 
-export type DefaultSpanSampleFields =
+type DefaultSpanSampleFields =
   | SpanFields.PROJECT
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.TIMESTAMP
