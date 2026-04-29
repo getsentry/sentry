@@ -31,7 +31,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
-import type {PlatformIntegration, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -98,9 +98,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatformKey = project?.platform ?? 'other';
-  const currentPlatform = platforms.find(
-    p => p.id === currentPlatformKey
-  ) as PlatformIntegration;
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey)!;
 
   useEffect(() => {
     trackAnalytics('issue_stream.updated_empty_state_viewed', {

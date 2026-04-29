@@ -988,7 +988,7 @@ function DiscoverContextMenu({
   });
 
   const normalizedHomepageQuery = homepageQuery
-    ? (getSavedQueryWithDataset(homepageQuery) as SavedQuery)
+    ? getSavedQueryWithDataset(homepageQuery)!
     : undefined;
 
   const isDefault =
