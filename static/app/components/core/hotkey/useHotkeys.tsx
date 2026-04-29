@@ -19,6 +19,13 @@ type Hotkey = {
    */
   match: string[] | string;
   /**
+   * When `false`, the hotkey is skipped: the callback never fires and
+   * `preventDefault` is never called. Useful for gating a hotkey on state
+   * (e.g. only intercept `Escape` while a panel is open) without rebuilding
+   * the hotkey array. Defaults to `true`.
+   */
+  enabled?: boolean;
+  /**
    * Allow shortcuts to be triggered while a text input is foccused
    */
   includeInputs?: boolean;
@@ -47,6 +54,9 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
       for (const hotkey of hotkeysRef.current) {
+        if (hotkey.enabled === false) {
+          continue;
+        }
         const preventDefault = !hotkey.skipPreventDefault;
         const keysets = toArray(hotkey.match).map(keys => keys.toLowerCase());
 

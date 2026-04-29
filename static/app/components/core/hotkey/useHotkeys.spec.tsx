@@ -283,6 +283,36 @@ describe('useHotkeys', () => {
     expect(callback).toHaveBeenCalledTimes(2);
   });
 
+  it('skips a disabled hotkey without preventing default', () => {
+    const callback = jest.fn();
+
+    renderHook(p => useHotkeys(p), {
+      initialProps: [{match: 'Escape', enabled: false, callback}],
+    });
+
+    const evt = makeKeyEventFixture('Escape');
+    events.keydown!(evt);
+
+    expect(callback).not.toHaveBeenCalled();
+    expect(evt.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('respects toggling enabled between renders', () => {
+    const callback = jest.fn();
+
+    const {rerender} = renderHook(p => useHotkeys(p), {
+      initialProps: [{match: 'Escape', enabled: false, callback}],
+    });
+
+    events.keydown!(makeKeyEventFixture('Escape'));
+    expect(callback).not.toHaveBeenCalled();
+
+    rerender([{match: 'Escape', enabled: true, callback}]);
+
+    events.keydown!(makeKeyEventFixture('Escape'));
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
   it('matches a letter shortcut even when shift is held (case-insensitive)', () => {
     // `command+shift+k` produces `event.key === 'K'` (uppercase). The
     // implementation must lowercase before comparing to the match string.
