@@ -72,7 +72,7 @@ describe('Hook', () => {
       </HookWrapper>
     ));
 
-    HookStore.add('sidebar:bottom-items', () => (
+    HookStore.add('sidebar:organization-dropdown-menu', () => (
       <HookWrapper key="bottom">Bottom Hook</HookWrapper>
     ));
 
@@ -83,7 +83,12 @@ describe('Hook', () => {
     expect(screen.getByText(/Help Hook/)).toBeInTheDocument();
     expect(screen.queryByText(/Bottom Hook/)).not.toBeInTheDocument();
 
-    rerender(<Hook name="sidebar:bottom-items" organization={OrganizationFixture()} />);
+    rerender(
+      <Hook
+        name="sidebar:organization-dropdown-menu"
+        organization={OrganizationFixture()}
+      />
+    );
 
     expect(screen.queryByText(/Help Hook/)).not.toBeInTheDocument();
     expect(screen.getByText(/Bottom Hook/)).toBeInTheDocument();
