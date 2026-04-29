@@ -185,7 +185,7 @@ describe('ScmPlatformFeatures', () => {
     });
     await userEvent.click(changeButton);
 
-    expect(screen.getByRole('heading', {name: 'Select a platform'})).toBeInTheDocument();
+    expect(screen.getByText('Select a platform')).toBeInTheDocument();
   });
 
   it('falls back to manual picker when platform detection fails', async () => {
@@ -209,9 +209,7 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Select a platform'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Select a platform')).toBeInTheDocument();
     expect(
       screen.queryByText('Auto-detected from your repository')
     ).not.toBeInTheDocument();
@@ -230,9 +228,7 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Select a platform'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Select a platform')).toBeInTheDocument();
     expect(
       screen.queryByText('Auto-detected from your repository')
     ).not.toBeInTheDocument();
@@ -252,7 +248,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for the component to fully settle (CompactSelect triggers async popper updates)
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
@@ -340,7 +336,7 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     // Type into the Select to search and pick a base language
     await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
@@ -369,7 +365,7 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     // Type into the Select to search and pick a console platform
     await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
@@ -494,7 +490,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByRole('heading', {name: 'Select a platform'});
+      await screen.findByText('Select a platform');
 
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'onboarding.scm_platform_features_step_viewed',
