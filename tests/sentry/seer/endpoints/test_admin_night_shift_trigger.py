@@ -31,7 +31,10 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
         assert response.data["max_candidates"] is None
         mock_task.apply_async.assert_called_once_with(
             args=[self.organization.id],
-            kwargs={"dry_run": False, "max_candidates": None},
+            kwargs={
+                "options": {"source": "manual", "dry_run": False},
+                "execute_in_task": True,
+            },
         )
 
     def test_trigger_with_max_candidates_override(self) -> None:
@@ -48,7 +51,10 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
         assert response.data["max_candidates"] == 3
         mock_task.apply_async.assert_called_once_with(
             args=[self.organization.id],
-            kwargs={"dry_run": True, "max_candidates": 3},
+            kwargs={
+                "options": {"source": "manual", "dry_run": True, "max_candidates": 3},
+                "execute_in_task": True,
+            },
         )
 
     def test_trigger_rejects_invalid_max_candidates(self) -> None:

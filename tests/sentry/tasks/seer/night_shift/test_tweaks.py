@@ -10,7 +10,7 @@ class GetNightShiftTweaksTest(TestCase):
         tweaks = get_night_shift_tweaks(self.project)
 
         assert tweaks.enabled is False
-        assert tweaks.candidate_issues == options.get("seer.night_shift.issues_per_org")
+        assert tweaks.max_candidates == options.get("seer.night_shift.issues_per_org")
 
     def test_empty_object_returns_defaults(self) -> None:
         self.project.update_option("sentry:seer_nightshift_tweaks", {})
@@ -18,17 +18,17 @@ class GetNightShiftTweaksTest(TestCase):
         tweaks = get_night_shift_tweaks(self.project)
 
         assert tweaks.enabled is False
-        assert tweaks.candidate_issues == options.get("seer.night_shift.issues_per_org")
+        assert tweaks.max_candidates == options.get("seer.night_shift.issues_per_org")
 
     def test_full_override(self) -> None:
         self.project.update_option(
             "sentry:seer_nightshift_tweaks",
-            {"enabled": True, "candidate_issues": 25},
+            {"enabled": True, "max_candidates": 25},
         )
 
         tweaks = get_night_shift_tweaks(self.project)
 
-        assert tweaks == NightShiftTweaks(enabled=True, candidate_issues=25)
+        assert tweaks == NightShiftTweaks(enabled=True, max_candidates=25)
 
     def test_partial_override_falls_back_to_option(self) -> None:
         self.project.update_option(
@@ -40,18 +40,18 @@ class GetNightShiftTweaksTest(TestCase):
             tweaks = get_night_shift_tweaks(self.project)
 
         assert tweaks.enabled is True
-        assert tweaks.candidate_issues == 42
+        assert tweaks.max_candidates == 42
 
-    def test_candidate_issues_only_uses_default_enabled(self) -> None:
+    def test_max_candidates_only_uses_default_enabled(self) -> None:
         self.project.update_option(
             "sentry:seer_nightshift_tweaks",
-            {"candidate_issues": 7},
+            {"max_candidates": 7},
         )
 
         tweaks = get_night_shift_tweaks(self.project)
 
         assert tweaks.enabled is False
-        assert tweaks.candidate_issues == 7
+        assert tweaks.max_candidates == 7
 
     def test_non_dict_value_reports_and_returns_defaults(self) -> None:
         self.project.update_option(
@@ -66,12 +66,12 @@ class GetNightShiftTweaksTest(TestCase):
 
         mock_capture.assert_called_once()
         assert tweaks.enabled is False
-        assert tweaks.candidate_issues == options.get("seer.night_shift.issues_per_org")
+        assert tweaks.max_candidates == options.get("seer.night_shift.issues_per_org")
 
     def test_invalid_payload_reports_and_returns_defaults(self) -> None:
         self.project.update_option(
             "sentry:seer_nightshift_tweaks",
-            {"candidate_issues": "not-an-int"},
+            {"max_candidates": "not-an-int"},
         )
 
         with patch(
@@ -81,4 +81,4 @@ class GetNightShiftTweaksTest(TestCase):
 
         mock_capture.assert_called_once()
         assert tweaks.enabled is False
-        assert tweaks.candidate_issues == options.get("seer.night_shift.issues_per_org")
+        assert tweaks.max_candidates == options.get("seer.night_shift.issues_per_org")
