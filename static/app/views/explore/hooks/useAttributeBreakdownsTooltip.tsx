@@ -257,7 +257,7 @@ export function useAttributeBreakdownsTooltip({
       ) {
         const dom = el as HTMLDivElement;
         const tooltipWidth = dom?.offsetWidth ?? 0;
-        const [rawX = 0, rawY = 0] = frozenPosition ?? point;
+        const [rawX, rawY] = frozenPosition ?? point;
 
         let x = rawX + TOOLTIP_POSITION_X_OFFSET;
         const y = rawY + TOOLTIP_POSITION_Y_OFFSET;

@@ -10,12 +10,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
+import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {
   Block,
   ToolCall,
@@ -990,6 +992,36 @@ function locationToUrl(location: LocationDescriptor): string | null {
 const RUN_ID_QUERY_PARAM = 'explorerRunId';
 
 /**
+ * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ */
+export function useSeerExplorerDeepLink({
+  callback,
+  enabled = true,
+}: {
+  callback: (runId: number) => void;
+  enabled?: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (!paramValue || typeof paramValue !== 'string') {
+      return;
+    }
+
+    const parsedRunId = Number(paramValue);
+    if (!Number.isNaN(parsedRunId)) {
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+      navigate({...location, query: restQuery}, {replace: true});
+      callback(parsedRunId);
+    }
+  }, [location, navigate, callback, enabled]);
+}
+
+/**
  * Returns the URL of the current window with the run ID query param set.
  */
 export function getExplorerUrl(runId: number | string): string {
@@ -1021,11 +1053,16 @@ export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOpt
 
 /**
  * Checks if Seer Explorer is enabled for the organization.
- * Requires all of the following conditions:
- * - 'seer-explorer' feature flag
- * - Organization has open membership
- * Does not check general AI features access or org consent.
+ * Requires the rollout flag and:
+ * - 'gen-ai-features' feature flag
+ * - Organization has not disabled open membership
+ * - Organization has not disabled AI features (hideAiFeatures is false)
  */
 export function isSeerExplorerEnabled(organization: Organization): boolean {
-  return organization.openMembership && organization.features.includes('seer-explorer');
+  return (
+    organization.openMembership &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('seer-explorer')
+  );
 }

@@ -46,14 +46,13 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
-    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -269,19 +268,13 @@ ORG_OPTIONS = (
         "defaultAutofixAutomationTuning",
         "sentry:default_autofix_automation_tuning",
         str,
-        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+        AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     ),
     (
         "defaultSeerScannerAutomation",
         "sentry:default_seer_scanner_automation",
         bool,
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ),
-    (
-        "enableSeerEnhancedAlerts",
-        "sentry:enable_seer_enhanced_alerts",
-        bool,
-        ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ),
     (
         "enableSeerCoding",
@@ -422,7 +415,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
     dashboardsAsyncQueueParallelLimit = serializers.IntegerField(required=False, min_value=1)
-    enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     defaultCodingAgent = serializers.ChoiceField(
         choices=["seer", "cursor", "claude_code", "cursor_background_agent", "claude_code_agent"],

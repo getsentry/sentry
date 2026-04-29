@@ -174,7 +174,7 @@ app.get("/debug-sentry", function mainHandler(req, res) {${
     if (params.isMetricsSelected) {
       steps.push({
         id: 'metrics',
-        name: t('Metrics'),
+        name: t('Application Metrics'),
         description: t(
           'Learn how to track custom metrics to monitor your application performance and business KPIs.'
         ),

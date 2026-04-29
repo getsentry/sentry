@@ -425,10 +425,7 @@ export default function AccountSecurityEnroll() {
   // Attempt to extract `defaultValue` from server generated form fields
   const defaultValues = fields
     ? fields
-        .filter(
-          field =>
-            typeof field !== 'function' && typeof field.defaultValue !== 'undefined'
-        )
+        .filter(field => typeof field !== 'function' && field.defaultValue !== undefined)
         .map(field => [field.name, typeof field === 'function' ? '' : field.defaultValue])
         .reduce((acc, [name, value]) => {
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

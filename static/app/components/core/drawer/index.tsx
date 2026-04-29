@@ -184,6 +184,7 @@ export function GlobalDrawer({children}: any) {
   useHotkeys([
     {
       match: 'Escape',
+      enabled: isDrawerOpen,
       callback: () => {
         handleClose();
       },
@@ -205,7 +206,7 @@ export function GlobalDrawer({children}: any) {
       >
         <AnimatePresence>
           {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
-            <Backdrop key="backdrop" />
+            <Backdrop zIndex="drawer" key="backdrop" />
           ) : null}
           {isDrawerOpen && (
             <DrawerComponents.DrawerPanel

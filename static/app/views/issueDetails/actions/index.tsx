@@ -29,6 +29,7 @@ import {ResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconClock,
+  IconCopy,
   IconEllipsis,
   IconSubscribed,
   IconUnsubscribed,
@@ -45,23 +46,25 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
+import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {SeerCommandPaletteActions} from 'sentry/views/issueDetails/actions/seerCommandPaletteActions';
 import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
 import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
-import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type UpdateData =
   | {isBookmarked: boolean}
@@ -142,6 +145,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     const message = getMessage(group);
     return message && message !== title ? `${title}: ${message}` : title;
   }, [group]);
+
+  const stacktraceBody = useMemo(() => {
+    if (!event) {
+      return '';
+    }
+    const result = getStacktraceBody({event});
+    return result && Array.isArray(result) ? result.join('\n\n') : '';
+  }, [event]);
 
   const {
     actions: {
@@ -230,11 +241,11 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           }
           onComplete?.();
           queryClient.invalidateQueries({
-            queryKey: makeFetchGroupQueryKey({
+            queryKey: groupApiOptions({
               organizationSlug: organization.slug,
               groupId: group.id,
               environments,
-            }),
+            }).queryKey,
           });
         },
       }
@@ -458,6 +469,16 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                     substatus: GroupSubstatus.ONGOING,
                   })
                 }
+              />
+            )}
+            {stacktraceBody && (
+              <CMDKAction
+                display={{
+                  label: t('Copy Stack Trace'),
+                  icon: <IconCopy />,
+                }}
+                keywords={['stacktrace', 'exception', 'error', 'trace', 'copy']}
+                onAction={() => copyToClipboard(stacktraceBody)}
               />
             )}
             <GroupPriorityCommandPaletteAction group={group} />

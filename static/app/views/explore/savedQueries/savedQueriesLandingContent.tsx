@@ -18,7 +18,6 @@ import type {SortOption} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {SavedQueriesTable} from './savedQueriesTable';
 
@@ -28,7 +27,6 @@ export function SavedQueriesLandingContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const hasLogsFeature = isLogsEnabled(organization);
   const searchQuery = decodeScalar(location.query.query);
   const [sort, setSort] = useState<SortOption>('mostStarred');
@@ -66,56 +64,54 @@ export function SavedQueriesLandingContent() {
           value={sort}
           onChange={option => setSort(option.value)}
         />
-        {hasPageFrameFeature ? (
-          hasLogsFeature ? (
-            <DropdownMenu
-              items={[
-                {
-                  key: 'create-query-spans',
-                  label: <span>{t('Trace Query')}</span>,
-                  textValue: t('Create Traces Query'),
-                  onAction: () => {
-                    navigate(getExploreUrl({organization, visualize: []}));
-                  },
+        {hasLogsFeature ? (
+          <DropdownMenu
+            items={[
+              {
+                key: 'create-query-spans',
+                label: <span>{t('Trace Query')}</span>,
+                textValue: t('Create Traces Query'),
+                onAction: () => {
+                  navigate(getExploreUrl({organization, visualize: []}));
                 },
-                {
-                  key: 'create-query-logs',
-                  label: <span>{t('Logs Query')}</span>,
-                  textValue: t('Create Logs Query'),
-                  onAction: () => {
-                    navigate(getLogsUrl({organization}));
-                  },
+              },
+              {
+                key: 'create-query-logs',
+                label: <span>{t('Logs Query')}</span>,
+                textValue: t('Create Logs Query'),
+                onAction: () => {
+                  navigate(getLogsUrl({organization}));
                 },
-              ]}
-              trigger={triggerProps => (
-                <Button
-                  {...triggerProps}
-                  priority="primary"
-                  icon={<IconAdd />}
-                  size="md"
-                  aria-label={t('Create Query')}
-                  onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
+              },
+            ]}
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                priority="primary"
+                icon={<IconAdd />}
+                size="md"
+                aria-label={t('Create Query')}
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
 
-                    triggerProps.onClick?.(e);
-                  }}
-                >
-                  {t('Create Query')}
-                </Button>
-              )}
-            />
-          ) : (
-            <LinkButton
-              priority="primary"
-              icon={<IconAdd />}
-              size="md"
-              to={getExploreUrl({organization, visualize: []})}
-            >
-              {t('Create Query')}
-            </LinkButton>
-          )
-        ) : null}
+                  triggerProps.onClick?.(e);
+                }}
+              >
+                {t('Create Query')}
+              </Button>
+            )}
+          />
+        ) : (
+          <LinkButton
+            priority="primary"
+            icon={<IconAdd />}
+            size="md"
+            to={getExploreUrl({organization, visualize: []})}
+          >
+            {t('Create Query')}
+          </LinkButton>
+        )}
       </FilterContainer>
       <SavedQueriesTable
         mode="owned"

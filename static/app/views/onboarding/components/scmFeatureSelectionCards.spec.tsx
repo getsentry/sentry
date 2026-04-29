@@ -32,7 +32,7 @@ describe('ScmFeatureSelectionCards', () => {
     expect(screen.getByText('Session replay')).toBeInTheDocument();
     expect(screen.getByText('Profiling')).toBeInTheDocument();
     expect(screen.getByText('Logging')).toBeInTheDocument();
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
   });
 
   it('renders only passed features', () => {

@@ -712,7 +712,7 @@ function BigNumberComponent({
   tableResults,
   widget,
 }: TableComponentProps): React.ReactNode {
-  if (typeof tableResults === 'undefined' || loading) {
+  if (tableResults === undefined || loading) {
     return <BigNumber>{'\u2014'}</BigNumber>;
   }
 

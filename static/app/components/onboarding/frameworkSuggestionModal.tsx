@@ -124,6 +124,7 @@ interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
 }
 
@@ -137,6 +138,7 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
+  hasScmOnboarding,
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
   const createProjectAndRulesError = useCreateProjectAndRulesError();
@@ -193,47 +195,72 @@ export function FrameworkSuggestionModal({
 
   useEffect(() => {
     trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_rendered'
-        : 'project_creation.select_framework_modal_rendered',
+      hasScmOnboarding
+        ? 'onboarding.scm_select_framework_modal_rendered'
+        : newOrg
+          ? 'onboarding.select_framework_modal_rendered'
+          : 'project_creation.select_framework_modal_rendered',
       {
         platform: selectedPlatform.key,
         organization,
       }
     );
-  }, [selectedPlatform.key, organization, newOrg]);
+  }, [selectedPlatform.key, organization, newOrg, hasScmOnboarding]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
     }
 
-    trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
-        : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
-      {
-        platform: selectedPlatform.key,
-        framework: selectedFramework.key,
+    if (hasScmOnboarding) {
+      trackAnalytics('onboarding.scm_platform_selected', {
         organization,
-      }
-    );
+        platform: selectedFramework.key,
+        source: 'manual',
+      });
+    } else {
+      trackAnalytics(
+        newOrg
+          ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
+          : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
+        {
+          platform: selectedPlatform.key,
+          framework: selectedFramework.key,
+          organization,
+        }
+      );
+    }
 
     onConfigure(selectedFramework);
-  }, [selectedPlatform, selectedFramework, organization, onConfigure, newOrg]);
+  }, [
+    selectedPlatform,
+    selectedFramework,
+    organization,
+    onConfigure,
+    newOrg,
+    hasScmOnboarding,
+  ]);
 
   const handleSkip = useCallback(() => {
-    trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_skip_button_clicked'
-        : 'project_creation.select_framework_modal_skip_button_clicked',
-      {
-        platform: selectedPlatform.key,
+    if (hasScmOnboarding) {
+      trackAnalytics('onboarding.scm_platform_selected', {
         organization,
-      }
-    );
+        platform: selectedPlatform.key,
+        source: 'manual',
+      });
+    } else {
+      trackAnalytics(
+        newOrg
+          ? 'onboarding.select_framework_modal_skip_button_clicked'
+          : 'project_creation.select_framework_modal_skip_button_clicked',
+        {
+          platform: selectedPlatform.key,
+          organization,
+        }
+      );
+    }
     onSkip();
-  }, [selectedPlatform, organization, onSkip, newOrg]);
+  }, [selectedPlatform, organization, onSkip, newOrg, hasScmOnboarding]);
 
   const handleClick = useCallback(() => {
     if (selectedFramework?.key === selectedPlatform.key) {

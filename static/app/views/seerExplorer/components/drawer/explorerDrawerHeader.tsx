@@ -11,38 +11,38 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconAdd, IconClock, IconCopy} from 'sentry/icons';
+import {IconAdd, IconClock, IconCopy, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface ExplorerDrawerHeaderProps {
-  copySessionEnabled: boolean;
   isEmptyState: boolean;
   onChangeSession: (runId: number) => void;
-  onCopySessionClick: () => void;
+  onCopyLinkClick: (() => void) | undefined;
+  onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
-  onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
-  overrideCodeModeEnable: boolean;
+  onShowThinkingToggle: () => void;
   overrideCtxEngEnable: boolean;
-  showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
+  showThinking: boolean;
+  showThinkingToggle: boolean;
 }
 
 export function ExplorerDrawerHeader({
+  isEmptyState,
   onNewChatClick,
   onChangeSession,
-  copySessionEnabled,
-  isEmptyState,
   onCopySessionClick,
+  onCopyLinkClick,
   showContextEngineToggle,
   overrideCtxEngEnable,
   onOverrideCtxEngEnableToggle,
-  showCodeModeToggle,
-  overrideCodeModeEnable,
-  onOverrideCodeModeEnableToggle,
+  showThinking,
+  showThinkingToggle,
+  onShowThinkingToggle,
 }: ExplorerDrawerHeaderProps) {
   // Session history query
   const {
@@ -129,23 +129,23 @@ export function ExplorerDrawerHeader({
             </Flex>
           </Tooltip>
         )}
-        {showCodeModeToggle && (
+        {showThinkingToggle && (
           <Tooltip
             title={
-              overrideCodeModeEnable
-                ? t('Code mode enabled (click to disable)')
-                : t('Code mode disabled (click to enable)')
+              showThinking
+                ? t('Hide thinking blocks (click to hide)')
+                : t('Show thinking blocks (click to show)')
             }
           >
             <Flex align="center" gap="xs" padding="xs sm" height="100%">
               <Switch
                 size="sm"
-                checked={overrideCodeModeEnable}
-                onChange={onOverrideCodeModeEnableToggle}
-                aria-label={t('Toggle code mode')}
+                checked={showThinking}
+                onChange={onShowThinkingToggle}
+                aria-label={t('Toggle thinking blocks')}
               />
               <Text size="sm" variant="muted">
-                {t('CM')}
+                {t('Show thinking')}
               </Text>
             </Flex>
           </Tooltip>
@@ -153,11 +153,20 @@ export function ExplorerDrawerHeader({
         <Button
           icon={<IconCopy />}
           onClick={onCopySessionClick}
-          disabled={!copySessionEnabled}
+          disabled={!onCopySessionClick}
           priority="default"
           size="xs"
           aria-label={t('Copy conversation to clipboard')}
           tooltipProps={{title: t('Copy conversation to clipboard')}}
+        />
+        <Button
+          icon={<IconLink />}
+          onClick={onCopyLinkClick}
+          disabled={!onCopyLinkClick}
+          priority="default"
+          size="xs"
+          aria-label={t('Copy link to current chat and web page')}
+          tooltipProps={{title: t('Copy link to current chat and web page')}}
         />
         <DropdownMenu
           items={sessionMenuItems}

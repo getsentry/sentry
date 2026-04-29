@@ -202,11 +202,11 @@ export class AutoComplete<T extends Item> extends Component<
   cancelCloseTimeout: number | undefined = undefined;
 
   get inputValueIsControlled() {
-    return typeof this.props.inputValue !== 'undefined';
+    return this.props.inputValue !== undefined;
   }
 
   get isOpenIsControlled() {
-    return typeof this.props.isOpen !== 'undefined';
+    return this.props.isOpen !== undefined;
   }
 
   get inputValue() {
