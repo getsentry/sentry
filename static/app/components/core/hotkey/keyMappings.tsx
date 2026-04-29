@@ -28,68 +28,100 @@ const aliases: Record<string, string> = {
   '\u21EA': 'capslock', // ⇪
 };
 
-function canonicalize(keyName: string): string {
+export function canonicalize(keyName: string): string {
   const lower = keyName.toLowerCase();
   return aliases[lower] ?? lower;
 }
 
-// Only uses canonical names
-const keyCodeMap: Record<string, number> = {
-  backspace: 8,
-  tab: 9,
-  clear: 12,
-  enter: 13,
-  escape: 27,
-  space: 32,
-  left: 37,
-  up: 38,
-  right: 39,
-  down: 40,
-  delete: 46,
-  insert: 45,
-  home: 36,
-  end: 35,
-  pageup: 33,
-  pagedown: 34,
-  capslock: 20,
-  num_0: 96,
-  num_1: 97,
-  num_2: 98,
-  num_3: 99,
-  num_4: 100,
-  num_5: 101,
-  num_6: 102,
-  num_7: 103,
-  num_8: 104,
-  num_9: 105,
-  num_multiply: 106,
-  num_add: 107,
-  num_enter: 108,
-  num_subtract: 109,
-  num_decimal: 110,
-  num_divide: 111,
-  // Modifiers
-  shift: 16,
-  alt: 18,
-  control: 17,
-  command: 91,
-  // Punctuation (explicit entries avoid upper-casing surprises)
-  ',': 188,
-  '.': 190,
-  '/': 191,
-  '`': 192,
-  '-': 189,
-  '=': 187,
-  ';': 186,
-  "'": 222,
-  '[': 219,
-  ']': 221,
-  '\\': 220,
+// Maps canonical key names to their `event.key` value. Used for keys that
+// have a stable cross-layout `event.key` (named keys, arrows, etc.).
+const namedKeyMap: Record<string, string> = {
+  backspace: 'Backspace',
+  tab: 'Tab',
+  clear: 'Clear',
+  enter: 'Enter',
+  escape: 'Escape',
+  space: ' ',
+  left: 'ArrowLeft',
+  up: 'ArrowUp',
+  right: 'ArrowRight',
+  down: 'ArrowDown',
+  delete: 'Delete',
+  insert: 'Insert',
+  home: 'Home',
+  end: 'End',
+  pageup: 'PageUp',
+  pagedown: 'PageDown',
+  capslock: 'CapsLock',
 };
 
-export function getKeyCode(x: string): number {
-  const key = canonicalize(x);
-  return keyCodeMap[key] ?? x.toUpperCase().charCodeAt(0);
+// Maps single-char punctuation to its `event.code` value. Used as a fallback
+// alongside `event.key` so shortcuts work even when shift transforms the
+// produced character (e.g. `shift+1` produces '!' on US QWERTY).
+const punctuationCodeMap: Record<string, string> = {
+  ',': 'Comma',
+  '.': 'Period',
+  '/': 'Slash',
+  '`': 'Backquote',
+  '-': 'Minus',
+  '=': 'Equal',
+  ';': 'Semicolon',
+  "'": 'Quote',
+  '[': 'BracketLeft',
+  ']': 'BracketRight',
+  '\\': 'Backslash',
+};
+
+const modifierPredicates: Record<string, (event: KeyboardEvent) => boolean> = {
+  command: e => e.metaKey,
+  shift: e => e.shiftKey,
+  control: e => e.ctrlKey,
+  alt: e => e.altKey,
+};
+
+export const MODIFIER_KEYS = ['command', 'shift', 'control', 'alt'] as const;
+
+function codeForChar(ch: string): string | undefined {
+  if (ch >= 'a' && ch <= 'z') {
+    return `Key${ch.toUpperCase()}`;
+  }
+  if (ch >= '0' && ch <= '9') {
+    return `Digit${ch}`;
+  }
+  return punctuationCodeMap[ch];
+}
+
+/**
+ * Tests whether a single key name from a hotkey match string is currently
+ * pressed in the given keyboard event. Layout-aware: matches against
+ * `event.key` (so an AZERTY user pressing the K-labeled key fires `'k'`
+ * shortcuts) with `event.code` as a physical-position fallback (so
+ * `shift+1` works even though `event.key === '!'` on US QWERTY).
+ */
+export function matchesKey(name: string, event: KeyboardEvent): boolean {
+  const key = canonicalize(name);
+
+  const modifier = modifierPredicates[key];
+  if (modifier) {
+    return modifier(event);
+  }
+
+  const namedKey = namedKeyMap[key];
+  if (namedKey) {
+    return event.key === namedKey;
+  }
+
+  if (key.length === 1) {
+    if (event.key.toLowerCase() === key) {
+      return true;
+    }
+    const code = codeForChar(key);
+    if (code && event.code === code) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 type KeyGlyph = {icon: React.ReactNode; label: string} | {label: string};

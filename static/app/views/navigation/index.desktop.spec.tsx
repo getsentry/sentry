@@ -5,7 +5,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -637,7 +636,7 @@ describe('desktop navigation', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('can collapse the sidebar via Ctrl+B keyboard shortcut', () => {
+      it('can collapse the sidebar via Ctrl+B keyboard shortcut', async () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -645,12 +644,12 @@ describe('desktop navigation', () => {
           navigationContext()
         );
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
 
         expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
       });
 
-      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', () => {
+      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', async () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -658,10 +657,10 @@ describe('desktop navigation', () => {
           navigationContext()
         );
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
         expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
         expect(
           screen.queryByTestId('collapsed-secondary-sidebar')
         ).not.toBeInTheDocument();

@@ -2,26 +2,7 @@ import {useEffect, useRef} from 'react';
 
 import {toArray} from 'sentry/utils/array/toArray';
 
-import {getKeyCode} from './keyMappings';
-
-const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
-  // TODO(design-eng): we should just use `key`, `keyCode` is deprecated
-  const keyCode = getKeyCode(key);
-  switch (keyCode) {
-    case getKeyCode('command'):
-      return evt.metaKey;
-    case getKeyCode('shift'):
-      return evt.shiftKey;
-    case getKeyCode('ctrl'):
-      return evt.ctrlKey;
-    case getKeyCode('alt'):
-      return evt.altKey;
-    default:
-      return keyCode === evt.keyCode;
-  }
-};
-
-const modifiers = ['command', 'shift', 'ctrl', 'alt'];
+import {canonicalize, matchesKey, MODIFIER_KEYS} from './keyMappings';
 
 type Hotkey = {
   /**
@@ -37,6 +18,13 @@ type Hotkey = {
    * `command+shift+t`.
    */
   match: string[] | string;
+  /**
+   * When `false`, the hotkey is skipped: the callback never fires and
+   * `preventDefault` is never called. Useful for gating a hotkey on state
+   * (e.g. only intercept `Escape` while a panel is open) without rebuilding
+   * the hotkey array. Defaults to `true`.
+   */
+  enabled?: boolean;
   /**
    * Allow shortcuts to be triggered while a text input is foccused
    */
@@ -66,16 +54,21 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
       for (const hotkey of hotkeysRef.current) {
+        if (hotkey.enabled === false) {
+          continue;
+        }
         const preventDefault = !hotkey.skipPreventDefault;
         const keysets = toArray(hotkey.match).map(keys => keys.toLowerCase());
 
         for (const keyset of keysets) {
-          const keys = keyset.split('+');
-          const unusedModifiers = modifiers.filter(modifier => !keys.includes(modifier));
+          const keys = keyset.split('+').map(canonicalize);
+          const unusedModifiers = MODIFIER_KEYS.filter(
+            modifier => !keys.includes(modifier)
+          );
 
           const allKeysPressed =
-            keys.every(key => isKeyPressed(key, evt)) &&
-            unusedModifiers.every(modifier => !isKeyPressed(modifier, evt));
+            keys.every(key => matchesKey(key, evt)) &&
+            unusedModifiers.every(modifier => !matchesKey(modifier, evt));
 
           const inputHasFocus =
             !hotkey.includeInputs && evt.target instanceof HTMLElement

@@ -184,6 +184,7 @@ export function GlobalDrawer({children}: any) {
   useHotkeys([
     {
       match: 'Escape',
+      enabled: isDrawerOpen,
       callback: () => {
         handleClose();
       },
