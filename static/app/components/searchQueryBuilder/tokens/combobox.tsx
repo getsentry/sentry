@@ -619,7 +619,7 @@ export function SearchQueryBuilderCombobox<
         onPaste={onPaste}
         disabled={disabled}
         onKeyDownCapture={e => {
-          if (e.metaKey && (e.key === 'Backspace' || e.key === 'Delete')) {
+          if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
             e.preventDefault();
             e.stopPropagation();
             state.close();
