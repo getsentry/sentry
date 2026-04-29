@@ -1,3 +1,5 @@
+import logging
+
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.views.decorators.csrf import csrf_exempt
@@ -23,6 +25,8 @@ from sentry.integrations.utils.metrics import (
 
 from .integration import BitbucketIntegrationProvider
 
+logger = logging.getLogger("sentry.integrations.bitbucket")
+
 
 @control_silo_endpoint
 class BitbucketInstalledEndpoint(Endpoint):
@@ -47,6 +51,7 @@ class BitbucketInstalledEndpoint(Endpoint):
 
             if options.get("integrations.bitbucket.installation-verification.strict"):
                 try:
+                    logger.info("installation-webhook", extra={"included_fields": state.keys()})
                     AtlassianConnectTokenValidator(request, method="POST").get_token()
                 except AtlassianConnectValidationError as e:
                     lifecycle.record_halt(halt_reason=str(e), create_issue=True)

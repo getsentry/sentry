@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 from rest_framework.serializers import Serializer
 
+from sentry import options
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -28,6 +29,7 @@ from sentry.integrations.source_code_management.repository import (
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectFailureReason,
     AtlassianConnectValidationError,
     get_integration_from_jwt,
 )
@@ -39,7 +41,7 @@ from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
-from .client import BitbucketApiClient
+from .client import BitbucketApiClient, BitbucketInstallationClient
 from .issues import BitbucketIssuesSpec
 from .repository import BitbucketRepositoryProvider
 from .utils import parse_bitbucket_src_url
@@ -307,6 +309,16 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             account_type = principal_data["type"]
             domain = f"{base_url}/{username}" if account_type == "team" else username
             secret = generate_token()
+            if options.get("integrations.bitbucket.weak-installation-verification"):
+                client = BitbucketInstallationClient(
+                    shared_secret=state["sharedSecret"], base_url="https://api.bitbucket.org"
+                )
+                try:
+                    client.verify_shared_secret(state["sharedSecret"])
+                except ApiError:
+                    raise AtlassianConnectValidationError(
+                        AtlassianConnectFailureReason.INVALID_SHARED_SECRET
+                    )
 
             return {
                 "provider": self.key,

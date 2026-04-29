@@ -43,6 +43,7 @@ class BitbucketAPIPath:
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
     repository_hooks = "/2.0/repositories/{repo}/hooks"
+    addons = "/2.0/addons"
 
     source = "/2.0/repositories/{repo}/src/{sha}/{path}"
 
@@ -232,3 +233,31 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
             raw_response=True,
         )
         return response.text
+
+
+class BitbucketInstallationClient(ApiClient):
+    def __init__(self, shared_secret: str, base_url: str):
+        self.shared_secret = shared_secret
+        self.base_url = base_url
+
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        assert prepared_request.url is not None
+        assert prepared_request.method is not None
+        path = prepared_request.url[len(self.base_url) :]
+        url_params = dict(parse_qs(urlsplit(path).query))
+        path = path.split("?")[0]
+        jwt_payload = {
+            "iss": BITBUCKET_KEY,
+            "iat": datetime.datetime.utcnow(),
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
+            "qsh": get_query_hash(
+                uri=path, method=prepared_request.method.upper(), query_params=url_params
+            ),
+            "sub": self.subject,
+        }
+        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
+        prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
+        return prepared_request
+
+    def verify_shared_secret(self, shared_secret: str) -> bool:
+        return self.get(BitbucketAPIPath.addons, params={"shared_secret": shared_secret})
