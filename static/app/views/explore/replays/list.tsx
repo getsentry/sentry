@@ -37,13 +37,11 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {ReplayIndexContainer} from 'sentry/views/explore/replays/list/replayIndexContainer';
-import {ReplayIndexTimestampPrefPicker} from 'sentry/views/explore/replays/list/replayIndexTimestampPrefPicker';
 import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
 import {ReplayOnboardingPanel} from 'sentry/views/explore/replays/list/replayOnboardingPanel';
 import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/replayQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',
@@ -55,7 +53,6 @@ function ReplaysHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -74,51 +71,25 @@ function ReplaysHeader() {
     </Fragment>
   );
 
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${t('Session Replay')}`}
-            orgSlug={organization?.slug}
-          />
-        ) : null}
-        <TopBar.Slot name="title">
-          {title && defined(pageId) ? (
-            <ExploreBreadcrumb
-              traceItemDataset={TraceItemDataset.REPLAYS}
-              savedQueryName={savedQuery?.name}
-            />
-          ) : (
-            titleContent
-          )}
-        </TopBar.Slot>
-      </Fragment>
-    );
-  }
-
   return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${t('Session Replay')}`}
-            orgSlug={organization?.slug}
-          />
-        ) : null}
+    <Fragment>
+      {hasSavedQueryTitle ? (
+        <SentryDocumentTitle
+          title={`${savedQuery.name} — ${t('Session Replay')}`}
+          orgSlug={organization?.slug}
+        />
+      ) : null}
+      <TopBar.Slot name="title">
         {title && defined(pageId) ? (
           <ExploreBreadcrumb
             traceItemDataset={TraceItemDataset.REPLAYS}
             savedQueryName={savedQuery?.name}
           />
-        ) : null}
-
-        <Layout.Title>{titleContent}</Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <ReplayIndexTimestampPrefPicker />
-      </Layout.HeaderActions>
-    </Layout.Header>
+        ) : (
+          titleContent
+        )}
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 

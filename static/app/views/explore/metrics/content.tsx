@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -31,7 +30,6 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const METRICS_TITLE = t('Application Metrics');
 
@@ -96,7 +94,6 @@ function MetricsHeader() {
   const title = getTitleFromLocation(location, TITLE_KEY);
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
 
@@ -119,54 +116,30 @@ function MetricsHeader() {
 
   const hasBreadcrumb = Boolean(title && defined(pageId));
 
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        {documentTitle}
-        <TopBar.Slot name="title">
-          {hasBreadcrumb ? (
-            <ExploreBreadcrumb
-              traceItemDataset={TraceItemDataset.TRACEMETRICS}
-              savedQueryName={savedQuery?.name}
-            />
-          ) : (
-            title || METRICS_TITLE
-          )}
-          <FeatureBadge type="new" />
-          {titleTooltip}
-        </TopBar.Slot>
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            feedbackOptions={metricsFeedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-      </Fragment>
-    );
-  }
-
   return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        {documentTitle}
+    <Fragment>
+      {documentTitle}
+      <TopBar.Slot name="title">
         {hasBreadcrumb ? (
           <ExploreBreadcrumb
             traceItemDataset={TraceItemDataset.TRACEMETRICS}
             savedQueryName={savedQuery?.name}
           />
-        ) : null}
-        <Layout.Title>
-          {title || METRICS_TITLE}
-          <FeatureBadge type="new" />
-          {titleTooltip}
-        </Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <FeedbackButton feedbackOptions={metricsFeedbackOptions} />
-      </Layout.HeaderActions>
-    </Layout.Header>
+        ) : (
+          title || METRICS_TITLE
+        )}
+        <FeatureBadge type="new" />
+        {titleTooltip}
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          feedbackOptions={metricsFeedbackOptions}
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
