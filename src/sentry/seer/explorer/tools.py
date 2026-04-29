@@ -64,6 +64,8 @@ from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_STATS_PERIOD = "7d"
+
 
 def _get_full_trace_id(
     short_trace_id: str, organization: Organization, projects: list[Project]
@@ -148,6 +150,9 @@ def execute_table_query(
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     # Note if both project_ids and project_slugs are provided, the API request will 400.
+
+    if not stats_period and not start and not end:
+        stats_period = DEFAULT_STATS_PERIOD
 
     if sort:
         # Auto-select sort field to avoid snuba errors.
@@ -241,6 +246,9 @@ def execute_timeseries_query(
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     # Note if both project_ids and project_slugs are provided, the API request will 400.
+
+    if not stats_period and not start and not end:
+        stats_period = DEFAULT_STATS_PERIOD
 
     params: dict[str, Any] = {
         "dataset": dataset,
