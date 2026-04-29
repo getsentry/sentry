@@ -541,6 +541,31 @@ class GitHubIntegration(
                     "Your organization does not have access to this feature"
                 )
 
+        # PR-comment and missing-member toggles are self-serveable regardless of
+        # issue-sync entitlement, so they are appended after the gating loop.
+        config.extend(
+            [
+                {
+                    "name": "pr_comments",
+                    "type": "boolean",
+                    "label": _("Enable Comments on Suspect Pull Requests"),
+                    "help": _(
+                        "Allow Sentry to comment on recent pull requests suspected of causing issues."
+                    ),
+                    "default": False,
+                },
+                {
+                    "name": "nudge_invite",
+                    "type": "boolean",
+                    "label": _("Enable Missing Member Detection"),
+                    "help": _(
+                        "Allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization."
+                    ),
+                    "default": False,
+                },
+            ]
+        )
+
         return config
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:

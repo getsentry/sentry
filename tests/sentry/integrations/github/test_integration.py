@@ -1295,7 +1295,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sync_forward_assignment",
             "resolution_strategy",
             "sync_comments",
+            "pr_comments",
+            "nudge_invite",
         ]
+        # PR-comment / nudge-invite must never be disabled by the
+        # integrations-issue-sync gating.
+        for field in fields:
+            if field["name"] in ("pr_comments", "nudge_invite"):
+                assert "disabled" not in field
 
     @responses.activate
     def test_update_organization_config(self) -> None:
