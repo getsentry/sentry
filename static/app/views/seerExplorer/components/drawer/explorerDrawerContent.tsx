@@ -331,7 +331,7 @@ export function ExplorerDrawerContent({
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         isHistoryDropdownOpen={isHistoryDropdownOpen}
-        onHistoryDropdownOpenChange={setIsHistoryDropdownOpen}
+        setIsHistoryDropdownOpen={setIsHistoryDropdownOpen}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={

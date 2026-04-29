@@ -19,21 +19,21 @@ import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface ExplorerDrawerHeaderProps {
   isEmptyState: boolean;
+  isHistoryDropdownOpen: boolean;
   onChangeSession: (runId: number) => void;
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
-  onHistoryDropdownOpenChange: (isOpen: boolean) => void;
   onNewChatClick: () => void;
   onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
   overrideCodeModeEnable: boolean;
   overrideCtxEngEnable: boolean;
+  setIsHistoryDropdownOpen: (isOpen: boolean) => void;
   showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
   showThinking: boolean;
   showThinkingToggle: boolean;
-  isHistoryDropdownOpen?: boolean;
 }
 
 export function ExplorerDrawerHeader({
@@ -52,7 +52,7 @@ export function ExplorerDrawerHeader({
   showThinkingToggle,
   onShowThinkingToggle,
   isHistoryDropdownOpen,
-  onHistoryDropdownOpenChange,
+  setIsHistoryDropdownOpen,
 }: ExplorerDrawerHeaderProps) {
   // Session history query
   const {
@@ -66,12 +66,12 @@ export function ExplorerDrawerHeader({
 
   const onHistoryOpenChange = useCallback(
     (isOpen: boolean) => {
-      onHistoryDropdownOpenChange(isOpen);
+      setIsHistoryDropdownOpen(isOpen);
       if (isOpen) {
         refetchSessionHistory();
       }
     },
-    [onHistoryDropdownOpenChange, refetchSessionHistory]
+    [setIsHistoryDropdownOpen, refetchSessionHistory]
   );
 
   // Session history menu items
