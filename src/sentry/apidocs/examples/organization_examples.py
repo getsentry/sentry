@@ -781,7 +781,6 @@ class OrganizationExamples:
                         "email": "raj@raspberries",
                         "avatarUrl": "https://gravatar.com/avatar/bf99685de539465db9208ab3a888843ba0e5e85b1f156084484c7c6c31312be5?s=32&d=mm",
                         "isActive": True,
-                        "isSuspended": False,
                         "hasPasswordAuth": False,
                         "isManaged": False,
                         "dateJoined": "2023-08-07T12:32:09.091427Z",
