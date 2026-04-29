@@ -236,9 +236,10 @@ function useIssueListBulkCommandPaletteActions({
 
   function performBulkUpdate(
     data: IssueUpdateData | Record<string, unknown>,
-    onSuccess?: (itemIds: string[] | undefined) => void
+    onSuccess?: (itemIds: string[] | undefined) => void,
+    allInQuery?: boolean
   ) {
-    const itemIds = getSelectedIds();
+    const itemIds = allInQuery ? undefined : getSelectedIds();
     performSharedBulkUpdate({
       api,
       data,
@@ -259,14 +260,18 @@ function useIssueListBulkCommandPaletteActions({
     deselectAll();
   }
 
-  function handleUpdate(data: IssueUpdateData) {
-    performBulkUpdate(data, itemIds => {
-      onActionTaken?.(itemIds ?? [], data);
-    });
+  function handleUpdate(data: IssueUpdateData, allInQuery?: boolean) {
+    performBulkUpdate(
+      data,
+      itemIds => {
+        onActionTaken?.(itemIds ?? [], data);
+      },
+      allInQuery
+    );
   }
 
-  function handleBulkUpdate(data: Record<string, unknown>) {
-    performBulkUpdate(data);
+  function handleBulkUpdate(data: Record<string, unknown>, allInQuery?: boolean) {
+    performBulkUpdate(data, undefined, allInQuery);
   }
   const selectedIssueIds = useMemo(() => {
     const ids = selectedIssues.map(issue => `#${issue.shortId}`);
@@ -339,6 +344,10 @@ export function IssueListMarkAllCommandPaletteAction(
     return null;
   }
 
+  const handleUpdateAll = (data: IssueUpdateData) => handleUpdate(data, true);
+  const handleBulkUpdateAll = (data: Record<string, unknown>) =>
+    handleBulkUpdate(data, true);
+
   return (
     <CMDKAction
       display={{
@@ -349,7 +358,7 @@ export function IssueListMarkAllCommandPaletteAction(
     >
       <AssignActions
         label={t('Assigned to')}
-        onBulkUpdate={handleBulkUpdate}
+        onBulkUpdate={handleBulkUpdateAll}
         onConfirmBulkUpdate={(actionLabel, onConfirm) =>
           confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
         }
@@ -361,7 +370,7 @@ export function IssueListMarkAllCommandPaletteAction(
           confirmBulkAction(
             t('resolve'),
             () =>
-              handleUpdate({
+              handleUpdateAll({
                 status: GroupStatus.RESOLVED,
                 statusDetails: {},
                 substatus: null,
@@ -377,7 +386,7 @@ export function IssueListMarkAllCommandPaletteAction(
           confirmBulkAction(
             t('archive'),
             () =>
-              handleUpdate({
+              handleUpdateAll({
                 status: GroupStatus.IGNORED,
                 statusDetails: {},
                 substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,

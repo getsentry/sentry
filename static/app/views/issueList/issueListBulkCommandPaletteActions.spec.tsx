@@ -269,4 +269,78 @@ describe('IssueListBulkCommandPaletteActions', () => {
 
     expect(addLoadingMessage).toHaveBeenCalledWith('Saving changes…');
   });
+
+  it('sends query-based API request when marking all issues as resolved', async () => {
+    const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
+
+    const bulkUpdateMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      method: 'PUT',
+      body: [],
+    });
+
+    render(
+      <CommandPaletteProvider>
+        <IssueSelectionProvider visibleGroupIds={['1', '2']}>
+          <IssueListCommandPaletteActions
+            groupIds={['1', '2']}
+            onActionTaken={jest.fn()}
+            onQueryChange={jest.fn()}
+            onSortChange={jest.fn()}
+            query="is:unresolved"
+            queryCount={10}
+            selection={{
+              projects: [1],
+              environments: [],
+              datetime: {start: null, end: null, period: null, utc: true},
+            }}
+            sort={IssueSortOptions.DATE}
+          />
+        </IssueSelectionProvider>
+        <SlotOutlets />
+        <CommandPaletteTree
+          onTree={tree => {
+            treeRef.current = tree;
+          }}
+        />
+      </CommandPaletteProvider>,
+      {organization}
+    );
+    renderGlobalModal();
+
+    await waitFor(() => {
+      expect(treeRef.current.length).toBeGreaterThan(0);
+    });
+
+    const issueFeedNode = treeRef.current.find(
+      node => node.display.label === 'Issues Feed'
+    );
+    const markAllNode = issueFeedNode?.children.find(
+      child => child.display.label === 'Mark all issues as'
+    );
+    const resolvedAction = markAllNode?.children.find(
+      child => child.display.label === 'Resolved' && 'onAction' in child
+    );
+
+    act(() => {
+      if (resolvedAction && 'onAction' in resolvedAction) {
+        resolvedAction.onAction();
+      }
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+
+    expect(bulkUpdateMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/issues/`,
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'is:unresolved'}),
+      })
+    );
+    expect(bulkUpdateMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({id: expect.anything()}),
+      })
+    );
+  });
 });
