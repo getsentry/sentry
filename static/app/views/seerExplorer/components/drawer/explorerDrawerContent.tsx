@@ -61,6 +61,7 @@ export function ExplorerDrawerContent({
     sessionData,
     isPolling,
     isError,
+    errorStatusCode,
     sendMessage,
     startNewSession,
     switchToRun,
@@ -352,6 +353,7 @@ export function ExplorerDrawerContent({
           <EmptyState
             isLoading={isPolling}
             isError={isError}
+            errorStatusCode={errorStatusCode}
             runId={runId}
             onSuggestionClick={readOnly ? undefined : sendMessage}
           />
