@@ -591,7 +591,7 @@ def _write_preferences_to_sentry_db(
                     )
                     continue
 
-                # Don't create new project repos for inactive repos.
+                # Only create new project repos for active repos.
                 if repo_def.repository_id not in active_repo_ids:
                     continue
 
