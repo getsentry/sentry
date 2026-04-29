@@ -11,7 +11,6 @@ import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -70,26 +69,6 @@ function ListBoxSectionButton({
     >
       {children}
     </SectionButton>
-  );
-}
-
-function FeedbackFooter() {
-  const {searchSource} = useSearchQueryBuilder();
-
-  return (
-    <SectionedOverlayFooter>
-      <FeedbackButton
-        size="xs"
-        feedbackOptions={{
-          messagePlaceholder: t('How can we make search better for you?'),
-          tags: {
-            search_source: searchSource,
-            ['feedback.source']: 'search_query_builder',
-            ['feedback.owner']: 'issues',
-          },
-        }}
-      />
-    </SectionedOverlayFooter>
   );
 }
 
@@ -272,7 +251,6 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           )}
         </DetailsPane>
       ) : null}
-      <FeedbackFooter />
     </Fragment>
   );
 }
@@ -425,54 +403,41 @@ const SectionedOverlay = styled(Overlay, {
   ${p =>
     p.hasAiFeatures
       ? css`
-          grid-template-rows: auto auto auto 1fr auto;
+          grid-template-rows: auto auto auto 1fr;
           grid-template-columns: ${p.fullWidth ? '50% 50%' : '1fr'};
           grid-template-areas:
             'seer seer'
             'recentFilters recentFilters'
             'tabs tabs'
-            'list list'
-            'footer footer';
+            'list list';
           ${p.fullWidth &&
           css`
             grid-template-areas:
               'seer seer'
               'recentFilters recentFilters'
               'tabs tabs'
-              ${p.showDetailsPane ? "'list details'" : "'list list'"}
-              'footer footer';
+              ${p.showDetailsPane ? "'list details'" : "'list list'"};
           `}
         `
       : css`
-          grid-template-rows: auto auto 1fr auto;
+          grid-template-rows: auto auto 1fr;
           grid-template-columns: ${p.fullWidth ? '50% 50%' : '1fr'};
           grid-template-areas:
             'recentFilters recentFilters'
             'tabs tabs'
-            'list list'
-            'footer footer';
+            'list list';
           ${p.fullWidth &&
           css`
             grid-template-areas:
               'recentFilters recentFilters'
               'tabs tabs'
-              ${p.showDetailsPane ? "'list details'" : "'list list'"}
-              'footer footer';
+              ${p.showDetailsPane ? "'list details'" : "'list list'"};
           `}
         `}
   overflow: hidden;
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
   ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
-`;
-
-const SectionedOverlayFooter = styled('div')`
-  grid-area: footer;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFiltersPane = styled('ul')`

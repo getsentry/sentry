@@ -30,7 +30,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -514,25 +514,6 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </Stack>
           )}
-          <SeerFooter>
-            {openForm && (
-              <Button
-                size="xs"
-                icon={<IconMegaphone />}
-                onClick={() =>
-                  openForm({
-                    messagePlaceholder: t('How can we make Seer search better for you?'),
-                    tags: {
-                      ['feedback.source']: `ai_query.${analyticsArea}`,
-                      ['feedback.owner']: 'ml-ai',
-                    },
-                  })
-                }
-              >
-                {t('Give Feedback')}
-              </Button>
-            )}
-          </SeerFooter>
         </AskSeerSearchPopover>
       ) : null}
     </Wrapper>
@@ -609,12 +590,4 @@ const ButtonsWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-const SeerFooter = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  background-color: ${p => p.theme.tokens.background.primary};
 `;
