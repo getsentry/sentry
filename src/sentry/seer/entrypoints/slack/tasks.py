@@ -201,15 +201,12 @@ def process_mention_for_slack(
             extra={
                 "referrer": SeerEntrypointKey.SLACK,
                 "organization_id": organization.id,
-                "user_id": user.id,
+                "user_email": user.email,
                 "integration_id": integration_id,
                 "run_id": run_id,
                 "thread_ts": thread_ts or ts,
                 "channel_id": channel_id,
                 "slack_user_id": slack_user_id,
-                "prompt_length": len(prompt),
-                "messages_in_thread": max(len(messages), 1),
-                "conversation_type": conversation_type.value,
             },
         )
 
