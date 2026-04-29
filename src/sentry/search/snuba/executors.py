@@ -37,6 +37,8 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, run_eap_group_search
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
 from sentry.users.models.user import User
@@ -49,6 +51,8 @@ from sentry.utils.snuba import (
     aliased_query_params,
     bulk_raw_query,
 )
+
+logger = logging.getLogger(__name__)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -93,6 +97,19 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
 
 ENTITY_EVENTS = "events"
 ENTITY_SEARCH_ISSUES = "search_issues"
+
+
+def _reasonable_search_result_match(
+    control: tuple[list[tuple[int, Any]], int],
+    experimental: tuple[list[tuple[int, Any]], int],
+) -> bool:
+    control_group_ids = {gid for gid, _ in control[0]}
+    experimental_group_ids = {gid for gid, _ in experimental[0]}
+
+    if not experimental_group_ids:
+        return True
+
+    return experimental_group_ids.issubset(control_group_ids)
 
 
 @dataclass
@@ -479,47 +496,100 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if query_params is not None:
                     query_params_for_categories[gc] = query_params
 
-        try:
-            bulk_query_results = bulk_raw_query(
-                list(query_params_for_categories.values()), referrer=referrer
-            )
-        except Exception:
-            metrics.incr(
-                "snuba.search.group_category_bulk",
-                tags={
-                    GroupCategory(gc_val).name.lower(): True
-                    for gc_val, _ in query_params_for_categories.items()
-                },
-            )
-            # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
-            # we'll fallback to querying for errors only
-            if GroupCategory.ERROR.value in query_params_for_categories.keys():
+        callsite = "PostgresSnubaQueryExecutor.snuba_search"
+
+        def _run_snuba_query() -> tuple[list[tuple[int, Any]], int]:
+            try:
                 bulk_query_results = bulk_raw_query(
-                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
+                    list(query_params_for_categories.values()), referrer=referrer
                 )
-            else:
-                raise
+            except Exception:
+                metrics.incr(
+                    "snuba.search.group_category_bulk",
+                    tags={
+                        GroupCategory(gc_val).name.lower(): True
+                        for gc_val, _ in query_params_for_categories.items()
+                    },
+                )
+                # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
+                # we'll fallback to querying for errors only
+                if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                    bulk_query_results = bulk_raw_query(
+                        [query_params_for_categories[GroupCategory.ERROR.value]],
+                        referrer=referrer,
+                    )
+                else:
+                    raise
 
-        rows: list[MergeableRow] = []
-        total = 0
-        row_length = 0
-        for bulk_result in bulk_query_results:
-            if bulk_result:
-                if bulk_result["data"]:
-                    rows.extend(bulk_result["data"])
-                if bulk_result["totals"]["total"]:
-                    total += bulk_result["totals"]["total"]
-                row_length += len(bulk_result)
+            rows: list[MergeableRow] = []
+            total = 0
+            row_length = 0
+            for bulk_result in bulk_query_results:
+                if bulk_result:
+                    if bulk_result["data"]:
+                        rows.extend(bulk_result["data"])
+                    if bulk_result["totals"]["total"]:
+                        total += bulk_result["totals"]["total"]
+                    row_length += len(bulk_result)
 
-        rows.sort(key=lambda row: row["group_id"])
+            rows.sort(key=lambda row: row["group_id"])
 
-        if not get_sample:
-            metrics.distribution("snuba.search.num_result_groups", row_length)
+            if not get_sample:
+                metrics.distribution("snuba.search.num_result_groups", row_length)
 
-        if get_sample:
-            sort_field = "sample"
+            effective_sort_field = "sample" if get_sample else sort_field
+            return [(row["group_id"], row[effective_sort_field]) for row in rows], total  # type: ignore[literal-required]
 
-        return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore[literal-required]
+        def _run_eap_query() -> tuple[list[tuple[int, Any]], int]:
+            try:
+                return run_eap_group_search(
+                    start=start,
+                    end=end,
+                    project_ids=project_ids,
+                    environment_ids=environment_ids,
+                    sort_field=sort_field,
+                    organization=organization,
+                    cursor=cursor,
+                    group_ids=group_ids,
+                    limit=limit,
+                    offset=offset,
+                    search_filters=snuba_search_filters,
+                    referrer=referrer,
+                )
+            except Exception:
+                logger.exception(
+                    "eap.double_read.run_eap_group_search_failed",
+                    extra={"callsite": callsite, "sort_field": sort_field},
+                )
+                return ([], 0)
+
+        # Double-read from EAP for supported sort strategies
+        if (
+            not get_sample
+            and sort_field in EAP_SORT_STRATEGIES
+            and features.has("organizations:issue-feed.eap-search", organization)
+        ):
+            try:
+                return EAPOccurrencesComparator.check_and_choose_with_timings(
+                    control_thunk=_run_snuba_query,
+                    experimental_thunk=_run_eap_query,
+                    callsite=callsite,
+                    null_result_determiner=lambda r: len(r[0]) == 0,
+                    reasonable_match_comparator=_reasonable_search_result_match,
+                    debug_context={
+                        "sort_field": sort_field,
+                        "organization_id": organization.id,
+                        "num_group_ids": len(group_ids) if group_ids else 0,
+                        "num_filters": len(snuba_search_filters),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "eap.double_read.snuba_search_failed",
+                    extra={"callsite": callsite, "sort_field": sort_field},
+                )
+
+        return _run_snuba_query()
 
     def has_sort_strategy(self, sort_by: str) -> bool:
         return sort_by in self.sort_strategies.keys()

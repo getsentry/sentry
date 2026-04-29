@@ -212,6 +212,8 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 search_type="string",
             ),
             # Exception data
+            # TODO: some of these values are arrays, but EAP does not yet support array-aware operators for these
+            # For example, a query like `error.unhandled is False` returns no results from EAP when it should
             ResolvedAttribute(
                 public_alias="exception_count",
                 internal_name="exception_count",
