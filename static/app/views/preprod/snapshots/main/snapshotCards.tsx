@@ -57,6 +57,7 @@ export const PairCard = memo(function PairCard({
   diffImageBaseUrl,
   snapshotKey,
   onSelectSnapshot,
+  onOpenSnapshot,
 }: {
   cardType: 'changed' | 'renamed';
   copyUrl: string;
@@ -67,6 +68,7 @@ export const PairCard = memo(function PairCard({
   snapshotKey: string;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
+  onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
 }) {
@@ -80,6 +82,7 @@ export const PairCard = memo(function PairCard({
   const handleSelect = onSelectSnapshot
     ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
     : undefined;
+  const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
   let body: React.ReactNode;
   if (effectiveMode === 'split') {
@@ -118,7 +121,12 @@ export const PairCard = memo(function PairCard({
 
   return (
     <DarkAware isDark={isDark}>
-      <Card isDark={isDark} isSelected={isSelected} data-snapshot-key={snapshotKey}>
+      <Card
+        isDark={isDark}
+        isSelected={isSelected}
+        data-snapshot-key={snapshotKey}
+        onClick={e => e.stopPropagation()}
+      >
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
@@ -129,6 +137,7 @@ export const PairCard = memo(function PairCard({
           copyData={pair}
           copyUrl={copyUrl}
           onSelect={handleSelect}
+          onDoubleClick={handleOpen}
           isSelected={isSelected}
         />
         {body}
@@ -146,6 +155,7 @@ export const ImageCard = memo(function ImageCard({
   copyUrl,
   snapshotKey,
   onSelectSnapshot,
+  onOpenSnapshot,
 }: {
   cardType: 'added' | 'removed' | 'unchanged' | 'solo';
   copyUrl: string;
@@ -154,6 +164,7 @@ export const ImageCard = memo(function ImageCard({
   isSelected: boolean;
   snapshotKey: string;
   headBranch?: string | null;
+  onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
 }) {
   const [isDark, setIsDark] = useState(false);
@@ -169,14 +180,20 @@ export const ImageCard = memo(function ImageCard({
     status = DiffStatus.UNCHANGED;
   }
 
-  const label = cardType === 'removed' ? t('Base') : (headBranch ?? t('Head'));
+  const label = headBranch ? (cardType === 'removed' ? t('Base') : headBranch) : null;
   const handleSelect = onSelectSnapshot
     ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
     : undefined;
+  const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
   return (
     <DarkAware isDark={isDark}>
-      <Card isDark={isDark} isSelected={isSelected} data-snapshot-key={snapshotKey}>
+      <Card
+        isDark={isDark}
+        isSelected={isSelected}
+        data-snapshot-key={snapshotKey}
+        onClick={e => e.stopPropagation()}
+      >
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
@@ -186,6 +203,7 @@ export const ImageCard = memo(function ImageCard({
           copyData={image}
           copyUrl={copyUrl}
           onSelect={handleSelect}
+          onDoubleClick={handleOpen}
           isSelected={isSelected}
         />
         <ImageColumn
@@ -209,6 +227,7 @@ export const CardHeader = memo(function CardHeader({
   copyData,
   copyUrl,
   onSelect,
+  onDoubleClick,
   isSelected,
 }: {
   copyData: unknown;
@@ -219,17 +238,14 @@ export const CardHeader = memo(function CardHeader({
   diffPercent?: number | null;
   displayName?: string | null;
   isSelected?: boolean;
+  onDoubleClick?: () => void;
   onSelect?: () => void;
   status?: DiffStatus | null;
 }) {
   const {copy} = useCopyToClipboard();
-  // Enter toggles selection; Space is reserved for the list-view document-level handler that scrolls current selection to top
   const handleRowKeyDown = onSelect
     ? (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          onSelect();
-        } else if (e.key === ' ') {
+        if (e.key === ' ' || e.key === 'Enter') {
           e.preventDefault();
         }
       }
@@ -237,6 +253,7 @@ export const CardHeader = memo(function CardHeader({
   return (
     <CardHeaderRow
       onClick={onSelect}
+      onDoubleClick={onDoubleClick}
       onKeyDown={handleRowKeyDown}
       role={onSelect ? 'button' : undefined}
       tabIndex={onSelect ? 0 : undefined}
