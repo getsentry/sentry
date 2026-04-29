@@ -444,12 +444,19 @@ def _run_autofix_for_candidates(
             else AutofixStoppingPoint.OPEN_PR
         )
 
+        user_context = (
+            f"Night-shift triage already investigated this issue and concluded:\n{c.reason}"
+            if c.reason
+            else None
+        )
+
         try:
             seer_run_id = trigger_autofix_explorer(
                 group=c.group,
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
                 stopping_point=stopping_point,
+                user_context=user_context,
             )
         except Exception:
             logger.exception(

@@ -158,7 +158,7 @@ def _triage_candidates(
     )
 
     return [
-        TriageResult(group=groups_by_id[v.group_id], action=v.action)
+        TriageResult(group=groups_by_id[v.group_id], action=v.action, reason=v.reason)
         for v in triage_response.verdicts
         if v.group_id in groups_by_id and v.action != TriageAction.SKIP
     ], agent_run_id
@@ -296,7 +296,12 @@ def _build_triage_prompt(
         the issue is to be fixable (0.0 = not fixable, 1.0 = very fixable). Use it as
         a signal but verify with your own investigation.
 
-        Provide a brief reason for each decision.
+        For each verdict, fill the `reason` field. For `autofix` and `root_cause_only`
+        verdicts, the `reason` is handed off as context to the downstream autofix agent
+        — write it like a debugging note to the next agent. Include the suspected file
+        and function, the bug mechanism in one or two sentences, and a sketch of the
+        fix direction so the next agent can resume your investigation instead of
+        starting over. For `skip` verdicts, a brief justification is sufficient.
 
         Candidates:
         {candidates_block}{extras_block}
