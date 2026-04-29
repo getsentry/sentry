@@ -1890,6 +1890,22 @@ class UnfurlTest(TestCase):
         assert args is not None
         assert args["query"].getlist("yAxis") == ["count(span.duration)"]
 
+    def test_unfurl_explore_aggregate_field_takes_precedence_over_visualize(self) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A0%7D"
+            "&visualize=%7B%22chartType%22%3A0%2C%22yAxes%22%3A%5B%22count_unique(user.id)%22%5D%7D"
+            "&project=1&query=user.id%1234&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+        assert args["query"].getlist("groupBy") == ["gen_ai.tool.name"]
+        assert args["chart_type"] == 0
+
     def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
         # Two charts: count with chartType=2 (area, first) and avg (second).
         # The unfurl must render only the first chart and not merge avg's
@@ -2578,14 +2594,14 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert params["start"] == "2026-01-01T00:00:00"
         assert params["end"] == "2026-01-02T00:00:00"
 
-    def test_defaults_to_all_projects_when_no_url_or_dashboard_project(self) -> None:
+    def test_omits_project_when_no_url_or_dashboard_project(self) -> None:
         widget = self._make_widget()
 
         params = build_widget_timeseries_params(widget, QueryDict())[0]
 
-        # ALL_ACCESS_PROJECT_ID (-1) so an unconfigured dashboard still renders
-        # data rather than an empty chart.
-        assert params["project"] == "-1"
+        # Omitting the param matches the dashboard FE: the API defaults to
+        # "My Projects" rather than "All Projects" (project=-1).
+        assert "project" not in params
 
     def test_dashboard_projects_used_when_url_missing(self) -> None:
         project_a = self.create_project(organization=self.organization)

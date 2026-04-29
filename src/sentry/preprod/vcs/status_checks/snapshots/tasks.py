@@ -14,17 +14,19 @@ from sentry.preprod.models import (
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.size.tasks import (
-    GITHUB_STATUS_CHECK_STATUS_MAPPING,
-    get_status_check_client,
-    get_status_check_provider,
-    update_posted_status_check,
-)
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
+)
+from sentry.preprod.vcs.status_checks.status_check_provider import (
+    GITHUB_STATUS_CHECK_STATUS_MAPPING,
+)
+from sentry.preprod.vcs.status_checks.utils import (
+    get_status_check_client,
+    get_status_check_provider,
+    update_posted_status_check,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -39,6 +41,8 @@ APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 ENABLED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_enabled"
 FAIL_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_added"
 FAIL_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_removed"
+FAIL_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_changed"
+FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_renamed"
 
 
 @instrumented_task(
@@ -107,6 +111,8 @@ def create_preprod_snapshot_status_check_task(
 
     fail_on_added = preprod_artifact.project.get_option(FAIL_ON_ADDED_OPTION_KEY, default=False)
     fail_on_removed = preprod_artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=True)
+    fail_on_changed = preprod_artifact.project.get_option(FAIL_ON_CHANGED_OPTION_KEY, default=True)
+    fail_on_renamed = preprod_artifact.project.get_option(FAIL_ON_RENAMED_OPTION_KEY, default=False)
 
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
@@ -154,6 +160,8 @@ def create_preprod_snapshot_status_check_task(
             comparisons_map,
             fail_on_added=fail_on_added,
             fail_on_removed=fail_on_removed,
+            fail_on_changed=fail_on_changed,
+            fail_on_renamed=fail_on_renamed,
         )
         for artifact in all_artifacts:
             if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:

@@ -1,4 +1,3 @@
-import type {ISSUE_TYPE_TO_ISSUE_TITLE} from 'sentry/types/group';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -114,11 +113,6 @@ export const DEFAULT_SORT: Sort = {
   field: 'count()',
 };
 
-export const DEFAULT_INDEXED_SORT: Sort = {
-  kind: 'desc',
-  field: 'profile.id',
-};
-
 export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
   SpanFields.INP,
   SpanFields.INP_SCORE,
@@ -140,39 +134,3 @@ export const DEFAULT_INDEXED_SPANS_SORT: Sort = {
   kind: 'desc',
   field: 'timestamp',
 };
-
-export const WEB_VITAL_PERFORMANCE_ISSUES: Record<
-  WebVitals,
-  Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>
-> = {
-  lcp: [
-    'web_vitals',
-    'performance_render_blocking_asset_span',
-    'performance_uncompressed_assets',
-    'performance_http_overhead',
-    'performance_consecutive_http',
-    'performance_n_plus_one_api_calls',
-    'performance_large_http_payload',
-    'performance_p95_endpoint_regression',
-  ],
-  fcp: [
-    'web_vitals',
-    'performance_render_blocking_asset_span',
-    'performance_uncompressed_assets',
-    'performance_http_overhead',
-    'performance_consecutive_http',
-    'performance_n_plus_one_api_calls',
-    'performance_large_http_payload',
-    'performance_p95_endpoint_regression',
-  ],
-  inp: [
-    'web_vitals',
-    'performance_http_overhead',
-    'performance_consecutive_http',
-    'performance_n_plus_one_api_calls',
-    'performance_large_http_payload',
-    'performance_p95_endpoint_regression',
-  ],
-  cls: ['web_vitals'],
-  ttfb: ['web_vitals', 'performance_http_overhead'],
-} as const;
