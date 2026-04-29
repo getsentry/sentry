@@ -484,6 +484,10 @@ class TestTriggerAutofixExplorer(TestCase):
     def test_reasoning_effort_override_wins_over_step_config(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
+        # Guard against the step default drifting to "low" and making this test
+        # pass coincidentally even if the override plumbing breaks.
+        assert STEP_CONFIGS[AutofixStep.ROOT_CAUSE].reasoning_effort != "low"
+
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = 123
