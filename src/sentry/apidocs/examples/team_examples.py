@@ -426,6 +426,7 @@ class TeamExamples:
             "Update a Team Role",
             value={
                 "isActive": True,
+                "isSuspended": False,
                 "teamRole": "admin",
             },
             status_codes=["200"],

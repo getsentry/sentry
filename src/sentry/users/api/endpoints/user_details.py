@@ -211,7 +211,7 @@ class SuperuserUserSerializer(BaseUserSerializer):
 
     def validate_is_suspended(self, value: bool) -> bool:
         request = self.context.get("request")
-        if value and request and request.user.id == self.instance.id:
+        if value and request and self.instance and request.user.id == self.instance.id:
             raise serializers.ValidationError("You cannot suspend your own account.")
         return value
 

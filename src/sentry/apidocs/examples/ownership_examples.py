@@ -9,6 +9,7 @@ GET_PROJECT_OWNERSHIP = [
             "dateCreated": "2023-10-03T20:25:18.539823Z",
             "lastUpdated": "2023-10-03T22:49:12.294741Z",
             "isActive": True,
+            "isSuspended": False,
             "autoAssignment": "Auto Assign to Issue Owner",
             "codeownersAutoSync": True,
             "schema": {
@@ -43,6 +44,7 @@ UPDATE_PROJECT_OWNERSHIP = [
             "dateCreated": "2023-10-03T20:25:18.539823Z",
             "lastUpdated": "2023-10-03T22:49:12.294741Z",
             "isActive": True,
+            "isSuspended": False,
             "autoAssignment": "Auto Assign to Issue Owner",
             "codeownersAutoSync": True,
             "schema": {
