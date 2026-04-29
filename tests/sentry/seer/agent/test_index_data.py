@@ -6,7 +6,7 @@ import orjson
 import pytest
 
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
-from sentry.seer.explorer.index_data import (
+from sentry.seer.agent.index_data import (
     get_issues_for_transaction,
     get_profiles_for_trace,
     get_trace_for_transaction,
@@ -237,7 +237,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
 
         self.store_spans([span1, span2, span3, span4])
 
-        with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
+        with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service responses for both transaction and continuous profiles
             def mock_service_response(method, path, *args, **kwargs):
                 if f"profiles/{profile1_id}" in path:
@@ -432,7 +432,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         self.store_spans([span1, span2, span3, span4])
 
         # Mock the external profiling service calls
-        with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
+        with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service response
             def mock_service_response(method, path, *args, **kwargs):
                 response = mock.Mock()
@@ -559,7 +559,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         self.store_spans(spans)
 
         # Mock the external profiling service calls
-        with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
+        with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service response for continuous profiles (/chunks endpoint)
             def mock_service_response(method, path, *args, **kwargs):
                 response = mock.Mock()
@@ -682,7 +682,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
 
         captured_timestamps = {}
 
-        with mock.patch("sentry.seer.explorer.index_data.fetch_profile_data") as mock_fetch:
+        with mock.patch("sentry.seer.agent.index_data.fetch_profile_data") as mock_fetch:
             # Mock to capture the timestamps passed to fetch_profile_data
             def capture_and_return(
                 profile_id, organization_id, project_id, start_ts, end_ts, is_continuous

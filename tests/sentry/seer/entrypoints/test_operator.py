@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.models.organization import Organization
+from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
@@ -29,7 +30,6 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
     SeerOperatorCacheResult,
 )
-from sentry.seer.explorer.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
@@ -876,7 +876,7 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         return mock_entrypoint_cls
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.agent.client_utils.fetch_run_status")
     def test_execute_fetches_summary_from_last_assistant_block(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -905,7 +905,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.agent.client_utils.fetch_run_status")
     def test_execute_uses_default_summary_when_no_assistant_content(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -929,7 +929,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.agent.client_utils.fetch_run_status")
     def test_execute_returns_early_on_fetch_error(self, mock_fetch):
         mock_fetch.side_effect = Exception("Seer is down")
         mock_entrypoint_cls = Mock(spec=SeerAgentEntrypoint)
@@ -943,7 +943,7 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         mock_entrypoint_cls.on_agent_update.assert_not_called()
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.agent.client_utils.fetch_run_status")
     def test_execute_skips_entrypoint_without_access(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -984,7 +984,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.agent.client_utils.fetch_run_status")
     def test_execute_skips_entrypoint_without_cache(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -1002,7 +1002,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_entrypoint_cls.on_agent_update.assert_not_called()
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.agent.client_utils.fetch_run_status")
     def test_execute_records_failure_on_org_mismatch(self, mock_fetch, mock_record):
         state = self._make_state(
             blocks=[
@@ -1023,7 +1023,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_entrypoint_cls.on_agent_update.assert_not_called()
         assert_failure_metric(mock_record, "org_mismatch")
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.agent.client_utils.fetch_run_status")
     def test_execute_with_empty_blocks(self, mock_fetch):
         state = self._make_state(blocks=[])
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)

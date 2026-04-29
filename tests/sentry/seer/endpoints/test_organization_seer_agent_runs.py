@@ -3,7 +3,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 from django.urls import reverse
 
-from sentry.seer.explorer.client_models import ExplorerRun
+from sentry.seer.agent.client_models import AgentRun
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -13,7 +13,7 @@ from sentry.utils.cursors import Cursor
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:gen-ai-consent-flow-removal")
-class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
+class TestOrganizationSeerAgentRunsEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-seer-explorer-runs"
 
     def setUp(self) -> None:
@@ -25,7 +25,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         self.login_as(user=self.user)
 
         self.client_patcher = patch(
-            "sentry.seer.endpoints.organization_seer_explorer_runs.SeerExplorerClient"
+            "sentry.seer.endpoints.organization_seer_agent_runs.SeerAgentClient"
         )
         self.mock_client_class = self.client_patcher.start()
         self.mock_client = MagicMock()
@@ -37,13 +37,13 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
 
     def test_get_simple(self) -> None:
         self.mock_client.get_runs.return_value = [
-            ExplorerRun(
+            AgentRun(
                 run_id=1,
                 title="Run 1",
                 last_triggered_at=datetime.now(),
                 created_at=datetime.now(),
             ),
-            ExplorerRun(
+            AgentRun(
                 run_id=2,
                 title="Run 2",
                 last_triggered_at=datetime.now(),
@@ -69,19 +69,19 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
     def test_get_cursor_pagination(self) -> None:
         # Mock seer response for offset 0, limit 3.
         self.mock_client.get_runs.return_value = [
-            ExplorerRun(
+            AgentRun(
                 run_id=1,
                 title="Run 1",
                 last_triggered_at=datetime.now(),
                 created_at=datetime.now(),
             ),
-            ExplorerRun(
+            AgentRun(
                 run_id=2,
                 title="Run 2",
                 last_triggered_at=datetime.now(),
                 created_at=datetime.now(),
             ),
-            ExplorerRun(
+            AgentRun(
                 run_id=3,
                 title="Run 3",
                 last_triggered_at=datetime.now(),
@@ -103,13 +103,13 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
 
         # Second page - mock seer response for offset 2, limit 3.
         self.mock_client.get_runs.return_value = [
-            ExplorerRun(
+            AgentRun(
                 run_id=3,
                 title="Run 3",
                 last_triggered_at=datetime.now(),
                 created_at=datetime.now(),
             ),
-            ExplorerRun(
+            AgentRun(
                 run_id=4,
                 title="Run 4",
                 last_triggered_at=datetime.now(),
@@ -138,7 +138,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
 
     def test_get_with_category_key_filter(self) -> None:
         self.mock_client.get_runs.return_value = [
-            ExplorerRun(
+            AgentRun(
                 run_id=1,
                 title="Run 1",
                 last_triggered_at=datetime.now(),
@@ -159,7 +159,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
 
     def test_get_with_category_value_filter(self) -> None:
         self.mock_client.get_runs.return_value = [
-            ExplorerRun(
+            AgentRun(
                 run_id=2,
                 title="Run 2",
                 last_triggered_at=datetime.now(),
@@ -180,7 +180,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
 
     def test_get_with_both_category_filters(self) -> None:
         self.mock_client.get_runs.return_value = [
-            ExplorerRun(
+            AgentRun(
                 run_id=3,
                 title="Run 3",
                 last_triggered_at=datetime.now(),
@@ -201,7 +201,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
 
     def test_get_with_category_filters_and_pagination(self) -> None:
         self.mock_client.get_runs.return_value = [
-            ExplorerRun(
+            AgentRun(
                 run_id=1,
                 title="Run 1",
                 last_triggered_at=datetime.now(),
@@ -209,7 +209,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
                 category_key="bug-fixer",
                 category_value="issue-123",
             ),
-            ExplorerRun(
+            AgentRun(
                 run_id=2,
                 title="Run 2",
                 last_triggered_at=datetime.now(),
@@ -235,7 +235,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         assert call_args.kwargs["offset"] == 0
 
 
-class TestOrganizationSeerExplorerRunsEndpointFeatureFlags(APITestCase):
+class TestOrganizationSeerAgentRunsEndpointFeatureFlags(APITestCase):
     endpoint = "sentry-api-0-organization-seer-explorer-runs"
 
     def setUp(self) -> None:

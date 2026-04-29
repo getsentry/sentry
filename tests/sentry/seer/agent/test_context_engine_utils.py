@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
-from sentry.seer.explorer.context_engine_utils import (
+from sentry.seer.agent.context_engine_utils import (
     get_event_counts_for_org_projects,
     get_instrumentation_types,
     get_sdk_names_for_org_projects,
@@ -55,7 +55,7 @@ class TestGetEventCountsForOrgProjects(TestCase):
             {"project_id": self.project.id, "category": 2, "total": 500},  # transaction
         ]
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.raw_snql_query",
+            "sentry.seer.agent.context_engine_utils.raw_snql_query",
             return_value={"data": raw_data},
         ):
             result = get_event_counts_for_org_projects(
@@ -71,7 +71,7 @@ class TestGetEventCountsForOrgProjects(TestCase):
             {"project_id": self.project.id, "category": 2, "total": 200},
         ]
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.raw_snql_query",
+            "sentry.seer.agent.context_engine_utils.raw_snql_query",
             return_value={"data": raw_data},
         ):
             result = get_event_counts_for_org_projects(
@@ -83,7 +83,7 @@ class TestGetEventCountsForOrgProjects(TestCase):
 
     def test_returns_empty_on_query_exception(self) -> None:
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.raw_snql_query",
+            "sentry.seer.agent.context_engine_utils.raw_snql_query",
             side_effect=Exception("snuba error"),
         ):
             result = get_event_counts_for_org_projects(
@@ -115,7 +115,7 @@ class TestGetTopTransactionsForOrgProjects(TestCase):
             },
         ]
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
+            "sentry.seer.agent.context_engine_utils.Spans.run_table_query",
             return_value={"data": span_data},
         ):
             result = get_top_transactions_for_org_projects([self.project], self.start, self.end)
@@ -124,7 +124,7 @@ class TestGetTopTransactionsForOrgProjects(TestCase):
 
     def test_returns_empty_on_query_exception(self) -> None:
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
+            "sentry.seer.agent.context_engine_utils.Spans.run_table_query",
             side_effect=Exception("eap error"),
         ):
             result = get_top_transactions_for_org_projects([self.project], self.start, self.end)
@@ -133,7 +133,7 @@ class TestGetTopTransactionsForOrgProjects(TestCase):
 
     def test_returns_empty_dict_when_no_transactions(self) -> None:
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
+            "sentry.seer.agent.context_engine_utils.Spans.run_table_query",
             return_value={"data": []},
         ):
             result = get_top_transactions_for_org_projects([self.project], self.start, self.end)
@@ -170,7 +170,7 @@ class TestGetTopSpanOpsForOrgProjects(TestCase):
             },
         ]
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
+            "sentry.seer.agent.context_engine_utils.Spans.run_table_query",
             return_value={"data": span_data},
         ):
             result = get_top_span_ops_for_org_projects([self.project], self.start, self.end)
@@ -184,7 +184,7 @@ class TestGetTopSpanOpsForOrgProjects(TestCase):
 
     def test_returns_empty_on_query_exception(self) -> None:
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
+            "sentry.seer.agent.context_engine_utils.Spans.run_table_query",
             side_effect=Exception("eap error"),
         ):
             result = get_top_span_ops_for_org_projects([self.project], self.start, self.end)
@@ -192,7 +192,7 @@ class TestGetTopSpanOpsForOrgProjects(TestCase):
         assert result == {}
 
 
-MOCK_RUN_TABLE = "sentry.seer.explorer.context_engine_utils.Spans.run_table_query"
+MOCK_RUN_TABLE = "sentry.seer.agent.context_engine_utils.Spans.run_table_query"
 
 
 @django_db_all

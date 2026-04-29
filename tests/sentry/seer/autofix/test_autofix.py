@@ -9,6 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.seer.agent.utils import _convert_profile_to_execution_tree
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
@@ -22,7 +23,6 @@ from sentry.seer.autofix.autofix import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.seer.models import (
     SeerProjectPreference,
     SeerRepoDefinition,
@@ -474,7 +474,7 @@ class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
 @requires_snuba
 @pytest.mark.django_db
 class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_basic(self, mock_get_from_profiling_service) -> None:
         """Test finding a profile for a matching transaction in trace tree."""
         # Setup mock event with transaction name
@@ -536,7 +536,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.profiles.profile_chunks.get_chunk_ids")
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_with_profiler_id(
         self, mock_get_from_profiling_service, mock_get_chunk_ids
     ) -> None:
@@ -644,7 +644,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         profile_result = _get_profile_from_trace_tree(None, event, self.project)
         assert profile_result is None
 
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service) -> None:
         """Test that function returns None when profiling API returns an error."""
         event = Mock()

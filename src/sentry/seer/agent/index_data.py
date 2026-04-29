@@ -14,7 +14,7 @@ from sentry.api.serializers.models.event import EventSerializer
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.utils import (
+from sentry.seer.agent.utils import (
     convert_profile_to_execution_tree,
     fetch_profile_data,
     normalize_description,

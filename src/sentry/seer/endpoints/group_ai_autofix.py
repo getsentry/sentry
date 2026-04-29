@@ -36,8 +36,8 @@ from sentry.seer.autofix.autofix import trigger_autofix
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
-    get_autofix_explorer_state,
-    trigger_autofix_explorer,
+    get_autofix_agent_state,
+    trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
@@ -167,7 +167,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         }
     )
 
-    def _should_use_explorer(self, request: Request, organization: Organization) -> bool:
+    def _should_use_agent(self, request: Request, organization: Organization) -> bool:
         """Check if explorer mode should be used based on query params and feature flags."""
         if request.GET.get("mode") != "explorer":
             return False
@@ -225,11 +225,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
-        if self._should_use_explorer(request, group.organization):
-            return self._post_explorer(request, group)
+        if self._should_use_agent(request, group.organization):
+            return self._post_agent(request, group)
         return self._post_legacy(request, group)
 
-    def _post_explorer(self, request: Request, group: Group) -> Response:
+    def _post_agent(self, request: Request, group: Group) -> Response:
         """Handle POST for Explorer-based autofix."""
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
@@ -286,7 +286,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         # Handle all built-in Seer steps
         try:
-            run_id = trigger_autofix_explorer(
+            run_id = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep(step),
                 referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -353,14 +353,14 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         This endpoint although documented is still experimental and the payload may change in the future.
         """
-        if self._should_use_explorer(request, group.organization):
-            return self._get_explorer(request, group)
+        if self._should_use_agent(request, group.organization):
+            return self._get_agent(request, group)
         return self._get_legacy(request, group)
 
-    def _get_explorer(self, request: Request, group: Group) -> Response:
+    def _get_agent(self, request: Request, group: Group) -> Response:
         """Handle GET for Explorer-based autofix."""
         try:
-            state = get_autofix_explorer_state(group.organization, group.id)
+            state = get_autofix_agent_state(group.organization, group.id)
         except SeerPermissionError as e:
             raise PermissionDenied(str(e))
 

@@ -211,20 +211,20 @@ class RemoveHandoffsForIntegrationRequest(TypedDict):
     integration_id: int
 
 
-class ExplorerIndexProject(TypedDict):
+class AgentIndexProject(TypedDict):
     org_id: int
     project_id: int
 
 
-class ExplorerIndexRequest(TypedDict):
-    projects: list[ExplorerIndexProject]
+class AgentIndexRequest(TypedDict):
+    projects: list[AgentIndexProject]
 
 
-class ExplorerExportIndexesRequest(TypedDict):
+class AgentExportIndexesRequest(TypedDict):
     org_id: int
 
 
-class ExplorerIndexSentryKnowledgeRequest(TypedDict):
+class AgentIndexSentryKnowledgeRequest(TypedDict):
     replace_existing: bool
 
 
@@ -251,13 +251,13 @@ class RepoDetails(TypedDict):
     integration_id: NotRequired[str | None]
 
 
-class ExplorerIndexOrgRepoRequest(TypedDict):
+class AgentIndexOrgRepoRequest(TypedDict):
     org_id: int
     repos: list[RepoDetails]
 
 
 def make_org_repo_knowledge_index_request(
-    body: ExplorerIndexOrgRepoRequest,
+    body: AgentIndexOrgRepoRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
@@ -285,7 +285,7 @@ def make_org_project_knowledge_index_request(
 
 
 def make_index_sentry_knowledge_request(
-    body: ExplorerIndexSentryKnowledgeRequest,
+    body: AgentIndexSentryKnowledgeRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
@@ -340,8 +340,8 @@ def make_remove_handoffs_for_integration_request(
     )
 
 
-def make_explorer_export_indexes_request(
-    body: ExplorerExportIndexesRequest,
+def make_agent_export_indexes_request(
+    body: AgentExportIndexesRequest,
     viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
@@ -354,8 +354,8 @@ def make_explorer_export_indexes_request(
     )
 
 
-def make_explorer_index_request(
-    body: ExplorerIndexRequest,
+def make_agent_index_request(
+    body: AgentIndexRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:

@@ -26,6 +26,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.agent.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES, AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
@@ -39,7 +40,6 @@ from sentry.seer.autofix.utils import (
     make_autofix_update_request,
     read_preference_from_sentry_db,
 )
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.models import SeerProjectPreference
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.utils import get_github_username_for_user

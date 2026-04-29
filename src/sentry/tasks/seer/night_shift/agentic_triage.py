@@ -10,8 +10,8 @@ import sentry_sdk
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
@@ -90,7 +90,7 @@ def _triage_candidates(
     groups_by_id = {c.group.id: c.group for c in candidates}
 
     try:
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user=None,
             category_key="night_shift",
@@ -168,7 +168,7 @@ POLL_INTERVAL = 2.0
 
 
 def _poll_with_logging(
-    client: SeerExplorerClient,
+    client: SeerAgentClient,
     agent_run_id: int,
     organization_id: int,
 ) -> SeerRunState:

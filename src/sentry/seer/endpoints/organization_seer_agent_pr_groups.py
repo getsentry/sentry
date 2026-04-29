@@ -16,26 +16,26 @@ from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerPermissionError
 
 logger = logging.getLogger(__name__)
 
 
-class OrganizationSeerExplorerPRGroupsPermission(OrganizationPermission):
+class OrganizationSeerAgentPRGroupsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
     }
 
 
 @cell_silo_endpoint
-class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
+class OrganizationSeerAgentPRGroupsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    permission_classes = (OrganizationSeerExplorerPRGroupsPermission,)
+    permission_classes = (OrganizationSeerAgentPRGroupsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -54,7 +54,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
 
         def _make_seer_runs_request(offset: int, limit: int) -> dict[str, list[dict]]:
             try:
-                client = SeerExplorerClient(organization, request.user)
+                client = SeerAgentClient(organization, request.user)
                 seer_data = client.get_runs(
                     category_key="autofix",
                     offset=offset,

@@ -10,10 +10,13 @@ from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEv
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.agent.client_models import Artifact
+from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
-    trigger_autofix_explorer,
+    trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
@@ -26,9 +29,6 @@ from sentry.seer.autofix.utils import (
     set_project_seer_preference,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.client_models import Artifact
-from sentry.seer.explorer.client_utils import fetch_run_status
-from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.models import (
     SeerApiError,
     SeerApiResponseValidationError,
@@ -41,7 +41,7 @@ from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.seer.explorer.client_models import SeerRunState
+    from sentry.seer.agent.client_models import SeerRunState
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
 }
 
 
-class AutofixOnCompletionHook(ExplorerOnCompletionHook):
+class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
     Hook called when an Explorer-based autofix run completes.
 
@@ -416,7 +416,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "stopping_point": stopping_point,
             },
         )
-        trigger_autofix_explorer(
+        trigger_autofix_agent(
             group=group,
             step=next_step,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,

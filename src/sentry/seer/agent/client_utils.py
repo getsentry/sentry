@@ -25,8 +25,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
-from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
@@ -37,18 +37,18 @@ from sentry.users.services.user_option.service import get_option_from_list
 
 logger = logging.getLogger(__name__)
 
-explorer_connection_pool = connection_from_url(
+agent_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
     timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 
-class ExplorerStateRequest(TypedDict):
+class AgentStateRequest(TypedDict):
     run_id: int
     organization_id: int
 
 
-class ExplorerChatRequest(TypedDict):
+class AgentChatRequest(TypedDict):
     organization_id: int
     query: str
     run_id: int | None
@@ -75,7 +75,7 @@ class ExplorerChatRequest(TypedDict):
     proxy_headers: NotRequired[dict[str, str] | None]
 
 
-class ExplorerRunsRequest(TypedDict):
+class AgentRunsRequest(TypedDict):
     organization_id: int
     user_id: NotRequired[int]
     category_key: NotRequired[str]
@@ -88,88 +88,88 @@ class ExplorerRunsRequest(TypedDict):
     end: NotRequired[datetime]
 
 
-class ExplorerUpdateRequest(TypedDict):
+class AgentUpdateRequest(TypedDict):
     run_id: int
     organization_id: int
     payload: NotRequired[dict[str, Any]]
 
 
-class ExplorerPrStateRequest(TypedDict):
+class AgentPrStateRequest(TypedDict):
     organization_id: int
     provider: str
     pr_id: int
 
 
-def make_explorer_state_request(
-    body: ExplorerStateRequest,
+def make_agent_state_request(
+    body: AgentStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        connection_pool or explorer_connection_pool,
+        connection_pool or agent_connection_pool,
         "/v1/automation/explorer/state",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
 
 
-def make_explorer_chat_request(
-    body: ExplorerChatRequest,
+def make_agent_chat_request(
+    body: AgentChatRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        connection_pool or explorer_connection_pool,
+        connection_pool or agent_connection_pool,
         "/v1/automation/explorer/chat",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
 
 
-def make_explorer_runs_request(
-    body: ExplorerRunsRequest,
+def make_agent_runs_request(
+    body: AgentRunsRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        connection_pool or explorer_connection_pool,
+        connection_pool or agent_connection_pool,
         "/v1/automation/explorer/runs",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
 
 
-def make_explorer_update_request(
-    body: ExplorerUpdateRequest,
+def make_agent_update_request(
+    body: AgentUpdateRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        connection_pool or explorer_connection_pool,
+        connection_pool or agent_connection_pool,
         "/v1/automation/explorer/update",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
 
 
-def make_explorer_state_pr_request(
-    body: ExplorerPrStateRequest,
+def make_agent_state_pr_request(
+    body: AgentPrStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        connection_pool or explorer_connection_pool,
+        connection_pool or agent_connection_pool,
         "/v1/automation/explorer/state/pr",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
 
 
-def get_explorer_state_from_pr_id(
+def get_agent_state_from_pr_id(
     organization_id: int, provider: str, pr_id: int
 ) -> SeerRunState | None:
-    body = ExplorerPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
-    response = make_explorer_state_pr_request(body)
+    body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
+    response = make_agent_state_pr_request(body)
 
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
@@ -185,7 +185,7 @@ def get_explorer_state_from_pr_id(
     return SeerRunState(**session)
 
 
-def has_seer_explorer_access_with_detail(
+def has_seer_agent_access_with_detail(
     organization: Organization | RpcOrganization,
     actor: SentryUser | AnonymousUser | RpcUser | None = None,
 ) -> tuple[bool, str | None]:
@@ -347,8 +347,8 @@ def fetch_run_status(
     viewer_context: SeerViewerContext | None = None,
 ) -> SeerRunState:
     """Fetch current run status from Seer."""
-    body = ExplorerStateRequest(run_id=run_id, organization_id=organization.id)
-    response = make_explorer_state_request(body, viewer_context=viewer_context)
+    body = AgentStateRequest(run_id=run_id, organization_id=organization.id)
+    response = make_agent_state_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)

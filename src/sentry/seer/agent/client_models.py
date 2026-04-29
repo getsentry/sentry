@@ -89,7 +89,7 @@ class FilePatch(BaseModel):
         extra = "ignore"
 
 
-class ExplorerFilePatch(BaseModel):
+class AgentFilePatch(BaseModel):
     """A file patch associated with a repository."""
 
     repo_name: str
@@ -157,8 +157,8 @@ class MemoryBlock(BaseModel):
     timestamp: str
     loading: bool = False
     artifacts: list[Artifact] = []
-    file_patches: list[ExplorerFilePatch] | None = None  # Incremental patches (per edit)
-    merged_file_patches: list[ExplorerFilePatch] | None = (
+    file_patches: list[AgentFilePatch] | None = None  # Incremental patches (per edit)
+    merged_file_patches: list[AgentFilePatch] | None = (
         None  # Unified patches (original → current) for files touched in this block; merges all file_patches for a given file across all blocks into a single patch
     )
     pr_commit_shas: dict[str, str] | None = (
@@ -195,7 +195,7 @@ class CodingAgentResult(BaseModel):
         extra = "ignore"
 
 
-class ExplorerCodingAgentState(BaseModel):
+class CodingAgentState(BaseModel):
     """State of a coding agent launched from an Explorer run."""
 
     id: str
@@ -257,7 +257,7 @@ class SeerRunState(BaseModel):
     # exclude=True omits these from .dict() so they're not exposed via the public
     # chat API. Internal callers (autofix, night shift) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
-    coding_agents: dict[str, ExplorerCodingAgentState] = Field(default_factory=dict, exclude=True)
+    coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
 
     class Config:
@@ -293,20 +293,20 @@ class SeerRunState(BaseModel):
             return None
         return schema.parse_obj(artifact.data)
 
-    def get_diffs_by_repo(self) -> dict[str, list[ExplorerFilePatch]]:
+    def get_diffs_by_repo(self) -> dict[str, list[AgentFilePatch]]:
         """
         Get the latest merged diff for each file, grouped by repository.
         Each patch represents the sum of all edits made to a file throughout the run.
         """
         # Collect latest merged patch per (repo, path)
-        merged_by_file: dict[tuple[str, str], ExplorerFilePatch] = {}
+        merged_by_file: dict[tuple[str, str], AgentFilePatch] = {}
         for block in self.blocks:
             for fp in block.merged_file_patches or []:
                 key = (fp.repo_name, fp.patch.path)
                 merged_by_file[key] = fp
 
         # Group by repo
-        by_repo: dict[str, list[ExplorerFilePatch]] = {}
+        by_repo: dict[str, list[AgentFilePatch]] = {}
         for fp in merged_by_file.values():
             if fp.repo_name not in by_repo:
                 by_repo[fp.repo_name] = []
@@ -359,7 +359,7 @@ class CustomToolDefinition(BaseModel):
     param_schema: dict[str, Any]  # JSON schema from Pydantic model
 
 
-class ExplorerRun(BaseModel):
+class AgentRun(BaseModel):
     """A single Explorer run record with metadata."""
 
     run_id: int
@@ -374,7 +374,7 @@ class ExplorerRun(BaseModel):
         extra = "allow"
 
 
-class ExplorerRunWithPrs(ExplorerRun):
+class AgentRunWithPrs(AgentRun):
     """A single Explorer run record with PR metadata."""
 
     group_id: int | None = None

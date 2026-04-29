@@ -39,15 +39,15 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.constants import ISSUE_ID_ALIAS
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
-from sentry.seer.autofix.autofix import get_all_tags_overview
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
-from sentry.seer.explorer.utils import (
+from sentry.seer.agent.index_data import UNESCAPED_QUOTE_RE
+from sentry.seer.agent.utils import (
     _convert_profile_to_execution_tree,
     fetch_profile_data,
     get_group_date_range,
     get_retention_boundary,
 )
+from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset

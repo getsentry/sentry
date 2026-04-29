@@ -22,7 +22,7 @@ from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autof
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
-    trigger_autofix_explorer,
+    trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
     AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
@@ -198,7 +198,7 @@ def _trigger_autofix_task(
         run_id: int | None = None
         if features.has("organizations:autofix-on-explorer", group.organization):
             try:
-                run_id = trigger_autofix_explorer(
+                run_id = trigger_autofix_agent(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
                     referrer=referrer,
