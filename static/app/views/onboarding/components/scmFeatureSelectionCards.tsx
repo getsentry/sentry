@@ -125,7 +125,6 @@ export function ScmFeatureSelectionCards({
               disabled={!!meta.alwaysEnabled || !!disabledProduct}
               disabledReason={disabledReason}
               onClick={() => onToggleFeature(feature)}
-              alwaysEnabled={meta.alwaysEnabled}
               volume={meta.volume}
               volumeTooltip={meta.volumeTooltip}
             />

@@ -20,7 +20,6 @@ interface ScmFeatureCardProps {
   onClick: () => void;
   volume: string;
   volumeTooltip: string;
-  alwaysEnabled?: boolean;
   disabled?: boolean;
   disabledReason?: ReactNode;
 }
