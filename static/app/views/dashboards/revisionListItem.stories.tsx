@@ -13,7 +13,7 @@ const CAROL = {
   id: '3',
   name: 'Carol',
   email: 'carol@example.com',
-  avatarType: 'upload',
+  avatarType: 'upload' as const,
   avatarUrl: 'https://gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=120',
 };
 const DATE = '2024-06-01T10:00:00Z';
