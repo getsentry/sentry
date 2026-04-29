@@ -9,21 +9,22 @@ import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 const ROOT_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${TRANSACTION_OP_CONDITION}`;
-const APP_START_TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation,app.start]`;
-const APP_START_ROOT_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${APP_START_TRANSACTION_OP_CONDITION}`;
-const COLD_START_CONDITION = `${APP_START_ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_COLD_VALUE}`;
-const WARM_START_CONDITION = `${APP_START_ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_WARM_VALUE}`;
-const TTID_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE}`;
-const TTFD_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE}`;
-const TRANSACTION_EVENT_COUNT = `count_unique(${SpanFields.TRANSACTION_EVENT_ID})`;
+const COLD_START_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_COLD_VALUE} OR ${SpanFields.SPAN_OP}:app.start.cold has:${SpanFields.APP_VITALS_START_COLD_VALUE})`;
+const WARM_START_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_WARM_VALUE} OR ${SpanFields.SPAN_OP}:app.start.warm has:${SpanFields.APP_VITALS_START_WARM_VALUE})`;
+const TTID_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.initial_display has:${SpanFields.APP_VITALS_TTID_VALUE})`;
+const TTFD_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.full_display has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
+const TRANSACTION_COUNT = `count_unique(${SpanFields.TRANSACTION_SPAN_ID})`;
 
-const APP_START_CONDITION = `${APP_START_ROOT_TRANSACTION_CONDITION} (has:${SpanFields.APP_VITALS_START_COLD_VALUE} OR has:${SpanFields.APP_VITALS_START_WARM_VALUE})`;
+const APP_START_CONDITION = `(${COLD_START_CONDITION} OR ${WARM_START_CONDITION})`;
+const APP_START_TABLE_CONDITION = `${APP_START_CONDITION} has:${SpanFields.TRANSACTION}`;
 
 // TTFD can be absent while TTID is present because reportFullyDrawn() is opt-in.
-const SCREEN_LOAD_CONDITION = `${ROOT_TRANSACTION_CONDITION} (has:${SpanFields.APP_VITALS_TTID_VALUE} OR has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
+const SCREEN_LOAD_CONDITION = `(${TTID_CONDITION} OR ${TTFD_CONDITION})`;
+const SCREEN_LOAD_TABLE_CONDITION = `${SCREEN_LOAD_CONDITION} has:${SpanFields.TRANSACTION}`;
 
 // A single `has:` on the shared denominator keeps the frame-rate equations defined.
 const SCREEN_RENDERING_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT}`;
+const SCREEN_RENDERING_TABLE_CONDITION = `${SCREEN_RENDERING_CONDITION} has:${SpanFields.TRANSACTION}`;
 
 const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'cold-start-big-number',
@@ -291,17 +292,17 @@ const APP_START_TABLE: Widget = {
         SpanFields.TRANSACTION,
         `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
         `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
-        TRANSACTION_EVENT_COUNT,
+        TRANSACTION_COUNT,
       ],
       aggregates: [
         `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
         `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
-        TRANSACTION_EVENT_COUNT,
+        TRANSACTION_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [t('Screen'), t('Cold Start'), t('Warm Start'), t('Screen Loads')],
-      conditions: APP_START_CONDITION,
-      orderby: `-${TRANSACTION_EVENT_COUNT}`,
+      conditions: APP_START_TABLE_CONDITION,
+      orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
           field: 'transaction',
@@ -336,12 +337,12 @@ const SCREEN_RENDERING_TABLE: Widget = {
         SpanFields.TRANSACTION,
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_SLOW_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
-        TRANSACTION_EVENT_COUNT,
+        TRANSACTION_COUNT,
       ],
       aggregates: [
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_SLOW_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
-        TRANSACTION_EVENT_COUNT,
+        TRANSACTION_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [
@@ -350,8 +351,8 @@ const SCREEN_RENDERING_TABLE: Widget = {
         t('Frozen Frame %'),
         t('Screen Loads'),
       ],
-      conditions: SCREEN_RENDERING_CONDITION,
-      orderby: `-${TRANSACTION_EVENT_COUNT}`,
+      conditions: SCREEN_RENDERING_TABLE_CONDITION,
+      orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
           field: 'transaction',
@@ -385,17 +386,17 @@ const SCREEN_LOAD_TABLE: Widget = {
         SpanFields.TRANSACTION,
         `avg(${SpanFields.APP_VITALS_TTID_VALUE})`,
         `avg(${SpanFields.APP_VITALS_TTFD_VALUE})`,
-        TRANSACTION_EVENT_COUNT,
+        TRANSACTION_COUNT,
       ],
       aggregates: [
         `avg(${SpanFields.APP_VITALS_TTID_VALUE})`,
         `avg(${SpanFields.APP_VITALS_TTFD_VALUE})`,
-        TRANSACTION_EVENT_COUNT,
+        TRANSACTION_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [t('Screen'), 'TTID', 'TTFD', t('Screen Loads')],
-      conditions: SCREEN_LOAD_CONDITION,
-      orderby: `-${TRANSACTION_EVENT_COUNT}`,
+      conditions: SCREEN_LOAD_TABLE_CONDITION,
+      orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
           field: 'transaction',
