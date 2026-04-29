@@ -8,13 +8,14 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
-import {useGenAiConsentButtonAccess} from 'getsentry/hooks/genAiAccess';
-import type {Subscription} from 'getsentry/types';
+import {BillingType, type Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {DataConsentSettingsHeader} from 'getsentry/views/legalAndCompliance/utils';
 
@@ -22,17 +23,22 @@ const dataConsentSchema = z.object({
   aggregatedDataConsent: z.boolean(),
 });
 
-function DataConsentForm({subscription}: {subscription: Subscription}) {
+export function DataConsentForm({subscription}: {subscription: Subscription}) {
   const organization = useOrganization();
+  const user = useUser();
   const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/data-consent/', {
     path: {organizationIdOrSlug: organization.slug},
   });
 
-  const {hasBillingAccess, isSuperuser, isTouchCustomerAndNeedsMsaUpdate} =
-    useGenAiConsentButtonAccess({subscription});
+  const isTouchCustomer = subscription.type === BillingType.INVOICED;
+  const hasMsaUpdated =
+    defined(subscription.msaUpdatedForDataConsent) &&
+    subscription.msaUpdatedForDataConsent;
+  const isTouchCustomerAndNeedsMsaUpdate = isTouchCustomer && !hasMsaUpdated;
+  const hasBillingAccess = organization.access.includes('org:billing');
 
   const isDisabled =
-    (isTouchCustomerAndNeedsMsaUpdate || !hasBillingAccess) && !isSuperuser;
+    (isTouchCustomerAndNeedsMsaUpdate || !hasBillingAccess) && !user?.isSuperuser;
 
   const disabled = isDisabled
     ? isTouchCustomerAndNeedsMsaUpdate
