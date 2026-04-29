@@ -3,6 +3,7 @@ import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -278,7 +279,9 @@ function MetadataTooltip({json}: {json: string}) {
   return (
     <Stack gap="xs" minWidth="260px">
       <MetadataHint>{t('Click info icon to copy metadata')}</MetadataHint>
-      <MetadataJson>{json}</MetadataJson>
+      <CodeBlock language="json" hideCopyButton isRounded={false}>
+        {json}
+      </CodeBlock>
     </Stack>
   );
 }
@@ -419,16 +422,6 @@ const MetadataHint = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   padding-bottom: ${p => p.theme.space.xs};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const MetadataJson = styled('pre')`
-  margin: 0;
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.primary};
-  white-space: pre;
-  overflow-x: auto;
-  max-height: 480px;
 `;
 
 const StatusBadgeContainer = styled('span')<{status: DiffStatus}>`

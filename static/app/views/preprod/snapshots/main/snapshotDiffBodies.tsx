@@ -276,7 +276,7 @@ export const OnionCardBody = memo(function OnionCardBody({
           decoding="async"
           style={basePct}
         />
-        <OnionOverlayImg
+        <OnionImg
           src={headUrl}
           alt={`${getImageName(headImage)} (head)`}
           loading="lazy"
@@ -356,13 +356,6 @@ const WipeImg = styled('img')`
 `;
 
 const OnionImg = styled('img')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: block;
-`;
-
-const OnionOverlayImg = styled('img')`
   position: absolute;
   top: 0;
   left: 0;
