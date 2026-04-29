@@ -16,7 +16,6 @@ from sentry.api import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
-from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -302,14 +301,13 @@ def _apply_page_filters(
     reachable from a webhook context.
     """
     # project: URL wins. Otherwise fall back to the dashboard's projects.
-    # An unconfigured dashboard (no projects, no all_projects) falls through
-    # to "All Projects" so the unfurl shows data instead of an empty chart.
+    # An unconfigured dashboard (no projects, no all_projects) omits the
+    # param so the API defaults to "My Projects", matching the dashboard FE.
     project_values = url_params.getlist("project")
     if not project_values:
         project_values = [str(p) for p in dashboard_filters.get("projects") or []]
-    if not project_values:
-        project_values = [str(ALL_ACCESS_PROJECT_ID)]
-    params["project"] = project_values if len(project_values) > 1 else project_values[0]
+    if project_values:
+        params["project"] = project_values if len(project_values) > 1 else project_values[0]
 
     # environment: URL wins. Otherwise fall back to dashboard, or omit (no
     # filter) to match the FE default of "All Environments".

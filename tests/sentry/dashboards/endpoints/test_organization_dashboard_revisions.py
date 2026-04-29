@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.testutils.cases import APITestCase
+from sentry.utils.avatar import get_gravatar_url
 
 
 class OrganizationDashboardRevisionsTestCase(APITestCase):
@@ -62,6 +63,7 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
             "id": str(self.user.id),
             "name": self.user.get_display_name(),
             "email": self.user.email,
+            "avatarUrl": get_gravatar_url(self.user.email, size=32),
         }
         assert "dateCreated" in data
 

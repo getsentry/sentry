@@ -141,7 +141,12 @@ export function getProjectSettingsCommandPaletteSections({
                 label: item.title,
                 icon: PROJECT_SETTINGS_ICONS[suffix],
               },
-              keywords: [section.name, 'project settings', 'settings'],
+              keywords: [
+                section.name,
+                'project settings',
+                'settings',
+                ...(item.keywords ?? []),
+              ],
               to: replaceRouterParams(item.path, {
                 orgId: organization.slug,
                 projectId: project.slug,
