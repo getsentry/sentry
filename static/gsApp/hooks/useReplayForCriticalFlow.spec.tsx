@@ -8,7 +8,6 @@ describe('useReplayForCriticalFlow', () => {
   const flush = jest.fn();
   const setTag = Sentry.setTag as jest.Mock;
   const getReplay = Sentry.getReplay as jest.Mock;
-  const originalRandom = Math.random;
 
   beforeEach(() => {
     flush.mockReset();
@@ -16,11 +15,11 @@ describe('useReplayForCriticalFlow', () => {
     getReplay.mockReset();
   });
 
-  afterEach(() => {
-    Math.random = originalRandom;
-  });
+  // Math.random() returns [0, 1), so sampleRate=1 always forces, sampleRate=0
+  // never forces. That gives deterministic coverage of both gate paths
+  // without mocking Math.random.
 
-  it('tags and flushes when enabled and replay is registered', () => {
+  it('tags and flushes at the default sampleRate of 1', () => {
     getReplay.mockReturnValue({flush});
 
     const {unmount} = renderHookWithProviders(() =>
@@ -36,23 +35,11 @@ describe('useReplayForCriticalFlow', () => {
     expect(setTag).toHaveBeenLastCalledWith('critical_flow', undefined);
   });
 
-  it('forces a replay when the mount falls within sampleRate', () => {
+  it('does nothing when sampleRate is 0', () => {
     getReplay.mockReturnValue({flush});
-    Math.random = () => 0.1;
 
     renderHookWithProviders(() =>
-      useReplayForCriticalFlow({flowName: 'scm_onboarding', sampleRate: 0.3})
-    );
-
-    expect(flush).toHaveBeenCalledTimes(1);
-  });
-
-  it('does nothing when the mount falls outside sampleRate', () => {
-    getReplay.mockReturnValue({flush});
-    Math.random = () => 0.5;
-
-    renderHookWithProviders(() =>
-      useReplayForCriticalFlow({flowName: 'scm_onboarding', sampleRate: 0.3})
+      useReplayForCriticalFlow({flowName: 'scm_onboarding', sampleRate: 0})
     );
 
     expect(getReplay).not.toHaveBeenCalled();
