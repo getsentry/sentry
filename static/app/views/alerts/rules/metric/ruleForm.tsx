@@ -1118,7 +1118,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   timeWindowsAreConsistent() {
-    const {currentData = [], historicalData = [], timeWindow} = this.state;
+    const {currentData, historicalData, timeWindow} = this.state;
     const currentTimeWindow = getTimeWindowFromDataset(currentData, timeWindow);
     const historicalTimeWindow = getTimeWindowFromDataset(historicalData, timeWindow);
     return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;

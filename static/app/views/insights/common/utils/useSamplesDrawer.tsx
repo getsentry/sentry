@@ -22,7 +22,7 @@ export function useSamplesDrawer({
   Component,
   moduleName,
   requiredParams,
-  onClose = undefined,
+  onClose,
 }: UseSamplesDrawerProps): void {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen} = useDrawer();

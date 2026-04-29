@@ -5,14 +5,12 @@ const ONE_DAY_MS = intervalToMilliseconds('1d');
 interface Props<QueryView extends {statsPeriod: string}> {
   listHeadTime: number;
   queryView: QueryView;
-  defaultStatsPeriod?: string;
   prefetch?: boolean;
 }
 
 export function coaleseIssueStatsPeriodQuery<QueryView extends {statsPeriod: string}>({
   queryView,
   listHeadTime,
-  defaultStatsPeriod,
   prefetch = false,
 }: Props<QueryView>) {
   // We don't want to use `statsPeriod` directly, because that will mean the
@@ -44,7 +42,7 @@ export function coaleseIssueStatsPeriodQuery<QueryView extends {statsPeriod: str
     return statsPeriod ? {...rest, limit: 1, start, end} : undefined;
   }
 
-  const {statsPeriod = defaultStatsPeriod, ...rest} = queryView;
+  const {statsPeriod, ...rest} = queryView;
   const intervalMS = intervalToMilliseconds(statsPeriod ?? '');
   const start = new Date(listHeadTime - intervalMS).toISOString();
   const end = new Date(listHeadTime).toISOString();

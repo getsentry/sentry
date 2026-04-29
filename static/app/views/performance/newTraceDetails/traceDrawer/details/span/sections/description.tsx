@@ -266,7 +266,7 @@ function ResourceImage(props: {
 }) {
   const [hasError, setHasError] = useState(false);
 
-  const {fileName, size, src, showImage = true} = props;
+  const {fileName, size, src, showImage} = props;
 
   return (
     <Stack align="center" gap="xs" width="100%">

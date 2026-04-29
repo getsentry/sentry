@@ -160,7 +160,7 @@ export function ListItemCheckboxProvider({
   );
 }
 
-export function useListItemCheckboxContext(props: undefined | PublicProps = undefined) {
+export function useListItemCheckboxContext(props?: PublicProps) {
   const [localState, localSetState] = useState<State>({ids: new Set()});
   const context = useContext(ListItemCheckboxContext);
 

@@ -71,7 +71,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
 ) => {
   const {
     fields = [],
-    search = undefined,
+    search,
     sorts = [],
     limit,
     cursor,

@@ -29,7 +29,7 @@ type Result = State;
  * Use useApiQuery instead
  */
 export function useReplayList({
-  enabled = true,
+  enabled,
   eventView,
   location,
   organization,

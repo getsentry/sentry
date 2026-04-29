@@ -427,11 +427,11 @@ class ColumnEditCollection extends Component<Props, State> {
     col: Column,
     i: number,
     {
-      singleColumn = false,
+      singleColumn,
       canDelete = true,
       canDrag = true,
       isGhost = false,
-      gridColumns = 2,
+      gridColumns,
       disabled = false,
     }: {
       gridColumns: number;

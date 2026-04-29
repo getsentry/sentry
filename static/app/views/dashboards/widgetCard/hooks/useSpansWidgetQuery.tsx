@@ -69,7 +69,7 @@ export function useSpansSeriesQuery(
     widget,
     organization,
     pageFilters,
-    enabled = true, // Enabled by default - React Query auto-fetches when keys change
+    enabled, // Enabled by default - React Query auto-fetches when keys change
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
@@ -269,7 +269,7 @@ export function useSpansTableQuery(
     widget,
     organization,
     pageFilters,
-    enabled = true,
+    enabled,
     samplingMode,
     cursor,
     limit,

@@ -1394,8 +1394,8 @@ export function getFieldRenderer(
   field: string,
   meta: MetaType,
   isAlias = true,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   const baseRenderer = getFieldRendererBase(field, meta, isAlias);
   return wrapFieldRendererInDashboardLink(baseRenderer, field, widget, dashboardFilters);
@@ -1454,8 +1454,8 @@ function getFieldRendererBase(
 function wrapFieldRendererInDashboardLink(
   renderer: FieldFormatterRenderFunctionPartial,
   field: string,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
     const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
@@ -1470,8 +1470,8 @@ function getDashboardUrl(
   data: EventData,
   field: string,
   baggage: RenderFunctionBaggage,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ) {
   const {organization, location, projects} = baggage;
   if (!widget?.widgetType || !dashboardFilters) {

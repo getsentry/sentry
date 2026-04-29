@@ -315,7 +315,7 @@ class TriggersChart extends PureComponent<Props, State> {
   renderChart({
     isLoading,
     isReloading,
-    timeseriesData = [],
+    timeseriesData,
     comparisonData,
     comparisonMarkLines,
     errorMessage,

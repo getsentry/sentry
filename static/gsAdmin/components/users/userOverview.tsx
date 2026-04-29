@@ -55,7 +55,7 @@ function identityLabel(identity: UserIdentityConfig) {
 export function UserOverview({
   user,
   identities,
-  tokens = [],
+  tokens,
   onAuthenticatorRemove,
   onIdentityDisconnect,
   revokeToken,
