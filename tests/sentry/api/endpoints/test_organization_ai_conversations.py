@@ -175,9 +175,20 @@ class TestGetLastOutput:
         }
         assert _get_last_output(row) == "Last"
 
-    def test_skips_invalid_new_format(self) -> None:
+    def test_uses_plain_string_as_assistant_text(self) -> None:
         row = {
-            "gen_ai.output.messages": "invalid",
+            "gen_ai.output.messages": "Plain text response",
+            "gen_ai.response.text": "Fallback",
+        }
+        assert _get_last_output(row) == "Plain text response"
+
+    def test_extracts_json_encoded_string(self) -> None:
+        row = {"gen_ai.output.messages": '"Hello, world!"'}
+        assert _get_last_output(row) == "Hello, world!"
+
+    def test_falls_back_on_invalid_json(self) -> None:
+        row = {
+            "gen_ai.output.messages": "[broken json",
             "gen_ai.response.text": "Fallback",
         }
         assert _get_last_output(row) == "Fallback"
