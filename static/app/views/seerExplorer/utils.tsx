@@ -615,7 +615,7 @@ function buildMetricsQueryParam(params: Record<string, any>): string[] | undefin
     ...getStringArray(params.group_by).map(groupBy => ({groupBy})),
     ...visualizes,
   ];
-  const seerSort = parseMetricsSort(params.sort, normalizedYAxesByOriginal);
+  const sortBys = parseMetricsSort(params.sort, normalizedYAxesByOriginal);
 
   const queryParams = base.queryParams.replace({
     query: typeof params.query === 'string' ? params.query : '',
