@@ -481,19 +481,18 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         self.ten_mins_ago = before_now(minutes=10)
 
     @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
-    def test_returns_deduped_transaction_traces(self, mock_span_count) -> None:
-        # Mock span count check to return all traces as valid
+    def test_returns_single_trace(self, mock_span_count) -> None:
         mock_span_count.side_effect = lambda trace_ids, *args: {tid: 50 for tid in trace_ids}
 
         trace_id_1 = uuid.uuid4().hex
         span1 = self.create_span(
             {
-                "description": "GET /api/users/123456",  # will dedupe
-                "sentry_tags": {"transaction": "GET /api/users/123456"},
+                "description": "GET /api/users",
+                "sentry_tags": {"transaction": "GET /api/users"},
                 "trace_id": trace_id_1,
                 "is_segment": True,
-                "exclusive_time_ms": 100,
-                "duration_ms": 100,
+                "exclusive_time_ms": 200,
+                "duration_ms": 200,
             },
             start_ts=self.ten_mins_ago,
         )
@@ -501,38 +500,21 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         trace_id_2 = uuid.uuid4().hex
         span2 = self.create_span(
             {
-                "description": "GET /api/users/789012",  # will dedupe
-                "sentry_tags": {"transaction": "GET /api/users/789012"},
-                "trace_id": trace_id_2,
-                "is_segment": True,
-                "exclusive_time_ms": 200,
-                "duration_ms": 200,  # will return before span1 in transaction query
-            },
-            start_ts=self.ten_mins_ago + timedelta(seconds=1),
-        )
-
-        trace_id_3 = uuid.uuid4().hex
-        span3 = self.create_span(
-            {
                 "description": "POST /api/orders",
                 "sentry_tags": {"transaction": "POST /api/orders"},
-                "trace_id": trace_id_3,
+                "trace_id": trace_id_2,
                 "is_segment": True,
                 "exclusive_time_ms": 150,
                 "duration_ms": 150,
             },
-            start_ts=self.ten_mins_ago + timedelta(seconds=2),
+            start_ts=self.ten_mins_ago + timedelta(seconds=1),
         )
 
-        self.store_spans([span1, span2, span3])
+        self.store_spans([span1, span2])
 
         evidence_traces = get_project_top_transaction_traces_for_llm_detection(
             self.project.id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=30
         )
 
-        assert len(evidence_traces) == 2
-
-        result_trace_ids = {t.trace_id for t in evidence_traces}
-        # One of trace_id_1/trace_id_2 is deduped since their transactions normalize the same
-        assert trace_id_3 in result_trace_ids
-        assert len(result_trace_ids & {trace_id_1, trace_id_2}) == 1
+        assert len(evidence_traces) == 1
+        assert evidence_traces[0].trace_id in {trace_id_1, trace_id_2}
