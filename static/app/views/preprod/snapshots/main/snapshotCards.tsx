@@ -1,0 +1,464 @@
+import {Fragment, memo, useState} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme} from 'sentry/utils/theme/theme';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import type {
+  SnapshotDiffPair,
+  SnapshotImage,
+} from 'sentry/views/preprod/types/snapshotTypes';
+import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+
+import type {DiffMode} from './imageDisplay/diffImageDisplay';
+import {
+  ImageColumn,
+  OnionCardBody,
+  SplitPairBody,
+  WipeCardBody,
+} from './snapshotDiffBodies';
+
+export function DarkAware({
+  isDark,
+  children,
+}: {
+  children: React.ReactNode;
+  isDark: boolean;
+}) {
+  if (!isDark) {
+    return <Fragment>{children}</Fragment>;
+  }
+  return <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>;
+}
+
+export const PairCard = memo(function PairCard({
+  pair,
+  cardType,
+  imageBaseUrl,
+  headBranch,
+  isSelected,
+  copyUrl,
+  diffMode,
+  overlayColor,
+  diffImageBaseUrl,
+  snapshotKey,
+  onSelectSnapshot,
+}: {
+  cardType: 'changed' | 'renamed';
+  copyUrl: string;
+  diffMode: DiffMode;
+  imageBaseUrl: string;
+  isSelected: boolean;
+  pair: SnapshotDiffPair;
+  snapshotKey: string;
+  diffImageBaseUrl?: string;
+  headBranch?: string | null;
+  onSelectSnapshot?: (key: string | null) => void;
+  overlayColor?: string;
+}) {
+  const [isDark, setIsDark] = useState(false);
+  const image = pair.head_image;
+  const baseUrl = `${imageBaseUrl}${pair.base_image.key}/`;
+  const headUrl = `${imageBaseUrl}${image.key}/`;
+
+  // Renamed cards always show split — wipe/onion don't make sense for file renames
+  const effectiveMode = cardType === 'renamed' ? ('split' as const) : diffMode;
+  const handleSelect = onSelectSnapshot
+    ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
+    : undefined;
+
+  let body: React.ReactNode;
+  if (effectiveMode === 'split') {
+    body = (
+      <SplitPairBody
+        baseUrl={baseUrl}
+        headUrl={headUrl}
+        baseImage={pair.base_image}
+        headImage={image}
+        headLabel={headBranch ?? t('Head')}
+        altPrefix={getImageName(image)}
+        overlayColor={cardType === 'changed' ? overlayColor : undefined}
+        diffImageKey={cardType === 'changed' ? pair.diff_image_key : null}
+        diffImageBaseUrl={diffImageBaseUrl}
+      />
+    );
+  } else if (effectiveMode === 'wipe') {
+    body = (
+      <WipeCardBody
+        baseUrl={baseUrl}
+        headUrl={headUrl}
+        baseImage={pair.base_image}
+        headImage={image}
+      />
+    );
+  } else {
+    body = (
+      <OnionCardBody
+        baseUrl={baseUrl}
+        headUrl={headUrl}
+        baseImage={pair.base_image}
+        headImage={image}
+      />
+    );
+  }
+
+  return (
+    <DarkAware isDark={isDark}>
+      <Card isDark={isDark} isSelected={isSelected} data-snapshot-key={snapshotKey}>
+        <CardHeader
+          displayName={image.display_name}
+          fileName={image.image_file_name}
+          status={cardType === 'changed' ? DiffStatus.CHANGED : DiffStatus.RENAMED}
+          diffPercent={cardType === 'changed' ? pair.diff : null}
+          isDark={isDark}
+          onToggleDark={() => setIsDark(v => !v)}
+          copyData={pair}
+          copyUrl={copyUrl}
+          onSelect={handleSelect}
+          isSelected={isSelected}
+        />
+        {body}
+      </Card>
+    </DarkAware>
+  );
+});
+
+export const ImageCard = memo(function ImageCard({
+  image,
+  cardType,
+  imageBaseUrl,
+  headBranch,
+  isSelected,
+  copyUrl,
+  snapshotKey,
+  onSelectSnapshot,
+}: {
+  cardType: 'added' | 'removed' | 'unchanged' | 'solo';
+  copyUrl: string;
+  image: SnapshotImage;
+  imageBaseUrl: string;
+  isSelected: boolean;
+  snapshotKey: string;
+  headBranch?: string | null;
+  onSelectSnapshot?: (key: string | null) => void;
+}) {
+  const [isDark, setIsDark] = useState(false);
+  const imageUrl = `${imageBaseUrl}${image.key}/`;
+  let status: DiffStatus | null;
+  if (cardType === 'solo') {
+    status = null;
+  } else if (cardType === 'added') {
+    status = DiffStatus.ADDED;
+  } else if (cardType === 'removed') {
+    status = DiffStatus.REMOVED;
+  } else {
+    status = DiffStatus.UNCHANGED;
+  }
+
+  const label = cardType === 'removed' ? t('Base') : (headBranch ?? t('Head'));
+  const handleSelect = onSelectSnapshot
+    ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
+    : undefined;
+
+  return (
+    <DarkAware isDark={isDark}>
+      <Card isDark={isDark} isSelected={isSelected} data-snapshot-key={snapshotKey}>
+        <CardHeader
+          displayName={image.display_name}
+          fileName={image.image_file_name}
+          status={status}
+          isDark={isDark}
+          onToggleDark={() => setIsDark(v => !v)}
+          copyData={image}
+          copyUrl={copyUrl}
+          onSelect={handleSelect}
+          isSelected={isSelected}
+        />
+        <ImageColumn
+          label={label}
+          src={imageUrl}
+          alt={getImageName(image)}
+          image={image}
+        />
+      </Card>
+    </DarkAware>
+  );
+});
+
+export const CardHeader = memo(function CardHeader({
+  displayName,
+  fileName,
+  status,
+  diffPercent,
+  isDark,
+  onToggleDark,
+  copyData,
+  copyUrl,
+  onSelect,
+  isSelected,
+}: {
+  copyData: unknown;
+  copyUrl: string;
+  fileName: string;
+  isDark: boolean;
+  onToggleDark: () => void;
+  diffPercent?: number | null;
+  displayName?: string | null;
+  isSelected?: boolean;
+  onSelect?: () => void;
+  status?: DiffStatus | null;
+}) {
+  const {copy} = useCopyToClipboard();
+  // Enter toggles selection; Space is reserved for the list-view document-level handler that scrolls current selection to top
+  const handleRowKeyDown = onSelect
+    ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onSelect();
+        } else if (e.key === ' ') {
+          e.preventDefault();
+        }
+      }
+    : undefined;
+  return (
+    <CardHeaderRow
+      onClick={onSelect}
+      onKeyDown={handleRowKeyDown}
+      role={onSelect ? 'button' : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      aria-pressed={onSelect ? isSelected : undefined}
+      isInteractive={!!onSelect}
+    >
+      <Stack gap="xs" minWidth="0" flex="1">
+        {displayName ? (
+          <Fragment>
+            <Text size="md" bold ellipsis>
+              {displayName}
+            </Text>
+            <Text size="xs" variant="muted" monospace ellipsis>
+              {fileName}
+            </Text>
+          </Fragment>
+        ) : (
+          <Text size="md" bold monospace ellipsis>
+            {fileName}
+          </Text>
+        )}
+      </Stack>
+      <Flex align="center" gap="sm" onClick={e => e.stopPropagation()}>
+        {status && <StatusBadge status={status} diffPercent={diffPercent} />}
+        <IconButton
+          aria-label={isDark ? t('Switch to light preview') : t('Switch to dark preview')}
+          icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
+          onClick={onToggleDark}
+        />
+        <IconButton
+          aria-label={t('Copy link to this snapshot')}
+          icon={<IconLink size="sm" />}
+          onClick={() =>
+            copy(copyUrl, {successMessage: t('Copied link to this snapshot')})
+          }
+        />
+        <MetadataInfoButton copyData={copyData} />
+      </Flex>
+    </CardHeaderRow>
+  );
+});
+
+function MetadataTooltip({json}: {json: string}) {
+  return (
+    <Stack gap="xs" minWidth="260px">
+      <MetadataHint>{t('Click info icon to copy metadata')}</MetadataHint>
+      <CodeBlock language="json" hideCopyButton isRounded={false}>
+        {json}
+      </CodeBlock>
+    </Stack>
+  );
+}
+
+function MetadataInfoButton({copyData}: {copyData: unknown}) {
+  const {copy} = useCopyToClipboard();
+  const json = JSON.stringify(copyData, null, 2);
+
+  return (
+    <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480}>
+      <InfoIconButton
+        type="button"
+        aria-label={t('Copy metadata as JSON')}
+        onClick={() => copy(json, {successMessage: t('Copied metadata as JSON')})}
+      >
+        <IconInfo size="sm" />
+      </InfoIconButton>
+    </Tooltip>
+  );
+}
+
+const StatusBadge = memo(function StatusBadge({
+  status,
+  diffPercent,
+}: {
+  status: DiffStatus;
+  diffPercent?: number | null;
+}) {
+  let label: string;
+  switch (status) {
+    case DiffStatus.CHANGED:
+      label =
+        diffPercent === null || diffPercent === undefined
+          ? t('Modified')
+          : t(
+              'Modified - %s',
+              formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 4)
+            );
+      break;
+    case DiffStatus.ADDED:
+      label = t('Added');
+      break;
+    case DiffStatus.REMOVED:
+      label = t('Removed');
+      break;
+    case DiffStatus.RENAMED:
+      label = t('Renamed');
+      break;
+    default:
+      label = t('Unchanged');
+  }
+
+  return <StatusBadgeContainer status={status}>{label}</StatusBadgeContainer>;
+});
+
+function IconButton({
+  icon,
+  'aria-label': ariaLabel,
+  onClick,
+}: {
+  'aria-label': string;
+  icon: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <Button
+      size="xs"
+      priority="transparent"
+      icon={icon}
+      aria-label={ariaLabel}
+      onClick={onClick}
+    />
+  );
+}
+
+export const Card = styled(Container)<{isDark: boolean; isSelected: boolean}>`
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.primary};
+  border: 1px solid
+    ${p =>
+      p.isSelected
+        ? p.theme.tokens.border.accent.vibrant
+        : p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  overflow: hidden;
+  ${p => p.isDark && `color-scheme: dark;`}
+`;
+
+const CardHeaderRow = styled('div')<{isInteractive?: boolean}>`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  ${p =>
+    p.isInteractive &&
+    `
+      cursor: pointer;
+      user-select: none;
+
+      &:hover {
+        background: ${p.theme.tokens.background.secondary};
+      }
+
+      &:focus {
+        outline: none;
+      }
+    `}
+`;
+
+const InfoIconButton = styled('button')`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: ${p => p.theme.tokens.content.secondary};
+  border-radius: ${p => p.theme.radius.sm};
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.tokens.focus.default};
+    outline-offset: 1px;
+  }
+`;
+
+const MetadataHint = styled('div')`
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding-bottom: ${p => p.theme.space.xs};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+`;
+
+const StatusBadgeContainer = styled('span')<{status: DiffStatus}>`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.sm};
+  font-size: ${p => p.theme.font.size.xs};
+  white-space: nowrap;
+  background: ${p => {
+    switch (p.status) {
+      case DiffStatus.CHANGED:
+        return p.theme.tokens.background.transparent.accent.muted;
+      case DiffStatus.ADDED:
+        return p.theme.tokens.background.transparent.success.muted;
+      case DiffStatus.REMOVED:
+        return p.theme.tokens.background.transparent.danger.muted;
+      case DiffStatus.RENAMED:
+        return p.theme.tokens.background.transparent.warning.muted;
+      case DiffStatus.UNCHANGED:
+      default:
+        return p.theme.tokens.background.secondary;
+    }
+  }};
+  color: ${p => {
+    switch (p.status) {
+      case DiffStatus.CHANGED:
+        return p.theme.tokens.content.accent;
+      case DiffStatus.ADDED:
+        return p.theme.tokens.content.success;
+      case DiffStatus.REMOVED:
+        return p.theme.tokens.content.danger;
+      case DiffStatus.RENAMED:
+        return p.theme.tokens.content.warning;
+      case DiffStatus.UNCHANGED:
+      default:
+        return p.theme.tokens.content.secondary;
+    }
+  }};
+`;
