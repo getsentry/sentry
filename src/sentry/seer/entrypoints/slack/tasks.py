@@ -207,6 +207,7 @@ def process_mention_for_slack(
                 "thread_ts": thread_ts or ts,
                 "channel_id": channel_id,
                 "slack_user_id": slack_user_id,
+                "conversation_type": conversation_type,
             },
         )
 
