@@ -1,7 +1,5 @@
 import {useEffect} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
   IconBuilding,
@@ -9,7 +7,6 @@ import {
   IconDocs,
   IconEllipsis,
   IconGithub,
-  IconGlobe,
   IconGroup,
   IconMegaphone,
   IconOpen,
@@ -17,7 +14,6 @@ import {
   IconSentry,
   IconSupport,
 } from 'sentry/icons';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -27,10 +23,6 @@ import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
-import {
-  NavigationTourReminder,
-  useNavigationTour,
-} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
 function getContactSupportItem(organization: Organization): MenuItemProps | null {
@@ -89,7 +81,6 @@ export function PrimaryNavigationHelpMenu() {
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
-  const {startTour} = useNavigationTour();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
   const hasIntercom = organization.features.includes('intercom-support');
 
@@ -99,214 +90,115 @@ export function PrimaryNavigationHelpMenu() {
     }
   }, [hasIntercom, organization]);
 
-  const items = getPageFrameItems({contactSupportItem, privacyUrl, termsUrl});
-
-  return (
-    <PrimaryNavigation.Menu
-      triggerWrap={NavigationTourReminder}
-      items={[
-        ...items,
-        {
-          key: 'actions',
-          children: [
-            {
-              key: 'give-feedback',
-              label: t('Give feedback'),
-              leadingItems: (
-                <MenuIcon>
-                  <IconMegaphone />
-                </MenuIcon>
-              ),
-              onAction() {
-                openForm?.({
-                  tags: {
-                    ['feedback.source']: 'navigation_sidebar',
-                  },
-                });
-              },
-              hidden: !openForm,
-            },
-            {
-              key: 'tour',
-              label: t('Tour the new navigation'),
-              leadingItems: (
-                <MenuIcon>
-                  <IconGlobe />
-                </MenuIcon>
-              ),
-              onAction() {
-                startTour();
-              },
-            },
-          ].filter(n => !!n),
-        },
-      ]}
-      analyticsKey="help"
-      label={t('Help')}
-      icon={<IconEllipsis />}
-    />
-  );
-}
-
-function MenuIcon({children}: {children: React.ReactNode}) {
-  return (
-    <IconDefaultsProvider size="sm">
-      <Flex width="100%" height="100%" align="center">
-        {children}
-      </Flex>
-    </IconDefaultsProvider>
-  );
-}
-
-function getPageFrameItems({
-  contactSupportItem,
-  privacyUrl,
-  termsUrl,
-}: {
-  contactSupportItem: MenuItemProps | null;
-  privacyUrl: string | null;
-  termsUrl: string | null;
-}): MenuItemProps[] {
-  return [
+  const items: MenuItemProps[] = [
     {
       key: 'resources',
       label: t('Resources'),
       isSubmenu: true,
-      leadingItems: (
-        <MenuIcon>
-          <IconQuestion />
-        </MenuIcon>
-      ),
+      leadingItems: <IconQuestion />,
       children: [
         {
           key: 'welcome',
           label: t('Welcome Page'),
           externalHref: 'https://sentry.io/welcome/',
-          leadingItems: (
-            <MenuIcon>
-              <IconSentry />
-            </MenuIcon>
-          ),
+          leadingItems: <IconSentry />,
         },
         {
           key: 'docs',
           label: t('Documentation'),
           externalHref: 'https://docs.sentry.io',
-          leadingItems: (
-            <MenuIcon>
-              <IconDocs />
-            </MenuIcon>
-          ),
+          leadingItems: <IconDocs />,
         },
         {
           key: 'api-docs',
           label: t('API Docs'),
           externalHref: 'https://docs.sentry.io/api/',
-          leadingItems: (
-            <MenuIcon>
-              <IconDocs />
-            </MenuIcon>
-          ),
+          leadingItems: <IconDocs />,
         },
         {
           key: 'help-center',
           label: t('Help Center'),
           externalHref: 'https://sentry.zendesk.com/hc/en-us',
-          leadingItems: (
-            <MenuIcon>
-              <IconQuestion />
-            </MenuIcon>
-          ),
+          leadingItems: <IconQuestion />,
         },
-        ...(contactSupportItem
-          ? [
-              {
-                ...contactSupportItem,
-                leadingItems: (
-                  <MenuIcon>
-                    <IconSupport />
-                  </MenuIcon>
-                ),
-              },
-            ]
-          : []),
+        {
+          key: 'support',
+          label: t('Contact Support'),
+          ...contactSupportItem,
+          leadingItems: <IconSupport />,
+          hidden: !contactSupportItem,
+        },
       ],
     },
     {
       key: 'community',
       label: t('Community'),
       isSubmenu: true,
-      leadingItems: (
-        <MenuIcon>
-          <IconGroup />
-        </MenuIcon>
-      ),
+      leadingItems: <IconGroup />,
       children: [
         {
           key: 'github',
           label: t('Sentry on GitHub'),
           externalHref: 'https://github.com/getsentry/sentry',
-          leadingItems: (
-            <MenuIcon>
-              <IconGithub />
-            </MenuIcon>
-          ),
+          leadingItems: <IconGithub />,
         },
         {
           key: 'discord',
           label: t('Join our Discord'),
           externalHref: 'https://discord.com/invite/sentry',
-          leadingItems: (
-            <MenuIcon>
-              <IconDiscord />
-            </MenuIcon>
-          ),
+          leadingItems: <IconDiscord />,
         },
       ],
     },
-    ...(privacyUrl || termsUrl
-      ? [
-          {
-            key: 'legal',
-            label: t('Legal'),
-            isSubmenu: true,
-            leadingItems: (
-              <MenuIcon>
-                <IconBuilding />
-              </MenuIcon>
-            ),
-            children: [
-              ...(privacyUrl
-                ? [
-                    {
-                      key: 'privacy',
-                      label: t('Privacy Policy'),
-                      externalHref: privacyUrl,
-                      leadingItems: (
-                        <MenuIcon>
-                          <IconOpen />
-                        </MenuIcon>
-                      ),
-                    },
-                  ]
-                : []),
-              ...(termsUrl
-                ? [
-                    {
-                      key: 'terms',
-                      label: t('Terms of Use'),
-                      externalHref: termsUrl,
-                      leadingItems: (
-                        <MenuIcon>
-                          <IconOpen />
-                        </MenuIcon>
-                      ),
-                    },
-                  ]
-                : []),
-            ],
+    {
+      key: 'legal',
+      label: t('Legal'),
+      isSubmenu: true,
+      hidden: !privacyUrl && !termsUrl,
+      leadingItems: <IconBuilding />,
+      children: [
+        {
+          key: 'privacy',
+          label: t('Privacy Policy'),
+          externalHref: privacyUrl ?? '',
+          hidden: !privacyUrl,
+          leadingItems: <IconOpen />,
+        },
+        {
+          key: 'terms',
+          label: t('Terms of Use'),
+          externalHref: termsUrl ?? '',
+          hidden: !termsUrl,
+          leadingItems: <IconOpen />,
+        },
+      ],
+    },
+    {
+      key: 'actions',
+      children: [
+        {
+          key: 'give-feedback',
+          label: t('Give feedback'),
+          leadingItems: <IconMegaphone />,
+          onAction() {
+            openForm?.({
+              tags: {
+                ['feedback.source']: 'navigation_sidebar',
+              },
+            });
           },
-        ]
-      : []),
+          hidden: !openForm,
+        },
+      ],
+    },
   ];
+
+  return (
+    <PrimaryNavigation.Menu
+      items={items}
+      analyticsKey="help"
+      label={t('Help')}
+      icon={<IconEllipsis />}
+    />
+  );
 }
