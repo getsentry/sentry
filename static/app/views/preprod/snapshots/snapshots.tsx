@@ -504,7 +504,6 @@ export default function SnapshotsPage() {
       >
         <SnapshotSidebarContent
           items={filteredItems}
-          totalItemCount={filteredItems.length}
           currentItemKey={currentItemKey}
           isAllSelected={isAllSelected}
           searchQuery={searchQuery}

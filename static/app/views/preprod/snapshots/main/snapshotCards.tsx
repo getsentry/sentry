@@ -291,7 +291,7 @@ function MetadataInfoButton({copyData}: {copyData: unknown}) {
   const json = JSON.stringify(copyData, null, 2);
 
   return (
-    <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480}>
+    <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
       <InfoIconButton
         type="button"
         aria-label={t('Copy metadata as JSON')}
