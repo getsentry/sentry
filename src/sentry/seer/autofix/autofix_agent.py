@@ -239,6 +239,7 @@ def trigger_autofix_explorer(
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "medium",
+    reasoning_effort: Literal["low", "medium", "high"] | None = None,
     user_context: str | None = None,
     insert_index: int | None = None,
 ) -> int:
@@ -277,7 +278,9 @@ def trigger_autofix_explorer(
     client = get_autofix_explorer_client(
         group,
         intelligence_level=intelligence_level,
-        reasoning_effort=config.reasoning_effort,
+        reasoning_effort=reasoning_effort
+        if reasoning_effort is not None
+        else config.reasoning_effort,
         enable_coding=config.enable_coding,
     )
 
