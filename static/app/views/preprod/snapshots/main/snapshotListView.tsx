@@ -248,7 +248,6 @@ export function SnapshotListView({
       if (!onSelect) {
         return;
       }
-      e.preventDefault();
 
       const lastPos = idx.order.length - 1;
       const currentPos = currentKey ? (idx.positionByKey.get(currentKey) ?? -1) : -1;
@@ -262,6 +261,7 @@ export function SnapshotListView({
       if (nextPos === currentPos) {
         return;
       }
+      e.preventDefault();
       const nextKey = idx.order[nextPos]!;
       onSelect(nextKey);
       revealCard(nextKey, 'nearest');
