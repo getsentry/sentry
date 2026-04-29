@@ -772,7 +772,7 @@ describe('Onboarding', () => {
 
       // Should auto-select the existing integration and show connected view
       expect(
-        await screen.findByText('Connected to GitHub  getsentry')
+        await screen.findByText('Connected to GitHub / getsentry')
       ).toBeInTheDocument();
     });
 
