@@ -25,7 +25,7 @@ class ProjectSeerNightShiftTest(APITestCase):
                 status_code=200,
             )
 
-        assert response.data == {"agent_run_id": 42}
+        assert response.data == {"run_id": 42}
         mock_task.assert_called_once_with(
             self.organization.id,
             options={
@@ -54,7 +54,7 @@ class ProjectSeerNightShiftTest(APITestCase):
                 status_code=200,
             )
 
-        assert response.data == {"agent_run_id": None}
+        assert response.data == {"run_id": None}
         mock_task.assert_called_once_with(
             self.organization.id,
             options={
@@ -92,7 +92,7 @@ class ProjectSeerNightShiftTest(APITestCase):
                 status_code=200,
             )
 
-        assert response.data == {"agent_run_id": 99}
+        assert response.data == {"run_id": 99}
         mock_task.assert_called_once_with(
             self.organization.id,
             options={

@@ -60,11 +60,11 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
             "reasoning_effort": tweaks.reasoning_effort,
             "extra_triage_instructions": tweaks.extra_triage_instructions,
         }
-        agent_run_id = run_night_shift_for_org(
+        run_id = run_night_shift_for_org(
             project.organization_id,
             options=options,
             project_ids=[project.id],
             triggering_user_id=triggering_user_id,
             execute_in_task=True,
         )
-        return Response({"agent_run_id": agent_run_id}, status=200)
+        return Response({"run_id": run_id}, status=200)
