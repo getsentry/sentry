@@ -13,6 +13,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
+import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
 import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
@@ -94,6 +95,12 @@ export function IssueListTable({
           <div {...tourProps}>
             <ContainerPanel>
               <IssueSelectionProvider visibleGroupIds={groupIds}>
+                <IssueListBulkCommandPaletteActions
+                  query={query}
+                  selection={selection}
+                  groupIds={groupIds}
+                  onActionTaken={onActionTaken}
+                />
                 {(groupIds.length > 0 || issuesLoading) && (
                   <IssueListActions
                     selection={selection}
