@@ -61,6 +61,10 @@ class DsnLookupEndpoint(OrganizationEndpoint):
         except ProjectKey.DoesNotExist:
             return Response({"detail": "DSN not found"}, status=404)
 
+        # Don't leak the existence of the project if the user does not have access to it.
+        if not request.access.has_project_access(project_key.project):
+            return Response({"detail": "DSN not found"}, status=404)
+
         return Response(
             {
                 "organizationSlug": organization.slug,

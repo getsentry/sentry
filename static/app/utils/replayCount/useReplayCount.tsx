@@ -1,10 +1,8 @@
 import {useCallback} from 'react';
 
-import type {ApiResult} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   bufferLimit: number;
@@ -61,38 +59,32 @@ export function useReplayCount({
   const cache = useAggregatedQueryKeys<string, CountState>({
     cacheKey: `/organizations/${organization.slug}/replay-count/|${dataSource}|${fieldName}|${cachePeriod}`,
     bufferLimit,
-    getQueryKey: useCallback(
-      (ids: readonly string[]): ApiQueryKey => [
-        getApiUrl('/organizations/$organizationIdOrSlug/replay-count/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          query: {
-            data_source: dataSource,
-            project: -1,
-            statsPeriod: _statsPeriod,
-            start,
-            end,
-            query:
-              fieldName === 'transaction'
-                ? `${fieldName}:[${ids.map(id => `"${id}"`).join(',')}]`
-                : `${fieldName}:[${ids.join(',')}]`,
-          },
-        },
-      ],
-      [dataSource, fieldName, organization, _statsPeriod, start, end]
+    getQueryOptions: useCallback(
+      ids =>
+        apiOptions.as<CountState>()(
+          '/organizations/$organizationIdOrSlug/replay-count/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            query: {
+              data_source: dataSource,
+              project: -1,
+              statsPeriod: _statsPeriod,
+              start,
+              end,
+              query:
+                fieldName === 'transaction'
+                  ? `${fieldName}:[${ids.map(id => `"${id}"`).join(',')}]`
+                  : `${fieldName}:[${ids.join(',')}]`,
+            },
+            staleTime: 0,
+          }
+        ),
+      [dataSource, fieldName, organization.slug, _statsPeriod, start, end]
     ),
-    responseReducer: useCallback(
-      (
-        prevState: undefined | CountState,
-        response: ApiResult,
-        aggregates: readonly string[]
-      ) => {
-        const defaults = Object.fromEntries(aggregates.map(id => [id, 0]));
-        return {...defaults, ...prevState, ...response[0]};
-      },
-      []
-    ),
+    responseReducer: useCallback((prevState, response, aggregates) => {
+      const defaults = Object.fromEntries(aggregates.map(id => [id, 0]));
+      return {...defaults, ...prevState, ...response.json};
+    }, []),
   });
 
   const getMany = useCallback(

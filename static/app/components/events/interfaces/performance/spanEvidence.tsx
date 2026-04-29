@@ -5,6 +5,7 @@ import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {
+  AI_DETECTED_ISSUE_TYPES,
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   isTransactionBased,
@@ -31,8 +32,11 @@ function SpanEvidenceInterimSection({
   const typeId = event.occurrence?.type;
   const issueType = getIssueTypeFromOccurrenceType(typeId);
   const issueTitle = event.occurrence?.issueTitle;
-  const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
-  const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
+  const isAiDetected = issueType !== null && AI_DETECTED_ISSUE_TYPES.has(issueType);
+  const hasSetting =
+    (isTransactionBased(typeId) && isOccurrenceBased(typeId)) || isAiDetected;
+  const hashTitle = isAiDetected ? 'AI Detected' : issueTitle;
+  const sanitizedHash = hashTitle && sanitizeQuerySelector(hashTitle);
 
   return (
     <InterimSection
@@ -49,7 +53,7 @@ function SpanEvidenceInterimSection({
             to={{
               pathname: `/settings/${organization.slug}/projects/${projectSlug}/performance/`,
               query: {issueType},
-              hash: sanitizedIssueTitle,
+              hash: sanitizedHash,
             }}
             size="xs"
             icon={<IconSettings />}

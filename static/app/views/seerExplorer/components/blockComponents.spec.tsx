@@ -119,51 +119,18 @@ describe('BlockComponent', () => {
   });
 
   describe('Focus State', () => {
-    it('shows copy button when isHovered=true', () => {
+    it('shows feedback and copy buttons when assistant block is hovered', async () => {
       const block = createResponseBlock();
-      render(
+      const {container} = render(
         <BlockComponent
           block={block}
           blockIndex={0}
-          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
       );
 
-      expect(
-        screen.getByRole('button', {name: 'Copy block content'})
-      ).toBeInTheDocument();
-    });
-
-    it('does not show copy button when isHovered=false', () => {
-      const block = createResponseBlock();
-      render(
-        <BlockComponent
-          block={block}
-          blockIndex={0}
-          isHovered={false}
-          onClick={mockOnClick}
-          runId={runId}
-        />
-      );
-
-      expect(
-        screen.queryByRole('button', {name: 'Copy block content'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('shows feedback buttons for assistant blocks when isHovered=true', () => {
-      const block = createResponseBlock();
-      render(
-        <BlockComponent
-          block={block}
-          blockIndex={0}
-          isHovered
-          onClick={mockOnClick}
-          runId={runId}
-        />
-      );
+      await userEvent.hover(container.firstChild as HTMLElement);
 
       expect(
         screen.getByRole('button', {name: 'Feedback Thumbs Up'})
@@ -171,19 +138,23 @@ describe('BlockComponent', () => {
       expect(
         screen.getByRole('button', {name: 'Feedback Thumbs Down'})
       ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Copy block content'})
+      ).toBeInTheDocument();
     });
 
-    it('does not show assistant action buttons for focused user blocks', () => {
+    it('does not show feedback or copy buttons when user block is hovered', async () => {
       const block = createUserInputBlock();
-      render(
+      const {container} = render(
         <BlockComponent
           block={block}
           blockIndex={0}
-          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
       );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
 
       expect(
         screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
@@ -198,15 +169,16 @@ describe('BlockComponent', () => {
 
     it('disables both thumbs buttons after thumbs up is clicked', async () => {
       const block = createResponseBlock();
-      render(
+      const {container} = render(
         <BlockComponent
           block={block}
           blockIndex={1}
-          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
       );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
 
       const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
       const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
@@ -220,15 +192,16 @@ describe('BlockComponent', () => {
 
     it('disables both thumbs buttons after thumbs down is clicked', async () => {
       const block = createResponseBlock();
-      render(
+      const {container} = render(
         <BlockComponent
           block={block}
           blockIndex={2}
-          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
       );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
 
       const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
       const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
@@ -243,15 +216,16 @@ describe('BlockComponent', () => {
 
   it('does not disable thumbs buttons after thumbs up is clicked if runId is not set', async () => {
     const block = createResponseBlock();
-    render(
+    const {container} = render(
       <BlockComponent
         block={block}
         blockIndex={1}
-        isHovered
         onClick={mockOnClick}
         runId={undefined}
       />
     );
+
+    await userEvent.hover(container.firstChild as HTMLElement);
 
     const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
     const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
@@ -265,15 +239,16 @@ describe('BlockComponent', () => {
 
   it('does not disable thumbs buttons after thumbs down is clicked if runId is not set', async () => {
     const block = createResponseBlock();
-    render(
+    const {container} = render(
       <BlockComponent
         block={block}
         blockIndex={2}
-        isHovered
         onClick={mockOnClick}
         runId={undefined}
       />
     );
+
+    await userEvent.hover(container.firstChild as HTMLElement);
 
     const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
     const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});

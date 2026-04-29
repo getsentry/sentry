@@ -6,6 +6,7 @@ from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, 
 
 from sentry import features, options
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.event_manager import SECURITY_REPORT_INTERFACES
 from sentry.eventstore import backend as eventstore
 from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.organization import Organization
@@ -28,6 +29,7 @@ from sentry.utils.snuba import SnubaError, bulk_snuba_queries
 logger = logging.getLogger(__name__)
 
 SNUBA_QUERY_MAX_ATTEMPTS = 3
+MAX_GROUP_AGE_DAYS = 90
 
 
 @instrumented_task(
@@ -120,6 +122,7 @@ def _backfill_org(
             id__gt=last_group_id,
             status=GroupStatus.UNRESOLVED,
             substatus__in=UNRESOLVED_SUBSTATUS_CHOICES,
+            last_seen__gte=datetime.now(UTC) - timedelta(days=MAX_GROUP_AGE_DAYS),
         )
         .select_related("project", "project__organization")
         .order_by("id")[:batch_size]
@@ -313,13 +316,26 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
     # Batch fetch all event data from nodestore in one multi-get
     eventstore.bind_nodes(events)
 
-    # Filter out events with empty data
+    # Drop events with empty data and security-report event types (CSP/HPKP/
+    # Expect-CT/Expect-Staple/NEL) — they all roll up under ErrorGroupType but
+    # don't carry the application-code signal that RCA clustering needs.
     valid_groups: list[Group] = []
     valid_events: list[Event] = []
+    skipped_security_reports = 0
     for group, event in zip(matched_groups, events):
-        if event.data:
-            valid_groups.append(group)
-            valid_events.append(event)
+        if not event.data:
+            continue
+        if event.get_event_type() in SECURITY_REPORT_INTERFACES:
+            skipped_security_reports += 1
+            continue
+        valid_groups.append(group)
+        valid_events.append(event)
+
+    if skipped_security_reports:
+        metrics.incr(
+            "seer.supergroups_backfill_lightweight.security_reports_skipped",
+            amount=skipped_security_reports,
+        )
 
     if not valid_events:
         return []
