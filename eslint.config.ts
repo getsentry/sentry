@@ -622,7 +622,6 @@ export default typescript.config([
           '@typescript-eslint/no-unsafe-enum-comparison': 'off',
           '@typescript-eslint/no-unsafe-member-access': 'off',
           '@typescript-eslint/no-unsafe-return': 'off',
-          '@typescript-eslint/non-nullable-type-assertion-style': 'off',
           '@typescript-eslint/prefer-array-find': 'off',
           '@typescript-eslint/prefer-array-index-of': 'off',
           '@typescript-eslint/prefer-find': 'off',
