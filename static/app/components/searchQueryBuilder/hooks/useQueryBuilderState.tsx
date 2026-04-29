@@ -651,7 +651,18 @@ function updateFilterMultipleValues(
   values: string[]
 ) {
   const uniqNonEmptyValues = Array.from(
-    new Set(values.filter(value => value.length > 0))
+    values
+      .filter(value => value.length > 0)
+      .reduce((canonicalValues, value) => {
+        const canonicalValue = canonicalizeSearchValue(value);
+
+        if (!canonicalValues.has(canonicalValue)) {
+          canonicalValues.set(canonicalValue, value);
+        }
+
+        return canonicalValues;
+      }, new Map<string, string>())
+      .values()
   );
   if (uniqNonEmptyValues.length === 0) {
     return {...state, query: replaceQueryToken(state.query, token.value, '""')};
@@ -665,30 +676,42 @@ function updateFilterMultipleValues(
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
 
+function canonicalizeSearchValue(value: string) {
+  const unquotedValue =
+    value.startsWith('"') && value.endsWith('"')
+      ? value.slice(1, -1).replace(/\\"/g, '"')
+      : value;
+
+  return escapeTagValueForSearch(unescapeAsteriskSearchValue(unquotedValue));
+}
+
 export function multiSelectTokenValue(
   state: QueryBuilderState,
   action: MultiSelectFilterValueAction
 ) {
   const tokenValue = action.token.value;
-  // Normalize to the escaped form so that a manually-typed raw value like
-  // `foo*` matches the escaped form `foo\*` dispatched from suggestion checkboxes.
-  const normalize = (value: string) =>
-    escapeTagValueForSearch(unescapeAsteriskSearchValue(value));
-  const normalizedActionValue = normalize(action.value);
+  const normalizedActionValue = canonicalizeSearchValue(action.value);
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
-      const values = tokenValue.items.map(item => item.value?.text ?? '');
-      const containsValue = values.some(v => normalize(v) === normalizedActionValue);
+      const values = tokenValue.items.map(item => ({
+        canonicalValue: canonicalizeSearchValue(item.value?.value ?? ''),
+        text: item.value?.text ?? '',
+      }));
+      const containsValue = values.some(
+        ({canonicalValue}) => canonicalValue === normalizedActionValue
+      );
       const newValues = containsValue
-        ? values.filter(v => normalize(v) !== normalizedActionValue)
-        : [...values, action.value];
+        ? values
+            .filter(({canonicalValue}) => canonicalValue !== normalizedActionValue)
+            .map(({text}) => text)
+        : [...values.map(({text}) => text), action.value];
 
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
-      if (normalize(tokenValue.text) === normalizedActionValue) {
+      if (canonicalizeSearchValue(tokenValue.value ?? '') === normalizedActionValue) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
       const newValue = tokenValue.value
