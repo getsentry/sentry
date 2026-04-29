@@ -101,6 +101,10 @@ repos:
         name: format
         language: system
         types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown, json]
+        # Mirror api-docs/**/*.json from .oxfmtrc.json's ignorePatterns; oxfmt
+        # errors with "Expected at least one target file" when its config drops
+        # every input file, so skip them at the hook level instead.
+        exclude: ^api-docs/.*\.json$
         entry: ./node_modules/.bin/oxfmt
 
       - id: knip
