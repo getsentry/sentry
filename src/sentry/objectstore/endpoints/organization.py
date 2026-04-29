@@ -21,19 +21,23 @@ try:
 except ImportError:
     pass
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases import OrganizationEndpoint
-from sentry.api.bases.organization import OrganizationReleasePermission
-from sentry.models.organization import Organization
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.objectstore import parse_accept_encoding
 from sentry.ratelimits.config import RateLimitConfig
 
 
 @cell_silo_endpoint
-class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
+class ObjectstoreEndpoint(Endpoint):
+    """
+    Transparent proxy to the Objectstore service (https://github.com/getsentry/objectstore).
+
+    This endpoint is unauthenticated at the Django level, as authentication is performed by Objectstore via the `Authorization` or the `X-Os-Auth` header.
+    The `organization_id_or_slug` parameter in the view path and URL kwarg is needed by the API Gateway for cell routing, even though this endpoint does not validate nor use it.
+    """
+
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
@@ -41,46 +45,29 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
-    permission_classes = (OrganizationReleasePermission,)
+    authentication_classes = ()
+    permission_classes = ()
     rate_limits = RateLimitConfig(group="CLI")
     parser_classes = ()  # don't attempt to parse request data, so we can access the raw body in wsgi.input
 
-    def _check_flag(self, request: Request, organization: Organization) -> Response | None:
-        if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(
-                {
-                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
-                },
-                status=403,
-            )
-        return None
-
     def get(
-        self, request: Request, organization: Organization, path: str
+        self, request: Request, organization_id_or_slug: str, path: str
     ) -> Response | StreamingHttpResponse:
-        if response := self._check_flag(request, organization):
-            return response
         return self._proxy(request, path)
 
     def put(
-        self, request: Request, organization: Organization, path: str
+        self, request: Request, organization_id_or_slug: str, path: str
     ) -> Response | StreamingHttpResponse:
-        if response := self._check_flag(request, organization):
-            return response
         return self._proxy(request, path)
 
     def post(
-        self, request: Request, organization: Organization, path: str
+        self, request: Request, organization_id_or_slug: str, path: str
     ) -> Response | StreamingHttpResponse:
-        if response := self._check_flag(request, organization):
-            return response
         return self._proxy(request, path)
 
     def delete(
-        self, request: Request, organization: Organization, path: str
+        self, request: Request, organization_id_or_slug: str, path: str
     ) -> Response | StreamingHttpResponse:
-        if response := self._check_flag(request, organization):
-            return response
         return self._proxy(request, path)
 
     def _proxy(
