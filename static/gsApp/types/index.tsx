@@ -242,7 +242,7 @@ enum VatStatus {
   OTHER = 'other',
 }
 
-export type GDPRDetails = {
+type GDPRDetails = {
   dpoAddress: string;
   dpoEmail: string;
   dpoName: string;
