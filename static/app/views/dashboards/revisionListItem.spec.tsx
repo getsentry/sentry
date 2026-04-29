@@ -147,6 +147,23 @@ describe('RevisionListItem', () => {
     );
   });
 
+  it('renders a gravatar avatar container when avatarType is gravatar', () => {
+    MockApiClient.addMockResponse({url: SNAPSHOT_URL, body: makeSnapshot()});
+    MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
+
+    renderItem({
+      createdBy: {
+        id: '42',
+        name: 'Alice',
+        email: 'alice@example.com',
+        avatarType: 'gravatar',
+        avatarUrl: null,
+      },
+    });
+
+    expect(screen.getByTestId('gravatar-avatar')).toBeInTheDocument();
+  });
+
   it('shows "Unknown" when createdBy is null', async () => {
     MockApiClient.addMockResponse({url: SNAPSHOT_URL, body: makeSnapshot()});
     MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
