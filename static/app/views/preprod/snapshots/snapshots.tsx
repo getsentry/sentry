@@ -200,11 +200,11 @@ export default function SnapshotsPage() {
 
   const isSoloView = comparisonType === 'solo';
   const handleToggleView = useCallback(() => {
-    const {view: _view, ...restQuery} = location.query;
+    const {view: _view, selectedGroup: _sg, ...restQuery} = location.query;
     if (isSoloView) {
       navigate({...location, query: restQuery}, {replace: true});
     } else {
-      navigate({...location, query: {...location.query, view: 'solo'}}, {replace: true});
+      navigate({...location, query: {...restQuery, view: 'solo'}}, {replace: true});
     }
   }, [location, navigate, isSoloView]);
 
