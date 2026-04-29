@@ -14,7 +14,7 @@ import type {User} from 'sentry/types/user';
 import type {TagVariant} from 'sentry/utils/theme';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import type {DashboardRevision} from './hooks/useDashboardRevisions';
+import type {DashboardRevision, RevisionCreatedBy} from './hooks/useDashboardRevisions';
 import {useDashboardRevisionDetails} from './hooks/useDashboardRevisions';
 import {DISPLAY_TYPE_ICONS} from './widgetBuilder/components/typeSelector';
 import type {WidgetChange} from './dashboardRevisionsDiff';
@@ -23,13 +23,7 @@ import type {DashboardDetails} from './types';
 
 interface RevisionListItemProps {
   baseRevisionId: string | null;
-  createdBy: {
-    email: string;
-    id: string;
-    name: string;
-    avatarType?: string | null;
-    avatarUrl?: string | null;
-  } | null;
+  createdBy: RevisionCreatedBy | null;
   dashboardId: string;
   dateCreated: string | null;
   isSelected: boolean;

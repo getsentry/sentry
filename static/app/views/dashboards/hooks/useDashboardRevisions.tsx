@@ -1,17 +1,18 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import type {Avatar} from 'sentry/types/core';
+import type {AvatarUser} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
+export type RevisionCreatedBy = Pick<AvatarUser, 'email' | 'id' | 'name'> & {
+  avatarType?: Avatar['avatarType'] | null;
+  avatarUrl?: string | null;
+};
+
 export type DashboardRevision = {
-  createdBy: {
-    email: string;
-    id: string;
-    name: string;
-    avatarType?: string | null;
-    avatarUrl?: string | null;
-  } | null;
+  createdBy: RevisionCreatedBy | null;
   dateCreated: string;
   id: string;
   source: 'edit' | 'edit-with-agent' | 'pre-restore';
