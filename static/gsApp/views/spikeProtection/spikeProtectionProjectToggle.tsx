@@ -2,8 +2,6 @@ import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -16,10 +14,7 @@ import {
   SpendVisibilityEvents,
   trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
-import {
-  SPIKE_PROTECTION_ERROR_MESSAGE,
-  SPIKE_PROTECTION_OPTION_DISABLED,
-} from 'getsentry/views/spikeProtection/constants';
+import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 
 const spikeProtectionSchema = z.object({
   enabled: z.boolean(),
@@ -75,12 +70,6 @@ function SpikeProtectionProjectToggle({
                 [SPIKE_PROTECTION_OPTION_DISABLED]: !newValue,
               },
             });
-            addSuccessMessage(
-              tct('[action] spike protection for [project]', {
-                action: newValue ? t('Enabled') : t('Disabled'),
-                project: project.slug,
-              })
-            );
             trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_PROJECT_TOGGLED, {
               organization,
               subscription,
@@ -89,9 +78,6 @@ function SpikeProtectionProjectToggle({
               view: analyticsView,
             });
             onChange?.(newValue);
-          },
-          onError: () => {
-            addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
           },
         }}
       >
