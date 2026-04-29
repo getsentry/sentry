@@ -234,7 +234,7 @@ def _aggregate_sorts_are_valid(
     # references a field that isn't a current yAxis or groupBy, so the unfurl
     # falls back to the default `-yAxes[0]` sort like the Explore UI does.
     valid_targets = set(y_axes) | set(group_bys)
-    return all(sv.lstrip("-") in valid_targets for sv in sort_values)
+    return all(sort_value.lstrip("-") in valid_targets for sort_value in sort_values)
 
 
 def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
