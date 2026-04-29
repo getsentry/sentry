@@ -36,6 +36,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.taskworker.timeout import timeout_alarm
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics, redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.http import absolute_uri
@@ -106,6 +107,38 @@ def _create_circuit_breaker(
     )
 
 
+def _resolve_notification_email(
+    sentry_app: SentryApp | RpcSentryApp,
+    owner_org_id: int,
+) -> str | None:
+    """Prefer the app creator if they're still an active org member,
+    otherwise fall back to the first org owner."""
+    creator_email = sentry_app.creator_label
+    if creator_email and "@" in creator_email:
+        users = user_service.get_by_username(username=creator_email, is_active=True)
+        for user in users:
+            member = organization_service.check_membership_by_id(
+                organization_id=owner_org_id,
+                user_id=user.id,
+            )
+            if member is not None:
+                return creator_email
+
+    owners = organization_service.get_organization_owner_members(
+        organization_id=owner_org_id,
+    )
+    owner_user_ids = [o.user_id for o in owners if o.user_id is not None]
+    if not owner_user_ids:
+        return None
+
+    owner_users = user_service.get_many_by_id(ids=owner_user_ids)
+    for owner_user in owner_users:
+        if owner_user.email and "@" in owner_user.email:
+            return owner_user.email
+
+    return None
+
+
 def _notify_webhook_disabled(
     circuit_breaker: CircuitBreaker,
     sentry_app: SentryApp | RpcSentryApp,
@@ -128,13 +161,13 @@ def _notify_webhook_disabled(
         )
         return
 
-    email = sentry_app.creator_label
-    if not email or "@" not in email:
-        return
-
     if owner_context is None:
         return
     owner_org = owner_context.organization
+
+    email = _resolve_notification_email(sentry_app, owner_org.id)
+    if not email:
+        return
 
     data = SentryAppWebhookDisabled(
         sentry_app_slug=sentry_app.slug,

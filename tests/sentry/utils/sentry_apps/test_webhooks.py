@@ -119,6 +119,7 @@ class WebhookCircuitBreakerTest(TestCase):
         """WebhookTimeoutError (hard timeout) should call record_error() on the circuit breaker."""
         mock_breaker_instance = MockBreaker.return_value
         mock_breaker_instance.should_allow_request.return_value = True
+        mock_breaker_instance.is_open.return_value = False
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
         with pytest.raises(WebhookTimeoutError):
@@ -185,8 +186,10 @@ class WebhookCircuitBreakerTest(TestCase):
 @cell_silo_test
 class WebhookCircuitBreakerNotifyTest(TestCase):
     def setUp(self):
-        self.organization = self.create_organization()
+        self.org_owner = self.create_user(email="org-owner@example.com")
+        self.organization = self.create_organization(owner=self.org_owner)
         self.user = self.create_user(email="creator@example.com")
+        self.create_member(organization=self.organization, user=self.user, role="member")
         self.sentry_app = self.create_sentry_app(
             name="TestApp",
             organization=self.organization,
@@ -197,8 +200,6 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
         )
-        # Match the rate-based circuit-breaker tests' convention: flush redis between
-        # tests so dedup state from a previous run doesn't bleed in.
         client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
         client.flushall()
 
@@ -300,19 +301,20 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_creator_label_without_at_sign_skips_email(
+    def test_creator_label_without_at_sign_falls_back_to_org_owner(
         self, MockBreaker, mock_safe_urlopen, MockService
     ):
-        """If creator_label is a username (no @), we shouldn't email."""
+        """If creator_label is a username (no @), we fall back to the org owner."""
         self.sentry_app.creator_label = "no-email-username"
 
         self._configure_breaker(MockBreaker, is_open=True)
+        MockService.has_access.return_value = True
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
         with pytest.raises(WebhookTimeoutError):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
-        MockService.return_value.notify_async.assert_not_called()
+        MockService.return_value.notify_async.assert_called_once()
 
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
@@ -338,6 +340,46 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
         assert MockService.return_value.notify_async.call_count == 2
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_non_member_creator_falls_back_to_org_owner(
+        self, MockBreaker, mock_safe_urlopen, MockService
+    ):
+        """When the app creator is no longer an org member, the notification
+        is sent to the org owner instead."""
+        org_owner = self.create_user(email="owner@example.com")
+        org = self.create_organization(owner=org_owner)
+        non_member_creator = self.create_user(email="ex-creator@example.com")
+        sentry_app = self.create_sentry_app(
+            name="FallbackApp",
+            organization=org,
+            user=non_member_creator,
+            webhook_url="https://example.com/webhook",
+            published=True,
+        )
+        install = self.create_sentry_app_installation(organization=org, slug=sentry_app.slug)
+
+        self._configure_breaker(MockBreaker, is_open=True)
+        MockService.has_access.return_value = True
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"test": "data"},
+        )
+
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(sentry_app, event)
+
+        MockService.return_value.notify_async.assert_called_once()
+        target = MockService.return_value.notify_async.call_args[1]["targets"][0]
+        assert target.resource_id == "owner@example.com"
 
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
