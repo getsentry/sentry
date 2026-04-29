@@ -147,12 +147,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
 
-                # Delete Seer preferences for this repository
-                SeerProjectRepository.objects.filter(
-                    repository_id__in=repo_ids,
-                    project__organization_id=organization_id,
-                ).delete()
-
     def find_recently_active_repo_external_ids(
         self,
         *,
@@ -233,12 +227,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
-
-                # Delete Seer preferences for this repository
-                SeerProjectRepository.objects.filter(
-                    repository_id__in=repo_ids,
-                    project__organization_id=organization_id,
-                ).delete()
 
     def disassociate_organization_integration(
         self,
