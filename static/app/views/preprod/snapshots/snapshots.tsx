@@ -1,11 +1,10 @@
 import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {parseAsArrayOf, parseAsStringLiteral, useQueryState} from 'nuqs';
+import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
@@ -19,14 +18,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {
-  ComparisonState,
-  DiffStatus,
-  getImageGroup,
-} from 'sentry/views/preprod/types/snapshotTypes';
+import {ComparisonState, DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -40,10 +34,70 @@ import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent, type ViewMode} from './main/snapshotMainContent';
 import {DIFF_TYPE_ORDER, SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
+function imageGroupKey(img: SnapshotImage): string {
+  return img.group ?? img.image_file_name;
+}
+
+function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = keyOf(item);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(item);
+    } else {
+      groups.set(key, [item]);
+    }
+  }
+  return groups;
+}
+
+function itemVariantCount(item: SidebarItem): number {
+  return item.type === 'changed' || item.type === 'renamed'
+    ? item.pairs.length
+    : item.images.length;
+}
+
+function snapshotKeyAt(item: SidebarItem, variantIdx: number): string | null {
+  if (item.type === 'changed' || item.type === 'renamed') {
+    return item.pairs[variantIdx]?.head_image.image_file_name ?? null;
+  }
+  return item.images[variantIdx]?.image_file_name ?? null;
+}
+
+function findSnapshotPosition(
+  items: SidebarItem[],
+  snapshotKey: string
+): {itemIdx: number; variantIdx: number} | null {
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]!;
+    const variantIdx =
+      item.type === 'changed' || item.type === 'renamed'
+        ? item.pairs.findIndex(p => p.head_image.image_file_name === snapshotKey)
+        : item.images.findIndex(img => img.image_file_name === snapshotKey);
+    if (variantIdx !== -1) {
+      return {itemIdx: i, variantIdx};
+    }
+  }
+  return null;
+}
+
+function itemMaxDiff(item: SidebarItem): number {
+  if (item.type === 'changed') {
+    let max = 0;
+    for (const p of item.pairs) {
+      if (p.diff !== null && p.diff > max) {
+        max = p.diff;
+      }
+    }
+    return max;
+  }
+  return 0;
+}
+
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
@@ -75,11 +129,32 @@ export default function SnapshotsPage() {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useQueryState('selectedGroup', parseAsString);
   const [variantIndex, setVariantIndex] = useState(0);
+  const palette = theme.chart.getColorPalette(10);
+  const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
+    'snapshot-overlay-color',
+    palette.at(-5) ?? palette[0]
+  );
+  const [diffMode, setDiffMode] = useLocalStorageState<DiffMode>(
+    'snapshot-diff-mode',
+    'split'
+  );
+  const [viewMode, setViewMode] = useLocalStorageState<ViewMode>(
+    'snapshot-view-mode',
+    'list'
+  );
   const [activeStatusList, setActiveStatusList] = useQueryState(
     'selectedTypes',
     parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus))).withDefault([])
+  );
+  const [selectedSnapshotKey, setSelectedSnapshotKey] = useQueryState(
+    'selectedSnapshot',
+    parseAsString
+  );
+  const [sortBy, setSortBy] = useQueryState(
+    'sortBy',
+    parseAsStringLiteral(['diff', 'alpha'] as const).withDefault('diff')
   );
   const activeStatuses = useMemo(() => new Set(activeStatusList), [activeStatusList]);
 
@@ -90,16 +165,6 @@ export default function SnapshotsPage() {
       );
     },
     [setActiveStatusList]
-  );
-  const palette = theme.chart.getColorPalette(10);
-  const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
-    'snapshot-overlay-color',
-    palette.at(-5) ?? palette[0]
-  );
-  const [diffMode, setDiffMode] = useState<DiffMode>('split');
-  const [viewMode, setViewMode] = useLocalStorageState<ViewMode>(
-    'snapshot-view-mode',
-    'list'
   );
 
   const {
@@ -124,11 +189,11 @@ export default function SnapshotsPage() {
 
   const isSoloView = comparisonType === 'solo';
   const handleToggleView = useCallback(() => {
-    const {view: _view, ...restQuery} = location.query;
+    const {view: _view, selectedGroup: _sg, ...restQuery} = location.query;
     if (isSoloView) {
       navigate({...location, query: restQuery}, {replace: true});
     } else {
-      navigate({...location, query: {...location.query, view: 'solo'}}, {replace: true});
+      navigate({...location, query: {...restQuery, view: 'solo'}}, {replace: true});
     }
   }, [location, navigate, isSoloView]);
 
@@ -140,62 +205,33 @@ export default function SnapshotsPage() {
     if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
-      const groupDiffPairs = (pairs: SnapshotDiffPair[], type: 'changed' | 'renamed') => {
-        const groups = new Map<string, SnapshotDiffPair[]>();
-        for (const pair of pairs) {
-          const group = getImageGroup(pair.head_image);
-          const existing = groups.get(group);
-          if (existing) {
-            existing.push(pair);
-          } else {
-            groups.set(group, [pair]);
-          }
-        }
-        for (const [groupKey, groupedPairs] of groups) {
-          const label =
-            groupedPairs[0]!.head_image.group ??
-            groupedPairs[0]!.head_image.display_name ??
-            groupedPairs[0]!.head_image.image_file_name;
+      const pushDiffPairs = (pairs: SnapshotDiffPair[], type: 'changed' | 'renamed') => {
+        for (const [groupKey, groupedPairs] of groupByKey(pairs, p =>
+          imageGroupKey(p.head_image)
+        )) {
           items.push({
             type,
             key: `${type}:${groupKey}`,
-            name: label,
+            name: groupKey,
             pairs: groupedPairs,
           });
         }
       };
 
-      const groupImages = (
+      const pushImages = (
         imgs: SnapshotImage[],
         type: 'added' | 'removed' | 'unchanged'
       ) => {
-        const groups = new Map<string, SnapshotImage[]>();
-        for (const img of imgs) {
-          const group = getImageGroup(img);
-          const existing = groups.get(group);
-          if (existing) {
-            existing.push(img);
-          } else {
-            groups.set(group, [img]);
-          }
-        }
-        for (const [groupKey, images] of groups) {
-          const label =
-            images[0]!.group ?? images[0]!.display_name ?? images[0]!.image_file_name;
-          items.push({
-            type,
-            key: `${type}:${groupKey}`,
-            name: label,
-            images,
-          });
+        for (const [groupKey, images] of groupByKey(imgs, imageGroupKey)) {
+          items.push({type, key: `${type}:${groupKey}`, name: groupKey, images});
         }
       };
 
-      groupDiffPairs(data.changed, 'changed');
-      groupDiffPairs(data.renamed ?? [], 'renamed');
-      groupImages(data.added, 'added');
-      groupImages(data.removed, 'removed');
-      groupImages(data.unchanged, 'unchanged');
+      pushDiffPairs(data.changed, 'changed');
+      pushDiffPairs(data.renamed ?? [], 'renamed');
+      pushImages(data.added, 'added');
+      pushImages(data.removed, 'removed');
+      pushImages(data.unchanged, 'unchanged');
 
       items.sort(
         (a, b) => (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99)
@@ -204,51 +240,78 @@ export default function SnapshotsPage() {
       return items;
     }
 
-    const groups = new Map<string, SnapshotImage[]>();
-    for (const image of data.images) {
-      const group = getImageGroup(image);
-      const existing = groups.get(group);
-      if (existing) {
-        existing.push(image);
-      } else {
-        groups.set(group, [image]);
+    return [...groupByKey(data.images, imageGroupKey).entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([groupKey, images]) => ({
+        type: 'solo' as const,
+        key: `solo:${groupKey}`,
+        name: groupKey,
+        images,
+      }));
+  }, [data, comparisonType]);
+
+  // Pre-computed lowercase text per image/pair for fast substring search filtering
+  const memberSearchKeys = useMemo(
+    () => sidebarItems.map(buildMemberSearchKeys),
+    [sidebarItems]
+  );
+
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const deferredActiveStatuses = useDeferredValue(activeStatuses);
+
+  const filteredItems = useMemo(() => {
+    const trimmedQuery = deferredSearchQuery.trim().toLowerCase();
+    const hasStatusFilter = deferredActiveStatuses.size > 0;
+    const base: SidebarItem[] = [];
+    for (let i = 0; i < sidebarItems.length; i++) {
+      const item = sidebarItems[i]!;
+      if (hasStatusFilter && !deferredActiveStatuses.has(item.type as DiffStatus)) {
+        continue;
+      }
+      if (!trimmedQuery) {
+        base.push(item);
+        continue;
+      }
+      const narrowed = narrowItemBySearch(item, memberSearchKeys[i]!, trimmedQuery);
+      if (narrowed) {
+        base.push(narrowed);
       }
     }
 
-    return [...groups.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([groupKey, images]) => {
-        const label =
-          images[0]!.group ?? images[0]!.display_name ?? images[0]!.image_file_name;
-        return {
-          type: 'solo' as const,
-          key: `solo:${groupKey}`,
-          name: label,
-          images,
-        };
-      });
-  }, [data, comparisonType]);
-
-  const filteredItems = useMemo(() => {
-    const query = searchQuery.toLowerCase();
-    const hasStatusFilter = activeStatuses.size > 0;
-    return sidebarItems.filter(item => {
-      if (hasStatusFilter && !activeStatuses.has(item.type as DiffStatus)) {
-        return false;
+    if (sortBy === 'alpha') {
+      return base.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return base.sort((a, b) => {
+      const diffA = itemMaxDiff(a);
+      const diffB = itemMaxDiff(b);
+      if (diffA !== diffB) {
+        return diffB - diffA;
       }
-      if (query && !item.name.toLowerCase().includes(query)) {
-        return false;
-      }
-      return true;
+      return (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
     });
-  }, [sidebarItems, searchQuery, activeStatuses]);
+  }, [
+    sidebarItems,
+    memberSearchKeys,
+    deferredSearchQuery,
+    deferredActiveStatuses,
+    sortBy,
+  ]);
 
-  const isAllSelected = selectedItemKey === null;
+  const isAllSelected = selectedGroup === null;
+  // If the user has a selectedGroup but filters hide it, return null rather
+  // than silently falling back to filteredItems[0] — that would display an
+  // item the user never picked while their URL param still points elsewhere.
+  const currentItem = selectedGroup
+    ? (filteredItems.find(i => i.key === selectedGroup) ?? null)
+    : (filteredItems[0] ?? null);
+  const currentItemKey = currentItem?.key ?? null;
 
-  const handleSelectAll = useCallback(() => {
-    setSelectedItemKey(null);
-    setVariantIndex(0);
-  }, []);
+  const listItems = useMemo(() => {
+    if (isAllSelected) {
+      return filteredItems;
+    }
+    return currentItem ? [currentItem] : [];
+  }, [isAllSelected, filteredItems, currentItem]);
 
   const statusCounts = useMemo<Record<DiffStatus, number> | null>(() => {
     if (comparisonType !== 'diff') {
@@ -269,83 +332,127 @@ export default function SnapshotsPage() {
     return counts;
   }, [sidebarItems, comparisonType]);
 
-  const currentItem =
-    (selectedItemKey && filteredItems.find(i => i.key === selectedItemKey)) ||
-    filteredItems[0] ||
-    null;
-  const currentItemKey = currentItem?.key ?? null;
-
-  // Clamp variantIndex to valid range when the selected item changes implicitly
-  // (e.g. search filtering selects a new item with fewer variants)
-  const variantCount = currentItem
-    ? currentItem.type === 'changed' || currentItem.type === 'renamed'
-      ? currentItem.pairs.length
-      : currentItem.images.length
-    : 0;
+  // Clamp variantIndex when the selected item changes implicitly (e.g. search
+  // filtering selects a new item with fewer variants).
+  const variantCount = currentItem ? itemVariantCount(currentItem) : 0;
   const safeVariantIndex =
     variantCount > 0 ? Math.min(variantIndex, variantCount - 1) : 0;
 
   const handleSelectItem = (name: string) => {
-    setSelectedItemKey(name);
+    setSelectedGroup(name);
     setVariantIndex(0);
   };
 
-  // Ref so the keydown handler reads current state without re-registering
-  const stateRef = useRef({
-    filteredItems,
-    selectedItemKey,
-    currentItemKey,
-    safeVariantIndex,
-    variantCount,
-  });
-  stateRef.current = {
-    filteredItems,
-    selectedItemKey,
-    currentItemKey,
-    safeVariantIndex,
-    variantCount,
+  const handleSelectAll = () => {
+    setSelectedGroup(null);
+    setVariantIndex(0);
   };
+
+  // Scoped to listItems (not sidebarItems) so up/down nav only walks the
+  // snapshots currently visible to the user. Falls back to currentItem +
+  // variantIndex when selectedSnapshotKey can't be resolved.
+  const singleViewPosition = useMemo(() => {
+    if (selectedSnapshotKey) {
+      const pos = findSnapshotPosition(listItems, selectedSnapshotKey);
+      if (pos) {
+        return pos;
+      }
+    }
+    if (!currentItem) {
+      return null;
+    }
+    const itemIdx = listItems.findIndex(i => i.key === currentItem.key);
+    if (itemIdx === -1) {
+      return null;
+    }
+    return {itemIdx, variantIdx: safeVariantIndex};
+  }, [selectedSnapshotKey, listItems, currentItem, safeVariantIndex]);
+
+  const navigateSingleView = useCallback(
+    (direction: 'prev' | 'next') => {
+      if (!singleViewPosition) {
+        return;
+      }
+      const {itemIdx: currentItemIdx, variantIdx: currentVariantIdx} = singleViewPosition;
+      let nextItemIdx = currentItemIdx;
+      let nextVariantIdx = currentVariantIdx;
+      if (direction === 'next') {
+        const variantCountHere = itemVariantCount(listItems[currentItemIdx]!);
+        if (currentVariantIdx + 1 < variantCountHere) {
+          nextVariantIdx = currentVariantIdx + 1;
+        } else if (currentItemIdx + 1 < listItems.length) {
+          nextItemIdx = currentItemIdx + 1;
+          nextVariantIdx = 0;
+        }
+      } else if (currentVariantIdx > 0) {
+        nextVariantIdx = currentVariantIdx - 1;
+      } else if (currentItemIdx > 0) {
+        nextItemIdx = currentItemIdx - 1;
+        nextVariantIdx = itemVariantCount(listItems[nextItemIdx]!) - 1;
+      }
+      if (nextItemIdx === currentItemIdx && nextVariantIdx === currentVariantIdx) {
+        return;
+      }
+      const nextItem = listItems[nextItemIdx]!;
+      const nextSnapshotKey = snapshotKeyAt(nextItem, nextVariantIdx);
+      if (nextSnapshotKey) {
+        setSelectedSnapshotKey(nextSnapshotKey);
+      }
+    },
+    [listItems, singleViewPosition, setSelectedSnapshotKey]
+  );
+
+  const singleViewNav = useMemo(() => {
+    if (!singleViewPosition) {
+      return {canPrev: false, canNext: false};
+    }
+    const {itemIdx, variantIdx} = singleViewPosition;
+    const item = listItems[itemIdx];
+    if (!item) {
+      return {canPrev: false, canNext: false};
+    }
+    const total = itemVariantCount(item);
+    return {
+      canPrev: variantIdx > 0 || itemIdx > 0,
+      canNext: variantIdx + 1 < total || itemIdx + 1 < listItems.length,
+    };
+  }, [listItems, singleViewPosition]);
+
+  // Ref so the keydown handler reads latest state without re-registering.
+  const navRef = useRef({navigateSingleView, setViewMode, viewMode});
+  navRef.current = {navigateSingleView, setViewMode, viewMode};
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (
+        e.key !== 'ArrowUp' &&
+        e.key !== 'ArrowDown' &&
+        e.key !== 'ArrowLeft' &&
+        e.key !== 'ArrowRight'
+      ) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
         return;
       }
-      e.preventDefault();
 
-      const state = stateRef.current;
-
+      // Left/Right flip between single and list view.
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        if (state.variantCount <= 1) {
-          return;
-        }
-        const next =
-          e.key === 'ArrowRight'
-            ? Math.min(state.safeVariantIndex + 1, state.variantCount - 1)
-            : Math.max(state.safeVariantIndex - 1, 0);
-        if (next !== state.safeVariantIndex) {
-          setVariantIndex(next);
+        const nextMode = e.key === 'ArrowLeft' ? 'single' : 'list';
+        if (nextMode !== navRef.current.viewMode) {
+          e.preventDefault();
+          navRef.current.setViewMode(nextMode);
         }
         return;
       }
 
-      const currentIndex =
-        state.selectedItemKey === null
-          ? -1
-          : state.filteredItems.findIndex(i => i.key === state.currentItemKey);
-      const nextIndex =
-        e.key === 'ArrowDown'
-          ? Math.min(currentIndex + 1, state.filteredItems.length - 1)
-          : Math.max(currentIndex - 1, -1);
-
-      if (nextIndex !== currentIndex) {
-        setSelectedItemKey(state.filteredItems[nextIndex]?.key ?? null);
-        setVariantIndex(0);
+      // Up/Down only in single view — list view has its own handler.
+      if (navRef.current.viewMode !== 'single') {
+        return;
       }
+      e.preventDefault();
+      navRef.current.navigateSingleView(e.key === 'ArrowDown' ? 'next' : 'prev');
     }
 
     document.addEventListener('keydown', handleKeyDown);
@@ -353,8 +460,17 @@ export default function SnapshotsPage() {
   }, []);
 
   // Defer the item passed to main content so the sidebar stays responsive
-  // while the expensive image rendering catches up
+  // while the expensive image rendering catches up.
   const deferredItem = useDeferredValue(currentItem);
+
+  const singleViewItem =
+    viewMode === 'single' && singleViewPosition
+      ? (listItems[singleViewPosition.itemIdx] ?? deferredItem)
+      : deferredItem;
+  const singleViewVariantIndex =
+    viewMode === 'single' && singleViewPosition
+      ? singleViewPosition.variantIdx
+      : safeVariantIndex;
 
   const isComparisonProcessing =
     !!comparisonRunInfo?.state &&
@@ -407,18 +523,28 @@ export default function SnapshotsPage() {
       </DragHandle>
       <Flex flex="1" minWidth={0} overflow="hidden">
         <SnapshotMainContent
-          selectedItem={deferredItem}
-          variantIndex={safeVariantIndex}
-          onVariantChange={setVariantIndex}
+          selectedItem={singleViewItem}
+          variantIndex={singleViewVariantIndex}
           imageBaseUrl={imageBaseUrl}
           diffImageBaseUrl={diffImageBaseUrl}
-          items={filteredItems}
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
           diffMode={diffMode}
           onDiffModeChange={setDiffMode}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          listItems={listItems}
+          isSoloView={isSoloView}
+          onToggleSoloView={handleToggleView}
+          comparisonType={comparisonType}
+          headBranch={data?.vcs_info?.head_ref}
+          selectedSnapshotKey={selectedSnapshotKey}
+          onSelectSnapshot={setSelectedSnapshotKey}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          onNavigateSingleView={navigateSingleView}
+          canNavigatePrev={singleViewNav.canPrev}
+          canNavigateNext={singleViewNav.canNext}
         />
       </Flex>
     </Flex>
@@ -454,30 +580,18 @@ export default function SnapshotsPage() {
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
       <Stack flex={1}>
-        <Layout.Header paddingTop="lg" paddingBottom="md">
-          <SnapshotHeaderContent
+        <SnapshotHeaderContent
+          data={data}
+          isSoloView={isSoloView}
+          onToggleView={handleToggleView}
+        />
+        <TopBar.Slot name="actions">
+          <SnapshotHeaderActions
             data={data}
-            isSoloView={isSoloView}
-            onToggleView={handleToggleView}
+            organizationSlug={organization.slug}
+            apiUrl={snapshotApiUrl}
           />
-          {hasPageFrameFeature ? (
-            <TopBar.Slot name="actions">
-              <SnapshotHeaderActions
-                data={data}
-                organizationSlug={organization.slug}
-                apiUrl={snapshotApiUrl}
-              />
-            </TopBar.Slot>
-          ) : (
-            <Layout.HeaderActions style={{alignSelf: 'center'}}>
-              <SnapshotHeaderActions
-                data={data}
-                organizationSlug={organization.slug}
-                apiUrl={snapshotApiUrl}
-              />
-            </Layout.HeaderActions>
-          )}
-        </Layout.Header>
+        </TopBar.Slot>
 
         {isComparisonProcessing ? processingContent : snapshotContent}
       </Stack>
@@ -503,3 +617,60 @@ const DragHandle = styled('div')`
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
+
+function imageSearchKey(image: SnapshotImage): string {
+  const parts: string[] = [];
+  if (image.display_name) parts.push(image.display_name);
+  if (image.image_file_name) parts.push(image.image_file_name);
+  if (image.group) parts.push(image.group);
+  return parts.join('\n').toLowerCase();
+}
+
+// Builds one lowercase search key per image/pair, joining all searchable metadata
+function buildMemberSearchKeys(item: SidebarItem): string[] {
+  const groupNameLower = item.name ? item.name.toLowerCase() : '';
+  if (item.type === 'changed' || item.type === 'renamed') {
+    return item.pairs.map(pair => {
+      const head = imageSearchKey(pair.head_image);
+      const base = imageSearchKey(pair.base_image);
+      return groupNameLower ? `${groupNameLower}\n${head}\n${base}` : `${head}\n${base}`;
+    });
+  }
+  return item.images.map(image => {
+    const h = imageSearchKey(image);
+    return groupNameLower ? `${groupNameLower}\n${h}` : h;
+  });
+}
+
+function narrowItemBySearch(
+  item: SidebarItem,
+  memberSearchKeysForItem: string[],
+  query: string
+): SidebarItem | null {
+  if (item.type === 'changed' || item.type === 'renamed') {
+    const kept: SnapshotDiffPair[] = [];
+    let allMatched = true;
+    for (let i = 0; i < item.pairs.length; i++) {
+      if (memberSearchKeysForItem[i]!.includes(query)) {
+        kept.push(item.pairs[i]!);
+      } else {
+        allMatched = false;
+      }
+    }
+    if (kept.length === 0) return null;
+    if (allMatched) return item;
+    return {...item, pairs: kept};
+  }
+  const kept: SnapshotImage[] = [];
+  let allMatched = true;
+  for (let i = 0; i < item.images.length; i++) {
+    if (memberSearchKeysForItem[i]!.includes(query)) {
+      kept.push(item.images[i]!);
+    } else {
+      allMatched = false;
+    }
+  }
+  if (kept.length === 0) return null;
+  if (allMatched) return item;
+  return {...item, images: kept};
+}

@@ -74,8 +74,15 @@ function estimateCardHeight(image: SnapshotImage, splitColumns: boolean) {
   const columnWidth = splitColumns
     ? LIST_CONTENT_WIDTH_ASSUMPTION / 2
     : LIST_CONTENT_WIDTH_ASSUMPTION;
+  // The <img> uses width: auto + max-width: 100%, so it never scales up past
+  // its natural size. Mirror that here: only scale down when natural width
+  // exceeds the column.
   const aspectHeight =
-    image.width > 0 ? (image.height / image.width) * columnWidth : MAX_IMAGE_HEIGHT;
+    image.width > 0 && image.height > 0
+      ? image.width <= columnWidth
+        ? image.height
+        : (image.height / image.width) * columnWidth
+      : MAX_IMAGE_HEIGHT;
   const imageBox = Math.min(aspectHeight, MAX_IMAGE_HEIGHT);
   return CARD_CHROME_HEIGHT + imageBox;
 }
