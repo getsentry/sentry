@@ -6,6 +6,7 @@ import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {IconCheckmark, IconClock, IconIssues, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -38,6 +39,10 @@ interface IssueListBulkCommandPaletteActionsProps {
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 }
 
+interface IssueListMarkAllCommandPaletteActionProps extends IssueListBulkCommandPaletteActionsProps {}
+
+type BulkActionConfirmScope = 'allInQuery' | 'selection';
+
 function useOrgMembers() {
   const organization = useOrganization();
   return useQuery({
@@ -53,9 +58,13 @@ function useOrgMembers() {
 }
 
 function AssignActions({
+  onConfirmBulkUpdate,
   onBulkUpdate,
+  label = t('Assign to'),
 }: {
   onBulkUpdate: (data: Record<string, unknown>) => void;
+  label?: string;
+  onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   const user = useUser();
   const {teams} = useTeams({provideUserTeams: true});
@@ -73,7 +82,7 @@ function AssignActions({
 
   return (
     <CMDKAction
-      display={{label: t('Assign to'), icon: <IconUser />}}
+      display={{label, icon: <IconUser />}}
       keywords={['assign', 'owner', 'assignee']}
       prompt={t('Search assignees...')}
     >
@@ -84,13 +93,25 @@ function AssignActions({
             icon: <UserAvatar user={user} size={16} hasTooltip={false} />,
           }}
           keywords={['mine', 'my issues', 'me']}
-          onAction={() => onBulkUpdate({assignedTo: `user:${user.id}`})}
+          onAction={() =>
+            onConfirmBulkUpdate
+              ? onConfirmBulkUpdate(t('assign issues to me'), () =>
+                  onBulkUpdate({assignedTo: `user:${user.id}`})
+                )
+              : onBulkUpdate({assignedTo: `user:${user.id}`})
+          }
         />
       )}
       <CMDKAction
         display={{label: t('Unassign'), icon: <IconUser />}}
         keywords={['unassign', 'clear', 'remove assignee', 'nobody']}
-        onAction={() => onBulkUpdate({assignedTo: ''})}
+        onAction={() =>
+          onConfirmBulkUpdate
+            ? onConfirmBulkUpdate(t('unassign issues'), () =>
+                onBulkUpdate({assignedTo: ''})
+              )
+            : onBulkUpdate({assignedTo: ''})
+        }
       />
       {sortedTeams.map(team => (
         <CMDKAction
@@ -99,7 +120,13 @@ function AssignActions({
             label: `#${team.slug}`,
             icon: <TeamAvatar team={team} size={16} hasTooltip={false} />,
           }}
-          onAction={() => onBulkUpdate({assignedTo: `team:${team.id}`})}
+          onAction={() =>
+            onConfirmBulkUpdate
+              ? onConfirmBulkUpdate(t('assign issues to team #%s', team.slug), () =>
+                  onBulkUpdate({assignedTo: `team:${team.id}`})
+                )
+              : onBulkUpdate({assignedTo: `team:${team.id}`})
+          }
         />
       ))}
       {assignableMembers.map(m => (
@@ -119,14 +146,25 @@ function AssignActions({
               />
             ),
           }}
-          onAction={() => onBulkUpdate({assignedTo: `user:${m.user.id}`})}
+          onAction={() =>
+            onConfirmBulkUpdate
+              ? onConfirmBulkUpdate(
+                  t('assign issues to %s', m.user.name || m.user.email),
+                  () => onBulkUpdate({assignedTo: `user:${m.user.id}`})
+                )
+              : onBulkUpdate({assignedTo: `user:${m.user.id}`})
+          }
         />
       ))}
     </CMDKAction>
   );
 }
 
-function PriorityActions({onUpdate}: {onUpdate: (data: IssueUpdateData) => void}) {
+function PriorityActions({
+  onConfirmUpdate,
+}: {
+  onConfirmUpdate: (actionLabel: string, data: IssueUpdateData) => void;
+}) {
   return (
     <CMDKAction
       display={{label: t('Set Priority'), icon: <IconCellSignal bars={2} />}}
@@ -134,21 +172,33 @@ function PriorityActions({onUpdate}: {onUpdate: (data: IssueUpdateData) => void}
     >
       <CMDKAction
         display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
-        onAction={() => onUpdate({priority: PriorityLevel.HIGH})}
+        onAction={() =>
+          onConfirmUpdate(t('set issue priority to high'), {
+            priority: PriorityLevel.HIGH,
+          })
+        }
       />
       <CMDKAction
         display={{label: t('Medium'), icon: <IconCellSignal bars={2} />}}
-        onAction={() => onUpdate({priority: PriorityLevel.MEDIUM})}
+        onAction={() =>
+          onConfirmUpdate(t('set issue priority to medium'), {
+            priority: PriorityLevel.MEDIUM,
+          })
+        }
       />
       <CMDKAction
         display={{label: t('Low'), icon: <IconCellSignal bars={1} />}}
-        onAction={() => onUpdate({priority: PriorityLevel.LOW})}
+        onAction={() =>
+          onConfirmUpdate(t('set issue priority to low'), {
+            priority: PriorityLevel.LOW,
+          })
+        }
       />
     </CMDKAction>
   );
 }
 
-export function IssueListBulkCommandPaletteActions({
+function useIssueListBulkCommandPaletteActions({
   query,
   queryCount,
   selection,
@@ -236,6 +286,123 @@ export function IssueListBulkCommandPaletteActions({
     return `${tn('%s Selected Issue', '%s Selected Issues', numIssues)} (${selectedIssueIds})`;
   }, [allInQuerySelected, queryCount, numIssues, selectedIssueIds]);
 
+  function confirmBulkAction(
+    actionLabel: string,
+    onConfirm: () => void,
+    scope: BulkActionConfirmScope = 'selection'
+  ) {
+    const isAllInQuery = scope === 'allInQuery' || allInQuerySelected;
+    const message = isAllInQuery
+      ? queryCount >= BULK_LIMIT
+        ? t(
+            'You are about to %s the first %s issues matching this search. Are you sure?',
+            actionLabel,
+            BULK_LIMIT_STR
+          )
+        : t(
+            'You are about to %s all %s issues matching this search. Are you sure?',
+            actionLabel,
+            queryCount
+          )
+      : t(
+          'You are about to %s %s selected issue%s. Are you sure?',
+          actionLabel,
+          numIssues,
+          numIssues === 1 ? '' : 's'
+        );
+
+    openConfirmModal({
+      message,
+      confirmText: t('Confirm'),
+      onConfirm,
+    });
+  }
+
+  return {
+    anySelected,
+    canArchive,
+    canResolve,
+    confirmBulkAction,
+    handleBulkUpdate,
+    handleUpdate,
+    label,
+  };
+}
+
+export function IssueListMarkAllCommandPaletteAction(
+  props: IssueListMarkAllCommandPaletteActionProps
+) {
+  const {anySelected, confirmBulkAction, handleBulkUpdate, handleUpdate} =
+    useIssueListBulkCommandPaletteActions(props);
+
+  if (anySelected) {
+    return null;
+  }
+
+  return (
+    <CMDKAction
+      display={{
+        label: t('Mark all issues as'),
+        icon: <IconIssues />,
+      }}
+      keywords={['issues', 'all issues', 'bulk', 'resolve', 'archive', 'assign']}
+    >
+      <AssignActions
+        label={t('Assigned to')}
+        onBulkUpdate={handleBulkUpdate}
+        onConfirmBulkUpdate={(actionLabel, onConfirm) =>
+          confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
+        }
+      />
+      <CMDKAction
+        display={{label: t('Resolved'), icon: <IconCheckmark />}}
+        keywords={['resolve', 'fix', 'done', 'close']}
+        onAction={() =>
+          confirmBulkAction(
+            t('resolve'),
+            () =>
+              handleUpdate({
+                status: GroupStatus.RESOLVED,
+                statusDetails: {},
+                substatus: null,
+              }),
+            'allInQuery'
+          )
+        }
+      />
+      <CMDKAction
+        display={{label: t('Archived'), icon: <IconClock />}}
+        keywords={['archive', 'ignore', 'snooze', 'mute']}
+        onAction={() =>
+          confirmBulkAction(
+            t('archive'),
+            () =>
+              handleUpdate({
+                status: GroupStatus.IGNORED,
+                statusDetails: {},
+                substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
+              }),
+            'allInQuery'
+          )
+        }
+      />
+    </CMDKAction>
+  );
+}
+
+export function IssueListBulkCommandPaletteActions(
+  props: IssueListBulkCommandPaletteActionsProps
+) {
+  const {
+    anySelected,
+    canArchive,
+    canResolve,
+    confirmBulkAction,
+    handleBulkUpdate,
+    handleUpdate,
+    label,
+  } = useIssueListBulkCommandPaletteActions(props);
+
   if (!anySelected) {
     return null;
   }
@@ -253,11 +420,13 @@ export function IssueListBulkCommandPaletteActions({
             display={{label: t('Resolve'), icon: <IconCheckmark />}}
             keywords={['resolve', 'fix', 'done', 'close']}
             onAction={() =>
-              handleUpdate({
-                status: GroupStatus.RESOLVED,
-                statusDetails: {},
-                substatus: null,
-              })
+              confirmBulkAction(t('resolve'), () =>
+                handleUpdate({
+                  status: GroupStatus.RESOLVED,
+                  statusDetails: {},
+                  substatus: null,
+                })
+              )
             }
           />
         )}
@@ -266,16 +435,25 @@ export function IssueListBulkCommandPaletteActions({
             display={{label: t('Archive'), icon: <IconClock />}}
             keywords={['archive', 'ignore', 'snooze', 'mute']}
             onAction={() =>
-              handleUpdate({
-                status: GroupStatus.IGNORED,
-                statusDetails: {},
-                substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
-              })
+              confirmBulkAction(t('archive'), () =>
+                handleUpdate({
+                  status: GroupStatus.IGNORED,
+                  statusDetails: {},
+                  substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
+                })
+              )
             }
           />
         )}
-        <PriorityActions onUpdate={handleUpdate} />
-        <AssignActions onBulkUpdate={handleBulkUpdate} />
+        <PriorityActions
+          onConfirmUpdate={(actionLabel, data) =>
+            confirmBulkAction(actionLabel, () => handleUpdate(data))
+          }
+        />
+        <AssignActions
+          onBulkUpdate={handleBulkUpdate}
+          onConfirmBulkUpdate={confirmBulkAction}
+        />
       </CMDKAction>
     </CommandPaletteSlot>
   );

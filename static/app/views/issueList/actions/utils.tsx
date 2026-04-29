@@ -256,9 +256,7 @@ export function performBulkUpdate({
     project: getSelectedProjectIds({selectedGroupIds: itemIds, selection}),
   };
 
-  if (itemIds?.length) {
-    addLoadingMessage(t('Saving changes…'));
-  }
+  addLoadingMessage(t('Saving changes…'));
 
   bulkUpdate(
     api,
