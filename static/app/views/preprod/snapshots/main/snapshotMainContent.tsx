@@ -39,7 +39,7 @@ import {
 } from './snapshotListView';
 
 export type ViewMode = 'single' | 'list';
-export type SortBy = 'diff' | 'alpha';
+type SortBy = 'diff' | 'alpha';
 
 interface SnapshotMainContentProps {
   canNavigateNext: boolean;
