@@ -1575,6 +1575,7 @@ def _make_get_trace_request(
     resolver: SearchResolver,
     limit: int | None,
     sampling_mode: SAMPLING_MODES,
+    referrer: Referrer = Referrer.SEER_EXPLORER_TOOLS,
 ) -> list[dict[str, Any]]:
     """
     Make a request to the EAP GetTrace endpoint to get all attributes for a given trace and item type.
@@ -1610,7 +1611,7 @@ def _make_get_trace_request(
         full_trace_id = trace_id
 
     # Build the GetTraceRequest.
-    meta = resolver.resolve_meta(referrer=Referrer.SEER_EXPLORER_TOOLS, sampling_mode=sampling_mode)
+    meta = resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     request = GetTraceRequest(
         meta=meta,
         trace_id=full_trace_id,
@@ -1703,6 +1704,7 @@ def get_log_attributes_for_trace(
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
+    referrer: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Get all attributes for all logs in a trace. You can optionally filter by message substring and/or project slugs.
@@ -1742,12 +1744,18 @@ def get_log_attributes_for_trace(
     )
     resolver = OurLogs.get_resolver(params=snuba_params, config=SearchResolverConfig())
 
+    try:
+        referrer_enum = Referrer(referrer) if referrer else Referrer.SEER_EXPLORER_TOOLS
+    except ValueError:
+        referrer_enum = Referrer.SEER_EXPLORER_TOOLS
+
     items = _make_get_trace_request(
         trace_id=trace_id,
         trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
         resolver=resolver,
         limit=(limit if not message_substring else None),  # Return all results if we're filtering.
         sampling_mode=sampling_mode,
+        referrer=referrer_enum,
     )
 
     if not message_substring:
