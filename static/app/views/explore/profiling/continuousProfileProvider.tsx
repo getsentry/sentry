@@ -46,10 +46,13 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
     };
   }, [location.query.start, location.query.end, location.query.profilerId]);
 
+  // Legacy event ID for spans extracted from transactions (`transaction.event_id`)
   const eventId = decodeScalar(location.query.eventId) || undefined;
+  // New transaction ID for streaming spans (`transaction.span_id`)
+  const transactionId = decodeScalar(location.query.transactionId) || undefined;
 
   const [profile, setProfile] = useState<RequestState<Profiling.ProfileInput>>({
-    type: eventId ? 'initial' : 'empty',
+    type: eventId || transactionId ? 'initial' : 'empty',
   });
 
   const traceId = decodeScalar(location.query.traceId) || undefined;
@@ -57,6 +60,7 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
   const end = profileMeta ? Date.parse(profileMeta.end) / 1000 : undefined;
   const transactionResult = useTransactionAsSpans({
     transactionEventId: eventId,
+    transactionSpanId: transactionId,
     traceId,
     start,
     end,

@@ -16,27 +16,32 @@ type UseTransactionProps = {
   start?: number;
   traceId?: string;
   transactionEventId?: string;
+  transactionSpanId?: string;
 };
 
 export function useTransactionAsSpans({
   projectIds,
-  transactionEventId: transactionId,
+  transactionEventId,
+  transactionSpanId,
   traceId,
   start,
   end,
   enabled,
 }: UseTransactionProps) {
   const search = useMemo(() => {
-    if (!transactionId) {
+    const s = new MutableSearch('');
+    if (transactionSpanId) {
+      s.setFilterValues(SpanFields.TRANSACTION_SPAN_ID, [transactionSpanId]);
+    } else if (transactionEventId) {
+      s.setFilterValues(SpanFields.TRANSACTION_EVENT_ID, [transactionEventId]);
+    } else {
       return undefined;
     }
-    const s = new MutableSearch('');
-    s.setFilterValues(SpanFields.TRANSACTION_EVENT_ID, [transactionId]);
     if (traceId) {
       s.setFilterValues(SpanFields.TRACE, [traceId]);
     }
     return s;
-  }, [transactionId, traceId]);
+  }, [transactionEventId, transactionSpanId, traceId]);
 
   const result = useSpans(
     {
@@ -93,7 +98,8 @@ export function useTransactionAsSpans({
       return;
     }
     Sentry.logger.error('Failed to load transaction span for profile', {
-      transactionId,
+      transactionEventId,
+      transactionSpanId,
       traceId,
       start,
       end,
