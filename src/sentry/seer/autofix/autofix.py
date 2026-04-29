@@ -309,7 +309,10 @@ def _get_trace_tree_for_event(
 
         trace_endpoint = OrganizationTraceEndpoint()
         trace = trace_endpoint.query_trace_data(
-            snuba_params, trace_id, organization=project.organization
+            snuba_params,
+            trace_id,
+            Referrer.SEER_AUTOFIX_GET_TRACE_EVENTS.value,
+            organization=project.organization,
         )
 
         if not trace:
