@@ -7,16 +7,12 @@ import {slot, withSlots} from '@sentry/scraps/slot';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {
-  getExplorerFeedbackOptions,
-  isSeerExplorerEnabled,
-} from 'sentry/views/seerExplorer/utils';
+import {getExplorerFeedbackOptions} from 'sentry/views/seerExplorer/utils';
 
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
@@ -40,16 +36,15 @@ function TopBarContent() {
     };
   }, [contentTop]);
 
-  const organization = useOrganization({allowNull: true});
   const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
   const [seerExplorerRunId] = useSeerExplorerRunId();
 
   const feedbackOptions = useMemo(() => {
-    if (isSeerExplorerOpen && organization && isSeerExplorerEnabled(organization)) {
+    if (isSeerExplorerOpen) {
       return getExplorerFeedbackOptions(seerExplorerRunId);
     }
     return {tags: {['feedback.source']: 'top_navigation'}};
-  }, [organization, isSeerExplorerOpen, seerExplorerRunId]);
+  }, [isSeerExplorerOpen, seerExplorerRunId]);
 
   if (!hasPageFrame) {
     return null;
