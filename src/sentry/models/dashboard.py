@@ -16,7 +16,6 @@ from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
 
@@ -379,27 +378,6 @@ class Dashboard(Model):
             **(self.filters or {}),
             "projects": projects,
         }
-
-
-@cell_silo_model
-class DashboardTombstone(Model):
-    """
-    A tombstone to indicate that a pre-built dashboard
-    has been replaced or deleted for an organization.
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    slug = SentrySlugField(max_length=255, db_index=False)
-    organization = FlexibleForeignKey("sentry.Organization")
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_dashboardtombstone"
-        unique_together = (("organization", "slug"),)
-
-    __repr__ = sane_repr("organization", "slug")
 
 
 @cell_silo_model
