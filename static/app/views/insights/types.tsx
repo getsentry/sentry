@@ -208,7 +208,7 @@ type SpanBooleanFields =
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 
-export type SpanNumberFields =
+type SpanNumberFields =
   | SpanFields.AI_TOTAL_COST
   | SpanFields.AI_TOTAL_TOKENS_USED
   | SpanFields.SPAN_SELF_TIME
