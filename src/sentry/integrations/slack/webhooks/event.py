@@ -128,7 +128,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         payload = {
             "channel": slack_request.channel_id,
             "user": slack_request.user_id,
-            "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
+            "text": "Link your Slack identity to Sentry to unfurl charts.",
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
         }
 
@@ -225,6 +225,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 feature_flag = {
                     LinkType.DISCOVER: "organizations:discover-basic",
                     LinkType.EXPLORE: "organizations:data-browsing-widget-unfurl",
+                    LinkType.DASHBOARDS: "organizations:dashboards-widget-unfurl",
                 }.get(link_type)
 
                 if (
@@ -244,7 +245,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
                         sentry_sdk.capture_exception(e)
 
                     self.prompt_link(slack_request)
-                    lifecycle.record_halt("Discover link requires identity", extra={"url": url})
+                    lifecycle.record_halt(
+                        f"{link_type.value} link requires identity", extra={"url": url}
+                    )
                     return {}
 
                 # Don't unfurl the same thing multiple times
