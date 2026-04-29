@@ -192,7 +192,10 @@ export function IssueListBulkCommandPaletteActions({
     return selection.projects;
   }
 
-  function handleUpdate(data: IssueUpdateData) {
+  function performBulkUpdate(
+    data: IssueUpdateData | Record<string, unknown>,
+    onSuccess?: (itemIds: string[] | undefined) => void
+  ) {
     const itemIds = getSelectedIds();
     const projectConstraints = {project: getSelectedProjectIds(itemIds)};
 
@@ -215,7 +218,7 @@ export function IssueListBulkCommandPaletteActions({
       {
         success: () => {
           clearIndicators();
-          onActionTaken?.(itemIds ?? [], data);
+          onSuccess?.(itemIds);
           invalidateIssueQueries(itemIds);
         },
         error: () => {
@@ -228,39 +231,14 @@ export function IssueListBulkCommandPaletteActions({
     deselectAll();
   }
 
+  function handleUpdate(data: IssueUpdateData) {
+    performBulkUpdate(data, itemIds => {
+      onActionTaken?.(itemIds ?? [], data);
+    });
+  }
+
   function handleBulkUpdate(data: Record<string, unknown>) {
-    const itemIds = getSelectedIds();
-    const projectConstraints = {project: getSelectedProjectIds(itemIds)};
-
-    if (itemIds?.length) {
-      addLoadingMessage(t('Saving changes…'));
-    }
-
-    bulkUpdate(
-      api,
-      {
-        orgId: organization.slug,
-        itemIds,
-        data,
-        query,
-        environment: selection.environments,
-        failSilently: true,
-        ...projectConstraints,
-        ...selection.datetime,
-      },
-      {
-        success: () => {
-          clearIndicators();
-          invalidateIssueQueries(itemIds);
-        },
-        error: () => {
-          clearIndicators();
-          addErrorMessage(t('Unable to update issues'));
-        },
-      }
-    );
-
-    deselectAll();
+    performBulkUpdate(data);
   }
 
   function invalidateIssueQueries(itemIds: string[] | undefined) {
