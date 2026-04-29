@@ -1,10 +1,8 @@
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 
 export function getConversationsUrl(
   organizationSlug: string,
   conversationId: number | string
 ): string {
-  const basePath = `/organizations/${organizationSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversationId)}/`;
-  return `sentry.io${normalizeUrl(basePath)}`;
+  return `https://sentry.io/organizations/${organizationSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversationId)}/`;
 }
