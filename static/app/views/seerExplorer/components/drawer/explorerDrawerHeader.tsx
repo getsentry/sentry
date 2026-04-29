@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -64,14 +64,17 @@ export function ExplorerDrawerHeader({
     onChangeSession,
   });
 
+  useEffect(() => {
+    if (isHistoryDropdownOpen) {
+      refetchSessionHistory();
+    }
+  }, [isHistoryDropdownOpen, refetchSessionHistory]);
+
   const onHistoryOpenChange = useCallback(
     (isOpen: boolean) => {
       setIsHistoryDropdownOpen(isOpen);
-      if (isOpen) {
-        refetchSessionHistory();
-      }
     },
-    [setIsHistoryDropdownOpen, refetchSessionHistory]
+    [setIsHistoryDropdownOpen]
   );
 
   // Session history menu items

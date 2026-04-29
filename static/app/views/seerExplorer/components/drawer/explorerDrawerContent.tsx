@@ -183,6 +183,8 @@ export function ExplorerDrawerContent({
     }
   }, [openFeedbackForm, runId]);
 
+  const handleResume = useCallback(() => setIsHistoryDropdownOpen(true), []);
+
   // - Pop-up menu component --------------------------------------------------
 
   // Extract repo_pr_states from session
@@ -207,7 +209,7 @@ export function ExplorerDrawerContent({
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
-      onResume: () => setIsHistoryDropdownOpen(true),
+      onResume: handleResume,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
