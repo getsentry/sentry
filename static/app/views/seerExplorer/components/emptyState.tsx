@@ -41,12 +41,15 @@ export function EmptyState({
       ) : isError ? (
         <Fragment>
           <IconSeer size="xl" />
-          <Text>{t('Error loading this session.')}</Text>
           <Text>
-            {tct(`Status: [errorStatusDisplay], Run ID: [runIdDisplay]`, {
-              errorStatusDisplay,
-              runIdDisplay,
-            })}
+            {tct(
+              `Error loading this session.[br]Status: [errorStatusDisplay], Run ID: [runIdDisplay]`,
+              {
+                br: <br />,
+                errorStatusDisplay,
+                runIdDisplay,
+              }
+            )}
           </Text>
         </Fragment>
       ) : (

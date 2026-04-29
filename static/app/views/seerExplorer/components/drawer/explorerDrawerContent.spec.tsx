@@ -13,6 +13,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   sessionData: null,
   isPolling: false,
   isError: false,
+  errorStatusCode: null,
   runId: null,
   waitingForInterrupt: false,
   overrideCtxEngEnable: true,
@@ -108,15 +109,16 @@ describe('ExplorerDrawerContent', () => {
         ...defaultHookReturn,
         runId: 123,
         isError: true,
+        errorStatusCode: 404,
       });
 
       render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
         organization,
       });
 
-      expect(
-        await screen.findByText('Error loading this session (ID=123).')
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/Error loading this session./)).toBeInTheDocument();
+      expect(await screen.findByText(/Status: 404/)).toBeInTheDocument();
+      expect(screen.getByText(/Run ID: 123/)).toBeInTheDocument();
       expect(
         screen.queryByText('Ask Seer anything about your application.')
       ).not.toBeInTheDocument();
