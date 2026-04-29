@@ -1,7 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {Indicator} from 'sentry/actionCreators/indicator';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
   organizationIntegrationsCodingAgents,
@@ -15,7 +18,6 @@ import {
   isSolutionSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ExternalLink, Link} from '@sentry/scraps/link';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -29,7 +31,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
-import type {Indicator} from 'sentry/actionCreators/indicator';
 
 function getHeadlessSeerStageLabel({
   issueLabel,
@@ -157,21 +158,23 @@ export function SeerCommandPaletteActions({
     loadingStageRef.current = null;
   }, []);
 
-  const showLoadingIndicator = useCallback((message: string) => {
-    if (loadingStageRef.current === message && loadingIndicatorRef.current) {
-      return;
-    }
+  const showLoadingIndicator = useCallback(
+    (message: string) => {
+      if (loadingStageRef.current === message && loadingIndicatorRef.current) {
+        return;
+      }
 
-    removeLoadingIndicator();
-    loadingStageRef.current = message;
-    loadingIndicatorRef.current = IndicatorStore.addMessage(
-      <Fragment>
-        {message}{' '}
-        <Link to={seerDrawerLink}>{t('View analysis')}</Link>
-      </Fragment>,
-      'loading'
-    );
-  }, [removeLoadingIndicator, seerDrawerLink]);
+      removeLoadingIndicator();
+      loadingStageRef.current = message;
+      loadingIndicatorRef.current = IndicatorStore.addMessage(
+        <Fragment>
+          {message} <Link to={seerDrawerLink}>{t('View analysis')}</Link>
+        </Fragment>,
+        'loading'
+      );
+    },
+    [removeLoadingIndicator, seerDrawerLink]
+  );
 
   const resetHeadlessRun = useCallback(() => {
     headlessRunIdRef.current = null;
@@ -269,7 +272,9 @@ export function SeerCommandPaletteActions({
 
     try {
       if (!runState || runState.status === 'error') {
-        const nextRunId = await autofix.startStep('root_cause', {stoppingPoint: 'open_pr'});
+        const nextRunId = await autofix.startStep('root_cause', {
+          stoppingPoint: 'open_pr',
+        });
         headlessRunIdRef.current = nextRunId;
         return;
       }
@@ -318,7 +323,12 @@ export function SeerCommandPaletteActions({
   ]);
 
   const fixWithSeerAction = useMemo(() => {
-    if (!aiConfig.areAiFeaturesAllowed || !isExplorer || !issueTypeSupportsSeer || !event) {
+    if (
+      !aiConfig.areAiFeaturesAllowed ||
+      !isExplorer ||
+      !issueTypeSupportsSeer ||
+      !event
+    ) {
       return null;
     }
 

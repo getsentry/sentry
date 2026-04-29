@@ -135,6 +135,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         help_text="Block index to insert at. When provided, truncates blocks after this point for retry-from-step.",
     )
 
+
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
 class GroupAutofixEndpoint(GroupAiEndpoint):

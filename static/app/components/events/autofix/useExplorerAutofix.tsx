@@ -563,13 +563,13 @@ export function useExplorerAutofix(
          */
         runId?: number;
         /**
-         * Additional context from the user. If specified, it is added to the builtin prompt
-         */
-        userContext?: string;
-        /**
          * When provided, the backend continues the autofix workflow until this stage.
          */
         stoppingPoint?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
+        /**
+         * Additional context from the user. If specified, it is added to the builtin prompt
+         */
+        userContext?: string;
       }
     ) => {
       setWaitingForResponse(true);
