@@ -264,7 +264,7 @@ function OnionView({
           </OnionOverlayLayer>
         </OnionContainer>
       </Flex>
-      <Flex align="center" gap="sm">
+      <Flex align="center" gap="lg">
         <Text size="sm" variant="muted">
           {t('Base')}
         </Text>
