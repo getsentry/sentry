@@ -33,6 +33,8 @@ from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
     SPAN_ATTRIBUTE_DEFINITIONS,
+    SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_REPLACEMENT_MAP,
     _update_attribute_definitions_with_deprecations,
 )
@@ -924,6 +926,55 @@ def test_deprecated_attribute_internal_name_match_does_not_expose_internal_alias
     assert replacement_attr.public_alias == "browser.web_vital.fcp.value"
     assert replacement_attr.internal_name == "browser.web_vital.fcp.value"
     assert replacement_attr.search_type == "millisecond"
+
+
+def test_deprecated_attribute_replacement_does_not_inherit_secondary_alias() -> None:
+    attribute_definitions = {
+        "span.system": ResolvedAttribute(
+            public_alias="span.system",
+            internal_name="db.system",
+            search_type="string",
+            secondary_alias=True,
+        ),
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "db.system",
+                "type": "string",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "db.system.name",
+                },
+            }
+        ],
+    )
+
+    deprecated_attr = attribute_definitions["span.system"]
+    replacement_attr = attribute_definitions["db.system.name"]
+
+    assert "db.system" not in attribute_definitions
+    assert deprecated_attr.public_alias == "span.system"
+    assert deprecated_attr.internal_name == "db.system"
+    assert deprecated_attr.secondary_alias is True
+    assert deprecated_attr.deprecation_status == "backfill"
+    assert deprecated_attr.replacement == "db.system.name"
+    assert replacement_attr.public_alias == "db.system.name"
+    assert replacement_attr.internal_name == "db.system.name"
+    assert replacement_attr.search_type == "string"
+    assert replacement_attr.secondary_alias is False
+    assert replacement_attr.deprecation_status is None
+    assert replacement_attr.replacement is None
+
+
+def test_deprecated_attribute_loaded_replacement_is_primary_alias() -> None:
+    replacement_attr = SPAN_ATTRIBUTE_DEFINITIONS["db.system.name"]
+
+    assert replacement_attr.secondary_alias is False
+    assert SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["string"]["db.system.name"] == "db.system.name"
+    assert SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING.get("db.system.name") is None
 
 
 def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:

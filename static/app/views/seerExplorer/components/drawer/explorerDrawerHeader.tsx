@@ -23,12 +23,9 @@ interface ExplorerDrawerHeaderProps {
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
-  onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
-  overrideCodeModeEnable: boolean;
   overrideCtxEngEnable: boolean;
-  showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
   showThinking: boolean;
   showThinkingToggle: boolean;
@@ -43,9 +40,6 @@ export function ExplorerDrawerHeader({
   showContextEngineToggle,
   overrideCtxEngEnable,
   onOverrideCtxEngEnableToggle,
-  showCodeModeToggle,
-  overrideCodeModeEnable,
-  onOverrideCodeModeEnableToggle,
   showThinking,
   showThinkingToggle,
   onShowThinkingToggle,
@@ -131,27 +125,6 @@ export function ExplorerDrawerHeader({
               />
               <Text size="sm" variant="muted">
                 {t('CE')}
-              </Text>
-            </Flex>
-          </Tooltip>
-        )}
-        {showCodeModeToggle && (
-          <Tooltip
-            title={
-              overrideCodeModeEnable
-                ? t('Code mode enabled (click to disable)')
-                : t('Code mode disabled (click to enable)')
-            }
-          >
-            <Flex align="center" gap="xs" padding="xs sm" height="100%">
-              <Switch
-                size="sm"
-                checked={overrideCodeModeEnable}
-                onChange={onOverrideCodeModeEnableToggle}
-                aria-label={t('Toggle code mode')}
-              />
-              <Text size="sm" variant="muted">
-                {t('CM')}
               </Text>
             </Flex>
           </Tooltip>

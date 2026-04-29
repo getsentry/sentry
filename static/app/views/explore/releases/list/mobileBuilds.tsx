@@ -22,6 +22,7 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
 
@@ -170,6 +171,29 @@ export function MobileBuilds({
     [organization, platform]
   );
 
+  const handleRowClick = useCallback(
+    (build: BuildDetailsApiResponse) => {
+      if (activeDisplay !== PreprodBuildsDisplay.SNAPSHOT) {
+        return;
+      }
+      const info = build.snapshot_comparison_info;
+      trackAnalytics('preprod.snapshots.list.row_clicked', {
+        organization,
+        build_id: build.id,
+        platform: build.app_info?.platform ?? null,
+        project_slug: build.project_slug,
+        comparison_state: info?.comparison_state ?? null,
+        approval_status: info?.approval_status ?? null,
+        image_count: info?.image_count,
+        images_added: info?.images_added,
+        images_changed: info?.images_changed,
+        images_removed: info?.images_removed,
+        images_unchanged: info?.images_unchanged,
+      });
+    },
+    [activeDisplay, organization]
+  );
+
   if (selectedProjectIds.length === 0) {
     return <LoadingIndicator />;
   }
@@ -210,6 +234,7 @@ export function MobileBuilds({
             organizationSlug={organization.slug}
             hasSearchQuery={hasSearchQuery}
             showProjectColumn={showProjectColumn}
+            onRowClick={handleRowClick}
           />
         </Fragment>
       )}
