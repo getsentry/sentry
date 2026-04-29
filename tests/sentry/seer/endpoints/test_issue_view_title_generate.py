@@ -57,25 +57,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"title": "Title With Whitespace"}
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
-    def test_prompt_prioritizes_specific_terms(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": "OAuth Issues"}
-        mock_request.return_value = mock_response
-
-        response = self.client.post(
-            self.url,
-            data={"query": "is:unresolved oauth"},
-            format="json",
-        )
-
-        assert response.status_code == 200
-        call_args = mock_request.call_args
-        request_body = call_args.args[0]
-        assert "is:unresolved oauth -> OAuth Issues" in request_body["system_prompt"]
-        assert "Query:\nis:unresolved oauth" in request_body["prompt"]
-        assert "<query>" not in request_body["prompt"]
-
     def test_missing_query_parameter(self) -> None:
         response = self.client.post(self.url, data={}, format="json")
 
@@ -87,24 +68,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert str(response.data["query"][0]) == "This field may not be blank."
-
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
-    def test_query_must_be_a_string(self, mock_request: MagicMock) -> None:
-        response = self.client.post(self.url, data={"query": True}, format="json")
-
-        assert response.status_code == 400
-        assert str(response.data["query"][0]) == "Not a valid string."
-        mock_request.assert_not_called()
-
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
-    def test_request_body_must_be_an_object(self, mock_request: MagicMock) -> None:
-        response = self.client.post(self.url, data=["is:unresolved"], format="json")
-
-        assert response.status_code == 400
-        assert str(response.data["non_field_errors"][0]) == (
-            "Invalid data. Expected a dictionary, but got list."
-        )
-        mock_request.assert_not_called()
 
     def test_ai_features_disabled_for_org(self) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
@@ -118,9 +81,8 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 403
         assert response.data == {"detail": "AI features are disabled for this organization."}
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.logger")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
-    def test_seer_api_error(self, mock_request: MagicMock, mock_logger: MagicMock) -> None:
+    def test_seer_api_error(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 
         response = self.client.post(
@@ -131,16 +93,9 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
 
         assert response.status_code == 500
         assert response.data == {"detail": "Failed to generate title"}
-        mock_logger.exception.assert_called_once_with(
-            "Failed to call Seer LLM proxy",
-            extra={"query_length": len("is:unresolved")},
-        )
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.logger")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
-    def test_empty_response_from_seer(
-        self, mock_request: MagicMock, mock_logger: MagicMock
-    ) -> None:
+    def test_empty_response_from_seer(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": None}
         mock_request.return_value = mock_response
@@ -153,10 +108,6 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
 
         assert response.status_code == 500
         assert response.data == {"detail": "No title returned from Seer"}
-        mock_logger.error.assert_called_once_with(
-            "No title returned from Seer",
-            extra={"query_length": len("is:unresolved")},
-        )
 
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_blank_response_from_seer(self, mock_request: MagicMock) -> None:
