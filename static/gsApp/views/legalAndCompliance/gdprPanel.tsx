@@ -161,7 +161,7 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
           subscription.gdprDetails[`${prefix}Email`] ||
           subscription.gdprDetails[`${prefix}Name`] ||
           subscription.gdprDetails[`${prefix}Address`] ||
-          subscription.gdprDetails[`${prefix}Email`]
+          subscription.gdprDetails[`${prefix}Phone`]
         )
       : false;
     const contactDetails =
