@@ -20,9 +20,5 @@ export function useUserFromId({id}: {id: number | undefined}) {
     }
   );
 
-  if (isError) {
-    return {isPending: false, data: {name: id}};
-  }
-
-  return {isPending, data};
+  return {isPending, isError, data};
 }
