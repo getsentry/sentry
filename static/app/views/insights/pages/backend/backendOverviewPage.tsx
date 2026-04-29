@@ -6,10 +6,8 @@ import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
 import {PlatformizedBackendOverviewPage} from 'sentry/views/insights/pages/backend/platformizedBackendOverviewPage';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {PlatformizedLaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel/platformizedLaravelOverviewPage';
-import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -24,20 +22,15 @@ function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const isEapEligible = useInsightsEap();
 
+  // useIsLaravelInsightsAvailable and useIsNextJsInsightsAvailable already
+  // require EAP internally, so when they return true we can go straight to
+  // the platformized variant.
   if (isLaravelPageAvailable) {
-    return isEapEligible ? (
-      <PlatformizedLaravelOverviewPage />
-    ) : (
-      <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />
-    );
+    return <PlatformizedLaravelOverviewPage />;
   }
 
   if (isNextJsPageEnabled) {
-    return isEapEligible ? (
-      <PlatformizedNextJsOverviewPage />
-    ) : (
-      <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />
-    );
+    return <PlatformizedNextJsOverviewPage />;
   }
 
   if (isEapEligible) {
