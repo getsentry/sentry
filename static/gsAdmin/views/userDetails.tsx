@@ -16,7 +16,8 @@ import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -115,6 +116,28 @@ export function UserDetails() {
     },
     onError: () => {
       addErrorMessage('Unable to revoke token.');
+    },
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: (params: Record<string, any>) =>
+      fetchMutation({
+        url: `/_admin/users/${userId}/suspend/`,
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => {
+      addLoadingMessage('Saving changes...');
+    },
+    onSuccess: (_data, params) => {
+      clearIndicators();
+      const action = params.action === 'suspend' ? 'suspended' : 'unsuspended';
+      addSuccessMessage(`User account has been ${action}.`);
+      queryClient.invalidateQueries({queryKey: makeFetchUserQueryKey()});
+    },
+    onError: (error: RequestError) => {
+      clearIndicators();
+      addErrorMessage(error.message ?? 'Failed to update user suspension status.');
     },
   });
 
@@ -273,14 +296,18 @@ export function UserDetails() {
           name: 'Suspend Account',
           help: 'Prevent this user from logging in. Account and data are preserved.',
           visible: user.isActive && !user.isSuspended,
-          onAction: () => onUpdateMutation.mutate({isSuspended: true}),
+          confirmModalOpts: {
+            priority: 'danger',
+            confirmText: 'Suspend Account',
+          },
+          onAction: params => suspendMutation.mutate({...params, action: 'suspend'}),
         },
         {
           key: 'unsuspend',
           name: 'Unsuspend Account',
           help: 'Allow this user to log in again.',
           visible: user.isSuspended,
-          onAction: () => onUpdateMutation.mutate({isSuspended: false}),
+          onAction: params => suspendMutation.mutate({...params, action: 'unsuspend'}),
         },
       ]}
       sections={[
