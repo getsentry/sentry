@@ -175,7 +175,7 @@ describe('getHighlightedSpanAttributes', () => {
     expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
   });
 
-  it('shows model cost setup callout when ai_client span is missing model', async () => {
+  it('shows model cost setup callout when ai_client span has tokens and is missing model', async () => {
     const organization = OrganizationFixture();
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
@@ -192,7 +192,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     render(<div>{modelAttribute?.value}</div>, {organization});
 
-    expect(screen.getByRole('button', {name: 'Cost unavailable'})).toBeInTheDocument();
+    expect(screen.getByText('No model data')).toBeInTheDocument();
     await waitFor(() => {
       expect(Sentry.captureMessage).toHaveBeenCalledWith(
         'AI span cost setup callout',
@@ -208,10 +208,26 @@ describe('getHighlightedSpanAttributes', () => {
     });
   });
 
+  it('does not show model cost setup callout when ai_client span is missing tokens', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: 'missing-model-span',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Model')).toBeUndefined();
+  });
+
   it('emits a Sentry message when cost setup docs are opened', async () => {
     const organization = OrganizationFixture();
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
+      'gen_ai.usage.input_tokens': '10',
+      'gen_ai.usage.output_tokens': '20',
+      'gen_ai.usage.total_tokens': '30',
     };
 
     const result = getHighlightedSpanAttributes({
@@ -222,8 +238,8 @@ describe('getHighlightedSpanAttributes', () => {
 
     render(<div>{modelAttribute?.value}</div>, {organization});
 
-    await userEvent.hover(screen.getByRole('button', {name: 'Cost unavailable'}));
-    await userEvent.click(await screen.findByRole('link', {name: 'Read the guide'}));
+    await userEvent.hover(screen.getByText('No model data'));
+    await userEvent.click(await screen.findByRole('link', {name: 'Docs'}));
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
       'AI span cost setup callout',
@@ -231,7 +247,7 @@ describe('getHighlightedSpanAttributes', () => {
         level: 'info',
         tags: expect.objectContaining({
           action: 'docs_click',
-          has_token_counts: 'false',
+          has_token_counts: 'true',
           span_id: 'missing-model-span',
         }),
       })
@@ -239,7 +255,7 @@ describe('getHighlightedSpanAttributes', () => {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'agent-monitoring.model-cost-callout-docs-click',
       expect.objectContaining({
-        hasTokenCounts: false,
+        hasTokenCounts: true,
       })
     );
   });
@@ -248,6 +264,9 @@ describe('getHighlightedSpanAttributes', () => {
     const organization = OrganizationFixture();
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
+      'gen_ai.usage.input_tokens': '10',
+      'gen_ai.usage.output_tokens': '20',
+      'gen_ai.usage.total_tokens': '30',
     };
 
     const result = getHighlightedSpanAttributes({
@@ -258,7 +277,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     render(<div>{modelAttribute?.value}</div>, {organization});
 
-    await userEvent.hover(screen.getByRole('button', {name: 'Cost unavailable'}));
+    await userEvent.hover(screen.getByText('No model data'));
     await userEvent.click(
       await screen.findByRole('button', {name: 'Copy LLM instructions'})
     );
@@ -272,7 +291,7 @@ describe('getHighlightedSpanAttributes', () => {
         level: 'info',
         tags: expect.objectContaining({
           action: 'copy_instructions',
-          has_token_counts: 'false',
+          has_token_counts: 'true',
           span_id: 'missing-model-span',
         }),
       })
@@ -280,7 +299,7 @@ describe('getHighlightedSpanAttributes', () => {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'agent-monitoring.model-cost-callout-copy-click',
       expect.objectContaining({
-        hasTokenCounts: false,
+        hasTokenCounts: true,
       })
     );
   });
@@ -289,6 +308,9 @@ describe('getHighlightedSpanAttributes', () => {
     const organization = OrganizationFixture();
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
+      'gen_ai.usage.input_tokens': '10',
+      'gen_ai.usage.output_tokens': '20',
+      'gen_ai.usage.total_tokens': '30',
     };
 
     const result = getHighlightedSpanAttributes({
@@ -299,12 +321,12 @@ describe('getHighlightedSpanAttributes', () => {
 
     render(<div>{modelAttribute?.value}</div>, {organization});
 
-    await userEvent.hover(screen.getByRole('button', {name: 'Cost unavailable'}));
+    await userEvent.hover(screen.getByText('No model data'));
 
     expect(trackAnalytics).toHaveBeenCalledWith(
       'agent-monitoring.model-cost-callout-tooltip-hover',
       expect.objectContaining({
-        hasTokenCounts: false,
+        hasTokenCounts: true,
       })
     );
   });
