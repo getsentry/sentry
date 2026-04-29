@@ -4,7 +4,8 @@ import type {
   FlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {SpanChart} from 'sentry/utils/profiling/spanChart';
+import {SpanFields} from 'sentry/views/insights/types';
 
 function uniqueCountBy<T>(
   arr: readonly T[],
@@ -59,7 +60,7 @@ export function makeColorBufferForNodes(
 ): number[] {
   const length = frames.length;
   // Length * number of frames * color components
-  const colorBuffer: number[] = new Array(length * 4 * 6);
+  const colorBuffer = Array.from<number>({length: length * 4 * 6});
 
   for (let index = 0; index < length; index++) {
     const frame = frames[index];
@@ -90,7 +91,7 @@ function makeColorBuffer(
 ): number[] {
   const length = frames.length;
   // Length * number of frames * color components
-  const colorBuffer: number[] = new Array(length * 4 * 6);
+  const colorBuffer = Array.from<number>({length: length * 4 * 6});
 
   for (let index = 0; index < length; index++) {
     const frame = frames[index];
@@ -384,12 +385,12 @@ export function makeColorMapByFrequency(
 export function makeSpansColorMapByOpAndDescription(
   spans: ReadonlyArray<SpanChart['spans'][0]>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
-): Map<SpanChartNode['node']['span']['span_id'], ColorChannels> {
-  const colors = new Map<SpanChartNode['node']['span']['span_id'], ColorChannels>();
-  const uniqueSpans = uniqueBy(spans, s => s.node.span.op ?? '');
+): Map<string, ColorChannels> {
+  const colors = new Map<string, ColorChannels>();
+  const uniqueSpans = uniqueBy(spans, s => s.node.span[SpanFields.SPAN_OP] ?? '');
 
   for (let i = 0; i < uniqueSpans.length; i++) {
-    const key = uniqueSpans[i]!.node.span.op ?? '';
+    const key = uniqueSpans[i]!.node.span[SpanFields.SPAN_OP] ?? '';
     if (key === 'missing span instrumentation') {
       continue;
     }
@@ -397,7 +398,10 @@ export function makeSpansColorMapByOpAndDescription(
   }
 
   for (const span of spans) {
-    colors.set(span.node.span.span_id, colors.get(span.node.span.op ?? '')!);
+    colors.set(
+      span.node.span[SpanFields.SPAN_ID],
+      colors.get(span.node.span[SpanFields.SPAN_OP] ?? '')!
+    );
   }
 
   return colors;

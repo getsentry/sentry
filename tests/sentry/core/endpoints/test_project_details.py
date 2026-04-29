@@ -115,6 +115,17 @@ class ProjectDetailsTest(APITestCase):
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 
+    def test_collapse_organization(self) -> None:
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            qs_params={"collapse": ["organization"]},
+        )
+        assert response.data["organization"] == {
+            "id": str(self.project.organization.id),
+            "slug": self.project.organization.slug,
+        }
+
     def test_filters_disabled_plugins(self) -> None:
         from sentry.plugins.base import plugins
 
@@ -801,6 +812,13 @@ class ProjectUpdateTest(APITestCase):
         )
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_enabled") is False
+
+    def test_preprod_snapshot_pr_comments_only_if_diff_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsOnlyIfDiff=True
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_only_if_diff") is True
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")

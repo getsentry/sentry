@@ -61,5 +61,5 @@ export function SearchSources(props: Props) {
     [props, renderResults, sources]
   );
 
-  return renderSources(new Array(sources.length), 0);
+  return renderSources(Array.from({length: sources.length}), 0);
 }

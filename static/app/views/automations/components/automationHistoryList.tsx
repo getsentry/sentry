@@ -125,7 +125,10 @@ export function AutomationHistoryList({
                 }}
               >
                 <Flex gap="xs" align="center">
-                  <PlatformIcon platform={row.group.platform} size={16} />
+                  <PlatformIcon
+                    platform={row.group.project.platform ?? 'default'}
+                    size={16}
+                  />
                   <TruncatedText>
                     {row.group.title ? row.group.title : `#${row.group.id}`}
                   </TruncatedText>

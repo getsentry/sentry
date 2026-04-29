@@ -47,8 +47,9 @@ describe('Issues Similar View', () => {
 
   beforeEach(() => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar/?limit=50`,
+      url: `/organizations/org-slug/issues/${group.id}/similar/`,
       body: mockData.similar,
+      match: [MockApiClient.matchQuery({limit: 50})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
@@ -130,7 +131,7 @@ describe('Issues Similar View', () => {
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
-    await userEvent.click(await screen.findByRole('button', {name: 'Merge (1)'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Merge 1 issue'}));
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     await waitFor(() => {
@@ -147,24 +148,25 @@ describe('Issues Similar View', () => {
     );
   });
 
-  it('correctly shows merge count', async () => {
+  it('toggles selection when item is clicked', async () => {
     render(<GroupSimilarIssues />, {
       initialRouterConfig,
     });
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
-    expect(screen.getByText('Merge (1)')).toBeInTheDocument();
+    const checkbox = screen.getAllByRole('checkbox')[0]!;
+    expect(checkbox).toBeChecked();
 
-    // Correctly show "Merge (0)" when the item is un-clicked
     await selectNthSimilarItem(0);
-    expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
   });
 
   it('shows empty message', async () => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar/?limit=50`,
+      url: `/organizations/org-slug/issues/${group.id}/similar/`,
       body: [],
+      match: [MockApiClient.matchQuery({limit: 50})],
     });
 
     render(<GroupSimilarIssues />, {
@@ -174,12 +176,10 @@ describe('Issues Similar View', () => {
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
-    expect(
-      await screen.findByText("There don't seem to be any similar issues.")
-    ).toBeInTheDocument();
+    expect(await screen.findByText('No similar issues found.')).toBeInTheDocument();
     expect(
       screen.queryByText(
-        'This can occur when the issue has no stacktrace or in-app frames.'
+        'This can happen when the issue has no stacktrace or in-app frames.'
       )
     ).not.toBeInTheDocument();
   });
@@ -216,8 +216,9 @@ describe('Issues Similar Embeddings View', () => {
 
   beforeEach(() => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01`,
+      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/`,
       body: mockData.similarEmbeddings,
+      match: [MockApiClient.matchQuery({k: 10, threshold: 0.01})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
@@ -297,7 +298,7 @@ describe('Issues Similar Embeddings View', () => {
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
-    await userEvent.click(await screen.findByRole('button', {name: 'Merge (1)'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Merge 1 issue'}));
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     await waitFor(() => {
@@ -314,24 +315,25 @@ describe('Issues Similar Embeddings View', () => {
     );
   });
 
-  it('correctly shows merge count', async () => {
+  it('toggles selection when item is clicked', async () => {
     render(<GroupSimilarIssues />, {
       initialRouterConfig,
     });
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
-    expect(screen.getByText('Merge (1)')).toBeInTheDocument();
+    const checkbox = screen.getAllByRole('checkbox')[0]!;
+    expect(checkbox).toBeChecked();
 
-    // Correctly show "Merge (0)" when the item is un-clicked
     await selectNthSimilarItem(0);
-    expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
   });
 
   it('shows empty message', async () => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01`,
+      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/`,
       body: [],
+      match: [MockApiClient.matchQuery({k: 10, threshold: 0.01})],
     });
 
     render(<GroupSimilarIssues />, {
@@ -343,7 +345,7 @@ describe('Issues Similar Embeddings View', () => {
 
     expect(
       await screen.findByText(
-        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+        'No similar issues found. This can happen when the issue has no stacktrace or in-app frames.'
       )
     ).toBeInTheDocument();
   });

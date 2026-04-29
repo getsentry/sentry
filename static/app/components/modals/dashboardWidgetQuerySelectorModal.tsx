@@ -108,7 +108,6 @@ const OpenInDiscoverButton = styled(Button)`
 
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.tokens.background.secondary};
   padding: 7px ${p => p.theme.space.md};
   position: relative;

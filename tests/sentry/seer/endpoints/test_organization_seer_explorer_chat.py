@@ -1,6 +1,9 @@
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+import pytest
+
+from sentry.seer.endpoints.organization_seer_explorer_chat import SeerExplorerChatSerializer
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -45,6 +48,46 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data["session"]["status"] == "completed"
         mock_client.get_run.assert_called_once_with(run_id=123)
 
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
+        from sentry.seer.explorer.client_models import (
+            MemoryBlock,
+            Message,
+            SeerRunState,
+            Usage,
+            UsageAccumulator,
+        )
+
+        mock_state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="b1",
+                    message=Message(role="assistant", content="hello"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            usage=UsageAccumulator(
+                usages=[Usage(dollar_cost=0.42, model="claude", total_tokens=1000)]
+            ),
+            metadata={"internal": "data"},
+        )
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        session = response.data["session"]
+        assert "usage" not in session
+        assert "metadata" not in session
+        assert "coding_agents" not in session
+        assert session["blocks"][0]["id"] == "b1"
+        assert session["blocks"][0]["message"]["content"] == "hello"
+
     def test_post_without_query_returns_400(self) -> None:
         data: dict[str, Any] = {}
         response = self.client.post(self.url, data, format="json")
@@ -73,7 +116,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             ANY,
             is_interactive=True,
             enable_coding=False,
-            enable_code_mode_tools=False,
+            enable_code_mode_tools="off",
             reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
@@ -110,7 +153,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 ANY,
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
-                enable_code_mode_tools=False,
+                enable_code_mode_tools="off",
                 reasoning_effort="medium",
             )
 
@@ -133,7 +176,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             ANY,
             is_interactive=True,
             enable_coding=False,
-            enable_code_mode_tools=False,
+            enable_code_mode_tools="off",
             reasoning_effort="medium",
         )
         mock_client.continue_run.assert_called_once_with(
@@ -166,7 +209,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 ANY,
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
-                enable_code_mode_tools=False,
+                enable_code_mode_tools="off",
                 reasoning_effort="medium",
             )
 
@@ -358,3 +401,38 @@ class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
         assert body.get("is_context_engine_enabled") is not False
+
+
+class TestCodeModeSerializerField:
+    """Test the override_code_mode_enable serializer field accepts all valid inputs."""
+
+    @pytest.mark.parametrize(
+        "input_val,expected",
+        [
+            ("off", "off"),
+            ("on", "on"),
+            ("only", "only"),
+            (True, "on"),
+            (False, "off"),
+            ("true", "on"),
+            ("false", "off"),
+            (None, None),
+        ],
+    )
+    def test_valid_values(self, input_val, expected):
+        data = {"query": "test", "override_code_mode_enable": input_val}
+        serializer = SeerExplorerChatSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["override_code_mode_enable"] == expected
+
+    def test_omitted_defaults_to_none(self):
+        data = {"query": "test"}
+        serializer = SeerExplorerChatSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["override_code_mode_enable"] is None
+
+    def test_invalid_string_rejected(self):
+        data = {"query": "test", "override_code_mode_enable": "invalid"}
+        serializer = SeerExplorerChatSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "override_code_mode_enable" in serializer.errors

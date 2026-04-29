@@ -22,13 +22,13 @@ repos:
       # Configuration for ruff exists in pyproject.toml.
       - id: ruff-check
         name: ruff check
-        entry: .venv/bin/ruff check --force-exclude --fix
+        entry: .venv/bin/ruff check --force-exclude --fix --quiet
         language: system
         types: [python]
         require_serial: true
       - id: ruff-format
         name: ruff format
-        entry: .venv/bin/ruff format --force-exclude
+        entry: .venv/bin/ruff format --force-exclude --quiet
         language: system
         types_or: [python, pyi]
         require_serial: true
@@ -101,6 +101,10 @@ repos:
         name: format
         language: system
         types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown, json]
+        # Mirror api-docs/**/*.json from .oxfmtrc.json's ignorePatterns; oxfmt
+        # errors with "Expected at least one target file" when its config drops
+        # every input file, so skip them at the hook level instead.
+        exclude: ^api-docs/.*\.json$
         entry: ./node_modules/.bin/oxfmt
 
       - id: knip
@@ -122,7 +126,7 @@ repos:
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
-        args: [--verbose]
+        args: []
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

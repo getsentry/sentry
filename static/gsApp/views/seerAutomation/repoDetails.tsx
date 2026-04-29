@@ -4,10 +4,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {NotFound} from 'sentry/components/errors/notFound';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoAccess} from 'sentry/components/noAccess';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {useRepositoryWithSettings} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -18,16 +18,14 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {RepoDetailsForm} from 'getsentry/views/seerAutomation/components/repoDetails/repoDetailsForm';
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
+import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 
 export default function SeerRepoDetails() {
   const {repoId} = useParams<{repoId: string}>();
   const organization = useOrganization();
   const isSupportedProvider = useIsSeerSupportedProvider();
 
-  const hasSeer =
-    organization.features.includes('seat-based-seer-enabled') ||
-    organization.features.includes('seer-added') ||
-    organization.features.includes('code-review-beta');
+  const hasCodeReviewAccess = orgHasCodeReviewFeature(organization);
 
   const {
     data: repoWithSettings,
@@ -36,13 +34,13 @@ export default function SeerRepoDetails() {
     refetch,
   } = useRepositoryWithSettings({
     repositoryId: repoId,
-    enabled: hasSeer,
+    enabled: hasCodeReviewAccess,
   });
 
-  if (!hasSeer) {
+  if (!hasCodeReviewAccess) {
     return (
       <AnalyticsArea name="repo-details">
-        <NotFound />
+        <NoAccess />
       </AnalyticsArea>
     );
   }

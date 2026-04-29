@@ -25,7 +25,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {
+  type Actions,
+  CellAction,
+  updateQuery,
+} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
@@ -47,6 +51,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 interface FieldProps {
   data: EventData;
   meta: MetaType;
+  allowActions?: Actions[];
   column?: TableColumn<keyof TableDataRow>;
   unit?: string;
   usePortalOnDropdown?: boolean;
@@ -57,6 +62,7 @@ export function FieldRenderer({
   meta,
   unit,
   column,
+  allowActions,
   usePortalOnDropdown,
 }: FieldProps) {
   const userQuery = useQueryParamsQuery();
@@ -68,6 +74,7 @@ export function FieldRenderer({
       meta={meta}
       unit={unit}
       column={column}
+      allowActions={allowActions}
       userQuery={userQuery}
       setUserQuery={setUserQuery}
       usePortalOnDropdown={usePortalOnDropdown}
@@ -105,7 +112,6 @@ export function MultiQueryFieldRenderer({
 interface BaseFieldProps extends FieldProps {
   setUserQuery: (query: string) => void;
   userQuery: string;
-  usePortalOnDropdown?: boolean;
 }
 
 function BaseExploreFieldRenderer({
@@ -113,6 +119,7 @@ function BaseExploreFieldRenderer({
   meta,
   unit,
   column,
+  allowActions,
   userQuery,
   setUserQuery,
   usePortalOnDropdown,
@@ -125,13 +132,10 @@ function BaseExploreFieldRenderer({
   const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
   const projectsMap = useMemo(() => {
-    return projects.reduce(
-      (acc, project) => {
-        acc[project.slug] = project;
-        return acc;
-      },
-      {} as Record<string, Project>
-    );
+    return projects.reduce<Record<string, Project>>((acc, project) => {
+      acc[project.slug] = project;
+      return acc;
+    }, {});
   }, [projects]);
 
   const project = projectsMap[data.project];
@@ -292,7 +296,7 @@ function BaseExploreFieldRenderer({
         updateQuery(query, actions, column, value);
         setUserQuery(query.formatString());
       }}
-      allowActions={ALLOWED_CELL_ACTIONS}
+      allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
       usePortalOnDropdown={usePortalOnDropdown}
     >
       {rendered}

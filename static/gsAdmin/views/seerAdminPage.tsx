@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -10,13 +11,14 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
 export function SeerAdminPage() {
   const [organizationId, setOrganizationId] = useState<string>('');
   const [dryRun, setDryRun] = useState<boolean>(false);
+  const [maxCandidates, setMaxCandidates] = useState<string>('');
   const regions = ConfigStore.get('regions');
   const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
 
@@ -25,7 +27,11 @@ export function SeerAdminPage() {
       return fetchMutation({
         url: '/internal/seer/night-shift/trigger/',
         method: 'POST',
-        data: {organization_id: parseInt(organizationId, 10), dry_run: dryRun},
+        data: {
+          organization_id: parseInt(organizationId, 10),
+          dry_run: dryRun,
+          ...(maxCandidates ? {max_candidates: parseInt(maxCandidates, 10)} : {}),
+        },
         options: {host: region?.url},
       });
     },
@@ -99,6 +105,17 @@ export function SeerAdminPage() {
                   value={organizationId}
                   onChange={e => setOrganizationId(e.target.value)}
                   placeholder="Enter organization ID"
+                />
+                <label htmlFor="maxCandidates">
+                  <Text bold>Max candidates (optional):</Text>
+                </label>
+                <Input
+                  type="number"
+                  name="maxCandidates"
+                  min={1}
+                  value={maxCandidates}
+                  onChange={e => setMaxCandidates(e.target.value)}
+                  placeholder="Leave blank to use default"
                 />
                 <Flex as="label" gap="sm" align="center">
                   <input

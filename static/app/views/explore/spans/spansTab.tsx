@@ -284,7 +284,7 @@ function SpanTabContentSection({
           : null;
 
   return (
-    <ExploreContentSection>
+    <ExploreContentSection gap="md">
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={

@@ -37,8 +37,6 @@ import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextP
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {ExplorerPanel} from 'sentry/views/seerExplorer/explorerPanel';
-import {ExplorerPanelProvider} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -243,12 +241,9 @@ export function App() {
                   <MainContainer tabIndex={-1}>
                     <DemoToursProvider>
                       <LLMContextProvider>
-                        <ExplorerPanelProvider>
-                          <GlobalModal />
-                          <ExplorerPanel />
-                          <Indicators className="indicators-container" />
-                          <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                        </ExplorerPanelProvider>
+                        <GlobalModal />
+                        <Indicators className="indicators-container" />
+                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
                       </LLMContextProvider>
                     </DemoToursProvider>
                   </MainContainer>

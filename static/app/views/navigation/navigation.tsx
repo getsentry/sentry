@@ -2,6 +2,7 @@ import {Fragment, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
@@ -55,6 +56,8 @@ import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/cont
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
@@ -309,18 +312,35 @@ export function PrimaryNavigationFooterItems() {
 
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   return (
     <Fragment>
       {hasPageFrame ? (
         <PrimaryNavigation.Button
-          label={t('Search support, docs and more')}
+          label={
+            organization.features.includes('cmd-k-supercharged') ? (
+              <Flex gap="xs" align="center">
+                {t('Open command palette')}
+                <Hotkey value="command+k" variant="debossed" />
+              </Flex>
+            ) : (
+              t('Search support, docs and more')
+            )
+          }
           analyticsKey="search"
           buttonProps={{
             icon: <IconSearch />,
             onClick: () => {
               if (organization.features.includes('cmd-k-supercharged')) {
-                toggleCommandPalette({}, organization, state, dispatch, 'button');
+                toggleCommandPalette(
+                  {},
+                  organization,
+                  state,
+                  dispatch,
+                  'button',
+                  isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+                );
               } else {
                 openHelpSearchModal({organization});
               }

@@ -6,15 +6,20 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
+from django.urls import reverse
 
 from sentry.integrations.cursor.integration import (
     CursorAgentIntegration,
     CursorAgentIntegrationProvider,
 )
 from sentry.integrations.cursor.models import CursorApiKeyMetadata
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
-from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
 @pytest.fixture
@@ -471,3 +476,66 @@ class CursorIntegrationTest(IntegrationTestCase):
         display_info = installation.get_dynamic_display_information()
 
         assert display_info is None
+
+
+@control_silo_test
+class CursorApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "cursor"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    @with_feature("organizations:integrations-cursor")
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "api_key_config"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "cursor"
+
+    @with_feature("organizations:integrations-cursor")
+    def test_missing_api_key(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    @with_feature("organizations:integrations-cursor")
+    @patch(
+        "sentry.integrations.cursor.client.CursorAgentClient.verify_api_key",
+        return_value=None,
+    )
+    def test_full_pipeline_flow(self, mock_verify: MagicMock) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "api_key_config"
+
+        resp = self._advance_step({"apiKey": "cursor-api-key-123"})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="cursor")
+        assert integration.metadata["api_key"] == "cursor-api-key-123"
+        assert integration.metadata["domain_name"] == "cursor.sh"
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()

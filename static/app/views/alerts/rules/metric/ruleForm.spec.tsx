@@ -4,7 +4,13 @@ import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -616,6 +622,49 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
+    });
+
+    it('renders the aggregate without the equation prefix', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'tracemetrics-enabled',
+        'tracemetrics-alerts',
+        'tracemetrics-equations-in-explore',
+        'tracemetrics-equations-in-alerts',
+      ];
+      location = {
+        ...location,
+        query: {...location.query, eventTypes: ['trace_item_metric']},
+      };
+      const rule = MetricRuleFixture();
+      render(
+        <Component
+          params={{orgId: organization.slug, projectId: project.slug}}
+          organization={organization}
+          location={location}
+          project={project}
+          rule={{
+            ...rule,
+            id: undefined,
+            aggregate:
+              'equation|count_if(`environment:"production"`,value,metric_name,distribution,none) * 2',
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          }}
+        />,
+        {
+          organization,
+        }
+      );
+
+      const chartHeader = (await screen.findAllByText('Custom Metrics'))[0]!
+        .parentElement as HTMLElement;
+
+      expect(
+        within(chartHeader).getByText(
+          'count_if(`environment:"production"`,value,metric_name,distribution,none) * 2'
+        )
+      ).toBeInTheDocument();
     });
   });
 

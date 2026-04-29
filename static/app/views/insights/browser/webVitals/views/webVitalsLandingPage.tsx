@@ -144,7 +144,7 @@ function WebVitalsLandingPage() {
 export function WebVitalMetersPlaceholder() {
   return (
     <LoadingBoxContainer>
-      {[...new Array(WEB_VITALS_COUNT)].map((_, index) => (
+      {[...Array.from({length: WEB_VITALS_COUNT})].map((_, index) => (
         <LoadingBox key={index} />
       ))}
     </LoadingBoxContainer>

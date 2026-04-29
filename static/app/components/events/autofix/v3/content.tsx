@@ -1,5 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -12,15 +14,15 @@ import {
   useExplorerAutofix,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {
-  CodeChangesCard,
-  CodingAgentCard,
-  PullRequestsCard,
-  RootCauseCard,
-  SolutionCard,
-} from 'sentry/components/events/autofix/v3/autofixCards';
+import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
+import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
+import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
+import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -59,6 +61,23 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
       {autofix.runState?.status === 'completed' && (
         <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
       )}
+      {autofix.codingAgentErrors.map(({id, message}) => (
+        <Alert
+          key={id}
+          variant="danger"
+          trailingItems={
+            <Button
+              size="zero"
+              priority="transparent"
+              icon={<IconClose size="sm" />}
+              aria-label={t('Dismiss error')}
+              onClick={() => autofix.dismissCodingAgentError(id)}
+            />
+          }
+        >
+          {message}
+        </Alert>
+      ))}
     </Flex>
   );
 }
@@ -94,7 +113,7 @@ function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
 
         if (isCodingAgentsSection(section)) {
           return (
-            <CodingAgentCard key={section.step} autofix={autofix} section={section} />
+            <CodingAgentsCard key={section.step} autofix={autofix} section={section} />
           );
         }
 

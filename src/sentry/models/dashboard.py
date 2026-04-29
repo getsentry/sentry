@@ -9,7 +9,6 @@ from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
@@ -19,7 +18,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.organization import Organization
 
 
@@ -338,29 +336,6 @@ class Dashboard(Model):
                 ]
             )
 
-    @staticmethod
-    def get_prebuilt_list(organization, user, title_query=None):
-        query = list(
-            DashboardTombstone.objects.filter(organization=organization).values_list("slug")
-        )
-        tombstones = [v[0] for v in query]
-        results = []
-
-        # Needs to pass along organization to get the right dataset
-        for data in get_all_prebuilt_dashboards(organization, user).values():
-            if title_query and title_query.lower() not in data["title"].lower():
-                continue
-            if data["id"] not in tombstones:
-                results.append(data)
-        return results
-
-    @staticmethod
-    def get_prebuilt(organization, user, dashboard_id):
-        all_prebuilt_dashboards = get_all_prebuilt_dashboards(organization, user)
-        if dashboard_id in all_prebuilt_dashboards:
-            return all_prebuilt_dashboards[dashboard_id]
-        return None
-
     @classmethod
     def incremental_title(cls, organization, name):
         """
@@ -431,6 +406,9 @@ class DashboardTombstone(Model):
 class DashboardRevision(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
+    SNAPSHOT_SCHEMA_VERSION = 1
+    RETENTION_LIMIT = 10
+
     created_by_id = HybridCloudForeignKey(
         "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
     )
@@ -449,6 +427,36 @@ class DashboardRevision(DefaultFieldsModel):
                 name="sentry_dashrev_dash_date_idx",
             )
         ]
+
+    @classmethod
+    def create_for_dashboard(
+        cls,
+        dashboard: Dashboard,
+        user: Any,
+        snapshot: dict[str, Any],
+        source: str = "edit",
+    ) -> DashboardRevision:
+        """
+        Create a revision snapshot for the given dashboard and prune any revisions
+        beyond the retention limit. Must be called inside a transaction.atomic block.
+        """
+        revision = cls.objects.create(
+            dashboard=dashboard,
+            created_by_id=user.id if user.is_authenticated else None,
+            title=dashboard.title,
+            source=source,
+            snapshot=snapshot,
+            snapshot_schema_version=cls.SNAPSHOT_SCHEMA_VERSION,
+        )
+        old_revision_ids = list(
+            cls.objects.filter(dashboard=dashboard)
+            .exclude(id=revision.id)
+            .order_by("-date_added")
+            .values_list("id", flat=True)[cls.RETENTION_LIMIT - 1 :]
+        )
+        if old_revision_ids:
+            cls.objects.filter(id__in=old_revision_ids).delete()
+        return revision
 
 
 @cell_silo_model
@@ -469,278 +477,3 @@ class DashboardLastVisited(DefaultFieldsModel):
                 name="sentry_dashboardlastvisited_unique_last_visited_per_org_member",
             )
         ]
-
-
-# Prebuilt dashboards are added to API responses for all accounts that have
-# not added a tombstone for the id value. If you change the id of a prebuilt dashboard
-# it will invalidate all the tombstone records that already exist.
-#
-# All widgets and queries in prebuilt dashboards must not have id attributes defined,
-# or users will be unable to 'update' them with a forked version.
-
-
-def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
-    error_events_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
-    is_transactions_deprecation_enabled = features.has(
-        "organizations:discover-saved-queries-deprecation",
-        organization=organization,
-        actor=user,
-    )
-    transaction_type = (
-        DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.SPANS)
-        if is_transactions_deprecation_enabled
-        else DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
-    )
-
-    return [
-        {
-            # This should match the general template in static/app/views/dashboardsV2/data.tsx
-            "id": "default-overview",
-            "title": "General",
-            "dateCreated": "",
-            "createdBy": "",
-            "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
-            "isFavorited": False,
-            "projects": [],
-            "widgets": [
-                {
-                    "title": "Number of Errors",
-                    "displayType": "big_number",
-                    "interval": "5m",
-                    "widgetType": error_events_type,
-                    "queries": [
-                        {
-                            "name": "",
-                            "conditions": "",
-                            "fields": ["count()"],
-                            "aggregates": ["count()"],
-                            "columns": [],
-                            "orderby": "",
-                        }
-                    ],
-                },
-                {
-                    "title": "Number of Issues",
-                    "displayType": "big_number",
-                    "interval": "5m",
-                    "widgetType": error_events_type,
-                    "queries": [
-                        {
-                            "name": "",
-                            "conditions": "",
-                            "fields": ["count_unique(issue)"],
-                            "aggregates": ["count_unique(issue)"],
-                            "columns": [],
-                            "orderby": "",
-                        }
-                    ],
-                },
-                {
-                    "title": "Events",
-                    "displayType": "line",
-                    "interval": "5m",
-                    "widgetType": error_events_type,
-                    "queries": [
-                        {
-                            "name": "Events",
-                            "conditions": "",
-                            "fields": ["count()"],
-                            "aggregates": ["count()"],
-                            "columns": [],
-                            "orderby": "",
-                        }
-                    ],
-                },
-                {
-                    "title": "Affected Users",
-                    "displayType": "line",
-                    "interval": "5m",
-                    "widgetType": error_events_type,
-                    "queries": [
-                        {
-                            "name": "Known Users",
-                            "conditions": "has:user.email",
-                            "fields": ["count_unique(user)"],
-                            "aggregates": ["count_unique(user)"],
-                            "columns": [],
-                            "orderby": "",
-                        },
-                        {
-                            "name": "Anonymous Users",
-                            "conditions": "!has:user.email",
-                            "fields": ["count_unique(user)"],
-                            "aggregates": ["count_unique(user)"],
-                            "columns": [],
-                            "orderby": "",
-                        },
-                    ],
-                },
-                {
-                    "title": "Handled vs. Unhandled",
-                    "displayType": "line",
-                    "interval": "5m",
-                    "widgetType": error_events_type,
-                    "queries": [
-                        {
-                            "name": "Handled",
-                            "conditions": "error.handled:true",
-                            "fields": ["count()"],
-                            "aggregates": ["count()"],
-                            "columns": [],
-                            "orderby": "",
-                        },
-                        {
-                            "name": "Unhandled",
-                            "conditions": "error.handled:false",
-                            "fields": ["count()"],
-                            "aggregates": ["count()"],
-                            "columns": [],
-                            "orderby": "",
-                        },
-                    ],
-                },
-                {
-                    "title": "Errors by Country",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "widgetType": error_events_type,
-                    "queries": [
-                        {
-                            "name": "Error counts",
-                            "conditions": "has:geo.country_code",
-                            "fields": ["geo.country_code", "geo.region", "count()"],
-                            "aggregates": ["count()"],
-                            "columns": ["geo.country_code", "geo.region"],
-                            "orderby": "-count()",
-                        }
-                    ],
-                },
-                {
-                    "title": "Errors by Browser",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "widgetType": error_events_type,
-                    "queries": [
-                        {
-                            "name": "",
-                            "conditions": "has:browser.name",
-                            "fields": ["browser.name", "count()"],
-                            "aggregates": ["count()"],
-                            "columns": ["browser.name"],
-                            "orderby": "-count()",
-                        }
-                    ],
-                },
-                {
-                    "title": "High Throughput Transactions",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "widgetType": transaction_type,
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["count()", "transaction"],
-                            "aggregates": ["count()"],
-                            "columns": ["transaction"],
-                            "conditions": "is_transaction:true"
-                            if is_transactions_deprecation_enabled
-                            else "",
-                            "orderby": "-count()",
-                        },
-                    ],
-                },
-                {
-                    "title": "Overall User Misery",
-                    "displayType": "big_number",
-                    "interval": "5m",
-                    "widgetType": transaction_type,
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["equation|user_misery(span.duration,300)"],
-                            "aggregates": ["equation|user_misery(span.duration,300)"],
-                            "columns": [],
-                            "conditions": "is_transaction:true",
-                            "orderby": "",
-                        }
-                    ]
-                    if is_transactions_deprecation_enabled
-                    else [
-                        {
-                            "name": "",
-                            "fields": ["user_misery(300)"],
-                            "aggregates": ["user_misery(300)"],
-                            "columns": [],
-                            "conditions": "",
-                            "orderby": "",
-                        },
-                    ],
-                },
-                {
-                    "title": "High Throughput Transactions",
-                    "displayType": "top_n",
-                    "interval": "5m",
-                    "widgetType": transaction_type,
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["transaction", "count()"],
-                            "aggregates": ["count()"],
-                            "columns": ["transaction"],
-                            "conditions": "is_transaction:true"
-                            if is_transactions_deprecation_enabled
-                            else "",
-                            "orderby": "-count()",
-                        },
-                    ],
-                },
-                {
-                    "title": "Issues Assigned to Me or My Teams",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["assignee", "issue", "title"],
-                            "aggregates": [],
-                            "columns": ["assignee", "issue", "title"],
-                            "conditions": "assigned_or_suggested:me is:unresolved",
-                            "orderby": "trends",
-                        },
-                    ],
-                    "widgetType": "issue",
-                },
-                {
-                    "title": "Transactions Ordered by Misery",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "widgetType": transaction_type,
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["transaction", "equation|user_misery(span.duration,300)"],
-                            "aggregates": ["equation|user_misery(span.duration,300)"],
-                            "columns": ["transaction"],
-                            "conditions": "is_transaction:true",
-                            "orderby": "-equation|user_misery(span.duration,300)",
-                        },
-                    ]
-                    if is_transactions_deprecation_enabled
-                    else [
-                        {
-                            "name": "",
-                            "fields": ["transaction", "user_misery(300)"],
-                            "aggregates": ["user_misery(300)"],
-                            "columns": ["transaction"],
-                            "conditions": "",
-                            "orderby": "-user_misery(300)",
-                        },
-                    ],
-                },
-            ],
-        }
-    ]
-
-
-def get_all_prebuilt_dashboards(organization, user):
-    return {item["id"]: item for item in get_prebuilt_dashboards(organization, user)}

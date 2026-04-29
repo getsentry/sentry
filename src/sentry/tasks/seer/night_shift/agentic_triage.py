@@ -18,6 +18,10 @@ from sentry.tasks.seer.night_shift.simple_triage import (
     fixability_score_strategy,
     priority_label,
 )
+from sentry.tasks.seer.night_shift.triage_tools import (
+    get_event_details_agentic_triage,
+    get_issue_details_agentic_triage,
+)
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
@@ -35,15 +39,18 @@ class _TriageResponse(pydantic.BaseModel):
 def agentic_triage_strategy(
     projects: Sequence[Project],
     organization: Organization,
-) -> list[TriageResult]:
+    max_candidates: int,
+) -> tuple[list[TriageResult], int | None]:
     """
     Select candidates via fixability scoring, then use the Seer Explorer agent
     to investigate each candidate and decide the appropriate action.
+
+    Returns a tuple of (triage_results, agent_run_id).
     """
     # TODO: try a new way to get scored issues
-    scored = fixability_score_strategy(projects)
+    scored = fixability_score_strategy(projects, max_candidates)
     if not scored:
-        return []
+        return [], None
 
     return _triage_candidates(scored, organization)
 
@@ -51,11 +58,13 @@ def agentic_triage_strategy(
 def _triage_candidates(
     candidates: list[ScoredCandidate],
     organization: Organization,
-) -> list[TriageResult]:
+) -> tuple[list[TriageResult], int | None]:
     """
     Start a Seer Explorer run to investigate candidate issues and return
     triage verdicts. The agent can browse the repo, inspect stacktraces,
     and use its tools to make informed decisions.
+
+    Returns a tuple of (triage_results, agent_run_id).
     """
     groups_by_id = {c.group.id: c.group for c in candidates}
 
@@ -67,9 +76,13 @@ def _triage_candidates(
             category_value=f"org-{organization.id}",
             intelligence_level="high",
             reasoning_effort="high",
+            custom_tools=[
+                get_event_details_agentic_triage,
+                get_issue_details_agentic_triage,
+            ],
         )
 
-        run_id = client.start_run(
+        agent_run_id = client.start_run(
             prompt=_build_triage_prompt(candidates),
             artifact_key="triage_verdicts",
             artifact_schema=_TriageResponse,
@@ -79,12 +92,12 @@ def _triage_candidates(
             "night_shift.explorer_run_started",
             extra={
                 "organization_id": organization.id,
-                "run_id": run_id,
+                "agent_run_id": agent_run_id,
                 "num_candidates": len(candidates),
             },
         )
 
-        state = _poll_with_logging(client, run_id, organization.id)
+        state = _poll_with_logging(client, agent_run_id, organization.id)
 
         triage_response = state.get_artifact("triage_verdicts", _TriageResponse)
         if not triage_response:
@@ -92,7 +105,7 @@ def _triage_candidates(
                 "night_shift.triage_no_artifact",
                 extra={
                     "organization_id": organization.id,
-                    "run_id": run_id,
+                    "agent_run_id": agent_run_id,
                     "status": state.status,
                 },
             )
@@ -101,7 +114,7 @@ def _triage_candidates(
                 1,
                 attributes={"error_type": "no_artifact"},
             )
-            return []
+            return [], agent_run_id
     except Exception:
         sentry_sdk.metrics.count(
             "night_shift.triage_error",
@@ -112,13 +125,13 @@ def _triage_candidates(
             "night_shift.triage_explorer_error",
             extra={"organization_id": organization.id},
         )
-        return []
+        raise
 
     logger.info(
         "night_shift.triage_verdicts",
         extra={
             "organization_id": organization.id,
-            "run_id": run_id,
+            "agent_run_id": agent_run_id,
             "verdicts": {v.group_id: v.action for v in triage_response.verdicts},
         },
     )
@@ -127,7 +140,7 @@ def _triage_candidates(
         TriageResult(group=groups_by_id[v.group_id], action=v.action)
         for v in triage_response.verdicts
         if v.group_id in groups_by_id and v.action != TriageAction.SKIP
-    ]
+    ], agent_run_id
 
 
 POLL_INTERVAL = 2.0
@@ -135,7 +148,7 @@ POLL_INTERVAL = 2.0
 
 def _poll_with_logging(
     client: SeerExplorerClient,
-    run_id: int,
+    agent_run_id: int,
     organization_id: int,
 ) -> SeerRunState:
     """Poll an Explorer run, logging new non-loading blocks as they appear."""
@@ -143,7 +156,7 @@ def _poll_with_logging(
     seen_block_ids: set[str] = set()
 
     while True:
-        state = client.get_run(run_id)
+        state = client.get_run(agent_run_id)
 
         for block in state.blocks:
             if block.id in seen_block_ids or block.loading:
@@ -156,7 +169,7 @@ def _poll_with_logging(
                 "night_shift.explorer_block",
                 extra={
                     "organization_id": organization_id,
-                    "run_id": run_id,
+                    "agent_run_id": agent_run_id,
                     "block_id": block.id,
                     "role": msg.role,
                     "tool_calls": tool_names,
@@ -170,7 +183,7 @@ def _poll_with_logging(
                 "night_shift.explorer_run_completed",
                 extra={
                     "organization_id": organization_id,
-                    "run_id": run_id,
+                    "agent_run_id": agent_run_id,
                     "status": state.status,
                     "num_blocks": len(state.blocks),
                     "duration": round(time.monotonic() - start_time, 1),
@@ -213,6 +226,22 @@ def _build_triage_prompt(
 
         Use your tools to investigate each issue — look at all relevant telemetry: the stacktraces,
         event logs, event details, breadcrumbs, metrics, and the relevant code in the repository.
+
+        When fetching event data for an issue, always use the `get_event_details_agentic_triage`
+        tool instead of `get_event_details`. It returns the same data in a cleaner,
+        more readable format tuned for triage.
+
+        Similarly, when fetching issue-level metadata, always use the
+        `get_issue_details_agentic_triage` tool instead of `get_issue_details`.
+        It returns the header, tag distribution, and recent human activity in a
+        compact markdown format. Do not rely on it for stacktraces — call
+        `get_event_details_agentic_triage` for that.
+
+        Before recording any verdict, you MUST read the relevant application code.
+        Surface reading of the error message and stacktrace is not enough — many
+        errors that look environmental (e.g. "file is not a database", "permission
+        denied") are actually code bugs once you inspect how the failing code is
+        called and what assumptions it makes about its inputs/environment.
 
         When evaluating each issue, consider whether an AI coding agent with full
         codebase access could fix the ROOT CAUSE of the issue — not just add try/except or defensive

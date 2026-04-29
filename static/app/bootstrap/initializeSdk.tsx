@@ -74,12 +74,6 @@ function isConsoleBannerMessage(message: string | undefined): boolean {
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
 const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
-/**
- * We accept a routes argument here because importing `static/routes`
- * is expensive in regards to bundle size. Some entrypoints may opt to forgo
- * having routing instrumentation in order to have a smaller bundle size.
- * (e.g.  `static/views/integrationPipeline`)
- */
 function getSentryIntegrations() {
   const integrations = [
     Sentry.extraErrorDataIntegration({

@@ -122,7 +122,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
       aggregate === AggregationKey.OPPORTUNITY_SCORE
     ) {
       acc[aggregate] = AGGREGATIONS[aggregate];
-    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
+    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate)) {
       acc[aggregate] = {
         isSortable: true,
         outputType: null,

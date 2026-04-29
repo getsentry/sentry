@@ -51,13 +51,12 @@ export function LogsAggregateTable({
   const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
 
   const columns = useMemo(() => {
-    return eventView?.getColumns()?.reduce(
-      (acc, col) => {
+    return eventView
+      ?.getColumns()
+      ?.reduce<Record<string, TableColumn<string>>>((acc, col) => {
         acc[col.key] = col;
         return acc;
-      },
-      {} as Record<string, TableColumn<string>>
-    );
+      }, {});
   }, [eventView]);
 
   const groupBys = useQueryParamsGroupBys();
@@ -138,9 +137,7 @@ export function LogsAggregateTable({
           },
           renderBodyCell: (column, row) => {
             const value =
-              typeof row[column.key] === 'undefined'
-                ? null
-                : (row[column.key] as string | number);
+              row[column.key] === undefined ? null : (row[column.key] as string | number);
             const level = getLogSeverityLevel(
               typeof row?.[OurLogKnownFieldKey.SEVERITY_NUMBER] === 'number'
                 ? row?.[OurLogKnownFieldKey.SEVERITY_NUMBER]
@@ -152,6 +149,7 @@ export function LogsAggregateTable({
             const extra: RendererExtra = {
               attributes: row,
               attributeTypes: data?.meta?.fields ?? {},
+              caseSensitiveHighlighting: false,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,

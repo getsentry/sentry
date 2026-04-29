@@ -2,12 +2,14 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
 def has_seer_access(
-    organization: Organization, actor: User | AnonymousUser | RpcUser | None = None
+    organization: Organization | RpcOrganization,
+    actor: User | AnonymousUser | RpcUser | None = None,
 ) -> bool:
     return features.has("organizations:gen-ai-features", organization, actor=actor) and not bool(
         organization.get_option("sentry:hide_ai_features")
@@ -15,7 +17,8 @@ def has_seer_access(
 
 
 def has_seer_access_with_detail(
-    organization: Organization, actor: User | AnonymousUser | RpcUser | None = None
+    organization: Organization | RpcOrganization,
+    actor: User | AnonymousUser | RpcUser | None = None,
 ) -> tuple[bool, str | None]:
     if not features.has("organizations:gen-ai-features", organization, actor=actor):
         return False, "Feature flag not enabled"

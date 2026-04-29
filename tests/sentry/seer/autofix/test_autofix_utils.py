@@ -13,7 +13,9 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
+    clear_preference_automation_handoff,
     deduplicate_repositories,
+    extract_api_error_message,
     get_autofix_prompt,
     get_coding_agent_prompt,
     get_org_default_seer_automation_handoff,
@@ -36,7 +38,6 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepositoryBranchOverride,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
 
@@ -458,182 +459,19 @@ class TestHasProjectConnectedRepos(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 
-    @patch("sentry.seer.autofix.utils.cache")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    def test_returns_true_when_repos_exist(self, mock_get_preferences, mock_cache):
-        """Test returns True when project has connected repositories."""
-        mock_cache.get.return_value = None
-        mock_preference = Mock()
-        mock_preference.repositories = [{"provider": "github", "owner": "test", "name": "repo"}]
-        mock_response = Mock()
-        mock_response.preference = mock_preference
-        mock_get_preferences.return_value = mock_response
-
-        result = has_project_connected_repos(self.organization, self.project)
-
-        assert result is True
-        mock_cache.set.assert_called_once_with(
-            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
-            True,
-            timeout=60 * 15,
+    def test_returns_true_when_repos_exist(self):
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="owner/repo",
         )
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
-    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.seer.autofix.utils.cache")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    def test_returns_false_when_no_repos(
-        self, mock_get_preferences, mock_cache, mock_get_code_mappings
-    ):
-        """Test returns False when project has no connected repositories."""
-        mock_cache.get.return_value = None
-        mock_preference = Mock()
-        mock_preference.repositories = []
-        mock_response = Mock()
-        mock_response.preference = mock_preference
-        mock_get_preferences.return_value = mock_response
-        mock_get_code_mappings.return_value = []
+        assert has_project_connected_repos(self.organization, self.project) is True
 
-        result = has_project_connected_repos(self.organization, self.project)
-
-        assert result is False
-        mock_cache.set.assert_called_once_with(
-            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
-            False,
-            timeout=60 * 15,
-        )
-
-    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.seer.autofix.utils.cache")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    def test_returns_false_when_preference_is_none_and_no_code_mappings(
-        self, mock_get_preferences, mock_cache, mock_get_code_mappings
-    ):
-        """Test returns False when preference is None and no code mappings exist."""
-        mock_cache.get.return_value = None
-        mock_response = Mock()
-        mock_response.preference = None
-        mock_get_preferences.return_value = mock_response
-        mock_get_code_mappings.return_value = []
-
-        result = has_project_connected_repos(self.organization, self.project)
-
-        assert result is False
-        mock_cache.set.assert_called_once_with(
-            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
-            False,
-            timeout=60 * 15,
-        )
-
-    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.seer.autofix.utils.cache")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    def test_falls_back_to_code_mappings_when_no_seer_preference(
-        self, mock_get_preferences, mock_cache, mock_get_code_mappings
-    ):
-        """Test falls back to code mappings when Seer has no preference."""
-        mock_cache.get.return_value = None
-        mock_response = Mock()
-        mock_response.preference = None
-        mock_get_preferences.return_value = mock_response
-        mock_get_code_mappings.return_value = [
-            {"provider": "github", "owner": "test", "name": "repo"}
-        ]
-
-        result = has_project_connected_repos(self.organization, self.project)
-
-        assert result is True
-        mock_get_code_mappings.assert_called_once()
-        mock_cache.set.assert_called_once_with(
-            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
-            True,
-            timeout=60 * 15,
-        )
-
-    @patch("sentry.seer.autofix.utils.cache")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    def test_returns_cached_value_true(self, mock_get_preferences, mock_cache):
-        """Test returns cached True value without calling API."""
-        mock_cache.get.return_value = True
-
-        result = has_project_connected_repos(self.organization, self.project)
-
-        assert result is True
-        mock_get_preferences.assert_not_called()
-        mock_cache.set.assert_not_called()
-
-    @patch("sentry.seer.autofix.utils.cache")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    def test_returns_cached_value_false(self, mock_get_preferences, mock_cache):
-        """Test returns cached False value without calling API."""
-        mock_cache.get.return_value = False
-
-        result = has_project_connected_repos(self.organization, self.project)
-
-        assert result is False
-        mock_get_preferences.assert_not_called()
-        mock_cache.set.assert_not_called()
-
-    @patch("sentry.seer.autofix.utils.cache")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    def test_skip_cache_bypasses_cached_value(self, mock_get_preferences, mock_cache):
-        """Test skip_cache=True bypasses cache and calls API."""
-        mock_cache.get.return_value = False  # Cache has False
-        mock_preference = Mock()
-        mock_preference.repositories = [{"provider": "github", "owner": "test", "name": "repo"}]
-        mock_response = Mock()
-        mock_response.preference = mock_preference
-        mock_get_preferences.return_value = mock_response
-
-        result = has_project_connected_repos(self.organization, self.project, skip_cache=True)
-
-        assert result is True  # Fresh value from API, not cached False
-        mock_cache.get.assert_not_called()  # Cache not checked
-        mock_get_preferences.assert_called_once()  # API was called
-        mock_cache.set.assert_called_once()  # Cache still updated
-
-    @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.seer.autofix.utils.cache")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    def test_falls_back_to_code_mappings_on_api_error(
-        self, mock_get_preferences, mock_cache, mock_get_code_mappings
-    ):
-        """Test falls back to code mappings when Seer API fails."""
-        mock_cache.get.return_value = None
-        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
-        mock_get_code_mappings.return_value = [
-            {"provider": "github", "owner": "test", "name": "repo"}
-        ]
-
-        result = has_project_connected_repos(self.organization, self.project)
-
-        assert result is True
-        mock_get_code_mappings.assert_called_once()
-
-    @with_feature("organizations:seer-project-settings-read-from-sentry")
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
-    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
-    @patch("sentry.seer.autofix.utils.cache")
-    def test_reads_from_sentry_db(self, mock_cache, mock_get_prefs, mock_read_db):
-        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
-        mock_cache.get.return_value = None
-        mock_read_db.return_value = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                SeerRepoDefinition(provider="github", owner="owner", name="repo", external_id="123")
-            ],
-        )
-
-        result = has_project_connected_repos(self.organization, self.project)
-
-        assert result is True
-        mock_get_prefs.assert_not_called()
-        mock_read_db.assert_called_once()
-        mock_cache.set.assert_called_once_with(
-            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
-            True,
-            timeout=60 * 15,
-        )
+    def test_returns_false_when_no_repos(self):
+        assert has_project_connected_repos(self.organization, self.project) is False
 
 
 class TestSetProjectSeerPreference(TestCase):
@@ -1250,6 +1088,77 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert p2_repo.branch_name == "project-2-branch"
 
 
+class TestClearPreferenceAutomationHandoff(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext123",
+            name="test-org/test-repo",
+        )
+
+    def _assert_handoff_options_cleared(self) -> None:
+        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+
+    def test_clears_all_four_handoff_options(self) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        clear_preference_automation_handoff(self.project)
+
+        self._assert_handoff_options_cleared()
+
+    def test_preserves_unrelated_preference_fields(self) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        self.project.update_option("sentry:autofix_automation_tuning", "high")
+        SeerProjectRepository.objects.create(
+            project=self.project,
+            repository_id=self.repo.id,
+            branch_name="develop",
+            instructions="Use conventional commits",
+        )
+
+        clear_preference_automation_handoff(self.project)
+
+        self._assert_handoff_options_cleared()
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "high"
+
+        seer_repo = SeerProjectRepository.objects.get(project=self.project)
+        assert seer_repo.repository_id == self.repo.id
+        assert seer_repo.branch_name == "develop"
+        assert seer_repo.instructions == "Use conventional commits"
+
+    def test_preserves_no_handoff(self) -> None:
+        clear_preference_automation_handoff(self.project)
+
+        self._assert_handoff_options_cleared()
+
+    def test_clears_partial_handoff(self) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+
+        clear_preference_automation_handoff(self.project)
+
+        self._assert_handoff_options_cleared()
+
+
 class TestReadPreferenceFromSentryDb(TestCase):
     def setUp(self):
         super().setUp()
@@ -1268,9 +1177,13 @@ class TestReadPreferenceFromSentryDb(TestCase):
             name="test-org/other-repo",
         )
 
-    def test_unconfigured_project_returns_none(self):
+    def test_unconfigured_project_returns_default_preference(self):
         result = read_preference_from_sentry_db(self.project)
-        assert result is None
+        assert result is not None
+        assert result.repositories == []
+        assert result.automated_run_stopping_point == "code_changes"
+        assert result.automation_handoff is None
+        assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_project_with_repos_only(self):
         spr = SeerProjectRepository.objects.create(
@@ -1470,9 +1383,14 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         result = bulk_read_preferences_from_sentry_db(self.organization.id, [])
         assert result == {}
 
-    def test_unconfigured_project_returns_none(self):
+    def test_unconfigured_project_returns_default_preference(self):
         result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
-        assert result == {self.project1.id: None}
+        pref = result[self.project1.id]
+        assert pref is not None
+        assert pref.repositories == []
+        assert pref.automated_run_stopping_point == "code_changes"
+        assert pref.automation_handoff is None
+        assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_bulk_returns_correct_preferences(self):
         SeerProjectRepository.objects.create(
@@ -1526,7 +1444,9 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert pref1 is not None
         assert pref1.autofix_automation_tuning == AutofixAutomationTuningSettings.HIGH
 
-        assert result[self.project2.id] is None
+        pref2 = result[self.project2.id]
+        assert pref2 is not None
+        assert pref2.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_autofix_automation_tuning_defaults_to_off(self):
         SeerProjectRepository.objects.create(
@@ -1642,3 +1562,53 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         )
         stopping_point, _ = get_org_default_seer_automation_handoff(self.organization)
         assert stopping_point == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+
+
+class TestExtractApiErrorMessage:
+    def _response(self, body: Any) -> Mock:
+        response = Mock()
+        response.json.return_value = body
+        return response
+
+    def test_anthropic_shape(self) -> None:
+        response = self._response(
+            {"error": {"type": "invalid_request_error", "message": "Credit balance too low"}}
+        )
+        assert extract_api_error_message(response) == "Credit balance too low"
+
+    def test_top_level_message(self) -> None:
+        response = self._response({"message": "Rate limit exceeded"})
+        assert extract_api_error_message(response) == "Rate limit exceeded"
+
+    def test_error_message_wins_over_top_level_message(self) -> None:
+        response = self._response({"error": {"message": "Nested msg"}, "message": "Top msg"})
+        assert extract_api_error_message(response) == "Nested msg"
+
+    def test_returns_none_when_response_is_none(self) -> None:
+        assert extract_api_error_message(None) is None
+
+    def test_returns_none_when_json_raises_value_error(self) -> None:
+        response = Mock()
+        response.json.side_effect = ValueError("not json")
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_body_is_not_a_dict(self) -> None:
+        response = self._response(["just", "a", "list"])
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_error_field_is_a_string(self) -> None:
+        # Some APIs use "error" as a string; skip it rather than crashing.
+        response = self._response({"error": "something broke"})
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_no_recognized_keys(self) -> None:
+        response = self._response({"detail": "DRF-style error"})
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_message_is_empty_string(self) -> None:
+        response = self._response({"error": {"message": ""}})
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_message_is_not_a_string(self) -> None:
+        response = self._response({"error": {"message": 42}})
+        assert extract_api_error_message(response) is None

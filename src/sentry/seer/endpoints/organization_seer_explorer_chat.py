@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -19,12 +20,47 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+_CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+
+
+class CodeModeField(serializers.Field):
+    """Accepts 'off'|'on'|'only' strings, or booleans for backwards compat.
+
+    DRF's CharField rejects raw booleans before the field-level validator
+    runs, so we handle coercion in to_internal_value instead.
+    """
+
+    def to_internal_value(self, data: object) -> str | None:
+        if data is None:
+            return None
+        if data is True:
+            return "on"
+        if data is False:
+            return "off"
+        if isinstance(data, str):
+            lowered = data.lower()
+            if lowered in ("true",):
+                return "on"
+            if lowered in ("false",):
+                return "off"
+            if lowered in _CODE_MODE_VALUES:
+                return lowered
+        raise serializers.ValidationError(
+            f"Invalid value '{data}'. Must be 'off', 'on', 'only', or a boolean."
+        )
+
+    def to_representation(self, value: object) -> str | None:
+        if value is None:
+            return None
+        return str(value)
 
 
 class SeerExplorerChatSerializer(serializers.Serializer):
@@ -54,6 +90,12 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         required=False,
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
+    )
+    override_code_mode_enable = CodeModeField(
+        required=False,
+        default=None,
+        allow_null=True,
+        help_text="Override code mode tools: 'off', 'on', 'only', or boolean for backwards compat.",
     )
 
 
@@ -113,6 +155,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"session": state.dict()})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError as e:
+            sentry_sdk.capture_exception(e)
+            if e.status == 404:
+                return Response({"session": None}, status=404)
+            return Response(
+                {"detail": "Failed to fetch run state"},
+                status=500,
+            )
         except ValueError:
             logger.exception("Error getting Explorer run state")
             return Response({"session": None}, status=404)
@@ -156,6 +206,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
         override_ce_enable = validated_data["override_ce_enable"]
+        override_code_mode_enable = validated_data.get("override_code_mode_enable")
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -172,9 +223,15 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
-            enable_code_mode_tools = features.has(
+            has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
+            if not has_code_mode_feature:
+                enable_code_mode_tools = "off"
+            elif override_code_mode_enable is not None:
+                enable_code_mode_tools = override_code_mode_enable
+            else:
+                enable_code_mode_tools = "on"
             client = SeerExplorerClient(
                 organization,
                 request.user,
@@ -206,3 +263,9 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"run_id": result_run_id})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"detail": "Failed to start or continue chat session"},
+                status=500,
+            )

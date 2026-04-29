@@ -14,5 +14,5 @@ export function decodeSubregions(
 
 function isAValidOption(maybeOption: string): maybeOption is SubregionCode {
   // Manually widen to allow the comparison to string
-  return (OPTIONS as unknown as string[]).includes(maybeOption as SubregionCode);
+  return (OPTIONS as unknown as string[]).includes(maybeOption);
 }

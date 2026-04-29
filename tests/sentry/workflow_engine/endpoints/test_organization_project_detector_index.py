@@ -8,6 +8,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.environment import Environment
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import Monitor, ScheduleType, is_monitor_muted
@@ -98,7 +99,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 
 
 @cell_silo_test
-@with_feature("organizations:incidents")
+@with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
@@ -162,6 +163,34 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 string="Unable to process request, confirm payment options.", code="error"
             )
         }
+
+    def test_create_blocked_when_dataset_not_allowed(self) -> None:
+        """
+        Creating a metric detector should be blocked when the org lacks
+        access to the dataset's required feature. Uses the EAP dataset
+        with visibility-explore-view disabled to trigger the validator
+        check (not the endpoint-level incidents gate).
+        """
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    **self.valid_data["dataSources"][0],
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "aggregate": "count()",
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                }
+            ],
+        }
+        with self.feature({"organizations:visibility-explore-view": False}):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=400,
+            )
+        assert "does not have access" in str(response.data)
 
     def test_project_not_found(self) -> None:
         self.get_error_response(

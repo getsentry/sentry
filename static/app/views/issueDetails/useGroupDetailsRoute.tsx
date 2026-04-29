@@ -1,46 +1,45 @@
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
+import {useMatches, type UIMatch} from 'react-router-dom';
+
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 function getCurrentTab({
-  routes,
+  matches,
   params,
 }: {
+  matches: Array<UIMatch<unknown, unknown>>;
   params: Record<string, string | undefined>;
-  routes: PlainRoute[];
 }) {
-  const currentRoute = routes[routes.length - 1];
+  const currentMatch = matches[matches.length - 1];
+  const currentPath = (currentMatch?.handle as {path?: string} | undefined)?.path;
 
   // If we're in the tag details page ("/distributions/:tagKey/")
   if (params.tagKey) {
     return Tab.DISTRIBUTIONS;
   }
-  return (
-    Object.values(Tab).find(tab => currentRoute?.path === TabPaths[tab]) ?? Tab.DETAILS
-  );
+  return Object.values(Tab).find(tab => currentPath === TabPaths[tab]) ?? Tab.DETAILS;
 }
 
 function getCurrentRouteInfo({
-  groupId,
   eventId,
+  groupId,
+  matches,
   organization,
-  routes,
   params,
 }: {
   eventId: string | undefined;
   groupId: string;
+  matches: Array<UIMatch<unknown, unknown>>;
   organization: Organization;
   params: Record<string, string | undefined>;
-  routes: PlainRoute[];
 }): {
   baseUrl: string;
   currentTab: Tab;
 } {
-  const currentTab = getCurrentTab({routes, params});
+  const currentTab = getCurrentTab({matches, params});
 
   const baseUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/${
@@ -61,12 +60,12 @@ export function useGroupDetailsRoute(): {
     eventId?: string;
     tagKey?: string;
   }>();
-  const routes = useRoutes();
+  const matches = useMatches();
   return getCurrentRouteInfo({
-    groupId: params.groupId,
     eventId: params.eventId,
+    groupId: params.groupId,
+    matches,
     organization,
-    routes,
     params,
   });
 }

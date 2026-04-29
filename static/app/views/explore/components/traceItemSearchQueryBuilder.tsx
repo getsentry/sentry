@@ -48,14 +48,14 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
     return {};
   }
 
-  return supportedAggregates.reduce((acc, item) => {
+  return supportedAggregates.reduce<TagCollection>((acc, item) => {
     acc[item] = {
       key: item,
       name: item,
       kind: FieldKind.FUNCTION,
     };
     return acc;
-  }, {} as TagCollection);
+  }, {});
 };
 
 const typeMap: Partial<
@@ -391,7 +391,7 @@ function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
     return t('Search for spans, users, tags, and more');
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
-    return t('Search for metrics, users, tags, and more');
+    return t('Search for application metrics, users, tags, and more');
   }
   if (itemType === TraceItemDataset.PREPROD) {
     return t('Search for builds, versions, and more');

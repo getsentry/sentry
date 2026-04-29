@@ -69,7 +69,7 @@ type ProjectTelemetryFlag = Extract<
   `hasInsights${string}` | 'hasSessions' | 'firstTransactionEvent'
 >;
 
-export type OnboardingConfig =
+type OnboardingConfig =
   | {
       moduleName: ModulesWithOnboarding;
       // Single-module onboarding: shows ModulesOnboardingPanel

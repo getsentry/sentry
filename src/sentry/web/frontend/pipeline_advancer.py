@@ -34,6 +34,11 @@ TRAMPOLINE_HTML = """\
   if (window.opener) {{
     window.opener.postMessage(data, {origin});
     window.close();
+  }} else if ({fallback_url}) {{
+    // GitHub apps installed directly from GitHub won't have an opener window.
+    // Redirect to the integration install org picker instead of showing a
+    // dead-end page.
+    window.location.assign({fallback_url});
   }} else {{
     document.getElementById("fallback").style.display = "flex";
   }}
@@ -45,7 +50,7 @@ TRAMPOLINE_HTML = """\
 </html>"""
 
 
-def _render_trampoline(request: HttpRequest, pipeline: object) -> HttpResponse:
+def _render_trampoline(request: HttpRequest, pipeline: object, provider_id: str) -> HttpResponse:
     """Render a minimal page that posts callback params back to the opener."""
     params: dict[str, str] = {"_pipeline_source": "sentry-pipeline"}
     for key, values in parse_qs(request.META.get("QUERY_STRING", "")).items():
@@ -53,6 +58,17 @@ def _render_trampoline(request: HttpRequest, pipeline: object) -> HttpResponse:
             params[key] = values[0]
 
     data_json = str(dumps_htmlsafe(params))
+
+    # When the callback looks like a GitHub direct install (setup_action=install
+    # with an installation_id), pre-compute the fallback redirect URL so the
+    # trampoline can navigate there if there's no opener window.
+    installation_id = request.GET.get("installation_id")
+    if request.GET.get("setup_action") == "install" and installation_id:
+        fallback_url = str(
+            dumps_htmlsafe(reverse("integration-installation", args=[provider_id, installation_id]))
+        )
+    else:
+        fallback_url = "null"
 
     # In multi-region the opener may be on a different origin (e.g.
     # org-slug.sentry.io) than the trampoline (sentry.io/extensions/...),
@@ -66,7 +82,12 @@ def _render_trampoline(request: HttpRequest, pipeline: object) -> HttpResponse:
     nonce = getattr(request, "csp_nonce", "")
 
     return HttpResponse(
-        TRAMPOLINE_HTML.format(data_json=data_json, origin=origin, nonce=nonce),
+        TRAMPOLINE_HTML.format(
+            data_json=data_json,
+            origin=origin,
+            nonce=nonce,
+            fallback_url=fallback_url,
+        ),
         content_type="text/html",
     )
 
@@ -106,10 +127,7 @@ class PipelineAdvancerView(BaseView):
         if (
             provider_id == IntegrationProviderSlug.GITHUB.value
             and request.GET.get("setup_action") == "install"
-            # There should be no pipeline. If there IS an active API pipeline
-            # we also redirect, since the trampoline would render with no
-            # opener window and leave the user stuck.
-            and (pipeline is None or pipeline.is_api_mode)
+            and pipeline is None
         ):
             installation_id = request.GET.get("installation_id")
             return self.redirect(
@@ -129,7 +147,7 @@ class PipelineAdvancerView(BaseView):
                 tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
                 sample_rate=1.0,
             )
-            return _render_trampoline(request, pipeline)
+            return _render_trampoline(request, pipeline, provider_id)
 
         metrics.incr(
             "integrations.pipeline_advancer.legacy",
