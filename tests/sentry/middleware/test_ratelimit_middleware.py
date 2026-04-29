@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from time import sleep, time
 from unittest.mock import MagicMock, patch, sentinel
@@ -20,6 +19,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
 @all_silo_test
@@ -89,6 +89,36 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
         bad_request = BadRequest()
         assert self.middleware.process_response(bad_request, bad_response) is bad_response
+
+    @patch("sentry.middleware.ratelimit.sentry_sdk.capture_exception")
+    def test_process_response_captures_429_to_sentry(
+        self, mock_capture_exception: MagicMock
+    ) -> None:
+        request = self.factory.get("/api/0/some-endpoint/")
+        response = HttpResponse(status=429)
+        assert self.middleware.process_response(request, response) is response
+        assert mock_capture_exception.call_count == 1
+        assert mock_capture_exception.call_args.kwargs == {"level": "warning"}
+
+    @patch("sentry.middleware.ratelimit.sentry_sdk.capture_exception")
+    def test_process_response_does_not_capture_non_429(
+        self, mock_capture_exception: MagicMock
+    ) -> None:
+        request = self.factory.get("/api/0/some-endpoint/")
+        for status in (200, 400, 403, 500):
+            response = HttpResponse(status=status)
+            self.middleware.process_response(request, response)
+        assert mock_capture_exception.call_count == 0
+
+    @patch("sentry.middleware.ratelimit.sentry_sdk.capture_exception")
+    def test_process_response_skips_capture_when_already_captured(
+        self, mock_capture_exception: MagicMock
+    ) -> None:
+        request = self.factory.get("/api/0/some-endpoint/")
+        request._rate_limit_captured_to_sentry = True
+        response = HttpResponse(status=429)
+        self.middleware.process_response(request, response)
+        assert mock_capture_exception.call_count == 0
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock: MagicMock) -> None:
@@ -608,7 +638,7 @@ class TestConcurrentRateLimiter(APITestCase):
 
     def test_concurrent_request_rate_limiting(self) -> None:
         """test the concurrent rate limiter end to-end"""
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=4) as executor:
             futures = []
             # dispatch more simultaneous requests to the endpoint than the concurrent limit
             for _ in range(CONCURRENT_RATE_LIMIT + 1):

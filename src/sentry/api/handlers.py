@@ -30,6 +30,11 @@ def custom_exception_handler(exc, context):
                 exc,
                 level="warning",
             )
+        # The ratelimit middleware also captures every 429 to Sentry; suppress
+        # that here so we don't double-fire for the Snuba path that has richer
+        # exception data.
+        if request is not None:
+            request._rate_limit_captured_to_sentry = True
         # let the client know that they've been rate limited with details
         exc = Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
 
