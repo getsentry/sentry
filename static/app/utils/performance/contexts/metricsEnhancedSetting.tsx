@@ -95,7 +95,7 @@ export function MEPSettingProvider({
   const metricSettingFromParam =
     allowedStates.find(s => s === _metricSettingFromParam) ?? defaultMetricsState;
 
-  const isControlledMEP = typeof _hasMEPState !== 'undefined';
+  const isControlledMEP = _hasMEPState !== undefined;
 
   const [_metricSettingState, _setMetricSettingState] = useReducer(
     (_: MEPState, next: MEPState) => next,

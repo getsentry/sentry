@@ -106,8 +106,8 @@ export const sessionReplay: OnboardingConfig = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName: 'options\u200b.replay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName: 'options\u200b.replay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200B.replay\u200B.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200B.replay\u200B.sessionSampleRate',
   }),
   nextSteps: () => [],
 };

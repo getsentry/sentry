@@ -25,6 +25,7 @@ import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/c
 import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
 import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
@@ -45,6 +46,7 @@ import {
   MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
 } from 'sentry/views/insights/http/settings';
+import {PlatformizedHttpDomainSummaryPage} from 'sentry/views/insights/http/views/platformizedSummaryPage';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -269,6 +271,11 @@ function PageWithProviders() {
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
+    return <PlatformizedHttpDomainSummaryPage />;
+  }
 
   return (
     <ModulePageProviders

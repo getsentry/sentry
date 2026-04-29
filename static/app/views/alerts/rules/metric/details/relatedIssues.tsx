@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -13,8 +13,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
   RelatedIssuesNotAvailable,
@@ -43,24 +41,6 @@ export function RelatedIssues({
   timePeriod,
   skipHeader,
 }: Props) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // Add environment to the query parameters to be picked up by extractSelectionParameters
-  // Links using extractSelectionParameters will preserve these query parameters when navigating to issue details
-  useEffect(() => {
-    const env = rule.environment ?? '';
-    if (env !== (location.query.environment ?? '')) {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {...location.query, environment: env},
-        },
-        {replace: true}
-      );
-    }
-  }, [rule.environment, location, navigate]);
-
   function renderErrorMessage({detail}: {detail: string}, retry: () => void) {
     if (
       detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR &&
