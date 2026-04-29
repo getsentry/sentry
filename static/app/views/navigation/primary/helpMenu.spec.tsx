@@ -40,7 +40,8 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
 
-    // Click Contact Support in the menu
+    // Contact Support is nested inside the Resources submenu
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(intercom.showIntercom).toHaveBeenCalledWith(organization.slug);
@@ -58,7 +59,8 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
 
-    // Click Contact Support in the menu
+    // Contact Support is nested inside the Resources submenu
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(zendesk.activateZendesk).toHaveBeenCalled();
@@ -76,6 +78,8 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
 
+    // Contact Support is nested inside the Resources submenu
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
     const contactSupport = screen.getByRole('menuitemradio', {name: 'Contact Support'});
     expect(contactSupport).toHaveAttribute('href', 'mailto:support@sentry.io');
   });
