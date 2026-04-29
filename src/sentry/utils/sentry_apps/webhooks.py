@@ -37,7 +37,7 @@ from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.taskworker.timeout import timeout_alarm
 from sentry.utils import metrics, redis
-from sentry.utils.circuit_breaker2 import CircuitBreaker, CircuitBreakerState, RateBasedTripStrategy
+from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.circuit_breaker import circuit_breaker_tracking
@@ -111,7 +111,10 @@ def _notify_webhook_disabled(
     sentry_app: SentryApp | RpcSentryApp,
     owner_context: RpcUserOrganizationContext | None,
 ) -> None:
-    dedup_ttl = circuit_breaker.broken_state_duration + circuit_breaker.recovery_duration + 60
+    dedup_ttl = max(
+        circuit_breaker.broken_state_duration + circuit_breaker.recovery_duration + 60,
+        86400,  # 24 hours
+    )
     client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
     dedup_key = f"sentry-app.webhook.circuit-breaker.notified.{sentry_app.slug}"
     if not client.set(dedup_key, "1", ex=dedup_ttl, nx=True):
@@ -271,7 +274,7 @@ def send_and_save_webhook_request(
                 response = _send_webhook_request(url, app_platform_event, owner_context)
 
         except WebhookTimeoutError:
-            if circuit_breaker and circuit_breaker.get_state() == CircuitBreakerState.BROKEN:
+            if circuit_breaker and circuit_breaker.is_open():
                 try:
                     _notify_webhook_disabled(circuit_breaker, sentry_app, owner_context)
                 except Exception as email_error:

@@ -15,7 +15,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils import redis
-from sentry.utils.circuit_breaker2 import CircuitBreaker, CircuitBreakerState
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
 
 
@@ -211,10 +211,10 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         )
 
     @staticmethod
-    def _configure_breaker(MockBreaker, state):
+    def _configure_breaker(MockBreaker, *, is_open):
         mock_breaker_instance = MockBreaker.return_value
         mock_breaker_instance.should_allow_request.return_value = True
-        mock_breaker_instance.get_state.return_value = state
+        mock_breaker_instance.is_open.return_value = is_open
         mock_breaker_instance.broken_state_duration = 300
         mock_breaker_instance.recovery_duration = 600
         return mock_breaker_instance
@@ -228,7 +228,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         self, MockBreaker, mock_safe_urlopen, MockService
     ):
         """When the breaker trips during a timeout, an email is dispatched."""
-        self._configure_breaker(MockBreaker, CircuitBreakerState.BROKEN)
+        self._configure_breaker(MockBreaker, is_open=True)
         MockService.has_access.return_value = True
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
@@ -246,7 +246,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         self, MockBreaker, mock_safe_urlopen, MockService
     ):
         """A timeout that doesn't trip the breaker should not email."""
-        self._configure_breaker(MockBreaker, CircuitBreakerState.OK)
+        self._configure_breaker(MockBreaker, is_open=False)
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
         with pytest.raises(WebhookTimeoutError):
@@ -265,7 +265,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         self, MockBreaker, mock_safe_urlopen, MockService
     ):
         """Dry-run mode skips delivery even when the breaker trips."""
-        self._configure_breaker(MockBreaker, CircuitBreakerState.BROKEN)
+        self._configure_breaker(MockBreaker, is_open=True)
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
         with pytest.raises(WebhookTimeoutError):
@@ -278,10 +278,10 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_concurrent_trips_emit_single_email(self, MockBreaker, mock_safe_urlopen, MockService):
-        """In live mode, exactly one notify_async call fires per BROKEN cycle even when
-        N concurrent workers each observe a BROKEN state."""
-        self._configure_breaker(MockBreaker, CircuitBreakerState.BROKEN)
+    def test_concurrent_trips_emit_single_email_within_24h(
+        self, MockBreaker, mock_safe_urlopen, MockService
+    ):
+        self._configure_breaker(MockBreaker, is_open=True)
         MockService.has_access.return_value = True
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
@@ -290,6 +290,10 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
                 send_and_save_webhook_request(self.sentry_app, self._make_event())
 
         assert MockService.return_value.notify_async.call_count == 1
+
+        client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
+        dedup_key = f"sentry-app.webhook.circuit-breaker.notified.{self.sentry_app.slug}"
+        assert client.ttl(dedup_key) >= 86400
 
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
@@ -300,11 +304,9 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         self, MockBreaker, mock_safe_urlopen, MockService
     ):
         """If creator_label is a username (no @), we shouldn't email."""
-        # The helper only reads creator_label off the in-memory instance, so a local
-        # mutation is sufficient — no DB write required.
         self.sentry_app.creator_label = "no-email-username"
 
-        self._configure_breaker(MockBreaker, CircuitBreakerState.BROKEN)
+        self._configure_breaker(MockBreaker, is_open=True)
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
         with pytest.raises(WebhookTimeoutError):
@@ -321,7 +323,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         self, MockBreaker, mock_safe_urlopen, MockService
     ):
         """After the dedup key expires, a fresh BROKEN trip should email again."""
-        self._configure_breaker(MockBreaker, CircuitBreakerState.BROKEN)
+        self._configure_breaker(MockBreaker, is_open=True)
         MockService.has_access.return_value = True
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
@@ -346,10 +348,8 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
     def test_email_failure_records_halt_and_propagates(
         self, MockBreaker, mock_safe_urlopen, MockService, mock_record
     ):
-        """If _notify_webhook_disabled raises, the email error is recorded as a
-        halt and propagated directly (circuit_breaker_tracking has already
-        completed by the time we reach the except block)."""
-        self._configure_breaker(MockBreaker, CircuitBreakerState.BROKEN)
+        """If the email notification fails, the error is recorded as a halt and propagated directly."""
+        self._configure_breaker(MockBreaker, is_open=True)
         MockService.has_access.side_effect = RuntimeError("email boom")
         mock_safe_urlopen.side_effect = WebhookTimeoutError("hard timeout")
 
