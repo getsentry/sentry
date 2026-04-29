@@ -1,3 +1,4 @@
+import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
@@ -375,5 +376,29 @@ describe('StreamlinedActivitySection', () => {
     render(<StreamlinedActivitySection group={resolvedGroup} />);
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
+  });
+
+  it('renders referenced in commit activity', async () => {
+    const referencedGroup = GroupFixture({
+      id: '1341',
+      activity: [
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={referencedGroup} />);
+    expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
+    expect(screen.getByText('f7f395d')).toBeInTheDocument();
   });
 });

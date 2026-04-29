@@ -72,6 +72,10 @@ export const groupActivityTypeIconMapping: Record<
     Component: IconCheckmark,
     defaultProps: {},
   },
+  [GroupActivityType.REFERENCED_IN_COMMIT]: {
+    Component: IconCommit,
+    defaultProps: {},
+  },
   [GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST]: {
     Component: IconCommit,
     defaultProps: {},
