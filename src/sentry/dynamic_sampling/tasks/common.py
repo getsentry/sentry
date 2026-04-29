@@ -33,7 +33,7 @@ from sentry.utils.snuba import raw_snql_query
 ACTIVE_ORGS_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
 ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
 
-ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
+ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
 
 
