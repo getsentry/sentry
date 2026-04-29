@@ -73,6 +73,10 @@ describe('IssueStackTrace', () => {
       url: '/projects/org-slug/project-slug/stacktrace-link/',
       body: {config: null, sourceUrl: null, integrations: []},
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: ProjectFixture({id: '1', slug: 'project-slug'}),
+    });
     Object.assign(navigator, {
       clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
     });
@@ -666,8 +670,18 @@ describe('IssueStackTrace', () => {
 
   it('fetches and renders SCM source context for frames without embedded context', async () => {
     const {event, stacktrace} = makeCopyTestData();
-    const organization = OrganizationFixture({features: ['scm-source-context']});
-    ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'project-slug'})]);
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({
+      id: '1',
+      slug: 'project-slug',
+      scmSourceContextEnabled: true,
+    });
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: project,
+    });
 
     const sourceContextRequest = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/stacktrace-source-context/',
@@ -677,6 +691,7 @@ describe('IssueStackTrace', () => {
     render(
       <IssueStackTrace
         event={event}
+        projectSlug="project-slug"
         values={[
           {
             type: 'RuntimeError',
@@ -692,8 +707,8 @@ describe('IssueStackTrace', () => {
       {organization}
     );
 
-    expect(sourceContextRequest).toHaveBeenCalled();
     expect(await screen.findByText('def handle():')).toBeInTheDocument();
+    expect(sourceContextRequest).toHaveBeenCalled();
   });
 
   describe('exception groups', () => {
