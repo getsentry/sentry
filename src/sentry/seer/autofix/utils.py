@@ -559,7 +559,7 @@ def _write_preferences_to_sentry_db(
             repository__status=ObjectStatus.DISABLED
         ).delete()
 
-        incoming_repo_ids = {
+        all_repo_ids = {
             repo_def.repository_id
             for _, pref in project_preferences
             for repo_def in pref.repositories
@@ -568,10 +568,10 @@ def _write_preferences_to_sentry_db(
         disabled_repo_ids = (
             set(
                 Repository.objects.filter(
-                    id__in=incoming_repo_ids, status=ObjectStatus.DISABLED
+                    id__in=all_repo_ids, status=ObjectStatus.DISABLED
                 ).values_list("id", flat=True)
             )
-            if incoming_repo_ids
+            if all_repo_ids
             else set()
         )
 
