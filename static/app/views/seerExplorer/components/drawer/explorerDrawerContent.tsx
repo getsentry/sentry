@@ -321,12 +321,12 @@ export function ExplorerDrawerContent({
   return (
     <DrawerContentContainer data-seer-explorer-root="">
       <ExplorerDrawerHeader
+        disableNewChatButton={runId === null}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
         onChangeSession={switchToRun}
-        isEmptyState={isEmptyState}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
