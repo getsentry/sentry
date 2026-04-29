@@ -267,7 +267,7 @@ export function InputSection({
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={t('Ask seer a question, or press / for commands.')}
+            placeholder={t('Ask Seer a question, or press / for commands.')}
             rows={1}
             maxRows={5}
             autosize
