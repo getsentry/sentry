@@ -8,6 +8,7 @@ type MenuMode = 'slash-commands-keyboard' | 'pr-widget' | 'hidden';
 interface SlashCommandHandlers {
   onFeedback: (() => void) | undefined;
   onNew: () => void;
+  onCodeMode?: (value: 'off' | 'on' | 'only') => void;
   onConversations?: () => void;
   onLangfuse?: () => void;
   onMaxSize?: () => void;
@@ -287,6 +288,7 @@ function useSlashCommands({
   onFeedback,
   onLangfuse,
   onConversations,
+  onCodeMode,
 }: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
@@ -328,6 +330,28 @@ function useSlashCommands({
             },
           ]
         : []),
+      ...(isSentryEmployee && onCodeMode
+        ? [
+            {
+              title: '/code-mode-off',
+              key: '/code-mode-off',
+              description: 'Disable code mode tools',
+              handler: () => onCodeMode('off'),
+            },
+            {
+              title: '/code-mode-on',
+              key: '/code-mode-on',
+              description: 'Enable code mode tools alongside standard tools',
+              handler: () => onCodeMode('on'),
+            },
+            {
+              title: '/code-mode-only',
+              key: '/code-mode-only',
+              description: 'Use only code mode tools (no standard tools)',
+              handler: () => onCodeMode('only'),
+            },
+          ]
+        : []),
       ...(isSentryEmployee && onLangfuse
         ? [
             {
@@ -354,6 +378,7 @@ function useSlashCommands({
       onMaxSize,
       onMedSize,
       onFeedback,
+      onCodeMode,
       onLangfuse,
       onConversations,
       isSentryEmployee,
