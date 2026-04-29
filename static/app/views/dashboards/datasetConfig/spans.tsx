@@ -343,8 +343,7 @@ export const SpansConfig: DatasetConfig<
       data,
       widgetQuery,
       getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
-      getMetaField: (seriesMeta, aggregate) =>
-        seriesMeta?.fields?.[aggregate] as AggregationOutputType,
+      getMetaField: (seriesMeta, aggregate) => seriesMeta?.fields?.[aggregate]!,
     });
   },
 };

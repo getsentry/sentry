@@ -69,9 +69,7 @@ describe('useTraceMeta', () => {
 
     expect(result.current.indexComplete).toBe(true);
     expect(result.current.replayTraces).toBeUndefined();
-    expect(result.current.indexError as Error).toEqual(
-      expect.objectContaining({status: 400})
-    );
+    expect(result.current.indexError!).toEqual(expect.objectContaining({status: 400}));
     expect(mockedResponse).toHaveBeenCalledTimes(1);
   });
 });

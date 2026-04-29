@@ -108,12 +108,12 @@ export class GranularityLadder {
         fmt`Invalid duration supplied to interval function. (minutes: ${String(minutes)})`
       );
 
-      return (this.steps.at(-1) as GranularityStep)[1];
+      return this.steps.at(-1)![1];
     }
 
     const step = this.steps.find(([threshold]) => {
       return minutes >= threshold;
-    }) as GranularityStep;
+    })!;
 
     return step[1];
   }

@@ -330,7 +330,7 @@ const getFieldValue = (aggregate: string | undefined, model: any) => {
   const newFieldValue: QueryFieldValue = {
     kind: FieldValueKind.FUNCTION,
     function: [
-      getApproximateKnownPercentile(fieldValue.function[2] as string),
+      getApproximateKnownPercentile(fieldValue.function[2]!),
       fieldValue.function[1],
       undefined,
       undefined,

@@ -1121,7 +1121,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                 payload: [
                   ...(fields ?? []),
                   state.dataset === WidgetType.TRACEMETRICS && fields?.length
-                    ? cloneDeep(fields?.[fields.length - 1] as QueryFieldValue)
+                    ? cloneDeep(fields?.[fields.length - 1]!)
                     : cloneDeep(defaultField),
                 ],
               });

@@ -658,7 +658,7 @@ describe('Incident Rules Form', () => {
       );
 
       const chartHeader = (await screen.findAllByText('Custom Metrics'))[0]!
-        .parentElement as HTMLElement;
+        .parentElement!;
 
       expect(
         within(chartHeader).getByText(

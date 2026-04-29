@@ -150,7 +150,7 @@ function AddToDashboardModal({
   };
 
   const handleWidgetTableColumnResize = (columns: TabularColumn[]) => {
-    const widths = columns.map(column => column.width as number);
+    const widths = columns.map(column => column.width!);
     setTableWidths(widths);
   };
 

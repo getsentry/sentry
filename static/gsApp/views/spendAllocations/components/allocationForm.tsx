@@ -185,7 +185,7 @@ function AllocationForm({
       return;
     }
     let METHOD = 'POST';
-    let [start, end] = (rootAllocation as SpendAllocation).period;
+    let [start, end] = rootAllocation!.period;
     if (initializedData) {
       METHOD = 'PUT';
       [start, end] = initializedData.period;

@@ -209,7 +209,7 @@ export function getMargin(
 
   if (margin.length < 3) {
     // This can only be a single margin value, so we can resolve it directly.
-    return resolveMargin(margin as Margin, theme) as string;
+    return resolveMargin(margin as Margin, theme)!;
   }
 
   return margin
@@ -267,7 +267,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
     }
   }
 
-  return value as ResponsiveValue<T>;
+  return value!;
 }
 
 export function useActiveBreakpoint(): BreakpointSize {

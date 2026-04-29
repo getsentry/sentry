@@ -357,7 +357,7 @@ const addCustomMeasurements = (transaction: TransactionEvent) => {
     ttfb: ttfbValue,
     browserTimeOrigin,
     transactionStart: transaction.start_timestamp,
-    transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
+    transactionOp: transaction.contexts?.trace?.op! ?? 'pageload',
   };
 
   for (const [name, fn] of Object.entries(customMeasurements)) {

@@ -62,7 +62,7 @@ function metricOptionsQueryKey({
   if (datetime) {
     Object.entries(normalizeDateTimeParams(datetime)).forEach(([key, value]) => {
       if (value !== undefined) {
-        query[key] = value as string | string[];
+        query[key] = value!;
       }
     });
   }

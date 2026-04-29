@@ -788,9 +788,7 @@ export function useWidgetBuilderState(): {
                     ? [
                         {
                           kind: sort?.[0]?.kind ?? 'desc',
-                          field: generateFieldAsString(
-                            validSortOptions[0] as QueryFieldValue
-                          ),
+                          field: generateFieldAsString(validSortOptions[0]!),
                         },
                       ]
                     : [],
@@ -803,9 +801,7 @@ export function useWidgetBuilderState(): {
                   [
                     {
                       kind: sort?.[0]?.kind ?? 'desc',
-                      field: generateFieldAsString(
-                        action.payload[changedFieldIndex] as QueryFieldValue
-                      ),
+                      field: generateFieldAsString(action.payload[changedFieldIndex]!),
                     },
                   ],
                   options

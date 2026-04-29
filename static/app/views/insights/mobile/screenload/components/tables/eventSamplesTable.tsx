@@ -18,7 +18,7 @@ import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/u
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -207,7 +207,7 @@ export function EventSamplesTable({
       <GridContainer>
         <GridEditable
           isLoading={isLoading}
-          data={data?.data as TableDataRow[]}
+          data={data?.data!}
           columnOrder={columns}
           columnSortBy={columnSortBy}
           grid={{

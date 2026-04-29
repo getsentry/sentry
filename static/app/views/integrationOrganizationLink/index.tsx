@@ -167,7 +167,7 @@ export default function IntegrationOrganizationLink() {
   useEffect(() => {
     // If only one organization, select it and redirect
     if (organizations.length === 1) {
-      selectOrganization((organizations[0] as Organization).slug);
+      selectOrganization(organizations[0]!.slug);
     }
     // Now, check the subdomain and use that org slug if it exists
     const customerDomain = ConfigStore.get('customerDomain');

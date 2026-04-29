@@ -136,8 +136,7 @@ export function LogsAggregateTable({
             );
           },
           renderBodyCell: (column, row) => {
-            const value =
-              row[column.key] === undefined ? null : (row[column.key] as string | number);
+            const value = row[column.key] === undefined ? null : row[column.key]!;
             const level = getLogSeverityLevel(
               typeof row?.[OurLogKnownFieldKey.SEVERITY_NUMBER] === 'number'
                 ? row?.[OurLogKnownFieldKey.SEVERITY_NUMBER]

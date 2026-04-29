@@ -367,7 +367,7 @@ function DropdownItem({
             onClick={e => {
               // stop propagation so the item-level onClick doesn't get called
               e.stopPropagation();
-              onIconClick(item.value as string);
+              onIconClick(item.value!);
             }}
           />
         )}

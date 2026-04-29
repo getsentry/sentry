@@ -323,11 +323,11 @@ export function AssigneeSelectorDropdown({
     let assignee: User | Actor;
 
     if (type === 'user') {
-      assignee = currentMemberList.find(member => member.id === assigneeId) as User;
+      assignee = currentMemberList.find(member => member.id === assigneeId)!;
     } else {
       const assignedTeam = getAssignableTeams().find(
         assignableTeam => assignableTeam.team.id === assigneeId
-      ) as AssignableTeam;
+      )!;
       // Convert AssingableTeam to Actor
       assignee = {
         id: assignedTeam.id,

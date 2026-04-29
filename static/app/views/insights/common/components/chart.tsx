@@ -591,7 +591,7 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   let maxValue = 0;
   if (data.length > 1 && stacked) {
     for (const serie of data) {
-      maxValue += max(serie.data.map(point => point.value)) as number;
+      maxValue += max(serie.data.map(point => point.value))!;
     }
   } else {
     maxValue = computeMax(data);

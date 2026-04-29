@@ -569,7 +569,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
       const previousTimeseriesData = sortedTimeseriesData.some(item => item[2] === null)
         ? undefined
         : sortedTimeseriesData.map(item => {
-            return item[2] as Series;
+            return item[2]!;
           });
 
       return children({

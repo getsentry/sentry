@@ -196,7 +196,7 @@ function ReplayPreviewTable({
         <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {selectedIds.map(id => {
-        const replay = replays.find(r => r.id === id) as ReplayListRecord;
+        const replay = replays.find(r => r.id === id)!;
         if (replay.is_archived) {
           return null;
         }
