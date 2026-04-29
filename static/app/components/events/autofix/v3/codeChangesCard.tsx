@@ -14,6 +14,8 @@ import {
 import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
+import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
+import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -37,6 +39,13 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
   );
+
+  const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
+    useResetAutofixStep({
+      autofix,
+      section,
+      step: 'code_changes',
+    });
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
@@ -62,9 +71,6 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const {runState, startStep} = autofix;
-  const runId = runState?.run_id;
-
   return (
     <ArtifactCard
       icon={<IconCode />}
@@ -74,6 +80,8 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
           : undefined
       }
+      allowReset
+      onReset={canReset ? () => setShouldShowReset(true) : undefined}
     >
       {section.status === 'processing' ? (
         <ArtifactLoadingDetails
@@ -82,9 +90,19 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
         />
       ) : (
         <Fragment>
+          {shouldShowReset && (
+            <AutofixResetPrompt
+              onClosePrompt={() => setShouldShowReset(false)}
+              onReset={handleReset}
+              placeholder={t('Give seer additional context to improve this code change.')}
+              prompt={t('How can this code change be improved?')}
+            />
+          )}
           {patchesByRepo.size ? (
             <Fragment>
-              <Text>{summary}</Text>
+              <ArtifactDetails>
+                <Text>{summary}</Text>
+              </ArtifactDetails>
               {[...patchesByRepo.entries()].map(([repo, patches]) => (
                 <ArtifactDetails key={repo}>
                   <Flex gap="lg">
@@ -114,7 +132,7 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
                 <Button
                   priority="primary"
                   icon={<IconRefresh />}
-                  onClick={() => startStep('code_changes', {runId})}
+                  onClick={() => handleReset()}
                 >
                   {t('Re-run')}
                 </Button>
