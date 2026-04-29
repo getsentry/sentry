@@ -51,7 +51,9 @@ describe('ErrorsContent', () => {
   it('renders the Errors page title', async () => {
     const organization = OrganizationFixture();
     render(<ErrorsContent />, {organization, additionalWrapper: TopBarWrapper});
-    expect(await screen.findByRole('heading', {name: /Errors/})).toBeInTheDocument();
+    // The Errors title is rendered on the top of the page and in the table tabs
+    const titles = await screen.findAllByText('Errors');
+    expect(titles).toHaveLength(2);
   });
 
   it('renders page filter bar with project, environment, and date filters', async () => {
