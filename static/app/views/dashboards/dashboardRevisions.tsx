@@ -145,7 +145,7 @@ function DashboardRevisionsModal({
                         name: dashboardCreatedBy.name,
                         email: dashboardCreatedBy.email,
                         avatarType: dashboardCreatedBy.avatar?.avatarType,
-                        avatarUrl: dashboardCreatedBy.avatar?.avatarUrl,
+                        avatarUrl: dashboardCreatedBy.avatar?.avatarUrl ?? undefined,
                       }
                     : null
                 }

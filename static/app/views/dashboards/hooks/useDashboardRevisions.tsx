@@ -6,9 +6,11 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
-export type RevisionCreatedBy = Pick<AvatarUser, 'email' | 'id' | 'name'> & {
+export type RevisionCreatedBy = Pick<
+  AvatarUser,
+  'email' | 'id' | 'name' | 'avatarUrl'
+> & {
   avatarType?: Avatar['avatarType'] | null;
-  avatarUrl?: string | null;
 };
 
 export type DashboardRevision = {
