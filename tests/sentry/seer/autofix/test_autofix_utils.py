@@ -1025,6 +1025,85 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert repos[1].repository_id == repo2.id
         assert repos[1].instructions == "Deploy carefully"
 
+    def test_preserves_existing_seer_project_repository_for_disabled_repo(self) -> None:
+        """Test that SeerProjectRepository rows pointing at disabled repos
+        don't get deleted when omitted from the payload."""
+        disabled_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext_disabled",
+            name="test-org/disabled-repo",
+        )
+        disabled_repo.status = ObjectStatus.DISABLED
+        disabled_repo.save()
+        SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=disabled_repo,
+            branch_name="branch-1",
+            instructions="kept across writes",
+        )
+
+        # New payload only includes the active repo (mirrors what reads now return).
+        new_preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="branch-2",
+                ),
+            ],
+        )
+        write_preference_to_sentry_db(self.project, new_preference)
+
+        project_repos = SeerProjectRepository.objects.filter(project=self.project).order_by(
+            "repository_id"
+        )
+        assert len(project_repos) == 2
+        project_repos_by_repo_id = {r.repository_id: r for r in project_repos}
+        assert project_repos_by_repo_id[disabled_repo.id].branch_name == "branch-1"
+        assert project_repos_by_repo_id[disabled_repo.id].instructions == "kept across writes"
+        assert project_repos_by_repo_id[self.repo.id].branch_name == "branch-2"
+
+    def test_skips_new_seer_project_repository_for_disabled_repo(self) -> None:
+        """If a repo is disabled and its ID appears in the payload, any
+        existing SeerProjectRepository for that repo should be preserved
+        and no new row should be created."""
+        SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=self.repo,
+            branch_name="original",
+            instructions="original instructions",
+        )
+        self.repo.status = ObjectStatus.DISABLED
+        self.repo.save()
+
+        new_preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="should-be-ignored",
+                ),
+            ],
+        )
+        write_preference_to_sentry_db(self.project, new_preference)
+
+        repos = list(SeerProjectRepository.objects.filter(project=self.project))
+        assert len(repos) == 1
+        assert repos[0].repository_id == self.repo.id
+        assert repos[0].branch_name == "original"
+        assert repos[0].instructions == "original instructions"
+
     def test_bulk_write_multiple_projects(self) -> None:
         project2 = self.create_project(organization=self.organization)
         repo2 = self.create_repo(
@@ -1080,81 +1159,6 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert p2_repos[0].repository_id == repo2.id
         assert p2_repos[0].instructions == "Be careful"
         assert project2.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
-
-    def test_preserves_disabled_repo_pref_on_write(self) -> None:
-        """A pref pointing at a disabled repo must survive a write that omits it."""
-        disabled_repo = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            external_id="ext_disabled",
-            name="test-org/disabled-repo",
-        )
-        disabled_repo.status = ObjectStatus.DISABLED
-        disabled_repo.save()
-        SeerProjectRepository.objects.create(
-            project=self.project,
-            repository=disabled_repo,
-            branch_name="legacy",
-            instructions="kept across writes",
-        )
-
-        # New payload only includes the active repo (mirrors what reads now return).
-        new_preference = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                SeerRepoDefinition(
-                    repository_id=self.repo.id,
-                    provider="github",
-                    owner="test-org",
-                    name="test-repo",
-                    external_id="ext123",
-                    branch_name="main",
-                ),
-            ],
-        )
-        write_preference_to_sentry_db(self.project, new_preference)
-
-        repos = SeerProjectRepository.objects.filter(project=self.project).order_by("repository_id")
-        assert len(repos) == 2
-        by_repo_id = {r.repository_id: r for r in repos}
-        assert by_repo_id[disabled_repo.id].branch_name == "legacy"
-        assert by_repo_id[disabled_repo.id].instructions == "kept across writes"
-        assert by_repo_id[self.repo.id].branch_name == "main"
-
-    def test_skips_write_for_disabled_repo_in_payload(self) -> None:
-        """If a repo is disabled and its ID appears in the write payload, the
-        existing preserved pref should be kept and no new row should be created."""
-        SeerProjectRepository.objects.create(
-            project=self.project,
-            repository=self.repo,
-            branch_name="original",
-            instructions="original instructions",
-        )
-        self.repo.status = ObjectStatus.DISABLED
-        self.repo.save()
-
-        new_preference = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                SeerRepoDefinition(
-                    repository_id=self.repo.id,
-                    provider="github",
-                    owner="test-org",
-                    name="test-repo",
-                    external_id="ext123",
-                    branch_name="should-be-ignored",
-                ),
-            ],
-        )
-        write_preference_to_sentry_db(self.project, new_preference)
-
-        repos = list(SeerProjectRepository.objects.filter(project=self.project))
-        assert len(repos) == 1
-        assert repos[0].repository_id == self.repo.id
-        assert repos[0].branch_name == "original"
-        assert repos[0].instructions == "original instructions"
 
     def test_bulk_write_replaces_per_project(self) -> None:
         project2 = self.create_project(organization=self.organization)
