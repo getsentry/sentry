@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {motion} from 'framer-motion';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -18,13 +17,11 @@ interface NewWelcomeProductCardProps {
   product: ProductOption;
 }
 
-const MotionCardContainer = motion.create(Container);
-
 export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
   const {icon, title, description, badge} = product;
 
   return (
-    <MotionCardContainer>
+    <Container>
       <Grid
         columns="min-content 1fr"
         rows="min-content min-content"
@@ -60,6 +57,6 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
           </Container>
         </Stack>
       </Grid>
-    </MotionCardContainer>
+    </Container>
   );
 }
