@@ -319,8 +319,13 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         query.setlist("query", query_values)
 
     sort_values = raw_query.getlist(dataset_config["sort_key"])
-    if sort_values and _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
-        query.setlist("sort", sort_values)
+    if sort_values:
+        # Only aggregate sorts (spans, metrics) need to reference an active
+        # yAxis or groupBy. Log sorts target table columns like `timestamp`
+        # and shouldn't be validated against aggregate fields.
+        is_aggregate_sort = dataset_config["sort_key"] == "aggregateSort"
+        if not is_aggregate_sort or _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
+            query.setlist("sort", sort_values)
 
     # Metrics stores query and sort inside the metric JSON param
     if metric_query:
