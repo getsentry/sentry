@@ -38,7 +38,7 @@ import {
 } from 'sentry/views/discover/table/cellAction';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export type FieldRendererGetter = (
+type FieldRendererGetter = (
   field: string,
   data: TabularRow,
   meta: TabularMeta
