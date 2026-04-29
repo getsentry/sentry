@@ -444,7 +444,10 @@ def rpc_get_trace_waterfall(
     additional_attributes: list[str] | None = None,
     referrer: str | None = None,
 ) -> dict[str, Any]:
-    referrer_enum = Referrer(referrer) if referrer else Referrer.SEER_EXPLORER_TOOLS
+    try:
+        referrer_enum = Referrer(referrer) if referrer else Referrer.SEER_EXPLORER_TOOLS
+    except ValueError:
+        referrer_enum = Referrer.SEER_EXPLORER_TOOLS
     trace = get_trace_waterfall(trace_id, organization_id, additional_attributes, referrer_enum)
     return trace.dict() if trace else {}
 
