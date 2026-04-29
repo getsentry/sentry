@@ -50,11 +50,11 @@ def get_eap_organization_volume(
         sampling_mode=SAMPLING_MODE_HIGHEST_ACCURACY,
     )
 
-    data = result.get("data", [])
+    data = result.get("data")
     if not data:
         return None
 
-    total = int(data[0].get("count()", 0) or 0)
+    total = int(data[0].get("count()", 0))
     if total <= 0:
         return None
 
