@@ -134,8 +134,12 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         group_by: tuple[str, ...]
         if monitor_environment_map:
             check_ins = check_ins.filter(monitor_environment_id__in=monitor_environment_map.keys())
+            # MonitorEnvironment already carries monitor_id, so keep monitor_id out of the
+            # aggregate and let the monitor_environment/date/status index cover the query.
+            group_by = ("bucket", "monitor_environment_id", "status")
         else:
             check_ins = check_ins.filter(monitor_id__in=monitor_map.keys())
+            group_by = ("monitor_id", "bucket", "monitor_environment_id", "status")
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(
@@ -147,13 +151,6 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
         # Save space on date allocation and return buckets as unix timestamps
         bucket = Extract(bucket, "epoch")
-
-        if monitor_environment_map:
-            # monitor_id is available through monitor_environment_to_monitor_id, so leave it out
-            # of the aggregate to keep this covered by the monitor_environment/date/status index.
-            group_by = ("bucket", "monitor_environment_id", "status")
-        else:
-            group_by = ("monitor_id", "bucket", "monitor_environment_id", "status")
 
         # retrieve the list of checkins in the time range and count each by
         # status. Bucketing is done at the postgres level for performance
