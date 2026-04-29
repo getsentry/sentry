@@ -125,16 +125,11 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       : [
           {
             match: [
-              'command+/', // QWERTY (US, UK, most CJK, RTL scripts)
-              'ctrl+/',
-              'command+.', // macOS-friendly alternative
-              'ctrl+.',
-              'command+shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
-              'ctrl+shift+7',
-              'command+shift+.', // AZERTY (French, Belgian): / === Shift+.
-              'ctrl+shift+.',
-              'command+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
-              'ctrl+shift+-',
+              'mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
+              'mod+.', // macOS-friendly alternative
+              'mod+shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
+              'mod+shift+.', // AZERTY (French, Belgian): / === Shift+.
+              'mod+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
             ],
             callback: () => {
               toggleSeerExplorerDrawer();

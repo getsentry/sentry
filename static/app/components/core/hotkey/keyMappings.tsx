@@ -1,3 +1,4 @@
+import {isMac} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -30,6 +31,11 @@ const aliases: Record<string, string> = {
 
 export function canonicalize(keyName: string): string {
   const lower = keyName.toLowerCase();
+  // `mod` is the platform-aware modifier: command on macOS, control elsewhere.
+  // Prefer it over hardcoded `command`/`ctrl` pairs in match strings.
+  if (lower === 'mod') {
+    return isMac() ? 'command' : 'control';
+  }
   return aliases[lower] ?? lower;
 }
 
@@ -167,9 +173,9 @@ const universalGlyphs: Record<string, KeyGlyph> = {
  * Resolve a key name to its display glyph for the given platform.
  * Non-special keys fall through to title-cased text (e.g. `'k'` → `'K'`).
  */
-export function resolveKeyGlyph(keyName: string, isMac: boolean): KeyGlyph {
+export function resolveKeyGlyph(keyName: string): KeyGlyph {
   const key = canonicalize(keyName);
-  const platformGlyphs = isMac ? macGlyphs : otherGlyphs;
+  const platformGlyphs = isMac() ? macGlyphs : otherGlyphs;
   const glyph = platformGlyphs[key] ?? universalGlyphs[key];
 
   if (glyph) {
