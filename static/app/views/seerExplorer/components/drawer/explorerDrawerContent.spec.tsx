@@ -16,7 +16,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   runId: null,
   waitingForInterrupt: false,
   overrideCtxEngEnable: true,
-  overrideCodeModeEnable: false,
+  overrideCodeModeEnable: 'off',
   sendMessage: jest.fn(),
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
@@ -30,7 +30,8 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 describe('ExplorerDrawerContent', () => {
   const organization = OrganizationFixture({
     openMembership: true,
-    features: ['seer-explorer'],
+    features: ['seer-explorer', 'gen-ai-features'],
+    hideAiFeatures: false,
   });
 
   beforeEach(() => {
@@ -76,7 +77,7 @@ describe('ExplorerDrawerContent', () => {
       });
       expect(
         await screen.findByPlaceholderText(
-          'Ask seer a question, or press / for commands.'
+          'Ask Seer a question, or press / for commands.'
         )
       ).toBeInTheDocument();
     });
@@ -343,7 +344,7 @@ describe('ExplorerDrawerContent', () => {
       await waitFor(() => expect(textarea).toBeEnabled());
       expect(textarea).toHaveAttribute(
         'placeholder',
-        'Ask seer a question, or press / for commands.'
+        'Ask Seer a question, or press / for commands.'
       );
     });
 

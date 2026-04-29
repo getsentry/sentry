@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -27,7 +28,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
+import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
@@ -44,18 +45,15 @@ interface BlockProps {
   getPageReferrer?: () => string;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
-  isHovered?: boolean;
   isLatestTodoBlock?: boolean;
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   onNavigate?: () => void;
-  onRegisterEnterHandler?: (
-    handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
-  ) => void;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
+  showThinking?: boolean;
 }
 
 function hasValidContent(content: string): boolean {
@@ -144,14 +142,12 @@ export function BlockComponent({
   isAwaitingFileApproval,
   isAwaitingQuestion,
   isLatestTodoBlock,
-  isHovered,
   onClick,
   onMouseEnter,
   onMouseLeave,
   onNavigate,
-  onRegisterEnterHandler,
-  readOnly = false,
   ref,
+  showThinking = false,
 }: BlockProps) {
   const {copy} = useCopyToClipboard();
   const organization = useOrganization();
@@ -161,19 +157,19 @@ export function BlockComponent({
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
+  const hasThinkingContentToShow =
+    showThinking && hasValidContent(block.message.thinking_content ?? '');
   const processedContent = useMemo(
     () => postProcessLLMMarkdown(block.message.content),
     [block.message.content]
   );
-
-  // State to track selected tool link (for navigation)
-  const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
-  const selectedLinkIndexRef = useRef(selectedLinkIndex);
-
-  // Keep ref in sync with state
-  useEffect(() => {
-    selectedLinkIndexRef.current = selectedLinkIndex;
-  }, [selectedLinkIndex]);
+  const processedThinkingContent = useMemo(
+    () =>
+      hasThinkingContentToShow
+        ? postProcessLLMMarkdown(block.message.thinking_content ?? '')
+        : '',
+    [block.message.thinking_content, hasThinkingContentToShow]
+  );
 
   // Get valid tool links sorted by their corresponding tool call indices
   // Also create a mapping from tool call index to sorted link index
@@ -193,8 +189,6 @@ export function BlockComponent({
     projects,
   ]);
 
-  const hasValidLinks = sortedToolLinks.length > 0;
-
   const toolLinkByCallId = useMemo(() => {
     const map = new Map<string, Record<string, any> | undefined>();
     (block.tool_results || []).forEach((result, idx) => {
@@ -204,15 +198,6 @@ export function BlockComponent({
     });
     return map;
   }, [block.tool_links, block.tool_results]);
-
-  // Reset selected index when block changes or when there are no valid links
-  useEffect(() => {
-    if (!hasValidLinks) {
-      setSelectedLinkIndex(0);
-    } else if (selectedLinkIndex >= sortedToolLinks.length) {
-      setSelectedLinkIndex(0);
-    }
-  }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
   // Tool link navigation, with analytics and onNavigate hook.
   const navigateToToolLink = useCallback(
@@ -227,64 +212,6 @@ export function BlockComponent({
     },
     [organization, navigate, onNavigate, getPageReferrer]
   );
-
-  // Register the key handler with the parent
-  useEffect(() => {
-    const handler = (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
-      if (!hasValidLinks) {
-        return false;
-      }
-
-      if (key === 'ArrowUp') {
-        // Move to previous link
-        const currentIndex = selectedLinkIndexRef.current;
-        if (currentIndex > 0) {
-          // Can move up within this block's links
-          setSelectedLinkIndex(prev => prev - 1);
-          return true;
-        }
-        // At the first link, let navigation move to previous block
-        return false;
-      }
-
-      if (key === 'ArrowDown') {
-        // Move to next link
-        const currentIndex = selectedLinkIndexRef.current;
-        if (currentIndex < sortedToolLinks.length - 1) {
-          // Can move down within this block's links
-          setSelectedLinkIndex(prev => prev + 1);
-          return true;
-        }
-        // At the last link, let navigation move to next block
-        return false;
-      }
-
-      if (key === 'Enter') {
-        // Navigate to selected link using ref to get current value
-        const currentIndex = selectedLinkIndexRef.current;
-        const selectedLink = sortedToolLinks[currentIndex];
-        if (selectedLink) {
-          const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
-          if (url) {
-            navigateToToolLink(url, selectedLink.kind);
-          }
-        }
-        return true;
-      }
-      return false;
-    };
-
-    onRegisterEnterHandler?.(handler);
-  }, [
-    hasValidLinks,
-    sortedToolLinks,
-    organization.slug,
-    projects,
-    navigate,
-    onNavigate,
-    onRegisterEnterHandler,
-    navigateToToolLink,
-  ]);
 
   // Allow 1 feedback per session. This only writes to session storage on change, not init.
   const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
@@ -359,14 +286,13 @@ export function BlockComponent({
   };
 
   const showActions =
-    isHovered &&
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly &&
-    block.message.role !== 'user';
+    block.message.role === 'assistant';
   const showFeedbackButtons = block.message.role === 'assistant';
-  const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
+  const showCopyButton =
+    block.message.role === 'assistant' && !!block.message.content?.trim();
 
   const blockStatus = getToolStatus(block);
   const isLoadingPlaceholder = blockStatus === 'loading' && !hasTools;
@@ -374,7 +300,6 @@ export function BlockComponent({
   return (
     <Block
       ref={ref}
-      isHovered={isHovered}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -393,7 +318,21 @@ export function BlockComponent({
           </Flex>
         ) : (
           <Flex align="start" width="100%">
-            <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
+            <BlockContentWrapper
+              hasOnlyTools={!hasContent && !hasThinkingContentToShow && hasTools}
+            >
+              {hasThinkingContentToShow && (
+                <Disclosure>
+                  <Disclosure.Title>
+                    <Text size="xs" variant="muted" monospace>
+                      {t('Thinking')}
+                    </Text>
+                  </Disclosure.Title>
+                  <Disclosure.Content>
+                    <MarkedText text={processedThinkingContent} />
+                  </Disclosure.Content>
+                </Disclosure>
+              )}
               {hasContent && (
                 <BlockContent
                   text={processedContent}
@@ -427,21 +366,33 @@ export function BlockComponent({
                     // Check if this tool call corresponds to the selected link
                     const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
                     const hasLink = correspondingLinkIndex !== undefined;
+                    const isLoading =
+                      blockStatus === 'loading' || blockStatus === 'pending';
+
                     const toolLinkParams = toolLinkByCallId.get(toolCall.id);
-                    const isFailed = Boolean(
-                      toolLinkParams?.is_error || toolLinkParams?.empty_results
-                    );
-                    const isHighlighted =
-                      isHovered &&
-                      hasValidLinks &&
-                      correspondingLinkIndex !== undefined &&
-                      correspondingLinkIndex === selectedLinkIndex;
+                    const isFailed = Boolean(toolLinkParams?.is_error);
+                    const isEmptyResults = Boolean(toolLinkParams?.empty_results);
                     const isTodoWriteCall = toolCall.function === 'todo_write';
                     const showTodoList =
                       isTodoWriteCall &&
                       isLatestTodoBlock &&
                       block.todos &&
                       block.todos.length > 0;
+
+                    const toolCallText = (
+                      <Tooltip
+                        title={
+                          isFailed
+                            ? t('Tool call failed')
+                            : t('Tool call returned empty results')
+                        }
+                        disabled={isLoading || (!isFailed && !isEmptyResults)}
+                      >
+                        <ToolCallText size="xs" variant="muted" monospace>
+                          {toolString}
+                        </ToolCallText>
+                      </Tooltip>
+                    );
 
                     return (
                       <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
@@ -454,54 +405,18 @@ export function BlockComponent({
                               onClick={e =>
                                 handleNavigateClick(e, correspondingLinkIndex)
                               }
-                              onMouseEnter={() =>
-                                setSelectedLinkIndex(correspondingLinkIndex)
-                              }
-                              isHighlighted={isHighlighted}
                             >
-                              <ToolCallText
-                                size="xs"
-                                variant="muted"
-                                monospace
-                                isHighlighted={isHighlighted}
-                              >
-                                {toolString}
-                              </ToolCallText>
-                              <ToolCallLinkIconWrapper isHighlighted={isHighlighted}>
-                                {isFailed ? (
-                                  <Tooltip title={t('Tool call failed')}>
-                                    <ToolCallBrokenLinkIcon size="xs" />
-                                  </Tooltip>
-                                ) : (
-                                  <ToolCallLinkIcon
-                                    size="xs"
-                                    isHighlighted={isHighlighted}
-                                  />
-                                )}
+                              {toolCallText}
+                              <ToolCallLinkIconWrapper>
+                                <ToolCallLinkIcon size="xs" />
                               </ToolCallLinkIconWrapper>
-                              <EnterKeyHint isVisible={isHighlighted}>
-                                enter ⏎
-                              </EnterKeyHint>
                             </ToolCallLink>
                           ) : (
-                            <ToolCallPlainRow
-                              onMouseEnter={() => setSelectedLinkIndex(-1)}
-                            >
-                              <ToolCallText
-                                size="xs"
-                                variant="muted"
-                                monospace
-                                isHighlighted={false}
-                              >
-                                {toolString}
-                              </ToolCallText>
-                              {isFailed && (
-                                <ToolCallBrokenLinkIconWrapper>
-                                  <Tooltip title={t('Tool call failed')}>
-                                    <ToolCallBrokenLinkIcon size="xs" />
-                                  </Tooltip>
-                                </ToolCallBrokenLinkIconWrapper>
-                              )}
+                            <ToolCallPlainRow>
+                              {toolCallText}
+                              <ToolCallBrokenLinkIconWrapper isLoading={isLoading}>
+                                <ToolCallBrokenLinkIcon size="xs" />
+                              </ToolCallBrokenLinkIconWrapper>
                             </ToolCallPlainRow>
                           )}
                         </ToolCallTextContainer>
@@ -539,7 +454,7 @@ export function BlockComponent({
 
 BlockComponent.displayName = 'BlockComponent';
 
-const Block = styled('div')<{isHovered?: boolean}>`
+const Block = styled('div')`
   width: 100%;
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
@@ -634,7 +549,7 @@ const BlockContent = styled(MarkedText)`
   padding-bottom: 0;
 
   code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme)};
+    ${p => inlineCodeStyles(p.theme, {variant: 'neutral'})};
   }
 
   p,
@@ -679,7 +594,7 @@ const BlockContent = styled(MarkedText)`
 
 const UserBlockContent = styled('div')`
   max-width: 80%;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
@@ -712,19 +627,14 @@ const ToolStatusSlot = styled('span')`
   flex-shrink: 0;
 `;
 
-const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
+const ToolCallText = styled(Text)`
   white-space: normal;
   overflow: visible;
   text-decoration: underline;
   text-decoration-color: transparent;
-  ${p =>
-    p.isHighlighted &&
-    `
-    color: ${p.theme.tokens.interactive.link.accent.hover};
-  `}
 `;
 
-const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
+const ToolCallLink = styled('button')`
   display: inline-flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
@@ -745,33 +655,23 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
   }
 `;
 
-const ToolCallLinkIconWrapper = styled('span')<{isHighlighted?: boolean}>`
+const ToolCallLinkIconWrapper = styled('span')`
   display: inline-flex;
   flex-shrink: 0;
-  visibility: ${p => (p.isHighlighted ? 'visible' : 'hidden')};
+  visibility: hidden;
 
   ${ToolCallLink}:hover & {
     visibility: visible;
   }
 `;
 
-const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
-  display: inline-block;
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.interactive.link.accent.hover};
+const ToolCallLinkIcon = styled(IconLink)`
+  color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
-  margin-left: ${p => p.theme.space.xs};
-  visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
-  font-family: ${p => p.theme.font.family.mono};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
 
-const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
-  color: ${p =>
-    p.isHighlighted
-      ? p.theme.tokens.interactive.link.accent.hover
-      : p.theme.tokens.content.secondary};
-  flex-shrink: 0;
+  ${ToolCallLink}:hover & {
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
+  }
 `;
 
 const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
@@ -787,13 +687,13 @@ const ToolCallPlainRow = styled('span')`
   max-width: 100%;
 `;
 
-const ToolCallBrokenLinkIconWrapper = styled('span')`
+const ToolCallBrokenLinkIconWrapper = styled('span')<{isLoading?: boolean}>`
   display: inline-flex;
   flex-shrink: 0;
   visibility: hidden;
 
   ${ToolCallPlainRow}:hover & {
-    visibility: visible;
+    visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
   }
 `;
 
@@ -804,6 +704,11 @@ const ActionButtonBar = styled(Flex)`
   white-space: nowrap;
   font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.primary};
+  visibility: hidden;
+
+  ${Block}:hover & {
+    visibility: visible;
+  }
 `;
 
 const TodoListContent = styled(MarkedText)`

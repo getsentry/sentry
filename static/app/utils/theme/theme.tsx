@@ -223,8 +223,9 @@ const commonTheme = {
 
     globalSelectionHeader: 1009,
 
-    // needs to be below sidebar
-    // @TODO(jonasbadalic) why does it need to be below sidebar?
+    // dashboard widget builder backdrop sits behind the sidebar
+    // because it renders on the right next to the sidebar
+    // @TODO(design-engineering): resolve this inconsistency
     widgetBuilderDrawer: 1016,
 
     settingsSidebarNavMask: 1017,
@@ -879,6 +880,8 @@ export const darkTheme: SentryTheme = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseDarkTheme,
+  // This sems to be a bug in the rule. baseShadow is optional.
+  // eslint-disable-next-line @typescript-eslint/no-useless-default-assignment
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,

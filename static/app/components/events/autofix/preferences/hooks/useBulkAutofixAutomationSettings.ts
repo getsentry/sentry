@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import type {UseMutationOptions} from '@tanstack/react-query';
 
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -144,19 +145,9 @@ export function useUpdateBulkAutofixAutomationSettings(
           }),
         });
         // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
-        queryClient.invalidateQueries({
-          queryKey: [
-            getApiUrl(
-              '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
-              {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }
-            ),
-          ],
-        });
+        queryClient.invalidateQueries(
+          projectSeerPreferencesApiOptions(organization.slug, project.slug)
+        );
       });
 
       options?.onSettled?.(...args);

@@ -159,9 +159,19 @@ class PreprodArtifact(DefaultFieldsModel):
         NO_QUOTA = 1
         """No quota available for distribution."""
         SKIPPED = 2
-        """Distribution was not requested on this build."""
+        """Generic skip; a more specific code should be used when available."""
         PROCESSING_ERROR = 3
-        """Distribution failed due to a processing error."""
+        """Generic distribution failure; a more specific code should be used when available."""
+        DISTRIBUTION_DISABLED = 4
+        """Build distribution is disabled in the project's settings."""
+        DISTRIBUTION_FILTERED = 5
+        """Build does not match the project's distribution filter rules."""
+        INVALID_CODE_SIGNATURE = 6
+        """The build's code signature could not be verified."""
+        SIMULATOR_BUILD = 7
+        """Simulator builds cannot be distributed."""
+        UNSUPPORTED_ARTIFACT_TYPE = 8
+        """The artifact type is not supported for distribution."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -170,6 +180,11 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.NO_QUOTA, "no_quota"),
                 (cls.SKIPPED, "skipped"),
                 (cls.PROCESSING_ERROR, "processing_error"),
+                (cls.DISTRIBUTION_DISABLED, "distribution_disabled"),
+                (cls.DISTRIBUTION_FILTERED, "distribution_filtered"),
+                (cls.INVALID_CODE_SIGNATURE, "invalid_code_signature"),
+                (cls.SIMULATOR_BUILD, "simulator_build"),
+                (cls.UNSUPPORTED_ARTIFACT_TYPE, "unsupported_artifact_type"),
             )
 
     __relocation_scope__ = RelocationScope.Excluded

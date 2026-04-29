@@ -8,6 +8,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
@@ -190,6 +191,36 @@ class CollectUserOrgContextTest(TestCase):
 
         assert context is not None
         assert context.get("user_ip") == request.META.get("REMOTE_ADDR")
+
+    def test_collect_context_populates_repos(self) -> None:
+        """Seer project preference repos are populated from SeerProjectRepository."""
+        repo1 = self.create_repo(
+            project=self.project1,
+            name="acme/project-1-repo",
+            provider="integrations:github",
+            integration_id=999,
+            external_id="ext-1",
+        )
+        SeerProjectRepository.objects.create(project=self.project1, repository=repo1)
+        repo2 = self.create_repo(
+            project=self.project2,
+            name="acme/project-2-repo",
+            provider="integrations:github",
+            integration_id=999,
+            external_id="ext-2",
+        )
+        SeerProjectRepository.objects.create(project=self.project2, repository=repo2)
+
+        context = collect_user_org_context(self.user, self.organization)
+
+        all_by_id = {p["id"]: p for p in context["all_org_projects"]}
+        assert [r["external_id"] for r in all_by_id[self.project1.id]["repos"]] == ["ext-1"]
+        assert [r["external_id"] for r in all_by_id[self.project2.id]["repos"]] == ["ext-2"]
+        assert all_by_id[self.other_project.id]["repos"] == []
+
+        user_by_id = {p["id"]: p for p in context["user_projects"]}
+        assert [r["external_id"] for r in user_by_id[self.project1.id]["repos"]] == ["ext-1"]
+        assert [r["external_id"] for r in user_by_id[self.project2.id]["repos"]] == ["ext-2"]
 
 
 class SnapshotToMarkdownTest(TestCase):

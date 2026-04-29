@@ -21,6 +21,7 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.slack import workspace
 from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
@@ -260,69 +261,14 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         return has_scope
 
     def has_history_scope(self, channel_id: str) -> bool:
-        """
-        Returns whether this integration is allowed to access the history in the channel.
-
-        Checks if channels:history is installed for public channels,
-        and check groups:history for private channels.
-
-        The type of channel is determined by the conversations.info API call.
-        """
-        history_scopes = [SlackScope.CHANNELS_HISTORY, SlackScope.GROUPS_HISTORY]
-        installed_scope_set = frozenset(self.model.metadata.get("scopes", []))
-
-        installed_history_scopes = [s in installed_scope_set for s in history_scopes]
-
-        if all(installed_history_scopes):
-            return True
-
-        conversation_data = self.get_conversations_info(channel_id=channel_id)
-
-        channel_info = conversation_data.get("channel", {})
-        is_channel = channel_info.get("is_channel", False)
-        is_private = channel_info.get("is_private", False)
-        is_im = channel_info.get("is_im", False)
-
-        # DMs and assistant threads: the bot is a participant and can
-        # always read its own conversation history.
-        if is_im:
-            return True
-        if is_private:
-            return SlackScope.GROUPS_HISTORY in installed_scope_set
-        if is_channel:
-            return SlackScope.CHANNELS_HISTORY in installed_scope_set
-
-        # Shouldn't reach here unless channel_info is empty (most likely
-        # an API error or an unrecognized conversation type).
-        _logger.warning(
-            "slack.has_history_scope.unrecognized_channel_type",
-            extra={"channel_id": channel_id, "channel_info": channel_info},
+        return workspace.has_history_scope(
+            integration_id=self.model.id,
+            channel_id=channel_id,
+            scopes=self.model.metadata.get("scopes"),
         )
-        return False
 
-    def get_conversations_info(
-        self,
-        *,
-        channel_id: str,
-    ) -> dict:
-        """
-        Fetch conversations info from Slack API.
-        """
-        client = self.get_client()
-
-        try:
-            conversations = client.conversations_info(
-                channel=channel_id,
-            )
-
-            assert isinstance(conversations.data, dict)
-            return conversations.data
-        except (SlackApiError, AssertionError) as e:
-            _logger.warning(
-                "slack.get_conversations_info.error",
-                extra={"channel_id": channel_id, "error": str(e)},
-            )
-            return {}
+    def get_conversations_info(self, *, channel_id: str) -> dict:
+        return workspace.get_conversations_info(integration_id=self.model.id, channel_id=channel_id)
 
     def get_thread_history(
         self,
@@ -330,26 +276,12 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         thread_ts: str,
     ) -> list[dict[str, Any]]:
-        """
-        Fetch thread replies using the conversations.replies API.
-        Returns a list of message dicts, or an empty list on error.
-        """
-        if not self.has_history_scope(channel_id):
-            return []
-
-        client = self.get_client()
-        try:
-            response = client.conversations_replies(
-                channel=channel_id,
-                ts=thread_ts,
-            )
-            return response.get("messages", [])
-        except SlackApiError as e:
-            _logger.warning(
-                "slack.get_thread_history.error",
-                extra={"channel_id": channel_id, "thread_ts": thread_ts, "error": str(e)},
-            )
-            return []
+        return workspace.get_thread_history(
+            integration_id=self.model.id,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            scopes=self.model.metadata.get("scopes"),
+        )
 
     def set_thread_status(
         self,
@@ -416,10 +348,15 @@ class SlackIntegrationProvider(IntegrationProvider):
     integration_cls = SlackIntegration
 
     # some info here: https://api.slack.com/authentication/quickstart
+    # If you're adding a new scope to perform an action,
+    # you must check whether the user's app installation has the appropriate scope.
+    # This is because they may have an outdated installation of the Slack App without the new scope.
     identity_oauth_scopes = frozenset(
         [
             "channels:read",
+            SlackScope.CHANNELS_HISTORY,
             "groups:read",
+            SlackScope.GROUPS_HISTORY,
             "users:read",
             "chat:write",
             "links:read",
@@ -430,18 +367,14 @@ class SlackIntegrationProvider(IntegrationProvider):
             "chat:write.public",
             "chat:write.customize",
             "commands",
-        ]
-    )
-    # Extended scopes that require Slack marketplace approval
-    # Used by SlackStagingIntegrationProvider
-    extended_oauth_scopes = frozenset(
-        [
-            SlackScope.CHANNELS_HISTORY,
-            SlackScope.GROUPS_HISTORY,
             SlackScope.APP_MENTIONS_READ,
             SlackScope.ASSISTANT_WRITE,
         ]
     )
+    # Stage new scopes here to test them via SlackStagingIntegrationProvider
+    # (which unions these into its install scopes) before promoting to
+    # identity_oauth_scopes. Empty in steady state.
+    staging_oauth_scopes: frozenset[str] = frozenset()
     user_scopes = frozenset(
         [
             "links:read",

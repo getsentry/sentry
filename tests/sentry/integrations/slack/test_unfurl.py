@@ -41,11 +41,11 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ("http://invalid_link", (None, None)),
         (
             "https://sentry.io/organizations/org1/issues/12345/",
-            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
             "https://org1.sentry.io/issues/12345/",
-            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
@@ -1890,6 +1890,73 @@ class UnfurlTest(TestCase):
         assert args is not None
         assert args["query"].getlist("yAxis") == ["count(span.duration)"]
 
+    def test_unfurl_explore_aggregate_field_takes_precedence_over_visualize(self) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A0%7D"
+            "&visualize=%7B%22chartType%22%3A0%2C%22yAxes%22%3A%5B%22count_unique(user.id)%22%5D%7D"
+            "&project=1&query=user.id%1234&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+        assert args["query"].getlist("groupBy") == ["gen_ai.tool.name"]
+        assert args["chart_type"] == 0
+
+    def test_unfurl_explore_drops_aggregate_sort_referencing_unknown_field(self) -> None:
+        # When aggregateSort references a function that isn't in the active
+        # yAxes (e.g. a stale sort left over from a different visualize), the
+        # frontend's validateAggregateSort discards it and falls back to
+        # `-yAxes[0]`. The unfurl must mirror that, otherwise events-timeseries
+        # gets sorted by an aggregate it never selected and returns no data.
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A0%7D"
+            "&aggregateSort=-count_unique(user.id)"
+            "&project=1&query=user.id%3A12345&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+        assert args["query"].getlist("groupBy") == ["gen_ai.tool.name"]
+        # The stale aggregateSort is dropped; unfurl_explore will then default
+        # to `-count(span.duration)` for the topEvents sort.
+        assert args["query"].getlist("sort") == []
+
+    def test_unfurl_explore_keeps_aggregate_sort_when_field_matches_yaxis(self) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D"
+            "&aggregateSort=-count(span.duration)"
+            "&project=1&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == ["-count(span.duration)"]
+
+    def test_unfurl_explore_keeps_aggregate_sort_when_field_matches_groupby(self) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D"
+            "&aggregateSort=gen_ai.tool.name"
+            "&project=1&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == ["gen_ai.tool.name"]
+
     def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
         # Two charts: count with chartType=2 (area, first) and avg (second).
         # The unfurl must render only the first chart and not merge avg's
@@ -2186,7 +2253,7 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_dashboards_non_eap_widget_is_skipped(
+    def test_unfurl_dashboards_unsupported_widget_type_is_skipped(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
         mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
@@ -2194,7 +2261,7 @@ class UnfurlTest(TestCase):
         widget = self.create_dashboard_widget(
             dashboard=dashboard,
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            widget_type=DashboardWidgetTypes.RELEASE_HEALTH,
             order=0,
         )
         self.create_dashboard_widget_query(
@@ -2438,6 +2505,47 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert all_params[0]["dataset"] == "tracemetrics"
         assert all_params[0]["yAxis"] == ["sum(value)"]
 
+    def test_errors_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            queries=[{"aggregates": ["count()"], "conditions": "level:error"}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "errors"
+        assert all_params[0]["yAxis"] == ["count()"]
+        assert all_params[0]["query"] == "level:error"
+
+    def test_preprod_app_size_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.PREPROD_APP_SIZE,
+            queries=[{"aggregates": ["max(install_size)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "preprodSize"
+        assert all_params[0]["yAxis"] == ["max(install_size)"]
+
+    def test_issue_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.ISSUE,
+            queries=[{"aggregates": ["count(new_issues)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        # issues-timeseries uses `category` instead of `dataset`
+        assert all_params[0]["category"] == "issue"
+        assert "dataset" not in all_params[0]
+        assert all_params[0]["yAxis"] == ["count(new_issues)"]
+        assert all_params[0]["referrer"] == "dashboards.slack.unfurl"
+        assert all_params[0]["statsPeriod"] == "7d"
+
     def test_multiple_queries_returns_one_dict_each_in_order(self) -> None:
         widget = self._make_widget(
             queries=[
@@ -2537,14 +2645,14 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert params["start"] == "2026-01-01T00:00:00"
         assert params["end"] == "2026-01-02T00:00:00"
 
-    def test_defaults_to_all_projects_when_no_url_or_dashboard_project(self) -> None:
+    def test_omits_project_when_no_url_or_dashboard_project(self) -> None:
         widget = self._make_widget()
 
         params = build_widget_timeseries_params(widget, QueryDict())[0]
 
-        # ALL_ACCESS_PROJECT_ID (-1) so an unconfigured dashboard still renders
-        # data rather than an empty chart.
-        assert params["project"] == "-1"
+        # Omitting the param matches the dashboard FE: the API defaults to
+        # "My Projects" rather than "All Projects" (project=-1).
+        assert "project" not in params
 
     def test_dashboard_projects_used_when_url_missing(self) -> None:
         project_a = self.create_project(organization=self.organization)

@@ -1,27 +1,34 @@
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
-const MOCK_API_ENDPOINT = '/api/test/';
-function queryKeyFactory() {
-  return jest.fn().mockImplementation(query => [MOCK_API_ENDPOINT, {query}]);
+const MOCK_API_ENDPOINT = '/api-tokens/';
+
+function getQueryOptionsFactory() {
+  return jest.fn().mockImplementation(({cursor, per_page}) =>
+    apiOptions.as<string>()(MOCK_API_ENDPOINT, {
+      query: {cursor, per_page},
+      staleTime: Infinity,
+    })
+  );
 }
 
 describe('useFetchSequentialPages', () => {
   it('should not call the queryFn when enabled is false', () => {
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchSequentialPages, {
       initialProps: {
         enabled: false,
-        getQueryKey,
+        getQueryOptions,
         perPage: 10,
       },
     });
 
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).not.toHaveBeenCalled();
+    expect(getQueryOptions).not.toHaveBeenCalled();
   });
 
   it('should immediatly swith to isFetching=true when the enabled prop is changed', async () => {
@@ -30,25 +37,25 @@ describe('useFetchSequentialPages', () => {
       body: 'text result',
       headers: {Link: getPaginationPageLink({numRows: 0, pageSize: 100, offset: 0})},
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result, rerender} = renderHookWithProviders(useFetchSequentialPages, {
       initialProps: {
         enabled: false,
-        getQueryKey,
+        getQueryOptions,
         perPage: 10,
       },
     });
 
     expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).not.toHaveBeenCalled();
+    expect(getQueryOptions).not.toHaveBeenCalled();
 
-    rerender({enabled: true, getQueryKey, perPage: 10});
+    rerender({enabled: true, getQueryOptions, perPage: 10});
 
     expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
-    expect(getQueryKey).toHaveBeenCalled();
+    expect(getQueryOptions).toHaveBeenCalled();
 
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
@@ -59,12 +66,12 @@ describe('useFetchSequentialPages', () => {
       url: MOCK_API_ENDPOINT,
       body: 'text result',
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchSequentialPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         perPage: 10,
       },
     });
@@ -74,7 +81,7 @@ describe('useFetchSequentialPages', () => {
 
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).toHaveBeenCalledTimes(1);
+    expect(getQueryOptions).toHaveBeenCalledTimes(1);
   });
 
   it('should call the queryFn 1 times when the first response has no next page', async () => {
@@ -83,12 +90,12 @@ describe('useFetchSequentialPages', () => {
       body: 'text result',
       headers: {Link: getPaginationPageLink({numRows: 0, pageSize: 10, offset: 0})},
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchSequentialPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         perPage: 10,
       },
     });
@@ -98,7 +105,7 @@ describe('useFetchSequentialPages', () => {
 
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).toHaveBeenCalledTimes(1);
+    expect(getQueryOptions).toHaveBeenCalledTimes(1);
   });
 
   it('should call the queryFn N times, until the response has no next page', async () => {
@@ -114,12 +121,12 @@ describe('useFetchSequentialPages', () => {
       match: [MockApiClient.matchQuery({cursor: '0:10:0', per_page: 10})],
       headers: {Link: getPaginationPageLink({numRows: 13, pageSize: 10, offset: 10})},
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchSequentialPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         perPage: 10,
       },
     });
@@ -129,7 +136,7 @@ describe('useFetchSequentialPages', () => {
 
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).toHaveBeenCalledTimes(2);
+    expect(getQueryOptions).toHaveBeenCalledTimes(2);
   });
 
   it('should return a list of all pages that have been resolved', async () => {
@@ -145,13 +152,12 @@ describe('useFetchSequentialPages', () => {
       match: [MockApiClient.matchQuery({cursor: '0:10:0', per_page: 10})],
       headers: {Link: getPaginationPageLink({numRows: 13, pageSize: 10, offset: 10})},
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchSequentialPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
-        hits: 13,
+        getQueryOptions,
         perPage: 10,
       },
     });
@@ -171,13 +177,12 @@ describe('useFetchSequentialPages', () => {
       statusCode: 429,
       match: [MockApiClient.matchQuery({cursor: '0:0:0', per_page: 10})],
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchSequentialPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
-        hits: 13,
+        getQueryOptions,
         perPage: 10,
       },
     });
@@ -206,19 +211,18 @@ describe('useFetchSequentialPages', () => {
       headers: {Link: secondLinkHeader},
       match: [MockApiClient.matchQuery({cursor: '0:10:0', per_page: 10})],
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchSequentialPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         perPage: 10,
       },
     });
 
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
-    expect(result.current.getLastResponseHeader).toStrictEqual(expect.any(Function));
-    expect(result.current.getLastResponseHeader?.('Link')).toBe(secondLinkHeader);
+    expect(result.current.lastResponseHeaders?.Link).toBe(secondLinkHeader);
   });
 });

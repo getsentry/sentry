@@ -1,4 +1,4 @@
-import {createContext, useContext, useReducer, useRef} from 'react';
+import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
@@ -7,7 +7,10 @@ import {
   toggleCommandPalette,
 } from 'sentry/actionCreators/modal';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 /**
  * A stack entry for navigating into a CMDK group. Stores the group's
@@ -23,12 +26,20 @@ export type CommandPaletteState = {
   action: CMDKNavStack | null;
   input: React.RefObject<HTMLInputElement | null>;
   open: boolean;
+  // When true, action and query are cleared the next time the modal opens.
+  // Set by 'trigger action' so the close animation plays without a jarring
+  // content swap, while still ensuring a clean slate on the next open.
+  pendingReset: boolean;
   query: string;
+  // When true, state is reset as part of the next open transition. Set when
+  // the route changes while the palette is closed, so navigation always starts
+  // from a clean slate.
+  resetOnOpen: boolean;
 };
 
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
 
-export type CommandPaletteAction =
+type CommandPaletteAction =
   | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
@@ -40,7 +51,8 @@ export type CommandPaletteAction =
       query?: string;
     }
   | {type: 'trigger action'}
-  | {type: 'pop action'};
+  | {type: 'pop action'}
+  | {type: 'reset on open'};
 
 const CommandPaletteStateContext = createContext<CommandPaletteState | null>(null);
 const CommandPaletteDispatchContext =
@@ -53,6 +65,16 @@ function commandPaletteReducer(
   const type = action.type;
   switch (type) {
     case 'toggle modal':
+      if (!state.open && state.resetOnOpen) {
+        return {
+          ...state,
+          open: true,
+          action: null,
+          query: '',
+          resetOnOpen: false,
+          pendingReset: false,
+        };
+      }
       return {
         ...state,
         open: !state.open,
@@ -62,7 +84,11 @@ function commandPaletteReducer(
         ...state,
         action: null,
         query: '',
+        pendingReset: false,
+        resetOnOpen: false,
       };
+    case 'reset on open':
+      return {...state, resetOnOpen: true};
     case 'set query':
       return {...state, query: action.query};
     case 'push action':
@@ -86,7 +112,7 @@ function commandPaletteReducer(
         query: state.action?.value?.query ?? state.query,
       };
     case 'trigger action':
-      return {...state, action: null, query: ''};
+      return {...state, pendingReset: true};
     default:
       unreachable(type);
       return state;
@@ -124,6 +150,8 @@ export function CommandPaletteStateProvider({
     query: '',
     action: null,
     open: false,
+    pendingReset: false,
+    resetOnOpen: false,
   });
 
   return (
@@ -143,14 +171,36 @@ export function CommandPaletteHotkeys() {
   const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const location = useLocation();
+  const {openSeerExplorer} = useSeerExplorerContext();
+
+  // When the route pathname changes, mark state for reset on the next open.
+  // Skip the initial render — only react to actual route changes.
+  const isFirstRenderRef = useRef(true);
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+    dispatch({type: 'reset on open'});
+  }, [location.pathname, dispatch]);
 
   useHotkeys([
     {
-      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      match: ['mod+shift+p', 'mod+k'],
       includeInputs: true,
       callback: () => {
         if (organization?.features.includes('cmd-k-supercharged')) {
-          toggleCommandPalette({}, organization, state, dispatch, 'keyboard');
+          toggleCommandPalette(
+            {},
+            organization,
+            state,
+            dispatch,
+            'keyboard',
+            organization && isSeerExplorerEnabled(organization)
+              ? openSeerExplorer
+              : undefined
+          );
         } else {
           openCommandPaletteDeprecated();
         }
