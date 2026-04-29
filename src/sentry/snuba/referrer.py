@@ -594,6 +594,8 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
+    API_TRACE_ISSUES_GET_EVENTS = "api.trace-view.issues.get-events"
+    API_TRACE_INSIGHTS_GET_EVENTS = "api.trace-view.insights.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
     API_TRACE_VIEW_SPAN_META = "api.trace-view.spans-meta"
     API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
