@@ -490,9 +490,15 @@ class SeerExplorerClient:
             TimeoutError: If polling exceeds poll_timeout when blocking=True
         """
         if blocking:
-            state = poll_until_done(run_id, self.organization, poll_interval, poll_timeout)
+            state = poll_until_done(
+                run_id,
+                self.organization,
+                poll_interval,
+                poll_timeout,
+                viewer_context=self.viewer_context,
+            )
         else:
-            state = fetch_run_status(run_id, self.organization)
+            state = fetch_run_status(run_id, self.organization, viewer_context=self.viewer_context)
 
         return state
 
@@ -651,7 +657,7 @@ class SeerExplorerClient:
         start_time = time.time()
 
         while True:
-            state = fetch_run_status(run_id, self.organization)
+            state = fetch_run_status(run_id, self.organization, viewer_context=self.viewer_context)
 
             # Check if any PRs are still being created
             any_creating = any(

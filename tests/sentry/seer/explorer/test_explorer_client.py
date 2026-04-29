@@ -321,7 +321,9 @@ class TestSeerExplorerClient(TestCase):
 
         assert result.run_id == 123
         assert result.status == "processing"
-        mock_fetch.assert_called_once_with(123, self.organization)
+        mock_fetch.assert_called_once_with(
+            123, self.organization, viewer_context=client.viewer_context
+        )
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
     @patch("sentry.seer.explorer.client.poll_until_done")
@@ -341,7 +343,9 @@ class TestSeerExplorerClient(TestCase):
 
         assert result.run_id == 123
         assert result.status == "completed"
-        mock_poll.assert_called_once_with(123, self.organization, 1.0, 30.0)
+        mock_poll.assert_called_once_with(
+            123, self.organization, 1.0, 30.0, viewer_context=client.viewer_context
+        )
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
