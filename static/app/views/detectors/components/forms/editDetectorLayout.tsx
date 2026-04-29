@@ -97,7 +97,9 @@ export function EditDetectorLayout<
         </EditLayoutDeprecated.HeaderFields>
       </EditLayoutDeprecated.Header>
 
-      <EditLayoutDeprecated.Body maxWidth={maxWidth}>{children}</EditLayoutDeprecated.Body>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
+        {children}
+      </EditLayoutDeprecated.Body>
 
       <FormContext.Consumer>
         {({form}) => (

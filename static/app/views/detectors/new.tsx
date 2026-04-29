@@ -75,7 +75,9 @@ export default function DetectorNew() {
           ) : (
             <NewDetectorBreadcrumbs />
           )}
-          {!hasPageFrame && <EditLayoutDeprecated.Title title={t('Select monitor type')} />}
+          {!hasPageFrame && (
+            <EditLayoutDeprecated.Title title={t('Select monitor type')} />
+          )}
           <Text as="p" size="md" variant="muted">
             {tct(
               'Monitors detect problems in your application and send alerts when they occur. [docsLink:Read the Docs].',

@@ -119,7 +119,9 @@ export function NewDetectorLayout<
         </EditLayoutDeprecated.HeaderFields>
       </EditLayoutDeprecated.Header>
 
-      <EditLayoutDeprecated.Body maxWidth={maxWidth}>{children}</EditLayoutDeprecated.Body>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
+        {children}
+      </EditLayoutDeprecated.Body>
 
       <NewDetectorFooter
         maxWidth={maxWidth}
