@@ -3,12 +3,6 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
@@ -19,13 +13,17 @@ import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
+import {
+  BULK_LIMIT,
+  BULK_LIMIT_STR,
+  invalidateIssueQueries,
+  performBulkUpdate as performSharedBulkUpdate,
+} from 'sentry/views/issueList/actions/utils';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
@@ -35,6 +33,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 interface IssueListBulkCommandPaletteActionsProps {
   groupIds: string[];
   query: string;
+  queryCount: number;
   selection: PageFilters;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 }
@@ -151,6 +150,7 @@ function PriorityActions({onUpdate}: {onUpdate: (data: IssueUpdateData) => void}
 
 export function IssueListBulkCommandPaletteActions({
   query,
+  queryCount,
   selection,
   groupIds,
   onActionTaken,
@@ -180,53 +180,27 @@ export function IssueListBulkCommandPaletteActions({
       : groupIds.filter(itemId => selectedIdsSet.has(itemId));
   }
 
-  function getSelectedProjectIds(selectedGroupIds: string[] | undefined) {
-    if (!selectedGroupIds) {
-      return selection.projects;
-    }
-    const groups = selectedGroupIds.map(id => GroupStore.get(id));
-    const projectIds = new Set(groups.map(group => group?.project?.id).filter(defined));
-    if (projectIds.size === 1) {
-      return [...projectIds];
-    }
-    return selection.projects;
-  }
-
   function performBulkUpdate(
     data: IssueUpdateData | Record<string, unknown>,
     onSuccess?: (itemIds: string[] | undefined) => void
   ) {
     const itemIds = getSelectedIds();
-    const projectConstraints = {project: getSelectedProjectIds(itemIds)};
-
-    if (itemIds?.length) {
-      addLoadingMessage(t('Saving changes…'));
-    }
-
-    bulkUpdate(
+    performSharedBulkUpdate({
       api,
-      {
-        orgId: organization.slug,
-        itemIds,
-        data,
-        query,
-        environment: selection.environments,
-        failSilently: true,
-        ...projectConstraints,
-        ...selection.datetime,
+      data,
+      itemIds,
+      organizationSlug: organization.slug,
+      query,
+      selection,
+      onSuccess: updatedItemIds => {
+        onSuccess?.(updatedItemIds);
+        invalidateIssueQueries({
+          itemIds: updatedItemIds,
+          organizationSlug: organization.slug,
+          queryClient,
+        });
       },
-      {
-        success: () => {
-          clearIndicators();
-          onSuccess?.(itemIds);
-          invalidateIssueQueries(itemIds);
-        },
-        error: () => {
-          clearIndicators();
-          addErrorMessage(t('Unable to update issues'));
-        },
-      }
-    );
+    });
 
     deselectAll();
   }
@@ -240,28 +214,6 @@ export function IssueListBulkCommandPaletteActions({
   function handleBulkUpdate(data: Record<string, unknown>) {
     performBulkUpdate(data);
   }
-
-  function invalidateIssueQueries(itemIds: string[] | undefined) {
-    if (itemIds?.length) {
-      for (const itemId of itemIds) {
-        queryClient.invalidateQueries({
-          queryKey: [`/organizations/${organization.slug}/issues/${itemId}/`],
-          exact: false,
-        });
-      }
-    } else {
-      queryClient.invalidateQueries({
-        predicate: apiQuery => {
-          const queryKey = safeParseQueryKey(apiQuery.queryKey);
-          if (!queryKey) {
-            return false;
-          }
-          return queryKey.url.startsWith(`/organizations/${organization.slug}/issues/`);
-        },
-      });
-    }
-  }
-
   const selectedIssueIds = useMemo(() => {
     const ids = selectedIssues.map(issue => `#${issue.shortId}`);
     if (ids.length <= 3) {
@@ -269,6 +221,16 @@ export function IssueListBulkCommandPaletteActions({
     }
     return `${ids.slice(0, 3).join(', ')}, …`;
   }, [selectedIssues]);
+
+  const label = useMemo(() => {
+    if (allInQuerySelected) {
+      if (queryCount >= BULK_LIMIT) {
+        return t('First %s Issues Matching Search', BULK_LIMIT_STR);
+      }
+      return t('All %s Issues Matching Search', queryCount);
+    }
+    return `${tn('%s Selected Issue', '%s Selected Issues', numIssues)} (${selectedIssueIds})`;
+  }, [allInQuerySelected, queryCount, numIssues, selectedIssueIds]);
 
   if (!anySelected) {
     return null;
@@ -278,7 +240,7 @@ export function IssueListBulkCommandPaletteActions({
     <CommandPaletteSlot name="task">
       <CMDKAction
         display={{
-          label: `${tn('%s Selected Issue', '%s Selected Issues', numIssues)} (${selectedIssueIds})`,
+          label,
           icon: <IconIssues />,
         }}
       >
