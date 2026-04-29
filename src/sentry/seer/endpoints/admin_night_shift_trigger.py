@@ -5,7 +5,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
-from sentry.tasks.seer.night_shift.cron import run_night_shift_for_org
+from sentry.tasks.seer.night_shift.cron import (
+    SeerNightShiftRunOptionsPartial,
+    run_night_shift_for_org,
+)
 
 
 @internal_cell_silo_endpoint
@@ -40,9 +43,13 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
             if max_candidates < 1:
                 return Response({"detail": "max_candidates must be >= 1"}, status=400)
 
+        options: SeerNightShiftRunOptionsPartial = {"source": "manual", "dry_run": dry_run}
+        if max_candidates is not None:
+            options["max_candidates"] = max_candidates
+
         run_night_shift_for_org.apply_async(
             args=[organization_id],
-            kwargs={"dry_run": dry_run, "max_candidates": max_candidates},
+            kwargs={"options": options, "execute_in_task": True},
         )
 
         return Response(
