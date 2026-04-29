@@ -1,12 +1,9 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {useDrawer} from '@sentry/scraps/drawer';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -14,46 +11,36 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import type {AggregatedSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
-import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
+import {SUPERGROUP_DRAWER_QUERY_PARAM} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
 
 interface SupergroupRowProps {
   supergroup: SupergroupDetail;
   aggregatedStats?: AggregatedSupergroupStats | null;
-  memberList?: IndexedMembersByProject;
 }
 
-export function SupergroupRow({
-  supergroup,
-  aggregatedStats,
-  memberList,
-}: SupergroupRowProps) {
-  const {openDrawer, isDrawerOpen} = useDrawer();
-  const [isActive, setIsActive] = useState(false);
+export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const supergroupId = String(supergroup.id);
   const handleClick = () => {
-    setIsActive(true);
-    openDrawer(
-      () => (
-        <SupergroupDetailDrawer
-          supergroup={supergroup}
-          memberList={memberList}
-          filterWithCurrentSearch
-        />
-      ),
+    navigate(
       {
-        ariaLabel: t('Issue group details'),
-        drawerKey: 'supergroup-drawer',
-        shouldCloseOnInteractOutside: el =>
-          !document.getElementById('modal-portal')?.contains(el) &&
-          !el.closest('[data-overlay]'),
-        onClose: () => setIsActive(false),
-      }
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          [SUPERGROUP_DRAWER_QUERY_PARAM]: supergroupId,
+        },
+      },
+      {replace: true, preventScrollReset: true}
     );
   };
 
-  const highlighted = isActive && isDrawerOpen;
+  const highlighted = location.query[SUPERGROUP_DRAWER_QUERY_PARAM] === supergroupId;
 
   return (
     <Wrapper

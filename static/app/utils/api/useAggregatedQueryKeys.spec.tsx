@@ -4,10 +4,11 @@ import {QueryClientProvider, type QueryClient} from '@tanstack/react-query';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiResult} from 'sentry/api';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+
+type ApiTokenCounts = Record<string, number>;
 
 function makeWrapper(queryClient: QueryClient) {
   return function wrapper({children}: {children?: ReactNode}) {
@@ -15,23 +16,33 @@ function makeWrapper(queryClient: QueryClient) {
   };
 }
 
+function makeReducer() {
+  return jest.fn(
+    (
+      prevState: ApiTokenCounts | undefined,
+      response: ApiResponse<ApiTokenCounts>
+    ): ApiTokenCounts => ({
+      ...prevState,
+      ...response.json,
+    })
+  );
+}
+
+const getQueryOptions = (ids: readonly string[]) =>
+  apiOptions.as<ApiTokenCounts>()('/api-tokens/', {
+    query: {ids},
+    staleTime: 0,
+  });
+
 describe('useAggregatedQueryKeys', () => {
-  let responseReducer: any;
-  let initialProps: any;
+  let responseReducer: ReturnType<typeof makeReducer>;
+  let initialProps: Parameters<typeof useAggregatedQueryKeys<string, ApiTokenCounts>>[0];
 
   beforeEach(() => {
-    responseReducer = jest.fn((prevState: any, response: ApiResult) => {
-      return {
-        ...prevState,
-        ...response[0],
-      };
-    });
+    responseReducer = makeReducer();
 
     initialProps = {
-      getQueryKey: (ids: readonly string[]): ApiQueryKey => [
-        getApiUrl('/api-tokens/'),
-        {query: ids},
-      ],
+      getQueryOptions,
       onError: () => {},
       responseReducer,
       bufferLimit: 50,
@@ -63,7 +74,9 @@ describe('useAggregatedQueryKeys', () => {
     expect(mockRequest).toHaveBeenCalledWith(
       '/api-tokens/',
       expect.objectContaining({
-        query: expect.arrayContaining(['1111', '2222', '3333']),
+        query: expect.objectContaining({
+          ids: expect.arrayContaining(['1111', '2222', '3333']),
+        }),
       })
     );
   });
@@ -135,7 +148,7 @@ describe('useAggregatedQueryKeys', () => {
   });
 
   it('should pass in the list of all aggregates to the reducer function', async () => {
-    const mockResponse = {
+    const mockResponse: ApiTokenCounts = {
       '1111': 5,
     };
     MockApiClient.addMockResponse({
@@ -154,10 +167,9 @@ describe('useAggregatedQueryKeys', () => {
       expect(responseReducer).toHaveBeenCalled();
     });
 
-    expect(responseReducer).toHaveBeenCalled();
     expect(responseReducer).toHaveBeenCalledWith(
       undefined,
-      expect.arrayContaining([mockResponse]),
+      expect.objectContaining({json: mockResponse}),
       ['1111', '2222', '3333']
     );
   });
@@ -167,18 +179,8 @@ describe('useAggregatedQueryKeys', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/api-tokens/',
     });
-    const responseReducer1 = jest.fn((prevState: any, response: ApiResult) => {
-      return {
-        ...prevState,
-        ...response[0],
-      };
-    });
-    const responseReducer2 = jest.fn((prevState: any, response: ApiResult) => {
-      return {
-        ...prevState,
-        ...response[0],
-      };
-    });
+    const responseReducer1 = makeReducer();
+    const responseReducer2 = makeReducer();
 
     const {result: result1} = renderHook(useAggregatedQueryKeys, {
       wrapper,

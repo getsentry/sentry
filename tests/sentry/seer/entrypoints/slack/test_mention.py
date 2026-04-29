@@ -13,7 +13,9 @@ from slack_sdk.models.blocks.block_elements import RichTextElementParts, RichTex
 
 from sentry.seer.entrypoints.slack.mention import (
     IssueLink,
+    _extract_attachment_text,
     _extract_block_text,
+    _extract_text_from_attachments,
     _extract_text_from_blocks,
     build_thread_context,
     extract_issue_links,
@@ -381,3 +383,133 @@ class BuildThreadContextTest(TestCase):
         ]
         result = build_thread_context(messages)
         assert result == "<@UBOT>: Here is the Seer analysis..."
+
+    def test_extracts_attachments_when_no_blocks_or_text(self):
+        messages = [
+            {
+                "user": "UBOT",
+                "attachments": [
+                    {
+                        "title": "ValueError: invalid input",
+                        "title_link": "https://sentry.io/organizations/test-org/issues/456/",
+                        "text": "invalid literal for int()",
+                    }
+                ],
+                "ts": "1234567890.000001",
+            }
+        ]
+        result = build_thread_context(messages)
+        assert "<@UBOT>:" in result
+        assert (
+            "<https://sentry.io/organizations/test-org/issues/456/|ValueError: invalid input>"
+            in result
+        )
+        assert "invalid literal for int()" in result
+
+    def test_includes_both_top_level_text_and_attachments(self):
+        messages = [
+            {
+                "user": "U123",
+                "text": "top level message",
+                "attachments": [{"text": "attachment body"}],
+                "ts": "1234567890.000001",
+            }
+        ]
+        result = build_thread_context(messages)
+        assert "<@U123>:" in result
+        assert "top level message" in result
+        assert "attachment body" in result
+
+    def test_extracts_attachments_when_text_empty(self):
+        messages = [
+            {
+                "user": "UBOT",
+                "text": "",
+                "attachments": [{"text": "attachment body"}],
+                "ts": "1234567890.000001",
+            }
+        ]
+        result = build_thread_context(messages)
+        assert result == "<@UBOT>: attachment body"
+
+
+class ExtractAttachmentTextTest(TestCase):
+    def test_legacy_attachment_with_title_and_text(self):
+        attachment = {
+            "title": "ValueError: invalid input",
+            "title_link": "https://sentry.io/organizations/test-org/issues/456/",
+            "text": "invalid literal for int()",
+        }
+        result = _extract_attachment_text(attachment)
+        assert (
+            "<https://sentry.io/organizations/test-org/issues/456/|ValueError: invalid input>"
+            in result
+        )
+        assert "invalid literal for int()" in result
+
+    def test_legacy_attachment_title_without_link(self):
+        attachment = {"title": "Just a title", "text": "body"}
+        result = _extract_attachment_text(attachment)
+        assert result == "Just a title\nbody"
+
+    def test_legacy_attachment_with_pretext(self):
+        attachment = {"pretext": "Heads up:", "text": "something happened"}
+        result = _extract_attachment_text(attachment)
+        assert result == "Heads up:\nsomething happened"
+
+    def test_legacy_attachment_with_fields(self):
+        attachment = {
+            "title": "Alert fired",
+            "fields": [
+                {"title": "Project", "value": "backend", "short": True},
+                {"title": "Environment", "value": "prod", "short": True},
+            ],
+        }
+        result = _extract_attachment_text(attachment)
+        assert "Alert fired" in result
+        assert "Project: backend" in result
+        assert "Environment: prod" in result
+
+    def test_legacy_attachment_field_value_only(self):
+        attachment = {"fields": [{"value": "no title here"}]}
+        assert _extract_attachment_text(attachment) == "no title here"
+
+    def test_attachment_with_blocks_prefers_blocks(self):
+        attachment = {
+            "fallback": "should not be used",
+            "text": "should not be used",
+            "blocks": [SectionBlock(text="block content").to_dict()],
+        }
+        assert _extract_attachment_text(attachment) == "block content"
+
+    def test_attachment_falls_back_to_fallback_field(self):
+        attachment = {"fallback": "Sentry alert: ValueError in backend"}
+        assert _extract_attachment_text(attachment) == "Sentry alert: ValueError in backend"
+
+    def test_attachment_skips_fallback_when_other_fields_present(self):
+        attachment = {"text": "main body", "fallback": "ignored"}
+        assert _extract_attachment_text(attachment) == "main body"
+
+    def test_empty_attachment(self):
+        assert _extract_attachment_text({}) == ""
+
+
+class ExtractTextFromAttachmentsTest(TestCase):
+    def test_multiple_attachments_joined(self):
+        attachments: list[Mapping[str, Any]] = [
+            {"text": "first"},
+            {"text": "second"},
+        ]
+        assert _extract_text_from_attachments(attachments) == "first\nsecond"
+
+    def test_skips_empty_attachments(self):
+        attachments: list[Mapping[str, Any]] = [
+            {"text": "first"},
+            {},
+            {"text": "second"},
+        ]
+        assert _extract_text_from_attachments(attachments) == "first\nsecond"
+
+    def test_skips_non_dict_entries(self):
+        attachments: list[Any] = [{"text": "first"}, "not-a-dict", {"text": "second"}]
+        assert _extract_text_from_attachments(attachments) == "first\nsecond"

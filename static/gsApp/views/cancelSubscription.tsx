@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {RadioField as RadioGroupField} from 'sentry/components/forms/fields/radioField';
@@ -194,15 +193,12 @@ function CancelSubscriptionForm() {
           {tct(
             `Your organization is currently subscribed to the [planName] plan on a [interval] contract.
              Cancelling your subscription will downgrade your account to a free plan at the end
-             of your contract on [contractEndDate]. See [changesLink:upcoming changes] to our free Developer plan.`,
+             of your contract on [contractEndDate].`,
             {
               interval: subscription?.contractInterval === ANNUAL ? 'annual' : 'monthly',
               planName: <strong>{subscription?.planDetails?.name}</strong>,
               contractEndDate: (
                 <strong>{moment(subscription.contractPeriodEnd).format('ll')}</strong>
-              ),
-              changesLink: (
-                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/26206897429275-Changes-to-our-Developer-plan" />
               ),
             }
           )}

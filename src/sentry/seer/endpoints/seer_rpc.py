@@ -36,7 +36,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -84,9 +83,8 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
     bulk_read_preferences_from_sentry_db,
+    clear_preference_automation_handoff,
     read_preference_from_sentry_db,
-    resolve_repository_ids,
-    write_preference_to_sentry_db,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
@@ -619,20 +617,10 @@ def trigger_coding_agent_launch(
             },
         )
         try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
-            if features.has("organizations:seer-project-settings-dual-write", organization):
-                project = Project.objects.get_from_cache(id=project_id)
-                if project.organization_id != organization_id:
-                    raise Project.DoesNotExist
-                preference = read_preference_from_sentry_db(project)
-
-                if preference.automation_handoff is not None:
-                    updated_preference = preference.copy(update={"automation_handoff": None})
-                    resolved_preference = resolve_repository_ids(
-                        organization.id, [updated_preference]
-                    )[0]
-                    write_preference_to_sentry_db(project, resolved_preference)
-                    # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
+            project = Project.objects.get_from_cache(id=project_id)
+            if project.organization_id != organization_id:
+                raise Project.DoesNotExist
+            clear_preference_automation_handoff(project)
         except Exception:
             logger.exception(
                 "coding_agent.clear_handoff_preference_failed",

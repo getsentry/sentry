@@ -156,7 +156,14 @@ describe('TransactionReplays', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(mockApi).toHaveBeenCalledWith(
+        mockEventsUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
+          }),
+        })
+      );
     });
   });
 

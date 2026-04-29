@@ -193,7 +193,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
             null;
           const func = parseFunction(field);
           if (field === TraceMetricKnownFieldKey.METRIC_NAME) {
-            label = t('Metric');
+            label = t('Application Metric');
           } else if (func) {
             label = `${func.name}(…)`;
           } else if (tag) {

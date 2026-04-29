@@ -4,7 +4,6 @@ import invariant from 'invariant';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {FullViewport} from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   ReplayAccess,
@@ -28,11 +27,8 @@ import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/
 import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
 import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function ReplayDetails() {
-  const hasPageFrame = useHasPageFrameFeature();
-
   return (
     <AnalyticsArea name="details">
       <ReplayAccess
@@ -44,7 +40,7 @@ export default function ReplayDetails() {
               align="center"
               gap="md"
               wrap="wrap"
-              padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'sm lg'}
+              padding={{sm: 'sm lg', md: 'md xl'}}
             >
               {t('Replay Details')}
             </Flex>
@@ -91,88 +87,39 @@ function ReplayDetailsContent() {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const hasPageFrame = useHasPageFrameFeature();
-
-  if (hasPageFrame) {
-    const pageFrameContent = (
-      <Fragment>
-        <TopBar.Slot name="title">
-          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-        </TopBar.Slot>
-        <ReplayDetailsHeaderActions readerResult={readerResult} />
-        <Flex
-          justify="between"
-          align="center"
-          gap="md"
-          wrap="wrap"
-          padding={{sm: 'md lg', md: 'md xl'}}
-          borderBottom="secondary"
-        >
-          <ReplayDetailsUserBadge readerResult={readerResult} />
-          <ReplayDetailsMetadata readerResult={readerResult} />
-        </Flex>
-        <Stack flex={1} minHeight="0" overflow="hidden" padding="lg xl">
-          <ReplayDetailsPage readerResult={readerResult} />
-        </Stack>
-      </Fragment>
-    );
-
-    return (
-      <SentryDocumentTitle title={title}>
-        <Stack flex={1} height="100%" minHeight="0" width="100%" overflow="hidden">
-          {replay ? (
-            <ReplayDetailsProviders
-              replay={replay}
-              projectSlug={readerResult.projectSlug}
-            >
-              {pageFrameContent}
-            </ReplayDetailsProviders>
-          ) : (
-            pageFrameContent
-          )}
-        </Stack>
-      </SentryDocumentTitle>
-    );
-  }
-
-  const legacyContent = (
+  const pageFrameContent = (
     <Fragment>
-      <Flex direction="column">
-        <Flex
-          borderBottom="secondary"
-          justify="between"
-          align="center"
-          gap="md"
-          wrap="wrap"
-          padding="sm lg"
-        >
-          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-          <ReplayDetailsHeaderActions readerResult={readerResult} />
-        </Flex>
-        <Flex justify="between" align="center" padding="md lg" borderBottom="secondary">
-          <ReplayDetailsUserBadge readerResult={readerResult} />
-          <ReplayDetailsMetadata readerResult={readerResult} />
-        </Flex>
+      <TopBar.Slot name="title">
+        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+      </TopBar.Slot>
+      <ReplayDetailsHeaderActions readerResult={readerResult} />
+      <Flex
+        justify="between"
+        align="center"
+        gap="md"
+        wrap="wrap"
+        padding={{sm: 'md lg', md: 'md xl'}}
+        borderBottom="secondary"
+      >
+        <ReplayDetailsUserBadge readerResult={readerResult} />
+        <ReplayDetailsMetadata readerResult={readerResult} />
       </Flex>
-      <ReplayDetailsPage readerResult={readerResult} />
+      <Stack flex={1} minHeight="0" overflow="hidden" padding="lg xl">
+        <ReplayDetailsPage readerResult={readerResult} />
+      </Stack>
     </Fragment>
   );
 
   return (
     <SentryDocumentTitle title={title}>
-      <Stack flex={1}>
-        <FullViewport>
-          {replay ? (
-            <ReplayDetailsProviders
-              replay={replay}
-              projectSlug={readerResult.projectSlug}
-            >
-              {legacyContent}
-            </ReplayDetailsProviders>
-          ) : (
-            legacyContent
-          )}
-        </FullViewport>
+      <Stack flex={1} height="100%" minHeight="0" width="100%" overflow="hidden">
+        {replay ? (
+          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
+            {pageFrameContent}
+          </ReplayDetailsProviders>
+        ) : (
+          pageFrameContent
+        )}
       </Stack>
     </SentryDocumentTitle>
   );
