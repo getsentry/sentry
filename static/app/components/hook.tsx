@@ -40,6 +40,8 @@ function Hook<H extends ComponentHookName>({name, children, ...props}: Props<H>)
   );
 
   useEffect(() => {
+    setHookCallbacks([...HookStore.get(name)]);
+
     const unsubscribe = HookStore.listen((hookName: HookName, hooks: Array<Hooks[H]>) => {
       if (hookName === name) {
         setHookCallbacks([...hooks]);
