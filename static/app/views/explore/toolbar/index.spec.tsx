@@ -902,8 +902,7 @@ describe('ExploreToolbar', () => {
 
     const section = await screen.findByTestId('section-save-as');
 
-    // Save-as button should be disabled
-    expect(within(section).getByRole('button', {name: /save as/i})).toBeDisabled();
+    expect(within(section).getByRole('button', {name: 'Save as'})).toBeDisabled();
 
     // Compare Queries button should be disabled (LinkButton renders with role="button")
     expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(

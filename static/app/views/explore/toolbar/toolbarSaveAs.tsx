@@ -64,6 +64,7 @@ export function ToolbarSaveAs() {
   const fields = useQueryParamsFields();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const crossEvents = useQueryParamsCrossEvents();
   const mode = useQueryParamsMode();
   const id = useQueryParamsId();
 
@@ -87,6 +88,10 @@ export function ToolbarSaveAs() {
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+  const crossEventUnsupportedTooltip = t(
+    'Cross event queries currently only support saved queries.'
+  );
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
@@ -164,11 +169,12 @@ export function ToolbarSaveAs() {
 
   items.push({
     key: 'create-alert',
-    label: newAlertLabel,
+    label: hasCrossEvents ? <DisabledText>{newAlertLabel}</DisabledText> : newAlertLabel,
     textValue: newAlertLabel,
     children: alertsUrls ?? [],
-    disabled: !alertsUrls || alertsUrls.length === 0,
+    disabled: hasCrossEvents || !alertsUrls || alertsUrls.length === 0,
     isSubmenu: true,
+    tooltip: hasCrossEvents ? crossEventUnsupportedTooltip : undefined,
   });
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
@@ -204,7 +210,9 @@ export function ToolbarSaveAs() {
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
     isSubmenu: chartOptions.length > 1 ? true : false,
-    label: (
+    label: hasCrossEvents ? (
+      <DisabledText>{t('Dashboard widget')}</DisabledText>
+    ) : (
       <Feature
         hookName="feature-disabled:dashboards-edit"
         features="organizations:dashboards-edit"
@@ -213,10 +221,11 @@ export function ToolbarSaveAs() {
         {t('Dashboard widget')}
       </Feature>
     ),
-    disabled: disableAddToDashboard,
+    disabled: hasCrossEvents || disableAddToDashboard,
     children: chartOptions.length > 1 ? chartOptions : undefined,
+    tooltip: hasCrossEvents ? crossEventUnsupportedTooltip : undefined,
     onAction: () => {
-      if (disableAddToDashboard || chartOptions.length > 1) {
+      if (hasCrossEvents || disableAddToDashboard || chartOptions.length > 1) {
         return undefined;
       }
 
@@ -251,6 +260,7 @@ export function ToolbarSaveAs() {
         singleQuery?.visualize,
         true
       ),
+      !valueIsEqual(savedQuery.crossEvents ?? [], crossEvents ?? [], true),
       !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
       !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
       (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
@@ -272,15 +282,13 @@ export function ToolbarSaveAs() {
     sortBys,
     fields,
     visualizes,
+    crossEvents,
     pageFilters.selection.datetime.start,
     pageFilters.selection.datetime.end,
     pageFilters.selection.datetime.period,
     pageFilters.selection.projects,
     pageFilters.selection.environments,
   ]);
-
-  const crossEvents = useQueryParamsCrossEvents();
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   if (items.length === 0) {
     return null;

@@ -48,6 +48,7 @@ import type {
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
@@ -61,6 +62,7 @@ export interface GetExploreUrlArgs {
   aggregateField?: Array<GroupBy | BaseVisualize>;
   caseInsensitive?: CaseInsensitive;
   chartSelection?: ChartSelectionQueryParam;
+  crossEvents?: CrossEvent[];
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -92,6 +94,7 @@ export function getExploreUrl({
   title,
   referrer,
   caseInsensitive,
+  crossEvents,
 }: GetExploreUrlArgs) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -117,6 +120,7 @@ export function getExploreUrl({
     referrer,
     caseInsensitive: caseInsensitive ? '1' : undefined,
     chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
+    crossEvents: crossEvents?.length ? JSON.stringify(crossEvents) : undefined,
   };
 
   return (
