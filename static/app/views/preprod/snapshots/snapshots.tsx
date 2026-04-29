@@ -38,6 +38,7 @@ import {
   type SidebarGroup,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {SnapshotViewerProvider} from './snapshotViewerContext';
 
 function imageGroupKey(img: SnapshotImage): string {
   return img.group ?? img.image_file_name;
@@ -525,7 +526,10 @@ export default function SnapshotsPage() {
       comparisonRunInfo.state
     );
 
-  const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
+  const imageBaseUrl = useMemo(
+    () => `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`,
+    [organization.slug, data?.project_id]
+  );
   const diffImageBaseUrl = imageBaseUrl;
 
   const processingContent = (
@@ -537,71 +541,111 @@ export default function SnapshotsPage() {
     </Flex>
   );
 
+  const handleOpenSnapshot = useCallback(
+    (key: string) => {
+      setSelectedSnapshotKey(key);
+      setViewMode('single');
+    },
+    [setSelectedSnapshotKey, setViewMode]
+  );
+
   const handleDeselectSnapshot = () => {
     if (selectedSnapshotKey) {
       setSelectedSnapshotKey(null);
     }
   };
 
+  const viewerContextValue = useMemo(
+    () => ({
+      selectedItem: singleViewItem,
+      variantIndex: singleViewVariantIndex,
+      imageBaseUrl,
+      diffImageBaseUrl,
+      overlayColor,
+      onOverlayColorChange: setOverlayColor,
+      diffMode,
+      onDiffModeChange: setDiffMode,
+      viewMode,
+      onViewModeChange: setViewMode,
+      listItems,
+      isSoloView,
+      onToggleSoloView: handleToggleView,
+      comparisonType: data?.comparison_type,
+      headBranch: data?.vcs_info?.head_ref,
+      selectedSnapshotKey,
+      onSelectSnapshot: setSelectedSnapshotKey,
+      sortBy,
+      onSortByChange: setSortBy,
+      onNavigateSingleView: navigateSingleView,
+      canNavigatePrev: singleViewNav.canPrev,
+      canNavigateNext: singleViewNav.canNext,
+      onOpenSnapshot: handleOpenSnapshot,
+    }),
+    [
+      singleViewItem,
+      singleViewVariantIndex,
+      imageBaseUrl,
+      diffImageBaseUrl,
+      overlayColor,
+      setOverlayColor,
+      diffMode,
+      setDiffMode,
+      viewMode,
+      setViewMode,
+      listItems,
+      isSoloView,
+      handleToggleView,
+      data?.comparison_type,
+      data?.vcs_info?.head_ref,
+      selectedSnapshotKey,
+      setSelectedSnapshotKey,
+      sortBy,
+      setSortBy,
+      navigateSingleView,
+      singleViewNav.canPrev,
+      singleViewNav.canNext,
+      handleOpenSnapshot,
+    ]
+  );
+
   const snapshotContent = (
-    <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
-      <Flex
-        flexShrink={0}
-        overflow="auto"
-        style={{
-          width: sidebarWidth,
-          height: hasPageFrameFeature
-            ? 'calc(100dvh - var(--top-bar-height, 53px))'
-            : 'calc(100vh - 205px)',
-        }}
-      >
-        <SnapshotSidebarContent
-          groups={sidebarGroups}
-          currentItemKey={selectedGroup}
-          isAllSelected={isAllSelected}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSelectItem={handleSelectItem}
-          onSelectAll={handleSelectAll}
-          statusCounts={statusCounts}
-          activeStatuses={activeStatuses}
-          onToggleStatus={handleToggleStatus}
-        />
+    <SnapshotViewerProvider value={viewerContextValue}>
+      <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
+        <Flex
+          flexShrink={0}
+          overflow="auto"
+          style={{
+            width: sidebarWidth,
+            height: hasPageFrameFeature
+              ? 'calc(100dvh - var(--top-bar-height, 53px))'
+              : 'calc(100vh - 205px)',
+          }}
+        >
+          <SnapshotSidebarContent
+            groups={sidebarGroups}
+            currentItemKey={selectedGroup}
+            isAllSelected={isAllSelected}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectItem={handleSelectItem}
+            onSelectAll={handleSelectAll}
+            statusCounts={statusCounts}
+            activeStatuses={activeStatuses}
+            onToggleStatus={handleToggleStatus}
+          />
+        </Flex>
+        <DragHandle
+          data-is-held={isHeld}
+          onMouseDown={onMouseDown}
+          onDoubleClick={onDoubleClick}
+        >
+          <IconGrabbable size="sm" />
+        </DragHandle>
+        <Flex flex="1" minWidth={0} overflow="hidden">
+          <SnapshotMainContent />
+        </Flex>
       </Flex>
-      <DragHandle
-        data-is-held={isHeld}
-        onMouseDown={onMouseDown}
-        onDoubleClick={onDoubleClick}
-      >
-        <IconGrabbable size="sm" />
-      </DragHandle>
-      <Flex flex="1" minWidth={0} overflow="hidden">
-        <SnapshotMainContent
-          selectedItem={singleViewItem}
-          variantIndex={singleViewVariantIndex}
-          imageBaseUrl={imageBaseUrl}
-          diffImageBaseUrl={diffImageBaseUrl}
-          overlayColor={overlayColor}
-          onOverlayColorChange={setOverlayColor}
-          diffMode={diffMode}
-          onDiffModeChange={setDiffMode}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          listItems={listItems}
-          isSoloView={isSoloView}
-          onToggleSoloView={handleToggleView}
-          comparisonType={comparisonType}
-          headBranch={data?.vcs_info?.head_ref}
-          selectedSnapshotKey={selectedSnapshotKey}
-          onSelectSnapshot={setSelectedSnapshotKey}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          onNavigateSingleView={navigateSingleView}
-          canNavigatePrev={singleViewNav.canPrev}
-          canNavigateNext={singleViewNav.canNext}
-        />
-      </Flex>
-    </Flex>
+    </SnapshotViewerProvider>
   );
 
   if (isPending) {

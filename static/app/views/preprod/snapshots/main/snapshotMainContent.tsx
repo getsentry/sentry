@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -22,7 +22,9 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
-import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
+
+import {useSnapshotViewer} from '../snapshotViewerContext';
+import type {SortBy, ViewMode} from '../snapshotViewerContext';
 
 import {
   DiffImageDisplay,
@@ -38,69 +40,31 @@ import {
   SnapshotListView,
 } from './snapshotListView';
 
-export type ViewMode = 'single' | 'list';
-type SortBy = 'diff' | 'alpha';
-
-interface SnapshotMainContentProps {
-  canNavigateNext: boolean;
-  canNavigatePrev: boolean;
-  comparisonType: 'diff' | 'solo' | undefined;
-  diffImageBaseUrl: string;
-  diffMode: DiffMode;
-  imageBaseUrl: string;
-  isSoloView: boolean;
-  listItems: SidebarItem[];
-  onDiffModeChange: (mode: DiffMode) => void;
-  onNavigateSingleView: (direction: 'prev' | 'next') => void;
-  onOverlayColorChange: (color: string) => void;
-  onToggleSoloView: () => void;
-  onViewModeChange: (mode: ViewMode) => void;
-  overlayColor: string;
-  selectedItem: SidebarItem | null;
-  variantIndex: number;
-  viewMode: ViewMode;
-  headBranch?: string | null;
-  onSelectSnapshot?: (key: string | null) => void;
-  onSortByChange?: (sort: SortBy) => void;
-  selectedSnapshotKey?: string | null;
-  sortBy?: SortBy;
-}
-
-export function SnapshotMainContent({
-  selectedItem,
-  variantIndex,
-  imageBaseUrl,
-  diffImageBaseUrl,
-  overlayColor,
-  onOverlayColorChange,
-  diffMode,
-  onDiffModeChange,
-  viewMode,
-  onViewModeChange,
-  listItems,
-  isSoloView,
-  onToggleSoloView,
-  comparisonType,
-  headBranch,
-  selectedSnapshotKey,
-  onSelectSnapshot,
-  sortBy = 'diff',
-  onSortByChange,
-  onNavigateSingleView,
-  canNavigatePrev,
-  canNavigateNext,
-}: SnapshotMainContentProps) {
+export function SnapshotMainContent() {
+  const {
+    selectedItem,
+    variantIndex,
+    imageBaseUrl,
+    diffImageBaseUrl,
+    overlayColor,
+    onOverlayColorChange,
+    diffMode,
+    onDiffModeChange,
+    viewMode,
+    onViewModeChange,
+    listItems,
+    isSoloView,
+    onToggleSoloView,
+    comparisonType,
+    sortBy,
+    onSortByChange,
+    onNavigateSingleView,
+    canNavigatePrev,
+    canNavigateNext,
+  } = useSnapshotViewer();
   const [isDark, setIsDark] = useState(false);
   const [pressedDir, setPressedDir] = useState<'up' | 'down' | null>(null);
   const toggleDark = () => setIsDark(v => !v);
-
-  const handleOpenSnapshot = useCallback(
-    (key: string) => {
-      onSelectSnapshot?.(key);
-      onViewModeChange('single');
-    },
-    [onSelectSnapshot, onViewModeChange]
-  );
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -140,7 +104,7 @@ export function SnapshotMainContent({
   );
   const hasChangedInList = listItems.some(i => i.type === 'changed');
   const sortDropdown =
-    onSortByChange && comparisonType !== 'solo' && hasChangedInList ? (
+    comparisonType !== 'solo' && hasChangedInList ? (
       <SortDropdown value={sortBy} onChange={onSortByChange} />
     ) : null;
   const listDiffControls =
@@ -182,17 +146,7 @@ export function SnapshotMainContent({
           </Flex>
         </Flex>
         <Separator orientation="horizontal" />
-        <SnapshotListView
-          items={listItems}
-          imageBaseUrl={imageBaseUrl}
-          headBranch={headBranch}
-          selectedSnapshotKey={selectedSnapshotKey}
-          onSelectSnapshot={onSelectSnapshot}
-          onOpenSnapshot={handleOpenSnapshot}
-          diffMode={diffMode}
-          overlayColor={overlayColor}
-          diffImageBaseUrl={diffImageBaseUrl}
-        />
+        <SnapshotListView />
       </Flex>
     );
   }

@@ -12,21 +12,11 @@ import type {
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
 
+import {useSnapshotViewer} from '../snapshotViewerContext';
+
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 import {ImageCard, PairCard} from './snapshotCards';
 import {MAX_IMAGE_HEIGHT} from './snapshotDiffBodies';
-
-interface SnapshotListViewProps {
-  imageBaseUrl: string;
-  items: SidebarItem[];
-  diffImageBaseUrl?: string;
-  diffMode?: DiffMode;
-  headBranch?: string | null;
-  onOpenSnapshot?: (key: string) => void;
-  onSelectSnapshot?: (key: string | null) => void;
-  overlayColor?: string;
-  selectedSnapshotKey?: string | null;
-}
 
 function snapshotKeyFor(card: GroupCard): string {
   return card.type === 'pair-card'
@@ -141,17 +131,18 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
   return groups;
 }
 
-export function SnapshotListView({
-  items,
-  imageBaseUrl,
-  headBranch,
-  selectedSnapshotKey,
-  onSelectSnapshot,
-  onOpenSnapshot,
-  diffMode = 'split',
-  overlayColor,
-  diffImageBaseUrl,
-}: SnapshotListViewProps) {
+export function SnapshotListView() {
+  const {
+    listItems: items,
+    imageBaseUrl,
+    headBranch,
+    selectedSnapshotKey,
+    onSelectSnapshot,
+    onOpenSnapshot,
+    diffMode,
+    overlayColor,
+    diffImageBaseUrl,
+  } = useSnapshotViewer();
   const groups = useMemo(() => buildGroups(items), [items]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
