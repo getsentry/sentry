@@ -45,9 +45,7 @@ export function DataConsentForm({subscription}: {subscription: Subscription}) {
       ? t(
           'These changes require updates to your account. Please contact your customer success manager to learn more.'
         )
-      : hasBillingAccess
-        ? true
-        : t("You don't have access to manage these billing and subscription details.")
+      : t("You don't have access to manage these billing and subscription details.")
     : false;
 
   const mutationOpts = mutationOptions({
