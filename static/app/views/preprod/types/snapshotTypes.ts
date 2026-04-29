@@ -95,7 +95,6 @@ export function getImageGroup(image: SnapshotImage): string {
 }
 
 interface SidebarItemBase {
-  badge: string | null;
   key: string;
   name: string;
 }

@@ -1,6 +1,7 @@
 import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsArrayOf, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -21,24 +22,23 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  ComparisonState,
+  DiffStatus,
+  getImageGroup,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
-import {computeSidebarBadges} from 'sentry/views/preprod/utils/sidebarUtils';
 
 import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
-import {SECTION_ORDER, SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
-
-const DIFF_TYPE_ORDER: Record<string, number> = Object.fromEntries(
-  SECTION_ORDER.map((section, i) => [section.type, i])
-);
+import {DIFF_TYPE_ORDER, SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
 export default function SnapshotsPage() {
   const organization = useOrganization();
@@ -77,6 +77,20 @@ export default function SnapshotsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
+  const [activeStatusList, setActiveStatusList] = useQueryState(
+    'selectedTypes',
+    parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus))).withDefault([])
+  );
+  const activeStatuses = useMemo(() => new Set(activeStatusList), [activeStatusList]);
+
+  const handleToggleStatus = useCallback(
+    (status: DiffStatus) => {
+      setActiveStatusList(prev =>
+        prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+      );
+    },
+    [setActiveStatusList]
+  );
   const palette = theme.chart.getColorPalette(10);
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
@@ -142,7 +156,6 @@ export default function SnapshotsPage() {
             type,
             key: `${type}:${groupKey}`,
             name: label,
-            badge: null,
             pairs: groupedPairs,
           });
         }
@@ -169,7 +182,6 @@ export default function SnapshotsPage() {
             type,
             key: `${type}:${groupKey}`,
             name: label,
-            badge: null,
             images,
           });
         }
@@ -185,7 +197,6 @@ export default function SnapshotsPage() {
         (a, b) => (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99)
       );
 
-      computeSidebarBadges(items);
       return items;
     }
 
@@ -209,19 +220,50 @@ export default function SnapshotsPage() {
           type: 'solo' as const,
           key: `solo:${groupKey}`,
           name: label,
-          badge: images.length > 1 ? String(images.length) : null,
           images,
         };
       });
   }, [data, comparisonType]);
 
   const filteredItems = useMemo(() => {
-    if (!searchQuery) {
-      return sidebarItems;
-    }
     const query = searchQuery.toLowerCase();
-    return sidebarItems.filter(item => item.name.toLowerCase().includes(query));
-  }, [sidebarItems, searchQuery]);
+    const hasStatusFilter = activeStatuses.size > 0;
+    return sidebarItems.filter(item => {
+      if (hasStatusFilter && !activeStatuses.has(item.type as DiffStatus)) {
+        return false;
+      }
+      if (query && !item.name.toLowerCase().includes(query)) {
+        return false;
+      }
+      return true;
+    });
+  }, [sidebarItems, searchQuery, activeStatuses]);
+
+  const isAllSelected = selectedItemKey === null;
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedItemKey(null);
+    setVariantIndex(0);
+  }, []);
+
+  const statusCounts = useMemo<Record<DiffStatus, number> | null>(() => {
+    if (comparisonType !== 'diff') {
+      return null;
+    }
+    const counts = {
+      [DiffStatus.CHANGED]: 0,
+      [DiffStatus.ADDED]: 0,
+      [DiffStatus.REMOVED]: 0,
+      [DiffStatus.RENAMED]: 0,
+      [DiffStatus.UNCHANGED]: 0,
+    };
+    for (const item of sidebarItems) {
+      if (item.type in counts) {
+        counts[item.type as DiffStatus]++;
+      }
+    }
+    return counts;
+  }, [sidebarItems, comparisonType]);
 
   const currentItem =
     (selectedItemKey && filteredItems.find(i => i.key === selectedItemKey)) ||
@@ -247,12 +289,14 @@ export default function SnapshotsPage() {
   // Ref so the keydown handler reads current state without re-registering
   const stateRef = useRef({
     filteredItems,
+    selectedItemKey,
     currentItemKey,
     safeVariantIndex,
     variantCount,
   });
   stateRef.current = {
     filteredItems,
+    selectedItemKey,
     currentItemKey,
     safeVariantIndex,
     variantCount,
@@ -285,16 +329,17 @@ export default function SnapshotsPage() {
         return;
       }
 
-      const currentIndex = state.filteredItems.findIndex(
-        i => i.key === state.currentItemKey
-      );
+      const currentIndex =
+        state.selectedItemKey === null
+          ? -1
+          : state.filteredItems.findIndex(i => i.key === state.currentItemKey);
       const nextIndex =
         e.key === 'ArrowDown'
           ? Math.min(currentIndex + 1, state.filteredItems.length - 1)
-          : Math.max(currentIndex - 1, 0);
+          : Math.max(currentIndex - 1, -1);
 
-      if (nextIndex !== currentIndex && state.filteredItems[nextIndex]) {
-        setSelectedItemKey(state.filteredItems[nextIndex].key);
+      if (nextIndex !== currentIndex) {
+        setSelectedItemKey(state.filteredItems[nextIndex]?.key ?? null);
         setVariantIndex(0);
       }
     }
@@ -337,11 +382,16 @@ export default function SnapshotsPage() {
       <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
         <SnapshotSidebarContent
           items={filteredItems}
-          totalItemCount={sidebarItems.length}
+          totalItemCount={filteredItems.length}
           currentItemKey={currentItemKey}
+          isAllSelected={isAllSelected}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSelectItem={handleSelectItem}
+          onSelectAll={handleSelectAll}
+          statusCounts={statusCounts}
+          activeStatuses={activeStatuses}
+          onToggleStatus={handleToggleStatus}
         />
       </Flex>
       <DragHandle

@@ -1,169 +1,86 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  IconAdd,
-  IconCheckmark,
-  IconChevron,
-  IconCopy,
-  IconEdit,
-  IconSearch,
-  IconSubtract,
-} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiffStatus, type SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
-interface SectionConfig {
-  defaultExpanded: boolean;
-  icon: React.ReactNode;
-  label: string;
-  type: DiffStatus;
-}
+export const DIFF_TYPE_ORDER: Record<string, number> = {
+  [DiffStatus.CHANGED]: 0,
+  [DiffStatus.ADDED]: 1,
+  [DiffStatus.REMOVED]: 2,
+  [DiffStatus.RENAMED]: 3,
+  [DiffStatus.UNCHANGED]: 4,
+};
 
-export const SECTION_ORDER: SectionConfig[] = [
-  {
-    type: DiffStatus.CHANGED,
-    label: t('Modified'),
-    icon: <IconEdit size="xs" />,
-    defaultExpanded: true,
-  },
-  {
-    type: DiffStatus.ADDED,
-    label: t('Added'),
-    icon: <IconAdd size="xs" />,
-    defaultExpanded: true,
-  },
-  {
-    type: DiffStatus.REMOVED,
-    label: t('Removed'),
-    icon: <IconSubtract size="xs" />,
-    defaultExpanded: true,
-  },
-  {
-    type: DiffStatus.RENAMED,
-    label: t('Renamed'),
-    icon: <IconCopy size="xs" />,
-    defaultExpanded: true,
-  },
-  {
-    type: DiffStatus.UNCHANGED,
-    label: t('Unchanged'),
-    icon: <IconCheckmark size="xs" />,
-    defaultExpanded: true,
-  },
+type StatusCounts = Record<DiffStatus, number>;
+
+type PillColor = 'accent' | 'success' | 'danger' | 'warning' | 'muted';
+
+const STATUS_PILLS: ReadonlyArray<{
+  color: PillColor;
+  label: string;
+  status: DiffStatus;
+}> = [
+  {status: DiffStatus.CHANGED, color: 'accent', label: t('modified')},
+  {status: DiffStatus.ADDED, color: 'success', label: t('added')},
+  {status: DiffStatus.REMOVED, color: 'danger', label: t('removed')},
+  {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
+  {status: DiffStatus.UNCHANGED, color: 'muted', label: t('unchanged')},
 ];
 
 interface SnapshotSidebarContentProps {
+  activeStatuses: Set<DiffStatus>;
   currentItemKey: string | null;
+  isAllSelected: boolean;
   items: SidebarItem[];
   onSearchChange: (query: string) => void;
+  onSelectAll: () => void;
   onSelectItem: (key: string) => void;
+  onToggleStatus: (status: DiffStatus) => void;
   searchQuery: string;
   totalItemCount: number;
+  statusCounts?: StatusCounts | null;
 }
 
 export function SnapshotSidebarContent({
   items,
   totalItemCount,
   currentItemKey,
+  isAllSelected,
   searchQuery,
   onSearchChange,
   onSelectItem,
+  onSelectAll,
+  statusCounts,
+  activeStatuses,
+  onToggleStatus,
 }: SnapshotSidebarContentProps) {
-  const isDiffMode = items.length > 0 && items[0]!.type !== 'solo';
-
-  const [sectionParam, setSectionParam] = useQueryState(
-    'section',
-    parseAsStringEnum(Object.values(DiffStatus))
-  );
-
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
-    () => {
-      const initial: Record<string, boolean> = {};
-      for (const s of SECTION_ORDER) {
-        initial[s.type] = sectionParam ? s.type === sectionParam : s.defaultExpanded;
-      }
-      return initial;
-    }
-  );
-
-  const sectionRef = useRef<HTMLDivElement>(null);
+  const hasActiveFilter = activeStatuses.size > 0;
+  const isStatusActive = (status: DiffStatus) =>
+    !hasActiveFilter || activeStatuses.has(status);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (sectionParam) {
-      setExpandedSections(prev => ({...prev, [sectionParam]: true}));
-    }
-  }, [sectionParam]);
-
-  useEffect(() => {
-    if (sectionParam && sectionRef.current) {
-      sectionRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
-      setSectionParam(null);
-    }
-  }, [sectionParam, setSectionParam]);
-
-  const groupedItems = useMemo(() => {
-    if (!isDiffMode) {
-      return null;
-    }
-    const groups = new Map<string, SidebarItem[]>();
-    for (const item of items) {
-      const existing = groups.get(item.type);
-      if (existing) {
-        existing.push(item);
-      } else {
-        groups.set(item.type, [item]);
-      }
-    }
-    return groups;
-  }, [items, isDiffMode]);
-
-  useEffect(() => {
-    if (!currentItemKey || !groupedItems) {
-      return;
-    }
-    for (const [sectionType, sectionItems] of groupedItems.entries()) {
-      if (sectionItems.some(item => item.key === currentItemKey)) {
-        setExpandedSections(prev =>
-          prev[sectionType] ? prev : {...prev, [sectionType]: true}
-        );
-        break;
-      }
-    }
-  }, [currentItemKey, groupedItems]);
-
-  useEffect(() => {
-    if (!listRef.current || !currentItemKey) {
+    if (!listRef.current || !currentItemKey || isAllSelected) {
       return;
     }
     const el = listRef.current.querySelector(
       `[data-item-name="${CSS.escape(currentItemKey)}"]`
     );
     el?.scrollIntoView({block: 'nearest'});
-  }, [currentItemKey]);
-
-  const isSearching = searchQuery.length > 0;
-
-  const handleExpandedChange = (type: string, expanded: boolean) => {
-    if (isSearching) return;
-    setExpandedSections(prev => ({...prev, [type]: expanded}));
-  };
-
-  const isGroupedDiff = isDiffMode && groupedItems !== null;
+  }, [currentItemKey, items, isAllSelected]);
 
   const renderItem = (item: SidebarItem) => {
-    const isSelected = item.key === currentItemKey;
+    const isSelected = !isAllSelected && item.key === currentItemKey;
+    const count =
+      item.type === 'changed' || item.type === 'renamed'
+        ? item.pairs.length
+        : item.images.length;
     return (
       <SidebarItemRow
         key={item.key}
@@ -181,11 +98,11 @@ export function SnapshotSidebarContent({
             {item.name}
           </Text>
         </Flex>
-        {item.badge && (
+        <CountBadge>
           <Text variant="muted" size="xs">
-            {item.badge}
+            {count}
           </Text>
-        )}
+        </CountBadge>
       </SidebarItemRow>
     );
   };
@@ -199,68 +116,55 @@ export function SnapshotSidebarContent({
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={t('Search %s images...', totalItemCount)}
+            placeholder={t('Search components...')}
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />
         </InputGroup>
+        {statusCounts && (
+          <Flex gap="lg" wrap="wrap">
+            {STATUS_PILLS.map(({status, color, label}) => {
+              const count = statusCounts[status];
+              if (count <= 0) {
+                return null;
+              }
+              return (
+                <StatusPill
+                  key={status}
+                  color={color}
+                  count={count}
+                  label={label}
+                  active={isStatusActive(status)}
+                  onClick={() => onToggleStatus(status)}
+                />
+              );
+            })}
+          </Flex>
+        )}
       </Stack>
       <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        {isGroupedDiff &&
-          SECTION_ORDER.map(section => {
-            const sectionItems = groupedItems.get(section.type);
-            if (!sectionItems || sectionItems.length === 0) {
-              return null;
-            }
-            const isExpanded = isSearching || expandedSections[section.type];
-            return (
-              <Disclosure
-                key={section.type}
-                size="md"
-                expanded={isExpanded}
-                ref={section.type === sectionParam ? sectionRef : undefined}
-              >
-                <SidebarSectionTitle
-                  priority="transparent"
-                  size="md"
-                  onClick={() => handleExpandedChange(section.type, !isExpanded)}
-                >
-                  <Flex align="center" justify="between" width="100%">
-                    <Flex align="center" gap="xs">
-                      <IconChevron direction={isExpanded ? 'down' : 'right'} size="sm" />
-                      <Text size="sm" bold uppercase>
-                        {section.label}
-                      </Text>
-                    </Flex>
-                    <Flex align="center" gap="xs">
-                      <Text size="sm">
-                        {/* changed/renamed store images as pairs; added/removed/unchanged use images */}
-                        {sectionItems.reduce(
-                          (sum, item) =>
-                            sum +
-                            (item.type === 'changed' || item.type === 'renamed'
-                              ? item.pairs.length
-                              : item.images.length),
-                          0
-                        )}
-                      </Text>
-                      {section.icon}
-                    </Flex>
-                  </Flex>
-                </SidebarSectionTitle>
-                {isExpanded && (
-                  <SidebarSectionContent>
-                    {sectionItems.map(renderItem)}
-                  </SidebarSectionContent>
-                )}
-              </Disclosure>
-            );
-          })}
-        {!isGroupedDiff && items.map(renderItem)}
+        <SidebarItemRow isSelected={isAllSelected} onClick={onSelectAll}>
+          <Flex align="center" gap="sm" flex="1" minWidth="0">
+            <Text
+              size="md"
+              variant={isAllSelected ? 'accent' : 'primary'}
+              bold={isAllSelected}
+              ellipsis
+            >
+              {t('All')}
+            </Text>
+          </Flex>
+          <CountBadge>
+            <Text variant="muted" size="xs">
+              {totalItemCount}
+            </Text>
+          </CountBadge>
+        </SidebarItemRow>
+        {items.map(renderItem)}
         {items.length === 0 && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
-              {t('No images found.')}
+              {t('No components found.')}
             </Text>
           </Flex>
         )}
@@ -269,24 +173,77 @@ export function SnapshotSidebarContent({
   );
 }
 
-const SidebarSectionTitle = styled(Button)`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  display: block;
-  width: 100%;
-  border-radius: 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+function StatusPill({
+  color,
+  count,
+  label,
+  active,
+  onClick,
+}: {
+  active: boolean;
+  color: PillColor;
+  count: number;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <PillButton type="button" active={active} onClick={onClick}>
+      <Dot pillColor={color} active={active} />
+      <Text size="xs" variant="muted">
+        {count} {label}
+      </Text>
+    </PillButton>
+  );
+}
+
+const PillButton = styled('button')<{active: boolean}>`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: ${p => (p.active ? 1 : 0.4)};
 
   &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
+    opacity: ${p => (p.active ? 0.8 : 0.6)};
   }
 `;
 
-const SidebarSectionContent = styled('div')`
-  width: 100%;
+const Dot = styled('span')<{active: boolean; pillColor: PillColor}>`
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${p => {
+    if (!p.active) {
+      return p.theme.tokens.content.secondary;
+    }
+    switch (p.pillColor) {
+      case 'accent':
+        return p.theme.tokens.graphics.accent.vibrant;
+      case 'success':
+        return p.theme.tokens.graphics.success.vibrant;
+      case 'danger':
+        return p.theme.tokens.graphics.danger.vibrant;
+      case 'warning':
+        return p.theme.tokens.graphics.warning.vibrant;
+      case 'muted':
+      default:
+        return p.theme.tokens.content.secondary;
+    }
+  }};
+`;
 
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
+const CountBadge = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 0 ${p => p.theme.space.xs};
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SidebarItemRow = styled('div')<{isSelected: boolean}>`
