@@ -18,8 +18,6 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 const ENABLED_READ_KEY = 'sentry:preprod_snapshot_pr_comments_enabled';
 const ENABLED_WRITE_KEY = 'preprodSnapshotPrCommentsEnabled';
-const ONLY_IF_DIFF_READ_KEY = 'sentry:preprod_snapshot_pr_comments_only_if_diff';
-const ONLY_IF_DIFF_WRITE_KEY = 'preprodSnapshotPrCommentsOnlyIfDiff';
 const POST_ON_ADDED_READ_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_added';
 const POST_ON_ADDED_WRITE_KEY = 'preprodSnapshotPrCommentsPostOnAdded';
 const POST_ON_REMOVED_READ_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_removed';
@@ -31,9 +29,6 @@ export function SnapshotPrCommentsToggle() {
 
   const enabled =
     (project[ENABLED_WRITE_KEY] ?? project.options?.[ENABLED_READ_KEY]) !== false;
-  const onlyIfDiff =
-    (project[ONLY_IF_DIFF_WRITE_KEY] ?? project.options?.[ONLY_IF_DIFF_READ_KEY]) ===
-    true;
   const postOnAdded =
     (project[POST_ON_ADDED_WRITE_KEY] ?? project.options?.[POST_ON_ADDED_READ_KEY]) ===
     true;
@@ -69,7 +64,9 @@ export function SnapshotPrCommentsToggle() {
                 {t('Snapshot Pull Request Comments')}
               </Text>
               <Text size="sm" variant="muted">
-                {t('Post snapshot comparison results as comments on pull requests.')}
+                {t(
+                  'Post a comment on pull requests when snapshot comparisons report changes.'
+                )}
               </Text>
             </Stack>
             <Switch
@@ -84,55 +81,32 @@ export function SnapshotPrCommentsToggle() {
             <Stack padding="xl" gap="lg">
               <Flex align="center" justify="between">
                 <Stack gap="xs">
-                  <Text bold>{t('Only post when there are changes')}</Text>
+                  <Text bold>{t('Post on Added Snapshots')}</Text>
                   <Text size="sm" variant="muted">
-                    {t(
-                      'Skip posting the PR comment when no snapshots differ from the base build.'
-                    )}
+                    {t('Treat new snapshots as a change worth posting a PR comment.')}
                   </Text>
                 </Stack>
                 <Switch
-                  checked={onlyIfDiff}
-                  onChange={() => handleUpdate({[ONLY_IF_DIFF_WRITE_KEY]: !onlyIfDiff})}
-                  aria-label={t('Toggle only post when there are changes')}
+                  checked={postOnAdded}
+                  onChange={() => handleUpdate({[POST_ON_ADDED_WRITE_KEY]: !postOnAdded})}
+                  aria-label={t('Toggle post on added snapshots')}
                 />
               </Flex>
-              {onlyIfDiff ? (
-                <Fragment>
-                  <Flex align="center" justify="between">
-                    <Stack gap="xs">
-                      <Text bold>{t('Post on Added Snapshots')}</Text>
-                      <Text size="sm" variant="muted">
-                        {t('Treat new snapshots as a change worth posting a PR comment.')}
-                      </Text>
-                    </Stack>
-                    <Switch
-                      checked={postOnAdded}
-                      onChange={() =>
-                        handleUpdate({[POST_ON_ADDED_WRITE_KEY]: !postOnAdded})
-                      }
-                      aria-label={t('Toggle post on added snapshots')}
-                    />
-                  </Flex>
-                  <Flex align="center" justify="between">
-                    <Stack gap="xs">
-                      <Text bold>{t('Post on Removed Snapshots')}</Text>
-                      <Text size="sm" variant="muted">
-                        {t(
-                          'Treat removed snapshots as a change worth posting a PR comment.'
-                        )}
-                      </Text>
-                    </Stack>
-                    <Switch
-                      checked={postOnRemoved}
-                      onChange={() =>
-                        handleUpdate({[POST_ON_REMOVED_WRITE_KEY]: !postOnRemoved})
-                      }
-                      aria-label={t('Toggle post on removed snapshots')}
-                    />
-                  </Flex>
-                </Fragment>
-              ) : null}
+              <Flex align="center" justify="between">
+                <Stack gap="xs">
+                  <Text bold>{t('Post on Removed Snapshots')}</Text>
+                  <Text size="sm" variant="muted">
+                    {t('Treat removed snapshots as a change worth posting a PR comment.')}
+                  </Text>
+                </Stack>
+                <Switch
+                  checked={postOnRemoved}
+                  onChange={() =>
+                    handleUpdate({[POST_ON_REMOVED_WRITE_KEY]: !postOnRemoved})
+                  }
+                  aria-label={t('Toggle post on removed snapshots')}
+                />
+              </Flex>
             </Stack>
           ) : null}
         </Fragment>
