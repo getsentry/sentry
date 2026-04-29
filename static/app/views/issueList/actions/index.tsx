@@ -8,12 +8,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
@@ -22,9 +17,7 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -39,7 +32,13 @@ import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueLi
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
-import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
+import {
+  BULK_LIMIT,
+  BULK_LIMIT_STR,
+  ConfirmAction,
+  invalidateIssueQueries,
+  performBulkUpdate,
+} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
@@ -256,86 +255,24 @@ export function IssueListActions({
     });
   }
 
-  // If all selected groups are from the same project, return the project ID.
-  // Otherwise, return the global selection projects. This is important because
-  // resolution in release requires that a project is specified, but the global
-  // selection may not have that information if My Projects is selected.
-  function getSelectedProjectIds(selectedGroupIds: string[] | undefined) {
-    if (!selectedGroupIds) {
-      return selection.projects;
-    }
-
-    const groups = selectedGroupIds.map(id => GroupStore.get(id));
-
-    const projectIds = new Set(groups.map(group => group?.project?.id).filter(defined));
-
-    if (projectIds.size === 1) {
-      return [...projectIds];
-    }
-
-    return selection.projects;
-  }
-
   function handleUpdate(data: IssueUpdateData) {
     actionSelectedGroups(itemIds => {
-      // If `itemIds` is undefined then it means we expect to bulk update all items
-      // that match the query.
-      //
-      // We need to always respect the projects selected in the global selection header:
-      // * users with no global views requires a project to be specified
-      // * users with global views need to be explicit about what projects the query will run against
-      const projectConstraints = {project: getSelectedProjectIds(itemIds)};
-
-      if (itemIds?.length) {
-        addLoadingMessage(t('Saving changes\u2026'));
-      }
-
-      bulkUpdate(
+      performBulkUpdate({
         api,
-        {
-          orgId: organization.slug,
-          itemIds,
-          data,
-          query,
-          environment: selection.environments,
-          failSilently: true,
-          ...projectConstraints,
-          ...selection.datetime,
+        data,
+        itemIds,
+        organizationSlug: organization.slug,
+        query,
+        selection,
+        onSuccess: updatedItemIds => {
+          onActionTaken?.(updatedItemIds ?? [], data);
+          invalidateIssueQueries({
+            itemIds: updatedItemIds,
+            organizationSlug: organization.slug,
+            queryClient,
+          });
         },
-        {
-          success: () => {
-            clearIndicators();
-            onActionTaken?.(itemIds ?? [], data);
-
-            // Prevents stale data on issue details
-            if (itemIds?.length) {
-              for (const itemId of itemIds) {
-                queryClient.invalidateQueries({
-                  queryKey: [`/organizations/${organization.slug}/issues/${itemId}/`],
-                  exact: false,
-                });
-              }
-            } else {
-              // If we're doing a full query update we invalidate all issue queries to be safe
-              queryClient.invalidateQueries({
-                predicate: apiQuery => {
-                  const queryKey = safeParseQueryKey(apiQuery.queryKey);
-                  if (!queryKey) {
-                    return false;
-                  }
-                  return queryKey.url.startsWith(
-                    `/organizations/${organization.slug}/issues/`
-                  );
-                },
-              });
-            }
-          },
-          error: () => {
-            clearIndicators();
-            addErrorMessage(t('Unable to update issues'));
-          },
-        }
-      );
+      });
     });
   }
 
