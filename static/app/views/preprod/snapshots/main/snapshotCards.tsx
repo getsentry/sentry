@@ -9,6 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -299,12 +300,6 @@ function MetadataInfoButton({copyData}: {copyData: unknown}) {
   );
 }
 
-// >= 1% shows 1 decimal ("93.5"); < 1% shows up to 4 without trailing zeros ("0.0227")
-function formatDiffPercent(diff: number): string {
-  const pct = diff * 100;
-  return pct >= 1 ? pct.toFixed(1) : String(parseFloat(pct.toFixed(4)));
-}
-
 const StatusBadge = memo(function StatusBadge({
   status,
   diffPercent,
@@ -318,7 +313,10 @@ const StatusBadge = memo(function StatusBadge({
       label =
         diffPercent === null || diffPercent === undefined
           ? t('Modified')
-          : t('Modified - %s%%', formatDiffPercent(diffPercent));
+          : t(
+              'Modified - %s',
+              formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 4)
+            );
       break;
     case DiffStatus.ADDED:
       label = t('Added');
