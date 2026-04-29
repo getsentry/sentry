@@ -124,7 +124,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
     #
     # Agent eval tooling
-    "export_agent_indexes": map_org_id_param(export_agent_indexes),
+    "export_explorer_indexes": map_org_id_param(export_agent_indexes),
 }
 
 

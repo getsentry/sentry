@@ -182,7 +182,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         }
         mock_request.return_value = mock_response
 
-        path = self._get_path("export_agent_indexes")
+        path = self._get_path("export_explorer_indexes")
         response = self.client.post(path, data={"args": {}}, format="json")
 
         assert response.status_code == 200
@@ -209,7 +209,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         }
         mock_request.return_value = mock_response
 
-        path = self._get_path("export_agent_indexes")
+        path = self._get_path("export_explorer_indexes")
         # Attempt to pass a different org_id in args
         response = self.client.post(path, data={"args": {"org_id": 99999}}, format="json")
 

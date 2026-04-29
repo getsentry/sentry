@@ -29,7 +29,7 @@ from sentry.seer.signed_seer_api import (
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
-logger = logging.getLogger("sentry.seer.agent.service_map_utils")
+logger = logging.getLogger(__name__)
 
 # Maximum rows Snuba returns per query
 _SNUBA_MAX_ROWS = 10000
