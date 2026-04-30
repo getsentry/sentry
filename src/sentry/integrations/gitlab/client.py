@@ -33,7 +33,7 @@ logger = logging.getLogger("sentry.integrations.gitlab")
 
 
 def safe_quote(s: Any) -> str:
-    return quote(unquote(s), safe="")
+    return quote(unquote(str(s)), safe="")
 
 
 class GitLabSetupApiClient(IntegrationProxyClient):
