@@ -17,7 +17,6 @@ import type {InternalAppApiToken, User} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -135,9 +134,9 @@ export function UserDetails() {
       addSuccessMessage(`User account has been ${action}.`);
       queryClient.invalidateQueries({queryKey: makeFetchUserQueryKey()});
     },
-    onError: (error: RequestError) => {
+    onError: () => {
       clearIndicators();
-      addErrorMessage(error.message ?? 'Failed to update user suspension status.');
+      addErrorMessage('Failed to update user suspension status.');
     },
   });
 
