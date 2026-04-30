@@ -38,7 +38,7 @@ import {
   SnapshotListView,
 } from './snapshotListView';
 
-export type ViewMode = 'single' | 'list';
+type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
 
 interface SnapshotMainContentProps {
