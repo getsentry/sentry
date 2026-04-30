@@ -137,7 +137,7 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <Flex align="center" justify="between" gap="md" padding="md 2xl md 0">
+        <Flex align="center" justify="between" gap="md" padding="md xl">
           <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {toggle}
             {sortDropdown}
