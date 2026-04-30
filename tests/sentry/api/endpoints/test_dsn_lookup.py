@@ -54,6 +54,5 @@ class DsnLookupEndpointTest(APITestCase):
         self.create_member(user=user_without_access, organization=org, role="member", teams=[])
         self.login_as(user_without_access)
 
-        with self.feature("organizations:cmd-k-dsn-lookup"):
-            response = self.get_response(org.slug, qs_params={"dsn": key.dsn_public})
+        response = self.get_response(org.slug, qs_params={"dsn": key.dsn_public})
         assert response.status_code == 404
