@@ -57,6 +57,8 @@ export function SeerProjectTable() {
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
+  const [isLoadingModal, setIsLoadingModal] = React.useState(false);
+
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
     filterCodingAgentQueryOptions({
@@ -255,21 +257,28 @@ export function SeerProjectTable() {
             priority="primary"
             size="md"
             onClick={async () => {
-              const {ProjectAddRepoModal} =
-                await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
+              setIsLoadingModal(true);
+              try {
+                const {ProjectAddRepoModal} =
+                  await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
 
-              openModal(
-                deps => (
-                  <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />
-                ),
-                {
-                  modalCss: css`
-                    width: 700px;
-                  `,
-                }
-              );
+                openModal(
+                  deps => (
+                    <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />
+                  ),
+                  {
+                    modalCss: css`
+                      width: 700px;
+                    `,
+                  }
+                );
+              } finally {
+                setIsLoadingModal(false);
+              }
             }}
             icon={<IconAdd />}
+            busy={isLoadingModal}
+            disabled={isLoadingModal}
           >
             {t('Add Project')}
           </Button>
