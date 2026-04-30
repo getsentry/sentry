@@ -119,7 +119,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
  *
  * See also: fetchMutation
  */
-export function fetchDataQuery<TResponseData = unknown>(
+function fetchDataQuery<TResponseData = unknown>(
   context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResult<TResponseData>> {
   const {url, options} = parseQueryKey(context.queryKey);
