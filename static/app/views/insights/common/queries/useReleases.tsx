@@ -17,11 +17,10 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
-export function useReleases(
+function useReleases(
   searchTerm: string | undefined,
-  sortBy: ReleasesSortByOption | undefined
+  sortBy: ReleasesSortOption | undefined
 ) {
   const organization = useOrganization();
   const location = useLocation();

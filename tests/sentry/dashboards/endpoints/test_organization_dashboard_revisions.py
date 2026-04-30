@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.testutils.cases import APITestCase
+from sentry.users.models.user_avatar import UserAvatarType
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -63,9 +64,30 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
             "id": str(self.user.id),
             "name": self.user.get_display_name(),
             "email": self.user.email,
-            "avatarUrl": get_gravatar_url(self.user.email, size=32),
+            "avatarType": "letter_avatar",
+            "avatarUrl": None,
         }
         assert "dateCreated" in data
+
+    def test_returns_gravatar_avatar_type(self) -> None:
+        self.create_user_avatar(user=self.user, avatar_type=UserAvatarType.GRAVATAR)
+        self._create_revision()
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        created_by = response.data[0]["createdBy"]
+        assert created_by["avatarType"] == "gravatar"
+        assert created_by["avatarUrl"] == get_gravatar_url(self.user.email, size=32)
+
+    def test_returns_upload_avatar_type(self) -> None:
+        self.create_user_avatar(user=self.user, avatar_type=UserAvatarType.UPLOAD)
+        self._create_revision()
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["createdBy"]["avatarType"] == "upload"
 
     def test_returns_revisions_newest_first(self) -> None:
         first = self._create_revision(title="First")

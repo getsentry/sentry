@@ -1,7 +1,6 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
-import type {InfiniteData} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -55,9 +54,9 @@ import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
+import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwitch';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
-import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -73,7 +72,6 @@ import {
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import type {TableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
-import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -324,19 +322,16 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
 
   const refreshTable = async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
-    queryClient.setQueryData(
-      tableData.queryKey,
-      (data: InfiniteData<OurLogsResponseItem[]>) => {
-        if (data?.pages) {
-          // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
-          return {
-            pages: data.pages.slice(0, 1),
-            pageParams: data.pageParams.slice(0, 1),
-          };
-        }
-        return data;
+    queryClient.setQueryData(tableData.queryKey, data => {
+      if (data?.pages) {
+        // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
+        return {
+          pages: data.pages.slice(0, 1),
+          pageParams: data.pageParams.slice(0, 1),
+        };
       }
-    );
+      return data;
+    });
     await tableData.refetch();
   };
 
@@ -457,7 +452,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
                 >
                   {sidebarOpen ? null : t('Advanced')}
                 </LogsSidebarCollapseButton>
-                <LogsExportButton
+                <LogsExportSwitch
                   isLoading={tableData.isPending}
                   tableData={tableData.data}
                   error={tableData.error}

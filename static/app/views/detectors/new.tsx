@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t, tct} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -64,10 +64,10 @@ export default function DetectorNew() {
   };
 
   return (
-    <EditLayout formProps={formProps}>
+    <EditLayoutDeprecated formProps={formProps}>
       <SentryDocumentTitle title={t('New Monitor')} />
-      <EditLayout.Header maxWidth={maxWidth}>
-        <EditLayout.HeaderContent>
+      <EditLayoutDeprecated.Header maxWidth={maxWidth}>
+        <EditLayoutDeprecated.HeaderContent>
           {hasPageFrame ? (
             <TopBar.Slot name="title">
               <NewDetectorBreadcrumbs />
@@ -75,7 +75,9 @@ export default function DetectorNew() {
           ) : (
             <NewDetectorBreadcrumbs />
           )}
-          {!hasPageFrame && <EditLayout.Title title={t('Select monitor type')} />}
+          {!hasPageFrame && (
+            <EditLayoutDeprecated.Title title={t('Select monitor type')} />
+          )}
           <Text as="p" size="md" variant="muted">
             {tct(
               'Monitors detect problems in your application and send alerts when they occur. [docsLink:Read the Docs].',
@@ -86,24 +88,24 @@ export default function DetectorNew() {
               }
             )}
           </Text>
-        </EditLayout.HeaderContent>
+        </EditLayoutDeprecated.HeaderContent>
         <div>
           <MonitorFeedbackButton />
         </div>
-      </EditLayout.Header>
+      </EditLayoutDeprecated.Header>
 
-      <EditLayout.Body maxWidth={maxWidth}>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
         <DetectorTypeForm />
-      </EditLayout.Body>
+      </EditLayoutDeprecated.Body>
 
-      <EditLayout.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
+      <EditLayoutDeprecated.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
         <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
         <Button priority="primary" type="submit">
           {t('Next')}
         </Button>
-      </EditLayout.Footer>
-    </EditLayout>
+      </EditLayoutDeprecated.Footer>
+    </EditLayoutDeprecated>
   );
 }

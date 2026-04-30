@@ -10,7 +10,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
@@ -61,6 +61,7 @@ export function ExplorerDrawerContent({
     sessionData,
     isPolling,
     isError,
+    errorStatusCode,
     sendMessage,
     startNewSession,
     switchToRun,
@@ -70,7 +71,6 @@ export function ExplorerDrawerContent({
     waitingForInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
-    overrideCodeModeEnable,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
@@ -158,7 +158,9 @@ export function ExplorerDrawerContent({
   }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
+  const conversationsUrl = runId
+    ? getConversationsUrlForExternalUse('sentry', runId)
+    : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -209,6 +211,9 @@ export function ExplorerDrawerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
+      onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
+        ? setOverrideCodeModeEnable
+        : undefined,
     },
     inputAnchorRef: textareaRef,
     prWidgetAnchorRef: prWidgetButtonRef,
@@ -304,7 +309,7 @@ export function ExplorerDrawerContent({
         container.removeEventListener('scroll', handleScroll);
       };
     }
-    return undefined;
+    return;
   }, []);
 
   // - Keyboard listeners -----------------------------------------------------
@@ -320,12 +325,12 @@ export function ExplorerDrawerContent({
   return (
     <DrawerContentContainer data-seer-explorer-root="">
       <ExplorerDrawerHeader
+        disableNewChatButton={runId === null}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
         onChangeSession={switchToRun}
-        isEmptyState={isEmptyState}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
@@ -334,11 +339,6 @@ export function ExplorerDrawerContent({
           !!organization?.features.includes(
             'seer-explorer-context-engine-fe-override-ui-flag'
           )
-        }
-        overrideCodeModeEnable={overrideCodeModeEnable}
-        onOverrideCodeModeEnableToggle={() => setOverrideCodeModeEnable(v => !v)}
-        showCodeModeToggle={
-          !!organization?.features.includes('seer-explorer-code-mode-tools')
         }
         showThinking={showThinking}
         onShowThinkingToggle={() => setShowThinking(v => !v)}
@@ -352,6 +352,7 @@ export function ExplorerDrawerContent({
           <EmptyState
             isLoading={isPolling}
             isError={isError}
+            errorStatusCode={errorStatusCode}
             runId={runId}
             onSuggestionClick={readOnly ? undefined : sendMessage}
           />
@@ -376,7 +377,6 @@ export function ExplorerDrawerContent({
                   isLatestTodoBlock={index === latestTodoBlockIndex}
                   readOnly={readOnly}
                   showThinking={showThinking}
-                  onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 />
               );
             })}
@@ -463,4 +463,7 @@ const DrawerContentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  contain: inline-size;
+  container-type: inline-size;
+  container-name: seer-explorer-root;
 `;

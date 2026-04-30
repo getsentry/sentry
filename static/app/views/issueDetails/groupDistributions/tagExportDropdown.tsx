@@ -2,8 +2,8 @@ import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
-import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -20,16 +20,7 @@ interface Props {
 export function TagExportDropdown({tagKey, group, organization, project}: Props) {
   const [isExportDisabled, setIsExportDisabled] = useState(false);
   const hasDiscoverQuery = organization.features.includes('discover-query');
-  const handleDataExport = useDataExport({
-    payload: {
-      queryType: ExportQueryType.ISSUES_BY_TAG,
-      queryInfo: {
-        project: project.id,
-        group: group.id,
-        key: tagKey,
-      },
-    },
-  });
+  const handleDataExport = useDataExport();
 
   return (
     <DropdownMenu
@@ -59,7 +50,14 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
           key: 'export-all',
           label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
           onAction: () => {
-            handleDataExport();
+            handleDataExport({
+              queryType: ExportQueryType.ISSUES_BY_TAG,
+              queryInfo: {
+                project: project.id,
+                group: group.id,
+                key: tagKey,
+              },
+            });
             setIsExportDisabled(true);
           },
           disabled: isExportDisabled || !hasDiscoverQuery,

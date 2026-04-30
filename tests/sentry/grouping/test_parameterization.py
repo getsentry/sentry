@@ -203,6 +203,8 @@ standard_cases = [
     ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
     ("hex without prefix - no letters, 8+ digits, negative", "-12345678", "<hex>"),
+    ("hex without prefix - leading underscore", "img_3f26.jpg", "img_<hex>.jpg"),
+    ("hex without prefix - trailing underscore", "3f26_thumbnail.jpg", "<hex>_thumbnail.jpg"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
@@ -223,6 +225,8 @@ standard_cases = [
     ("int - separator negative with space", "value: -17502", "value: <int>"),
     ("int - in dashed string with numbers", "415-908", "<int>-<int>"),
     ("int - in dashed string with letters", "maisey-908", "maisey-<int>"),
+    ("int - leading underscore", "img_1121.jpg", "img_<int>.jpg"),
+    ("int - trailing underscore", "1231_thumbnail.jpg", "<int>_thumbnail.jpg"),
     ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
     ("int - date - invalid day", "2006-01-40", "<int>-<int>-<int>"),
     ("int - date - invalid month", "2006-20-02", "<int>-<int>-<int>"),
@@ -315,30 +319,6 @@ incorrect_cases = [
         "-1.2.3",
         "<int>.<int>.<int>",
         "<float>.<int>",
-    ),
-    (
-        "hex without prefix - leading underscore",
-        "img_3f26.jpg",
-        "img_<hex>.jpg",
-        "img_3f26.jpg",
-    ),
-    (
-        "hex without prefix - trailing underscore",
-        "3f26_thumbnail.jpg",
-        "<hex>_thumbnail.jpg",
-        "3f26_thumbnail.jpg",
-    ),
-    (
-        "int - leading underscore",
-        "img_1121.jpg",
-        "img_<int>.jpg",
-        "img_1121.jpg",
-    ),
-    (
-        "int - trailing underscore",
-        "1231_thumbnail.jpg",
-        "<int>_thumbnail.jpg",
-        "1231_thumbnail.jpg",
     ),
     (
         "int - number in word",
@@ -805,6 +785,41 @@ def test_replacement_callback_false_positive_triggers_individual_regex_fallback(
             )
             == 1
         )
+
+
+# Cases where we might or might not trigger a false positive with our IP regex (necessitating use of
+# the slower fallback parameterization method if we do). The goal is to have as many of these as
+# possible have `False` for their third parameter while still keeping our regex relatively
+# straightforward.
+ip_false_positive_cases = [
+    # (name, input, whether callback is expected to have been called)
+    ("ip - too many initial characters", "12345::6:789", False),
+    ("ip - too many final characters", "123:4::56789", False),
+    ("ip - too many initial colons", ":::1121", False),
+    ("ip - too many interior colons", "1231:::1121", True),
+    ("ip - too many final colons", "1231:::", False),
+    ("ip - three colons alone", ":::", False),
+    ("ip - single leading colon", "Script error. :0:0", False),
+    ("ip - single trailing colon", "12::31:", False),
+    ("ip - too few segments", "12:31:99", True),
+    ("ip - v4 leading zeros", "11.21.12.001", False),
+    ("ip - v4 segment > 255", "12.31.12.908", False),
+    ("ip - v4 too many segments", "11.21.12.31.12", True),
+    ("date - colon btwn date and time", "21/Nov/2012:12:31:12", True),
+]
+
+
+@pytest.mark.parametrize(("name", "input", "callback_call_expected"), ip_false_positive_cases)
+@patch("sentry.grouping.parameterization.is_valid_ip", wraps=is_valid_ip)
+def test_ip_false_positives(
+    mock_is_valid_ip: MagicMock, name: str, input: str, callback_call_expected: bool
+) -> None:
+    parameterizer.parameterize(input)
+
+    if callback_call_expected:
+        mock_is_valid_ip.assert_called()
+    else:
+        mock_is_valid_ip.assert_not_called()
 
 
 @patch("sentry.grouping.parameterization.logger")

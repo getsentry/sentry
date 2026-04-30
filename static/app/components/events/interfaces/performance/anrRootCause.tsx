@@ -101,7 +101,7 @@ export function AnrRootCause({event, organization}: Props) {
 
   function renderAnrCulprit() {
     if (!defined(anrCulprit)) {
-      return undefined;
+      return;
     }
 
     if (typeof anrCulprit.culprit === 'string') {

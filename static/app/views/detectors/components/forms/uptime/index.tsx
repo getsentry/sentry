@@ -10,7 +10,7 @@ import {
   usePreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
-import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {
   ProjectEnvironmentSection,
@@ -68,7 +68,7 @@ function UptimeDetectorForm() {
       <UptimeDetectorResolveSection step={nextStep()} />
       <IssueOwnershipSection step={nextStep()} />
       <UptimeIssuePreview step={nextStep()} />
-      <AutomateSection step={nextStep()} />
+      <AutomateSectionDeprecated step={nextStep()} />
     </Stack>
   );
 }

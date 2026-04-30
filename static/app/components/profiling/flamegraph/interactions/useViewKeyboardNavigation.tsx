@@ -55,7 +55,7 @@ export function useViewKeyboardNavigation(
 
   useEffect(() => {
     if (!view) {
-      return undefined;
+      return;
     }
 
     function onKeyDown(event: KeyboardEvent) {

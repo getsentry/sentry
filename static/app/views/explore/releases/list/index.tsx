@@ -54,7 +54,6 @@ import {ReleaseHealthCTA} from 'sentry/views/explore/releases/list/releaseHealth
 import {ReleaseListInner} from 'sentry/views/explore/releases/list/releaseListInner';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 
 import {ReleasesDisplayOption, ReleasesDisplayOptions} from './releasesDisplayOptions';
@@ -630,8 +629,6 @@ export default function ReleasesList() {
 }
 
 function ReleasesHeader() {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const titleTooltip = (
     <PageHeadingQuestionTooltip
       docsUrl="https://docs.sentry.io/product/releases/"
@@ -641,38 +638,22 @@ function ReleasesHeader() {
     />
   );
 
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        <TopBar.Slot name="title">
-          {t('Releases')}
-          {titleTooltip}
-        </TopBar.Slot>
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            feedbackOptions={releasesFeedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-      </Fragment>
-    );
-  }
-
   return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        <Layout.Title>
-          {t('Releases')}
-          {titleTooltip}
-        </Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <FeedbackButton feedbackOptions={releasesFeedbackOptions} />
-      </Layout.HeaderActions>
-    </Layout.Header>
+    <Fragment>
+      <TopBar.Slot name="title">
+        {t('Releases')}
+        {titleTooltip}
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          feedbackOptions={releasesFeedbackOptions}
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 

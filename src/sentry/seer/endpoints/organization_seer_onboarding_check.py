@@ -51,7 +51,9 @@ def is_autofix_enabled(organization: Organization) -> bool:
     ie, if any project has repositories configured in Seer preferences.
     """
     return SeerProjectRepository.objects.filter(
-        project__organization_id=organization.id, project__status=ObjectStatus.ACTIVE
+        project__organization_id=organization.id,
+        project__status=ObjectStatus.ACTIVE,
+        repository__status=ObjectStatus.ACTIVE,
     ).exists()
 
 
