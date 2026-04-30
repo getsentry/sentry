@@ -45,20 +45,23 @@ class PreProvisionCheckException(Exception):
 class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvisioningRpcService):
     def _create_organization_and_team(
         self,
+        *,
+        owner: RpcUser,
         organization_name: str,
         slug: str,
         create_default_team: bool,
         organization_id: int,
         is_test: bool = False,
-        owner: RpcUser | None = None,
         # TODO(cells) Deprecated use owner instead
         user_id: int | None = None,
         # TODO(cells) Deprecated use owner instead
         email: str | None = None,
     ) -> Organization:
-        assert (user_id is None and email) or (user_id and email is None), (
-            "Must set either user_id or email"
+        assert owner or (user_id is None and email) or (user_id and email is None), (
+            "Must set either owner or one of user_id or email"
         )
+        if not user_id and owner:
+            user_id = owner.id
         truncated_name = organization_name[:ORGANIZATION_NAME_MAX_LENGTH]
         org = Organization.objects.create(
             id=organization_id, name=truncated_name, slug=slug, is_test=is_test
