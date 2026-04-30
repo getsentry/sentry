@@ -241,6 +241,22 @@ def main() -> int:
             for f in changed:
                 affected_test_files.update(EXTRA_FILE_TO_TEST_MAPPING.get(f, []))
 
+            # Expand conftest.py selections: when a conftest ends up selected (e.g. via
+            # static import scan), include all test files under its directory tree.
+            # A conftest selected by the scanner means "something this conftest imports
+            # changed" — the right response is to run the tests it guards, not just the
+            # conftest file itself (which contains no test functions).
+            conftest_dirs = {
+                Path(f).parent
+                for f in list(affected_test_files)
+                if f.endswith("conftest.py")
+            }
+            for conftest_dir in conftest_dirs:
+                for test_file in conftest_dir.rglob("test_*.py"):
+                    rel = test_file.relative_to(Path.cwd()).as_posix()
+                    if _is_test(rel) and not any(p.search(rel) for p in EXCLUDED_TEST_PATTERNS):
+                        affected_test_files.add(rel)
+
             # Directly changed test files
             changed_tests = {
                 f

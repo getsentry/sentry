@@ -8,8 +8,8 @@ from rest_framework import serializers
 # They register via @action_handler_registry.register at import time (startup
 # side-effect), so without these the static scanner has no edge from handler
 # files to this test file.
-import sentry.integrations.github.handlers  # noqa: F401
-import sentry.integrations.github_enterprise.handlers  # noqa: F401
+import sentry.integrations.github.handlers.github_handler  # noqa: F401
+import sentry.integrations.github_enterprise.handlers.github_enterprise_handler  # noqa: F401
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.integrations.models import OrganizationIntegration

@@ -14,5 +14,5 @@
 # imports all handler packages centrally (mirroring workflow_engine/apps.py), which would
 # fix both selective testing and any other tooling that relies on static import graphs.
 # That's a larger change tracked separately.
-import sentry.integrations.github.handlers  # noqa: F401
-import sentry.integrations.github_enterprise.handlers  # noqa: F401
+import sentry.integrations.github.handlers.github_handler  # noqa: F401
+import sentry.integrations.github_enterprise.handlers.github_enterprise_handler  # noqa: F401
