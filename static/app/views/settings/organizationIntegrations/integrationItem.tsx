@@ -24,11 +24,11 @@ export function IntegrationItem({integration, compact = false}: Props) {
         paddingLeft="md"
         minWidth={0}
       >
-        <Text size="md" bold>
+        <Text size="md" bold ellipsis>
           {integration.name}
         </Text>
         <DomainName compact={compact}>
-          <Text size="sm" variant="muted" density="comfortable">
+          <Text size="sm" variant="muted" density="comfortable" ellipsis>
             {integration.domainName}
           </Text>
         </DomainName>

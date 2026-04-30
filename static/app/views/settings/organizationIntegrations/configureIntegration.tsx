@@ -5,6 +5,8 @@ import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -43,15 +45,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
-import {IntegrationItem} from './integrationItem';
 import {IntegrationRepos} from './integrationRepos';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
@@ -84,7 +83,6 @@ function ConfigureIntegration() {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
   const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
   const {integrationId, providerKey} = useParams<{
@@ -508,15 +506,22 @@ function ConfigureIntegration() {
 
     return (
       <Fragment>
-        <TabsContainer>
-          <Tabs value={tab} onChange={onTabChange}>
-            <TabList>
-              {allTabs.map(tabTuple => (
-                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-              ))}
-            </TabList>
-          </Tabs>
-        </TabsContainer>
+        <Grid
+          columns="1fr min-content"
+          align="center"
+          paddingBottom={allTabs.length ? undefined : 'md'}
+        >
+          <TabsContainer>
+            <Tabs value={tab} onChange={onTabChange}>
+              <TabList>
+                {allTabs.map(tabTuple => (
+                  <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+                ))}
+              </TabList>
+            </Tabs>
+          </TabsContainer>
+          <Flex align="center">{getAction()}</Flex>
+        </Grid>
         {renderTabContent()}
       </Fragment>
     );
@@ -527,15 +532,10 @@ function ConfigureIntegration() {
       <SentryDocumentTitle
         title={integration ? integration.provider.name : 'Configure Integration'}
       />
-      <SettingsPageHeader
-        noTitleStyles
-        title={<IntegrationItem integration={integration} compact={hasPageFrame} />}
-        action={getAction()}
-      />
       {renderMainContent()}
       <BreadcrumbTitle
         routes={routes}
-        title={t('Configure %s', integration.provider.name)}
+        title={t('Configure %s for %s', integration.provider.name, integration.name)}
       />
     </Fragment>
   );
