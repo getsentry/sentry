@@ -161,11 +161,12 @@ def process_mention_for_slack(
 
         on_page_context = _join_context(linked_result.block, thread_context)
 
-        if linked_result.unresolved_channel_ids:
+        if linked_result.unresolved_channel_ids or linked_result.private_channel_ids:
             _send_inaccessible_links_prompt(
                 entrypoint=entrypoint,
                 thread_ts=thread_ts or ts,
-                channel_ids=linked_result.unresolved_channel_ids,
+                unresolved_channel_ids=linked_result.unresolved_channel_ids,
+                private_channel_ids=linked_result.private_channel_ids,
             )
 
         operator = SeerAgentOperator(entrypoint=entrypoint)
@@ -377,6 +378,7 @@ def _cap_linked_thread(
 class _LinkedMessagesResult(NamedTuple):
     block: str
     unresolved_channel_ids: list[str]
+    private_channel_ids: list[str]
 
 
 def _resolve_linked_messages(
@@ -392,12 +394,18 @@ def _resolve_linked_messages(
     domain_name = entrypoint.integration.metadata.get("domain_name")
     links = extract_slack_message_links(text, domain_name=domain_name)
     if not links:
-        return _LinkedMessagesResult(block="", unresolved_channel_ids=[])
+        return _LinkedMessagesResult(block="", unresolved_channel_ids=[], private_channel_ids=[])
 
     rendered: list[tuple[SlackMessageLink, list[dict]]] = []
     total_messages = 0
     unresolved: set[str] = set()
+    private_channels: set[str] = set()
     for link in links:
+        conversation_info = entrypoint.install.get_conversations_info(channel_id=link.channel_id)
+        if not conversation_info.get("is_public"):
+            private_channels.add(link.channel_id)
+            continue
+
         messages = entrypoint.install.get_thread_history(
             channel_id=link.channel_id,
             thread_ts=link.thread_ts or link.ts,
@@ -421,6 +429,7 @@ def _resolve_linked_messages(
     return _LinkedMessagesResult(
         block=build_linked_messages_context(rendered),
         unresolved_channel_ids=list(unresolved),
+        private_channel_ids=list(private_channels),
     )
 
 
@@ -436,10 +445,14 @@ def _send_inaccessible_links_prompt(
     *,
     entrypoint: SlackAgentEntrypoint,
     thread_ts: str,
-    channel_ids: list[str],
+    unresolved_channel_ids: list[str],
+    private_channel_ids: list[str],
 ) -> None:
-    """Tell the user we couldn't read the linked messages and how to fix it."""
-    renderable = _build_inaccessible_links_renderable(channel_ids=channel_ids)
+    """Tell the user we couldn't read some linked messages."""
+    renderable = _build_inaccessible_links_renderable(
+        unresolved_channel_ids=unresolved_channel_ids,
+        private_channel_ids=private_channel_ids,
+    )
     entrypoint.install.send_threaded_ephemeral_message(
         slack_user_id=entrypoint.slack_user_id,
         channel_id=entrypoint.channel_id,
@@ -450,20 +463,38 @@ def _send_inaccessible_links_prompt(
 
 def _build_inaccessible_links_renderable(
     *,
-    channel_ids: list[str],
+    unresolved_channel_ids: list[str],
+    private_channel_ids: list[str],
 ) -> SlackRenderable:
-    """Build the ephemeral nudging the user to /invite the bot."""
-    plural = len(channel_ids) > 1
-    if not plural:
-        message = (
-            "I couldn't read a Slack message you linked. "
-            f"Go to <#{channel_ids[0]}> and run `/invite @Sentry` so I can read messages there next time."
-        )
-    else:
-        bullets = "\n".join(f"- <#{cid}>" for cid in channel_ids)
-        message = (
-            "I couldn't read some of the Slack messages you linked. "
-            "Run `/invite @Sentry` in each channel so I can read messages there next time:\n"
-            f"{bullets}"
-        )
+    """Build the ephemeral explaining which linked messages we skipped and why."""
+    sections: list[str] = []
+
+    if unresolved_channel_ids:
+        if len(unresolved_channel_ids) == 1:
+            sections.append(
+                "I couldn't read a Slack message you linked. "
+                f"Go to <#{unresolved_channel_ids[0]}> and run `/invite @Sentry` so I can read messages there next time."
+            )
+        else:
+            bullets = "\n".join(f"- <#{cid}>" for cid in unresolved_channel_ids)
+            sections.append(
+                "I couldn't read some of the Slack messages you linked. "
+                "Run `/invite @Sentry` in each channel so I can read messages there next time:\n"
+                f"{bullets}"
+            )
+
+    if private_channel_ids:
+        if len(private_channel_ids) == 1:
+            sections.append(
+                "For privacy, I don't read messages from private channels. "
+                f"I skipped the link to <#{private_channel_ids[0]}>."
+            )
+        else:
+            bullets = "\n".join(f"- <#{cid}>" for cid in private_channel_ids)
+            sections.append(
+                "For privacy, I don't read messages from private channels. "
+                f"I skipped these links:\n{bullets}"
+            )
+
+    message = "\n\n".join(sections)
     return SlackRenderable(blocks=[MarkdownBlock(text=message)], text=message)

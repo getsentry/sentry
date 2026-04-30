@@ -623,17 +623,52 @@ class LinkedMessagesContextTest(TestCase):
 
 
 class BuildInaccessibleLinksRenderableTest(TestCase):
-    def test_single_channel_uses_inline_link(self) -> None:
-        renderable = _build_inaccessible_links_renderable(channel_ids=["C0AAA"])
+    def test_single_unresolved_channel_uses_inline_link(self) -> None:
+        renderable = _build_inaccessible_links_renderable(
+            unresolved_channel_ids=["C0AAA"],
+            private_channel_ids=[],
+        )
         assert "a Slack message you linked" in renderable["text"]
         assert "<#C0AAA>" in renderable["text"]
         assert "/invite @Sentry" in renderable["text"]
 
-    def test_multiple_channels_use_bullet_list(self) -> None:
-        renderable = _build_inaccessible_links_renderable(channel_ids=["C0AAA", "C0BBB"])
+    def test_multiple_unresolved_channels_use_bullet_list(self) -> None:
+        renderable = _build_inaccessible_links_renderable(
+            unresolved_channel_ids=["C0AAA", "C0BBB"],
+            private_channel_ids=[],
+        )
         assert "some of the Slack messages you linked" in renderable["text"]
         assert "- <#C0AAA>" in renderable["text"]
         assert "- <#C0BBB>" in renderable["text"]
+
+    def test_single_private_channel_uses_inline_link(self) -> None:
+        renderable = _build_inaccessible_links_renderable(
+            unresolved_channel_ids=[],
+            private_channel_ids=["C0PRIV"],
+        )
+        assert "private channels" in renderable["text"]
+        assert "<#C0PRIV>" in renderable["text"]
+        assert "/invite @Sentry" not in renderable["text"]
+
+    def test_multiple_private_channels_use_bullet_list(self) -> None:
+        renderable = _build_inaccessible_links_renderable(
+            unresolved_channel_ids=[],
+            private_channel_ids=["C0PRIV1", "C0PRIV2"],
+        )
+        assert "private channels" in renderable["text"]
+        assert "- <#C0PRIV1>" in renderable["text"]
+        assert "- <#C0PRIV2>" in renderable["text"]
+        assert "/invite @Sentry" not in renderable["text"]
+
+    def test_mixed_unresolved_and_private_renders_both_sections(self) -> None:
+        renderable = _build_inaccessible_links_renderable(
+            unresolved_channel_ids=["C0AAA"],
+            private_channel_ids=["C0PRIV"],
+        )
+        assert "<#C0AAA>" in renderable["text"]
+        assert "/invite @Sentry" in renderable["text"]
+        assert "private channels" in renderable["text"]
+        assert "<#C0PRIV>" in renderable["text"]
 
 
 class CapLinkedThreadTest(TestCase):
