@@ -1281,7 +1281,6 @@ else:
         **TASKWORKER_REGION_SCHEDULES,
     }
 
-# Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.
 # Additionally, Sentry has the ability to override logger levels by
@@ -2139,7 +2138,14 @@ SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
 
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS: dict[str, Any] = {}
-SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
+SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {
+    "system.logging-format": "human",
+    "mail.list-namespace": "localhost",
+    "analytics.backend": "noop",
+    "analytics.options": {},
+    "relay.static_auth": {},
+    "objectstore.config": {"base_url": "http://127.0.0.1:8888"},
+}
 # Raise an error in dev on failed lookups
 SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
@@ -2351,6 +2357,15 @@ DEAD = object()
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
 EMAIL_BACKEND = DEAD
+# Additional supported keys and their defaults for SENTRY_OBJECTSTORE_CONFIG:
+#  - propagate_traces: bool = False
+#  - retries: int | None = None
+#  - timeout_ms: float | None = None
+#  - connection_kwargs: Mapping[str, Any] | None = None
+#  - token_generator: Mapping[str, Any] | None = None
+# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
+SENTRY_OBJECTSTORE_CONFIG = DEAD
+SENTRY_LOGGING_FORMAT = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
 EMAIL_HOST_USER = DEAD
@@ -2599,6 +2614,7 @@ SENTRY_RELAY_WHITELIST_PK = [
 # When open registration is not permitted then only relays in the
 # list of explicitly allowed relays can register.
 SENTRY_RELAY_OPEN_REGISTRATION = True
+SENTRY_RELAY_STATIC_AUTH = DEAD
 
 # GeoIP
 # Used for looking up IP addresses.
@@ -2813,6 +2829,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.workflow_engine.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
+SENTRY_MAIL_LIST_NAMESPACE = DEAD
 
 # Project ID used by synthetic monitoring
 # Synthetic monitoring recurringly send events, prepared with specific
@@ -2985,6 +3002,9 @@ ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/", "/_warmup/")
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 SUPERUSER_STAFF_EMAIL_SUFFIX: str | None = None
+
+SENTRY_ANALYTICS = DEAD
+SENTRY_ANALYTICS_OPTIONS = DEAD
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False

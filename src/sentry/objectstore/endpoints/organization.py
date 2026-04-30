@@ -21,7 +21,9 @@ try:
 except ImportError:
     pass
 
-from sentry import features, options
+from django.conf import settings
+
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -180,7 +182,7 @@ def get_raw_body_async(
 
 
 def get_target_url(path: str) -> str:
-    base = options.get("objectstore.config")["base_url"].rstrip("/")
+    base = settings.SENTRY_OBJECTSTORE_CONFIG["base_url"].rstrip("/")
     # `path` should be a relative path, only grab that part
     path = urlparse(path).path
     # Simply concatenate base and path, without resolving URLs

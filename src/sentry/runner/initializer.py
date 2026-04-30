@@ -117,6 +117,7 @@ options_mapper = {
     # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
+    "system.logging-format": "SENTRY_LOGGING_FORMAT",
     "mail.backend": "EMAIL_BACKEND",
     "mail.host": "EMAIL_HOST",
     "mail.port": "EMAIL_PORT",
@@ -126,6 +127,11 @@ options_mapper = {
     "mail.use-ssl": "EMAIL_USE_SSL",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
+    "mail.list-namespace": "SENTRY_MAIL_LIST_NAMESPACE",
+    "analytics.backend": "SENTRY_ANALYTICS",
+    "analytics.options": "SENTRY_ANALYTICS_OPTIONS",
+    "objectstore.config": "SENTRY_OBJECTSTORE_CONFIG",
+    "relay.static_auth": "SENTRY_RELAY_STATIC_AUTH",
     "github-login.client-id": "GITHUB_APP_ID",
     "github-login.client-secret": "GITHUB_API_SECRET",
     "github-login.require-verified-email": "GITHUB_REQUIRE_VERIFIED_EMAIL",
@@ -225,9 +231,9 @@ def configure_structlog() -> None:
 
     fmt_from_env = os.environ.get("SENTRY_LOG_FORMAT")
     if fmt_from_env:
-        settings.SENTRY_OPTIONS["system.logging-format"] = fmt_from_env.lower()
+        settings.SENTRY_LOGGING_FORMAT = fmt_from_env.lower()
 
-    fmt = options.get("system.logging-format")
+    fmt = settings.SENTRY_LOGGING_FORMAT
 
     if fmt == LoggingFormat.HUMAN:
         from sentry.logging.handlers import HumanRenderer

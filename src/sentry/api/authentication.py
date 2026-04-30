@@ -24,7 +24,6 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from sentry_relay.exceptions import UnpackError
 
-from sentry import options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
@@ -112,7 +111,7 @@ def is_static_relay(request):
     Note: Only checks the relay_id (no public key validation is done).
     """
     relay_id = get_header_relay_id(request)
-    static_relays = options.get("relay.static_auth")
+    static_relays = settings.SENTRY_RELAY_STATIC_AUTH
     relay_info = static_relays.get(relay_id)
     return relay_info is not None
 
@@ -128,7 +127,7 @@ def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
 
     # first see if we have a statically configured relay and therefore we don't
     # need to go to the database for it
-    static_relays = options.get("relay.static_auth")
+    static_relays = settings.SENTRY_RELAY_STATIC_AUTH
     relay_info = static_relays.get(relay_id)
 
     if relay_info is not None:

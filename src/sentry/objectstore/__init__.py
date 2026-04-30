@@ -66,9 +66,7 @@ _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToLive(timedelta(day
 
 
 def create_client() -> Client:
-    from sentry import options as options_store
-
-    options = options_store.get("objectstore.config")
+    options = settings.SENTRY_OBJECTSTORE_CONFIG
 
     # Initialize the `TokenGenerator` if key parameters are found.
     token_generator = None

@@ -8,8 +8,6 @@ from sentry_relay.auth import PublicKey, SecretKey, generate_key_pair
 
 from sentry.models.relay import Relay, RelayUsage
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
-
 
 class RelayRegisterTest(APITestCase):
     def setUp(self) -> None:
@@ -565,9 +563,5 @@ class RelayRegisterTest(APITestCase):
         static_auth = {relay_id: {"internal": True, "public_key": str(public_key)}}
 
         with self.assertNumQueries(0):
-            with override_options(
-                {
-                    "relay.static_auth": static_auth,
-                }
-            ):
+            with self.settings(SENTRY_RELAY_STATIC_AUTH=static_auth):
                 self.register_relay(key_pair, "1.1.1", relay_id)

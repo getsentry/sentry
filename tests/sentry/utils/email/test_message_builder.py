@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
-from sentry import options
+from django.conf import settings
+
 from sentry.models.activity import Activity
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.silo.base import SiloMode
@@ -325,7 +326,7 @@ class MessageBuilderTest(TestCase):
         )
 
         expected = "<{event.project.slug}.{event.organization.slug}.{namespace}>".format(
-            event=self.event, namespace=options.get("mail.list-namespace")
+            event=self.event, namespace=settings.SENTRY_MAIL_LIST_NAMESPACE
         )
 
         references = (self.event.group, self.event.project, self.activity)

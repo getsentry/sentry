@@ -1,4 +1,5 @@
-from sentry import options
+from django.conf import settings
+
 from sentry.utils.services import LazyServiceWrapper
 
 from .base import Analytics
@@ -26,8 +27,8 @@ def _get_backend_path(path: str) -> str:
 
 backend = LazyServiceWrapper(
     backend_base=Analytics,
-    backend_path=_get_backend_path(options.get("analytics.backend")),
-    options=options.get("analytics.options"),
+    backend_path=_get_backend_path(settings.SENTRY_ANALYTICS),
+    options=settings.SENTRY_ANALYTICS_OPTIONS,
 )
 
 record = backend.record

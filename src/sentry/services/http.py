@@ -44,9 +44,6 @@ class SentryHTTPServer(Service):
     ) -> None:
         from django.conf import settings
 
-        from sentry import options as sentry_options
-        from sentry.logging import LoggingFormat
-
         host = host or settings.SENTRY_WEB_HOST
         port = port or int(os.environ.get("SENTRY_GRANIAN_PORT", "0")) or settings.SENTRY_WEB_PORT
         workers = workers or int(os.environ.get("SENTRY_GRANIAN_WORKERS", "1"))
@@ -85,7 +82,7 @@ class SentryHTTPServer(Service):
         # also an assumption that anyone operating at the scale of needing
         # machine formatted logs, they are also using nginx in front which
         # has it's own logs that can be formatted correctly.
-        if sentry_options.get("system.logging-format") == LoggingFormat.MACHINE:
+        if settings.SENTRY_LOGGING_FORMAT == "machine":
             options["disable-logging"] = True
 
         # Old options from uwsgi

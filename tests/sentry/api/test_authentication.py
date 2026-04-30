@@ -477,7 +477,7 @@ def test_statically_configured_relay(settings, internal) -> None:
 
     relay_options = {relay_id: {"internal": internal, "public_key": str(pk)}}
 
-    settings.SENTRY_OPTIONS["relay.static_auth"] = relay_options
+    settings.SENTRY_RELAY_STATIC_AUTH = relay_options
     authenticator = RelayAuthentication()
     authenticator.authenticate(request)
 

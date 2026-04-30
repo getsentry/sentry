@@ -1,6 +1,5 @@
 import os
 
-from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
@@ -47,7 +46,6 @@ register(
 )
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -184,7 +182,6 @@ register(
     default="root@localhost",
     flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
-register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register(
     "mail.enable-replies",
     default=False,
@@ -406,23 +403,6 @@ register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# New `objectstore` service configuration. Additional supported options and
-# their defaults:
-#  - propagate_traces: bool = False,
-#  - retries: int | None = None,
-#  - timeout_ms: float | None = None,
-#  - connection_kwargs: Mapping[str, Any] | None = None,
-#  - token_generator: Mapping[str, Any] | None = None,
-#
-# For an always up-to-date list, see:
-# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
-register(
-    "objectstore.config",
-    default={"base_url": "http://127.0.0.1:8888"},
-    flags=FLAG_NOSTORE,
-)
-
 
 # Symbol server
 register(
@@ -695,9 +675,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Analytics
-register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
-register("analytics.options", default={}, flags=FLAG_NOSTORE)
 
 
 # Slack Integration
@@ -1520,7 +1497,6 @@ register(
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # All Relay options (statically authenticated Relays can be registered here)
-register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
