@@ -49,7 +49,6 @@ interface BlockProps {
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  onNavigate?: () => void;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
@@ -145,7 +144,6 @@ export function BlockComponent({
   onClick,
   onMouseEnter,
   onMouseLeave,
-  onNavigate,
   ref,
   showThinking = false,
 }: BlockProps) {
@@ -321,7 +319,6 @@ export function BlockComponent({
 
                       if (href.startsWith('/')) {
                         navigate(href);
-                        onNavigate?.();
                       } else {
                         window.open(href, '_blank', 'noopener,noreferrer');
                       }
@@ -364,14 +361,30 @@ export function BlockComponent({
                       </Tooltip>
                     );
 
-                    const toolUrl =
-                      hasLink && correspondingLinkIndex !== undefined
-                        ? buildToolLinkUrl(
-                            sortedToolLinks[correspondingLinkIndex]!,
-                            organization.slug,
-                            projects
-                          )
-                        : undefined;
+                    const toolUrl = hasLink
+                      ? buildToolLinkUrl(
+                          sortedToolLinks[correspondingLinkIndex],
+                          organization.slug,
+                          projects
+                        )
+                      : null;
+
+                    const handleToolLinkClick = (e: React.MouseEvent) => {
+                      if (hasLink) {
+                        e.stopPropagation();
+                        const selectedLink = sortedToolLinks[correspondingLinkIndex];
+                        if (selectedLink) {
+                          trackAnalytics(
+                            'seer.explorer.global_panel.tool_link_navigation',
+                            {
+                              referrer: getPageReferrer?.() ?? '',
+                              organization,
+                              tool_kind: selectedLink.kind,
+                            }
+                          );
+                        }
+                      }
+                    };
 
                     return (
                       <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
@@ -382,21 +395,7 @@ export function BlockComponent({
                           {hasLink ? (
                             <ToolCallLink
                               to={toolUrl ?? ''}
-                              onClick={e => {
-                                e.stopPropagation();
-                                const selectedLink =
-                                  sortedToolLinks[correspondingLinkIndex];
-                                if (selectedLink) {
-                                  trackAnalytics(
-                                    'seer.explorer.global_panel.tool_link_navigation',
-                                    {
-                                      referrer: getPageReferrer?.() ?? '',
-                                      organization,
-                                      tool_kind: selectedLink.kind,
-                                    }
-                                  );
-                                }
-                              }}
+                              onClick={handleToolLinkClick}
                             >
                               {toolCallText}
                               <ToolCallLinkIconWrapper>

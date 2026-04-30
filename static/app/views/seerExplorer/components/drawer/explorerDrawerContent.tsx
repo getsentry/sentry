@@ -373,7 +373,6 @@ export function ExplorerDrawerContent({
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 readOnly={readOnly}
                 showThinking={showThinking}
-                onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
               />
             ))}
             {!readOnly &&
