@@ -683,11 +683,12 @@ function updateFilterMultipleValues(
 // from two different sources that use different formats:
 //
 //   1. `action.value` (from the suggestion checkbox) is pre-escaped by
-//      `escapeTagValueForSearch`, which may wrap the value in quotes
-//      (e.g. `"release@1.0"`) and escape wildcards (e.g. `test\*`).
+//      `escapeTagValueForSearch`, which quotes values containing spaces,
+//      parens, or commas (e.g. `1.0.0+build 1` → `"1.0.0+build 1"`)
+//      and escapes wildcards (e.g. `test*` → `test\*`).
 //
 //   2. `item.value?.value` (from the parsed token) is the unquoted semantic
-//      value produced by the parser (e.g. `release@1.0`).
+//      value produced by the parser (e.g. `"1.0.0+build 1"` → `1.0.0+build 1`).
 //
 // To compare them we strip quotes, unescape wildcards, then re-escape through
 // `escapeTagValueForSearch` so both sides end up in the same canonical form.
