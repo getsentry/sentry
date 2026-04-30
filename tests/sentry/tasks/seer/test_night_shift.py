@@ -53,6 +53,14 @@ class FakeExplorerClient:
 
 @django_db_all
 class TestScheduleNightShift(TestCase):
+    def create_org_with_seer(self):
+        """Create an org with a SeerProjectRepository so it survives the pre-filter."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
+        SeerProjectRepository.objects.create(project=project, repository=repo)
+        return org
+
     def test_disabled_by_option(self) -> None:
         with (
             self.options({"seer.night_shift.enable": False}),
@@ -62,7 +70,7 @@ class TestScheduleNightShift(TestCase):
             mock_worker.apply_async.assert_not_called()
 
     def test_dispatches_eligible_orgs(self) -> None:
-        org = self.create_organization()
+        org = self.create_org_with_seer()
 
         with (
             self.options({"seer.night_shift.enable": True}),
@@ -80,7 +88,7 @@ class TestScheduleNightShift(TestCase):
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
 
     def test_skips_orgs_without_seat_based_seer(self) -> None:
-        org = self.create_organization()
+        org = self.create_org_with_seer()
 
         with (
             self.options({"seer.night_shift.enable": True}),
@@ -97,7 +105,7 @@ class TestScheduleNightShift(TestCase):
             mock_worker.apply_async.assert_not_called()
 
     def test_skips_orgs_with_hidden_ai(self) -> None:
-        org = self.create_organization()
+        org = self.create_org_with_seer()
         org.update_option("sentry:hide_ai_features", True)
 
         with (
@@ -113,6 +121,29 @@ class TestScheduleNightShift(TestCase):
         ):
             schedule_night_shift()
             mock_worker.apply_async.assert_not_called()
+
+    def test_skips_orgs_without_seer_project_repository(self) -> None:
+        # Orgs that have never connected a Seer repo are pre-filtered before
+        # the feature flag fanout — even if they happen to have all the flags.
+        org = self.create_organization()
+
+        with (
+            self.options({"seer.night_shift.enable": True}),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:gen-ai-features": [org.slug],
+                    "organizations:seat-based-seer-enabled": [org.slug],
+                }
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch(
+                "sentry.tasks.seer.night_shift.cron.features.batch_has_for_organizations"
+            ) as mock_batch_has,
+        ):
+            schedule_night_shift()
+            mock_worker.apply_async.assert_not_called()
+            mock_batch_has.assert_not_called()
 
 
 @django_db_all

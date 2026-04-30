@@ -21,6 +21,7 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
@@ -80,33 +81,40 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
 @instrumented_task(
     name="sentry.tasks.seer.night_shift.schedule_night_shift",
     namespace=seer_tasks,
-    processing_deadline_duration=15 * 60,
+    processing_deadline_duration=30 * 60,
 )
 def schedule_night_shift(**kwargs: Any) -> None:
     """
-    Nightly scheduler: iterates active orgs in batches, checks feature flags
-    in bulk, and dispatches per-org worker tasks with jitter.
+    Nightly scheduler: collects org ids that have a Seer-connected repo, then
+    dispatches per-org worker tasks in batches with jitter. Feature flags
+    still gate the dispatch — SeerProjectRepository rows can outlive a paid
+    Seer subscription.
     """
     if not options.get("seer.night_shift.enable"):
         return
 
+    seer_org_ids: set[int] = set()
+    for spr in RangeQuerySetWrapper[SeerProjectRepository](
+        SeerProjectRepository.objects.filter(project__status=ObjectStatus.ACTIVE).select_related(
+            "project"
+        ),
+        step=1000,
+    ):
+        seer_org_ids.add(spr.project.organization_id)
+
     spread_seconds = int(NIGHT_SHIFT_SPREAD_DURATION.total_seconds())
     batch_index = 0
 
-    for org_batch in chunked(
-        RangeQuerySetWrapper[Organization](
-            Organization.objects.filter(status=OrganizationStatus.ACTIVE),
-            step=1000,
-        ),
-        100,
-    ):
+    for org_id_chunk in chunked(seer_org_ids, 100):
+        org_batch = list(
+            Organization.objects.filter(
+                id__in=list(org_id_chunk),
+                status=OrganizationStatus.ACTIVE,
+            )
+        )
         for org in _get_eligible_orgs_from_batch(org_batch):
             delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
-
-            run_night_shift_for_org.apply_async(
-                args=[org.id],
-                countdown=delay,
-            )
+            run_night_shift_for_org.apply_async(args=[org.id], countdown=delay)
             batch_index += 1
 
     sentry_sdk.metrics.count("night_shift.orgs_dispatched", batch_index)
