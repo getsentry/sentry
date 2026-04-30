@@ -473,8 +473,22 @@ export default function SnapshotsPage() {
 
   const pressTimeoutRef = useRef<number>(undefined);
   // Ref so the keydown handler reads latest state without re-registering.
-  const navRef = useRef({navigateSingleView, setViewMode, viewMode, navButtonRefs});
-  navRef.current = {navigateSingleView, setViewMode, viewMode, navButtonRefs};
+  const navRef = useRef({
+    navigateSingleView,
+    setViewMode,
+    viewMode,
+    navButtonRefs,
+    listItems,
+    setSelectedSnapshotKey,
+  });
+  navRef.current = {
+    navigateSingleView,
+    setViewMode,
+    viewMode,
+    navButtonRefs,
+    listItems,
+    setSelectedSnapshotKey,
+  };
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -505,6 +519,23 @@ export default function SnapshotsPage() {
       if (navRef.current.viewMode !== 'single') {
         return;
       }
+
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        const items = navRef.current.listItems;
+        if (items.length > 0) {
+          const lastItem = items[items.length - 1]!;
+          const key =
+            e.key === 'ArrowUp'
+              ? snapshotKeyAt(items[0]!, 0)
+              : snapshotKeyAt(lastItem, itemVariantCount(lastItem) - 1);
+          if (key) {
+            navRef.current.setSelectedSnapshotKey(key);
+          }
+        }
+        return;
+      }
+
       e.preventDefault();
       const btn =
         e.key === 'ArrowDown'

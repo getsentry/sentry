@@ -287,6 +287,15 @@ export function SnapshotListView({
         return;
       }
 
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        const isUp = e.key === 'ArrowUp';
+        const targetKey = isUp ? idx.order[0]! : idx.order[idx.order.length - 1]!;
+        onSelect(targetKey);
+        revealCard(targetKey, isUp ? 'start' : 'end');
+        return;
+      }
+
       const lastPos = idx.order.length - 1;
       const currentPos = currentKey ? (idx.positionByKey.get(currentKey) ?? -1) : -1;
       const isDown = e.key === 'ArrowDown';
