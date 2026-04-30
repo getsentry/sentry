@@ -18,5 +18,5 @@ export function useRepositoriesById() {
 
   const {data} = result;
 
-  return useMemo(() => new Map(data?.map(r => [r.id, r]) ?? []), [data]);
+  return useMemo(() => new Map(data?.map(r => [r.id, r])), [data]);
 }
