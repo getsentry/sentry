@@ -265,6 +265,38 @@ describe('DashboardRevisionsButton', () => {
     expect(within(currentVersionItem!).getByText('Alice')).toBeInTheDocument();
   });
 
+  it('shows the author from the following revision for each historical entry', async () => {
+    MockApiClient.addMockResponse({
+      url: REVISIONS_URL,
+      body: [
+        makeRevision({
+          id: '1',
+          source: 'edit-with-agent' as const,
+          createdBy: {id: '99', name: 'Recent Editor', email: 'recent@example.com'},
+        }),
+        makeRevision({
+          id: '2',
+          source: 'pre-restore' as const,
+          createdBy: {id: '42', name: 'Alice', email: 'alice@example.com'},
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
+    MockApiClient.addMockResponse({url: BASE_REVISION_DETAILS_URL, body: makeSnapshot()});
+
+    renderButton();
+    renderGlobalModal();
+    await openModal();
+
+    await screen.findAllByRole('radio');
+
+    // The first historical entry's label and author both come from revisions[1]:
+    // label = revisions[1].source = 'pre-restore' → "Revert Dashboard"
+    // author = revisions[1].createdBy = Alice
+    const revertEntry = screen.getByText('Revert Dashboard').closest('div');
+    expect(within(revertEntry!).getByText('Alice')).toBeInTheDocument();
+  });
+
   it('limits displayed revisions to 10', async () => {
     const revisions = Array.from({length: 12}, (_, i) =>
       makeRevision({id: String(i + 1)})
