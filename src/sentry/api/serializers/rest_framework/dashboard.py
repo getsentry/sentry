@@ -345,6 +345,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     "widget_type": "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
                 }
             )
+
         return widget_type
 
     validate_id = validate_id
@@ -447,7 +448,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 self.context["organization"],
                 actor=self.context["request"].user,
             )
-            and not data.get("id")
             and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
         ):
             raise serializers.ValidationError(
