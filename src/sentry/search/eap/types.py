@@ -77,6 +77,8 @@ class AttributeSource(TypedDict):
 
 
 ScalarType = Literal["str", "int", "float", "bool"]
+ColumnType = Literal["string", "number", "boolean", "array"]
+ScalarValueType = float | bool | str
 
 
 class TraceItemAttribute(TypedDict):

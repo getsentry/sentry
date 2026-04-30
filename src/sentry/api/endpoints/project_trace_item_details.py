@@ -21,7 +21,13 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.project import Project
 from sentry.search.eap import constants
-from sentry.search.eap.types import ScalarType, SupportedTraceItemType, TraceItemAttribute
+from sentry.search.eap.types import (
+    ColumnType,
+    ScalarType,
+    ScalarValueType,
+    SupportedTraceItemType,
+    TraceItemAttribute,
+)
 from sentry.search.eap.utils import (
     can_expose_attribute,
     is_sentry_convention_replacement_attribute,
@@ -33,8 +39,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import json, snuba_rpc
 
 _NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
-ColumnType = Literal["string", "number", "boolean", "array"]
-ScalarValueType = float | bool | str
 _VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
     "valBool": "boolean",
     "valStr": "string",
@@ -45,7 +49,9 @@ _VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
 }
 
 
-def _parse_scalar(column_type, value_type, value: str) -> tuple[ScalarValueType, ScalarType]:
+def _parse_scalar(
+    column_type: ColumnType, value_type, value: str
+) -> tuple[ScalarValueType, ScalarType]:
     parsed_value_type = value_type[3:].lower()
     match column_type:
         case "number":
@@ -54,10 +60,9 @@ def _parse_scalar(column_type, value_type, value: str) -> tuple[ScalarValueType,
                 try:
                     return _NUMERIC_COERCIONS[value_type](float(value)), "float"
                 except ValueError:
-                    sentry_sdk.logger.error(
-                        f"Failed number parsing for [{column_type}, {value_type}, {value}]"
+                    raise BadRequest(
+                        f"Failed value parsing for [{column_type}, {value_type}, {value}]"
                     )
-                    pass
             return value, parsed_value_type
         case "boolean":
             return bool(value), parsed_value_type
