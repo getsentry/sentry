@@ -58,8 +58,6 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             )
     except RepositoryModel.DoesNotExist:
         return None
-    except RepositoryModel.MultipleObjectsReturned:
-        return None
 
     # This state should be impossible, however, the invariant is not encoded into the data type.
     # If we encounter a null integration_id the repository is useless. Return "None" and let the
