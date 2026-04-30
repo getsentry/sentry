@@ -357,24 +357,29 @@ export function ExplorerDrawerContent({
           />
         ) : (
           <Fragment>
-            {blocks.map((block: Block, index: number) => (
-              <BlockComponent
-                key={`${index}-${block.loading ? 'loading' : 'loaded'}`} // For slide-in animation that runs on mount
-                ref={el => {
-                  blockRefs.current[index] = el;
-                }}
-                block={block}
-                blockIndex={index}
-                runId={runId ?? undefined}
-                getPageReferrer={getPageReferrer}
-                isAwaitingFileApproval={isFileApprovalPending}
-                isAwaitingQuestion={isQuestionPending}
-                isLatestTodoBlock={index === latestTodoBlockIndex}
-                readOnly={readOnly}
-                showThinking={showThinking}
-                onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
-              />
-            ))}
+            {blocks.map((block: Block, index: number) => {
+              // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
+              const key = block.message.role === 'user' ? `user-${index}` : block.id;
+
+              return (
+                <BlockComponent
+                  key={key}
+                  ref={el => {
+                    blockRefs.current[index] = el;
+                  }}
+                  block={block}
+                  blockIndex={index}
+                  runId={runId ?? undefined}
+                  getPageReferrer={getPageReferrer}
+                  isAwaitingFileApproval={isFileApprovalPending}
+                  isAwaitingQuestion={isQuestionPending}
+                  isLatestTodoBlock={index === latestTodoBlockIndex}
+                  readOnly={readOnly}
+                  showThinking={showThinking}
+                  onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
+                />
+              );
+            })}
             {!readOnly &&
               isFileApprovalPending &&
               fileApprovalIndex < fileApprovalTotalPatches && (
