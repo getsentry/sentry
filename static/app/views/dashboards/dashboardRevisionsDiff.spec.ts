@@ -142,6 +142,24 @@ describe('diffWidgets', () => {
     });
   });
 
+  it('detects a text widget content change', () => {
+    const base = makeWidget({
+      id: '1',
+      displayType: DisplayType.TEXT,
+      description: '# Hello',
+    });
+    const snap = makeWidget({
+      id: '1',
+      displayType: DisplayType.TEXT,
+      description: '# Hello World',
+    });
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({
+      status: 'modified',
+      fields: [{field: 'content', before: '# Hello', after: '# Hello World'}],
+    });
+  });
+
   it('handles a query being added to a widget', () => {
     const q = {conditions: '', aggregates: [], columns: [], orderby: '', name: ''} as any;
     const base = makeWidget({id: '1', queries: [q]});

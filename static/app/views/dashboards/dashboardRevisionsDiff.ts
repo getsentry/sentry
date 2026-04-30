@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 
 import type {DashboardDetails, Widget, WidgetQuery} from './types';
-import {DashboardFilterKeys} from './types';
+import {DashboardFilterKeys, DisplayType} from './types';
 
 type FieldChange = {after: string; before: string; field: string};
 
@@ -199,6 +199,17 @@ export function diffWidgets(
         field: 'interval',
         before: match.interval,
         after: snapshotWidget.interval,
+      });
+    }
+
+    if (match.description !== snapshotWidget.description) {
+      const isTextWidget =
+        match.displayType === DisplayType.TEXT ||
+        snapshotWidget.displayType === DisplayType.TEXT;
+      fields.push({
+        field: isTextWidget ? t('content') : t('description'),
+        before: match.description || t('(empty)'),
+        after: snapshotWidget.description || t('(empty)'),
       });
     }
 
