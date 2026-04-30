@@ -157,6 +157,34 @@ def _triage_candidates(
         },
     )
 
+    unknown_group_ids = [
+        v.group_id for v in triage_response.verdicts if v.group_id not in groups_by_id
+    ]
+    if unknown_group_ids:
+        logger.warning(
+            "night_shift.triage_unknown_group_ids",
+            extra={
+                "organization_id": organization.id,
+                "agent_run_id": agent_run_id,
+                "unknown_group_ids": unknown_group_ids,
+            },
+        )
+
+    fixability_by_group_id = {c.group.id: c.fixability for c in candidates}
+    for v in triage_response.verdicts:
+        if v.group_id not in fixability_by_group_id:
+            continue
+        sentry_sdk.metrics.count(
+            "night_shift.triage_action",
+            1,
+            attributes={
+                "action": v.action,
+                "threshold_action": TriageAction.from_fixability_score(
+                    fixability_by_group_id[v.group_id]
+                ),
+            },
+        )
+
     return [
         TriageResult(group=groups_by_id[v.group_id], action=v.action, reason=v.reason)
         for v in triage_response.verdicts

@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 import logging
 import time
-from collections import Counter
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any, Literal, TypedDict
@@ -265,9 +264,6 @@ def run_night_shift_execution(
         return None
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
-    action_counts = Counter(c.action for c in candidates)
-    for action, count in action_counts.items():
-        sentry_sdk.metrics.count("night_shift.triage_action", count, attributes={"action": action})
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
 
     seer_run_id_by_group: dict[int, str | None] = {}
