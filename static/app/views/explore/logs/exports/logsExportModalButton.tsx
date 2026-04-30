@@ -70,14 +70,6 @@ export function LogsExportModalButton({
             },
           }
         );
-        openModal(deps => (
-          <LogsQueryParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            source="location"
-          >
-            <LogsExportModal {...deps} queryInfo={queryInfo} tableData={tableData} />
-          </LogsQueryParamsProvider>
-        ));
       }}
       tooltipProps={{
         title:
