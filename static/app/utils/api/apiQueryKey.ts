@@ -11,6 +11,7 @@ export type QueryKeyEndpointOptions<
   Query = Record<string, any>,
   Data = Record<string, any>,
 > = {
+  allowAuthError?: boolean;
   data?: Data;
   headers?: Headers;
   host?: string;
