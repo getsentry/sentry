@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -38,7 +38,7 @@ import {
   SnapshotListView,
 } from './snapshotListView';
 
-export type ViewMode = 'single' | 'list';
+type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
 
 interface SnapshotMainContentProps {
@@ -92,15 +92,21 @@ export function SnapshotMainContent({
 }: SnapshotMainContentProps) {
   const [isDark, setIsDark] = useState(false);
   const toggleDark = () => setIsDark(v => !v);
+
+  const handleOpenSnapshot = useCallback(
+    (key: string) => {
+      onSelectSnapshot?.(key);
+      onViewModeChange('single');
+    },
+    [onSelectSnapshot, onViewModeChange]
+  );
+
   const toggle = (
     <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
   );
   const hasChangedInList = listItems.some(i => i.type === 'changed');
   const sortDropdown =
-    viewMode === 'list' &&
-    onSortByChange &&
-    comparisonType !== 'solo' &&
-    hasChangedInList ? (
+    onSortByChange && comparisonType !== 'solo' && hasChangedInList ? (
       <SortDropdown value={sortBy} onChange={onSortByChange} />
     ) : null;
   const listDiffControls =
@@ -131,12 +137,12 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <Flex align="center" justify="between" gap="md" padding="md xl">
-          <Flex align="center" gap="md">
+        <Flex align="center" justify="between" gap="md" padding="md 2xl md 0">
+          <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {toggle}
             {sortDropdown}
           </Flex>
-          <Flex align="center" gap="md">
+          <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {listDiffControls}
             {soloDiffToggle}
           </Flex>
@@ -148,6 +154,7 @@ export function SnapshotMainContent({
           headBranch={headBranch}
           selectedSnapshotKey={selectedSnapshotKey}
           onSelectSnapshot={onSelectSnapshot}
+          onOpenSnapshot={handleOpenSnapshot}
           diffMode={diffMode}
           overlayColor={overlayColor}
           diffImageBaseUrl={diffImageBaseUrl}
@@ -160,7 +167,10 @@ export function SnapshotMainContent({
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
         <Flex align="center" justify="between" gap="md" padding="md xl">
-          {toggle}
+          <Flex align="center" gap="md">
+            {toggle}
+            {sortDropdown}
+          </Flex>
           {soloDiffToggle}
         </Flex>
         <Separator orientation="horizontal" />
@@ -325,7 +335,13 @@ function SingleViewLayout({
       width="100%"
       background="secondary"
     >
-      <Flex align="center" justify="between" gap="md" padding="md xl">
+      <Flex
+        align="center"
+        justify="between"
+        gap="md"
+        padding="md xl"
+        onClick={e => e.stopPropagation()}
+      >
         {toggle}
         <Flex align="center" gap="md">
           {rightControls}
@@ -347,7 +363,7 @@ function SingleViewLayout({
               )}
             </DarkAware>
           </Flex>
-          <NavGutter>
+          <NavGutter onClick={e => e.stopPropagation()}>
             <Tooltip title={t('Previous')} skipWrapper>
               <Button
                 size="sm"
@@ -415,16 +431,16 @@ function ViewModeToggle({
       aria-label={t('View mode')}
     >
       <SegmentedControl.Item
-        key="single"
-        icon={<IconExpand />}
-        aria-label={t('Single image view')}
-        tooltip={t('Single image view')}
-      />
-      <SegmentedControl.Item
         key="list"
         icon={<IconList />}
         aria-label={t('List view')}
         tooltip={t('List view')}
+      />
+      <SegmentedControl.Item
+        key="single"
+        icon={<IconExpand />}
+        aria-label={t('Single image view')}
+        tooltip={t('Single image view')}
       />
     </SegmentedControl>
   );
@@ -537,12 +553,23 @@ function DiffModeToggle({
   );
 }
 
+const SingleViewGroup = styled(Stack)`
+  flex: 1 1 0;
+  min-height: 0;
+  padding: ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.md};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
 const SingleViewScroll = styled('div')`
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
   overflow: auto;
   padding: ${p => p.theme.space.xl};
+  padding-left: 0;
   display: flex;
   flex-direction: column;
 `;
@@ -560,32 +587,24 @@ const NavGutter = styled('div')`
   flex-shrink: 0;
 `;
 
-const SingleViewGroup = styled(Stack)`
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.lg};
-  gap: ${p => p.theme.space.md};
-  flex: 1 1 0;
-  min-height: 0;
-`;
-
 const SingleViewCard = styled(Card)`
-  flex: 1 1 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
 `;
 
 const SingleViewBody = styled('div')`
-  flex: 1 1 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
 `;
 
 const ColorPickerWrapper = styled('div')`
   position: relative;
+  display: flex;
+  align-items: center;
 `;
 
 const ColorPickerDropdown = styled('div')`

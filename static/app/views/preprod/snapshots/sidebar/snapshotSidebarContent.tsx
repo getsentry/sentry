@@ -7,7 +7,13 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DiffStatus, type SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
+import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
+
+export interface SidebarGroup {
+  count: number;
+  key: string;
+  name: string;
+}
 
 export const DIFF_TYPE_ORDER: Record<string, number> = {
   [DiffStatus.CHANGED]: 0,
@@ -36,20 +42,18 @@ const STATUS_PILLS: ReadonlyArray<{
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
   currentItemKey: string | null;
+  groups: SidebarGroup[];
   isAllSelected: boolean;
-  items: SidebarItem[];
   onSearchChange: (query: string) => void;
   onSelectAll: () => void;
   onSelectItem: (key: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
   searchQuery: string;
-  totalItemCount: number;
   statusCounts?: StatusCounts | null;
 }
 
 export function SnapshotSidebarContent({
-  items,
-  totalItemCount,
+  groups,
   currentItemKey,
   isAllSelected,
   searchQuery,
@@ -73,20 +77,23 @@ export function SnapshotSidebarContent({
       `[data-item-name="${CSS.escape(currentItemKey)}"]`
     );
     el?.scrollIntoView({block: 'nearest'});
-  }, [currentItemKey, items, isAllSelected]);
+  }, [currentItemKey, groups, isAllSelected]);
 
-  const renderItem = (item: SidebarItem) => {
-    const isSelected = !isAllSelected && item.key === currentItemKey;
-    const count =
-      item.type === 'changed' || item.type === 'renamed'
-        ? item.pairs.length
-        : item.images.length;
+  const renderGroup = (group: SidebarGroup) => {
+    const isSelected = !isAllSelected && group.key === currentItemKey;
     return (
       <SidebarItemRow
-        key={item.key}
-        data-item-name={item.key}
+        key={group.key}
+        data-item-name={group.key}
         isSelected={isSelected}
-        onClick={() => onSelectItem(item.key)}
+        onClick={e => {
+          e.stopPropagation();
+          if (isSelected) {
+            onSelectAll();
+          } else {
+            onSelectItem(group.key);
+          }
+        }}
       >
         <Flex align="center" gap="sm" flex="1" minWidth="0">
           <Text
@@ -95,12 +102,12 @@ export function SnapshotSidebarContent({
             bold={isSelected}
             ellipsis
           >
-            {item.name}
+            {group.name}
           </Text>
         </Flex>
         <CountBadge>
           <Text variant="muted" size="xs">
-            {count}
+            {group.count}
           </Text>
         </CountBadge>
       </SidebarItemRow>
@@ -109,14 +116,30 @@ export function SnapshotSidebarContent({
 
   return (
     <Stack height="100%" width="100%">
-      <Stack gap="xl" padding="xl" borderBottom="primary">
+      <Stack
+        gap="xl"
+        padding="xl"
+        borderBottom="primary"
+        onClick={e => e.stopPropagation()}
+      >
         <InputGroup style={{flex: 1}}>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch size="sm" />
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={t('Search components...')}
+            placeholder={
+              currentItemKey
+                ? t(
+                    'Search %s %s components...',
+                    groups.find(g => g.key === currentItemKey)?.count ?? '',
+                    currentItemKey
+                  )
+                : t(
+                    'Search %s components...',
+                    groups.reduce((sum, g) => sum + g.count, 0)
+                  )
+            }
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />
@@ -143,7 +166,13 @@ export function SnapshotSidebarContent({
         )}
       </Stack>
       <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        <SidebarItemRow isSelected={isAllSelected} onClick={onSelectAll}>
+        <SidebarItemRow
+          isSelected={isAllSelected}
+          onClick={e => {
+            e.stopPropagation();
+            onSelectAll();
+          }}
+        >
           <Flex align="center" gap="sm" flex="1" minWidth="0">
             <Text
               size="md"
@@ -154,14 +183,9 @@ export function SnapshotSidebarContent({
               {t('All')}
             </Text>
           </Flex>
-          <CountBadge>
-            <Text variant="muted" size="xs">
-              {totalItemCount}
-            </Text>
-          </CountBadge>
         </SidebarItemRow>
-        {items.map(renderItem)}
-        {items.length === 0 && (
+        {groups.map(renderGroup)}
+        {groups.length === 0 && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No components found.')}
