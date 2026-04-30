@@ -309,7 +309,19 @@ export function GlobalModal({onClose}: Props) {
  * ));
  * ```
  */
-export function useModal() {
+interface UseModalReturn {
+  closeModal: () => void;
+  isOpen: boolean;
+  openModal: (
+    renderer: (renderProps: ModalRenderProps) => React.ReactNode,
+    options?: ModalOptions
+  ) => void;
+  /** @deprecated Use `isOpen` instead. */
+  visible: boolean;
+  focusTrap?: FocusTrap;
+}
+
+export function useModal(): UseModalReturn {
   const store = useLegacyStore(ModalStore);
 
   const openModal = useCallback(
@@ -326,10 +338,14 @@ export function useModal() {
     ModalStore.closeModal();
   }, []);
 
+  const isOpen = typeof store.renderer === 'function';
+
   return {
     openModal,
     closeModal: closeModalFn,
-    isOpen: typeof store.renderer === 'function',
+    isOpen,
+    visible: isOpen,
+    focusTrap: store.focusTrap,
   };
 }
 
