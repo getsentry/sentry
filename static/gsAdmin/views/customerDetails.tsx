@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 import scrollToElement from 'scroll-to-element';
@@ -19,6 +20,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
@@ -59,6 +61,7 @@ import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHi
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {ForkCustomerAction} from 'admin/components/forkCustomer';
+import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
 import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
@@ -71,6 +74,7 @@ import {toggleSpendAllocationModal} from 'admin/components/toggleSpendAllocation
 import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
+import {PlanTier} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
@@ -91,13 +95,12 @@ function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
   ];
 }
 
-function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/', {
-      path: {organizationIdOrSlug: orgId},
-    }),
-    {query: {detailed: 0, include_feature_flags: 1}},
-  ];
+function organizationApiOptions(orgId: string) {
+  return apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: orgId},
+    query: {detailed: 0, include_feature_flags: 1},
+    staleTime: Infinity,
+  });
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
@@ -117,7 +120,6 @@ export function CustomerDetails() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const SUBSCRIPTION_QUERY_KEY = makeSubscriptionQueryKey(orgId);
-  const ORGANIZATION_QUERY_KEY = makeOrganizationQueryKey(orgId);
   const BILLING_CONFIG_QUERY_KEY = makeBillingConfigQueryKey(orgId);
   const {
     data: subscription,
@@ -130,7 +132,7 @@ export function CustomerDetails() {
     refetch: refetchOrganization,
     isError: isErrorOrganization,
     isPending: isPendingOrganization,
-  } = useApiQuery<Organization>(ORGANIZATION_QUERY_KEY, {staleTime: Infinity});
+  } = useQuery(organizationApiOptions(orgId));
   const {
     data: billingConfig,
     refetch: refetchBillingConfig,
@@ -866,6 +868,33 @@ export function CustomerDetails() {
                 onSuccess: reloadData,
               });
             },
+          },
+          {
+            key: 'migrateLegacySeer',
+            name: 'Migrate From Legacy Seer',
+            help: 'Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan, effective immediately or at the next billing period. Applies a prorated credit for eligible annual plans. Optionally adds a 14-day Seer seat trial.',
+            disabled:
+              ![PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
+                subscription.planTier as PlanTier
+              ) || !subscription.addOns?.legacySeer?.enabled,
+            disabledReason: [PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
+              subscription.planTier as PlanTier
+            )
+              ? 'Only available for organizations with active legacy Seer that have not yet been migrated.'
+              : 'Only available for AM1, AM2, and AM3 plans.',
+            confirmModalOpts: {
+              priority: 'danger',
+              confirmText: 'Migrate',
+              showAuditFields: false,
+              renderModalSpecificContent: deps => (
+                <MigrateLegacySeerAction
+                  orgId={orgId}
+                  subscription={subscription}
+                  {...deps}
+                />
+              ),
+            },
+            onAction: params => onUpdateMutation.mutate({...params}),
           },
         ]}
         sections={[

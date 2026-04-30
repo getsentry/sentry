@@ -14,14 +14,12 @@ import {
   useExplorerAutofix,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {
-  CodeChangesCard,
-  CodingAgentCard,
-  PullRequestsCard,
-  RootCauseCard,
-  SolutionCard,
-} from 'sentry/components/events/autofix/v3/autofixCards';
+import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
+import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
+import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
+import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -93,30 +91,26 @@ function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
   return (
     <Fragment>
       {sections.map(section => {
+        const key = `${section.step}-${section.blocks[0]?.id ?? null}`;
+
         if (isRootCauseSection(section)) {
-          return <RootCauseCard key={section.step} autofix={autofix} section={section} />;
+          return <RootCauseCard key={key} autofix={autofix} section={section} />;
         }
 
         if (isSolutionSection(section)) {
-          return <SolutionCard key={section.step} autofix={autofix} section={section} />;
+          return <SolutionCard key={key} autofix={autofix} section={section} />;
         }
 
         if (isCodeChangesSection(section)) {
-          return (
-            <CodeChangesCard key={section.step} autofix={autofix} section={section} />
-          );
+          return <CodeChangesCard key={key} autofix={autofix} section={section} />;
         }
 
         if (isPullRequestsSection(section)) {
-          return (
-            <PullRequestsCard key={section.step} autofix={autofix} section={section} />
-          );
+          return <PullRequestsCard key={key} autofix={autofix} section={section} />;
         }
 
         if (isCodingAgentsSection(section)) {
-          return (
-            <CodingAgentCard key={section.step} autofix={autofix} section={section} />
-          );
+          return <CodingAgentsCard key={key} autofix={autofix} section={section} />;
         }
 
         // TODO: maybe send a log?

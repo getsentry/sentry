@@ -17,7 +17,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
 # Inverted hierarchy for looking up stopping point by rank
 _RANK_TO_STOPPING_POINT = {rank: point for point, rank in STOPPING_POINT_HIERARCHY.items()}
@@ -75,6 +75,7 @@ class SeerAutofixUpdate(NotificationData):
     changes: list[SeerAutofixCodeChange] = Field(default_factory=list)
     pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None
+    handoff_target: CodingAgentProviderType | None = None
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property

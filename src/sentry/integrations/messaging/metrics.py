@@ -21,6 +21,8 @@ class MessagingInteractionType(StrEnum):
     UNLINK_IDENTITY = "UNLINK_IDENTITY"
     LINK_TEAM = "LINK_TEAM"
     UNLINK_TEAM = "UNLINK_TEAM"
+    SET_DEFAULT_ORG = "SET_DEFAULT_ORG"
+    UNSET_DEFAULT_ORG = "UNSET_DEFAULT_ORG"
 
     # Interactions on Issues
     STATUS = "STATUS"
@@ -36,6 +38,7 @@ class MessagingInteractionType(StrEnum):
     MARK_ONGOING = "MARK_ONGOING"
     VIEW_SUBMISSION = "VIEW_SUBMISSION"
     SEER_AUTOFIX_START = "SEER_AUTOFIX_START"
+    SEER_AUTOFIX_HANDOFF = "SEER_AUTOFIX_HANDOFF"
     APP_MENTION = "APP_MENTION"
     DIRECT_MESSAGE = "DIRECT_MESSAGE"
     ASSISTANT_THREAD_STARTED = "ASSISTANT_THREAD_STARTED"
@@ -100,6 +103,10 @@ class MessageCommandHaltReason(StrEnum):
     LINK_USER_FIRST = "link_user_first"
     TEAM_NOT_LINKED = "team_not_linked"
     INSUFFICIENT_ROLE = "insufficient_role"
+
+    # Setting a default organization
+    MISSING_ORG_SLUG = "missing_org_slug"
+    ORG_NOT_FOUND = "org_not_found"
 
 
 class MessageCommandFailureReason(StrEnum):

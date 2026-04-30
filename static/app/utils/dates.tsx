@@ -104,7 +104,7 @@ export function setDateToTime(
     date.setUTCHours(hours, minutes);
   }
 
-  if (typeof seconds !== 'undefined') {
+  if (seconds !== undefined) {
     date.setSeconds(seconds);
   }
 

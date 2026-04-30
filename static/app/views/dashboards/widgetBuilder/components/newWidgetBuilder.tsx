@@ -12,6 +12,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import omit from 'lodash/omit';
 
+import {Backdrop} from '@sentry/scraps/backdrop';
 import {Flex} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -162,7 +163,7 @@ export function WidgetBuilderV2({
               }
             `}
           />
-          <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
+          <Backdrop zIndex="widgetBuilderDrawer" />
           <WidgetBuilderProvider>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
               <ContainerWithoutSidebar
@@ -404,24 +405,6 @@ function Droppable({id}: {id: string}) {
 
   return <div ref={setNodeRef} id={id} />;
 }
-
-const fullPageCss = css`
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-`;
-
-const Backdrop = styled('div')`
-  ${fullPageCss};
-  z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
-  background: ${p => p.theme.colors.black};
-  will-change: opacity;
-  transition: opacity 200ms;
-  pointer-events: none;
-  opacity: 0;
-`;
 
 const SampleWidgetCard = styled(motion.div)`
   width: 100%;

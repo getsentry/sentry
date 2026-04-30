@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from enum import StrEnum
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import analytics, features, quotas
+from sentry import analytics, quotas
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -26,6 +26,8 @@ from sentry.analytics.events.autofix_events import (
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
     RootCauseArtifact,
@@ -43,12 +45,9 @@ from sentry.seer.autofix.prompts import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
-    get_project_seer_preferences,
     read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -61,6 +60,8 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
+
+_UNSET: Any = object()
 
 
 class NoSeerQuotaException(Exception):
@@ -90,7 +91,7 @@ class AutofixStep(StrEnum):
             case AutofixStoppingPoint.OPEN_PR:
                 # This depends on the last step being
                 # code changes and we should look for
-                # the PR elsewhere in the explorer results
+                # the PR elsewhere in the agent results
                 return AutofixStep.CODE_CHANGES
             case _:
                 raise ValueError(f"Unsupported AutofixStoppingPoint: {autofix_stopping_point}")
@@ -210,17 +211,17 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
     return step_to_action_type[step][is_completed]
 
 
-def get_autofix_explorer_client(
+def get_autofix_agent_client(
     group: Group,
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
-) -> SeerExplorerClient:
+) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
     )
 
-    return SeerExplorerClient(
+    return SeerAgentClient(
         organization=group.organization,
         project=group.project,
         user=None,  # No user personalization for autofix
@@ -233,18 +234,19 @@ def get_autofix_explorer_client(
     )
 
 
-def trigger_autofix_explorer(
+def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
     referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "medium",
+    reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
 ) -> int:
     """
-    Start or continue an Explorer-based autofix run.
+    Start or continue an agent-based autofix run.
 
     Args:
         group: The Sentry group (issue) to analyze
@@ -275,10 +277,12 @@ def trigger_autofix_explorer(
                 referrer=referrer.value,
             )
         )
-    client = get_autofix_explorer_client(
+    client = get_autofix_agent_client(
         group,
         intelligence_level=intelligence_level,
-        reasoning_effort=config.reasoning_effort,
+        reasoning_effort=(
+            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
+        ),
         enable_coding=config.enable_coding,
     )
 
@@ -366,9 +370,9 @@ def trigger_autofix_explorer(
     return run_id
 
 
-def get_autofix_explorer_state(organization: Organization, group_id: int):
+def get_autofix_agent_state(organization: Organization, group_id: int):
     """
-    Get the current state of an Explorer-based autofix run for a group.
+    Get the current state of an agent-based autofix run for a group.
 
     Args:
         organization: The organization
@@ -377,7 +381,7 @@ def get_autofix_explorer_state(organization: Organization, group_id: int):
     Returns:
         SeerRunState if a run exists, None otherwise
     """
-    client = SeerExplorerClient(
+    client = SeerAgentClient(
         organization=organization,
         user=None,
         category_key="autofix",
@@ -506,14 +510,14 @@ def trigger_coding_agent_handoff(
     user_id: int | None = None,
 ) -> dict[str, list]:
     """
-    Trigger a coding agent handoff for an existing Explorer-based autofix run.
+    Trigger a coding agent handoff for an existing agent-based autofix run.
 
     This fetches the current run state, generates a prompt from artifacts
     (root cause, solution, file patches), and launches coding agents.
 
     Args:
         group: The Sentry group (issue)
-        run_id: The existing Explorer run ID
+        run_id: The existing agent run ID
         integration_id: The coding agent integration ID (e.g., Cursor)
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
@@ -527,28 +531,10 @@ def trigger_coding_agent_handoff(
         raise PermissionDenied("Code generation is disabled for this organization")
 
     auto_create_pr = False
-    repo_definitions: list[SeerRepoDefinition] = []
-    if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
-        preference = read_preference_from_sentry_db(group.project)
-        repo_definitions = preference.repositories
-        if preference.automation_handoff:
-            auto_create_pr = preference.automation_handoff.auto_create_pr
-    else:
-        try:
-            pref = get_project_seer_preferences(group.project_id).preference
-            if pref:
-                repo_definitions = pref.repositories
-                if pref.automation_handoff:
-                    auto_create_pr = pref.automation_handoff.auto_create_pr
-        except Exception:
-            logger.exception(
-                "autofix.coding_agent_handoff.get_preferences_error",
-                extra={
-                    "organization_id": group.organization.id,
-                    "run_id": run_id,
-                    "project_id": group.project_id,
-                },
-            )
+    preference = read_preference_from_sentry_db(group.project)
+    repo_definitions: list[SeerRepoDefinition] = preference.repositories
+    if preference.automation_handoff:
+        auto_create_pr = preference.automation_handoff.auto_create_pr
 
     if not repo_definitions:
         return {
@@ -556,7 +542,7 @@ def trigger_coding_agent_handoff(
             "failures": [{"error_message": "No repositories configured in project preferences"}],
         }
 
-    client = get_autofix_explorer_client(group)
+    client = get_autofix_agent_client(group)
     state = client.get_run(run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
@@ -634,7 +620,7 @@ def trigger_push_changes(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    client = get_autofix_explorer_client(group)
+    client = get_autofix_agent_client(group)
 
     if state is None:
         try:

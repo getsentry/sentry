@@ -57,10 +57,10 @@ import {
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 const {fmt} = Sentry.logger;
 
@@ -158,7 +158,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
   return (
     <LogDate align={props.extra.align}>
       <LogsTimestampTooltip
-        timestamp={props.item.value as string | number}
+        timestamp={props.item.value!}
         attributes={props.extra.attributes}
         shouldRender={props.extra.shouldRenderHoverElements}
       >
@@ -205,7 +205,7 @@ function RelativeTimestampRenderer(props: LogFieldRendererProps) {
   return (
     <LogDate align={props.extra.align}>
       <LogsTimestampTooltip
-        timestamp={props.item.value as string | number}
+        timestamp={props.item.value!}
         attributes={props.extra.attributes}
         shouldRender={props.extra.shouldRenderHoverElements}
         relativeTimeToReplay={relativeTimestampMs}

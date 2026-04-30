@@ -1,3 +1,4 @@
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   getTraceSamplesTableFields,
   TraceSamplesTableEmbeddedColumns,
@@ -13,5 +14,6 @@ export function useMetricsIssueSection({traceId}: {traceId: string}) {
     limit: NUMBER_ABBREVIATED_METRICS + 1, // Just needs to be >5 to show the view more button
     traceMetric: undefined,
     fields,
+    staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 }

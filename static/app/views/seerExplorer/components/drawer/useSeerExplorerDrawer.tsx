@@ -4,12 +4,17 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
+import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type OpenSeerExplorerDrawerOptions = {
+  /**
+   * Optional query string to auto-submit once the drawer opens.
+   * Only takes effect on a fresh/empty session.
+   */
+  initialQuery?: string;
   /**
    * Optional run ID to open. If provided, opens an existing session.
    * Cannot be used together with `startNewRun`.
@@ -24,8 +29,8 @@ export type OpenSeerExplorerDrawerOptions = {
 
 export const useSeerExplorerDrawer = () => {
   const organization = useOrganization({allowNull: true});
-
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const [_, setRunId] = useSeerExplorerRunId();
   const {getPageReferrer} = usePageReferrer();
 
   // Track drawer open state in a ref so callbacks don't go stale
@@ -54,33 +59,39 @@ export const useSeerExplorerDrawer = () => {
 
   const openSeerExplorerDrawer = useCallback(
     (options?: OpenSeerExplorerDrawerOptions) => {
-      if (isDrawerOpenRef.current) {
-        // runId seeding doesn't work when the drawer is already open
+      const {runId: openRunId, startNewRun, initialQuery} = options ?? {};
+
+      if (initialQuery) {
+        // Always start a fresh session when a query is forwarded so it
+        // auto-submits into an empty conversation, even if the drawer is
+        // already open with an existing run.
+        setRunId(null);
+      } else if (isDrawerOpenRef.current) {
         return;
+      } else if (openRunId !== undefined) {
+        setRunId(openRunId);
+      } else if (startNewRun) {
+        setRunId(null);
       }
 
-      const {runId, startNewRun} = options ?? {};
-
-      // Seed runId state with sessionStorage, before rendering drawer
-      try {
-        if (runId !== undefined) {
-          sessionStorageWrapper.setItem('seer-explorer-run-id', JSON.stringify(runId));
-        } else if (startNewRun) {
-          sessionStorageWrapper.removeItem('seer-explorer-run-id');
+      openDrawer(
+        () => (
+          <ExplorerDrawerContent
+            getPageReferrer={getPageReferrer}
+            initialQuery={initialQuery}
+          />
+        ),
+        {
+          ariaLabel: t('Seer Explorer Drawer'),
+          drawerKey: 'seer-explorer-drawer',
+          drawerWidth: '30%',
+          resizable: true,
+          mode: 'passive',
+          onOpen,
         }
-      } catch {
-        // Best effort
-      }
-
-      openDrawer(() => <ExplorerDrawerContent getPageReferrer={getPageReferrer} />, {
-        ariaLabel: t('Seer Explorer Drawer'),
-        drawerKey: 'seer-explorer-drawer',
-        resizable: true,
-        mode: 'passive',
-        onOpen,
-      });
+      );
     },
-    [openDrawer, onOpen, getPageReferrer]
+    [openDrawer, onOpen, setRunId, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {

@@ -58,9 +58,8 @@ class _ImageDiffResult(NamedTuple):
 def categorize_image_diff(
     head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
 ) -> _ImageDiffResult:
-    # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
-    head_by_name = {key: (meta.content_hash or key) for key, meta in head_manifest.images.items()}
-    base_by_name = {key: (meta.content_hash or key) for key, meta in base_manifest.images.items()}
+    head_by_name = {key: meta.content_hash for key, meta in head_manifest.images.items()}
+    base_by_name = {key: meta.content_hash for key, meta in base_manifest.images.items()}
 
     all_image_file_names = head_manifest.all_image_file_names
 
@@ -441,9 +440,8 @@ def compare_snapshots(
         head_images = head_manifest.images
         base_images = base_manifest.images
 
-        # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
-        head_meta_by_hash = {(m.content_hash or k): m for k, m in head_images.items()}
-        base_meta_by_hash = {(m.content_hash or k): m for k, m in base_images.items()}
+        head_meta_by_hash = {m.content_hash: m for m in head_images.values()}
+        base_meta_by_hash = {m.content_hash: m for m in base_images.values()}
 
         categories = categorize_image_diff(head_manifest, base_manifest)
         renamed_pairs = categories.renamed_pairs
@@ -621,7 +619,14 @@ def compare_snapshots(
                         if diff_result.total_pixels > 0
                         else 0
                     )
-                    effective_threshold = diff_threshold if diff_threshold is not None else 0.0
+                    specific_image_diff_threshold = head_images[name].diff_threshold
+                    effective_threshold = (
+                        specific_image_diff_threshold
+                        if specific_image_diff_threshold is not None
+                        else diff_threshold
+                        if diff_threshold is not None
+                        else 0.0
+                    )
                     is_changed = diff_pct > effective_threshold
                     if is_changed:
                         changed_count += 1
@@ -629,9 +634,11 @@ def compare_snapshots(
                         unchanged_count += 1
 
                     logger.debug(
-                        "compare_snapshots: %s diff_pct=%.6f threshold=%s is_changed=%s pixels=%d/%d",
+                        "compare_snapshots: %s diff_pct=%.6f threshold=%s (per_image=%s global=%s) is_changed=%s pixels=%d/%d",
                         name,
                         diff_pct,
+                        effective_threshold,
+                        specific_image_diff_threshold,
                         diff_threshold,
                         is_changed,
                         diff_result.changed_pixels,

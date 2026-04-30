@@ -118,7 +118,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
-  trace_item_metrics: <FeatureBadge type="beta" />,
+  trace_item_metrics: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
@@ -176,7 +176,7 @@ export const getAlertWizardCategories = (org: Organization) => {
 
     if (hasTraceMetricsAlerts(org)) {
       result.push({
-        categoryHeading: t('Metrics'),
+        categoryHeading: t('Application Metrics'),
         options: ['trace_item_metrics' as const],
       });
     }

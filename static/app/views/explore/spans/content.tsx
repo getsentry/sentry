@@ -2,11 +2,10 @@ import {Fragment, useMemo} from 'react';
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -33,6 +32,7 @@ import {
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
+import {SpansCommandPaletteActions} from 'sentry/views/explore/spans/spansCommandPaletteActions';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
@@ -46,7 +46,6 @@ import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
   defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
@@ -85,6 +84,7 @@ function ExploreContentInner() {
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
+      <SpansCommandPaletteActions />
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <AnalyticsArea name="explore.spans">
           <Stack flex={1}>
@@ -153,92 +153,55 @@ function SpansTabHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(id);
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSavedQueryTitle =
     defined(id) && defined(savedQuery) && savedQuery.name.length > 0;
 
-  return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${t('Traces')}`}
-            orgSlug={organization?.slug}
-          />
-        ) : null}
-        {hasPageFrameFeature ? (
-          title && defined(id) ? (
-            <TopBar.Slot name="title">
-              <ExploreBreadcrumb
-                traceItemDataset={TraceItemDataset.SPANS}
-                savedQueryName={savedQuery?.name}
-              />
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-                title={t(
-                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </TopBar.Slot>
-          ) : (
-            <TopBar.Slot name="title">
-              {title ? title : t('Traces')}
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-                title={t(
-                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </TopBar.Slot>
-          )
-        ) : (
-          <Fragment>
-            {title && defined(id) ? (
-              <ExploreBreadcrumb
-                traceItemDataset={TraceItemDataset.SPANS}
-                savedQueryName={savedQuery?.name}
-              />
-            ) : null}
-            <Layout.Title>
-              {title ? title : t('Traces')}
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-                title={t(
-                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </Layout.Title>
-          </Fragment>
-        )}
-      </Layout.HeaderContent>
-      {hasPageFrameFeature ? (
-        <Fragment>
-          <TopBar.Slot name="actions">
-            <StarSavedQueryButton />
-            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-          </TopBar.Slot>
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        </Fragment>
-      ) : (
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <StarSavedQueryButton />
-            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-            <FeedbackButton />
-          </Grid>
-        </Layout.HeaderActions>
+  const documentTitle = hasSavedQueryTitle ? (
+    <SentryDocumentTitle
+      title={`${savedQuery.name} — ${t('Traces')}`}
+      orgSlug={organization?.slug}
+    />
+  ) : null;
+
+  const titleContent = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
+      title={t(
+        'Find problematic spans/traces or compute real-time metrics via aggregation.'
       )}
-    </Layout.Header>
+      linkLabel={t('Read the Docs')}
+    />
+  );
+
+  const hasBreadcrumb = Boolean(title && defined(id));
+
+  return (
+    <Fragment>
+      {documentTitle}
+      <TopBar.Slot name="title">
+        {hasBreadcrumb ? (
+          <ExploreBreadcrumb
+            traceItemDataset={TraceItemDataset.SPANS}
+            savedQueryName={savedQuery?.name}
+          />
+        ) : (
+          title || t('Traces')
+        )}
+        {titleContent}
+      </TopBar.Slot>
+      <TopBar.Slot name="actions">
+        <StarSavedQueryButton />
+        {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }

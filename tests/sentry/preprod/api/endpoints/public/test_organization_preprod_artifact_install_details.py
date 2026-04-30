@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.urls import reverse
 
 from sentry.preprod.models import PreprodArtifact
@@ -65,6 +67,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["buildConfiguration"] is None
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
+        assert data["installUrlExpiresAt"] is None
         assert data["downloadCount"] == 0
 
         app_info = data["appInfo"]
@@ -97,6 +100,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
+        assert data["installUrlExpiresAt"] is not None
+        datetime.fromisoformat(data["installUrlExpiresAt"])
         assert data["platform"] == "ANDROID"
         assert data["releaseNotes"] == "Bug fixes and improvements"
         assert data["isCodeSignatureValid"] is None
@@ -124,6 +129,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
+        assert data["installUrlExpiresAt"] is not None
+        datetime.fromisoformat(data["installUrlExpiresAt"])
         assert data["platform"] == "APPLE"
         assert data["isCodeSignatureValid"] is True
         assert data["profileName"] == "iOS Team Provisioning Profile"
@@ -148,4 +155,5 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
+        assert data["installUrlExpiresAt"] is None
         assert data["isCodeSignatureValid"] is False
