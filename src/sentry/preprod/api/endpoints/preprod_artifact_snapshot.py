@@ -295,15 +295,23 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         )
 
         first_class = SnapshotImageResponse.__fields__
+        global_threshold = manifest.diff_threshold
         image_list = [
             SnapshotImageResponse(
-                **{k: v for k, v in metadata.dict().items() if k not in first_class},
+                **{
+                    k: v
+                    for k, v in metadata.dict().items()
+                    if k not in first_class and k != "diff_threshold"
+                },
                 key=metadata.content_hash,
                 display_name=metadata.display_name,
                 image_file_name=key,
                 group=metadata.group,
                 width=metadata.width,
                 height=metadata.height,
+                diff_threshold=metadata.diff_threshold
+                if metadata.diff_threshold is not None
+                else global_threshold,
             )
             for key, metadata in sorted(manifest.images.items())
         ]

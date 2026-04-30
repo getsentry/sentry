@@ -619,7 +619,14 @@ def compare_snapshots(
                         if diff_result.total_pixels > 0
                         else 0
                     )
-                    effective_threshold = diff_threshold if diff_threshold is not None else 0.0
+                    specific_image_diff_threshold = head_images[name].diff_threshold
+                    effective_threshold = (
+                        specific_image_diff_threshold
+                        if specific_image_diff_threshold is not None
+                        else diff_threshold
+                        if diff_threshold is not None
+                        else 0.0
+                    )
                     is_changed = diff_pct > effective_threshold
                     if is_changed:
                         changed_count += 1
@@ -627,9 +634,11 @@ def compare_snapshots(
                         unchanged_count += 1
 
                     logger.debug(
-                        "compare_snapshots: %s diff_pct=%.6f threshold=%s is_changed=%s pixels=%d/%d",
+                        "compare_snapshots: %s diff_pct=%.6f threshold=%s (per_image=%s global=%s) is_changed=%s pixels=%d/%d",
                         name,
                         diff_pct,
+                        effective_threshold,
+                        specific_image_diff_threshold,
                         diff_threshold,
                         is_changed,
                         diff_result.changed_pixels,
