@@ -113,20 +113,18 @@ def convert_rpc_attribute_to_json(
         if column_type is None and output_value is None:
             continue
         if column_type == "array":
-            if not isinstance(output_value, list):
-                raise BadRequest("val_array did not decode to a list")
-            translate_type = (
-                translate_search_type_for_internal_column(internal_name, trace_item_type)
-                or python_scalar_type
+            translate_type = translate_search_type_for_internal_column(
+                internal_name, trace_item_type
             )
             output_type = "array"
         else:
             translate_type = column_type
             output_type = python_scalar_type
-
-        external_name, _, _ = translate_internal_to_public_alias(
-            internal_name, translate_type, trace_item_type
-        )
+        external_name = None
+        if translate_type:
+            external_name, _, _ = translate_internal_to_public_alias(
+                internal_name, translate_type, trace_item_type
+            )
 
         if use_sentry_conventions and external_name:
             external_name = translate_to_sentry_conventions(external_name, trace_item_type)
