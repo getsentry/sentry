@@ -99,7 +99,7 @@ export function SeerAdminPage() {
                   every eligible org in the selected region.
                 </Text>
                 <Alert.Container>
-                  <Alert type="warning">
+                  <Alert variant="warning">
                     Be careful — this dispatches real Celery tasks that call Seer and can
                     trigger autofix runs. Leaving the organization ID blank fans out to{' '}
                     <strong>every Seer-enabled org in the region</strong>, which will
