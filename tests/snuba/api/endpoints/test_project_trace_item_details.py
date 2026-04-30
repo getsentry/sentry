@@ -216,7 +216,17 @@ class ProjectTraceItemDetailsEndpointTest(
 
         response = self.do_request("occurrences", item_id)
         assert response.status_code == 200, response.content
+        by_name = {a["name"]: a for a in response.data["attributes"]}
+        assert "stack.filename" not in by_name
+        assert "stack.lineno" not in by_name
+        assert "stack.in_app" not in by_name
 
+        response = self.do_request(
+            "occurrences",
+            item_id,
+            features={**self.features, "organizations:trace-item-details-array-fields": True},
+        )
+        assert response.status_code == 200, response.content
         by_name = {a["name"]: a for a in response.data["attributes"]}
         assert by_name["stack.filename"]["type"] == "array"
         assert by_name["stack.filename"]["value"] == ["sentry/web/urls.py", "django/views/base.py"]

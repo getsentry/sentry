@@ -103,6 +103,7 @@ def convert_rpc_attribute_to_json(
     trace_item_type: SupportedTraceItemType,
     use_sentry_conventions: bool = False,
     include_internal: bool = False,
+    include_arrays: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     seen_sentry_conventions: set[str] = set()
@@ -120,6 +121,8 @@ def convert_rpc_attribute_to_json(
         column_type, output_value, python_scalar_type = _get_value_from_attribute(source)
 
         if column_type is None and output_value is None:
+            continue
+        if column_type == "array" and not include_arrays:
             continue
 
         output_type: ScalarType | Literal["array"] = "str"
@@ -376,6 +379,11 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             project.organization,
             actor=request.user,
         )
+        include_arrays = features.has(
+            "organizations:trace-item-details-array-fields",
+            project.organization,
+            actor=request.user,
+        )
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
@@ -387,6 +395,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 item_type,
                 use_sentry_conventions,
                 include_internal=include_internal,
+                include_arrays=include_arrays,
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),
