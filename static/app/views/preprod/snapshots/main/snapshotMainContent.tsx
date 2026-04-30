@@ -137,7 +137,7 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <Flex align="center" justify="between" gap="md" padding="md xl">
+        <Flex align="center" justify="between" gap="md" padding="md xl md 0">
           <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {toggle}
             {sortDropdown}
@@ -166,7 +166,7 @@ export function SnapshotMainContent({
   if (!selectedItem) {
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <Flex align="center" justify="between" gap="md" padding="md xl">
+        <Flex align="center" justify="between" gap="md" padding="md xl md 0">
           <Flex align="center" gap="md">
             {toggle}
             {sortDropdown}
@@ -339,7 +339,7 @@ function SingleViewLayout({
         align="center"
         justify="between"
         gap="md"
-        padding="md xl"
+        padding="md xl md 0"
         onClick={e => e.stopPropagation()}
       >
         {toggle}
