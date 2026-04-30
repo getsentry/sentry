@@ -2,7 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
-  makeProjectSeerPreferencesQueryKey,
+  projectSeerPreferencesApiOptions,
   type SeerPreferencesResponse,
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -111,7 +111,8 @@ export function useMutateAutofixProject() {
     onSettled: (_data, _error, variables, _context) => {
       const {project} = variables;
       queryClient.invalidateQueries({
-        queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+        queryKey: projectSeerPreferencesApiOptions(organization.slug, project.slug)
+          .queryKey,
       });
       queryClient.invalidateQueries({
         queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
