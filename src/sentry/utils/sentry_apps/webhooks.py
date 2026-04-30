@@ -106,19 +106,27 @@ def _create_circuit_breaker(
     )
 
 
-def _notify_webhook_disabled(
-    circuit_breaker: CircuitBreaker,
-    sentry_app: SentryApp | RpcSentryApp,
-    owner_context: RpcUserOrganizationContext | None,
-) -> None:
+def set_dedup_key(sentry_app: SentryApp | RpcSentryApp, circuit_breaker: CircuitBreaker) -> bool:
+    """Set the dedup key for circuit breaker notification. Returns True if
+    this is the first notification in the window (caller should send email)."""
     dedup_ttl = max(
-        circuit_breaker.broken_state_duration + circuit_breaker.recovery_duration + 60,
+        circuit_breaker.broken_state_duration + circuit_breaker.recovery_duration,
         86400,  # 24 hours
     )
     client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
     dedup_key = f"sentry-app.webhook.circuit-breaker.notified.{sentry_app.slug}"
     if not client.set(dedup_key, "1", ex=dedup_ttl, nx=True):
         client.expire(dedup_key, dedup_ttl)
+        return False
+    return True
+
+
+def _notify_webhook_disabled(
+    circuit_breaker: CircuitBreaker,
+    sentry_app: SentryApp | RpcSentryApp,
+    owner_context: RpcUserOrganizationContext | None,
+) -> None:
+    if not set_dedup_key(sentry_app, circuit_breaker):
         return
 
     if options.get("sentry-apps.webhook.circuit-breaker.dry-run"):
