@@ -53,6 +53,9 @@ def _parse_scalar(column_type, value_type, value: str) -> tuple[int | str | floa
                 try:
                     return _NUMERIC_COERCIONS[value_type](float(value)), "float"
                 except ValueError:
+                    sentry_sdk.logger.error(
+                        f"Failed number parsing for [{column_type}, {value_type}, {value}]"
+                    )
                     pass
             return value, parsed_value_type
         case "boolean":
@@ -70,7 +73,7 @@ def _get_value_from_attribute(attribute_value: dict[str, Any]) -> tuple:
     for attribute_type_key, value in attribute_value.items():
         column_type = _VAL_TYPE_TO_COLUMN_TYPE.get(attribute_type_key)
         if column_type is None:
-            sentry_sdk.logger.warning(f"Unknown Type in Protobuf {attribute_value}")
+            sentry_sdk.logger.error(f"Unknown Type in Protobuf {attribute_value}")
             continue
         if column_type == "array":
             element_types, elements = [], []
@@ -108,7 +111,7 @@ def convert_rpc_attribute_to_json(
 
         source = attribute["value"]
         if len(source) == 0:
-            raise BadRequest(f"unknown field in protobuf: {internal_name}")
+            raise BadRequest(f"Unknown field in Response: {internal_name}")
         column_type, output_value, python_scalar_type = _get_value_from_attribute(source)
         if column_type is None and output_value is None:
             continue
