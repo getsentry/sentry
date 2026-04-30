@@ -29,8 +29,12 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    HaltReason,
+    RepositoryIntegration,
+)
 from sentry.integrations.utils.metrics import IntegrationEventLifecycle
+from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
@@ -47,6 +51,7 @@ from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.utils import metrics
 from sentry.utils.cursored_scheduler import CursoredScheduler
 from sentry.utils.iterators import chunked
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +109,7 @@ def _halt_broken_integration(
     integration_id: int,
     organization_id: int,
     provider_key: str,
-    reason: str,
+    reason: HaltReason,
 ) -> None:
     """Record a known broken-integration failure without retrying or paging.
 
@@ -146,6 +151,23 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
     Fetches all repos from the SCM provider, diffs against Sentry's
     Repository table, then dispatches batched apply tasks.
     """
+    lock = locks.get(
+        f"repo-sync:{organization_integration_id}",
+        duration=300,
+        name="sync_repos_for_org",
+    )
+    try:
+        lock.acquire()
+    except UnableToAcquireLock:
+        return
+
+    try:
+        _sync_repos_for_org(organization_integration_id)
+    finally:
+        lock.release()
+
+
+def _sync_repos_for_org(organization_integration_id: int) -> None:
     ctx = _get_sync_context(organization_integration_id)
     if ctx is None:
         return
@@ -190,28 +212,10 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 tags={"provider": provider_key},
                 sample_rate=1.0,
             )
-        except IdentityNotValid as e:
-            _halt_broken_integration(
-                lifecycle, e, integration.id, rpc_org.id, provider_key, "identity_not_valid"
-            )
-            return
         except ApiError as e:
-            # Rate-limit check first — GitHub surfaces rate limiting as a 403,
-            # so it must be detected before the suspended-install branch.
-            if installation.is_rate_limited_error(e):
-                _halt_broken_integration(
-                    lifecycle, e, integration.id, rpc_org.id, provider_key, "rate_limited"
-                )
-                return
-            if isinstance(e, ApiUnauthorized):
-                _halt_broken_integration(
-                    lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
-                )
-                return
             # GitHub returns 403 "This installation has been suspended" when the
-            # user has suspended the app install. Treat as a dead integration.
-            # Gated to GitHub providers to avoid swallowing unrelated "suspended"
-            # 403s from other providers.
+            # user has suspended the app install.
+            # TODO: Move into GitHub-specific is_broken_integration_error override.
             if (
                 provider_key in ("github", "github_enterprise")
                 and isinstance(e, ApiForbiddenError)
@@ -226,19 +230,35 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                     "installation_suspended",
                 )
                 return
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
+                )
+                return
             raise
         except IntegrationError as e:
-            # VSTS's get_repositories re-wraps ApiError/IdentityNotValid into an
-            # IntegrationError via message_from_error. Message text isn't a
-            # reliable signal: ApiUnauthorized maps to ERR_UNAUTHORIZED but
-            # IdentityNotValid maps to ERR_INTERNAL ("An internal error..."),
-            # which wouldn't match a "Unauthorized" string match. Python sets
-            # __context__ to the original exception when you raise inside an
-            # except block, so inspect that directly.
+            # VSTS's get_repositories re-wraps ApiError/IdentityNotValid into
+            # an IntegrationError via message_from_error.
+            # TODO: Move into a VSTS-specific is_broken_integration_error override.
             cause = e.__context__
             if provider_key == "vsts" and isinstance(cause, (IdentityNotValid, ApiUnauthorized)):
                 _halt_broken_integration(
                     lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
+                )
+                return
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
+                )
+                return
+            raise
+        except Exception as e:
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
                 )
                 return
             raise

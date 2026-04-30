@@ -1,13 +1,13 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -49,7 +49,6 @@ interface BlockProps {
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  onNavigate?: () => void;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
@@ -145,7 +144,6 @@ export function BlockComponent({
   onClick,
   onMouseEnter,
   onMouseLeave,
-  onNavigate,
   ref,
   showThinking = false,
 }: BlockProps) {
@@ -198,20 +196,6 @@ export function BlockComponent({
     });
     return map;
   }, [block.tool_links, block.tool_results]);
-
-  // Tool link navigation, with analytics and onNavigate hook.
-  const navigateToToolLink = useCallback(
-    (url: LocationDescriptor, toolKind: string) => {
-      trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
-        referrer: getPageReferrer?.() ?? '',
-        organization,
-        tool_kind: toolKind,
-      });
-      navigate(url);
-      onNavigate?.();
-    },
-    [organization, navigate, onNavigate, getPageReferrer]
-  );
 
   // Allow 1 feedback per session. This only writes to session storage on change, not init.
   const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
@@ -267,22 +251,6 @@ export function BlockComponent({
   const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     copy(block.message.content);
-  };
-
-  const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
-    e.stopPropagation();
-    if (sortedToolLinks.length === 0) {
-      return;
-    }
-
-    // Navigate to the clicked link
-    const selectedLink = sortedToolLinks[linkIndex];
-    if (selectedLink) {
-      const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
-      if (url) {
-        navigateToToolLink(url, selectedLink.kind);
-      }
-    }
   };
 
   const showActions =
@@ -351,7 +319,6 @@ export function BlockComponent({
 
                       if (href.startsWith('/')) {
                         navigate(href);
-                        onNavigate?.();
                       } else {
                         window.open(href, '_blank', 'noopener,noreferrer');
                       }
@@ -394,6 +361,31 @@ export function BlockComponent({
                       </Tooltip>
                     );
 
+                    const toolUrl = hasLink
+                      ? buildToolLinkUrl(
+                          sortedToolLinks[correspondingLinkIndex],
+                          organization.slug,
+                          projects
+                        )
+                      : null;
+
+                    const handleToolLinkClick = (e: React.MouseEvent) => {
+                      if (hasLink) {
+                        e.stopPropagation();
+                        const selectedLink = sortedToolLinks[correspondingLinkIndex];
+                        if (selectedLink) {
+                          trackAnalytics(
+                            'seer.explorer.global_panel.tool_link_navigation',
+                            {
+                              referrer: getPageReferrer?.() ?? '',
+                              organization,
+                              tool_kind: selectedLink.kind,
+                            }
+                          );
+                        }
+                      }
+                    };
+
                     return (
                       <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
                         <ToolCallTextContainer>
@@ -402,9 +394,8 @@ export function BlockComponent({
                           </ToolStatusSlot>
                           {hasLink ? (
                             <ToolCallLink
-                              onClick={e =>
-                                handleNavigateClick(e, correspondingLinkIndex)
-                              }
+                              to={toolUrl ?? ''}
+                              onClick={handleToolLinkClick}
                             >
                               {toolCallText}
                               <ToolCallLinkIconWrapper>
@@ -634,16 +625,14 @@ const ToolCallText = styled(Text)`
   text-decoration-color: transparent;
 `;
 
-const ToolCallLink = styled('button')`
+const ToolCallLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
   max-width: 100%;
-  background: none;
-  border: none;
   padding: 0;
   cursor: pointer;
-  text-align: left;
+  text-decoration: none;
   font-weight: ${p => p.theme.font.weight.sans.medium};
 
   &:hover {

@@ -481,9 +481,10 @@ def _write_preferences_to_sentry_db(
         for project, pref in project_preferences:
             for repo_def in pref.repositories:
                 if repo_def.repository_id is None:
-                    logger.warning(
-                        "seer.write_preferences.repo_missing_id",
-                        extra={
+                    sentry_sdk.capture_message(
+                        "SeerRepoDefinition missing repository_id at write time",
+                        level="error",
+                        extras={
                             "project_id": project.id,
                             "organization_id": project.organization_id,
                             "external_id": repo_def.external_id,
