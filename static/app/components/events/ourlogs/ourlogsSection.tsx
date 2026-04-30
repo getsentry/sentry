@@ -45,24 +45,17 @@ export function OurlogsSection({
     return null;
   }
   return (
-    <InterimSection
-      key="logs"
-      type={SectionKey.LOGS}
-      title={t('Logs')}
-      data-test-id="logs-data-section"
-    >
-      <LazyRender fallback={<LoadingIndicator />}>
-        <LogsQueryParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-          source="state"
-          freeze={{traceId}}
-        >
-          <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
-            <OurlogsSectionContent event={event} group={group} project={project} />
-          </LogsPageDataProvider>
-        </LogsQueryParamsProvider>
-      </LazyRender>
-    </InterimSection>
+    <LazyRender>
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+        source="state"
+        freeze={{traceId}}
+      >
+        <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
+          <OurlogsSectionContent event={event} group={group} project={project} />
+        </LogsPageDataProvider>
+      </LogsQueryParamsProvider>
+    </LazyRender>
   );
 }
 
@@ -177,44 +170,55 @@ function OurlogsSectionContent({
   if (!traceId) {
     return null;
   }
-  if (tableData.isPending) {
-    return <LoadingIndicator />;
-  }
-  if (!tableData?.data || (tableData.data.length === 0 && logsSearch.isEmpty())) {
+  if (
+    !tableData.isPending &&
+    (!tableData?.data || (tableData.data.length === 0 && logsSearch.isEmpty()))
+  ) {
     return null;
   }
   return (
-    <Stack>
-      <SmallTable>
-        <TableBody>
-          {abbreviatedTableData?.map((row, index) => (
-            <LogRowContent
-              dataRow={row}
-              meta={tableData.meta}
-              highlightTerms={[]}
-              embedded
-              sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-              key={index}
-              blockRowExpanding
-              onEmbeddedRowClick={onEmbeddedRowClick}
-            />
-          ))}
-        </TableBody>
-      </SmallTable>
-      {tableData.data && tableData.data.length > 5 ? (
-        <div>
-          <Button
-            icon={<IconChevron direction="right" />}
-            aria-label={t('View more')}
-            size="sm"
-            onClick={onOpenLogsDrawer}
-            ref={viewAllButtonRef}
-          >
-            {t('View more')}
-          </Button>
-        </div>
-      ) : null}
-    </Stack>
+    <InterimSection
+      key="logs"
+      type={SectionKey.LOGS}
+      title={t('Logs')}
+      data-test-id="logs-data-section"
+    >
+      {tableData.isPending ? (
+        <LoadingIndicator />
+      ) : (
+        <Stack>
+          <SmallTable>
+            <TableBody>
+              {abbreviatedTableData?.map((row, index) => (
+                <LogRowContent
+                  dataRow={row}
+                  meta={tableData.meta}
+                  highlightTerms={[]}
+                  embedded
+                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                  key={index}
+                  blockRowExpanding
+                  onEmbeddedRowClick={onEmbeddedRowClick}
+                />
+              ))}
+            </TableBody>
+          </SmallTable>
+          {tableData.data && tableData.data.length > 5 ? (
+            <div>
+              <Button
+                icon={<IconChevron direction="right" />}
+                aria-label={t('View more')}
+                size="sm"
+                onClick={onOpenLogsDrawer}
+                ref={viewAllButtonRef}
+              >
+                {t('View more')}
+              </Button>
+            </div>
+          ) : null}
+        </Stack>
+      )}
+    </InterimSection>
   );
 }
 

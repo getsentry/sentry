@@ -198,10 +198,11 @@ describe('OurlogsSection', () => {
     render(<OurlogsSection event={event} project={project} group={group} />, {
       organization,
     });
-    // Section header is always visible
-    expect(screen.getByText(/Logs/)).toBeInTheDocument();
     await waitFor(() => {
       expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/Logs/)).not.toBeInTheDocument();
     });
   });
 
