@@ -34,7 +34,7 @@ import {
   TransactionsDatasetWarning,
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
-import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -81,7 +81,7 @@ function MetricDetectorForm() {
       <DetectSection step={4} />
       <IssueOwnershipSection step={5} />
       <MetricIssuePreview step={6} />
-      <AutomateSection step={7} />
+      <AutomateSectionDeprecated step={7} />
     </Stack>
   );
 }

@@ -6,7 +6,7 @@ import type {FormProps} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
 import type {
   BaseDetectorUpdatePayload,
   DetectorType,
@@ -97,9 +97,9 @@ export function NewDetectorLayout<
   };
 
   return (
-    <EditLayout formProps={formProps}>
-      <EditLayout.Header maxWidth={maxWidth}>
-        <EditLayout.HeaderContent>
+    <EditLayoutDeprecated formProps={formProps}>
+      <EditLayoutDeprecated.Header maxWidth={maxWidth}>
+        <EditLayoutDeprecated.HeaderContent>
           {hasPageFrame ? (
             <TopBar.Slot name="title">
               <NewDetectorBreadcrumbs detectorType={detectorType} />
@@ -107,25 +107,27 @@ export function NewDetectorLayout<
           ) : (
             <NewDetectorBreadcrumbs detectorType={detectorType} />
           )}
-        </EditLayout.HeaderContent>
+        </EditLayoutDeprecated.HeaderContent>
 
         <div>
           <MonitorFeedbackButton />
         </div>
 
-        <EditLayout.HeaderFields>
+        <EditLayoutDeprecated.HeaderFields>
           <DetectorNameField />
           {previewChart ?? <div />}
-        </EditLayout.HeaderFields>
-      </EditLayout.Header>
+        </EditLayoutDeprecated.HeaderFields>
+      </EditLayoutDeprecated.Header>
 
-      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
+        {children}
+      </EditLayoutDeprecated.Body>
 
       <NewDetectorFooter
         maxWidth={maxWidth}
         disabledCreate={disabledCreate}
         extras={extraFooterButton}
       />
-    </EditLayout>
+    </EditLayoutDeprecated>
   );
 }

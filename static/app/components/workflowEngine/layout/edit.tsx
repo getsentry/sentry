@@ -6,32 +6,50 @@ import {Text} from '@sentry/scraps/text';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
-import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
+import {
+  FullHeightForm,
+  FullHeightFormDeprecated,
+} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import type {AvatarProject} from 'sentry/types/project';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-interface WorkflowEngineEditLayoutProps {
+interface EditLayoutProps {
   /**
    * The main content for this page
    * Expected to include `<EditLayout.Body>`, `<EditLayout.Header>`, and `<EditLayout.Footer>` components.
    */
   children: React.ReactNode;
-  formProps?: React.ComponentProps<typeof FullHeightForm>;
 }
 
-/**
- * Precomposed layout for Monitors / Alerts edit pages with form handling.
- */
-function EditLayoutComponent({children, formProps}: WorkflowEngineEditLayoutProps) {
+function EditLayoutComponent({children}: EditLayoutProps) {
   // TODO(JonasBadalic): Remove this once the page-frame feature is GA'd
   const hasPageFrame = useHasPageFrameFeature();
   return (
-    <FullHeightForm hideFooter {...formProps}>
+    <FullHeightForm>
       <Stack flex="unset" background={hasPageFrame ? undefined : 'primary'}>
         {children}
       </Stack>
     </FullHeightForm>
+  );
+}
+
+interface EditLayoutDeprecatedProps {
+  children: React.ReactNode;
+  formProps: React.ComponentProps<typeof FullHeightFormDeprecated>;
+}
+
+// Wraps the children in the legacy form component.
+// Remove once all detector forms have migrated to the new form system.
+function EditLayoutDeprecatedComponent({children, formProps}: EditLayoutDeprecatedProps) {
+  // TODO(JonasBadalic): Remove this once the page-frame feature is GA'd
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <FullHeightFormDeprecated hideFooter {...formProps}>
+      <Stack flex="unset" background={hasPageFrame ? undefined : 'primary'}>
+        {children}
+      </Stack>
+    </FullHeightFormDeprecated>
   );
 }
 
@@ -143,6 +161,20 @@ function Footer({children, label, maxWidth}: FooterProps) {
 }
 
 export const EditLayout = Object.assign(EditLayoutComponent, {
+  Header,
+  HeaderContent,
+  Actions,
+  HeaderFields,
+  Body,
+  Footer,
+  Title,
+});
+
+/**
+ * This component is for forms still using the legacy `FormModel` system.
+ * Remove once all detector forms have migrated to the new form system.
+ */
+export const EditLayoutDeprecated = Object.assign(EditLayoutDeprecatedComponent, {
   Header,
   HeaderContent,
   Actions,

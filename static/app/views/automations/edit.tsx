@@ -16,7 +16,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
+import {FullHeightFormDeprecated} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
@@ -232,7 +232,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   );
 
   return (
-    <FullHeightForm
+    <FullHeightFormDeprecated
       hideFooter
       model={model}
       initialData={initialData}
@@ -319,7 +319,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </Flex>
         </StickyFooter>
       </AutomationFormProvider>
-    </FullHeightForm>
+    </FullHeightFormDeprecated>
   );
 }
 
