@@ -26,7 +26,7 @@ def default_max_candidates() -> int:
 
 class NightShiftTweaks(pydantic.BaseModel):
     # Global settings — apply to scheduled (cron) runs as well as manual ones.
-    enabled: bool = False
+    enabled: bool = True
     # Manual-run-only settings — read by the manual trigger endpoint and
     # forwarded into SeerNightShiftRunOptions; cron runs use the shared
     # defaults instead.

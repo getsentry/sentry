@@ -11,8 +11,7 @@ import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/inte
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
-
-const SEER_COMPATIBLE_PROVIDERS = new Set(['github', 'gitlab']);
+import {isSeerCompatibleProvider} from 'sentry/views/settings/organizationRepositories/seerCompatibleProviders';
 
 interface Props {
   onAddIntegration: (data: IntegrationWithConfig) => void;
@@ -29,7 +28,7 @@ export function NoIntegrationsEmptyState({providers, onAddIntegration}: Props) {
           <Flex align="center" gap="md" flex="1">
             {getIntegrationIcon(provider.key, 'md')}
             <Heading as="h4">{provider.name}</Heading>
-            {SEER_COMPATIBLE_PROVIDERS.has(provider.key) && (
+            {isSeerCompatibleProvider(provider.key) && (
               <Tooltip title={t('Compatible with Seer.')}>
                 <Tag variant="promotion" icon={<IconSeer />}>
                   {t('Seer')}

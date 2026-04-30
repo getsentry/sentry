@@ -9,6 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.seer.agent.utils import _convert_profile_to_execution_tree
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
@@ -18,11 +19,10 @@ from sentry.seer.autofix.autofix import (
     _pre_resolve_stacktrace_frames,
     _respond_with_error,
     get_all_tags_overview,
-    trigger_autofix,
+    trigger_legacy_autofix,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.seer.models import (
     SeerProjectPreference,
     SeerRepoDefinition,
@@ -474,7 +474,7 @@ class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
 @requires_snuba
 @pytest.mark.django_db
 class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_basic(self, mock_get_from_profiling_service) -> None:
         """Test finding a profile for a matching transaction in trace tree."""
         # Setup mock event with transaction name
@@ -536,7 +536,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.profiles.profile_chunks.get_chunk_ids")
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_with_profiler_id(
         self, mock_get_from_profiling_service, mock_get_chunk_ids
     ) -> None:
@@ -644,7 +644,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         profile_result = _get_profile_from_trace_tree(None, event, self.project)
         assert profile_result is None
 
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service) -> None:
         """Test that function returns None when profiling API returns an error."""
         event = Mock()
@@ -863,7 +863,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         test_user = self.create_user()
 
         # Call the function
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             event_id=event.event_id,
             user=test_user,
@@ -938,7 +938,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call.return_value = 123
         test_user = self.create_user()
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             event_id=event.event_id,
             user=test_user,
@@ -974,7 +974,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group = self.create_group()
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -1036,7 +1036,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -1074,7 +1074,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         group = self.create_group()
         user = self.create_user()
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -1546,13 +1546,13 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_http_error(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 500
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
@@ -1561,14 +1561,14 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_json_decode_error(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 200
         mock_response.json.side_effect = Exception("Invalid JSON")
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
@@ -1577,14 +1577,14 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_success(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 200
         mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
@@ -1593,7 +1593,7 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_blocks_coding_payloads_when_disabled(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
         from sentry.seer.autofix.types import AutofixCreatePRPayload, AutofixSelectSolutionPayload
 
         self.organization.update_option("sentry:enable_seer_coding", False)
@@ -1603,7 +1603,7 @@ class UpdateAutofixTest(TestCase):
             AutofixCreatePRPayload(type="create_pr"),
         ]
         for payload in payloads:
-            response = update_autofix(
+            response = update_legacy_autofix(
                 organization_id=self.organization.id,
                 run_id=self.run_id,
                 payload=payload,
@@ -1616,7 +1616,7 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_allows_select_root_cause_when_coding_disabled(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         self.organization.update_option("sentry:enable_seer_coding", False)
         mock_response = Mock()
@@ -1624,7 +1624,7 @@ class UpdateAutofixTest(TestCase):
         mock_response.json.return_value = {"run_id": self.run_id}
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id,
             run_id=self.run_id,
             payload={"type": "select_root_cause", "cause_id": 1},

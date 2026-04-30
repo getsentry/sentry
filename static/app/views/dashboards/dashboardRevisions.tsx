@@ -33,11 +33,7 @@ interface DashboardRevisionsButtonProps {
 }
 
 export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonProps) {
-  if (
-    !dashboard.id ||
-    dashboard.id === 'default-overview' ||
-    defined(dashboard.prebuiltId)
-  ) {
+  if (!dashboard.id || defined(dashboard.prebuiltId)) {
     return null;
   }
 
