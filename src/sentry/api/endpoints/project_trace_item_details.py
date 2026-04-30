@@ -21,7 +21,7 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.project import Project
 from sentry.search.eap import constants
-from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
+from sentry.search.eap.types import ScalarType, SupportedTraceItemType, TraceItemAttribute
 from sentry.search.eap.utils import (
     can_expose_attribute,
     is_sentry_convention_replacement_attribute,
@@ -33,8 +33,9 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import json, snuba_rpc
 
 _NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
-
-_VAL_TYPE_TO_COLUMN_TYPE: dict[str, Literal["string", "number", "boolean", "array"]] = {
+ColumnType = Literal["string", "number", "boolean", "array"]
+ScalarValueType = float | bool | str
+_VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
     "valBool": "boolean",
     "valStr": "string",
     "valInt": "number",
@@ -44,7 +45,7 @@ _VAL_TYPE_TO_COLUMN_TYPE: dict[str, Literal["string", "number", "boolean", "arra
 }
 
 
-def _parse_scalar(column_type, value_type, value: str) -> tuple[int | str | float | bool, str]:
+def _parse_scalar(column_type, value_type, value: str) -> tuple[ScalarValueType, ScalarType]:
     parsed_value_type = value_type[3:].lower()
     match column_type:
         case "number":
@@ -68,25 +69,29 @@ def _parse_scalar(column_type, value_type, value: str) -> tuple[int | str | floa
             )
 
 
-def _get_value_from_attribute(attribute_value: dict[str, Any]) -> tuple:
-    """Column Type, parsed value, and python scalar type like arrays"""
+def _get_value_from_attribute(
+    attribute_value: dict[str, Any],
+) -> tuple[ColumnType | None, ScalarValueType | list[ScalarValueType] | None, ScalarType | None]:
+    """Column Type, parsed value, and python scalar type (for arrays, type of its elements)"""
     for attribute_type_key, value in attribute_value.items():
         column_type = _VAL_TYPE_TO_COLUMN_TYPE.get(attribute_type_key)
         if column_type is None:
             sentry_sdk.logger.error(f"Unknown Type in Protobuf {attribute_value}")
             continue
         if column_type == "array":
-            element_types, elements = [], []
+            element_types: list[ScalarType] = []
+            elements: list[ScalarValueType] = []
             for element in value.get("values", []):
                 _, val, ty = _get_value_from_attribute(element)
-                if ty is not None:
+                # reject nested arrays
+                if ty is not None and not isinstance(val, list | None):
                     element_types.append(ty)
                     elements.append(val)
             if len(element_types):
                 return column_type, elements, element_types[0]
             # When array is empty, we can safely assume type as 'string'.
-            # Type can be overridden by column definitions later
-            return column_type, elements, "string"
+            # Type can be overridden by column definitions (with 'search_type') later
+            return column_type, elements, "str"
         else:
             value, python_type = _parse_scalar(column_type, attribute_type_key, value)
             return column_type, value, python_type
@@ -113,8 +118,11 @@ def convert_rpc_attribute_to_json(
         if len(source) == 0:
             raise BadRequest(f"Unknown field in Response: {internal_name}")
         column_type, output_value, python_scalar_type = _get_value_from_attribute(source)
+
         if column_type is None and output_value is None:
             continue
+
+        output_type: ScalarType | Literal["array"] = "str"
         if column_type == "array":
             translate_type = translate_search_type_for_internal_column(
                 internal_name, trace_item_type
@@ -122,7 +130,7 @@ def convert_rpc_attribute_to_json(
             output_type = "array"
         else:
             translate_type = column_type
-            output_type = python_scalar_type
+            output_type = python_scalar_type or output_type
         external_name = None
         if translate_type:
             external_name, _, _ = translate_internal_to_public_alias(
@@ -156,7 +164,7 @@ def convert_rpc_attribute_to_json(
         result.append(
             TraceItemAttribute(
                 name=external_name,
-                type=output_type,  # type: ignore[typeddict-item]
+                type=output_type,
                 value=output_value,
             )
         )
