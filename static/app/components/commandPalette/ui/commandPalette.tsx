@@ -471,13 +471,17 @@ export function CommandPalette({
       }
 
       analytics.recordAction(action, resultIndex, '');
-      dispatch({type: 'trigger action'});
 
-      // Close the palette before running the action. ModalStore is a single-slot
-      // system: calling openModal() inside onAction would replace the palette's
-      // renderer, and a closeModal() call afterwards would immediately close the
-      // newly opened modal instead of the palette.
-      closeModal?.();
+      const openInNewTab = options?.modifierKeys?.shiftKey && 'to' in action;
+
+      if (!openInNewTab) {
+        dispatch({type: 'trigger action'});
+        // Close the palette before running the action. ModalStore is a single-slot
+        // system: calling openModal() inside onAction would replace the palette's
+        // renderer, and a closeModal() call afterwards would immediately close the
+        // newly opened modal instead of the palette.
+        closeModal?.();
+      }
 
       if ('to' in action) {
         const normalizedTo = normalizeUrl(action.to);
