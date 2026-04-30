@@ -35,11 +35,11 @@ export function getTransactionMEPParamsIfApplicable(
   organization: Organization
 ) {
   if (!canUseMetricsData(organization)) {
-    return undefined;
+    return;
   }
 
   if (mepCardinality.outcome?.forceTransactionsOnly) {
-    return undefined;
+    return;
   }
 
   return getMEPQueryParams(mepSetting, true);

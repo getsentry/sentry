@@ -454,8 +454,26 @@ def _write_preferences_to_sentry_db(
         # Lock project rows to serialize concurrent preference writes.
         list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
 
-        # Delete existing project repos and branch overrides.
-        SeerProjectRepository.objects.filter(project_id__in=project_ids).delete()
+        # Only delete SeerProjectRepository for active repos.
+        SeerProjectRepository.objects.filter(
+            project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
+        ).delete()
+
+        all_repo_ids = {
+            repo_def.repository_id
+            for _, pref in project_preferences
+            for repo_def in pref.repositories
+            if repo_def.repository_id is not None
+        }
+        active_repo_ids = (
+            set(
+                Repository.objects.filter(
+                    id__in=all_repo_ids, status=ObjectStatus.ACTIVE
+                ).values_list("id", flat=True)
+            )
+            if all_repo_ids
+            else set()
+        )
 
         # Collect project repos to create.
         project_repos_to_create: list[SeerProjectRepository] = []
@@ -471,6 +489,10 @@ def _write_preferences_to_sentry_db(
                             "external_id": repo_def.external_id,
                         },
                     )
+                    continue
+
+                # Only create new project repos for active repos.
+                if repo_def.repository_id not in active_repo_ids:
                     continue
 
                 project_repos_to_create.append(
@@ -610,7 +632,9 @@ def _build_automation_handoff(
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB."""
     seer_project_repo_qs = (
-        SeerProjectRepository.objects.filter(project=project)
+        SeerProjectRepository.objects.filter(
+            project=project, repository__status=ObjectStatus.ACTIVE
+        )
         .select_related("repository")
         .prefetch_related("branch_overrides")
     )
@@ -641,7 +665,9 @@ def bulk_read_preferences_from_sentry_db(
 
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     for project_repo in (
-        SeerProjectRepository.objects.filter(project_id__in=project_ids)
+        SeerProjectRepository.objects.filter(
+            project_id__in=project_ids, repository__status=ObjectStatus.ACTIVE
+        )
         .select_related("repository")
         .prefetch_related("branch_overrides")
     ):
@@ -685,6 +711,7 @@ def has_project_connected_repos(organization: Organization, project: Project) ->
         project=project,
         project__organization_id=organization.id,
         project__status=ObjectStatus.ACTIVE,
+        repository__status=ObjectStatus.ACTIVE,
     ).exists()
 
 

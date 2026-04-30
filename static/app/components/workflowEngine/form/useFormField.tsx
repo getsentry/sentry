@@ -41,7 +41,7 @@ export function useFormField<Value extends FieldValue = FieldValue>(
 
   const getSnapshot = useCallback(() => {
     if (!context.form) {
-      return undefined;
+      return;
     }
 
     return getFormFieldValue<Value>(context.form, field);
