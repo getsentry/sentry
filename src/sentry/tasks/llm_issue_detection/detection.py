@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
 import orjson
 import sentry_sdk
 from django.conf import settings
-from django.db.models import F
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
-from sentry import features, options
+from sentry import features
 from sentry.constants import VALID_PLATFORMS, ObjectStatus
 from sentry.issues.grouptype import (
     AIDetectedCodeHealthGroupType,
@@ -26,7 +25,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.explorer.utils import normalize_description
@@ -34,7 +33,6 @@ from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
-from sentry.utils.cursored_scheduler import CursoredScheduler
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
@@ -46,8 +44,6 @@ START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
 TRACE_PROCESSING_TTL_SECONDS = 7200
 MAX_LLM_FIELD_LENGTH = 2000
-
-DETECTION_CYCLE_DURATION = timedelta(hours=1)
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -111,6 +107,7 @@ class IssueDetectionRequest(BaseModel):
     organization_id: int
     project_id: int
     org_slug: str
+    plan_tier: str = "business"
 
 
 def make_issue_detection_request(
@@ -281,40 +278,11 @@ def _is_org_eligible(org_id: int) -> bool:
 
 
 @instrumented_task(
-    name="sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-    namespace=issues_tasks,
-    processing_deadline_duration=300,  # 5 minutes
-)
-def run_llm_issue_detection() -> None:
-    """
-    Main scheduled task for LLM issue detection.
-
-    Uses CursoredScheduler to iterate all active orgs in batches over a cycle.
-    Orgs are filtered by feature flags via validate_item before dispatching.
-    """
-    if not options.get("issue-detection.llm-detection.enabled"):
-        return
-
-    scheduler = CursoredScheduler(
-        name="llm_issue_detection",
-        schedule_key="llm-issue-detection",
-        queryset=Organization.objects.filter(
-            status=OrganizationStatus.ACTIVE,
-            flags=F("flags").bitor(Organization.flags.early_adopter),
-        ),
-        task=detect_llm_issues_for_org,
-        cycle_duration=DETECTION_CYCLE_DURATION,
-        validate_item=_is_org_eligible,
-    )
-    scheduler.tick()
-
-
-@instrumented_task(
     name="sentry.tasks.llm_issue_detection.detect_llm_issues_for_org",
     namespace=issues_tasks,
     processing_deadline_duration=180,  # 3 minutes
 )
-def detect_llm_issues_for_org(org_id: int) -> None:
+def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     """
     Process a single organization for LLM issue detection.
 
@@ -354,7 +322,7 @@ def detect_llm_issues_for_org(org_id: int) -> None:
 
     budget_response = make_signed_seer_api_request(
         seer_issue_detection_connection_pool,
-        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{org_id}",
+        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{org_id}?plan_tier={plan_tier}",
         body=b"",
         method="GET",
         timeout=SEER_TIMEOUT_S,
@@ -404,6 +372,7 @@ def detect_llm_issues_for_org(org_id: int) -> None:
         organization_id=org_id,
         project_id=project_id,
         org_slug=organization.slug,
+        plan_tier=plan_tier,
     )
 
     viewer_context = SeerViewerContext(organization_id=org_id)

@@ -509,13 +509,13 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
         self.project.update_option("sentry:seer_automation_handoff_integration_id", integration_id)
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
         return SeerAutomationHandoffConfiguration(
             handoff_point=handoff_point,
             target="cursor_background_agent",
             integration_id=integration_id,
-            auto_create_pr=False,
+            auto_create_pr=True,
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
@@ -584,11 +584,8 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
 
         mock_trigger_handoff.assert_called_once()
 
-    @patch("sentry.seer.autofix.on_completion_hook.set_project_seer_preference")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
-    def test_trigger_coding_agent_handoff_clears_preference_on_not_found(
-        self, mock_trigger, mock_set_pref
-    ):
+    def test_trigger_coding_agent_handoff_clears_preference_on_not_found(self, mock_trigger):
         """When IntegrationNotFound is raised, automation_handoff is cleared from preferences."""
         from sentry.seer.autofix.coding_agent import IntegrationNotFound
 
@@ -602,32 +599,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             handoff_config=handoff_config,
         )
 
-        mock_set_pref.assert_called_once()
-        updated = mock_set_pref.call_args.args[0]
-        assert updated.automation_handoff is None
-
-    @patch("sentry.seer.autofix.on_completion_hook.set_project_seer_preference")
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
-    def test_trigger_coding_agent_handoff_not_found_seer_api_error_does_not_raise(
-        self, mock_trigger, mock_set_pref
-    ):
-        """A SeerApiError during preference SET after IntegrationNotFound should not propagate."""
-        from sentry.seer.autofix.coding_agent import IntegrationNotFound
-        from sentry.seer.models import SeerApiError
-
-        mock_trigger.side_effect = IntegrationNotFound()
-        mock_set_pref.side_effect = SeerApiError("seer unavailable", 503)
-        handoff_config = self._make_handoff_config()
-
-        # Should not raise
-        AutofixOnCompletionHook._trigger_coding_agent_handoff(
-            organization=self.organization,
-            run_id=123,
-            group=self.group,
-            handoff_config=handoff_config,
-        )
-
-        mock_set_pref.assert_called_once()
+        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_calls_function(self, mock_trigger):

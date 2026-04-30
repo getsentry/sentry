@@ -495,6 +495,8 @@ describe('AutofixSolution', () => {
     expect(humanInstructionElement).toBeInTheDocument();
 
     // Find the timeline item containing the human instruction
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const timelineItem = humanInstructionElement.closest(
       '[data-test-id^="autofix-solution-timeline-item-"]'
     ) as HTMLElement;
