@@ -171,10 +171,11 @@ describe('MetricsSection', () => {
       organization,
     });
 
-    // Section header is always visible
-    expect(screen.getByText(/Metrics/)).toBeInTheDocument();
     await waitFor(() => {
       expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/Metrics/)).not.toBeInTheDocument();
     });
   });
 

@@ -47,23 +47,16 @@ export function MetricsSection({
   }
 
   return (
-    <InterimSection
-      key="metrics"
-      type={SectionKey.METRICS}
-      title={t('Application Metrics')}
-      data-test-id="metrics-data-section"
-    >
-      <LazyRender fallback={<LoadingIndicator />}>
-        <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-          <MetricsSectionContent
-            event={event}
-            group={group}
-            project={project}
-            traceId={traceId}
-          />
-        </TraceViewMetricsProviderWrapper>
-      </LazyRender>
-    </InterimSection>
+    <LazyRender>
+      <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+        <MetricsSectionContent
+          event={event}
+          group={group}
+          project={project}
+          traceId={traceId}
+        />
+      </TraceViewMetricsProviderWrapper>
+    </LazyRender>
   );
 }
 
@@ -139,29 +132,37 @@ function MetricsSectionContent({
     }
   }, [location.query, traceId, group, event, project, openDrawer, navigate, location]);
 
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-  if (!result.data || result.data.length === 0 || error) {
+  if (!isPending && (!result.data || result.data.length === 0 || error)) {
     return null;
   }
 
   return (
-    <Flex direction="column" gap="xl">
-      <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
-      {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
-        <div>
-          <Button
-            icon={<IconChevron direction="right" />}
-            aria-label={t('View more')}
-            size="sm"
-            onClick={onOpenMetricsDrawer}
-            ref={viewAllButtonRef}
-          >
-            {t('View more')}
-          </Button>
-        </div>
-      ) : null}
-    </Flex>
+    <InterimSection
+      key="metrics"
+      type={SectionKey.METRICS}
+      title={t('Application Metrics')}
+      data-test-id="metrics-data-section"
+    >
+      {isPending ? (
+        <LoadingIndicator />
+      ) : (
+        <Flex direction="column" gap="xl">
+          <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
+          {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
+            <div>
+              <Button
+                icon={<IconChevron direction="right" />}
+                aria-label={t('View more')}
+                size="sm"
+                onClick={onOpenMetricsDrawer}
+                ref={viewAllButtonRef}
+              >
+                {t('View more')}
+              </Button>
+            </div>
+          ) : null}
+        </Flex>
+      )}
+    </InterimSection>
   );
 }
