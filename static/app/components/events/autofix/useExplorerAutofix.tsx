@@ -436,6 +436,9 @@ export type AutofixArtifact =
 export function getAutofixArtifactFromSection(
   section: AutofixSection
 ): AutofixArtifact | null {
+  if (section.status !== 'completed') {
+    return null;
+  }
   if (isRootCauseSection(section)) {
     return section.artifacts.findLast(isRootCauseArtifact) ?? null;
   }
