@@ -235,7 +235,7 @@ function ImageContainer(props: {
 }) {
   const [hasError, setHasError] = useState(false);
 
-  const {fileName, size, src, showImage = true} = props;
+  const {fileName, size, src, showImage} = props;
   const isRelativeUrl = src.startsWith('/');
 
   const handleError = () => {

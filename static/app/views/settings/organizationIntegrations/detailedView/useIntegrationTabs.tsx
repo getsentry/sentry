@@ -11,7 +11,7 @@ import type {IntegrationTab} from 'sentry/views/settings/organizationIntegration
  * some existing external links living outside Sentry.
  */
 export function useIntegrationTabs<T extends IntegrationTab>({
-  initialTab = 'overview' as T,
+  initialTab,
 }: {
   initialTab: T;
 }) {

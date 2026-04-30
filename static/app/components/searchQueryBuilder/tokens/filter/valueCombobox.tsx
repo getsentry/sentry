@@ -233,7 +233,7 @@ export function getPredefinedValues({
   const valuesWithoutSection = definedValues
     .filter(group => group.type === ItemType.TAG_VALUE && group.value)
     .map(group => ({
-      value: group.value as string,
+      value: group.value!,
       description: getSuggestionDescription(group),
     }));
   const sections = definedValues
@@ -244,7 +244,7 @@ export function getPredefinedValues({
         suggestions: group.children
           .filter(child => child.value)
           .map(child => ({
-            value: child.value as string,
+            value: child.value!,
             description: getSuggestionDescription(child),
           })),
       };
@@ -263,6 +263,10 @@ export function tokenSupportsMultipleValues(
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null
 ): boolean {
+  if (fieldDefinition?.allowMultipleValues === false) {
+    return false;
+  }
+
   switch (token.filter) {
     case FilterType.TEXT: {
       // The search parser defaults to the text type, so we need to do further

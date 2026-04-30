@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useMutation} from '@tanstack/react-query';
 
 import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
@@ -18,8 +19,8 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
+import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -47,7 +48,7 @@ export function ConfigureDefaultsStep() {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   const {mutate: updateOrganization, isPending: isUpdateOrganizationPending} =
-    useUpdateOrganization(organization);
+    useMutation(useOrganizationMutationOptions(organization));
 
   const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);

@@ -47,11 +47,15 @@ type SeerExplorerUpdateResponse = {
 };
 
 /** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
-/** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set([
+const STRUCTURED_CONTEXT_ROUTES = new Set([
+  '/dashboard/:dashboardId/',
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
+]);
+/** New experimental routes where the LLMContext tree provides structured page context. */
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
+  '/explore/traces/',
+  '/explore/traces/trace/:traceSlug/',
 ]);
 
 function supportsStructuredContext(
@@ -111,8 +115,24 @@ export const useSeerExplorer = () => {
     'seer-explorer.override.ctx-eng',
     true
   );
+  type CodeModeValue = 'off' | 'on' | 'only';
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
-    useLocalStorageState<boolean>('seer-explorer.override.code-mode', true);
+    useLocalStorageState<CodeModeValue>(
+      'seer-explorer.override.code-mode',
+      (storedValue?: unknown): CodeModeValue => {
+        if (storedValue === 'off' || storedValue === 'on' || storedValue === 'only') {
+          return storedValue;
+        }
+        // Migrate legacy boolean values
+        if (storedValue === true) {
+          return 'on';
+        }
+        if (storedValue === false) {
+          return 'off';
+        }
+        return 'on'; // default
+      }
+    );
 
   const [runId, setRunId] = useSeerExplorerRunId();
 
@@ -136,7 +156,7 @@ export const useSeerExplorer = () => {
     {
       insertIndex: number;
       orgSlug: string;
-      overrideCodeModeEnable: boolean;
+      overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
       pageName: string;
       query: string;
@@ -301,7 +321,10 @@ export const useSeerExplorer = () => {
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {apiData, isError, isPolling} = useSeerExplorerPolling({runId, isMutatePending});
+  const {apiData, isPolling, isError, errorStatusCode} = useSeerExplorerPolling({
+    runId,
+    isMutatePending,
+  });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -342,7 +365,10 @@ export const useSeerExplorer = () => {
       // Send structured LLMContext JSON on supported pages when the feature flag
       // is enabled; fall back to a coarse ASCII screenshot otherwise.
       let screenshot: string | undefined;
-      if (supportsStructuredContext(getPageReferrer(), organization)) {
+      if (
+        overrideCtxEngEnable &&
+        supportsStructuredContext(getPageReferrer(), organization)
+      ) {
         try {
           screenshot = JSON.stringify(getLLMContext());
         } catch (e) {
@@ -559,6 +585,7 @@ export const useSeerExplorer = () => {
     sessionData: filteredSessionData,
     isPolling,
     isError,
+    errorStatusCode,
     sendMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */

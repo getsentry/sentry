@@ -773,9 +773,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "hideAiFeatures": True,
-            "githubNudgeInvite": True,
-            "githubPRBot": True,
-            "gitlabPRBot": True,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -865,12 +862,66 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["hideAiFeatures"]) in log.data["hideAiFeatures"]
-        assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
-        assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
-        assert "to {}".format(data["gitlabPRBot"]) in log.data["gitlabPRBot"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert "to Default Mode" in log.data["samplingMode"]
+
+    def test_scm_option_writes_are_silently_ignored(self) -> None:
+        """PUT with githubPRBot et al. must not raise; the fields are dropped."""
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_pr_bot", value=False
+        )
+
+        self.get_success_response(
+            self.organization.slug,
+            githubPRBot=True,
+            githubNudgeInvite=True,
+            gitlabPRBot=True,
+        )
+
+        options = {
+            o.key: o.value
+            for o in OrganizationOption.objects.filter(organization=self.organization)
+        }
+        assert options.get("sentry:github_pr_bot") is False
+        assert "sentry:github_nudge_invite" not in options
+        assert "sentry:gitlab_pr_bot" not in options
+
+    def test_scm_serializer_derived_from_oi_config_when_flag_on(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="gh-derived",
+            oi_params={"config": {"pr_comments": True, "nudge_invite": False}},
+        )
+        self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gl-derived",
+            oi_params={"config": {"pr_comments": False}},
+        )
+        # Legacy org options disagree with the OI config to prove we are
+        # reading from the OI path.
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_pr_bot", value=False
+        )
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_nudge_invite", value=True
+        )
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:gitlab_pr_bot", value=True
+        )
+
+        self.method = "get"
+        try:
+            with self.feature("organizations:scm-config-oi-reads"):
+                response = self.get_success_response(self.organization.slug)
+        finally:
+            self.method = "put"
+
+        assert response.data["githubPRBot"] is True
+        assert response.data["githubNudgeInvite"] is False
+        assert response.data["gitlabPRBot"] is False
 
     @responses.activate
     @patch(
@@ -1505,25 +1556,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
 
         mock_cleanup_task.assert_called_once_with(self.organization.id, [])
-
-    def test_enable_seer_enhanced_alerts_default_true(self) -> None:
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["enableSeerEnhancedAlerts"] is True
-
-    def test_enable_seer_enhanced_alerts_can_be_disabled(self) -> None:
-        data = {"enableSeerEnhancedAlerts": False}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is False
-
-    def test_enable_seer_enhanced_alerts_can_be_enabled(self) -> None:
-        # First disable it
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
-
-        data = {"enableSeerEnhancedAlerts": True}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is True
 
     def test_enable_seer_coding_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)

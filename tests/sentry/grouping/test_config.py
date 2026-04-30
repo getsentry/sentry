@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import time
 from unittest.mock import MagicMock, patch
 
 from sentry import audit_log
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.grouping.api import get_grouping_config_dict_for_project
-from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
+from sentry.grouping.ingest.config import is_in_transition, update_or_set_grouping_config_if_needed
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
@@ -16,6 +17,12 @@ from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
 
 
 class GroupingConfigTest(TestCase):
+    def _count_secondary_config_options(self) -> int:
+        return ProjectOption.objects.filter(
+            key__in=["sentry:secondary_grouping_config", "sentry:secondary_grouping_expiry"],
+            project_id=self.project.id,
+        ).count()
+
     def test_loads_default_config_if_stored_config_option_is_invalid(self) -> None:
         self.project.update_option("sentry:grouping_config", "dogs.are.great")
         config_dict = get_grouping_config_dict_for_project(self.project)
@@ -194,3 +201,51 @@ class GroupingConfigTest(TestCase):
             ).exists()
             assert self.project.get_option("sentry:secondary_grouping_config") is None
             assert self.project.get_option("sentry:secondary_grouping_expiry") == 0
+
+    def test_transition_check_simple(self) -> None:
+        self.project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
+        self.project.update_option("sentry:secondary_grouping_expiry", time.time() + 60)
+
+        assert is_in_transition(self.project) is True
+
+    def test_transition_check_no_secondary_options_set(self) -> None:
+        assert self._count_secondary_config_options() == 0
+        assert is_in_transition(self.project) is False
+
+    def test_transition_check_invalid_secondary_config(self) -> None:
+        self.project.update_option("sentry:secondary_grouping_config", "dogs.are.great")
+        self.project.update_option("sentry:secondary_grouping_expiry", time.time() + 60)
+        assert self._count_secondary_config_options() == 2
+
+        assert is_in_transition(self.project) is False
+        assert self._count_secondary_config_options() == 0
+
+    def test_transition_check_expired_secondary_config(self) -> None:
+        self.project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
+        self.project.update_option("sentry:secondary_grouping_expiry", time.time() - 60)
+        assert self._count_secondary_config_options() == 2
+
+        assert is_in_transition(self.project) is False
+        assert self._count_secondary_config_options() == 0
+
+    def test_transition_check_missing_secondary_config(self) -> None:
+        self.project.update_option("sentry:secondary_grouping_expiry", time.time() + 60)
+        assert self._count_secondary_config_options() == 1
+
+        assert is_in_transition(self.project) is False
+        assert self._count_secondary_config_options() == 0
+
+    def test_transition_check_missing_secondary_expiry(self) -> None:
+        self.project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)
+        assert self._count_secondary_config_options() == 1
+
+        assert is_in_transition(self.project) is False
+        assert self._count_secondary_config_options() == 0
+
+    def test_transition_check_matching_secondary_and_primary_configs(self) -> None:
+        self.project.update_option("sentry:secondary_grouping_config", DEFAULT_GROUPING_CONFIG)
+        self.project.update_option("sentry:secondary_grouping_expiry", time.time() + 60)
+        assert self._count_secondary_config_options() == 2
+
+        assert is_in_transition(self.project) is False
+        assert self._count_secondary_config_options() == 0

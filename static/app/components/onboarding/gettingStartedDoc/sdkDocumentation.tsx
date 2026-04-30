@@ -17,6 +17,7 @@ type SdkDocumentationProps = {
   platform: PlatformIntegration;
   project: Project;
   configType?: ConfigType;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
   onProductSelectionSync?: (products: ProductSolution[]) => void;
 };
@@ -30,6 +31,7 @@ export function SdkDocumentation({
   configType,
   organization,
   onProductSelectionSync,
+  hasScmOnboarding,
 }: SdkDocumentationProps) {
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: organization.slug,
@@ -93,6 +95,7 @@ export function SdkDocumentation({
       dsn={dsn}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
+      hasScmOnboarding={hasScmOnboarding}
       platformKey={platform.id}
       project={project}
       configType={configType}

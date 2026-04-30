@@ -2,11 +2,13 @@ import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
@@ -27,6 +29,7 @@ type Props = {
 
 export function SettingsBreadcrumb({className, routes, params}: Props) {
   const pathMap = useBreadcrumbsPathmap();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
@@ -60,6 +63,15 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
               route={route}
               isLast={isLast}
             />
+          );
+        }
+        // In page-frame mode the current-page crumb is rendered as a
+        // non-interactive label; legacy mode keeps the original self-link.
+        if (isLast && hasPageFrame) {
+          return (
+            <Text key={`${route.name}:${route.path}`} as="span">
+              {pathTitle || route.name}
+            </Text>
           );
         }
         return (

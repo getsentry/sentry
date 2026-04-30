@@ -78,6 +78,5 @@ export function getSnapshotPath(params: {
   organizationSlug: string;
   snapshotId: string;
 }): string {
-  const {organizationSlug, snapshotId} = params;
-  return `/organizations/${organizationSlug}/preprod/snapshots/${snapshotId}/`;
+  return `/organizations/${params.organizationSlug}/preprod/snapshots/${params.snapshotId}/`;
 }

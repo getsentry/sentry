@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 jest.unmock('lodash/debounce');
 
@@ -18,6 +18,7 @@ jest.mock('@tanstack/react-virtual', () => ({
       getTotalSize: () => count * 48,
       measureElement: jest.fn(),
       measure: jest.fn(),
+      scrollToIndex: jest.fn(),
     };
   },
 }));
@@ -32,12 +33,34 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {
+  CommandPaletteHotkeys,
+  useCommandPaletteDispatch,
+  useCommandPaletteState,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
+
+function makeRenderProps(onClose: () => void) {
+  return {
+    closeModal: onClose,
+    Body: ModalBody,
+    Footer: ModalFooter,
+    Header: makeClosableHeader(onClose),
+    CloseButton: makeCloseButton(onClose),
+  };
+}
 
 function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   return (
     <CommandPaletteProvider>
       {children}
-      <CommandPalette closeModal={closeModal} />
+      <CommandPalette {...makeRenderProps(closeModal)} />
     </CommandPaletteProvider>
   );
 }
@@ -110,6 +133,53 @@ describe('CommandPalette', () => {
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() => expect(router.location.pathname).toBe('/other/'));
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reset focus to the first item after mouse leave', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const {router} = render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+    const initialPathname = router.location.pathname;
+
+    await userEvent.hover(await screen.findByRole('option', {name: 'Other'}));
+    await userEvent.unhover(screen.getByRole('listbox', {name: 'Search results'}));
+    await userEvent.keyboard('{Enter}');
+
+    expect(router.location.pathname).toBe(initialPathname);
+    expect(closeSpy).not.toHaveBeenCalled();
+  });
+
+  it('ArrowUp from the first item wraps to the last selectable item', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{ArrowUp}{Enter}');
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole('option', {name: 'Child Action'})).toBeInTheDocument();
+  });
+
+  it('ArrowDown from the last selectable item wraps to the first item', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const {router} = render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{ArrowUp}{ArrowDown}{Enter}');
+
+    await waitFor(() => expect(router.location.pathname).toBe('/target/'));
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -227,6 +297,34 @@ describe('CommandPalette', () => {
 
     expect(onChild).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('onAction that opens a modal leaves the new modal open', async () => {
+    // ModalStore is single-slot: openModal() replaces whatever renderer is set.
+    // The palette must close itself before invoking onAction so that a subsequent
+    // openModal() call inside the callback is not immediately wiped by closeModal().
+    const openModalSpy = jest.spyOn(modalActions, 'openModal');
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          display={{label: 'Open a modal'}}
+          onAction={() => modalActions.openModal(() => <div>modal content</div>)}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Open a modal'}));
+
+    // The palette closed itself once
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    // The action's openModal was called after closeModal, so it is not clobbered
+    expect(openModalSpy).toHaveBeenCalledTimes(1);
+    // closeModal was called before openModal — verify ordering
+    const closeOrder = closeSpy.mock.invocationCallOrder[0]!;
+    const openOrder = openModalSpy.mock.invocationCallOrder[0]!;
+    expect(closeOrder).toBeLessThan(openOrder);
   });
 
   describe('search', () => {
@@ -410,6 +508,25 @@ describe('CommandPalette', () => {
       expect(await screen.findByRole('option', {name: 'Dark'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Light'})).not.toBeInTheDocument();
     });
+
+    it('shows a group preview when the group label matches but its children do not', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Help'}}>
+            <CMDKAction to="/docs/" display={{label: 'Open Documentation'}} />
+            <CMDKAction to="/discord/" display={{label: 'Join Discord'}} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'help');
+
+      expect(
+        await screen.findByRole('option', {name: 'Open Documentation'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Join Discord'})).toBeInTheDocument();
+    });
   });
 
   describe('action with onAction and children', () => {
@@ -430,7 +547,7 @@ describe('CommandPalette', () => {
               />
             </CMDKAction>
           </CMDKAction>
-          <CommandPalette closeModal={closeModal} />
+          <CommandPalette {...makeRenderProps(closeModal)} />
         </CommandPaletteProvider>
       );
 
@@ -898,7 +1015,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CMDKAction display={{label: 'Reverse DSN lookup'}} prompt="Paste a DSN..." />
-          <CommandPalette />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
       expect(
@@ -1074,7 +1191,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
           </CMDKAction>
           <CMDKAction to="/root/" display={{label: 'Root Action'}} />
-          {showPalette && <CommandPalette closeModal={jest.fn()} />}
+          {showPalette && <CommandPalette {...makeRenderProps(jest.fn())} />}
         </CommandPaletteProvider>
       );
     }
@@ -1132,6 +1249,82 @@ describe('CommandPalette', () => {
     });
   });
 
+  describe('reset on open', () => {
+    // Capture dispatch so tests can open/close CMDK without going through
+    // toggleCommandPalette, keeping the setup self-contained.
+    let testDispatch: CommandPaletteDispatch;
+
+    function DispatchCapture() {
+      testDispatch = useCommandPaletteDispatch();
+      return null;
+    }
+
+    function PaletteContent() {
+      const state = useCommandPaletteState();
+      return (
+        <Fragment>
+          <CMDKAction display={{label: 'Section'}}>
+            <CMDKAction display={{label: 'Drillable Group'}}>
+              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          {state.open && <CommandPalette {...makeRenderProps(jest.fn())} />}
+        </Fragment>
+      );
+    }
+
+    function Wrapper({withHotkeys}: {withHotkeys?: boolean} = {}) {
+      return (
+        <CommandPaletteProvider>
+          <DispatchCapture />
+          {withHotkeys && <CommandPaletteHotkeys />}
+          <PaletteContent />
+        </CommandPaletteProvider>
+      );
+    }
+
+    it('preserves state when toggled closed and open without navigating', async () => {
+      render(<Wrapper />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      act(() => testDispatch({type: 'toggle modal'}));
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+
+    it('resets state on the next open if the route changes while CMDK is closed', async () => {
+      const {router} = render(<Wrapper withHotkeys />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      // Navigate while closed — route change must trigger reset on the next open
+      act(() => router.navigate('/new-page/'));
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Root Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Child Action'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('slot rendering', () => {
     it('task slot action is displayed in the palette', async () => {
       render(
@@ -1140,7 +1333,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1158,7 +1351,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1173,7 +1366,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1191,7 +1384,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1216,7 +1409,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1239,7 +1432,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1267,7 +1460,7 @@ describe('CommandPalette', () => {
         <CommandPaletteProvider>
           <ActionsViaGlobalSlot />
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1284,7 +1477,7 @@ describe('CommandPalette', () => {
         <CommandPaletteProvider>
           <CMDKAction display={{label: 'Empty Group'}} />
           <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1298,7 +1491,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CMDKAction display={{label: 'Direct Action'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1327,7 +1520,7 @@ describe('CommandPalette', () => {
             }
           </CMDKAction>
           <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1350,7 +1543,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
             <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
           </CMDKAction>
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1376,7 +1569,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
           </CMDKAction>
           <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1400,7 +1593,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
           </CMDKAction>
           <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1427,7 +1620,7 @@ describe('CommandPalette', () => {
             }
           </CMDKAction>
           <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 

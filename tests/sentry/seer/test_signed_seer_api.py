@@ -55,6 +55,12 @@ def test_simple() -> None:
 
 
 @pytest.mark.django_db
+def test_preserves_query_string() -> None:
+    mock_url_open = run_test_case(path=f"{PATH}?foo=bar&baz=qux", method="GET")
+    assert mock_url_open.call_args.args[1] == f"{PATH}?foo=bar&baz=qux"
+
+
+@pytest.mark.django_db
 def test_uses_given_timeout() -> None:
     mock_url_open = run_test_case(timeout=5)
     mock_url_open.assert_called_once_with(

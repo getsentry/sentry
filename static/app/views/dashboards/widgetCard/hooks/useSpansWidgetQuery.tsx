@@ -1,15 +1,15 @@
-import {useCallback, useMemo, useRef} from 'react';
-import {useQueries} from '@tanstack/react-query';
+import {useMemo, useRef} from 'react';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
-import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
@@ -26,8 +26,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
@@ -66,7 +65,7 @@ export function useSpansSeriesQuery(
     widget,
     organization,
     pageFilters,
-    enabled = true, // Enabled by default - React Query auto-fetches when keys change
+    enabled, // Enabled by default - React Query auto-fetches when keys change
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
@@ -84,9 +83,12 @@ export function useSpansSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  // Build query keys for all widget queries
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map((_, queryIndex) => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
@@ -103,8 +105,6 @@ export function useSpansSeriesQuery(
       }
 
       // Transform requestData into proper query params
-      // Remove organization (already in URL path) and internal flags
-      // Rename 'period' to 'statsPeriod' to match API expectations
       const {
         organization: _org,
         includeAllArgs: _includeAllArgs,
@@ -126,73 +126,48 @@ export function useSpansSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      // Build the API query key for events-stats endpoint
-      return [
-        getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<SpansSeriesResponse>()(
+          '/organizations/$organizationIdOrSlug/events-stats/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<SpansSeriesResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<SpansSeriesResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<SpansSeriesResponse>(context);
         },
-      ] satisfies ApiQueryKey;
-    });
-    return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
-
-  // Create stable queryFn that uses queue from ref
-  const createQueryFn = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<SpansSeriesResponse>> => {
-        // If queue is available, wrap the API call to go through the queue
-        // Read from ref to avoid queryFn dependency on queue
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<SpansSeriesResponse>(context).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        // Fallback: call directly if queue not available
-        return fetchDataQuery<SpansSeriesResponse>(context);
-      },
-    [queue]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFn(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      // Keep data from previous query keys while fetching new data
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
-      // If there's an error and we're not fetching, we're done loading
       const loading = isFetching || !errorMessage;
       return {
         loading,
@@ -207,11 +182,11 @@ export function useSpansSeriesQuery(
     const rawData: SpansSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = q.data;
 
       rawData[requestIndex] = responseData;
 
@@ -252,7 +227,6 @@ export function useSpansSeriesQuery(
     });
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
-    // Compare each data object reference - if they're all the same, reuse previous array
     let finalRawData = rawData;
     if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
@@ -291,7 +265,7 @@ export function useSpansTableQuery(
     widget,
     organization,
     pageFilters,
-    enabled = true,
+    enabled,
     samplingMode,
     cursor,
     limit,
@@ -308,8 +282,14 @@ export function useSpansTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    return filteredWidget.queries.map(query => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  // Use native useQueries with queue-integrated queryFn
+  // React Query auto-refetches when keys change, but API calls go through the queue
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
 
       const requestParams: DiscoverQueryRequestParams = {
@@ -354,69 +334,55 @@ export function useSpansTableQuery(
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
-      const baseQueryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
+      const baseOptions = apiOptions.as<SpansTableResponse>()(
+        '/organizations/$organizationIdOrSlug/events/',
         {
+          path: {organizationIdOrSlug: organization.slug},
           method: 'GET' as const,
           query: queryParams,
-        },
-      ];
-
-      return [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseQueryKey];
-    });
-  }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
-
-  const createQueryFnTable = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<SpansTableResponse>> => {
-        const modifiedContext = {
-          ...context,
-          queryKey: context.queryKey.slice(STARRED_SEGMENT_TABLE_QUERY_KEY.length), // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call,
-        };
-
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<SpansTableResponse>(modifiedContext).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
+          staleTime: getWidgetStaleTime(pageFilters),
         }
-        return fetchDataQuery<SpansTableResponse>(modifiedContext);
-      },
-    [queue]
-  );
+      );
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
+      // eslint-disable-next-line @tanstack/query/exhaustive-deps
+      return queryOptions({
+        ...baseOptions,
+        queryKey: [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseOptions.queryKey] as never,
+        queryFn: (context): Promise<ApiResponse<SpansTableResponse>> => {
+          const modifiedContext = {
+            ...context,
+            // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call
+            queryKey: baseOptions.queryKey,
+          };
 
-  // Use native useQueries with queue-integrated queryFn
-  // React Query auto-refetches when keys change, but API calls go through the queue
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFnTable(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-    })),
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<SpansTableResponse>(modifiedContext).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<SpansTableResponse>(modifiedContext);
+        },
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -434,12 +400,11 @@ export function useSpansTableQuery(
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = q.data.json;
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -467,7 +432,7 @@ export function useSpansTableQuery(
       tableResults.push(transformedDataItem);
 
       // Get page links from response meta
-      responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
+      responsePageLinks = q.data.headers.Link;
     });
 
     // Check if rawData is the same as before to prevent unnecessary rerenders

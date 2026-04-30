@@ -129,6 +129,7 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
         username = self.model.metadata.get("uuid", self.username)
         if not query:
@@ -203,6 +204,9 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
             return ""
         _, source_path = parse_bitbucket_src_url(repo.url, url)
         return source_path
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name", "scopes", "uuid", "type"]
 
     # Bitbucket only methods
 

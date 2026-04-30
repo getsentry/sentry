@@ -13,9 +13,11 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import features
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -28,10 +30,17 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.utils.metrics import IntegrationEventLifecycle
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiPaginationTruncated,
+    ApiUnauthorized,
+    IntegrationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
@@ -56,6 +65,30 @@ SCM_SYNC_PROVIDERS = [
 
 SYNC_BATCH_SIZE = 100
 
+# Final safety guard before auto-disabling a repo: if it has any commit, PR,
+# or code review event row in the last DISABLE_ACTIVITY_CUTOFF_DAYS days, we
+# skip the disable even if the provider isn't returning the repo right now.
+DISABLE_ACTIVITY_CUTOFF_DAYS = 30
+
+
+def bump_org_integration_last_sync(
+    organization_integration_id: int, *, repos_changed: bool = False
+) -> None:
+    """
+    Record the time we most recently synced repositories from the provider for
+    a given OrganizationIntegration by stamping `config["last_sync"]`. When
+    `repos_changed` is True, also stamp `config["last_repos_change"]` to record
+    the last time the repo set actually changed.
+    """
+    oi = OrganizationIntegration.objects.filter(id=organization_integration_id).first()
+    if oi is None:
+        return
+    now = timezone.now().isoformat()
+    oi.config["last_sync"] = now
+    if repos_changed:
+        oi.config["last_repos_change"] = now
+    oi.save(update_fields=["config"])
+
 
 def _has_feature(flag: str, org: object) -> bool:
     """Check a feature flag, returning False if the flag isn't registered."""
@@ -63,6 +96,39 @@ def _has_feature(flag: str, org: object) -> bool:
         return features.has(flag, org)
     except FeatureNotRegistered:
         return False
+
+
+def _halt_broken_integration(
+    lifecycle: IntegrationEventLifecycle,
+    exc: BaseException,
+    integration_id: int,
+    organization_id: int,
+    provider_key: str,
+    reason: str,
+) -> None:
+    """Record a known broken-integration failure without retrying or paging.
+
+    These are expected terminal states (expired OAuth token, suspended app
+    install, etc.) that the periodic sync can't recover from. We halt the
+    lifecycle so no Sentry issue is created, bump a counter that can be
+    dashboarded to watch the broken-integration population, and let the task
+    return cleanly (no retry).
+    """
+    lifecycle.record_halt(exc, create_issue=False)
+    metrics.incr(
+        "scm.repo_sync.get_repositories_failed",
+        tags={"provider": provider_key, "reason": reason},
+        sample_rate=1.0,
+    )
+    logger.info(
+        "sync_repos_for_org.broken_integration",
+        extra={
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "provider": provider_key,
+            "reason": reason,
+        },
+    )
 
 
 @instrumented_task(
@@ -96,21 +162,85 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         integration_id=integration.id,
         organization_id=rpc_org.id,
         provider_key=provider_key,
-    ).capture():
+    ).capture() as lifecycle:
         installation = integration.get_installation(organization_id=rpc_org.id)
         assert isinstance(installation, RepositoryIntegration)
 
+        fetch_truncated = False
         try:
-            provider_repos = installation.get_repositories()
+            provider_repos = installation.get_repositories(raise_on_page_limit=True)
+        except ApiPaginationTruncated as e:
+            # Provider fetch hit a pagination cap with more data still
+            # available. We keep the partial result for create/restore — those
+            # are additive and safe — but skip the disable path so repos that
+            # fell off the tail of the cap aren't wrongly removed.
+            provider_repos = e.partial_data
+            fetch_truncated = True
+            logger.warning(
+                "sync_repos_for_org.pagination_cap_hit",
+                extra={
+                    "integration_id": integration.id,
+                    "organization_id": rpc_org.id,
+                    "provider": provider_key,
+                    "count": len(provider_repos),
+                },
+            )
+            metrics.incr(
+                "scm.repo_sync.pagination_cap_hit",
+                tags={"provider": provider_key},
+                sample_rate=1.0,
+            )
+        except IdentityNotValid as e:
+            _halt_broken_integration(
+                lifecycle, e, integration.id, rpc_org.id, provider_key, "identity_not_valid"
+            )
+            return
         except ApiError as e:
+            # Rate-limit check first — GitHub surfaces rate limiting as a 403,
+            # so it must be detected before the suspended-install branch.
             if installation.is_rate_limited_error(e):
-                logger.info(
-                    "sync_repos_for_org.rate_limited",
-                    extra={
-                        "integration_id": integration.id,
-                        "organization_id": rpc_org.id,
-                    },
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, "rate_limited"
                 )
+                return
+            if isinstance(e, ApiUnauthorized):
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
+                )
+                return
+            # GitHub returns 403 "This installation has been suspended" when the
+            # user has suspended the app install. Treat as a dead integration.
+            # Gated to GitHub providers to avoid swallowing unrelated "suspended"
+            # 403s from other providers.
+            if (
+                provider_key in ("github", "github_enterprise")
+                and isinstance(e, ApiForbiddenError)
+                and "suspended" in str(e)
+            ):
+                _halt_broken_integration(
+                    lifecycle,
+                    e,
+                    integration.id,
+                    rpc_org.id,
+                    provider_key,
+                    "installation_suspended",
+                )
+                return
+            raise
+        except IntegrationError as e:
+            # VSTS's get_repositories re-wraps ApiError/IdentityNotValid into an
+            # IntegrationError via message_from_error. Message text isn't a
+            # reliable signal: ApiUnauthorized maps to ERR_UNAUTHORIZED but
+            # IdentityNotValid maps to ERR_INTERNAL ("An internal error..."),
+            # which wouldn't match a "Unauthorized" string match. Python sets
+            # __context__ to the original exception when you raise inside an
+            # except block, so inspect that directly.
+            cause = e.__context__
+            if provider_key == "vsts" and isinstance(cause, (IdentityNotValid, ApiUnauthorized)):
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
+                )
+                return
             raise
 
         provider_external_ids = {repo["external_id"] for repo in provider_repos}
@@ -129,7 +259,9 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         sentry_disabled_ids = {r.external_id for r in disabled_repos}
 
         new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids
-        removed_ids = sentry_active_ids - provider_external_ids
+        # Skip removals entirely if we didn't manage to fetch all repos for this integration.
+        # We have to do this, otherwise we'd incorrectly disable repos that weren't fetched
+        removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
         restored_ids = sentry_disabled_ids & provider_external_ids
 
         metric_tags = {
@@ -184,7 +316,47 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         if dry_run:
             return
 
-        # Build repo configs for new repos
+        removals_enabled = _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org)
+
+        # Filter out any repo with recent activity (commits, PRs, code review
+        # events) before disable.
+        removed_id_list = list(removed_ids)
+        active_skipped: set[str] = set()
+        if removed_id_list:
+            active_skipped = set(
+                repository_service.find_recently_active_repo_external_ids(
+                    organization_id=rpc_org.id,
+                    integration_id=integration.id,
+                    provider=provider,
+                    external_ids=removed_id_list,
+                    cutoff_days=DISABLE_ACTIVITY_CUTOFF_DAYS,
+                )
+            )
+            if active_skipped:
+                logger.info(
+                    "scm.repo_sync.disable_skipped_due_to_activity",
+                    extra={
+                        "provider": provider_key,
+                        "integration_id": integration.id,
+                        "organization_id": rpc_org.id,
+                        "candidate_count": len(removed_id_list),
+                        "skipped_count": len(active_skipped),
+                        "skipped_ids": list(active_skipped),
+                        "cutoff_days": DISABLE_ACTIVITY_CUTOFF_DAYS,
+                    },
+                )
+                metrics.distribution(
+                    "scm.repo_sync.disable_skipped_due_to_activity",
+                    len(active_skipped),
+                    tags={"provider": provider_key},
+                    sample_rate=1.0,
+                )
+
+        safe_to_disable = [eid for eid in removed_id_list if eid not in active_skipped]
+        bump_org_integration_last_sync(
+            organization_integration_id,
+            repos_changed=bool(new_ids or restored_ids or (safe_to_disable and removals_enabled)),
+        )
         new_repo_configs = [
             {
                 **repo,
@@ -195,7 +367,6 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             for repo in provider_repos
             if repo["external_id"] in new_ids
         ]
-        removed_id_list = list(removed_ids)
         restored_id_list = list(restored_ids)
 
         for config_batch in chunked(new_repo_configs, SYNC_BATCH_SIZE):
@@ -206,8 +377,8 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 }
             )
 
-        if _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org):
-            for removed_batch in chunked(removed_id_list, SYNC_BATCH_SIZE):
+        if removals_enabled:
+            for removed_batch in chunked(safe_to_disable, SYNC_BATCH_SIZE):
                 disable_repos_batch.apply_async(
                     kwargs={
                         "organization_integration_id": organization_integration_id,

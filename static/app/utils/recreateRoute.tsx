@@ -50,7 +50,7 @@ export function recreateRoute(to: string | PlainRoute, options: Options): string
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);
 
-  if (typeof stepBack !== 'undefined') {
+  if (stepBack !== undefined) {
     baseRoute = baseRoute.slice(0, stepBack);
   }
 

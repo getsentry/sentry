@@ -48,6 +48,7 @@ export type OnboardingLayoutProps = {
   projectKeyId: ProjectKey['id'];
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
   /**
    * Fires after every product toggle in addition to the doc's
@@ -69,6 +70,7 @@ export function OnboardingLayout({
   projectKeyId,
   configType = 'onboarding',
   onProductSelectionSync,
+  hasScmOnboarding,
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -113,6 +115,7 @@ export function OnboardingLayout({
       isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
+      hasScmOnboarding,
       profilingOptions: {
         defaultProfilingMode: organization.features.includes('continuous-profiling')
           ? 'continuous'
@@ -129,10 +132,13 @@ export function OnboardingLayout({
           configureSteps: doc.configure(docParams),
           dsn,
           onCopyDsn: () => {
-            trackAnalytics('onboarding.dsn-copied', {
-              organization,
-              platform: platformKey,
-            });
+            trackAnalytics(
+              hasScmOnboarding ? 'onboarding.scm_dsn_copied' : 'onboarding.dsn-copied',
+              {
+                organization,
+                platform: platformKey,
+              }
+            );
           },
         }),
         ...doc.verify(docParams),
@@ -159,6 +165,7 @@ export function OnboardingLayout({
     isSelfHosted,
     api,
     projectKeyId,
+    hasScmOnboarding,
   ]);
 
   useEffect(() => {
@@ -244,14 +251,19 @@ export function OnboardingLayout({
                       <ExternalLink
                         href={step.link}
                         onClick={() =>
-                          trackAnalytics('onboarding.next_step_clicked', {
-                            organization,
-                            platform: platformKey,
-                            project_id: project.id,
-                            products: activeProductSelection,
-                            step: step.name,
-                            newOrg: newOrg ?? false,
-                          })
+                          trackAnalytics(
+                            hasScmOnboarding
+                              ? 'onboarding.scm_next_step_clicked'
+                              : 'onboarding.next_step_clicked',
+                            {
+                              organization,
+                              platform: platformKey,
+                              project_id: project.id,
+                              products: activeProductSelection,
+                              step: step.name,
+                              newOrg: newOrg ?? false,
+                            }
+                          )
                         }
                       >
                         {step.name}

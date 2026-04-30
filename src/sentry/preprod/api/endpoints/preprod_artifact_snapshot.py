@@ -19,6 +19,7 @@ from sentry.api.bases.organization import (
     OrganizationReleasePermission,
 )
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.auth.staff import is_active_staff
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -140,6 +141,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Snapshot not found"}, status=404)
 
+        if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
+            return Response({"detail": "Snapshot not found"}, status=404)
+
         try:
             artifact.preprodsnapshotmetrics
         except PreprodSnapshotMetrics.DoesNotExist:
@@ -188,10 +192,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
-            artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
+            artifact = PreprodArtifact.objects.select_related("commit_comparison", "project").get(
                 id=snapshot_id, project__organization_id=organization.id
             )
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "Snapshot not found"}, status=404)
+
+        if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
             return Response({"detail": "Snapshot not found"}, status=404)
 
         try:
@@ -288,16 +295,23 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         )
 
         first_class = SnapshotImageResponse.__fields__
+        global_threshold = manifest.diff_threshold
         image_list = [
             SnapshotImageResponse(
-                **{k: v for k, v in metadata.dict().items() if k not in first_class},
-                key=metadata.content_hash
-                or key,  # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+                **{
+                    k: v
+                    for k, v in metadata.dict().items()
+                    if k not in first_class and k != "diff_threshold"
+                },
+                key=metadata.content_hash,
                 display_name=metadata.display_name,
                 image_file_name=key,
                 group=metadata.group,
                 width=metadata.width,
                 height=metadata.height,
+                diff_threshold=metadata.diff_threshold
+                if metadata.diff_threshold is not None
+                else global_threshold,
             )
             for key, metadata in sorted(manifest.images.items())
         ]
@@ -428,6 +442,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
+                app_id=artifact.app_id,
                 images=image_list,
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,

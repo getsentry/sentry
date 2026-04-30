@@ -868,6 +868,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.nodestore",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.per_org.tasks.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
@@ -974,7 +975,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scim.privilege_sync",
-    "sentry.tasks.seer.cleanup",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
     "sentry.tasks.summaries.weekly_reports",
@@ -1150,6 +1150,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
+    "dynamic-sampling-schedule-per-org-calculations": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
+        "schedule": crontab("*", "*", "*", "*", "*"),
+    },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         "schedule": crontab("0", "0", "*", "*", "*"),
@@ -1204,10 +1208,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-metadata": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
-    },
-    "llm-issue-detection": {
-        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": timedelta(minutes=5),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -1900,6 +1900,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
 # for user roles.
 SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     [
+        "org:ci",  # CI workflows, releases, source maps, and code mappings
         "project:distribution",  # App distribution/preprod artifacts
     ]
 )
@@ -1909,6 +1910,12 @@ SENTRY_SCOPE_SETS = (
         ("org:admin", "Read, write, and admin access to organization details."),
         ("org:write", "Read and write access to organization details."),
         ("org:read", "Read access to organization details."),
+    ),
+    (
+        (
+            "org:ci",
+            "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ),
     ),
     (
         (

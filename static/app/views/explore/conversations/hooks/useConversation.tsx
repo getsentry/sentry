@@ -1,0 +1,262 @@
+import {useEffect, useMemo} from 'react';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
+
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
+import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+export interface UseConversationsOptions {
+  conversationId: string;
+  endTimestamp?: number;
+  startTimestamp?: number;
+}
+
+/**
+ * Raw span data returned from the AI conversation details endpoint
+ */
+interface ConversationApiSpan {
+  'gen_ai.conversation.id': string;
+  parent_span: string;
+  'precise.finish_ts': number;
+  'precise.start_ts': number;
+  project: string;
+  'project.id': number;
+  'span.name': string;
+  'span.status': string;
+  span_id: string;
+  trace: string;
+  'gen_ai.agent.name'?: string;
+  'gen_ai.cost.total_tokens'?: number;
+  'gen_ai.input.messages'?: string;
+  'gen_ai.operation.type'?: string;
+  'gen_ai.output.messages'?: string;
+  'gen_ai.request.messages'?: string;
+  'gen_ai.request.model'?: string;
+  'gen_ai.response.model'?: string;
+  'gen_ai.response.object'?: string;
+  'gen_ai.response.text'?: string;
+  'gen_ai.tool.call.arguments'?: string;
+  'gen_ai.tool.input'?: string;
+  'gen_ai.tool.name'?: string;
+  'gen_ai.usage.total_tokens'?: number;
+  'span.description'?: string;
+  'span.op'?: string;
+  'user.email'?: string;
+  'user.id'?: string;
+  'user.ip'?: string;
+  'user.username'?: string;
+}
+
+function isGenAiSpan(span: ConversationApiSpan): boolean {
+  if (span['gen_ai.operation.type']) {
+    return true;
+  }
+  return span['span.name']?.startsWith('gen_ai.') ?? false;
+}
+
+interface UseConversationResult {
+  error: boolean;
+  isLoading: boolean;
+  nodeTraceMap: Map<string, string>;
+  nodes: AITraceSpanNode[];
+}
+
+/**
+ * Creates a node-like object from a flat API span response so existing UI
+ * components (AISpanList, MessagesPanel) work without full trace fetches.
+ */
+function createNodeFromApiSpan(
+  apiSpan: ConversationApiSpan,
+  nodeMap: Map<string, AITraceSpanNode>
+): AITraceSpanNode {
+  const operationType =
+    apiSpan['gen_ai.operation.type'] ||
+    getGenAiOperationTypeFromSpanName(apiSpan['span.name']);
+
+  const duration = apiSpan['precise.finish_ts'] - apiSpan['precise.start_ts'];
+  const value: TraceTree.EAPSpan = {
+    children: [],
+    duration,
+    event_id: apiSpan.span_id,
+    event_type: 'span',
+    is_transaction: false,
+    op: apiSpan['span.name'],
+    description: apiSpan['span.name'],
+    start_timestamp: apiSpan['precise.start_ts'],
+    end_timestamp: apiSpan['precise.finish_ts'],
+    project_id: apiSpan['project.id'],
+    project_slug: apiSpan.project,
+    parent_span_id: apiSpan.parent_span,
+    profile_id: '',
+    profiler_id: '',
+    sdk_name: '',
+    transaction: '',
+    transaction_id: '',
+    name: apiSpan['span.name'] || '',
+    errors: [],
+    occurrences: [],
+    additional_attributes: {
+      [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
+      [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
+      [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
+      [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
+      [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
+      [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
+      [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
+      [SpanFields.GEN_AI_REQUEST_MODEL]: apiSpan['gen_ai.request.model'] ?? '',
+      [SpanFields.GEN_AI_RESPONSE_MODEL]: apiSpan['gen_ai.response.model'] ?? '',
+      [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
+      [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
+      'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
+      'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
+      [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
+      [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
+      [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
+      [SpanFields.USER_EMAIL]: apiSpan['user.email'] ?? '',
+      [SpanFields.USER_ID]: apiSpan['user.id'] ?? '',
+      [SpanFields.USER_IP]: apiSpan['user.ip'] ?? '',
+      [SpanFields.USER_USERNAME]: apiSpan['user.username'] ?? '',
+    },
+  };
+
+  const startMs = value.start_timestamp * 1e3;
+  const durationMs = (value.end_timestamp - value.start_timestamp) * 1e3;
+  const parentSpanId = apiSpan.parent_span;
+  const errors = new Set<TraceTree.TraceError>();
+
+  const node = {
+    id: apiSpan.span_id,
+    value,
+    type: 'span' as const,
+    extra: null,
+    space: [startMs, durationMs] as [number, number],
+    op: value.op,
+    description: value.description,
+    startTimestamp: value.start_timestamp,
+    endTimestamp: value.end_timestamp,
+    projectSlug: value.project_slug,
+    attributes: value.additional_attributes,
+    errors,
+    profileId: undefined,
+    profilerId: undefined,
+    uniqueIssues: [] as TraceTree.TraceIssue[],
+
+    findClosestParentTransaction: () => null,
+    findParent<T>(predicate: (node: T) => boolean): T | null {
+      let currentParentId: string | undefined = parentSpanId;
+      while (currentParentId) {
+        const parentNode = nodeMap.get(currentParentId);
+        if (!parentNode) {
+          break;
+        }
+        if (predicate(parentNode as unknown as T)) {
+          return parentNode as unknown as T;
+        }
+        currentParentId = parentNode.value?.parent_span_id ?? undefined;
+      }
+      return null;
+    },
+    findParentEapTransaction: () => null,
+
+    renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
+      return <EAPSpanNodeDetails {...props} node={this as unknown as EapSpanNode} />;
+    },
+  };
+
+  return node as unknown as AITraceSpanNode;
+}
+
+const MAX_PAGES = 10;
+
+export function useConversation(
+  conversation: UseConversationsOptions
+): UseConversationResult {
+  const organization = useOrganization();
+
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const hasConversationTimestamps =
+    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
+
+  // Ignore page filters so the conversation is always found.
+  const queryParams = {
+    project: [ALL_ACCESS_PROJECTS],
+    per_page: 1000,
+    ...(hasConversationTimestamps && {
+      start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
+      end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
+    }),
+  };
+
+  const {
+    data,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery(
+    apiOptions.asInfinite<ConversationApiSpan[]>()(
+      '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
+      {
+        path: conversation.conversationId
+          ? {
+              organizationIdOrSlug: organization.slug,
+              conversationId: conversation.conversationId,
+            }
+          : skipToken,
+        query: queryParams,
+        staleTime: Infinity,
+      }
+    )
+  );
+
+  const currentNumberPages = data?.pages.length ?? 0;
+
+  useEffect(() => {
+    if (!isFetching && hasNextPage && currentNumberPages < MAX_PAGES) {
+      fetchNextPage();
+    }
+  }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
+
+  const allSpans = useMemo(() => data?.pages.flatMap(page => page.json) ?? [], [data]);
+
+  const {nodes, nodeTraceMap} = useMemo(() => {
+    if (allSpans.length === 0) {
+      return {nodes: [], nodeTraceMap: new Map<string, string>()};
+    }
+
+    const traceMap = new Map<string, string>();
+    const genAiSpans = allSpans.filter(isGenAiSpan);
+    const nodeMap = new Map<string, AITraceSpanNode>();
+
+    const transformedNodes = genAiSpans.map(apiSpan => {
+      const node = createNodeFromApiSpan(apiSpan, nodeMap);
+      nodeMap.set(node.id, node);
+      traceMap.set(node.id, apiSpan.trace);
+      return node;
+    });
+
+    transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
+
+    return {nodes: transformedNodes, nodeTraceMap: traceMap};
+  }, [allSpans]);
+
+  if (!conversation.conversationId) {
+    return {nodes: [], nodeTraceMap: new Map(), isLoading: false, error: false};
+  }
+
+  return {
+    nodes,
+    nodeTraceMap,
+    isLoading: isLoading || isFetchingNextPage,
+    error: isError,
+  };
+}
