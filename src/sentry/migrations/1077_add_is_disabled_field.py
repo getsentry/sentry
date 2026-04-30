@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1074_remove_dashboardtombstone"),
+        ("sentry", "1076_delete_dashboardtombstone"),
     ]
 
     operations = [
