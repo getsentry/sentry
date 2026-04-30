@@ -10,7 +10,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import {getConversationsUrlForNavigation} from 'sentry/views/explore/conversations/utils/urlParams';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
@@ -158,7 +158,7 @@ export function ExplorerDrawerContent({
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
   const conversationsUrl = runId
-    ? getConversationsUrlForNavigation('sentry', runId)
+    ? getConversationsUrlForExternalUse('sentry', runId)
     : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
