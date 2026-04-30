@@ -107,7 +107,7 @@ export function ProjectAddRepoModal({
             addErrorMessage(t('Failed to save project settings'));
           },
         })
-        .catch();
+        .catch(() => {});
     },
   });
 
@@ -263,7 +263,7 @@ export function ProjectAddRepoModal({
                 <field.Layout.Row
                   label={t('Preferred Coding Agent')}
                   hintText={t(
-                    'Have Autofix trigger on any issue with enough occurrences and Sentry-determined fixability. Select how far you want Autofix to run on actionable issues. The steps are Root Cause Analysis > Plan > Generate Code > Draft PR > Merge PR.'
+                    'Seer will always triage and perform Root Cause Analysis for you, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR.'
                   )}
                 >
                   {agentOptions.isPending ? (
@@ -292,7 +292,7 @@ export function ProjectAddRepoModal({
                 <field.Layout.Row
                   label={t('Automation Steps')}
                   hintText={t(
-                    'Seer will always triage and perform Root Cause Analysis for you, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR.'
+                    'Have Autofix trigger on any issue with enough occurrences and Sentry-determined fixability. Select how far you want Autofix to run on actionable issues. The steps are Root Cause Analysis > Plan > Generate Code > Draft PR > Merge PR.'
                   )}
                 >
                   <field.Select

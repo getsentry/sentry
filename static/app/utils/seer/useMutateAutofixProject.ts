@@ -104,7 +104,7 @@ export function useMutateAutofixProject() {
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
 
       ProjectsStore.onUpdateSuccess({
-        id: project.id,
+        ...project,
         autofixAutomationTuning: tuning,
       });
     },
