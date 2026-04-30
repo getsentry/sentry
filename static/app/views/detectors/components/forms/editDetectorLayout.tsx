@@ -24,7 +24,6 @@ import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/comm
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   children: React.ReactNode;
@@ -51,7 +50,6 @@ export function EditDetectorLayout<
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
-  const hasPageFrame = useHasPageFrameFeature();
   const [formModel] = useState(() => new FormModel());
   const {onFieldChange} = useFormEagerValidation(formModel);
 
@@ -76,13 +74,9 @@ export function EditDetectorLayout<
     <EditLayoutDeprecated formProps={formProps}>
       <EditLayoutDeprecated.Header maxWidth={maxWidth}>
         <EditLayoutDeprecated.HeaderContent>
-          {hasPageFrame ? (
-            <TopBar.Slot name="title">
-              <EditDetectorBreadcrumbs detector={detector} />
-            </TopBar.Slot>
-          ) : (
+          <TopBar.Slot name="title">
             <EditDetectorBreadcrumbs detector={detector} />
-          )}
+          </TopBar.Slot>
         </EditLayoutDeprecated.HeaderContent>
 
         <div>

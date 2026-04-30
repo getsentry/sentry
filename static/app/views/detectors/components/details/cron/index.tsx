@@ -56,7 +56,6 @@ import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/cron
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type CronDetectorDetailsProps = {
   detector: CronDetector;
@@ -75,7 +74,6 @@ function hasLastCheckIn(envs: MonitorEnvironment[]) {
 export function CronDetectorDetails({detector, project}: CronDetectorDetailsProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
@@ -172,26 +170,17 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
-                {hasPageFrameFeature ? (
-                  <Flex align="center" gap="sm" marginLeft="auto">
-                    <TimezoneOverride
-                      monitor={dataSource.queryObj}
-                      size="sm"
-                      userTimezone={userTimezone}
-                      onTimezoneSelected={setTimezoneOverride}
-                    />
-                    <DisableDetectorAction detector={detector} />
-                    <EditDetectorAction detector={detector} />
-                  </Flex>
-                ) : null}
+                <Flex align="center" gap="sm" marginLeft="auto">
+                  <TimezoneOverride
+                    monitor={dataSource.queryObj}
+                    size="sm"
+                    userTimezone={userTimezone}
+                    onTimezoneSelected={setTimezoneOverride}
+                  />
+                  <DisableDetectorAction detector={detector} />
+                  <EditDetectorAction detector={detector} />
+                </Flex>
               </Flex>
-              {hasPageFrameFeature ? null : (
-                <TimezoneOverride
-                  monitor={dataSource.queryObj}
-                  userTimezone={userTimezone}
-                  onTimezoneSelected={setTimezoneOverride}
-                />
-              )}
             </Flex>
             <DisabledAlert
               detector={detector}

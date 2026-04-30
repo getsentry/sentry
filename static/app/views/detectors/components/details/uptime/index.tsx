@@ -34,7 +34,6 @@ import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/de
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type UptimeDetectorDetailsProps = {
   detector: UptimeDetector;
@@ -43,8 +42,6 @@ type UptimeDetectorDetailsProps = {
 
 export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const {data: uptimeSummaries} = useUptimeMonitorSummaries({
     detectorIds: [detector.id],
   });
@@ -69,12 +66,10 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
         <DetailLayout.Main>
           <Flex align="center" gap="sm" justify="between" wrap="wrap">
             <DatePageFilter />
-            {hasPageFrameFeature ? (
-              <Flex align="center" gap="sm" marginLeft="auto">
-                <DisableDetectorAction detector={detector} />
-                <EditDetectorAction detector={detector} />
-              </Flex>
-            ) : null}
+            <Flex align="center" gap="sm" marginLeft="auto">
+              <DisableDetectorAction detector={detector} />
+              <EditDetectorAction detector={detector} />
+            </Flex>
           </Flex>
           <DisabledAlert
             detector={detector}
