@@ -1,7 +1,18 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+/* eslint-disable boundaries/dependencies */
+import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+/* eslint-enable boundaries/dependencies */
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
+
+/* eslint-disable boundaries/dependencies */
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {PlanTier} from 'getsentry/types';
+/* eslint-enable boundaries/dependencies */
 
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
 
@@ -17,6 +28,11 @@ const ALL_FEATURES = [
 ];
 
 describe('ScmFeatureSelectionCards', () => {
+  beforeEach(() => {
+    SubscriptionStore.init();
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders all available features', () => {
     render(
       <ScmFeatureSelectionCards
@@ -127,5 +143,77 @@ describe('ScmFeatureSelectionCards', () => {
       name: /Error monitoring/,
     });
     expect(errorMonitoringCard).toBeChecked();
+  });
+
+  it('renders fallback volumes when subscription is unavailable', () => {
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
+    expect(screen.getByText('5M spans / mo')).toBeInTheDocument();
+    expect(screen.getByText('Usage-based')).toBeInTheDocument();
+  });
+
+  it('renders dynamic volumes from billing-config response', async () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({organization, planTier: PlanTier.AM3});
+    SubscriptionStore.set(organization.slug, subscription);
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      query: {tier: 'am3'},
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('50,000 errors / mo')).toBeInTheDocument();
+    expect(screen.getByText('10M spans / mo')).toBeInTheDocument();
+    expect(screen.getByText('50 replays / mo')).toBeInTheDocument();
+    expect(screen.getByText('5 GB logs / mo')).toBeInTheDocument();
+    // Profile duration in the free plan is 0 → fallback "Usage-based" still wins.
+    expect(screen.getByText('Usage-based')).toBeInTheDocument();
+  });
+
+  it('falls back to static volumes when billing-config errors', async () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({organization, planTier: PlanTier.AM3});
+    SubscriptionStore.set(organization.slug, subscription);
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      query: {tier: 'am3'},
+      statusCode: 404,
+      body: {detail: 'Not Found'},
+    });
+
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+      />,
+      {organization}
+    );
+
+    // The fallback (5,000 errors) should remain on screen even after the request
+    // resolves with 404, since the hook degrades gracefully.
+    await waitFor(() => {
+      expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
+    });
+    expect(screen.getByText('5M spans / mo')).toBeInTheDocument();
   });
 });
