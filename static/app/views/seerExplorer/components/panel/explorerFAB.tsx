@@ -66,7 +66,7 @@ function SeerFloatingActionButton(props: SeerFloatingActionButtonProps) {
           >
             <Flex align="center" gap="sm">
               <Text size="sm">{t('Ask Seer')}</Text>
-              <Hotkey variant="debossed" value="command+/" />
+              <Hotkey variant="debossed" value="mod+/" />
             </Flex>
           </SeerButton>
         </Container>

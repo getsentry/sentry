@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -78,15 +77,6 @@ const ACTIONS: Action[] = [
     action: () => {
       toggleLocaleDebug();
       window.location.reload();
-    },
-  },
-
-  {
-    title: t('Search Documentation and FAQ'),
-    description: t('Open the Documentation and FAQ search modal.'),
-    requiresSuperuser: false,
-    action: () => {
-      openHelpSearchModal();
     },
   },
 ];

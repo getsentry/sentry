@@ -544,9 +544,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         # Validate limit on chart widgets with group-by columns:
         # if there are too many groups the server cannot serve the
         # request to get widget data and hence the chart fails to load.
+        # WHEEL widgets render a single aggregated row and don't use `limit`,
+        # so they're exempted from this check.
         if (
             data.get("display_type") != DashboardWidgetDisplayTypes.TABLE
             and data.get("display_type") != DashboardWidgetDisplayTypes.BIG_NUMBER
+            and data.get("display_type") != DashboardWidgetDisplayTypes.WHEEL
             and data.get("limit") is None
             and has_columns
         ):

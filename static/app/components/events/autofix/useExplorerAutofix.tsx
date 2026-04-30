@@ -1,5 +1,5 @@
 import {useCallback, useRef, useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {
   addErrorMessage,
@@ -18,8 +18,8 @@ import {
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -144,15 +144,18 @@ interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
-const POLL_INTERVAL = 500;
-const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
+const POLL_INTERVAL = 1000;
 
-const makeExplorerAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
-    path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-  }),
-  {query: {mode: 'explorer'}},
-];
+function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
+  return apiOptions.as<ExplorerAutofixResponse>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+      query: {mode: 'explorer'},
+      staleTime: 0,
+    }
+  );
+}
 
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
   autofix: null,
@@ -193,10 +196,17 @@ const isActivelyProcessing = (
     state => state.pr_creation_status === 'creating'
   );
 
+  const anyCodingAgentsRunning = Object.values(autofixState.coding_agents ?? {}).some(
+    codingAgent =>
+      codingAgent.status === CodingAgentStatus.PENDING ||
+      codingAgent.status === CodingAgentStatus.RUNNING
+  );
+
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
-    anyPRCreating
+    anyPRCreating ||
+    anyCodingAgentsRunning
   );
 };
 
@@ -208,19 +218,9 @@ const getPollInterval = (
   autofixState: ExplorerAutofixState | null,
   runStarted: boolean
 ): number | false => {
-  // No run and nothing started - don't poll
-  if (!autofixState && !runStarted) {
-    return false;
-  }
-
   // Actively processing - poll fast
   if (isActivelyProcessing(autofixState, runStarted)) {
     return POLL_INTERVAL;
-  }
-
-  // Has a run but not actively processing - poll slow to catch external updates
-  if (autofixState) {
-    return IDLE_POLL_INTERVAL;
   }
 
   return false;
@@ -283,6 +283,7 @@ export interface AutofixSection {
   blocks: Block[];
   status: 'processing' | 'completed';
   step: string;
+  index?: number;
 }
 
 /**
@@ -334,7 +335,8 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     }
   }
 
-  for (const block of blocks) {
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!;
     // Accumulate file patches globally — they need to be merged across all
     // blocks regardless of section boundaries so later patches win per file.
     if (block.merged_file_patches?.length) {
@@ -355,6 +357,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
       }
 
       section = {
+        index: i,
         step: metadata.step,
         artifacts: [],
         blocks: [],
@@ -433,14 +436,17 @@ export type AutofixArtifact =
 export function getAutofixArtifactFromSection(
   section: AutofixSection
 ): AutofixArtifact | null {
-  if (isRootCauseSection(section)) {
-    return section.artifacts.findLast(isRootCauseArtifact) ?? null;
-  }
-  if (isSolutionSection(section)) {
-    return section.artifacts.findLast(isSolutionArtifact) ?? null;
-  }
-  if (isCodeChangesSection(section)) {
-    return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+  if (section.status === 'completed') {
+    // these artifacts are only usable once the section has completed running
+    if (isRootCauseSection(section)) {
+      return section.artifacts.findLast(isRootCauseArtifact) ?? null;
+    }
+    if (isSolutionSection(section)) {
+      return section.artifacts.findLast(isSolutionArtifact) ?? null;
+    }
+    if (isCodeChangesSection(section)) {
+      return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+    }
   }
   if (isPullRequestsSection(section)) {
     return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
@@ -533,45 +539,53 @@ export function useExplorerAutofix(
     ]);
   }, []);
 
-  const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
-    makeExplorerAutofixQueryKey(orgSlug, groupId),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled,
-      refetchInterval: query => {
-        if (!enabled) {
-          return false;
-        }
-        return getPollInterval(
-          query.state.data?.[0]?.autofix || null,
-          waitingForResponse
-        );
-      },
-    }
-  );
+  const {data: apiData, isPending} = useQuery({
+    ...explorerAutofixApiOptions(orgSlug, groupId),
+    retry: false,
+    enabled,
+    refetchInterval: query => {
+      if (!enabled) {
+        return false;
+      }
+      return getPollInterval(query.state.data?.json?.autofix || null, waitingForResponse);
+    },
+  });
 
   const runState = apiData?.autofix ?? null;
 
-  /**
-   * Start or continue an autofix step.
-   *
-   * @param step - The step to run (root_cause, solution, code_changes, etc.)
-   * @param runId - Optional run ID to continue an existing run
-   */
   const startStep = useCallback(
-    async (step: AutofixExplorerStep, runId?: number, userContext?: string) => {
+    async (
+      step: AutofixExplorerStep,
+      startStepOptions?: {
+        /**
+         * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
+         */
+        insertIndex?: number;
+        /**
+         * The run id where we want to start the step. If not specified, a new run is created
+         */
+        runId?: number;
+        /**
+         * Additional context from the user. If specified, it is added to the builtin prompt
+         */
+        userContext?: string;
+      }
+    ) => {
       setWaitingForResponse(true);
 
       try {
         const data: Record<string, any> = {step};
 
-        if (defined(runId)) {
-          data.run_id = runId;
+        if (defined(startStepOptions?.insertIndex)) {
+          data.insert_index = startStepOptions.insertIndex;
         }
 
-        if (userContext) {
-          data.user_context = userContext;
+        if (defined(startStepOptions?.runId)) {
+          data.run_id = startStepOptions.runId;
+        }
+
+        if (startStepOptions?.userContext) {
+          data.user_context = startStepOptions.userContext;
         }
 
         const response = await api.requestPromise(
@@ -587,16 +601,20 @@ export function useExplorerAutofix(
 
         // Invalidate to fetch fresh data
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
 
         return response.run_id as number;
       } catch (e: any) {
         setWaitingForResponse(false);
-        setApiQueryData<ExplorerAutofixResponse>(
-          queryClient,
-          makeExplorerAutofixQueryKey(orgSlug, groupId),
-          makeErrorExplorerAutofixData(e?.responseJSON?.detail ?? 'An error occurred')
+        queryClient.setQueryData(
+          explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+          prev => ({
+            headers: prev?.headers ?? {},
+            json: makeErrorExplorerAutofixData(
+              e?.responseJSON?.detail ?? 'An error occurred'
+            ),
+          })
         );
         throw e;
       }
@@ -633,7 +651,7 @@ export function useExplorerAutofix(
 
         // Invalidate to trigger polling for status updates
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
@@ -649,10 +667,9 @@ export function useExplorerAutofix(
   const reset = useCallback(() => {
     setWaitingForResponse(false);
     setWaitingForCodingAgent(false);
-    setApiQueryData<ExplorerAutofixResponse>(
-      queryClient,
-      makeExplorerAutofixQueryKey(orgSlug, groupId),
-      makeInitialExplorerAutofixData()
+    queryClient.setQueryData(
+      explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+      prev => ({headers: prev?.headers ?? {}, json: makeInitialExplorerAutofixData()})
     );
   }, [queryClient, orgSlug, groupId]);
 
@@ -752,7 +769,7 @@ export function useExplorerAutofix(
 
         // Invalidate to fetch fresh data
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
         if (needsGitHubAuth(e)) {

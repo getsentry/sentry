@@ -10,11 +10,13 @@ def _get_repository_child_relations(instance: Repository) -> list[BaseRelation]:
     )
     from sentry.models.commit import Commit
     from sentry.models.pullrequest import PullRequest
+    from sentry.seer.models.project_repository import SeerProjectRepository
 
     return [
         ModelRelation(Commit, {"repository_id": instance.id}),
         ModelRelation(PullRequest, {"repository_id": instance.id}),
         ModelRelation(RepositoryProjectPathConfig, {"repository_id": instance.id}),
+        ModelRelation(SeerProjectRepository, {"repository_id": instance.id}),
     ]
 
 

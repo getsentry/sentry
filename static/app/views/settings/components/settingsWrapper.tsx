@@ -9,6 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
+import {SettingsCommandPaletteActions} from 'sentry/views/settings/settingsCommandPaletteActions';
 
 function scrollDisable(newLocation: Location, prevLocation: Location) {
   return newLocation.pathname === prevLocation.pathname;
@@ -24,6 +25,7 @@ export function SettingsWrapper() {
     <AnalyticsArea name="settings">
       <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
         <BreadcrumbProvider>
+          <SettingsCommandPaletteActions />
           <Outlet />
         </BreadcrumbProvider>
       </StyledFlex>

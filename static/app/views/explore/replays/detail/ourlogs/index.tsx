@@ -80,7 +80,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const replay = useReplayReader();
 
   const {infiniteLogsQueryResult} = useLogsPageData();
-  const {data: logItems = [], isPending} = infiniteLogsQueryResult;
+  const {data: logItems, isPending} = infiniteLogsQueryResult;
 
   const filterProps = useOurLogFilters({logItems});
   const {items: filteredLogItems, setSearchTerm} = filterProps;

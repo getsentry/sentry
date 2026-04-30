@@ -2,7 +2,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
-import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
+import {
+  isSeerExplorerEnabled,
+  makeSeerExplorerQueryKey,
+} from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 /** Checks if session is in a terminal state where the agent is done processing. */
@@ -20,8 +23,12 @@ export const isSessionComplete = (
 const isPolling = (
   runId: number | null,
   sessionData: SeerExplorerResponse['session'] | undefined,
-  isMutatePending: boolean
+  isMutatePending: boolean,
+  isError: boolean
 ) => {
+  if (isError) {
+    return false;
+  }
   if (isMutatePending) {
     return true;
   }
@@ -47,24 +54,33 @@ export const useSeerExplorerPolling = ({
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
 
-  const {data: apiData, isError} = useApiQuery<SeerExplorerResponse>(
-    makeSeerExplorerQueryKey(orgSlug || '', runId),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: !!runId && !!orgSlug,
-      refetchInterval: query => {
-        if (isPolling(runId, query.state.data?.[0]?.session, isMutatePending)) {
-          return POLL_INTERVAL;
-        }
-        return false;
-      },
-    }
-  );
+  const {
+    data: apiData,
+    isError,
+    error,
+  } = useApiQuery<SeerExplorerResponse>(makeSeerExplorerQueryKey(orgSlug || '', runId), {
+    staleTime: 0,
+    retry: false,
+    enabled: !!runId && !!orgSlug && isSeerExplorerEnabled(organization),
+    refetchInterval: query => {
+      if (
+        isPolling(
+          runId,
+          query.state.data?.[0]?.session,
+          isMutatePending,
+          query.state.status === 'error'
+        )
+      ) {
+        return POLL_INTERVAL;
+      }
+      return false;
+    },
+  });
 
   return {
     apiData,
     isError,
-    isPolling: isPolling(runId, apiData?.session, isMutatePending),
+    errorStatusCode: error?.status ?? null,
+    isPolling: isPolling(runId, apiData?.session, isMutatePending, isError),
   };
 };

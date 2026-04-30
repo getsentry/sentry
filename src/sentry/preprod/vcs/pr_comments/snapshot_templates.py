@@ -135,5 +135,5 @@ def _format_name_cell(app_display: str, app_id: str, url: str) -> str:
 
 def _section_cell(count: int, section: str, artifact_url: str) -> str:
     if count > 0:
-        return f"[{count}]({artifact_url}?section={section})"
+        return f"[{count}]({artifact_url}?selectedTypes={section})"
     return str(count)

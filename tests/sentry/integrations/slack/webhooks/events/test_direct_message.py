@@ -23,7 +23,7 @@ AUTHORIZATIONS_DATA = {"authorizations": [{"user_id": "U0BOT", "is_bot": True}]}
 
 class DirectMessageTest(BaseEventTest):
     """
-    Tests for DM messages triggering the Seer Explorer agentic workflow.
+    Tests for DM messages triggering the Seer agentic workflow.
 
     These tests require the integration to have the assistant:write scope so
     that DMs are routed to on_direct_message instead of the help message handler.

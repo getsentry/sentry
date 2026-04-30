@@ -3,7 +3,6 @@ import type {InfiniteData, InfiniteQueryObserverResult} from '@tanstack/react-qu
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
@@ -11,6 +10,7 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   CurrencyUnit,
@@ -254,9 +254,9 @@ export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
 }
 
 export function parseLinkHeaderFromLogsPage(
-  page: InfiniteQueryObserverResult<InfiniteData<ApiResult<EventsLogsResult>>>
+  page: InfiniteQueryObserverResult<InfiniteData<ApiResponse<EventsLogsResult>>>
 ) {
-  const linkHeader = page.data?.pages?.[0]?.[2]?.getResponseHeader('Link');
+  const linkHeader = page.data?.pages?.[0]?.headers.Link;
   return parseLinkHeader(linkHeader ?? null);
 }
 
