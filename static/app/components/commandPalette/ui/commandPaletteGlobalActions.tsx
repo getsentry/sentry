@@ -710,13 +710,12 @@ export function GlobalCommandPaletteActions() {
             ]}
             limit={10}
             resource={() => {
-              const query = {per_page: 10, category_key: 'night_shift', owner: 'false'};
               return cmdkQueryOptions({
                 ...apiOptions.as<{data: Array<{run_id: number; title: string}>}>()(
                   '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
                   {
                     path: {organizationIdOrSlug: organization.slug},
-                    query,
+                    query: {per_page: 10, category_key: 'night_shift', owner: 'false'},
                     staleTime: 30_000,
                   }
                 ),
