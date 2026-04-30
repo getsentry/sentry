@@ -53,7 +53,7 @@ export function RadioGroup<C extends string>({
   value,
   disabled: groupDisabled,
   disabledChoices = [],
-  choices = [],
+  choices,
   label,
   onChange,
   orientInline,

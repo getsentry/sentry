@@ -9,7 +9,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SpansContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphSpansContextMenu';
 import {t} from 'sentry/locale';
-import type {RequestState} from 'sentry/types/core';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -28,6 +27,7 @@ import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -49,7 +49,7 @@ interface FlamegraphSpansProps {
   spanChart: SpanChart;
   spansCanvas: FlamegraphCanvas | null;
   spansCanvasRef: HTMLCanvasElement | null;
-  spansRequestState: RequestState<any>;
+  spansRequestState: {isError: boolean; isLoading: boolean};
   spansView: CanvasView<SpanChart> | null;
 }
 
@@ -136,7 +136,7 @@ export function FlamegraphSpans({
       return undefined;
     }
 
-    if (spansRequestState.type !== 'resolved') {
+    if (spansRequestState.isLoading || spansRequestState.isError) {
       return undefined;
     }
     const clearCanvas = () => {
@@ -181,7 +181,8 @@ export function FlamegraphSpans({
     spansView,
     spansTextRenderer,
     flamegraphSearch.results.spans,
-    spansRequestState.type,
+    spansRequestState.isLoading,
+    spansRequestState.isError,
   ]);
 
   // When spans render, check for span_id presence in qs.
@@ -199,10 +200,10 @@ export function FlamegraphSpans({
     }
 
     const span = spanChart.spans.find(s => {
-      if ('span_id' in s.node.span && s.node.span.span_id === span_id) {
+      if (s.node.span[SpanFields.SPAN_ID] === span_id) {
         return true;
       }
-      if ('event_id' in s.node.span && s.node.span.event_id === span_id) {
+      if (s.node.span[SpanFields.TRANSACTION_EVENT_ID] === span_id) {
         return true;
       }
       return false;
@@ -391,7 +392,8 @@ export function FlamegraphSpans({
   });
 
   const onCopyDescription = useCallback(() => {
-    const value = hoveredNodeOnContextMenuOpen.current?.node.span.description ?? '';
+    const value =
+      hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_DESCRIPTION] ?? '';
     if (!value) {
       addErrorMessage(t('Event description value is empty.'));
       return;
@@ -408,7 +410,8 @@ export function FlamegraphSpans({
   }, [hoveredNodeOnContextMenuOpen]);
 
   const onCopyOperation = useCallback(() => {
-    const value = hoveredNodeOnContextMenuOpen.current?.node.span.op ?? '';
+    const value =
+      hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_OP] ?? '';
     if (!value) {
       addErrorMessage(t('Event operation value is empty.'));
       return;
@@ -426,8 +429,8 @@ export function FlamegraphSpans({
 
   const onCopyEventId = useCallback(() => {
     const value =
-      hoveredNodeOnContextMenuOpen.current?.node.span.event_id ??
-      hoveredNodeOnContextMenuOpen.current?.node.span.span_id ??
+      hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.TRANSACTION_EVENT_ID] ??
+      hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_ID] ??
       '';
     if (!value) {
       addErrorMessage(t('Event ID value is empty.'));
@@ -453,17 +456,23 @@ export function FlamegraphSpans({
 
     const nodePath: Record<string, string> = {};
 
-    if (node.span.op === 'transaction' && node.span.event_id) {
+    if (
+      node.span[SpanFields.SPAN_OP] === 'transaction' &&
+      node.span[SpanFields.TRANSACTION_EVENT_ID]
+    ) {
       // If the user clicks on a transaction, we can directly use the event_id
-      nodePath.eventId = node.span.event_id;
-    } else if (node.span.span_id) {
+      nodePath.eventId = node.span[SpanFields.TRANSACTION_EVENT_ID];
+    } else if (node.span[SpanFields.SPAN_ID]) {
       // If the user clicks on a span, we need to traverse up the tree to find the transaction so that
       // the trace view knows which transaction to load and what span to point to.
-      nodePath.spanId = node.span.span_id;
+      nodePath.spanId = node.span[SpanFields.SPAN_ID];
       let parent = node.parent;
       while (parent) {
-        if (parent.span.op === 'transaction' && parent.span.event_id) {
-          nodePath.eventId = parent.span.event_id;
+        if (
+          parent.span[SpanFields.SPAN_OP] === 'transaction' &&
+          parent.span[SpanFields.TRANSACTION_EVENT_ID]
+        ) {
+          nodePath.eventId = parent.span[SpanFields.TRANSACTION_EVENT_ID];
           break;
         }
         parent = parent.parent;
@@ -471,11 +480,11 @@ export function FlamegraphSpans({
     }
 
     const link = getTraceDetailsUrl({
-      traceSlug: node.span.trace_id,
+      traceSlug: node.span[SpanFields.TRACE],
       dateSelection: normalizeDateTimeParams(pageFilters.selection.datetime),
       location,
       organization,
-      timestamp: node.span.timestamp,
+      timestamp: node.span[SpanFields.PRECISE_FINISH_TS],
       source: TraceViewSources.PROFILING_FLAMEGRAPH,
       ...nodePath,
     });
@@ -504,13 +513,13 @@ export function FlamegraphSpans({
         cursor={lastInteraction === 'pan' ? 'grabbing' : 'default'}
       />
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
-      {spansRequestState.type === 'loading' || spansRequestState.type === 'initial' ? (
+      {spansRequestState.isLoading ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : spansRequestState.type === 'errored' ? (
+      ) : spansRequestState.isError ? (
         <CollapsibleTimelineMessage>
           {t('No associated transaction found')}
         </CollapsibleTimelineMessage>
-      ) : spansRequestState.type === 'resolved' && spanChart.spans.length < 1 ? (
+      ) : spanChart.spans.length < 1 ? (
         <CollapsibleTimelineMessage>
           {t('Transaction has no spans')}
         </CollapsibleTimelineMessage>
