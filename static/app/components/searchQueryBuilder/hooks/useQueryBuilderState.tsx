@@ -706,14 +706,17 @@ export function multiSelectTokenValue(
   action: MultiSelectFilterValueAction
 ) {
   const tokenValue = action.token.value;
-  // action.value is pre-escaped (possibly quoted); canonicalize for comparison
+
+  // Suggestions already pass escaped search syntax, while parsed tokens expose
+  // semantic values. Canonicalize before comparing so toggling treats both
+  // representations as the same value.
   const normalizedActionValue = canonicalizeSearchValue(action.value);
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
-      // .value is the unquoted semantic value (for canonical comparison),
-      // .text is the raw text including quotes (preserved for reconstruction)
+      // Compare against canonical values, but keep each token's raw text for
+      // reconstruction so quotes and escaping already in the query are preserved.
       const values = tokenValue.items.map(item => ({
         canonicalValue: canonicalizeSearchValue(item.value?.value ?? ''),
         text: item.value?.text ?? '',
@@ -730,6 +733,10 @@ export function multiSelectTokenValue(
         ]);
       }
 
+      // The selected value was already present, so this is a deselect. Filter it
+      // by canonical value instead of raw text because the same value may appear
+      // quoted/escaped differently depending on whether it came from the parser
+      // or the suggestion list.
       const newValues: string[] = [];
       for (const value of values) {
         if (value.canonicalValue !== normalizedActionValue) {
@@ -740,6 +747,8 @@ export function multiSelectTokenValue(
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
+      // Single values use the same toggle semantics as lists: if the canonical
+      // value is already selected, clear it; otherwise expand it into a list.
       if (canonicalizeSearchValue(tokenValue.value ?? '') === normalizedActionValue) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
