@@ -57,14 +57,17 @@ type BaseDownload = {
 type ExploreDownload = BaseDownload & {
   query: {
     info: ExploreQueryInfo;
-    type: ExportQueryType.EXPLORE;
+    type: ExportQueryType.EXPLORE | ExportQueryType.TRACE_ITEM_FULL_EXPORT;
   };
 };
 
 type OtherDownload = BaseDownload & {
   query: {
     info: Record<PropertyKey, unknown>;
-    type: Exclude<ExportQueryType, ExportQueryType.EXPLORE>;
+    type: Exclude<
+      ExportQueryType,
+      ExportQueryType.EXPLORE | ExportQueryType.TRACE_ITEM_FULL_EXPORT
+    >;
   };
 };
 
@@ -128,6 +131,7 @@ export default function DataDownload() {
       case ExportQueryType.DISCOVER:
         return `/organizations/${orgSlug}/explore/discover/queries/`;
       case ExportQueryType.EXPLORE:
+      case ExportQueryType.TRACE_ITEM_FULL_EXPORT:
         if (traceItemDataset === TraceItemDataset.LOGS) {
           return `/organizations/${orgSlug}/explore/logs/`;
         }
@@ -175,7 +179,10 @@ export default function DataDownload() {
     const {query} = download;
     let actionLink: string;
 
-    if (query.type === ExportQueryType.EXPLORE) {
+    if (
+      query.type === ExportQueryType.EXPLORE ||
+      query.type === ExportQueryType.TRACE_ITEM_FULL_EXPORT
+    ) {
       const traceItemDataset = query.info.dataset;
       actionLink = getActionLink(query.type, traceItemDataset);
     } else {
@@ -221,7 +228,10 @@ export default function DataDownload() {
   const openInExplore = () => {
     const {query} = download;
 
-    if (query.type !== ExportQueryType.EXPLORE) {
+    if (
+      query.type !== ExportQueryType.EXPLORE &&
+      query.type !== ExportQueryType.TRACE_ITEM_FULL_EXPORT
+    ) {
       return;
     }
 
@@ -288,25 +298,26 @@ export default function DataDownload() {
   };
 
   const renderOpenInButton = () => {
-    const {
-      query = {
-        type: ExportQueryType.ISSUES_BY_TAG,
-        info: {},
-      },
-    } = download;
+    const {query} = download;
 
     // default to IssuesByTag because we don't want to
     // display this unless we're sure its a discover query
-    const {type = ExportQueryType.ISSUES_BY_TAG} = query;
+    const {type} = query;
 
-    return type === 'Discover' || type === 'Explore' ? (
+    return type === ExportQueryType.DISCOVER ||
+      type === ExportQueryType.EXPLORE ||
+      type === ExportQueryType.TRACE_ITEM_FULL_EXPORT ? (
       <Fragment>
         <p>{t('Need to make changes?')}</p>
         <Button
           priority="primary"
-          onClick={() => (type === 'Discover' ? openInDiscover() : openInExplore())}
+          onClick={() =>
+            type === ExportQueryType.DISCOVER ? openInDiscover() : openInExplore()
+          }
         >
-          {type === 'Discover' ? t('Open in Discover') : t('Open in Explore')}
+          {type === ExportQueryType.DISCOVER
+            ? t('Open in Discover')
+            : t('Open in Explore')}
         </Button>
         <br />
       </Fragment>

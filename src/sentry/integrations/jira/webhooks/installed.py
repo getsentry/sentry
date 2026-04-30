@@ -1,5 +1,6 @@
 import sentry_sdk
 from django.db import router, transaction
+from jwt import DecodeError, ExpiredSignatureError, InvalidKeyError, InvalidSignatureError
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,14 +14,12 @@ from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.jira.webhooks.base import JiraWebhookBase
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
-from sentry.integrations.utils.atlassian_connect import (
-    AtlassianConnectTokenValidator,
-    AtlassianConnectValidationError,
-)
+from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.utils import jwt
 
 
 @control_silo_endpoint
@@ -39,26 +38,56 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             domain=IntegrationDomain.PROJECT_MANAGEMENT,
             provider_key=self.provider,
         ).capture() as lifecycle:
+            token = self.get_token(request)
             state = request.data
             if not state:
                 lifecycle.record_failure(ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING)
                 return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
+            try:
+                key_id = jwt.peek_header(token).get("kid")
+            except DecodeError:
+                lifecycle.record_halt(halt_reason="Failed to fetch key id")
+                return self.respond(
+                    {"detail": "Failed to fetch key id"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
             lifecycle.add_extras(
                 {
+                    "key_id": key_id,
                     "base_url": state.get("baseUrl", ""),
                     "description": state.get("description", ""),
                     "clientKey": state.get("clientKey", ""),
                 }
             )
 
-            try:
-                AtlassianConnectTokenValidator(request, method="POST").get_token()
-            except AtlassianConnectValidationError as e:
-                lifecycle.record_halt(halt_reason=str(e))
+            if not key_id:
+                lifecycle.record_halt(halt_reason="Missing key_id (kid)")
                 return self.respond(
-                    {"detail": "Request Token Validation Failed"},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    {"detail": "Missing key id"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            try:
+                decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+                verify_claims(decoded_claims, request.path, request.GET, method="POST")
+            except InvalidKeyError:
+                lifecycle.record_halt(halt_reason="JWT contained invalid key_id (kid)")
+                return self.respond(
+                    {"detail": "Invalid key id"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            except ExpiredSignatureError as e:
+                lifecycle.record_failure(e)
+                return self.respond(
+                    {"detail": "Expired signature"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            except InvalidSignatureError:
+                lifecycle.record_halt(halt_reason="JWT contained invalid signature")
+                return self.respond(
+                    {"detail": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            except DecodeError:
+                lifecycle.record_halt(halt_reason="Could not decode JWT token")
+                return self.respond(
+                    {"detail": "Could not decode JWT token"}, status=status.HTTP_400_BAD_REQUEST
                 )
 
             data = JiraIntegrationProvider().build_integration(state)

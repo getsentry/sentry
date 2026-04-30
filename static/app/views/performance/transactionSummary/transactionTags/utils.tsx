@@ -74,7 +74,7 @@ export function getTagSortForTagsPage(location: Location) {
 export function parseHistogramBucketInfo(row: Record<string, string | number>) {
   const field = Object.keys(row).find(f => f.includes('histogram'));
   if (!field) {
-    return undefined;
+    return;
   }
   const parts = field.split('_');
   return {

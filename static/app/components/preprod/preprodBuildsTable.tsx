@@ -1,10 +1,10 @@
 import React, {Fragment, useMemo} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -78,30 +78,23 @@ export function PreprodBuildsTable({
   } else if (error) {
     tableContent = <SimpleTable.Empty>{getErrorMessage(error)}</SimpleTable.Empty>;
   } else if (builds.length === 0) {
+    const isSnapshot = display === PreprodBuildsDisplay.SNAPSHOT;
+    let emptyText: React.ReactNode;
+    if (hasSearchQuery) {
+      emptyText = isSnapshot
+        ? t('No snapshots found for your search')
+        : t('No mobile builds found for your search');
+    } else {
+      const link = <ExternalLink href={emptyStateDocUrl}>{t('Learn more')}</ExternalLink>;
+      emptyText = isSnapshot
+        ? tct('No snapshots found, see our [link:documentation] for more info.', {link})
+        : tct('No mobile builds found, see our [link:documentation] for more info.', {
+            link,
+          });
+    }
     tableContent = (
       <SimpleTable.Empty>
-        <Text as="p">
-          {hasSearchQuery
-            ? display === PreprodBuildsDisplay.SNAPSHOT
-              ? t('No snapshots found for your search')
-              : t('No mobile builds found for your search')
-            : display === PreprodBuildsDisplay.SNAPSHOT
-              ? tct('No snapshots found, see our [link:documentation] for more info.', {
-                  link: (
-                    <ExternalLink href={emptyStateDocUrl}>{t('Learn more')}</ExternalLink>
-                  ),
-                })
-              : tct(
-                  'No mobile builds found, see our [link:documentation] for more info.',
-                  {
-                    link: (
-                      <ExternalLink href={emptyStateDocUrl}>
-                        {t('Learn more')}
-                      </ExternalLink>
-                    ),
-                  }
-                )}
-        </Text>
+        <Text as="p">{emptyText}</Text>
       </SimpleTable.Empty>
     );
   }

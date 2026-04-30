@@ -10,7 +10,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
@@ -19,7 +19,6 @@ import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
@@ -33,8 +32,10 @@ import {
 
 export function ExplorerDrawerContent({
   getPageReferrer,
+  initialQuery,
 }: {
   getPageReferrer: () => string;
+  initialQuery?: string;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -42,19 +43,15 @@ export function ExplorerDrawerContent({
   const {closeDrawer} = useDrawer();
 
   const [inputValue, setInputValue] = useState('');
-  const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
+  const [showThinking, setShowThinking] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const blockEnterHandlers = useRef<
-    Map<number, (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean>
-  >(new Map());
   const userScrolledUpRef = useRef<boolean>(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
-    setHoveredBlockIndex(-1);
     textareaRef.current?.focus();
   }, []);
 
@@ -64,6 +61,7 @@ export function ExplorerDrawerContent({
     sessionData,
     isPolling,
     isError,
+    errorStatusCode,
     sendMessage,
     startNewSession,
     switchToRun,
@@ -73,7 +71,6 @@ export function ExplorerDrawerContent({
     waitingForInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
-    overrideCodeModeEnable,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
@@ -86,6 +83,20 @@ export function ExplorerDrawerContent({
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+
+  // Auto-submit the initial query forwarded from the command palette, but only
+  // if the session is still empty (don't clobber an active run). Tracking the
+  // last submitted query string (not just a boolean) lets a new query trigger
+  // a fresh submission when the drawer is reopened with a different query.
+  const lastAutoSubmittedQueryRef = useRef<string | null>(null);
+  useEffect(() => {
+    const query = initialQuery?.trim();
+    if (!query || !isEmptyState || lastAutoSubmittedQueryRef.current === query) {
+      return;
+    }
+    lastAutoSubmittedQueryRef.current = query;
+    sendMessage(query);
+  }, [initialQuery, isEmptyState, sendMessage]);
 
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
@@ -147,7 +158,9 @@ export function ExplorerDrawerContent({
   }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
+  const conversationsUrl = runId
+    ? getConversationsUrlForExternalUse('sentry', runId)
+    : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -198,6 +211,9 @@ export function ExplorerDrawerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
+      onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
+        ? setOverrideCodeModeEnable
+        : undefined,
     },
     inputAnchorRef: textareaRef,
     prWidgetAnchorRef: prWidgetButtonRef,
@@ -240,10 +256,7 @@ export function ExplorerDrawerContent({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-    if (hoveredBlockIndex !== -1) {
-      setHoveredBlockIndex(-1);
-      textareaRef.current?.focus();
-    }
+    textareaRef.current?.focus();
   };
 
   const handleInputClick = useCallback(() => {
@@ -296,7 +309,7 @@ export function ExplorerDrawerContent({
         container.removeEventListener('scroll', handleScroll);
       };
     }
-    return undefined;
+    return;
   }, []);
 
   // - Keyboard listeners -----------------------------------------------------
@@ -306,38 +319,18 @@ export function ExplorerDrawerContent({
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
-  // Block keyboard listeners
-  useBlockNavigation({
-    isOpen: true, // Drawer content is always visible when rendered
-    isMinimized: false,
-    focusedBlockIndex: hoveredBlockIndex,
-    blocks,
-    blockRefs,
-    textareaRef,
-    isFileApprovalPending,
-    isQuestionPending,
-    onKeyPress: (blockIndex, key) => {
-      const handler = blockEnterHandlers.current.get(blockIndex);
-      const handled = handler?.(key) ?? false;
-      return handled;
-    },
-    onNavigate: () => {
-      userScrolledUpRef.current = true;
-    },
-  });
-
   // - Deep link effect -------------------------------------------------------
   useSeerExplorerDeepLink({callback: switchToRun});
 
   return (
     <DrawerContentContainer data-seer-explorer-root="">
       <ExplorerDrawerHeader
+        disableNewChatButton={runId === null}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
         onChangeSession={switchToRun}
-        isEmptyState={isEmptyState}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
@@ -347,10 +340,10 @@ export function ExplorerDrawerContent({
             'seer-explorer-context-engine-fe-override-ui-flag'
           )
         }
-        overrideCodeModeEnable={overrideCodeModeEnable}
-        onOverrideCodeModeEnableToggle={() => setOverrideCodeModeEnable(v => !v)}
-        showCodeModeToggle={
-          !!organization?.features.includes('seer-explorer-code-mode-tools')
+        showThinking={showThinking}
+        onShowThinkingToggle={() => setShowThinking(v => !v)}
+        showThinkingToggle={
+          !!organization?.features.includes('seer-explorer-thinking-blocks')
         }
       />
       {menu}
@@ -359,6 +352,7 @@ export function ExplorerDrawerContent({
           <EmptyState
             isLoading={isPolling}
             isError={isError}
+            errorStatusCode={errorStatusCode}
             runId={runId}
             onSuggestionClick={readOnly ? undefined : sendMessage}
           />
@@ -366,29 +360,20 @@ export function ExplorerDrawerContent({
           <Fragment>
             {blocks.map((block: Block, index: number) => (
               <BlockComponent
-                key={block.id}
+                key={index} // For slide-in animation - run/mount once per new index
                 ref={el => {
                   blockRefs.current[index] = el;
                 }}
                 block={block}
                 blockIndex={index}
-                isHovered={hoveredBlockIndex === index}
                 runId={runId ?? undefined}
                 getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 readOnly={readOnly}
+                showThinking={showThinking}
                 onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
-                onRegisterEnterHandler={handler => {
-                  blockEnterHandlers.current.set(index, handler);
-                }}
-                onMouseEnter={() => {
-                  setHoveredBlockIndex(index);
-                }}
-                onMouseLeave={() => {
-                  setHoveredBlockIndex(-1);
-                }}
               />
             ))}
             {!readOnly &&
@@ -474,4 +459,7 @@ const DrawerContentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  contain: inline-size;
+  container-type: inline-size;
+  container-name: seer-explorer-root;
 `;

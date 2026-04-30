@@ -42,7 +42,6 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {Am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/am1OverviewPage';
@@ -108,7 +107,6 @@ interface EAPMobileOverviewPageProps {
 function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps) {
   useOverviewPageTrackPageload();
 
-  const hasPlatformizedInsights = useHasPlatformizedInsights();
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -281,7 +279,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
-            {hasPlatformizedInsights && <MobileVitalsBanner />}
+            <MobileVitalsBanner />
             <ModuleLayout.Full>
               {showOnboarding ? (
                 <LegacyOnboarding

@@ -4,7 +4,8 @@ import html
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any, TypedDict, cast
+from dataclasses import dataclass
+from typing import Any, Literal, TypedDict, cast
 from urllib.parse import urlparse
 
 from django.db.models import Prefetch
@@ -15,7 +16,6 @@ from sentry.api import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
-from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -38,6 +38,7 @@ from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import json
 
 
 class DashboardsUnfurlArgs(TypedDict):
@@ -67,14 +68,34 @@ _TIMESERIES_DISPLAY_TYPES = {
     DashboardWidgetDisplayTypes.TOP_N: "area",
 }
 
-# Widget types that map to datasets on the events-timeseries endpoint. Other
-# widget types (discover, issue, metrics, transaction-like, etc.) are skipped.
-_WIDGET_TYPE_TO_DATASET: dict[int, str] = {
-    DashboardWidgetTypes.SPANS: SupportedTraceItemType.SPANS.value,
-    DashboardWidgetTypes.LOGS: SupportedTraceItemType.LOGS.value,
-    DashboardWidgetTypes.TRACEMETRICS: SupportedTraceItemType.TRACEMETRICS.value,
-    DashboardWidgetTypes.ERROR_EVENTS: "errors",
-    DashboardWidgetTypes.PREPROD_APP_SIZE: "preprodSize",
+
+_UnfurlEndpoint = Literal["events-timeseries", "issues-timeseries"]
+
+
+@dataclass(frozen=True)
+class _WidgetUnfurlConfig:
+    dataset: str
+    endpoint: _UnfurlEndpoint = "events-timeseries"
+    dataset_param: str = "dataset"
+
+
+_WIDGET_TYPE_TO_CONFIG: dict[int, _WidgetUnfurlConfig] = {
+    DashboardWidgetTypes.SPANS: _WidgetUnfurlConfig(
+        dataset=SupportedTraceItemType.SPANS.value,
+    ),
+    DashboardWidgetTypes.LOGS: _WidgetUnfurlConfig(
+        dataset=SupportedTraceItemType.LOGS.value,
+    ),
+    DashboardWidgetTypes.TRACEMETRICS: _WidgetUnfurlConfig(
+        dataset=SupportedTraceItemType.TRACEMETRICS.value,
+    ),
+    DashboardWidgetTypes.ERROR_EVENTS: _WidgetUnfurlConfig(dataset="errors"),
+    DashboardWidgetTypes.PREPROD_APP_SIZE: _WidgetUnfurlConfig(dataset="preprodSize"),
+    DashboardWidgetTypes.ISSUE: _WidgetUnfurlConfig(
+        endpoint="issues-timeseries",
+        dataset="issue",
+        dataset_param="category",
+    ),
 }
 
 
@@ -125,8 +146,8 @@ def _unfurl_dashboards(
         if widget is None:
             continue
 
-        is_supported_dataset = widget.widget_type in _WIDGET_TYPE_TO_DATASET
-        if not is_supported_dataset:
+        config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
+        if config is None:
             continue
 
         display_type = _TIMESERIES_DISPLAY_TYPES.get(widget.display_type)
@@ -144,11 +165,11 @@ def _unfurl_dashboards(
                 resp = client.get(
                     auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                     user=user,
-                    path=f"/organizations/{org_slug}/events-timeseries/",
+                    path=f"/organizations/{org_slug}/{config.endpoint}/",
                     params=params,
                 )
             except Exception:
-                _logger.warning("Failed to load events-timeseries for dashboards unfurl")
+                _logger.warning("Failed to load %s for dashboards unfurl", config.endpoint)
                 request_failed = True
                 break
 
@@ -220,15 +241,16 @@ def _get_widget(
 def build_widget_timeseries_params(
     widget: DashboardWidget, url_params: QueryDict
 ) -> list[dict[str, str | list[str]]]:
-    """Build one events-timeseries param dict per widget query."""
-    dataset = _WIDGET_TYPE_TO_DATASET.get(widget.widget_type)
-    if dataset is None:
+    """Build one timeseries param dict per widget query."""
+    config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
+    if config is None:
         raise ValueError(f"Unsupported widget type: {widget.widget_type}")
 
     dashboard_filters = widget.dashboard.get_filters()
+    global_filters = _dashboard_filter_conditions(url_params, dashboard_filters, widget.widget_type)
 
     return [
-        _params_for_widget_query(wq, url_params, dataset, dashboard_filters)
+        _params_for_widget_query(wq, url_params, config, dashboard_filters, global_filters)
         for wq in widget.dashboardwidgetquery_set.all()
     ]
 
@@ -236,8 +258,9 @@ def build_widget_timeseries_params(
 def _params_for_widget_query(
     widget_query: DashboardWidgetQuery,
     url_params: QueryDict,
-    dataset: str,
+    config: _WidgetUnfurlConfig,
     dashboard_filters: Mapping[str, Any],
+    global_filters: str,
 ) -> dict[str, str | list[str]]:
     params: dict[str, str | list[str]] = {}
 
@@ -250,8 +273,13 @@ def _params_for_widget_query(
         params["groupBy"] = columns
         params["topEvents"] = str(TOP_N)
 
-    if widget_query.conditions:
-        params["query"] = widget_query.conditions
+    base_query = widget_query.conditions or ""
+    if base_query and global_filters:
+        params["query"] = f"({base_query}) {global_filters}"
+    elif global_filters:
+        params["query"] = global_filters
+    elif base_query:
+        params["query"] = base_query
 
     if widget_query.orderby:
         params["sort"] = widget_query.orderby
@@ -262,7 +290,7 @@ def _params_for_widget_query(
 
     _apply_page_filters(params, url_params, dashboard_filters)
 
-    params["dataset"] = dataset
+    params[config.dataset_param] = config.dataset
     params["referrer"] = Referrer.DASHBOARDS_SLACK_UNFURL.value
 
     return params
@@ -281,14 +309,13 @@ def _apply_page_filters(
     reachable from a webhook context.
     """
     # project: URL wins. Otherwise fall back to the dashboard's projects.
-    # An unconfigured dashboard (no projects, no all_projects) falls through
-    # to "All Projects" so the unfurl shows data instead of an empty chart.
+    # An unconfigured dashboard (no projects, no all_projects) omits the
+    # param so the API defaults to "My Projects", matching the dashboard FE.
     project_values = url_params.getlist("project")
     if not project_values:
         project_values = [str(p) for p in dashboard_filters.get("projects") or []]
-    if not project_values:
-        project_values = [str(ALL_ACCESS_PROJECT_ID)]
-    params["project"] = project_values if len(project_values) > 1 else project_values[0]
+    if project_values:
+        params["project"] = project_values if len(project_values) > 1 else project_values[0]
 
     # environment: URL wins. Otherwise fall back to dashboard, or omit (no
     # filter) to match the FE default of "All Environments".
@@ -328,6 +355,62 @@ def _apply_page_filters(
     interval_value = url_params.get("interval")
     if interval_value:
         params["interval"] = interval_value
+
+
+def _dashboard_filter_conditions(
+    url_params: QueryDict,
+    dashboard_filters: Mapping[str, Any],
+    widget_type: int,
+) -> str:
+    """Build the extra query string contributed by dashboard global filters.
+
+    Mirrors ``dashboardFiltersToString`` in
+    ``static/app/views/dashboards/utils.tsx``. URL overrides win per-key
+    (matching ``getMergedDashboardFilters``). Only ``globalFilter`` entries
+    whose ``dataset`` matches the widget's type are applied.
+
+    Storage uses snake_case (``global_filter``); URL params use camelCase
+    (``globalFilter``), each value JSON-encoded.
+    """
+    url_release = url_params.getlist("release")
+    release = url_release if url_release else list(dashboard_filters.get("release") or [])
+
+    url_global = url_params.getlist("globalFilter")
+    if url_global:
+        global_filters: list[dict[str, Any]] = []
+        for raw in url_global:
+            try:
+                parsed = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(parsed, dict):
+                global_filters.append(parsed)
+    else:
+        global_filters = [
+            global_filter
+            for global_filter in (dashboard_filters.get("global_filter") or [])
+            if isinstance(global_filter, dict)
+        ]
+
+    parts: list[str] = []
+
+    if release:
+        if len(release) == 1:
+            parts.append(f'release:"{release[0]}"')
+        else:
+            quoted = ",".join(f'"{r}"' for r in release)
+            parts.append(f"release:[{quoted}]")
+
+    widget_type_name = dict(DashboardWidgetTypes.TYPES).get(widget_type)
+    if widget_type_name:
+        for global_filter in global_filters:
+            if global_filter.get("dataset") != widget_type_name:
+                continue
+            value = global_filter.get("value")
+            if value:
+                parts.append(str(value))
+
+    return " ".join(parts)
 
 
 def map_dashboards_query_args(url: str, args: Mapping[str, str | None]) -> DashboardsUnfurlArgs:

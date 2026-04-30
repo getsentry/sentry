@@ -45,10 +45,9 @@ export function LogsExportModal({
 }: LogsExportModalProps) {
   const organization = useOrganization();
   const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
-
   const payload = useMemo(
     () => ({
-      queryType: ExportQueryType.EXPLORE,
+      queryType: ExportQueryType.TRACE_ITEM_FULL_EXPORT,
       queryInfo: {
         ...queryInfo,
         dataset: TraceItemDataset.LOGS,

@@ -16,7 +16,7 @@ from sentry.preprod.models import (
     PreprodComparisonApproval,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
+from sentry.preprod.vcs.status_checks.utils import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
 

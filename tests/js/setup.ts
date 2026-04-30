@@ -226,6 +226,7 @@ jest.mock('@sentry/react', function sentryReact() {
     init: jest.fn(),
     setTag: jest.fn(),
     setTags: jest.fn(),
+    getReplay: jest.fn(),
     setExtra: jest.fn(),
     setExtras: jest.fn(),
     captureBreadcrumb: jest.fn(),
@@ -388,7 +389,7 @@ if (typeof globalThis.structuredClone !== 'function') {
     nodeUtil.structuredClone ?? ((value: unknown) => JSON.parse(JSON.stringify(value)));
 }
 
-if (typeof globalThis.setImmediate === 'undefined') {
+if (globalThis.setImmediate === undefined) {
   // @ts-expect-error setImmediate is not defined in jsdom, but we can use setTimeout as a polyfill
   globalThis.setImmediate = setTimeout;
   // @ts-expect-error clearImmediate is not defined in jsdom, but we can use clearTimeout as a polyfill

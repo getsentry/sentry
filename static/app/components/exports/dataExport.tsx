@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -71,7 +70,7 @@ export function DataExport({
   }, []);
 
   const handleClick = () => {
-    debounce(() => handleDataExport(payload), 500)();
+    handleDataExport(payload);
     onClick?.();
   };
 

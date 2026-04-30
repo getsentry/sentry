@@ -20,7 +20,6 @@ from sentry.models.commit import Commit
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.tasks.repository import repository_cascade_delete_on_hide
-from sentry.tasks.seer.cleanup import cleanup_seer_repository_preferences
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -98,16 +97,6 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                     repo.delete_pending_deletion_option()
                 elif repo.status == ObjectStatus.HIDDEN and old_status != repo.status:
                     repository_cascade_delete_on_hide.apply_async(kwargs={"repo_id": repo.id})
-
-                    if repo.external_id and repo.provider:
-                        cleanup_seer_repository_preferences.apply_async(
-                            kwargs={
-                                "organization_id": repo.organization_id,
-                                "repo_id": repo.id,
-                                "repo_external_id": repo.external_id,
-                                "repo_provider": repo.provider,
-                            }
-                        )
 
         return Response(serialize(repo, request.user))
 

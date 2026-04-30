@@ -168,7 +168,7 @@ describe('LogsExportModal', () => {
       expect.objectContaining({
         data: {
           format: 'csv',
-          query_type: 'Explore',
+          query_type: 'trace_item_full_export',
           query_info: {
             ...queryInfo,
             dataset: 'logs',

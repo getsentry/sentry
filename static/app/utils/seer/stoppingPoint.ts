@@ -1,27 +1,20 @@
 import type {QueryClient, UseMutateFunction} from '@tanstack/react-query';
 import {mutationOptions} from '@tanstack/react-query';
 
-import {
-  bulkAutofixAutomationSettingsInfiniteOptions,
-  type AutofixAutomationSettings,
-} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {
-  makeProjectSeerPreferencesQueryKey,
-  type SeerPreferencesResponse,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import type {AutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {type SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {
-  fetchDataQuery,
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
+export type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 
 export const PROJECT_STOPPING_POINT_OPTIONS = [
   {value: 'off' as const, label: t('No Automation')},
@@ -37,6 +30,21 @@ export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, 
     plan: 3,
     create_pr: 4,
   };
+
+export function useOrgDefaultStoppingPoint(): UserFacingStoppingPoint {
+  const organization = useOrganization();
+
+  switch (organization.defaultAutomatedRunStoppingPoint) {
+    case AutofixStoppingPoint.ROOT_CAUSE:
+      return 'root_cause';
+    case AutofixStoppingPoint.OPEN_PR:
+      return 'create_pr';
+    case AutofixStoppingPoint.SOLUTION:
+      return 'plan';
+    case AutofixStoppingPoint.CODE_CHANGES:
+      return 'create_pr';
+  }
+}
 
 /**
  * Derives the current stopping point UI value from project + preferences.
@@ -89,6 +97,12 @@ export function getProjectStoppingPointValue(
   return 'plan';
 }
 
+export function getTuningFromStoppingPoint(
+  stoppingPoint: UserFacingStoppingPoint
+): 'off' | 'medium' {
+  return stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
+}
+
 /**
  * Returns mutation options for updating the stopping point on a project.
  *
@@ -99,7 +113,7 @@ export function getProjectStoppingPointValue(
  * Setting 'off' only writes autofixAutomationTuning and intentionally leaves
  * automated_run_stopping_point unchanged, so re-enabling restores the prior state.
  */
-function resolveStoppingPoint(
+export function resolveStoppingPoint(
   stoppingPoint: UserFacingStoppingPoint,
   handoff: ProjectSeerPreferences['automation_handoff']
 ): {
@@ -150,7 +164,7 @@ export function getProjectStoppingPointMutationOptions({
 }) {
   return mutationOptions({
     mutationFn: async ({stoppingPoint, project}: StoppingPointVariables) => {
-      const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
+      const tuning = getTuningFromStoppingPoint(stoppingPoint);
 
       const projectPromise = fetchMutation<Project>({
         method: 'PUT',
@@ -162,16 +176,11 @@ export function getProjectStoppingPointMutationOptions({
         return Promise.all([projectPromise, Promise.resolve(undefined)]);
       }
 
-      const seerPrefsQueryKey = makeProjectSeerPreferencesQueryKey(
-        organization.slug,
-        project.slug
-      );
-      const [prefsData] = await queryClient.fetchQuery({
-        queryKey: seerPrefsQueryKey,
-        queryFn: fetchDataQuery<SeerPreferencesResponse>,
+      const prefsData = await queryClient.fetchQuery({
+        ...projectSeerPreferencesApiOptions(organization.slug, project.slug),
         staleTime: 0,
       });
-      const preference = prefsData?.preference;
+      const preference = prefsData.json.preference;
 
       const {stoppingPointValue, automationHandoff} = resolveStoppingPoint(
         stoppingPoint,
@@ -191,15 +200,12 @@ export function getProjectStoppingPointMutationOptions({
       return Promise.all([projectPromise, preferencesPromise]);
     },
     onMutate: ({stoppingPoint, project}: StoppingPointVariables) => {
-      const seerPrefsQueryKey = makeProjectSeerPreferencesQueryKey(
+      const seerPrefsQueryKey = projectSeerPreferencesApiOptions(
         organization.slug,
         project.slug
-      );
+      ).queryKey;
       const previousProject = ProjectsStore.getById(project.id);
-      const previousPreference = getApiQueryData<SeerPreferencesResponse>(
-        queryClient,
-        seerPrefsQueryKey
-      );
+      const previousPreference = queryClient.getQueryData(seerPrefsQueryKey);
 
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
       ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: tuning});
@@ -213,24 +219,27 @@ export function getProjectStoppingPointMutationOptions({
         autofixAutomationTuning: tuning,
       };
 
-      if (stoppingPoint !== 'off' && previousPreference?.preference) {
+      if (stoppingPoint !== 'off' && previousPreference?.json?.preference) {
         const {stoppingPointValue, automationHandoff} = resolveStoppingPoint(
           stoppingPoint,
-          previousPreference.preference.automation_handoff
+          previousPreference.json.preference.automation_handoff
         );
-        setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
+        queryClient.setQueryData(seerPrefsQueryKey, {
           ...previousPreference,
-          preference: {
-            ...previousPreference.preference,
-            automated_run_stopping_point: stoppingPointValue,
-            automation_handoff: automationHandoff,
+          json: {
+            ...previousPreference.json,
+            preference: {
+              ...previousPreference.json.preference,
+              automated_run_stopping_point: stoppingPointValue,
+              automation_handoff: automationHandoff,
+            },
           },
         });
         bulkUpdates.automatedRunStoppingPoint = stoppingPointValue;
         bulkUpdates.automationHandoff = automationHandoff;
       }
 
-      queryClient.setQueryData(bulkQueryKey, (oldData: typeof previousBulkData) => {
+      queryClient.setQueryData(bulkQueryKey, oldData => {
         if (!oldData) {
           return oldData;
         }
@@ -249,20 +258,16 @@ export function getProjectStoppingPointMutationOptions({
 
       return {previousProject, previousPreference, previousBulkData};
     },
-    onError: (_error, {project}: StoppingPointVariables, context) => {
+    onError: (_error, {project}, context) => {
       if (context?.previousProject) {
         ProjectsStore.onUpdateSuccess(context.previousProject);
       }
       if (context?.previousPreference) {
-        const seerPrefsQueryKey = makeProjectSeerPreferencesQueryKey(
+        const seerPrefsQueryKey = projectSeerPreferencesApiOptions(
           organization.slug,
           project.slug
-        );
-        setApiQueryData<SeerPreferencesResponse>(
-          queryClient,
-          seerPrefsQueryKey,
-          context.previousPreference
-        );
+        ).queryKey;
+        queryClient.setQueryData(seerPrefsQueryKey, context.previousPreference);
       }
       if (context?.previousBulkData) {
         const bulkQueryKey = bulkAutofixAutomationSettingsInfiniteOptions({
@@ -271,12 +276,10 @@ export function getProjectStoppingPointMutationOptions({
         queryClient.setQueryData(bulkQueryKey, context.previousBulkData);
       }
     },
-    onSettled: (_data: unknown, _error: unknown, {project}: StoppingPointVariables) => {
-      const seerPrefsQueryKey = makeProjectSeerPreferencesQueryKey(
-        organization.slug,
-        project.slug
+    onSettled: (_data, _error, {project}) => {
+      queryClient.invalidateQueries(
+        projectSeerPreferencesApiOptions(organization.slug, project.slug)
       );
-      queryClient.invalidateQueries({queryKey: seerPrefsQueryKey});
       queryClient.invalidateQueries({
         queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
       });

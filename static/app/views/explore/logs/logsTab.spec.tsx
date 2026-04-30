@@ -216,7 +216,6 @@ describe('LogsTabContent', () => {
       `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          caseInsensitive: undefined,
           dataset: 'ourlogs',
           disableAggregateExtrapolation: '0',
           environment: [],
@@ -230,7 +229,6 @@ describe('LogsTabContent', () => {
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
-          topEvents: undefined,
           yAxis: ['count(message)'],
         }),
       })
@@ -334,7 +332,6 @@ describe('LogsTabContent', () => {
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
-          topEvents: undefined,
           yAxis: ['count(message)'],
         }),
       })

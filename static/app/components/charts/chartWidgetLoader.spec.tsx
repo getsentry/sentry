@@ -75,6 +75,25 @@ describe('ChartWidgetLoader', () => {
     consoleSpy.mockRestore();
   });
 
+  it('renders error state when component is missing from loaded module', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    mockUseQuery.mockReturnValue({
+      isPending: false,
+      isError: false,
+      data: {default: undefined},
+    });
+
+    render(<ChartWidgetLoader {...defaultProps} />, {wrapper});
+
+    await waitFor(() => {
+      expect(screen.getByText('Error loading widget')).toBeInTheDocument();
+    });
+
+    expect(Sentry.captureException).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
   it('renders the widget component when loaded successfully', async () => {
     function MockWidget() {
       return <div data-test-id="mock-widget">Mock Widget</div>;

@@ -80,7 +80,7 @@ export function SeerRepoTableHeader({
   const queryOptions = queryKeyRef.current
     ? parseQueryKey(queryKeyRef.current).options
     : undefined;
-  const queryString = queryOptions?.query?.query;
+  const queryString = queryOptions?.query?.query as string | undefined;
 
   const selectedRepos = useMemo(() => {
     if (selectedIds === 'all') {
@@ -95,7 +95,7 @@ export function SeerRepoTableHeader({
       repo => repo?.settings?.enabledCodeReview === false
     );
     if (someEnabled && someDisabled) {
-      return undefined;
+      return;
     }
     if (someEnabled) {
       return 'enabled_code_review:enabled';
@@ -103,7 +103,7 @@ export function SeerRepoTableHeader({
     if (someDisabled) {
       return 'enabled_code_review:disabled';
     }
-    return undefined;
+    return;
   }, [selectedRepos]);
 
   const currentTriggersValue = useMemo((): CodeReviewTrigger[] => {

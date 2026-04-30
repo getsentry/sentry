@@ -46,18 +46,15 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
-    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    GITHUB_COMMENT_BOT_DEFAULT,
-    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
@@ -232,24 +229,6 @@ ORG_OPTIONS = (
         HIDE_AI_FEATURES_DEFAULT,
     ),
     (
-        "githubPRBot",
-        "sentry:github_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "githubNudgeInvite",
-        "sentry:github_nudge_invite",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "gitlabPRBot",
-        "sentry:gitlab_pr_bot",
-        bool,
-        GITLAB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -269,19 +248,13 @@ ORG_OPTIONS = (
         "defaultAutofixAutomationTuning",
         "sentry:default_autofix_automation_tuning",
         str,
-        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+        AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     ),
     (
         "defaultSeerScannerAutomation",
         "sentry:default_seer_scanner_automation",
         bool,
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ),
-    (
-        "enableSeerEnhancedAlerts",
-        "sentry:enable_seer_enhanced_alerts",
-        bool,
-        ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ),
     (
         "enableSeerCoding",
@@ -395,9 +368,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    githubNudgeInvite = serializers.BooleanField(required=False)
-    githubPRBot = serializers.BooleanField(required=False)
-    gitlabPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -422,7 +392,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
     dashboardsAsyncQueueParallelLimit = serializers.IntegerField(required=False, min_value=1)
-    enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     defaultCodingAgent = serializers.ChoiceField(
         choices=["seer", "cursor", "claude_code", "cursor_background_agent", "claude_code_agent"],
@@ -1130,22 +1099,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
                                           }
                                           ```
                                           """,
-        required=False,
-    )
-
-    # github features
-    githubPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
-        required=False,
-    )
-    githubNudgeInvite = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
-        required=False,
-    )
-
-    # gitlab features
-    gitlabPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
         required=False,
     )
 

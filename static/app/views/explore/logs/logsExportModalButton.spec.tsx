@@ -44,7 +44,6 @@ describe('LogsExportModalButton', () => {
   async function clickExportDataAndGetOnClose() {
     render(
       <LogsExportModalButton
-        estimatedRowCount={500}
         error={null}
         isLoading={false}
         queryInfo={queryInfo}

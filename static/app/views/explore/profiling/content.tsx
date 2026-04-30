@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import Feature from 'sentry/components/acl/feature';
@@ -18,7 +19,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {Pagination} from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
   ContinuousProfilingBetaAlertBanner,
@@ -43,10 +43,14 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+  ExploreContentSection,
+} from 'sentry/views/explore/components/styles';
 import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
 import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
@@ -166,18 +170,20 @@ export default function ProfilingContent() {
             <ContinuousProfilingBetaSDKAlertBanner />
           </Feature>
           <ProfilingContentPageHeader />
-          <LayoutBody>
-            <LayoutMain width="full">
-              <ActionBar>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <DatePageFilter
-                    {...datePageFilterProps}
-                    resetParamsOnChange={CURSOR_PARAMS}
-                  />
-                </PageFilterBar>
-              </ActionBar>
+          <ExploreBodySearch>
+            <Layout.Main width="full">
+              <PageFilterBar condensed>
+                <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                <DatePageFilter
+                  {...datePageFilterProps}
+                  resetParamsOnChange={CURSOR_PARAMS}
+                />
+              </PageFilterBar>
+            </Layout.Main>
+          </ExploreBodySearch>
+          <ExploreBodyContent>
+            <ExploreContentSection gap="md">
               {showOnboardingPanel ? (
                 <Onboarding />
               ) : (
@@ -206,7 +212,7 @@ export default function ProfilingContent() {
                       />
                     </WidgetsContainer>
                   )}
-                  <div>
+                  <Stack gap="lg">
                     <Tabs value={tab} onChange={onTabChange}>
                       <TabList>
                         <TabList.Item key="transactions">
@@ -231,20 +237,20 @@ export default function ProfilingContent() {
                         </TabList.Item>
                       </TabList>
                     </Tabs>
-                  </div>
-                  {tab === 'flamegraph' ? (
-                    <FlamegraphTab onDataState={updateFlamegraphDataState} />
-                  ) : (
-                    <TransactionsTab
-                      location={location}
-                      selection={selection}
-                      onDataState={updateTransactionsTableDataState}
-                    />
-                  )}
+                    {tab === 'flamegraph' ? (
+                      <FlamegraphTab onDataState={updateFlamegraphDataState} />
+                    ) : (
+                      <TransactionsTab
+                        location={location}
+                        selection={selection}
+                        onDataState={updateTransactionsTableDataState}
+                      />
+                    )}
+                  </Stack>
                 </Fragment>
               )}
-            </LayoutMain>
-          </LayoutBody>
+            </ExploreContentSection>
+          </ExploreBodyContent>
         </Stack>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -323,16 +329,14 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
   }, [onDataState, hasData, isLoading, isError]);
 
   return (
-    <Fragment>
-      <SearchbarContainer>
-        <TransactionSearchQueryBuilder
-          projects={selection.projects}
-          initialQuery={query}
-          onSearch={handleSearch}
-          searchSource="profile_landing"
-          disallowFreeText={false}
-        />
-      </SearchbarContainer>
+    <Stack gap="lg">
+      <TransactionSearchQueryBuilder
+        projects={selection.projects}
+        initialQuery={query}
+        onSearch={handleSearch}
+        searchSource="profile_landing"
+        disallowFreeText={false}
+      />
       {transactionsError && (
         <Alert.Container>
           <Alert variant="danger">{transactionsError}</Alert>
@@ -351,7 +355,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
           transactions.status === 'success' ? transactions.data.headers.Link : null
         }
       />
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -381,33 +385,30 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 }
 
 function ProfilingContentPageHeader() {
-  const hasPageFrameFeature = useHasPageFrameFeature();
+  const titleTooltip = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/profiling/"
+      title={t(
+        'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+      )}
+    />
+  );
+
   return (
-    <StyledLayoutHeader unified>
-      <StyledHeaderContent unified>
-        <Layout.Title>
-          {t('Profiling')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/profiling/"
-            title={t(
-              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-            )}
-          />
-        </Layout.Title>
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        ) : (
-          <FeedbackButton />
-        )}
-      </StyledHeaderContent>
-    </StyledLayoutHeader>
+    <Fragment>
+      <TopBar.Slot name="title">
+        {t('Profiling')}
+        {titleTooltip}
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 
@@ -423,20 +424,6 @@ const ALL_FIELDS = [
 
 type FieldType = (typeof ALL_FIELDS)[number];
 
-const LayoutBody = styled(Layout.Body)`
-  display: grid;
-  align-content: stretch;
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    align-content: stretch;
-  }
-`;
-
-const LayoutMain = styled(Layout.Main)`
-  display: flex;
-  flex-direction: column;
-`;
-
 const LandingAggregateFlamegraphSizer = styled('div')`
   height: 100%;
   min-height: max(80vh, 300px);
@@ -451,24 +438,6 @@ const LandingAggregateFlamegraphContainer = styled('div')`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const StyledLayoutHeader = styled(Layout.Header)`
-  display: block;
-`;
-
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;
-
-const ActionBar = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  grid-template-columns: min-content auto;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
 const WidgetsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -476,11 +445,6 @@ const WidgetsContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
   }
-`;
-
-const SearchbarContainer = styled('div')`
-  margin-top: ${p => p.theme.space['2xl']};
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledPagination = styled(Pagination)`

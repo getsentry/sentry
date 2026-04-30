@@ -72,7 +72,6 @@ export function TransactionsTable(props: Props) {
 
   const renderHeader = () => {
     const tableMeta = tableData?.meta;
-    const generateSortLink = () => undefined;
     const tableTitles = getTitles();
 
     const headers = tableTitles.map((title, index) => {
@@ -102,7 +101,6 @@ export function TransactionsTable(props: Props) {
               }
               direction={undefined}
               canSort={false}
-              generateSortLink={generateSortLink}
             />
           </HeadCellContainer>
         );
@@ -110,13 +108,7 @@ export function TransactionsTable(props: Props) {
 
       return (
         <HeadCellContainer key={index}>
-          <SortLink
-            align={align}
-            title={title}
-            direction={undefined}
-            canSort={false}
-            generateSortLink={generateSortLink}
-          />
+          <SortLink align={align} title={title} direction={undefined} canSort={false} />
         </HeadCellContainer>
       );
     });

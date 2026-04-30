@@ -29,7 +29,7 @@ export function renderTableHead<K>({
         title={column.name}
         direction={currentSort?.key === column.key ? currentSort?.order : undefined}
         canSort={sortableColumns?.has(column.key) || false}
-        generateSortLink={generateSortLink?.(column.key) ?? (() => undefined)}
+        generateSortLink={generateSortLink?.(column.key) ?? (() => {})}
         replace
       />
     );

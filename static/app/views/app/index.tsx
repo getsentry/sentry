@@ -112,7 +112,7 @@ export function App() {
     // Skip loading organization-related data before the user is logged in,
     // because it triggers a 401 error in the UI.
     if (!preloadData) {
-      return undefined;
+      return;
     }
 
     loadOrganizations();

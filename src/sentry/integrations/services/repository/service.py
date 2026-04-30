@@ -102,6 +102,23 @@ class RepositoryService(RpcService):
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def find_recently_active_repo_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+        cutoff_days: int,
+    ) -> list[str]:
+        """
+        Of the given ``external_ids`` (scoped to the org/integration/provider),
+        return the subset whose underlying ``Repository`` rows have at least one
+        commit, pull request, or code review event in the last ``cutoff_days``.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def disassociate_organization_integration(
         self,
         *,

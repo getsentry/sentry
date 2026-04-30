@@ -74,7 +74,7 @@ export function IssuesSecondaryNavigation() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {organization.features.includes('seer-issue-view') && (
+        {organization.features.includes('autofix-on-explorer') && (
           <Fragment>
             <SecondaryNavigation.Separator />
             <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>

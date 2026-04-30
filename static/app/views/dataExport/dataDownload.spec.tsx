@@ -21,7 +21,10 @@ describe('DataDownload', () => {
   const getDataExportDetails = (body: any, statusCode = 200) =>
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/${dataExportId}/`,
-      body,
+      body: {
+        query: {type: ExportQueryType.ISSUES_BY_TAG},
+        ...body,
+      },
       statusCode,
     });
 

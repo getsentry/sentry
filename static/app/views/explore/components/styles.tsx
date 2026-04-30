@@ -5,7 +5,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
@@ -30,11 +30,10 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
 `;
 
 export function ExploreContentSection(props: FlexProps<'div'>) {
-  const hasPageFrame = useHasPageFrameFeature();
   return (
     <Flex
       {...props}
-      background={hasPageFrame ? 'primary' : 'secondary'}
+      background="primary"
       flex="1 1 auto"
       minHeight="0"
       minWidth="0"
@@ -65,6 +64,12 @@ export const ExploreSchemaHintsSection = styled(SchemaHintsSection)`
 
 export const ExploreBodySearch = styled(Layout.Body)`
   flex-grow: 0;
+
+  position: sticky;
+  top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
+  z-index: ${p => p.theme.zIndex.header};
+  background-color: ${p => p.theme.tokens.background.primary};
+
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-bottom: ${p => p.theme.space.xl};
 
