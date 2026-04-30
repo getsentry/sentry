@@ -11,10 +11,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
-import {
-  isSessionComplete,
-  useSeerExplorerPolling,
-} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
@@ -320,7 +317,7 @@ export const useSeerExplorer = () => {
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {apiData, isPolling, isError, errorStatusCode, isTimedOut} =
+  const {apiData, isPolling, isError, errorStatusCode, isComplete, isTimedOut} =
     useSeerExplorerPolling({
       runId,
       isMutatePending,
@@ -505,15 +502,6 @@ export const useSeerExplorer = () => {
     }
   }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
 
-  // On any completed state or timeout
-  const isComplete = isSessionComplete(apiData?.session);
-  useEffect(() => {
-    if (isComplete || isTimedOut) {
-      setWaitingForInterrupt(false);
-      setOptimistic(null);
-    }
-  }, [isComplete, isTimedOut]);
-
   // Detect PR creation errors and show error messages
   useEffect(() => {
     const currentPRStates = apiData?.session?.repo_pr_states ?? {};
@@ -539,47 +527,48 @@ export const useSeerExplorer = () => {
   // Filtered session data for UI, applying optimistic state
   const filteredSessionData = useMemo(() => {
     const rawSessionData = apiData?.session ?? null;
-    const realBlocks = rawSessionData?.blocks || [];
 
-    if (optimistic) {
-      const insert = Math.min(Math.max(optimistic.insertIndex, 0), realBlocks.length);
-
-      const optimisticUserBlock: Block = {
-        id: optimistic.userBlockId,
-        message: {role: 'user', content: optimistic.userQuery},
-        timestamp: new Date().toISOString(),
-        loading: false,
-      };
-
-      const optimisticThinkingBlock: Block = {
-        id: optimistic.assistantBlockId,
-        message: {role: 'assistant', content: optimistic.assistantContent},
-        timestamp: new Date().toISOString(),
-        loading: true,
-      };
-
-      const visibleBlocks = [
-        ...realBlocks.slice(0, insert),
-        optimisticUserBlock,
-        optimisticThinkingBlock,
-      ];
-
-      const baseSession = rawSessionData ?? {
-        run_id: runId ?? undefined,
-        blocks: [],
-        status: 'processing' as const,
-        updated_at: new Date().toISOString(),
-      };
-
-      return {
-        ...baseSession,
-        blocks: visibleBlocks,
-        status: 'processing' as const,
-      };
+    // Ignore optimistic blocks if the session is complete or timed out
+    if (!optimistic || isComplete || isTimedOut) {
+      return rawSessionData;
     }
 
-    return rawSessionData;
-  }, [apiData?.session, optimistic, runId]);
+    const realBlocks = rawSessionData?.blocks || [];
+    const insert = Math.min(Math.max(optimistic.insertIndex, 0), realBlocks.length);
+
+    const optimisticUserBlock: Block = {
+      id: optimistic.userBlockId,
+      message: {role: 'user', content: optimistic.userQuery},
+      timestamp: new Date().toISOString(),
+      loading: false,
+    };
+
+    const optimisticThinkingBlock: Block = {
+      id: optimistic.assistantBlockId,
+      message: {role: 'assistant', content: optimistic.assistantContent},
+      timestamp: new Date().toISOString(),
+      loading: true,
+    };
+
+    const visibleBlocks = [
+      ...realBlocks.slice(0, insert),
+      optimisticUserBlock,
+      optimisticThinkingBlock,
+    ];
+
+    const baseSession = rawSessionData ?? {
+      run_id: runId ?? undefined,
+      blocks: [],
+      status: 'processing' as const,
+      updated_at: new Date().toISOString(),
+    };
+
+    return {
+      ...baseSession,
+      blocks: visibleBlocks,
+      status: 'processing' as const,
+    };
+  }, [apiData?.session, optimistic, runId, isComplete, isTimedOut]);
 
   return {
     sessionData: filteredSessionData,

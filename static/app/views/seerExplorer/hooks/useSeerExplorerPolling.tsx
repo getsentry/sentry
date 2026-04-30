@@ -8,12 +8,10 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
-const TIMEOUT_MS = 90_000;
+const SESSION_STALE_TIME_MS = 90_000;
 
 /** Checks if session is in a terminal state where the agent is done processing. */
-export const isSessionComplete = (
-  sessionData: SeerExplorerResponse['session'] | undefined
-) =>
+const isSessionComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
   sessionData &&
   sessionData.status !== 'processing' &&
   sessionData.blocks.every((block: Block) => !block.loading) &&
@@ -25,19 +23,16 @@ export const isSessionComplete = (
 const parseUtcMs = (s: string) =>
   /Z|[+-]\d{2}:?\d{2}$/.test(s) ? new Date(s).getTime() : new Date(`${s}Z`).getTime();
 
-/** Stop waiting for a session to complete if it hasn't updated in TIMEOUT_MS. */
-const isTimedOut = (sessionData: SeerExplorerResponse['session'] | undefined) => {
+/** Check if a session hasn't updated in SESSION_STALE_TIME_MS. */
+const isSessionStale = (sessionData: SeerExplorerResponse['session'] | undefined) => {
   if (!sessionData?.updated_at) {
     return false;
   }
-  return (
-    !isSessionComplete(sessionData) &&
-    Date.now() - parseUtcMs(sessionData.updated_at) > TIMEOUT_MS
-  );
+  return Date.now() - parseUtcMs(sessionData.updated_at) > SESSION_STALE_TIME_MS;
 };
 
 /** Checks if we should poll for state updates. */
-const isPolling = (
+const shouldPoll = (
   runId: number | null,
   sessionData: SeerExplorerResponse['session'] | undefined,
   isMutatePending: boolean,
@@ -52,10 +47,10 @@ const isPolling = (
   if (!runId) {
     return false;
   }
-  if (isTimedOut(sessionData)) {
+  if (isSessionComplete(sessionData)) {
     return false;
   }
-  return !isSessionComplete(sessionData);
+  return !isSessionStale(sessionData);
 };
 
 /**
@@ -84,7 +79,7 @@ export const useSeerExplorerPolling = ({
     enabled: !!runId && !!orgSlug && isSeerExplorerEnabled(organization),
     refetchInterval: query => {
       if (
-        isPolling(
+        shouldPoll(
           runId,
           query.state.data?.[0]?.session,
           isMutatePending,
@@ -97,11 +92,17 @@ export const useSeerExplorerPolling = ({
     },
   });
 
+  // Memoize to stabilize these values against Date.now().
+  const isComplete = isSessionComplete(apiData?.session);
+  const isStale = isSessionStale(apiData?.session);
+  const isPolling = shouldPoll(runId, apiData?.session, isMutatePending, isError);
+
   return {
     apiData,
     isError,
     errorStatusCode: error?.status ?? null,
-    isPolling: isPolling(runId, apiData?.session, isMutatePending, isError),
-    isTimedOut: isTimedOut(apiData?.session),
+    isPolling,
+    isComplete,
+    isTimedOut: !isComplete && isStale,
   };
 };
