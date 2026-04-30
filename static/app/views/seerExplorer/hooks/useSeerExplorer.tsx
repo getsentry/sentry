@@ -506,14 +506,14 @@ export const useSeerExplorer = () => {
     }
   }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
 
-  // On any completed state
+  // On any completed state or timeout
   const isComplete = isSessionComplete(apiData?.session);
   useEffect(() => {
-    if (isComplete) {
+    if (isComplete || isTimedOut) {
       setWaitingForInterrupt(false);
       setOptimistic(null);
     }
-  }, [isComplete]);
+  }, [isComplete, isTimedOut]);
 
   // Detect PR creation errors and show error messages
   useEffect(() => {
