@@ -1,6 +1,12 @@
 import {Activity, useState} from 'react';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  createEvent,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 
@@ -155,14 +161,18 @@ describe('clipped box', () => {
 
       const showMoreButton = screen.getByRole('button', {name: 'Show More'});
       const wrapper = screen.getByText('activity content').parentElement?.parentElement;
+      expect(wrapper).toBeInstanceOf(HTMLElement);
 
       await userEvent.click(showMoreButton);
-
-      const transitionEndEvent = new Event('transitionend', {bubbles: true});
+      // React only clears max-height after the max-height transition ends. jsdom
+      // does not populate TransitionEvent.propertyName, so patch it onto the
+      // event to exercise the same branch a browser would use.
+      const transitionEndEvent = createEvent.transitionEnd(wrapper!);
       Object.defineProperty(transitionEndEvent, 'propertyName', {
+        configurable: true,
         value: 'max-height',
       });
-      wrapper?.dispatchEvent(transitionEndEvent);
+      fireEvent(wrapper!, transitionEndEvent);
 
       expect(wrapper).toHaveStyle('max-height: none');
 

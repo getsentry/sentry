@@ -248,8 +248,8 @@ export function ClippedBox(props: ClippedBoxProps) {
         return;
       }
 
-      const contentBox = entry.contentBoxSize[0];
-      const borderBox = entry.borderBoxSize[0];
+      const contentBox = entry.contentBoxSize?.[0];
+      const borderBox = entry.borderBoxSize?.[0];
       const height = contentBox?.blockSize ?? borderBox?.blockSize ?? 0;
 
       if (height === 0) {
