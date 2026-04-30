@@ -148,8 +148,6 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             organization = self._create_organization_and_team(
                 owner=provision_options.owner,
-                user_id=provision_options.owning_user_id,
-                email=provision_options.owning_email,
                 slug=provision_options.slug,
                 organization_name=provision_options.name,
                 create_default_team=provision_options.create_default_team,
