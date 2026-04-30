@@ -7,7 +7,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1074_remove_dashboardtombstone"),
+        ("sentry", "1075_add_user_is_suspended"),
     ]
 
     operations = [
