@@ -90,13 +90,6 @@ describe('DashboardRevisionsButton', () => {
     expect(screen.getByRole('button', {name: 'Dashboard Revisions'})).toBeInTheDocument();
   });
 
-  it('renders nothing for the default-overview dashboard', () => {
-    renderButton({id: 'default-overview'});
-    expect(
-      screen.queryByRole('button', {name: 'Dashboard Revisions'})
-    ).not.toBeInTheDocument();
-  });
-
   it('renders nothing for a prebuilt dashboard', () => {
     renderButton({prebuiltId: 'default-overview'});
     expect(

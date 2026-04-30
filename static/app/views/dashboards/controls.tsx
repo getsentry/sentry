@@ -35,13 +35,12 @@ import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardRevisionsButton} from './dashboardRevisions';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
-import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
+import type {DashboardDetails, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
 type Props = {
   dashboard: DashboardDetails;
   dashboardState: DashboardState;
-  dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet, openWidgetTemplates: boolean) => void;
   onCancel: () => void;
   onCommit: () => void;
@@ -58,7 +57,6 @@ type Props = {
 export function Controls({
   dashboardState,
   dashboard,
-  dashboards,
   hasUnsavedFilters,
   hideAddWidget = false,
   widgetLimitReached,
@@ -114,7 +112,6 @@ export function Controls({
           priority="danger"
           message={t('Are you sure you want to delete this dashboard?')}
           onConfirm={onDelete}
-          disabled={dashboards.length <= 1}
         >
           <Button size="sm" data-test-id="dashboard-delete" priority="danger">
             {t('Delete')}
@@ -273,42 +270,40 @@ export function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            {dashboard.id !== 'default-overview' && (
-              <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
-                <Button
-                  size="sm"
-                  aria-label={t('star-dashboard')}
-                  icon={
-                    <IconStar
-                      variant={isFavorited ? 'warning' : 'muted'}
-                      isSolid={isFavorited}
-                      aria-label={isFavorited ? t('Unstar') : t('Star')}
-                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                    />
+            <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
+              <Button
+                size="sm"
+                aria-label={t('star-dashboard')}
+                icon={
+                  <IconStar
+                    variant={isFavorited ? 'warning' : 'muted'}
+                    isSolid={isFavorited}
+                    aria-label={isFavorited ? t('Unstar') : t('Star')}
+                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                  />
+                }
+                onClick={async () => {
+                  try {
+                    setIsFavorited(!isFavorited);
+                    await updateDashboardFavorite(
+                      api,
+                      queryClient,
+                      organization,
+                      dashboard.id,
+                      !isFavorited
+                    );
+                    trackAnalytics('dashboards_manage.toggle_favorite', {
+                      organization,
+                      dashboard_id: dashboard.id,
+                      favorited: !isFavorited,
+                    });
+                  } catch (error) {
+                    // If the api call fails, revert the state
+                    setIsFavorited(isFavorited);
                   }
-                  onClick={async () => {
-                    try {
-                      setIsFavorited(!isFavorited);
-                      await updateDashboardFavorite(
-                        api,
-                        queryClient,
-                        organization,
-                        dashboard.id,
-                        !isFavorited
-                      );
-                      trackAnalytics('dashboards_manage.toggle_favorite', {
-                        organization,
-                        dashboard_id: dashboard.id,
-                        favorited: !isFavorited,
-                      });
-                    } catch (error) {
-                      // If the api call fails, revert the state
-                      setIsFavorited(isFavorited);
-                    }
-                  }}
-                />
-              </Tooltip>
-            )}
+                }}
+              />
+            </Tooltip>
             <Feature features="dashboards-import">
               <Tooltip title={t('Export Dashboard')}>
                 <Button
@@ -366,7 +361,7 @@ export function Controls({
                   size="sm"
                 />
               ))}
-            {dashboard.id !== 'default-overview' && !isPrebuiltDashboard && (
+            {!isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}

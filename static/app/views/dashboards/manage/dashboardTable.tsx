@@ -309,9 +309,7 @@ function DashboardTable({
               data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
-              disabled={
-                (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
-              }
+              disabled={defined(dataRow.prebuiltId)}
               tooltipProps={{
                 title: defined(dataRow.prebuiltId)
                   ? tct('[label] dashboards cannot be deleted', {

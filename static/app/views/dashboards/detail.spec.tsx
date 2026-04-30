@@ -597,7 +597,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
@@ -1863,7 +1862,6 @@ describe('Dashboards > Detail', () => {
           dashboard={DashboardFixture([], {
             prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
           })}
-          dashboards={[]}
           onDashboardUpdate={jest.fn()}
         />
       );
@@ -1909,7 +1907,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1928,7 +1925,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1947,7 +1943,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1966,7 +1961,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1996,7 +1990,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2044,7 +2037,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2098,7 +2090,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2156,7 +2147,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
