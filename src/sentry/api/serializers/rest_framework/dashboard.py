@@ -345,7 +345,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     "widget_type": "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
                 }
             )
-
         return widget_type
 
     validate_id = validate_id
