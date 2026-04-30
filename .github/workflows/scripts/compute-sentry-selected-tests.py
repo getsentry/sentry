@@ -50,6 +50,14 @@ TEST_DIRS = (
 # eagerly imports models, fields, validators, utils, etc. We also have
 # large dynamic __init__'s so a startup context would select nearly every
 # test.
+# Files that match a FULL_SUITE_TRIGGERS pattern but should NOT trigger the full suite.
+# Use this for test conftest.py files whose only purpose is side-effect imports to fix
+# selective testing coverage (e.g. importing action handler packages so the static
+# import scanner can trace registry-based dependencies).
+FULL_SUITE_TRIGGER_EXCEPTIONS: set[str] = {
+    "tests/sentry/integrations/conftest.py",
+}
+
 FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"^src/sentry/testutils/pytest/"),
     re.compile(r"(^|/)conftest\.py$"),
@@ -191,7 +199,10 @@ def main() -> int:
     else:
         all_paths = changed + previous_filenames
         triggered_by = [
-            f for f in all_paths if any(_matches_trigger(f, t) for t in FULL_SUITE_TRIGGERS)
+            f
+            for f in all_paths
+            if f not in FULL_SUITE_TRIGGER_EXCEPTIONS
+            and any(_matches_trigger(f, t) for t in FULL_SUITE_TRIGGERS)
         ]
         if triggered_by:
             print(f"Full test suite triggered by: {', '.join(triggered_by)}")
