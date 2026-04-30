@@ -127,6 +127,8 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
 
     def request(self, *args: Any, **kwargs: Any):
+        kwargs.pop("credentials_set", None)
+
         if SiloMode.get_current_mode() == SiloMode.CELL:
             # Skip token refreshes in Cell silo, as these will
             # be handled below by the control silo when the
