@@ -92,7 +92,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
       <LayoutGroup>
         {isPending ? (
           <Flex justify="center" align="center">
-            <LoadingIndicator size={24} />
+            <LoadingIndicator mini />
           </Flex>
         ) : isError ? (
           <Stack gap="lg" align="center">
