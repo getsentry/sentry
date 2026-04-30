@@ -193,7 +193,7 @@ function ThresholdsForm({
             )}
           </form.AppField>
         )}
-        <Flex gap="md" justify="end" padding="xl">
+        <Flex gap="md" justify="end">
           <Button onClick={() => form.reset()}>{t('Reset')}</Button>
           <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
         </Flex>
