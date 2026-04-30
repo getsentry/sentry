@@ -45,7 +45,10 @@ export function OurlogsSection({
     return null;
   }
   return (
-    <LazyRender disabled={location.query[LOGS_DRAWER_QUERY_PARAM] === 'true'}>
+    <LazyRender
+      disabled={location.query[LOGS_DRAWER_QUERY_PARAM] === 'true'}
+      withoutContainer
+    >
       <LogsQueryParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         source="state"
