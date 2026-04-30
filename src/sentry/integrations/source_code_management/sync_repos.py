@@ -245,6 +245,15 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                     "installation_suspended",
                 )
                 return
+            # Delegate remaining ApiErrors to the installation's generic check.
+            # TODO: Move the provider-specific checks above into per-provider
+            # is_broken_integration_error overrides.
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
+                )
+                return
             raise
         except IntegrationError as e:
             # VSTS's get_repositories re-wraps ApiError/IdentityNotValid into an
@@ -258,6 +267,22 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
             if provider_key == "vsts" and isinstance(cause, (IdentityNotValid, ApiUnauthorized)):
                 _halt_broken_integration(
                     lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
+                )
+                return
+            # Delegate remaining IntegrationErrors to the generic check.
+            # TODO: Move the VSTS check above into a VSTS-specific override.
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
+                )
+                return
+            raise
+        except Exception as e:
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
                 )
                 return
             raise

@@ -19,12 +19,17 @@ from sentry.integrations.source_code_management.metrics import (
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
+    ApiConnectionResetError,
     ApiError,
     ApiForbiddenError,
+    ApiHostError,
+    ApiRateLimitedError,
     ApiRetryError,
+    ApiTimeoutError,
     ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationError,
+    UnsupportedResponseType,
 )
 from sentry.users.models.identity import Identity
 
@@ -171,6 +176,55 @@ class RepositoryIntegration(
         repositories = self.get_repositories(query=repo.name)
         repo_info = self.find_repo_info(repositories, repo.name)
         return repo_info.get("default_branch") if repo_info else None
+
+    def is_broken_integration_error(self, exc: Exception) -> str | None:
+        """Return a halt reason if this is a terminal integration error, else None.
+
+        Terminal errors indicate a broken or misconfigured integration that
+        will not self-heal through retries (e.g. revoked credentials, suspended
+        installs, unreachable hosts). Provider subclasses can override to add
+        provider-specific terminal states or refine the default behaviour.
+        """
+        from requests.exceptions import TooManyRedirects
+
+        from sentry.auth.exceptions import IdentityNotValid
+
+        if isinstance(exc, IdentityNotValid):
+            return "identity_not_valid"
+        if isinstance(exc, Identity.DoesNotExist):
+            return "identity_not_found"
+
+        if isinstance(exc, ApiError):
+            if self.is_rate_limited_error(exc):
+                return "rate_limited"
+            if isinstance(exc, ApiUnauthorized):
+                return "unauthorized"
+            if isinstance(exc, ApiForbiddenError):
+                return "forbidden"
+            if isinstance(exc, ApiHostError):
+                return "host_unreachable"
+            if isinstance(exc, ApiTimeoutError):
+                return "host_timeout"
+            if isinstance(exc, ApiConnectionResetError):
+                return "connection_reset"
+            if isinstance(exc, UnsupportedResponseType):
+                return "unsupported_response"
+            if isinstance(exc, ApiRateLimitedError):
+                return "rate_limited"
+            return None
+
+        if isinstance(exc, IntegrationConfigurationError):
+            return "configuration_error"
+        if isinstance(exc, IntegrationError):
+            cause = exc.__context__
+            if cause is not None:
+                return self.is_broken_integration_error(cause)
+            return None
+
+        if isinstance(exc, TooManyRedirects):
+            return "too_many_redirects"
+
+        return None
 
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
         """
