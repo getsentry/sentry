@@ -32,7 +32,7 @@ import type {
 import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
-import {SnapshotMainContent} from './main/snapshotMainContent';
+import {type NavButtonRefs, SnapshotMainContent} from './main/snapshotMainContent';
 import {
   DIFF_TYPE_ORDER,
   type SidebarGroup,
@@ -466,9 +466,14 @@ export default function SnapshotsPage() {
     };
   }, [listItems, singleViewPosition]);
 
+  const navButtonRefs: NavButtonRefs = {
+    prev: useRef<HTMLButtonElement>(null),
+    next: useRef<HTMLButtonElement>(null),
+  };
+
   // Ref so the keydown handler reads latest state without re-registering.
-  const navRef = useRef({navigateSingleView, setViewMode, viewMode});
-  navRef.current = {navigateSingleView, setViewMode, viewMode};
+  const navRef = useRef({navigateSingleView, setViewMode, viewMode, navButtonRefs});
+  navRef.current = {navigateSingleView, setViewMode, viewMode, navButtonRefs};
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -500,7 +505,15 @@ export default function SnapshotsPage() {
         return;
       }
       e.preventDefault();
-      navRef.current.navigateSingleView(e.key === 'ArrowDown' ? 'next' : 'prev');
+      const btn =
+        e.key === 'ArrowDown'
+          ? navRef.current.navButtonRefs.next.current
+          : navRef.current.navButtonRefs.prev.current;
+      if (btn && !btn.disabled) {
+        btn.setAttribute('aria-pressed', 'true');
+        btn.click();
+        setTimeout(() => btn.removeAttribute('aria-pressed'), 150);
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown);
@@ -602,6 +615,7 @@ export default function SnapshotsPage() {
           onNavigateSingleView={navigateSingleView}
           canNavigatePrev={singleViewNav.canPrev}
           canNavigateNext={singleViewNav.canNext}
+          navButtonRefs={navButtonRefs}
         />
       </Flex>
     </Flex>
