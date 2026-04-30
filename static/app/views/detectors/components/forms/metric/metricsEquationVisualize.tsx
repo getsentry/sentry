@@ -13,7 +13,6 @@ import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
-import {getApiAggregateString} from 'sentry/views/detectors/datasetConfig/utils/getApiAggregateString';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {
@@ -96,10 +95,7 @@ export function MetricsEquationVisualize({
   // discarded so unsaved row edits survive form writes. Remounting the provider
   // (via a `key` on this component) is the escape hatch for true re-hydration.
   const initialQueries = useMemo(() => {
-    const parsed = parseAggregateExpression(
-      getApiAggregateString(aggregateFunction ?? ''),
-      query
-    );
+    const parsed = parseAggregateExpression(aggregateFunction ?? '', query);
     return parsed.equationRow
       ? [...parsed.metricQueries, parsed.equationRow]
       : parsed.metricQueries;
@@ -142,9 +138,7 @@ function MetricsEquationVisualizeContent({
   // Track the selected row by its stable label (A, B, …)
   const [selectedLabel, setSelectedLabel] = useState<string | undefined>(() => {
     const match = metricQueries.find(
-      q =>
-        q.queryParams.visualizes[0]?.yAxis ===
-        getApiAggregateString(initialAggregate ?? '')
+      q => q.queryParams.visualizes[0]?.yAxis === initialAggregate
     );
     return match?.label ?? metricQueries[0]?.label;
   });
