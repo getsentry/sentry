@@ -897,6 +897,12 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
 
         assert self.installation.is_broken_integration_error(ApiForbiddenError("forbidden")) is None
 
+    def test_api_forbidden_suspended_returns_installation_suspended(self) -> None:
+        from sentry.shared_integrations.exceptions import ApiForbiddenError
+
+        exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
+        assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
+
     def test_api_host_error(self) -> None:
         from sentry.shared_integrations.exceptions import ApiHostError
 
