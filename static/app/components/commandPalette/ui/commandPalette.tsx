@@ -803,6 +803,10 @@ function flattenActions(
       }
 
       if (isGroup) {
+        if ('prompt' in node && node.prompt) {
+          results.push({...node, listItemType: 'action'});
+          continue;
+        }
         const children = node.children
           .filter(child => !isEmptyResourceNode(child))
           .map(child => ({...child, listItemType: 'action' as const}));
