@@ -12,7 +12,6 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import type {
   HydratedReplayRecord,
   ReplayListRecord,
@@ -33,7 +32,6 @@ export function ReplayBulkViewedActions({
 }: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {projects} = useProjects();
   const [isLoading, setIsLoading] = useState(false);
 
   const selectedRows = replays.filter(
@@ -43,14 +41,9 @@ export function ReplayBulkViewedActions({
   const runMarkViewed = async () => {
     setIsLoading(true);
 
-    const projectIdsToSlugs = Object.fromEntries(
-      projects.map(project => [String(project.id), project.slug])
-    );
-
     const results = await Promise.allSettled(
       selectedRows.map(replay => {
-        const projectSlug = projectIdsToSlugs[String(replay.project_id)];
-        const url = `/projects/${organization.slug}/${projectSlug}/replays/${replay.id}/viewed-by/`;
+        const url = `/projects/${organization.slug}/${replay.project_id}/replays/${replay.id}/viewed-by/`;
 
         return fetchMutation({method: 'POST', url}).then(() => replay.id);
       })
