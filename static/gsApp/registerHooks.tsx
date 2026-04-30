@@ -77,6 +77,7 @@ import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
 
 import {CodecovSettingsLink} from './components/codecovSettingsLink';
+import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
 import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
 import {
@@ -148,6 +149,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Augment the global help search modal with a contat support button
    */
   'help-modal:footer': props => <HelpSearchFooter key="help-search-footer" {...props} />,
+
+  /**
+   * Registers usage & billing org settings as globally-available CMDK actions.
+   */
+  'cmdk:global-settings-actions': () => <GsBillingCommandPaletteActions />,
 
   /**
    * Settings navigation configuration component

@@ -278,7 +278,7 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
 
             // @ts-expect-error TS(2339): Property 'dropped' does not exist on type 'OptionD... Remove this comment to see the full error message
             const dropped = s.data.dropped as DroppedBreakdown | undefined;
-            if (typeof dropped === 'undefined' || value === '0') {
+            if (dropped === undefined || value === '0') {
               return `<div><span class="tooltip-label">${s.marker as string} <strong>${label}</strong></span> ${value}</div>`;
             }
             const other = tooltipValueFormatter(dropped.other);
@@ -332,7 +332,7 @@ function defaultChartData(): ChartStats {
 }
 
 export function mapStatsToChart({
-  stats = [],
+  stats,
   transform,
 }: {
   stats: BillingStats;
@@ -396,7 +396,7 @@ export function mapStatsToChart({
 }
 
 export function mapCostStatsToChart({
-  stats = [],
+  stats,
   transform,
   subscription,
   category,
@@ -459,7 +459,7 @@ export function mapCostStatsToChart({
 }
 
 export function mapReservedBudgetStatsToChart({
-  statsByDateAndCategory = {},
+  statsByDateAndCategory,
   transform,
   subscription,
   reservedBudgetCategoryInfo,

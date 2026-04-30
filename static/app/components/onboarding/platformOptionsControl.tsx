@@ -100,7 +100,7 @@ export function PlatformOptionsControl({
         <OptionControl
           key={key}
           option={platformOption}
-          value={urlOptionValues[key] ?? (platformOption.items[0]?.value as string)}
+          value={urlOptionValues[key] ?? platformOption.items[0]?.value!}
           onChange={value => handleChange(key, value)}
         />
       ))}

@@ -130,12 +130,14 @@ export const customFilterFields: FieldWithFeature[] = [
     rows: 1,
 
     placeholder: 'e.g. my_metric.*',
-    label: t('Metrics'),
+    label: t('Application Metrics'),
     help: (
       <Fragment>
-        {t('Filter metrics by name. ')}
+        {t('Filter application metrics by name. ')}
         {newLineHelpText} {globHelpText}{' '}
-        {t('Metrics are matched on the metric name, for example "my_metric.*".')}
+        {t(
+          'Application metrics are matched on the metric name, for example "my_metric.*".'
+        )}
       </Fragment>
     ),
     getData: getOptionsData,

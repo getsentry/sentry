@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -16,7 +17,10 @@ export function LogDetails() {
       title={t('Logs')}
       disableCollapsePersistence
     >
-      <LogsInfiniteTable embedded />
+      <LogsInfiniteTable
+        embedded
+        analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      />
     </FoldSection>
   );
 }

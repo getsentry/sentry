@@ -61,7 +61,7 @@ function SegmentedIssueViewSaveButton({
 
   const saveView = () => {
     if (view) {
-      trackAnalytics('issue_views.save.clicked', {organization});
+      trackAnalytics('issue_views.save.clicked', {organization, source: 'button'});
       updateGroupSearchView(
         {
           id: view.id,
@@ -159,7 +159,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   const organization = useOrganization();
 
   const openCreateIssueViewModal = () => {
-    trackAnalytics('issue_views.save_as.clicked', {organization});
+    trackAnalytics('issue_views.save_as.clicked', {organization, source: 'button'});
     openModal(props => (
       <CreateIssueViewModal
         {...props}

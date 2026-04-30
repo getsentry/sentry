@@ -14,7 +14,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 type Props = {
   columns: readonly ReplayTableColumn[];
@@ -43,7 +43,7 @@ export function ReplayTableHeader({
   const queryOptions = queryKeyRef.current
     ? parseQueryKey(queryKeyRef.current).options
     : undefined;
-  const queryString = queryOptions?.query?.query;
+  const queryString = queryOptions?.query?.query as string | undefined;
 
   const headerStyle: React.CSSProperties = stickyHeader
     ? {position: 'sticky', top: 0}
@@ -87,8 +87,8 @@ export function ReplayTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap" gap="md">
+        <FullGridAlert variant="info" system>
+          <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn(
               'Selected %s visible replay.',
               'Selected %s visible replays.',
@@ -106,22 +106,14 @@ export function ReplayTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap">
-            <span>
-              {queryString
-                ? tct('Selected all replays matching: [queryString].', {
-                    queryString: <var>{queryString}</var>,
-                  })
-                : countSelected > replays.length
-                  ? t('Selected all %s+ replays.', replays.length)
-                  : tn(
-                      'Selected all %s replay.',
-                      'Selected all %s replays.',
-                      countSelected
-                    )}
-            </span>
-          </Flex>
+        <FullGridAlert variant="info" system>
+          {queryString
+            ? tct('Selected all replays matching: [queryString].', {
+                queryString: <var>{queryString}</var>,
+              })
+            : countSelected > replays.length
+              ? t('Selected all %s+ replays.', replays.length)
+              : tn('Selected all %s replay.', 'Selected all %s replays.', countSelected)}
         </FullGridAlert>
       ) : null}
     </Fragment>
