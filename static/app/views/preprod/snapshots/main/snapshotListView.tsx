@@ -15,7 +15,7 @@ import type {
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 import {ImageCard, PairCard} from './snapshotCards';
 import {MAX_IMAGE_HEIGHT} from './snapshotDiffBodies';
-import {SnapshotCardFrame} from './snapshotFrames';
+import {SnapshotCardFrame, SnapshotGroupHeader} from './snapshotFrames';
 
 interface SnapshotListViewProps {
   imageBaseUrl: string;
@@ -329,9 +329,25 @@ export function SnapshotListView({
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
+  const scrollOffset = virtualizer.scrollOffset ?? 0;
+  const activeVirtualItem = virtualItems.find(virtualItem => {
+    return (
+      scrollOffset > virtualItem.start &&
+      scrollOffset < virtualItem.end - ROW_PADDING_BOTTOM
+    );
+  });
+  const activeGroup =
+    activeVirtualItem === undefined ? null : groups[activeVirtualItem.index]!;
+  const activeGroupName =
+    activeGroup && !activeGroup.isUngrouped ? activeGroup.name : null;
 
   return (
     <ScrollContainer ref={scrollRef}>
+      {activeGroupName ? (
+        <StickyGroupHeader>
+          <SnapshotGroupHeader name={activeGroupName} />
+        </StickyGroupHeader>
+      ) : null}
       <Container position="relative" width="100%" style={{height: totalSize}}>
         {virtualItems.map(vi => {
           const group = groups[vi.index]!;
@@ -435,6 +451,7 @@ export const GroupHeader = memo(function GroupHeader({name}: {name: string}) {
 });
 
 const ScrollContainer = styled('div')`
+  position: relative;
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
@@ -446,6 +463,19 @@ const ScrollContainer = styled('div')`
   overscroll-behavior: contain;
   scroll-padding-top: ${p => p.theme.space.md};
   scroll-padding-bottom: ${p => p.theme.space.md};
+`;
+
+const StickyGroupHeader = styled('div')`
+  position: sticky;
+  top: -${p => p.theme.space.xl};
+  z-index: 1;
+  height: 0;
+  pointer-events: none;
+
+  > * {
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  }
 `;
 
 const RowPositioner = styled('div')`
