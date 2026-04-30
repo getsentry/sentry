@@ -901,8 +901,6 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
 
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
-        from sentry.seer.explorer.client_utils import fetch_run_status
-
         with SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AGENT_COMPLETION,
         ).capture() as lifecycle:
