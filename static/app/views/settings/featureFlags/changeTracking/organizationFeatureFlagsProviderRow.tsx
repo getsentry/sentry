@@ -38,7 +38,11 @@ export function OrganizationFeatureFlagsProviderRow({
       </Flex>
 
       <Flex align="center">
-        {isUserPending ? <LoadingIndicator mini /> : (user?.name ?? t('Unknown'))}
+        {isUserPending ? (
+          <LoadingIndicator mini />
+        ) : (
+          (user?.name ?? t('Deactivated user'))
+        )}
       </Flex>
 
       <Flex justify="end">
