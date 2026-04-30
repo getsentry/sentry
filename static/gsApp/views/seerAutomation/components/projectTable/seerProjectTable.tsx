@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -57,7 +57,7 @@ export function SeerProjectTable() {
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
-  const [isLoadingModal, setIsLoadingModal] = React.useState(false);
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
