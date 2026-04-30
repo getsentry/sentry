@@ -218,6 +218,7 @@ class SnapshotStatusCheckWithSkippedTest(SnapshotTasksTestBase):
             overall_status=status,
             base_artifact_map={artifact.id: base_artifact},
             changes_map={artifact.id: has_changes},
+            project=self.project,
         )
         return subtitle, summary
 
