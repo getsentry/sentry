@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import type {Avatar} from 'sentry/types/core';
@@ -84,7 +85,8 @@ export function useDashboardRevisions({dashboardId}: UseDashboardRevisionsOption
       staleTime: 30_000,
     })
   );
-  return {data: data?.map(normalizeRevision), isPending, isError};
+  const normalizedData = useMemo(() => data?.map(normalizeRevision), [data]);
+  return {data: normalizedData, isPending, isError};
 }
 
 const REVISION_DETAILS_PATH =
