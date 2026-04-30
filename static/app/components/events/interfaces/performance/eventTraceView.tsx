@@ -75,6 +75,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
     traceSlug: traceId,
     limit: 10000,
     targetEventId: event.id,
+    referrer: 'api.trace-view.issues.get-events',
   });
   const params = useTraceQueryParams({
     timestamp,
