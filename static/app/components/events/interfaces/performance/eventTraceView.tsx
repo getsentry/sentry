@@ -195,22 +195,20 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
         </Grid>
       }
     >
+      <OneOtherIssueEvent event={event} />
       <LazyRender>
-        <Fragment>
-          <OneOtherIssueEvent event={event} />
-          {hasTracePreviewFeature && (
-            <TraceStateProvider
-              initialPreferences={preferences}
-              preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
-            >
-              <EventTraceViewInner
-                event={event}
-                organization={organization}
-                traceId={traceId}
-              />
-            </TraceStateProvider>
-          )}
-        </Fragment>
+        {hasTracePreviewFeature && (
+          <TraceStateProvider
+            initialPreferences={preferences}
+            preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
+          >
+            <EventTraceViewInner
+              event={event}
+              organization={organization}
+              traceId={traceId}
+            />
+          </TraceStateProvider>
+        )}
       </LazyRender>
     </InterimSection>
   );

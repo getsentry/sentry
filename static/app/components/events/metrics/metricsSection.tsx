@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -36,6 +35,7 @@ export function MetricsSection({
   project: Project;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const traceId = event.contexts?.trace?.trace_id;
 
   if (!traceId) {
@@ -47,7 +47,7 @@ export function MetricsSection({
   }
 
   return (
-    <LazyRender>
+    <LazyRender disabled={location.query[METRICS_DRAWER_QUERY_PARAM] === 'true'}>
       <TraceViewMetricsProviderWrapper traceSlug={traceId}>
         <MetricsSectionContent
           event={event}
@@ -76,7 +76,7 @@ function MetricsSectionContent({
   const location = useLocation();
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
-  const {result, error, isPending} = useMetricsIssueSection({traceId});
+  const {result, error} = useMetricsIssueSection({traceId});
   const abbreviatedTableData = result.data
     ? result.data.slice(0, NUMBER_ABBREVIATED_METRICS)
     : undefined;
@@ -132,7 +132,7 @@ function MetricsSectionContent({
     }
   }, [location.query, traceId, group, event, project, openDrawer, navigate, location]);
 
-  if (!isPending && (!result.data || result.data.length === 0 || error)) {
+  if (!result.data || result.data.length === 0 || error) {
     return null;
   }
 
@@ -143,26 +143,22 @@ function MetricsSectionContent({
       title={t('Application Metrics')}
       data-test-id="metrics-data-section"
     >
-      {isPending ? (
-        <LoadingIndicator />
-      ) : (
-        <Flex direction="column" gap="xl">
-          <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
-          {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
-            <div>
-              <Button
-                icon={<IconChevron direction="right" />}
-                aria-label={t('View more')}
-                size="sm"
-                onClick={onOpenMetricsDrawer}
-                ref={viewAllButtonRef}
-              >
-                {t('View more')}
-              </Button>
-            </div>
-          ) : null}
-        </Flex>
-      )}
+      <Flex direction="column" gap="xl">
+        <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
+        {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
+          <div>
+            <Button
+              icon={<IconChevron direction="right" />}
+              aria-label={t('View more')}
+              size="sm"
+              onClick={onOpenMetricsDrawer}
+              ref={viewAllButtonRef}
+            >
+              {t('View more')}
+            </Button>
+          </div>
+        ) : null}
+      </Flex>
     </InterimSection>
   );
 }

@@ -7,7 +7,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -40,12 +39,13 @@ export function OurlogsSection({
   group: Group;
   project: Project;
 }) {
+  const location = useLocation();
   const traceId = event.contexts?.trace?.trace_id;
   if (!traceId) {
     return null;
   }
   return (
-    <LazyRender>
+    <LazyRender disabled={location.query[LOGS_DRAWER_QUERY_PARAM] === 'true'}>
       <LogsQueryParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         source="state"
@@ -170,10 +170,7 @@ function OurlogsSectionContent({
   if (!traceId) {
     return null;
   }
-  if (
-    !tableData.isPending &&
-    (!tableData?.data || (tableData.data.length === 0 && logsSearch.isEmpty()))
-  ) {
+  if (!tableData?.data || (tableData.data.length === 0 && logsSearch.isEmpty())) {
     return null;
   }
   return (
@@ -183,41 +180,37 @@ function OurlogsSectionContent({
       title={t('Logs')}
       data-test-id="logs-data-section"
     >
-      {tableData.isPending ? (
-        <LoadingIndicator />
-      ) : (
-        <Stack>
-          <SmallTable>
-            <TableBody>
-              {abbreviatedTableData?.map((row, index) => (
-                <LogRowContent
-                  dataRow={row}
-                  meta={tableData.meta}
-                  highlightTerms={[]}
-                  embedded
-                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-                  key={index}
-                  blockRowExpanding
-                  onEmbeddedRowClick={onEmbeddedRowClick}
-                />
-              ))}
-            </TableBody>
-          </SmallTable>
-          {tableData.data && tableData.data.length > 5 ? (
-            <div>
-              <Button
-                icon={<IconChevron direction="right" />}
-                aria-label={t('View more')}
-                size="sm"
-                onClick={onOpenLogsDrawer}
-                ref={viewAllButtonRef}
-              >
-                {t('View more')}
-              </Button>
-            </div>
-          ) : null}
-        </Stack>
-      )}
+      <Stack>
+        <SmallTable>
+          <TableBody>
+            {abbreviatedTableData?.map((row, index) => (
+              <LogRowContent
+                dataRow={row}
+                meta={tableData.meta}
+                highlightTerms={[]}
+                embedded
+                sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                key={index}
+                blockRowExpanding
+                onEmbeddedRowClick={onEmbeddedRowClick}
+              />
+            ))}
+          </TableBody>
+        </SmallTable>
+        {tableData.data && tableData.data.length > 5 ? (
+          <div>
+            <Button
+              icon={<IconChevron direction="right" />}
+              aria-label={t('View more')}
+              size="sm"
+              onClick={onOpenLogsDrawer}
+              ref={viewAllButtonRef}
+            >
+              {t('View more')}
+            </Button>
+          </div>
+        ) : null}
+      </Stack>
     </InterimSection>
   );
 }
