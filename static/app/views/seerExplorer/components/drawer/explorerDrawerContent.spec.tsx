@@ -14,6 +14,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isPolling: false,
   isError: false,
   errorStatusCode: null,
+  isTimedOut: false,
   runId: null,
   waitingForInterrupt: false,
   overrideCtxEngEnable: true,
