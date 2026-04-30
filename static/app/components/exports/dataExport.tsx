@@ -1,24 +1,26 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import debounce from 'lodash/debounce';
+import {useEffect, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
+import {
+  useDataExport,
+  type DataExportPayload,
+} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
-import {useApi} from 'sentry/utils/useApi';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import type {OurLogFieldKey} from 'sentry/views/explore/logs/types';
 
-// NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
-export enum ExportQueryType {
-  ISSUES_BY_TAG = 'Issues-by-Tag',
-  DISCOVER = 'Discover',
-  EXPLORE = 'Explore',
-}
-
-interface DataExportPayload {
-  queryInfo: any;
-  queryType: ExportQueryType; // TODO(ts): Formalize different possible payloads
+export interface LogsQueryInfo {
+  dataset: 'logs';
+  field: OurLogFieldKey[];
+  project: number[];
+  query: string;
+  sort: string[];
+  end?: string;
+  environment?: string[];
+  limit?: number;
+  start?: string;
+  statsPeriod?: string;
 }
 
 interface DataExportProps {
@@ -29,69 +31,6 @@ interface DataExportProps {
   onClick?: () => void;
   overrideFeatureFlags?: boolean;
   size?: 'xs' | 'sm' | 'md';
-}
-
-export function useDataExport({
-  payload,
-  inProgressCallback,
-  unmountedRef,
-}: {
-  payload: DataExportPayload;
-  inProgressCallback?: (inProgress: boolean) => void;
-  unmountedRef?: React.RefObject<boolean>;
-}) {
-  const organization = useOrganization();
-  const api = useApi();
-
-  return useCallback(() => {
-    inProgressCallback?.(true);
-
-    // This is a fire and forget request.
-    api
-      .requestPromise(`/organizations/${organization.slug}/data-export/`, {
-        includeAllArgs: true,
-        method: 'POST',
-        data: {
-          query_type: payload.queryType,
-          query_info: payload.queryInfo,
-        },
-      })
-      .then(([_data, _, response]) => {
-        // If component has unmounted, don't do anything
-        if (unmountedRef?.current) {
-          return;
-        }
-
-        addSuccessMessage(
-          response?.status === 201
-            ? t(
-                "Sit tight. We'll shoot you an email when your data is ready for download."
-              )
-            : t("It looks like we're already working on it. Sit tight, we'll email you.")
-        );
-      })
-      .catch(err => {
-        // If component has unmounted, don't do anything
-        if (unmountedRef?.current) {
-          return;
-        }
-        const message =
-          err?.responseJSON?.detail ??
-          t(
-            "We tried our hardest, but we couldn't export your data. Give it another go."
-          );
-
-        addErrorMessage(message);
-        inProgressCallback?.(false);
-      });
-  }, [
-    payload.queryInfo,
-    payload.queryType,
-    organization.slug,
-    api,
-    inProgressCallback,
-    unmountedRef,
-  ]);
 }
 
 export function DataExport({
@@ -106,7 +45,6 @@ export function DataExport({
   const unmountedRef = useRef(false);
   const [inProgress, setInProgress] = useState(false);
   const handleDataExport = useDataExport({
-    payload,
     unmountedRef,
     inProgressCallback: setInProgress,
   });
@@ -132,7 +70,7 @@ export function DataExport({
   }, []);
 
   const handleClick = () => {
-    debounce(handleDataExport, 500)();
+    handleDataExport(payload);
     onClick?.();
   };
 
