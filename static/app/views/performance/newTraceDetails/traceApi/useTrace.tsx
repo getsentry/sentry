@@ -283,8 +283,12 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     maxPickableDays > defaultStatsDays;
 
   const fallbackQueryParams = useMemo(
-    () => ({...queryParams, statsPeriod: `${maxPickableDays}d`}),
-    [queryParams, maxPickableDays]
+    () => ({
+      ...queryParams,
+      statsPeriod: `${maxPickableDays}d`,
+      referrer: options.referrer,
+    }),
+    [queryParams, maxPickableDays, options.referrer]
   );
 
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
