@@ -7,8 +7,9 @@ from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.seer.agent import client_models as agent_client_models
 from sentry.seer.agent.client import SeerAgentClient
-from sentry.seer.agent.client_models import AgentCodingAgentState, SeerRunState
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix import trigger_legacy_autofix, update_legacy_autofix
@@ -349,7 +350,7 @@ class SeerAutofixOperator[CachePayloadT]:
             )
 
             try:
-                coding_agents: list[AgentCodingAgentState] | list[CodingAgentState]
+                coding_agents: list[agent_client_models.CodingAgentState] | list[CodingAgentState]
                 if features.has("organizations:autofix-on-explorer", group.organization):
                     agent_state = fetch_run_status(run_id=run_id, organization=group.organization)
                     coding_agents = list(agent_state.coding_agents.values())

@@ -7,13 +7,8 @@ from rest_framework.response import Response
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.models.organization import Organization
-from sentry.seer.agent.client_models import (
-    AgentCodingAgentState,
-    MemoryBlock,
-    Message,
-    RepoPRState,
-    SeerRunState,
-)
+from sentry.seer.agent import client_models as agent_client_models
+from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
@@ -446,7 +441,7 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.handoff_successes == []
 
     def _build_explorer_state_with_agents(
-        self, agents: dict[str, AgentCodingAgentState]
+        self, agents: dict[str, agent_client_models.CodingAgentState]
     ) -> SeerRunState:
         return SeerRunState(
             run_id=MOCK_RUN_ID,
@@ -482,7 +477,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
-                "agent-1": AgentCodingAgentState(
+                "agent-1": agent_client_models.CodingAgentState(
                     id="agent-1",
                     status="running",
                     provider="cursor_background_agent",
@@ -507,7 +502,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
-                "agent-1": AgentCodingAgentState(
+                "agent-1": agent_client_models.CodingAgentState(
                     id="agent-1",
                     status="completed",
                     provider="cursor_background_agent",
@@ -532,7 +527,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
-                "agent-1": AgentCodingAgentState(
+                "agent-1": agent_client_models.CodingAgentState(
                     id="agent-1",
                     status="failed",
                     provider="cursor_background_agent",
