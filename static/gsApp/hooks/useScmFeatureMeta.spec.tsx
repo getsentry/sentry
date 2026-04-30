@@ -8,7 +8,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {useScmFeatureMeta} from 'getsentry/hooks/useScmFeatureMeta';
 import {PlanTier} from 'getsentry/types';
 
-describe('useScmFeatureMeta (gsApp)', () => {
+describe('useScmFeatureMeta', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -24,13 +24,11 @@ describe('useScmFeatureMeta (gsApp)', () => {
     const {result} = renderHookWithProviders(useScmFeatureMeta, {organization});
 
     expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await waitFor(() => {
-      expect(result.current.meta[ProductSolution.ERROR_MONITORING].volume).toBe(
-        '50,000 errors / mo'
-      );
-    });
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current.meta[ProductSolution.ERROR_MONITORING].volume).toBe(
+      '50,000 errors / mo'
+    );
     expect(result.current.meta[ProductSolution.PERFORMANCE_MONITORING].volume).toBe(
       '10M spans / mo'
     );
@@ -43,13 +41,12 @@ describe('useScmFeatureMeta (gsApp)', () => {
     expect(result.current.meta[ProductSolution.PROFILING].volume).toBe('Usage-based');
   });
 
-  it('falls back to static volumes when billing-config errors', async () => {
+  it('falls back to static volumes when freePlan is missing from planList', async () => {
     const organization = OrganizationFixture();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       query: {tier: 'am3'},
-      statusCode: 404,
-      body: {detail: 'Not Found'},
+      body: {...BillingConfigFixture(PlanTier.AM3), freePlan: 'missing_plan_id'},
     });
 
     const {result} = renderHookWithProviders(useScmFeatureMeta, {organization});
