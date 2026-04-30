@@ -657,10 +657,12 @@ function updateFilterMultipleValues(
     if (value.length === 0) {
       return false;
     }
+
     const canonical = canonicalizeSearchValue(value);
     if (seen.has(canonical)) {
       return false;
     }
+
     seen.add(canonical);
     return true;
   });
@@ -716,14 +718,24 @@ export function multiSelectTokenValue(
         canonicalValue: canonicalizeSearchValue(item.value?.value ?? ''),
         text: item.value?.text ?? '',
       }));
+
       const containsValue = values.some(
         ({canonicalValue}) => canonicalValue === normalizedActionValue
       );
-      const newValues = containsValue
-        ? values
-            .filter(({canonicalValue}) => canonicalValue !== normalizedActionValue)
-            .map(({text}) => text)
-        : [...values.map(({text}) => text), action.value];
+
+      if (!containsValue) {
+        return updateFilterMultipleValues(state, action.token, [
+          ...values.map(({text}) => text),
+          action.value,
+        ]);
+      }
+
+      const newValues: string[] = [];
+      for (const value of values) {
+        if (value.canonicalValue !== normalizedActionValue) {
+          newValues.push(value.text);
+        }
+      }
 
       return updateFilterMultipleValues(state, action.token, newValues);
     }
