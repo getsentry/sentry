@@ -549,6 +549,7 @@ export default function SnapshotsPage() {
       <Flex
         flexShrink={0}
         overflow="auto"
+        borderRight="primary"
         style={{
           width: sidebarWidth,
           height: hasPageFrameFeature
