@@ -134,9 +134,9 @@ function DashboardRevisionsModal({
                   isSelected={revision.id === selectedRevisionId}
                   onSelect={() => setSelectedRevisionId(revision.id)}
                   // Each revision is saved before the operation that produces it,
-                  // so the label for this entry comes from the following revision's source.
+                  // so the label and author for this entry come from the following revision.
                   revisionSource={revisions?.[index + 1]?.source ?? 'edit'}
-                  createdBy={revision.createdBy}
+                  createdBy={revisions?.[index + 1]?.createdBy ?? null}
                   dateCreated={revision.dateCreated}
                   dashboardId={dashboardId}
                   revisionId={revision.id}
