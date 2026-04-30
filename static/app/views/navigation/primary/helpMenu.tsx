@@ -9,6 +9,7 @@ import {
   IconDocs,
   IconEllipsis,
   IconGithub,
+  IconGlobe,
   IconGroup,
   IconMegaphone,
   IconOpen,
@@ -26,6 +27,10 @@ import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
+import {
+  NavigationTourReminder,
+  useNavigationTour,
+} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
 export function PrimaryNavigationHelpMenu() {
@@ -34,6 +39,7 @@ export function PrimaryNavigationHelpMenu() {
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
   const hasIntercom = organization.features.includes('intercom-support');
+  const {startTour} = useNavigationTour();
 
   useEffect(() => {
     if (hasIntercom) {
@@ -193,12 +199,25 @@ export function PrimaryNavigationHelpMenu() {
           },
           hidden: !openForm,
         },
+        {
+          key: 'tour',
+          label: t('Tour the new navigation'),
+          leadingItems: (
+            <MenuIcon>
+              <IconGlobe />
+            </MenuIcon>
+          ),
+          onAction() {
+            startTour();
+          },
+        },
       ],
     },
   ];
 
   return (
     <PrimaryNavigation.Menu
+      triggerWrap={NavigationTourReminder}
       items={items}
       analyticsKey="help"
       label={t('Help')}

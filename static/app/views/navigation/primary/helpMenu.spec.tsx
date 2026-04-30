@@ -7,6 +7,15 @@ import * as intercom from 'sentry/utils/intercom';
 import * as zendesk from 'sentry/utils/zendesk';
 import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 
+jest.mock('sentry/views/navigation/navigationTour', () => ({
+  useNavigationTour: jest.fn(() => ({
+    startTour: jest.fn(),
+  })),
+  NavigationTourReminder: ({children}: {children: React.ReactNode}) => (
+    <div>{children}</div>
+  ),
+}));
+
 jest.mock('sentry/utils/intercom', () => ({
   showIntercom: jest.fn(),
 }));
