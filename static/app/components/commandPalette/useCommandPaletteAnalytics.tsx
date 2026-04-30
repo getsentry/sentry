@@ -65,7 +65,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   useEffect(() => {
     const s = analyticsState.current;
     if (state.query.length === 0 || state.query === s.lastTrackedQuery) {
-      return undefined;
+      return;
     }
 
     const timer = setTimeout(() => {

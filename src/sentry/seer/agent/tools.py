@@ -375,7 +375,10 @@ def execute_trace_table_query(
 
 
 def get_trace_waterfall(
-    trace_id: str, organization_id: int, additional_attributes: list[str] | None = None
+    trace_id: str,
+    organization_id: int,
+    additional_attributes: list[str] | None = None,
+    referrer: Referrer = Referrer.SEER_EXPLORER_TOOLS,
 ) -> EAPTrace | None:
     """
     Get the full span waterfall and connected errors for a trace.
@@ -424,7 +427,7 @@ def get_trace_waterfall(
         snuba_params,
         full_trace_id,
         additional_attributes=additional_attributes,
-        referrer=Referrer.SEER_EXPLORER_TOOLS,
+        referrer=referrer,
         organization=organization,
     )
 
@@ -436,9 +439,16 @@ def get_trace_waterfall(
 
 
 def rpc_get_trace_waterfall(
-    trace_id: str, organization_id: int, additional_attributes: list[str] | None = None
+    trace_id: str,
+    organization_id: int,
+    additional_attributes: list[str] | None = None,
+    referrer: str | None = None,
 ) -> dict[str, Any]:
-    trace = get_trace_waterfall(trace_id, organization_id, additional_attributes)
+    try:
+        referrer_enum = Referrer(referrer) if referrer else Referrer.SEER_EXPLORER_TOOLS
+    except ValueError:
+        referrer_enum = Referrer.SEER_EXPLORER_TOOLS
+    trace = get_trace_waterfall(trace_id, organization_id, additional_attributes, referrer_enum)
     return trace.dict() if trace else {}
 
 

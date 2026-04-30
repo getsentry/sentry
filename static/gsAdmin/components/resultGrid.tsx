@@ -581,7 +581,7 @@ const SortSearchForm = styled('form')`
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
   > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+    z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 
@@ -595,7 +595,7 @@ const FilterList = styled('div')`
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
   > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+    z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 

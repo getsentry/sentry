@@ -101,6 +101,7 @@ export function SnapshotSidebarContent({
             variant={isSelected ? 'accent' : 'muted'}
             bold={isSelected}
             ellipsis
+            onPointerEnter={setTitleOnOverflow}
           >
             {group.name}
           </Text>
@@ -218,6 +219,11 @@ function StatusPill({
       </Text>
     </PillButton>
   );
+}
+
+function setTitleOnOverflow(e: React.PointerEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  el.title = el.scrollWidth > el.clientWidth ? (el.textContent ?? '') : '';
 }
 
 const PillButton = styled('button')<{active: boolean}>`

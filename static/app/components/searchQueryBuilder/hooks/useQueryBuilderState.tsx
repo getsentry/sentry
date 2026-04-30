@@ -845,7 +845,7 @@ export function replaceFreeTextTokens(
     replaceRawSearchKeys.length === 0 ||
     (replaceRawSearchKeys.length !== 0 && replaceRawSearchKeys[0] === '')
   ) {
-    return undefined;
+    return;
   }
 
   const currentQueryTokens = parseQuery(currentQuery) ?? [];
@@ -854,7 +854,7 @@ export function replaceFreeTextTokens(
   );
 
   if (!foundFreeTextToken) {
-    return undefined;
+    return;
   }
 
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';

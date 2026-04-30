@@ -146,7 +146,9 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    expect(await screen.findByText('We’re more than just errors')).toBeInTheDocument();
+    expect(
+      await screen.findByText('What do you want to instrument?')
+    ).toBeInTheDocument();
   });
 
   it('clicking "Change platform" shows manual picker', async () => {
@@ -183,7 +185,7 @@ describe('ScmPlatformFeatures', () => {
     });
     await userEvent.click(changeButton);
 
-    expect(screen.getByRole('heading', {name: 'Select a platform'})).toBeInTheDocument();
+    expect(screen.getByText('Select a platform')).toBeInTheDocument();
   });
 
   it('falls back to manual picker when platform detection fails', async () => {
@@ -207,10 +209,10 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
+    expect(await screen.findByText('Select a platform')).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', {name: 'Select a platform'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Recommended SDK')).not.toBeInTheDocument();
+      screen.queryByText('Auto-detected from your repository')
+    ).not.toBeInTheDocument();
   });
 
   it('renders manual picker when no repository in context', async () => {
@@ -226,10 +228,10 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
+    expect(await screen.findByText('Select a platform')).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', {name: 'Select a platform'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Recommended SDK')).not.toBeInTheDocument();
+      screen.queryByText('Auto-detected from your repository')
+    ).not.toBeInTheDocument();
   });
 
   it('continue button is disabled when no platform selected', async () => {
@@ -246,7 +248,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for the component to fully settle (CompactSelect triggers async popper updates)
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
@@ -306,7 +308,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for feature cards to appear
-    await screen.findByText('We’re more than just errors');
+    await screen.findByText('What do you want to instrument?');
 
     // Neither profiling nor tracing should be checked initially
     expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
@@ -334,7 +336,7 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     // Type into the Select to search and pick a base language
     await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
@@ -363,7 +365,7 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    await screen.findByRole('heading', {name: 'Select a platform'});
+    await screen.findByText('Select a platform');
 
     // Type into the Select to search and pick a console platform
     await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
@@ -413,7 +415,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for feature cards to appear
-    await screen.findByText('We’re more than just errors');
+    await screen.findByText('What do you want to instrument?');
 
     // Both should be checked initially
     expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeChecked();
@@ -488,7 +490,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByRole('heading', {name: 'Select a platform'});
+      await screen.findByText('Select a platform');
 
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'onboarding.scm_platform_features_step_viewed',
@@ -567,7 +569,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByText('We’re more than just errors');
+      await screen.findByText('What do you want to instrument?');
 
       const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
         ([event, params]) =>
@@ -601,7 +603,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByText('We’re more than just errors');
+      await screen.findByText('What do you want to instrument?');
 
       await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
 
