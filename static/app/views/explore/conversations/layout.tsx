@@ -8,7 +8,6 @@ import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -23,7 +22,6 @@ import {
   MAX_PICKABLE_DAYS,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function ConversationsLayout() {
   const organization = useOrganization();
@@ -66,7 +64,6 @@ function ConversationsLayoutContent() {
 
 function ConversationsHeader() {
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {conversationId} = useParams<{conversationId?: string}>();
 
   const isDetailPage = !!conversationId;
@@ -74,37 +71,9 @@ function ConversationsHeader() {
     `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
   );
 
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        <TopBar.Slot name="title">
-          {isDetailPage ? (
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: CONVERSATIONS_SIDEBAR_LABEL,
-                  to: conversationsBaseUrl,
-                  preservePageFilters: true,
-                },
-                {label: conversationId.slice(0, 8)},
-              ]}
-            />
-          ) : (
-            <Fragment>
-              {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="alpha" />
-            </Fragment>
-          )}
-        </TopBar.Slot>
-        <TopBar.Slot name="feedback">
-          <FeedbackButton>{null}</FeedbackButton>
-        </TopBar.Slot>
-      </Fragment>
-    );
-  }
-
   return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
+    <Fragment>
+      <TopBar.Slot name="title">
         {isDetailPage ? (
           <Breadcrumbs
             crumbs={[
@@ -117,15 +86,15 @@ function ConversationsHeader() {
             ]}
           />
         ) : (
-          <Layout.Title>
+          <Fragment>
             {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="alpha" />
-          </Layout.Title>
+          </Fragment>
         )}
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <FeedbackButton />
-      </Layout.HeaderActions>
-    </Layout.Header>
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton>{null}</FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 

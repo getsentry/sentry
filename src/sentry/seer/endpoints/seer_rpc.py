@@ -36,7 +36,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -618,13 +617,10 @@ def trigger_coding_agent_launch(
             },
         )
         try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
-            if features.has("organizations:seer-project-settings-dual-write", organization):
-                project = Project.objects.get_from_cache(id=project_id)
-                if project.organization_id != organization_id:
-                    raise Project.DoesNotExist
-                clear_preference_automation_handoff(project)
-                # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
+            project = Project.objects.get_from_cache(id=project_id)
+            if project.organization_id != organization_id:
+                raise Project.DoesNotExist
+            clear_preference_automation_handoff(project)
         except Exception:
             logger.exception(
                 "coding_agent.clear_handoff_preference_failed",

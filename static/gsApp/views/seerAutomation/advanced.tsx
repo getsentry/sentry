@@ -17,7 +17,6 @@ import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const schema = z.object({
-  enableSeerEnhancedAlerts: z.boolean(),
   enableSeerCoding: z.boolean(),
 });
 
@@ -54,27 +53,6 @@ export default function SeerAutomationAdvancedSettings() {
       />
       <SeerSettingsPageContent>
         <FieldGroup>
-          <AutoSaveForm
-            name="enableSeerEnhancedAlerts"
-            schema={schema}
-            initialValue={organization.enableSeerEnhancedAlerts ?? true}
-            mutationOptions={orgMutationOpts}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Enable Seer Context in Alerts')}
-                hintText={t(
-                  'Enable Seer to include Agent output in alerts when available. This may include code snippets, explanations, and more.'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!canWrite}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
           <AutoSaveForm
             name="enableSeerCoding"
             schema={schema}

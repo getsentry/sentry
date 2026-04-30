@@ -311,6 +311,47 @@ describe('registerLLMContext — trace node type', () => {
   });
 });
 
+describe('registerLLMContext — traces-explorer node type', () => {
+  it('registers a traces-explorer node with search and tab metadata', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    function DummyTracesExplorer() {
+      useLLMContext({
+        contextHint: 'Sentry traces explorer page.',
+        searchQuery: 'span.description is /api/users',
+        activeTab: 'span',
+        visualizes: ['count(spans)'],
+        groupBys: ['span.op'],
+        sortBys: ['-timestamp'],
+      });
+      return <div>traces explorer</div>;
+    }
+    const ContextTracesExplorer = registerLLMContext(
+      'traces-explorer',
+      DummyTracesExplorer
+    );
+
+    render(
+      <LLMContextProvider>
+        <ContextTracesExplorer />
+        <ContextCapture />
+      </LLMContextProvider>
+    );
+
+    await waitFor(() => {
+      const snapshot = getSnapshot();
+      expect(snapshot.nodes).toHaveLength(1);
+      expect(snapshot.nodes[0]?.nodeType).toBe('traces-explorer');
+      const data = snapshot.nodes[0]?.data as Record<string, unknown>;
+      expect(data.searchQuery).toBe('span.description is /api/users');
+      expect(data.activeTab).toBe('span');
+      expect(data.visualizes).toEqual(['count(spans)']);
+      expect(data.groupBys).toEqual(['span.op']);
+      expect(data.sortBys).toEqual(['-timestamp']);
+    });
+  });
+});
+
 describe('getLLMContext — full tree vs componentOnly', () => {
   it('getLLMContext() returns full tree including sibling branches', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();

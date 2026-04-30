@@ -296,13 +296,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # and number if shorter than 8 characters, and either all uppercase or all lowercase -
             # we're more conservative here in order to reduce false positives).
             (
-                # Regular word boundary (for positive values)
-                \b
+                # For positive values, a negative lookbehind to create a word boundary but with
+                # underscores allowed (to permit things like `some_file_31d12.py`)
+                (?<![a-zA-Z0-9])
                 |
-                # Alphanumeric negative lookbehind before the dash in negative values to ensure it's
-                # only considered a minus sign if it doesn't connect two alphanumeric strings. (No
-                # word boundary here because the dash serves as the word boundary, since it's not a
-                # word character.)
+                # For negative values, an alphanumeric negative lookbehind before the dash to ensure
+                # it's only considered a minus sign if it doesn't connect two alphanumeric strings
                 (?<!\w)-
             )
             (
@@ -325,7 +324,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 [0-9a-f]{8,128} |
                 [0-9A-F]{8,128}
             )
-            \b
+            # Negative lookahead similar to the negative lookbehind for positive values above - \b,
+            # but with underscores allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(
@@ -375,15 +376,19 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         name="int",
         raw_pattern=r"""
             (
-                # Regular word boundary for positive ints
-                \b
+                # For positive values, a negative lookbehind to create a word boundary but with
+                # underscores allowed (to permit things like `some_file_1121.py`)
+                (?<![a-zA-Z0-9])
                 |
-                # Alphanumeric negative lookbehind before the dash in negative ints (logic the same
-                # as in the hex pattern above)
+                # For negative values, an alphanumeric negative lookbehind before the dash to ensure
+                # it's only considered a minus sign if it doesn't connect two alphanumeric strings
                 (?<!\w)-
             )
-            \d{1,7} # Anything 8 digits and up is considered hex
-            \b
+            # The value itself (with a count limit because anything with 8+ digits is considered hex)
+            \d{1,7}
+            # Negative lookahead similar to the negative lookbehind for positive values above - \b,
+            # but with underscores allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(
