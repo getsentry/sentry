@@ -223,7 +223,7 @@ export function ClippedBox(props: ClippedBoxProps) {
     const content = contentRef.current;
 
     if (!wrapper) {
-      return undefined;
+      return;
     }
 
     // Activity can reattach refs while preserving state; keep the inline height
@@ -232,13 +232,13 @@ export function ClippedBox(props: ClippedBoxProps) {
       if (!revealTransitionPendingRef.current) {
         clearMaxHeight(wrapper);
       }
-      return undefined;
+      return;
     }
 
     wrapper.style.maxHeight = `${clipHeight}px`;
 
     if (!content) {
-      return undefined;
+      return;
     }
 
     const onResize = (entries: ResizeObserverEntry[]): void => {
@@ -248,8 +248,8 @@ export function ClippedBox(props: ClippedBoxProps) {
         return;
       }
 
-      const contentBox = entry.contentBoxSize?.[0];
-      const borderBox = entry.borderBoxSize?.[0];
+      const contentBox = entry.contentBoxSize[0];
+      const borderBox = entry.borderBoxSize[0];
       const height = contentBox?.blockSize ?? borderBox?.blockSize ?? 0;
 
       if (height === 0) {
@@ -300,8 +300,7 @@ export function ClippedBox(props: ClippedBoxProps) {
       devicePixelContentBoxSize: [{blockSize: rect.height, inlineSize: rect.width}],
     };
     onResize([entry]);
-
-    return undefined;
+    return () => {};
   }, [clipFlex, clipHeight, clipped, revealed]);
 
   const showMoreButton = (
