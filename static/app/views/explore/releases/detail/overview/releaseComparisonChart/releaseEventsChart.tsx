@@ -66,7 +66,7 @@ function ReleaseEventsChart({
       case ReleaseComparisonChartType.FAILURE_RATE:
         return [colors[9]];
       default:
-        return undefined;
+        return;
     }
   }
 
@@ -100,7 +100,7 @@ function ReleaseEventsChart({
       case ReleaseComparisonChartType.FAILURE_RATE:
         return ['failure_rate()'];
       default:
-        return undefined;
+        return;
     }
   }
 

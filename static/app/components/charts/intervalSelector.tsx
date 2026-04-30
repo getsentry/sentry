@@ -176,7 +176,7 @@ export function IntervalSelector({displayMode, eventView, onIntervalChange}: Pro
   );
 
   const intervalAutoComplete = (filterValue: string) => {
-    let newItem: number | undefined = undefined;
+    let newItem: number | undefined;
     const results = _timeRangeAutoCompleteFilter(items, filterValue, {
       supportedPeriods: SUPPORTED_RELATIVE_PERIOD_UNITS,
       supportedUnits: SUPPORTED_RELATIVE_UNITS_LIST,

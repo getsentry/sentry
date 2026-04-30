@@ -22,7 +22,7 @@ export function useRepoSearch(
 
   return useMemo(() => {
     if (!query || !fuse) {
-      return undefined;
+      return;
     }
 
     const matches: ScmRepoMatches = {};

@@ -22,7 +22,7 @@ type AutofixAutomationTuning =
   | null; // deprecated
 
 // Mirrors the backend SeerRepoDefinition type
-export interface BackendRepository {
+interface BackendRepository {
   external_id: string;
   integration_id: string;
   name: string;

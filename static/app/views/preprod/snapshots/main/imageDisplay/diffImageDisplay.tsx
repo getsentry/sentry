@@ -8,6 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
+import {computeMaskSize} from 'sentry/views/preprod/snapshots/main/computeMaskSize';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useBufferedImageGroup} from './useBufferedImageUrl';
@@ -21,20 +22,6 @@ import {
 } from './zoomControls';
 
 export type DiffMode = 'split' | 'wipe' | 'onion';
-
-function computeMaskSize(
-  baseImage: SnapshotDiffPair['base_image'],
-  headImage: SnapshotDiffPair['head_image']
-): string {
-  const headW = headImage.width;
-  const headH = headImage.height;
-  if (!headW || !headH) {
-    return '100% 100%';
-  }
-  const maskW = Math.max(baseImage.width || headW, headW);
-  const maskH = Math.max(baseImage.height || headH, headH);
-  return `${(maskW / headW) * 100}% ${(maskH / headH) * 100}%`;
-}
 
 export const TRANSPARENT_COLOR = 'transparent';
 

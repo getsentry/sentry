@@ -14,7 +14,7 @@ export function useCrossEventQueries() {
 
   return useMemo(() => {
     if (!defined(crossEvents) || crossEvents.length === 0) {
-      return undefined;
+      return;
     }
 
     // We only want to include the first MAX_CROSS_EVENT_QUERIES cross events in the
