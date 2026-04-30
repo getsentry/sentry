@@ -172,10 +172,8 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             self.path,
             {"username": self.user.username, "password": "admin", "op": "login"},
         )
-        # The view redirects (302) because handle_login_form_submit doesn't check
-        # the return value of _handle_login, but auth.login() returns False for
-        # suspended users so no session is actually created.
-        assert resp.status_code == 302
+        assert resp.status_code == 200
+        assert b"Your account has been suspended." in resp.content
         assert "_auth_user_id" not in self.client.session
 
     def test_login_valid_credentials_2fa_redirect(self) -> None:
