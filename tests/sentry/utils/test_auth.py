@@ -59,6 +59,16 @@ class EmailAuthBackendTest(TestCase):
         assert result is not None
         assert result.id == self.user.id
 
+    def test_get_user_returns_none_for_suspended_user(self) -> None:
+        self.user.update(is_suspended=True)
+        result = self.backend.get_user(self.user.id)
+        assert result is None
+
+    def test_get_user_returns_user_for_active_user(self) -> None:
+        result = self.backend.get_user(self.user.id)
+        assert result is not None
+        assert result.id == self.user.id
+
     def test_user_can_authenticate_allows_active(self) -> None:
         assert self.backend.user_can_authenticate(self.user) is True
 
