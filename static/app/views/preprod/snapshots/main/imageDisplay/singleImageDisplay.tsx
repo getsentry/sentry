@@ -1,5 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
 
+import {useBufferedImageUrl} from './useBufferedImageUrl';
 import {useD3Zoom} from './useD3Zoom';
 import {
   ZoomableArea,
@@ -16,6 +17,7 @@ interface SingleImageDisplayProps {
 
 export function SingleImageDisplay({imageUrl, alt}: SingleImageDisplayProps) {
   const {containerRef, transform, zoomIn, zoomOut, resetZoom} = useD3Zoom();
+  const displayUrl = useBufferedImageUrl(imageUrl);
 
   return (
     <Flex align="center" justify="center" flex="1" minHeight="0" padding="3xl">
@@ -28,7 +30,7 @@ export function SingleImageDisplay({imageUrl, alt}: SingleImageDisplayProps) {
             height="100%"
             style={zoomTransformStyle(transform)}
           >
-            <ZoomableImage src={imageUrl} alt={alt} />
+            <ZoomableImage src={displayUrl} alt={alt} loading="eager" decoding="async" />
           </Flex>
         </ZoomContainer>
         <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />
