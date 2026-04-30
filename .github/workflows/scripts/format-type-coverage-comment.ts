@@ -110,12 +110,12 @@ function formatComment(
   const newTypeAssert = changes.typeAssertions?.added?.length ?? 0;
   const totalNew = newAny + newNonNull + newTypeAssert;
 
-  if (totalNew === 0 && Math.abs(diff.coverage) < 0.005) {
+  if (totalNew === 0) {
     return [
       COMMENT_MARKER,
       '## 📊 Type Coverage Diff',
       '',
-      `✅ No new type safety issues introduced. Coverage: **${currentSummary.coverage.toFixed(2)}%** (${deltaStr(parseFloat(diff.coverage.toFixed(2)), '%')})`,
+      `✅ No new type safety issues introduced. Coverage: **${currentSummary.coverage.toFixed(2)}%**`,
     ].join('\n');
   }
 
