@@ -127,6 +127,12 @@ class ProjectMemberSerializer(serializers.Serializer):
     preprodSnapshotPrCommentsPostOnRemoved = serializers.BooleanField(
         required=False, allow_null=True
     )
+    preprodSnapshotPrCommentsPostOnChanged = serializers.BooleanField(
+        required=False, allow_null=True
+    )
+    preprodSnapshotPrCommentsPostOnRenamed = serializers.BooleanField(
+        required=False, allow_null=True
+    )
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -181,6 +187,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSnapshotPrCommentsEnabled",
         "preprodSnapshotPrCommentsPostOnAdded",
         "preprodSnapshotPrCommentsPostOnRemoved",
+        "preprodSnapshotPrCommentsPostOnChanged",
+        "preprodSnapshotPrCommentsPostOnRenamed",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -941,6 +949,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_removed"] = (
                     result["preprodSnapshotPrCommentsPostOnRemoved"]
+                )
+        if "preprodSnapshotPrCommentsPostOnChanged" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_changed",
+                result["preprodSnapshotPrCommentsPostOnChanged"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_changed"] = (
+                    result["preprodSnapshotPrCommentsPostOnChanged"]
+                )
+        if "preprodSnapshotPrCommentsPostOnRenamed" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_renamed",
+                result["preprodSnapshotPrCommentsPostOnRenamed"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_renamed"] = (
+                    result["preprodSnapshotPrCommentsPostOnRenamed"]
                 )
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:

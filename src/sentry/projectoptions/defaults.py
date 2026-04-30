@@ -235,5 +235,11 @@ register(key="sentry:preprod_snapshot_pr_comments_post_on_added", default=False)
 # When True, treat snapshot removals as a diff worth posting a PR comment.
 register(key="sentry:preprod_snapshot_pr_comments_post_on_removed", default=True)
 
+# When True, treat pixel-level snapshot changes as a diff worth posting a PR comment.
+register(key="sentry:preprod_snapshot_pr_comments_post_on_changed", default=True)
+
+# When True, treat snapshot renames as a diff worth posting a PR comment.
+register(key="sentry:preprod_snapshot_pr_comments_post_on_renamed", default=False)
+
 # Whether to enable on-demand source context fetching from SCM integrations
 register(key="sentry:scm_source_context_enabled", default=False)

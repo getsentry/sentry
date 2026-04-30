@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 ENABLED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_enabled"
 POST_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_added"
 POST_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_removed"
+POST_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_changed"
+POST_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_renamed"
 FEATURE_FLAG = "organizations:preprod-snapshot-pr-comments"
 
 
@@ -155,12 +157,16 @@ def create_preprod_snapshot_pr_comment_task(
 
         post_on_added = artifact.project.get_option(POST_ON_ADDED_OPTION_KEY, default=False)
         post_on_removed = artifact.project.get_option(POST_ON_REMOVED_OPTION_KEY, default=True)
+        post_on_changed = artifact.project.get_option(POST_ON_CHANGED_OPTION_KEY, default=True)
+        post_on_renamed = artifact.project.get_option(POST_ON_RENAMED_OPTION_KEY, default=False)
         changes_map = build_changes_map(
             all_artifacts,
             snapshot_metrics_map,
             comparisons_map,
             fail_on_added=post_on_added,
             fail_on_removed=post_on_removed,
+            fail_on_changed=post_on_changed,
+            fail_on_renamed=post_on_renamed,
         )
 
         has_changes = any(changes_map.values())

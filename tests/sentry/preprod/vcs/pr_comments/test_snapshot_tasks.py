@@ -502,6 +502,35 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.build_changes_map")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
+    def test_passes_post_on_options_to_build_changes_map(
+        self, mock_format, mock_get_client, mock_build_changes_map
+    ):
+        mock_client = Mock()
+        mock_client.create_comment.return_value = {"id": 11111}
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "body"
+
+        self.project.update_option("sentry:preprod_snapshot_pr_comments_post_on_added", True)
+        self.project.update_option("sentry:preprod_snapshot_pr_comments_post_on_removed", False)
+        self.project.update_option("sentry:preprod_snapshot_pr_comments_post_on_changed", False)
+        self.project.update_option("sentry:preprod_snapshot_pr_comments_post_on_renamed", True)
+
+        artifact, metrics = self._create_artifact_with_metrics()
+        mock_build_changes_map.return_value = {artifact.id: True}
+
+        with self.feature(self._feature):
+            create_preprod_snapshot_pr_comment_task(artifact.id)
+
+        mock_build_changes_map.assert_called_once()
+        kwargs = mock_build_changes_map.call_args
+        assert kwargs[1]["fail_on_added"] is True
+        assert kwargs[1]["fail_on_removed"] is False
+        assert kwargs[1]["fail_on_changed"] is False
+        assert kwargs[1]["fail_on_renamed"] is True
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.build_changes_map")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
     def test_creates_when_no_sibling_has_comment_id(
         self, mock_format, mock_get_client, mock_build_changes_map
     ):

@@ -1237,6 +1237,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_snapshot_pr_comments_post_on_removed": self.get_value_with_default(
                 attrs, "sentry:preprod_snapshot_pr_comments_post_on_removed"
             ),
+            "sentry:preprod_snapshot_pr_comments_post_on_changed": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_changed"
+            ),
+            "sentry:preprod_snapshot_pr_comments_post_on_renamed": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_renamed"
+            ),
         }
 
     def get_value_with_default(self, attrs, key):

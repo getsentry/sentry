@@ -84,6 +84,8 @@ OPTION_KEYS = frozenset(
         "sentry:preprod_snapshot_pr_comments_enabled",
         "sentry:preprod_snapshot_pr_comments_post_on_added",
         "sentry:preprod_snapshot_pr_comments_post_on_removed",
+        "sentry:preprod_snapshot_pr_comments_post_on_changed",
+        "sentry:preprod_snapshot_pr_comments_post_on_renamed",
         "sentry:scm_source_context_enabled",
         "quotas:spike-protection-disabled",
         "feedback:branding",
