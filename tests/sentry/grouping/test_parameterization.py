@@ -787,6 +787,41 @@ def test_replacement_callback_false_positive_triggers_individual_regex_fallback(
         )
 
 
+# Cases where we might or might not trigger a false positive with our IP regex (necessitating use of
+# the slower fallback parameterization method if we do). The goal is to have as many of these as
+# possible have `False` for their third parameter while still keeping our regex relatively
+# straightforward.
+ip_false_positive_cases = [
+    # (name, input, whether callback is expected to have been called)
+    ("ip - too many initial characters", "12345::6:789", False),
+    ("ip - too many final characters", "123:4::56789", False),
+    ("ip - too many initial colons", ":::1121", False),
+    ("ip - too many interior colons", "1231:::1121", True),
+    ("ip - too many final colons", "1231:::", False),
+    ("ip - three colons alone", ":::", False),
+    ("ip - single leading colon", "Script error. :0:0", False),
+    ("ip - single trailing colon", "12::31:", False),
+    ("ip - too few segments", "12:31:99", True),
+    ("ip - v4 leading zeros", "11.21.12.001", True),
+    ("ip - v4 segment > 255", "12.31.12.908", True),
+    ("ip - v4 too many segments", "11.21.12.31.12", True),
+    ("date - colon btwn date and time", "21/Nov/2012:12:31:12", True),
+]
+
+
+@pytest.mark.parametrize(("name", "input", "callback_call_expected"), ip_false_positive_cases)
+@patch("sentry.grouping.parameterization.is_valid_ip", wraps=is_valid_ip)
+def test_ip_false_positives(
+    mock_is_valid_ip: MagicMock, name: str, input: str, callback_call_expected: bool
+) -> None:
+    parameterizer.parameterize(input)
+
+    if callback_call_expected:
+        mock_is_valid_ip.assert_called()
+    else:
+        mock_is_valid_ip.assert_not_called()
+
+
 @patch("sentry.grouping.parameterization.logger")
 def test_example_data_logging(mock_logger: MagicMock) -> None:
     for i in range(15):
