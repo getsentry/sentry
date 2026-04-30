@@ -650,6 +650,8 @@ function updateFilterMultipleValues(
   token: TokenResult<Token.FILTER>,
   values: string[]
 ) {
+  // Deduplicate by canonical form while preserving the original text of the
+  // first occurrence (so the query string keeps the user's original formatting)
   const uniqNonEmptyValues = Array.from(
     values
       .filter(value => value.length > 0)
@@ -676,6 +678,19 @@ function updateFilterMultipleValues(
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
 
+// Normalizes a filter value so that different surface representations of the
+// same logical value compare as equal. This is needed because values arrive
+// from two different sources that use different formats:
+//
+//   1. `action.value` (from the suggestion checkbox) is pre-escaped by
+//      `escapeTagValueForSearch`, which may wrap the value in quotes
+//      (e.g. `"release@1.0"`) and escape wildcards (e.g. `test\*`).
+//
+//   2. `item.value?.value` (from the parsed token) is the unquoted semantic
+//      value produced by the parser (e.g. `release@1.0`).
+//
+// To compare them we strip quotes, unescape wildcards, then re-escape through
+// `escapeTagValueForSearch` so both sides end up in the same canonical form.
 function canonicalizeSearchValue(value: string) {
   const unquotedValue =
     value.startsWith('"') && value.endsWith('"')
@@ -690,11 +705,14 @@ export function multiSelectTokenValue(
   action: MultiSelectFilterValueAction
 ) {
   const tokenValue = action.token.value;
+  // action.value is pre-escaped (possibly quoted); canonicalize for comparison
   const normalizedActionValue = canonicalizeSearchValue(action.value);
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
+      // .value is the unquoted semantic value (for canonical comparison),
+      // .text is the raw text including quotes (preserved for reconstruction)
       const values = tokenValue.items.map(item => ({
         canonicalValue: canonicalizeSearchValue(item.value?.value ?? ''),
         text: item.value?.text ?? '',
