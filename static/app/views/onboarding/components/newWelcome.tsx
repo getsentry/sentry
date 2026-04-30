@@ -8,9 +8,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   IconBot,
-  IconLightning,
   IconCheckmark,
   IconGraph,
+  IconLightning,
   IconProfiling,
   IconSeer,
   IconSpan,

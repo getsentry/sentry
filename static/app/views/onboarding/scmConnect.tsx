@@ -127,9 +127,8 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
             <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
           </MotionStack>
         )}
-        <MotionStack
+        <MotionFlex
           layout="position"
-          direction="row"
           gap="sm"
           align="center"
           width="100%"
@@ -139,7 +138,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
           <Text variant="secondary" size="md" density="comfortable">
             {t('Your code stays yours. We don’t share, sell, or train on it.')}
           </Text>
-        </MotionStack>
+        </MotionFlex>
 
         <MotionGrid
           columns={{xs: '1fr', md: '1fr 1fr'}}
@@ -175,9 +174,8 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
           ))}
         </MotionGrid>
 
-        <MotionStack
+        <MotionFlex
           layout="position"
-          direction="row"
           align="center"
           justify="between"
           width="100%"
@@ -219,11 +217,12 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
               {t('Continue')}
             </Button>
           </Flex>
-        </MotionStack>
+        </MotionFlex>
       </LayoutGroup>
     </Flex>
   );
 }
 
 const MotionStack = motion.create(Stack);
+const MotionFlex = motion.create(Flex);
 const MotionGrid = motion.create(Grid);

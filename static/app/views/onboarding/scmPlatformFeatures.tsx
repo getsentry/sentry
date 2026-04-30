@@ -20,9 +20,8 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {platforms} from 'sentry/data/platforms';
-import {IconBroadcast, IconGeneric, IconBusiness} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {tct} from 'sentry/locale';
+import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
@@ -590,9 +589,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               </Stack>
             )}
           </MotionStack>
-          <MotionStack
+          <MotionFlex
             layout="position"
-            direction="row"
             align="center"
             justify="between"
             width="100%"
@@ -618,7 +616,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                 {t('Continue')}
               </Button>
             </Flex>
-          </MotionStack>
+          </MotionFlex>
         </LayoutGroup>
       </Stack>
     </Flex>
@@ -626,3 +624,4 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
 }
 
 const MotionStack = motion.create(Stack);
+const MotionFlex = motion.create(Flex);
