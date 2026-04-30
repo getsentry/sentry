@@ -425,7 +425,7 @@ class LinkedMessagesContextTest(TestCase):
 
         on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert on_page_context is not None
-        assert "Linked Slack message in <#C9999LINKED>:" in on_page_context
+        assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@ULINK>: linked body" in on_page_context
 
     @patch("sentry.analytics.record")
@@ -460,7 +460,7 @@ class LinkedMessagesContextTest(TestCase):
             channel_id="C9999LINKED", thread_ts="1700000000.111111"
         )
         on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
-        assert "Linked Slack thread in <#C9999LINKED>:" in on_page_context
+        assert "User linked a Slack thread in <#C9999LINKED>:" in on_page_context
         assert "<@UPARENT>: parent" in on_page_context
         assert "<@UREPLY>: reply" in on_page_context
 
@@ -496,9 +496,8 @@ class LinkedMessagesContextTest(TestCase):
         assert call_kwargs["channel_id"] == TASK_KWARGS["channel_id"]
         assert call_kwargs["slack_user_id"] == TASK_KWARGS["slack_user_id"]
         renderable_text = call_kwargs["renderable"]["text"]
-        assert "C9999LINKED" in renderable_text
+        assert "<#C9999LINKED>" in renderable_text
         assert "/invite @Sentry" in renderable_text
-        assert "team=T0TEAM" in renderable_text
 
     @patch("sentry.analytics.record")
     @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
@@ -592,7 +591,7 @@ class LinkedMessagesContextTest(TestCase):
 
         on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert on_page_context is not None
-        linked_idx = on_page_context.index("Linked Slack message")
+        linked_idx = on_page_context.index("User linked a Slack message")
         thread_idx = on_page_context.index("<@UTHREAD>")
         assert linked_idx < thread_idx
         assert "<@ULINK>: linked body" in on_page_context

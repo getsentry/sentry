@@ -614,7 +614,7 @@ class BuildLinkedMessagesContextTest(TestCase):
             {"user": "U123", "text": "hello", "ts": "1700000000.111111"}
         ]
         result = build_linked_messages_context([(link, messages)])
-        assert result == "Linked Slack message in <#C0123456>:\n<@U123>: hello"
+        assert result == "User linked a Slack message in <#C0123456>:\n<@U123>: hello"
 
     def test_thread_ts_renders_thread_header(self) -> None:
         link = SlackMessageLink(
@@ -627,7 +627,9 @@ class BuildLinkedMessagesContextTest(TestCase):
             {"user": "U456", "text": "reply", "ts": "1700000000.222222"},
         ]
         result = build_linked_messages_context([(link, messages)])
-        assert result == "Linked Slack thread in <#C0123456>:\n<@U123>: parent\n<@U456>: reply"
+        assert (
+            result == "User linked a Slack thread in <#C0123456>:\n<@U123>: parent\n<@U456>: reply"
+        )
 
     def test_multiple_messages_without_thread_ts_renders_thread_header(self) -> None:
         # Top-level permalink whose target has replies — conversations.replies
@@ -638,7 +640,7 @@ class BuildLinkedMessagesContextTest(TestCase):
             {"user": "U456", "text": "reply", "ts": "1700000000.222222"},
         ]
         result = build_linked_messages_context([(link, messages)])
-        assert result.startswith("Linked Slack thread in <#C0123456>:\n")
+        assert result.startswith("User linked a Slack thread in <#C0123456>:\n")
 
     def test_skips_blocks_with_empty_messages(self) -> None:
         link_a = SlackMessageLink(channel_id="C0AAA", ts="1700000000.111111")
@@ -647,7 +649,7 @@ class BuildLinkedMessagesContextTest(TestCase):
             {"user": "U123", "text": "kept", "ts": "1700000000.222222"}
         ]
         result = build_linked_messages_context([(link_a, []), (link_b, messages_b)])
-        assert result == "Linked Slack message in <#C0BBB>:\n<@U123>: kept"
+        assert result == "User linked a Slack message in <#C0BBB>:\n<@U123>: kept"
 
     def test_joins_multiple_blocks_with_blank_line(self) -> None:
         link_a = SlackMessageLink(channel_id="C0AAA", ts="1700000000.111111")
@@ -660,8 +662,8 @@ class BuildLinkedMessagesContextTest(TestCase):
         ]
         result = build_linked_messages_context([(link_a, messages_a), (link_b, messages_b)])
         assert result == (
-            "Linked Slack message in <#C0AAA>:\n<@U1>: first\n\n"
-            "Linked Slack message in <#C0BBB>:\n<@U2>: second"
+            "User linked a Slack message in <#C0AAA>:\n<@U1>: first\n\n"
+            "User linked a Slack message in <#C0BBB>:\n<@U2>: second"
         )
 
     def test_empty_input_returns_empty(self) -> None:
