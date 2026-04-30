@@ -288,6 +288,9 @@ from sentry.integrations.api.endpoints.organization_integration_issues import (
 from sentry.integrations.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_integration_repo_sync import (
+    OrganizationIntegrationRepoSyncEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_integration_repos import (
     OrganizationIntegrationReposEndpoint,
 )
@@ -2016,6 +2019,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/repos/$",
         OrganizationIntegrationReposEndpoint.as_view(),
         name="sentry-api-0-organization-integration-repos",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/repo-sync/$",
+        OrganizationIntegrationRepoSyncEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-repo-sync",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channels/$",

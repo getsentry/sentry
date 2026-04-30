@@ -6,7 +6,9 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
+from sentry.integrations.source_code_management.sync_repos import (
+    sync_repos_for_org,
+)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
@@ -801,3 +803,48 @@ class SyncReposForOrgBrokenIdentityTestCase(TestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
+
+
+@control_silo_test
+@patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+class SyncReposLockTestCase(IntegrationTestCase):
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+    key = "github"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=self.integration
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.source_code_management.sync_repos._sync_repos_for_org")
+    def test_skips_when_locked(self, mock_inner: MagicMock, _: MagicMock) -> None:
+        from sentry.locks import locks
+
+        lock = locks.get(
+            f"repo-sync:{self.oi.id}",
+            duration=300,
+            name="sync_repos_for_org",
+        )
+        with lock.acquire():
+            sync_repos_for_org(self.oi.id)
+
+        mock_inner.assert_not_called()
+
+    @responses.activate
+    def test_lock_released_after_sync(self, _: MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            self.base_url + "/installation/repositories?per_page=100",
+            status=200,
+            json={"total_count": 0, "repositories": []},
+        )
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        # A second call should succeed (lock was released).
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
