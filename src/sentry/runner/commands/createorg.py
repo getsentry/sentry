@@ -3,8 +3,6 @@ from __future__ import annotations
 import click
 
 from sentry.runner.decorators import configuration
-from sentry.users.models.user import User
-from sentry.users.services.user.serial import serialize_generic_user
 
 
 @click.command()
@@ -39,6 +37,8 @@ def createorg(
         OrganizationProvisioningException,
         organization_provisioning_service,
     )
+    from sentry.users.models.user import User
+    from sentry.users.services.user.serial import serialize_generic_user
 
     owner = User.objects.get(email=owner_email)
     rpc_owner = serialize_generic_user(owner)
