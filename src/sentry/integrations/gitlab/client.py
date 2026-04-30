@@ -282,7 +282,8 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
         """
         return self.post(
-            GitLabApiClientPath.issue_notes.format(project_id=repo, issue_id=issue_id), data=data
+            GitLabApiClientPath.issue_notes.format(project_id=safe_quote(repo), issue_id=issue_id),
+            data=data,
         )
 
     def update_comment(self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]):
@@ -292,7 +293,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         return self.put(
             GitLabApiClientPath.issue_note.format(
-                project_id=repo, issue_id=issue_id, note_id=comment_id
+                project_id=safe_quote(repo), issue_id=issue_id, note_id=comment_id
             ),
             data=data,
         )
@@ -302,21 +303,21 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         return self.delete(
             GitLabApiClientPath.issue_note.format(
-                project_id=repo, issue_id=issue_id, note_id=comment_id
+                project_id=safe_quote(repo), issue_id=issue_id, note_id=comment_id
             )
         )
 
     def get_issue_note_awards(self, repo: str, issue_id: str, note_id: str):
         return self.get(
             GitLabApiClientPath.issue_note_awards.format(
-                project_id=repo, issue_id=issue_id, note_id=note_id
+                project_id=safe_quote(repo), issue_id=issue_id, note_id=note_id
             )
         )
 
     def create_issue_note_award(self, repo: str, issue_id: str, note_id: str, emoji: str):
         return self.post(
             GitLabApiClientPath.issue_note_awards.format(
-                project_id=repo, issue_id=issue_id, note_id=note_id
+                project_id=safe_quote(repo), issue_id=issue_id, note_id=note_id
             ),
             params={"name": emoji},
         )
@@ -324,7 +325,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
     def delete_issue_note_award(self, repo: str, issue_id: str, note_id: str, award_id: str):
         return self.delete(
             GitLabApiClientPath.issue_note_award.format(
-                project_id=repo, issue_id=issue_id, note_id=note_id, award_id=award_id
+                project_id=safe_quote(repo), issue_id=issue_id, note_id=note_id, award_id=award_id
             )
         )
 
@@ -409,7 +410,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
     def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
         return self.create_merge_request_note(
-            project_id=repo.config["project_id"], pr_key=pr.key, data=data
+            project_id=safe_quote(repo.config["project_id"]), pr_key=pr.key, data=data
         )
 
     def create_merge_request_note(self, project_id: str, pr_key: str, data: dict[str, Any]) -> Any:
