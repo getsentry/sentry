@@ -12,6 +12,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import (
+    STEP_CONFIGS,
     AutofixStep,
     NoSeerQuotaException,
     build_step_prompt,
@@ -262,7 +263,7 @@ class TestBuildStepPrompt(TestCase):
             assert not prompt.startswith("\t"), f"{step} prompt starts with tab"
 
 
-class TestTriggerAutofixExplorer(TestCase):
+class TestTriggerAutofixAgent(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -452,6 +453,54 @@ class TestTriggerAutofixExplorer(TestCase):
         mock_client.continue_run.assert_called_once()
         mock_check_quota.assert_not_called()
         mock_record_run.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_reasoning_effort_falls_back_to_step_config_default(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        assert (
+            mock_client_class.call_args.kwargs["reasoning_effort"]
+            == STEP_CONFIGS[AutofixStep.ROOT_CAUSE].reasoning_effort
+        )
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_explicit_none_reasoning_effort_bypasses_step_default(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        # Guard against the step default drifting to None and making this test
+        # pass coincidentally.
+        assert STEP_CONFIGS[AutofixStep.ROOT_CAUSE].reasoning_effort is not None
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+            reasoning_effort=None,
+        )
+
+        assert mock_client_class.call_args.kwargs["reasoning_effort"] is None
 
 
 class TestTriggerCodingAgentHandoff(TestCase):

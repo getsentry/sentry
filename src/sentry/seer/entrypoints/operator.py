@@ -8,7 +8,8 @@ from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
-from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.agent.client_models import AgentCodingAgentState, SeerRunState
+from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix import trigger_legacy_autofix, update_legacy_autofix
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
@@ -20,6 +21,7 @@ from sentry.seer.autofix.types import (
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixStoppingPoint,
+    CodingAgentState,
     get_autofix_state,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAgentCache, SeerOperatorAutofixCache
@@ -347,9 +349,17 @@ class SeerAutofixOperator[CachePayloadT]:
             )
 
             try:
-                autofix_state = get_autofix_state(
-                    run_id=run_id, organization_id=group.organization.id
-                )
+                coding_agents: list[AgentCodingAgentState] | list[CodingAgentState]
+                if features.has("organizations:autofix-on-explorer", group.organization):
+                    agent_state = fetch_run_status(run_id=run_id, organization=group.organization)
+                    coding_agents = list(agent_state.coding_agents.values())
+                else:
+                    autofix_state = get_autofix_state(
+                        run_id=run_id, organization_id=group.organization.id
+                    )
+                    coding_agents = (
+                        list(autofix_state.coding_agents.values()) if autofix_state else []
+                    )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
@@ -365,8 +375,7 @@ class SeerAutofixOperator[CachePayloadT]:
             lock = locks.get(lock_key, duration=30, name="autofix_trigger_handoff")
             try:
                 with lock.acquire():
-                    agents = list(autofix_state.coding_agents.values()) if autofix_state else []
-                    non_failed = [a for a in agents if a.status != CodingAgentStatus.FAILED]
+                    non_failed = [a for a in coding_agents if a.status != CodingAgentStatus.FAILED]
                     if non_failed:
                         has_complete_stage = any(
                             a.status == CodingAgentStatus.COMPLETED for a in non_failed
@@ -890,8 +899,6 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
 
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
-        from sentry.seer.agent.client_utils import fetch_run_status
-
         with SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AGENT_COMPLETION,
         ).capture() as lifecycle:

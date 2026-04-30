@@ -195,7 +195,7 @@ class CodingAgentResult(BaseModel):
         extra = "ignore"
 
 
-class CodingAgentState(BaseModel):
+class AgentCodingAgentState(BaseModel):
     """State of a coding agent launched from an agent run."""
 
     id: str
@@ -257,7 +257,7 @@ class SeerRunState(BaseModel):
     # exclude=True omits these from .dict() so they're not exposed via the public
     # chat API. Internal callers (autofix, night shift) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
-    coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
+    coding_agents: dict[str, AgentCodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
 
     class Config:

@@ -19,33 +19,35 @@ import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/hotkey');
 
-The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elements with automatic platform-aware modifier rendering. On Mac, `command` renders as <InlineCode><IconCommand size="xs" /></InlineCode>; on other platforms it renders as `Ctrl`. The `<Kbd>` component renders a single styled key cap.
+The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elements with automatic platform-aware modifier rendering. The `mod` token resolves to <InlineCode><IconCommand size="xs" /></InlineCode> on macOS and `Ctrl` on Windows/Linux, so a single shortcut definition works everywhere. The `<Kbd>` component renders a single styled key cap.
 
 ## Hotkey
 
 `<Hotkey>` accepts the same key string format as the `useHotkeys` hook, making it easy to display the shortcuts you've already registered.
 
+**Prefer `mod`** for the platform-primary modifier — it's the OS-agnostic shorthand for "command on Mac, ctrl elsewhere" and renders the correct glyph automatically.
+
 <Storybook.Demo>
   <Flex gap="xl" align="center">
     <Flex gap="sm" align="center">
       <Text>Save:</Text>
-      <Hotkey value="command+s" />
+      <Hotkey value="mod+s" />
     </Flex>
     <Flex gap="sm" align="center">
       <Text>Search:</Text>
-      <Hotkey value="command+k" />
+      <Hotkey value="mod+k" />
     </Flex>
     <Flex gap="sm" align="center">
       <Text>Copy:</Text>
-      <Hotkey value="command+c" />
+      <Hotkey value="mod+c" />
     </Flex>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
-<Hotkey value="command+s" />
-<Hotkey value="command+k" />
-<Hotkey value="command+c" />
+<Hotkey value="mod+s" />
+<Hotkey value="mod+k" />
+<Hotkey value="mod+c" />
 ```
 
 ### Platform Mapping
@@ -54,6 +56,7 @@ Modifiers are automatically mapped per platform. No fallback arrays needed for s
 
 | Key name  | Mac                                                | Other platforms                                   |
 | --------- | -------------------------------------------------- | ------------------------------------------------- |
+| `mod`     | <InlineCode><IconCommand size="xs" /></InlineCode> | `Ctrl`                                            |
 | `command` | <InlineCode><IconCommand size="xs" /></InlineCode> | `Ctrl`                                            |
 | `ctrl`    | <InlineCode><IconControl size="xs" /></InlineCode> | `Ctrl`                                            |
 | `alt`     | <InlineCode><IconOption size="xs" /></InlineCode>  | `Alt`                                             |
@@ -61,6 +64,8 @@ Modifiers are automatically mapped per platform. No fallback arrays needed for s
 | `shift`   | <InlineCode><IconShift size="xs" /></InlineCode>   | <InlineCode><IconShift size="xs" /></InlineCode>  |
 | `enter`   | <InlineCode><IconReturn size="xs" /></InlineCode>  | <InlineCode><IconReturn size="xs" /></InlineCode> |
 | `return`  | <InlineCode><IconReturn size="xs" /></InlineCode>  | <InlineCode><IconReturn size="xs" /></InlineCode> |
+
+Use `command` or `ctrl` directly only as an escape hatch for shortcuts that intentionally bind to a specific modifier on every platform (e.g. a Mac-only dev tool, or a shortcut that must be `Ctrl` on macOS).
 
 Keys without an explicit glyph mapping (e.g. `Home`, `End`, `PageUp`) render as title-cased text.
 
@@ -70,11 +75,11 @@ Keys without an explicit glyph mapping (e.g. `Home`, `End`, `PageUp`) render as 
   <Flex gap="xl" align="center">
     <Flex gap="sm" align="center">
       <Text>Undo:</Text>
-      <Hotkey value="command+z" />
+      <Hotkey value="mod+z" />
     </Flex>
     <Flex gap="sm" align="center">
       <Text>Redo:</Text>
-      <Hotkey value="command+shift+z" />
+      <Hotkey value="mod+shift+z" />
     </Flex>
     <Flex gap="sm" align="center">
       <Text>Navigate:</Text>
@@ -84,17 +89,17 @@ Keys without an explicit glyph mapping (e.g. `Home`, `End`, `PageUp`) render as 
 </Storybook.Demo>
 
 ```jsx
-<Hotkey value="command+z" />
-<Hotkey value="command+shift+z" />
+<Hotkey value="mod+z" />
+<Hotkey value="mod+shift+z" />
 <Hotkey value="shift+right" />
 ```
 
 ### Array Form
 
-Pass an array when the actual keys (not just modifiers) differ across platforms. The first combo is used.
+Pass an array when the actual keys (not just modifiers) differ across platforms. The first combo is used. With `mod`, you rarely need this — only reach for it when the non-modifier keys themselves differ.
 
 ```jsx
-<Hotkey value={['command+backspace', 'delete']} />
+<Hotkey value={['mod+backspace', 'delete']} />
 ```
 
 ## Variants
@@ -105,18 +110,18 @@ Both `<Hotkey>` and `<Kbd>` accept a `variant` prop. The default `embossed` vari
   <Flex gap="xl" align="center">
     <Flex gap="sm" align="center">
       <Text>Embossed (default):</Text>
-      <Hotkey value="command+k" variant="embossed" />
+      <Hotkey value="mod+k" variant="embossed" />
     </Flex>
     <Flex gap="sm" align="center">
       <Text>Debossed:</Text>
-      <Hotkey value="command+k" variant="debossed" />
+      <Hotkey value="mod+k" variant="debossed" />
     </Flex>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
-<Hotkey value="command+k" />
-<Hotkey value="command+k" variant="debossed" />
+<Hotkey value="mod+k" />
+<Hotkey value="mod+k" variant="debossed" />
 
 <Kbd>Esc</Kbd>
 <Kbd variant="debossed">Esc</Kbd>
@@ -158,13 +163,13 @@ import {Hotkey, useHotkeys} from '@sentry/scraps/hotkey';
 
 function MyComponent() {
   useHotkeys([
-    {match: 'command+k', callback: () => openSearch()},
-    {match: ['command+/', 'ctrl+/'], callback: () => openHelp()},
+    {match: 'mod+k', callback: () => openSearch()},
+    {match: 'mod+/', callback: () => openHelp()},
   ]);
 
   return (
     <Text>
-      Search: <Hotkey value="command+k" />
+      Search: <Hotkey value="mod+k" />
     </Text>
   );
 }

@@ -15,6 +15,7 @@ from sentry.tasks.seer.night_shift.cron import (
     run_night_shift_for_org,
     schedule_night_shift,
 )
+from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -376,6 +377,21 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         )
         assert issue_run_ids == {autofix_group.id: "42", root_cause_group.id: "99"}
 
+    def test_forwards_reasoning_effort_to_trigger(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        group = self._store_event_and_update_group(
+            project, "fixable", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with self._patched_night_shift([(group.id, "autofix")]) as (mock_trigger, _):
+            run_night_shift_for_org(org.id, options={"reasoning_effort": "low"})
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["reasoning_effort"] == "low"
+
     def test_dry_run_skips_autofix(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -676,3 +692,17 @@ class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
         assert result[0].times_seen == 5
         assert result[0].severity == 1.0
         assert result[1].group.id == low.id
+
+
+class TestTriageActionFromFixabilityScore:
+    def test_bucket_boundaries(self) -> None:
+        cases = [
+            (0.0, TriageAction.SKIP),
+            (0.39, TriageAction.SKIP),
+            (0.40, TriageAction.ROOT_CAUSE_ONLY),
+            (0.65, TriageAction.ROOT_CAUSE_ONLY),
+            (0.66, TriageAction.AUTOFIX),
+            (0.95, TriageAction.AUTOFIX),
+        ]
+        for score, expected in cases:
+            assert TriageAction.from_fixability_score(score) == expected
