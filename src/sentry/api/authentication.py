@@ -48,7 +48,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 from sentry.utils.linksign import process_signature
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -99,10 +99,26 @@ def is_internal_relay(request, public_key):
 
     # check legacy whitelisted public_key settings
     # (we can't check specific relays but we can check public keys)
-    if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
+    if settings.DEBUG:
         return True
 
-    return is_internal_ip(request)
+    if public_key in settings.SENTRY_RELAY_WHITELIST_PK:
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "whitelist_pk"},
+            sample_rate=1.0,
+        )
+        return True
+
+    if is_internal_ip(request):
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "internal_ip"},
+            sample_rate=1.0,
+        )
+        return True
+
+    return False
 
 
 def is_static_relay(request):
