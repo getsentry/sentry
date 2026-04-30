@@ -12,11 +12,13 @@ from sentry.notifications.platform.service import (
     NotificationService,
     NotificationServiceError,
     deserialize_notification_data,
+    notify_target_async_control,
     serialize_notification_data,
 )
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
+    serialize_target,
 )
 from sentry.notifications.platform.templates.data_export import DataExportFailure
 from sentry.notifications.platform.types import (
@@ -24,6 +26,7 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import (
@@ -31,6 +34,7 @@ from sentry.testutils.notifications.platform import (
     MockNotificationTemplate,
     MockStrategy,
 )
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class NotificationServiceTest(TestCase):
@@ -208,6 +212,31 @@ class NotificationServiceTest(TestCase):
 
         assert "missing occurrence" in str(exc_info.value.__cause__)
         assert_count_of_metric(mock_record, EventLifecycleOutcome.FAILURE, 1)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_notify_target_async_control_executes(self, mock_record: mock.MagicMock) -> None:
+        """Verify the control-silo task wrapper sends the notification end-to-end."""
+        data = MockNotification(message="control silo test")
+        serialized_data = serialize_notification_data(data)
+        serialized_target = serialize_target(self.target)
+        notify_target_async_control(
+            data=serialized_data,
+            nested_target=serialized_target,
+        )
+
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_notify_async_dispatches_to_control_task_in_control_mode(
+        self, mock_record: mock.MagicMock
+    ) -> None:
+        service = NotificationService(data=MockNotification(message="control e2e"))
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            service.notify_async(targets=[self.target])
+
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
 
 
 class NotificationDataSerializationTest(TestCase):

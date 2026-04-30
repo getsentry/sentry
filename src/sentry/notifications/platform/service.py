@@ -39,7 +39,7 @@ from sentry.notifications.platform.types import (
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import notifications_tasks
+from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
 from sentry.utils import json
 from sentry.utils.registry import NoRegistrationExistsError
 
@@ -188,10 +188,14 @@ class NotificationService[T: NotificationData]:
         self._validate_strategy_and_targets(strategy=strategy, targets=targets)
         targets = self._get_targets(strategy=strategy, targets=targets)
 
+        task = notify_target_async
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            task = notify_target_async_control
+
         for target in targets:
             serialized_data = serialize_notification_data(self.data)
             serialized_target = serialize_target(target)
-            notify_target_async.delay(
+            task.delay(
                 data=serialized_data,
                 nested_target=serialized_target,
                 threading_options=threading_options.dict() if threading_options else None,
@@ -285,13 +289,7 @@ class NotificationService[T: NotificationData]:
         return None
 
 
-@instrumented_task(
-    name="src.sentry.notifications.platform.service.notify_target_async",
-    namespace=notifications_tasks,
-    processing_deadline_duration=30,
-    silo_mode=SiloMode.CELL,
-)
-def notify_target_async(
+def _notify_target_async(
     *,
     data: dict[str, Any],
     nested_target: dict[str, Any],
@@ -372,6 +370,40 @@ def notify_target_async(
                 # We don't want to retry the task if we fail to store the threading result
                 # as that would cause double send issues
                 lifecycle.record_failure(failure_reason=e, create_issue=False)
+
+
+@instrumented_task(
+    name="src.sentry.notifications.platform.service.notify_target_async",
+    namespace=notifications_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.CELL,
+)
+def notify_target_async(
+    *,
+    data: dict[str, Any],
+    nested_target: dict[str, Any],
+    threading_options: dict[str, Any] | None = None,
+) -> None:
+    _notify_target_async(
+        data=data, nested_target=nested_target, threading_options=threading_options
+    )
+
+
+@instrumented_task(
+    name="src.sentry.notifications.platform.service.notify_target_async_control",
+    namespace=notifications_control_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.CONTROL,
+)
+def notify_target_async_control(
+    *,
+    data: dict[str, Any],
+    nested_target: dict[str, Any],
+    threading_options: dict[str, Any] | None = None,
+) -> None:
+    _notify_target_async(
+        data=data, nested_target=nested_target, threading_options=threading_options
+    )
 
 
 def serialize_notification_data(data: NotificationData) -> dict[str, Any]:
