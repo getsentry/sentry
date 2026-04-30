@@ -80,7 +80,7 @@ export function SeerRepoTableHeader({
   const queryOptions = queryKeyRef.current
     ? parseQueryKey(queryKeyRef.current).options
     : undefined;
-  const queryString = queryOptions?.query?.query;
+  const queryString = queryOptions?.query?.query as string | undefined;
 
   const selectedRepos = useMemo(() => {
     if (selectedIds === 'all') {

@@ -1,7 +1,7 @@
 import type {ComponentType} from 'react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
@@ -22,6 +22,8 @@ type FeatureMeta = {
   description: string;
   icon: ComponentType<SVGIconProps>;
   label: string;
+  volume: string;
+  volumeTooltip: string;
   alwaysEnabled?: boolean;
 };
 
@@ -31,6 +33,10 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     icon: IconWarning,
     description: t('Automatically capture exceptions and stack traces'),
     alwaysEnabled: true,
+    volume: t('5,000 errors / mo'),
+    volumeTooltip: t(
+      'Free plan includes 5,000 errors / month. Upgrade to Team or Business to send more.'
+    ),
   },
   [ProductSolution.PERFORMANCE_MONITORING]: {
     label: t('Tracing'),
@@ -38,16 +44,28 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t(
       'Find bottlenecks, broken requests, and understand application flow end-to-end'
     ),
+    volume: t('5M spans / mo'),
+    volumeTooltip: t(
+      'Free plan includes 5M spans / month. Upgrade to Team or Business to send more.'
+    ),
   },
   [ProductSolution.SESSION_REPLAY]: {
     label: t('Session replay'),
     icon: IconTimer,
     description: t('Watch real user sessions to see what went wrong'),
+    volume: t('50 replays / mo'),
+    volumeTooltip: t(
+      'Free plan includes 50 replays / month. Upgrade to Team or Business to send more.'
+    ),
   },
   [ProductSolution.LOGS]: {
     label: t('Logging'),
     icon: IconTerminal,
     description: t('See logs in context with errors and performance issues'),
+    volume: t('5 GB logs / mo'),
+    volumeTooltip: t(
+      'Free plan includes 5 GB logs / month. Upgrade to Team or Business to send more.'
+    ),
   },
   [ProductSolution.PROFILING]: {
     label: t('Profiling'),
@@ -55,6 +73,8 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t(
       'Pinpoint the functions and lines of code responsible for performance issues'
     ),
+    volume: t('Usage-based'),
+    volumeTooltip: t('Upgrade to Team or Business to send more.'),
   },
   [ProductSolution.METRICS]: {
     label: t('Application Metrics'),
@@ -62,6 +82,8 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t(
       'Track application performance and usage over time with custom metrics'
     ),
+    volume: t('5 GB / mo'),
+    volumeTooltip: t('Free plan includes 5 GB metrics / month'),
   },
 };
 
@@ -79,18 +101,16 @@ export function ScmFeatureSelectionCards({
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
   return (
-    <Flex direction="column" gap="2xl" width="100%" justify="center">
-      <Stack gap="sm">
-        <Text bold size="lg">
-          {t('We’re more than just errors')}
+    <Stack gap="xl" width="100%" justify="center">
+      <Flex justify="between" align="center">
+        <Heading as="h3" size="xl">
+          {t('What do you want to instrument?')}
+        </Heading>
+        <Text size="sm" variant="secondary">
+          {t('Choose one or more')}
         </Text>
-        <Text size="lg" density="comfortable" variant="secondary">
-          {t(
-            'Sentry can trace slow requests, replay user sessions, profile your code, and more.'
-          )}
-        </Text>
-      </Stack>
-      <Stack gap="xl">
+      </Flex>
+      <Stack gap="md">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
           const disabledProduct = disabledProducts[feature];
@@ -107,11 +127,12 @@ export function ScmFeatureSelectionCards({
               disabled={!!meta.alwaysEnabled || !!disabledProduct}
               disabledReason={disabledReason}
               onClick={() => onToggleFeature(feature)}
-              alwaysEnabled={meta.alwaysEnabled}
+              volume={meta.volume}
+              volumeTooltip={meta.volumeTooltip}
             />
           );
         })}
       </Stack>
-    </Flex>
+    </Stack>
   );
 }

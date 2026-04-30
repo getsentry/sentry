@@ -2,9 +2,10 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {Pagination} from 'sentry/components/pagination';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';

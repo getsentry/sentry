@@ -29,6 +29,7 @@ import {ResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconClock,
+  IconCopy,
   IconEllipsis,
   IconSubscribed,
   IconUnsubscribed,
@@ -45,10 +46,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
+import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -142,6 +145,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     const message = getMessage(group);
     return message && message !== title ? `${title}: ${message}` : title;
   }, [group]);
+
+  const stacktraceBody = useMemo(() => {
+    if (!event) {
+      return '';
+    }
+    const result = getStacktraceBody({event});
+    return result && Array.isArray(result) ? result.join('\n\n') : '';
+  }, [event]);
 
   const {
     actions: {
@@ -458,6 +469,16 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                     substatus: GroupSubstatus.ONGOING,
                   })
                 }
+              />
+            )}
+            {stacktraceBody && (
+              <CMDKAction
+                display={{
+                  label: t('Copy Stack Trace'),
+                  icon: <IconCopy />,
+                }}
+                keywords={['stacktrace', 'exception', 'error', 'trace', 'copy']}
+                onAction={() => copyToClipboard(stacktraceBody)}
               />
             )}
             <GroupPriorityCommandPaletteAction group={group} />

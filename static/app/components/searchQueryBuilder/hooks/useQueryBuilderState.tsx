@@ -650,9 +650,22 @@ function updateFilterMultipleValues(
   token: TokenResult<Token.FILTER>,
   values: string[]
 ) {
-  const uniqNonEmptyValues = Array.from(
-    new Set(values.filter(value => value.length > 0))
-  );
+  // Deduplicate by canonical form while preserving the original text of the
+  // first occurrence (so the query string keeps the user's original formatting)
+  const seen = new Set<string>();
+  const uniqNonEmptyValues = values.filter(value => {
+    if (value.length === 0) {
+      return false;
+    }
+
+    const canonical = canonicalizeSearchValue(value);
+    if (seen.has(canonical)) {
+      return false;
+    }
+
+    seen.add(canonical);
+    return true;
+  });
   if (uniqNonEmptyValues.length === 0) {
     return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
@@ -665,30 +678,78 @@ function updateFilterMultipleValues(
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
 
+// Normalizes a filter value so that different surface representations of the
+// same logical value compare as equal. This is needed because values arrive
+// from two different sources that use different formats:
+//
+//   1. `action.value` (from the suggestion checkbox) is pre-escaped by
+//      `escapeTagValueForSearch`, which quotes values containing spaces,
+//      parens, or commas (e.g. `1.0.0+build 1` → `"1.0.0+build 1"`)
+//      and escapes wildcards (e.g. `test*` → `test\*`).
+//
+//   2. `item.value?.value` (from the parsed token) is the unquoted semantic
+//      value produced by the parser (e.g. `"1.0.0+build 1"` → `1.0.0+build 1`).
+//
+// To compare them we strip quotes, unescape wildcards, then re-escape through
+// `escapeTagValueForSearch` so both sides end up in the same canonical form.
+function canonicalizeSearchValue(value: string) {
+  const unquotedValue =
+    value.startsWith('"') && value.endsWith('"')
+      ? value.slice(1, -1).replace(/\\"/g, '"')
+      : value;
+
+  return escapeTagValueForSearch(unescapeAsteriskSearchValue(unquotedValue));
+}
+
 export function multiSelectTokenValue(
   state: QueryBuilderState,
   action: MultiSelectFilterValueAction
 ) {
   const tokenValue = action.token.value;
-  // Normalize to the escaped form so that a manually-typed raw value like
-  // `foo*` matches the escaped form `foo\*` dispatched from suggestion checkboxes.
-  const normalize = (value: string) =>
-    escapeTagValueForSearch(unescapeAsteriskSearchValue(value));
-  const normalizedActionValue = normalize(action.value);
+
+  // Suggestions already pass escaped search syntax, while parsed tokens expose
+  // semantic values. Canonicalize before comparing so toggling treats both
+  // representations as the same value.
+  const normalizedActionValue = canonicalizeSearchValue(action.value);
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
-      const values = tokenValue.items.map(item => item.value?.text ?? '');
-      const containsValue = values.some(v => normalize(v) === normalizedActionValue);
-      const newValues = containsValue
-        ? values.filter(v => normalize(v) !== normalizedActionValue)
-        : [...values, action.value];
+      // Compare against canonical values, but keep each token's raw text for
+      // reconstruction so quotes and escaping already in the query are preserved.
+      const values = tokenValue.items.map(item => ({
+        canonicalValue: canonicalizeSearchValue(item.value?.value ?? ''),
+        text: item.value?.text ?? '',
+      }));
+
+      const containsValue = values.some(
+        ({canonicalValue}) => canonicalValue === normalizedActionValue
+      );
+
+      if (!containsValue) {
+        return updateFilterMultipleValues(state, action.token, [
+          ...values.map(({text}) => text),
+          action.value,
+        ]);
+      }
+
+      // The selected value was already present, so this is a deselect. Filter it
+      // by canonical value instead of raw text because the same value may appear
+      // quoted/escaped differently depending on whether it came from the parser
+      // or the suggestion list.
+      const newValues: string[] = [];
+      for (const value of values) {
+        if (value.canonicalValue !== normalizedActionValue) {
+          newValues.push(value.text);
+        }
+      }
 
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
-      if (normalize(tokenValue.text) === normalizedActionValue) {
+      // Single values use the same toggle semantics as lists: if the canonical
+      // value is already selected, clear it; otherwise expand it into a list.
+      if (canonicalizeSearchValue(tokenValue.value ?? '') === normalizedActionValue) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
       const newValue = tokenValue.value

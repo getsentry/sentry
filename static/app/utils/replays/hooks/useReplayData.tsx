@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
@@ -9,13 +10,10 @@ import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages'
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 type Options = {
@@ -54,10 +52,10 @@ const REPLAY_ERROR_FIELDS = [
 ] as const;
 
 interface Result {
-  attachmentError: undefined | RequestError[];
+  attachmentError: undefined | Error[];
   attachments: unknown[];
   errors: RawReplayError[];
-  fetchError: undefined | RequestError;
+  fetchError: undefined | Error;
   isError: boolean;
   isPending: boolean;
   onRetry: () => void;
@@ -99,8 +97,6 @@ export function useReplayData({
 }: Options): Result {
   const queryClient = useQueryClient();
 
-  const enableReplayRecord = Boolean(replayId);
-
   // Fetch every field of the replay. The TS type definition lists every field
   // that's available. It's easier to ask for them all and not have to deal with
   // partial types or nullable fields.
@@ -109,21 +105,16 @@ export function useReplayData({
     data: replayData,
     status: fetchReplayStatus,
     error: fetchReplayError,
-  } = useApiQuery<{data: unknown}>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          replayId: replayId!,
-        },
-      }),
-    ],
-    {
-      enabled: enableReplayRecord,
-      retry: false,
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<{data: unknown}>()(
+      '/organizations/$organizationIdOrSlug/replays/$replayId/',
+      {
+        path: replayId ? {organizationIdOrSlug: orgSlug, replayId} : skipToken,
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
   const replayRecord = useMemo(
     () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
     [replayData?.data]
@@ -131,28 +122,24 @@ export function useReplayData({
 
   const projectSlug = useReplayProjectSlug({replayRecord});
 
-  const getAttachmentsQueryKey = useCallback(
-    ({cursor, per_page}: any): ApiQueryKey => {
-      return [
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
-          {
-            path: {
-              organizationIdOrSlug: orgSlug,
-              projectIdOrSlug: projectSlug!,
-              replayId: replayId!,
-            },
-          }
-        ),
+  const getAttachmentsQueryOptions = useCallback(
+    ({cursor, per_page}: {cursor: string; per_page: number}) =>
+      apiOptions.as<unknown>()(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
         {
+          path: {
+            organizationIdOrSlug: orgSlug,
+            projectIdOrSlug: projectSlug!,
+            replayId: replayId!,
+          },
           query: {
             download: true,
             per_page,
             cursor,
           },
-        },
-      ];
-    },
+          staleTime: Infinity,
+        }
+      ),
     [orgSlug, projectSlug, replayId]
   );
 
@@ -168,24 +155,23 @@ export function useReplayData({
     error: fetchAttachmentsError,
   } = useFetchParallelPages({
     enabled: enableAttachments,
-    getQueryKey: getAttachmentsQueryKey,
+    getQueryOptions: getAttachmentsQueryOptions,
     hits: replayRecord?.count_segments ?? 0,
     perPage: segmentsPerPage,
   });
 
-  const getErrorsQueryKey = useCallback(
-    ({cursor, per_page}: any): ApiQueryKey => {
+  const getErrorsQueryOptions = useCallback(
+    ({cursor, per_page}: {cursor: string; per_page: number}) => {
       // Bump `finished_at` up one second because it's truncated to whole
       // seconds, while events carry ms precision — e.g. finished_at of
       // `12:00:00.000Z` could miss an event stored at `12:00:00.450Z`.
       const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
-      return [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
+      return apiOptions.as<{data: RawReplayError[]}>()(
+        '/organizations/$organizationIdOrSlug/events/',
         {
+          path: {organizationIdOrSlug: orgSlug},
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.ERRORS,
@@ -197,22 +183,22 @@ export function useReplayData({
             per_page,
             cursor,
           },
-        },
-      ];
+          staleTime: Infinity,
+        }
+      );
     },
     [orgSlug, replayRecord]
   );
 
-  const getPlatformErrorsQueryKey = useCallback(
-    ({cursor, per_page}: any): ApiQueryKey => {
+  const getPlatformErrorsQueryOptions = useCallback(
+    ({cursor, per_page}: {cursor: string; per_page: number}) => {
       const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
-      return [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
+      return apiOptions.as<{data: RawReplayError[]}>()(
+        '/organizations/$organizationIdOrSlug/events/',
         {
+          path: {organizationIdOrSlug: orgSlug},
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.ISSUE_PLATFORM,
@@ -224,8 +210,9 @@ export function useReplayData({
             per_page,
             cursor,
           },
-        },
-      ];
+          staleTime: Infinity,
+        }
+      );
     },
     [orgSlug, replayRecord]
   );
@@ -234,16 +221,15 @@ export function useReplayData({
   const {
     pages: errorPages,
     status: fetchErrorsStatus,
-    getLastResponseHeader: lastErrorsResponseHeader,
+    lastResponseHeaders: lastErrorsResponseHeaders,
   } = useFetchParallelPages<{data: RawReplayError[]}>({
     enabled: enableErrors,
     hits: replayRecord?.count_errors ?? 0,
-    getQueryKey: getErrorsQueryKey,
+    getQueryOptions: getErrorsQueryOptions,
     perPage: errorsPerPage,
   });
 
-  const linkHeader = lastErrorsResponseHeader?.('Link') ?? null;
-  const links = parseLinkHeader(linkHeader);
+  const links = parseLinkHeader(lastErrorsResponseHeaders?.Link ?? null);
   const enableExtraErrors =
     Boolean(replayRecord) &&
     (!replayRecord?.count_errors || Boolean(links.next?.results)) &&
@@ -252,29 +238,53 @@ export function useReplayData({
     useFetchSequentialPages<{data: RawReplayError[]}>({
       enabled: enableExtraErrors,
       initialCursor: links.next?.cursor,
-      getQueryKey: getErrorsQueryKey,
+      getQueryOptions: getErrorsQueryOptions,
       perPage: errorsPerPage,
     });
 
   const {pages: platformErrorPages, status: fetchPlatformErrorsStatus} =
     useFetchSequentialPages<{data: RawReplayError[]}>({
       enabled: true,
-      getQueryKey: getPlatformErrorsQueryKey,
+      getQueryOptions: getPlatformErrorsQueryOptions,
       perPage: errorsPerPage,
     });
 
   const clearQueryCache = useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+    if (!replayId) {
+      return;
+    }
+    const replayUrl = getApiUrl(
+      '/organizations/$organizationIdOrSlug/replays/$replayId/',
+      {
+        path: {organizationIdOrSlug: orgSlug, replayId},
+      }
+    );
+    const segmentsUrl = projectSlug
+      ? getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug,
+              replayId,
+            },
+          }
+        )
+      : undefined;
+    const eventsUrl = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: orgSlug},
     });
+
     queryClient.invalidateQueries({
-      queryKey: [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
-      ],
+      predicate: query => safeParseQueryKey(query.queryKey)?.url === replayUrl,
     });
+    if (segmentsUrl) {
+      queryClient.invalidateQueries({
+        predicate: query => safeParseQueryKey(query.queryKey)?.url === segmentsUrl,
+      });
+    }
     // Invalidate fetched replay error events for all replayIds. Narrow to
     // `referrer=replay_details` so unrelated /events/ queries aren't refetched.
-    const eventsUrl = `/organizations/${orgSlug}/events/`;
     queryClient.invalidateQueries({
       predicate: query => {
         const queryKey = safeParseQueryKey(query.queryKey);
@@ -321,7 +331,7 @@ export function useReplayData({
   }, [rawFeedbackEvents?.length]);
 
   const allStatuses = [
-    enableReplayRecord ? fetchReplayStatus : undefined,
+    replayId ? fetchReplayStatus : undefined,
     enableAttachments ? fetchAttachmentsStatus : undefined,
     enableErrors ? fetchErrorsStatus : undefined,
     enableExtraErrors ? fetchExtraErrorsStatus : undefined,

@@ -136,13 +136,13 @@ export function DurationChart({
       baselineValue: avg,
       baselineLabel: t('Average'),
       onClick: sample => {
-        onClickSample?.(spanSamplesById[sample.id]!);
+        onClickSample?.(spanSamplesById[sample.id]);
       },
       onHighlight: sample => {
-        onMouseOverSample?.(spanSamplesById[sample.id]!);
+        onMouseOverSample?.(spanSamplesById[sample.id]);
       },
       onDownplay: sample => {
-        onMouseLeaveSample?.(spanSamplesById[sample.id]!);
+        onMouseLeaveSample?.(spanSamplesById[sample.id]);
       },
     });
   }, [

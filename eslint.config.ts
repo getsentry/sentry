@@ -432,7 +432,7 @@ export default typescript.config([
       'import/no-duplicates': 'error',
       'import/no-extraneous-dependencies': [
         'error',
-        {includeTypes: true, devDependencies: ['!eslint.config.ts']},
+        {includeTypes: true, devDependencies: true},
       ],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
@@ -621,8 +621,6 @@ export default typescript.config([
           '@typescript-eslint/no-unsafe-enum-comparison': 'off',
           '@typescript-eslint/no-unsafe-member-access': 'off',
           '@typescript-eslint/no-unsafe-return': 'off',
-          '@typescript-eslint/no-useless-default-assignment': 'off',
-          '@typescript-eslint/non-nullable-type-assertion-style': 'off',
           '@typescript-eslint/prefer-array-find': 'off',
           '@typescript-eslint/prefer-array-index-of': 'off',
           '@typescript-eslint/prefer-find': 'off',
@@ -816,7 +814,6 @@ export default typescript.config([
       // TODO: Evaluate which rules we could practically fix violations from & enable
       'unicorn/consistent-date-clone': 'off',
       'unicorn/consistent-existence-index-check': 'off',
-      'unicorn/escape-case': 'off',
       'unicorn/import-style': 'off',
       'unicorn/no-array-for-each': 'off',
       'unicorn/no-array-method-this-argument': 'off',

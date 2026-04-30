@@ -14,7 +14,7 @@ import {INSIGHTS_TITLE, QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/sett
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
-export type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
+type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 interface Props {
   children: React.ReactNode;

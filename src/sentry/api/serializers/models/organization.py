@@ -41,7 +41,6 @@ from sentry.constants import (
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -400,8 +399,12 @@ class OrganizationSummarySerializer(Serializer):
         feature_set = set()
 
         with sentry_sdk.start_span(op="features.check", name="check batch features"):
-            # Check features in batch using the entity handler
-            batch_features = features.batch_has(org_features, actor=user, organization=obj)
+            # Evaluate flags purely to populate the response — the user has not
+            # actually encountered any experiments yet, so suppress the auto
+            # exposure events the entity handler would otherwise log.
+            batch_features = features.batch_has(
+                org_features, actor=user, organization=obj, skip_experiment_exposure=True
+            )
 
             # batch_has has found some features
             if batch_features:
@@ -611,7 +614,6 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     defaultCodingAgent: str
     defaultCodingAgentIntegrationId: str | None
@@ -845,12 +847,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "enableSeerEnhancedAlerts": bool(
-                obj.get_option(
-                    "sentry:enable_seer_enhanced_alerts",
-                    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
-                )
             ),
             "enableSeerCoding": bool(
                 obj.get_option(

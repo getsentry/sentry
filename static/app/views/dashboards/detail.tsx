@@ -101,7 +101,6 @@ import {DashboardTitle} from './title';
 import type {
   DashboardDetails,
   DashboardFilters,
-  DashboardListItem,
   DashboardPermissions,
   Widget,
 } from './types';
@@ -136,7 +135,6 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
-  dashboards: DashboardListItem[];
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -1047,7 +1045,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderDefaultDashboardDetail() {
-    const {pageAlerts, organization, dashboard, dashboards, location} = this.props;
+    const {pageAlerts, organization, dashboard, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     return (
       <PageFiltersContainer
@@ -1075,7 +1073,6 @@ class DashboardDetail extends Component<Props, State> {
                   </Layout.Title>
                   <Controls
                     organization={organization}
-                    dashboards={dashboards}
                     dashboard={dashboard}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
@@ -1161,7 +1158,6 @@ class DashboardDetail extends Component<Props, State> {
       api,
       organization,
       dashboard,
-      dashboards,
       location,
       onDashboardUpdate,
       pageAlerts,
@@ -1177,7 +1173,6 @@ class DashboardDetail extends Component<Props, State> {
     } = this.state;
 
     const hasUnsavedFilters =
-      dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
@@ -1236,7 +1231,6 @@ class DashboardDetail extends Component<Props, State> {
                     <TopBar.Slot name="actions">
                       <Controls
                         organization={organization}
-                        dashboards={dashboards}
                         dashboard={dashboard}
                         hideAddWidget
                         hasUnsavedFilters={hasUnsavedFilters}
@@ -1255,7 +1249,6 @@ class DashboardDetail extends Component<Props, State> {
                     <Layout.HeaderActions>
                       <Controls
                         organization={organization}
-                        dashboards={dashboards}
                         dashboard={dashboard}
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}

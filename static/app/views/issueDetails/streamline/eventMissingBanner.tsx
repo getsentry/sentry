@@ -18,10 +18,11 @@ export function EventMissingBanner() {
   const location = useLocation();
   const organization = useOrganization();
   const defaultEventId = useDefaultIssueEvent();
-  const {groupId, eventId = defaultEventId} = useParams<{
+  const {groupId, eventId: eventIdParam} = useParams<{
     eventId: string;
     groupId: string;
   }>();
+  const eventId = eventIdParam ?? defaultEventId;
 
   const retentionHook = HookStore.get('react-hook:use-get-max-retention-days')[0];
   const useGetMaxRetentionDays = retentionHook ?? (() => MAX_PICKABLE_DAYS);

@@ -293,7 +293,7 @@ function SeerSuggestionsSection({
                 <SeerSuggestion
                   key={issue.shortId}
                   issue={issue}
-                  autofix={autofix[index] as AutofixData}
+                  autofix={autofix[index]!}
                   isLoading={isLoading}
                 />
               ))}

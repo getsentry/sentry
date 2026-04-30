@@ -116,6 +116,60 @@ def _extract_text_from_blocks(blocks: Sequence[Mapping[str, Any]]) -> str:
     return "\n".join(part for part in parts if part)
 
 
+def _extract_attachment_text(attachment: Mapping[str, Any]) -> str:
+    """Extract readable text from a single legacy/secondary message attachment.
+
+    Slack attachments may either be modern (containing a nested ``blocks``
+    array) or legacy (using fields like ``pretext``/``title``/``text``/
+    ``fields``). See:
+    https://docs.slack.dev/legacy/legacy-messaging/legacy-secondary-message-attachments/
+    """
+    # Attachments may have blocks inside them, if so, it's not using the legacy attachments
+    blocks = attachment.get("blocks")
+    if blocks:
+        block_text = _extract_text_from_blocks(blocks)
+        if block_text:
+            return block_text
+
+    parts: list[str] = []
+
+    if pretext := attachment.get("pretext", ""):
+        parts.append(pretext)
+
+    if title := attachment.get("title", ""):
+        title_link = attachment.get("title_link")
+        parts.append(f"<{title_link}|{title}>" if title_link else title)
+
+    if text := attachment.get("text", ""):
+        parts.append(text)
+
+    for field in attachment.get("fields", []):
+        if not isinstance(field, dict):
+            continue
+        field_title = field.get("title", "")
+        field_value = field.get("value", "")
+        if field_title and field_value:
+            parts.append(f"{field_title}: {field_value}")
+        elif field_value:
+            parts.append(field_value)
+
+    if parts:
+        return "\n".join(parts)
+
+    return attachment.get("fallback", "")
+
+
+def _extract_text_from_attachments(attachments: Sequence[Mapping[str, Any]]) -> str:
+    """Extract readable text from a list of legacy/secondary attachments."""
+    parts: list[str] = []
+    for attachment in attachments:
+        if not isinstance(attachment, dict):
+            continue
+        if attachment_text := _extract_attachment_text(attachment):
+            parts.append(attachment_text)
+    return "\n".join(parts)
+
+
 def build_thread_context(messages: Sequence[Mapping[str, Any]]) -> str:
     """Build a context string from thread history for Seer Agent."""
     if not messages:
@@ -125,16 +179,21 @@ def build_thread_context(messages: Sequence[Mapping[str, Any]]) -> str:
     for msg in messages:
         user = msg.get("user", "unknown")
 
-        text = ""
-        blocks = msg.get("blocks")
-        if blocks:
-            text = _extract_text_from_blocks(blocks)
+        text_parts: list[str] = []
+        if blocks := msg.get("blocks"):
+            if block_text := _extract_text_from_blocks(blocks):
+                text_parts.append(block_text)
 
-        if not text:
-            text = msg.get("text", "")
+        if not text_parts and (top_level_text := msg.get("text", "")):
+            text_parts.append(top_level_text)
 
-        if not text:
+        if attachments := msg.get("attachments"):
+            if attachment_text := _extract_text_from_attachments(attachments):
+                text_parts.append(attachment_text)
+
+        if not text_parts:
             continue
+        text = "\n".join(text_parts)
         parts.append(f"<@{user}>: {text}")
 
     return "\n".join(parts)
