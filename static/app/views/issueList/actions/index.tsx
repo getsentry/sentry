@@ -407,24 +407,10 @@ export function IssueListActions({
 }
 
 function shouldConfirm(
-  action: ConfirmAction,
-  {pageSelected, selectedIdsSet}: {pageSelected: boolean; selectedIdsSet: Set<string>}
+  _action: ConfirmAction,
+  _opts: {pageSelected: boolean; selectedIdsSet: Set<string>}
 ) {
-  switch (action) {
-    case ConfirmAction.RESOLVE:
-    case ConfirmAction.UNRESOLVE:
-    case ConfirmAction.ARCHIVE:
-    case ConfirmAction.SET_PRIORITY:
-    case ConfirmAction.UNBOOKMARK: {
-      return pageSelected && selectedIdsSet.size > 1;
-    }
-    case ConfirmAction.BOOKMARK:
-      return selectedIdsSet.size > 1;
-    case ConfirmAction.MERGE:
-    case ConfirmAction.DELETE:
-    default:
-      return true; // By default, should confirm ...
-  }
+  return true;
 }
 
 const StickyActions = styled(Sticky)`

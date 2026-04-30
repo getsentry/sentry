@@ -20,6 +20,7 @@ export enum ConfirmAction {
   MERGE = 'merge',
   DELETE = 'delete',
   SET_PRIORITY = 'reprioritize',
+  MARK_REVIEWED = 'mark reviewed',
 }
 
 function getBulkConfirmMessage(action: string, queryCount: number) {

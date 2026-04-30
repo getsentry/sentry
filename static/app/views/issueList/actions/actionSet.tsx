@@ -172,7 +172,14 @@ export function ActionSet({
       label: t('Mark Reviewed'),
       hidden: !nestReview,
       disabled: !canMarkReviewed,
-      onAction: () => handleUpdate({inbox: false}),
+      onAction: () => {
+        openConfirmModal({
+          bypass: !onShouldConfirm(ConfirmAction.MARK_REVIEWED),
+          onConfirm: () => handleUpdate({inbox: false}),
+          message: confirm({action: ConfirmAction.MARK_REVIEWED, canBeUndone: true}),
+          confirmText: label('mark reviewed'),
+        });
+      },
     },
     {
       key: 'bookmark',
@@ -297,7 +304,16 @@ export function ActionSet({
         })}
       />
       {!nestReview && (
-        <ReviewAction disabled={!canMarkReviewed} onUpdate={handleUpdate} />
+        <ReviewAction
+          disabled={!canMarkReviewed}
+          onUpdate={handleUpdate}
+          onShouldConfirm={() => onShouldConfirm(ConfirmAction.MARK_REVIEWED)}
+          confirmMessage={confirm({
+            action: ConfirmAction.MARK_REVIEWED,
+            canBeUndone: true,
+          })}
+          confirmLabel={label('mark reviewed')}
+        />
       )}
       <DropdownMenu
         size="sm"
