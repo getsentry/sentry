@@ -32,7 +32,7 @@ export function SlackPreview({
       title="Slack"
       actions={
         <LinkButton
-          to={previewLink}
+          href={previewLink}
           size="xs"
           icon={<PluginIcon pluginId="slack" size={24} />}
           external
