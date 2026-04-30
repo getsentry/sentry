@@ -38,7 +38,7 @@ export function DataRequests() {
 
   const resultsQuery = useMemo<ResultQuery | undefined>(() => {
     if (!hasQuery) {
-      return undefined;
+      return;
     }
     return {orgSlug: queryFromRouterOrgSlug, email: queryFromRouterEmail};
   }, [hasQuery, queryFromRouterOrgSlug, queryFromRouterEmail]);

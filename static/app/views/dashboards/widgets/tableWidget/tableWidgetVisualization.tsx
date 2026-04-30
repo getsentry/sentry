@@ -12,7 +12,7 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Column, ColumnValueType, Sort} from 'sentry/utils/discover/fields';
+import type {Column, ColumnValueType, Sort, SortKind} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
   isEquation,
@@ -247,7 +247,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const tooltipTitle = isStarredColumn && !hasAlias ? column.key : name;
           const sortColumn = getSortField(column.key) ?? column.key;
 
-          let direction = undefined;
+          let direction: SortKind | undefined;
           if (sort?.field === sortColumn) {
             direction = sort.kind;
           } else if (locationSort?.field === sortColumn && !sort) {
@@ -402,7 +402,7 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
               align={align}
               title={<StyledTooltip title={tooltipTitle}>{name}</StyledTooltip>}
               direction={undefined}
-              generateSortLink={() => undefined}
+              generateSortLink={() => {}}
             />
           );
         },

@@ -123,7 +123,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  let versionTitle: string | undefined = undefined;
+  let versionTitle: string | undefined;
   if (version) {
     versionTitle = `v${version}`;
     if (buildNumber) {

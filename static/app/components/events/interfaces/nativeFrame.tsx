@@ -182,7 +182,7 @@ function NativeFrame({
       return t('Found by stack scanning');
     }
 
-    return undefined;
+    return;
   }
 
   function getFunctionName() {
@@ -200,7 +200,7 @@ function NativeFrame({
       };
     }
 
-    return undefined;
+    return;
   }
 
   // this is the status of image that belongs to this frame
@@ -222,7 +222,7 @@ function NativeFrame({
           return frame.instructionAddr === '0x0' ? 'success' : 'error';
         case SymbolicatorStatus.MISSING_SYMBOL:
         default:
-          return undefined;
+          return;
       }
     }
 
@@ -230,7 +230,7 @@ function NativeFrame({
 
     switch (combinedStatus) {
       case 'unused':
-        return undefined;
+        return;
       case 'found':
         return 'success';
       default:

@@ -944,8 +944,8 @@ describe('Discover -> ColumnEditModal', () => {
           Body={stubEl()}
           organization={initialData.organization}
           columns={[columns[0]!]}
-          onApply={() => undefined}
-          closeModal={() => undefined}
+          onApply={() => {}}
+          closeModal={() => {}}
           measurementKeys={[]}
           customMeasurements={{
             'measurements.custom.kibibyte': {

@@ -99,7 +99,7 @@ function useLogsTimeseriesImpl({
 
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!aggregateSortBys.length) {
-      return undefined;
+      return;
     }
 
     return aggregateSortBys.map(formatSort);

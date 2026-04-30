@@ -81,7 +81,7 @@ export function InputSection({
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
     if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
-      return undefined;
+      return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,7 +109,7 @@ export function InputSection({
   // Handle keyboard shortcuts for questions
   useEffect(() => {
     if (!enabled || !questionActions || !isVisible || isMinimized) {
-      return undefined;
+      return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {

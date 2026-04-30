@@ -568,7 +568,7 @@ export function AutofixHighlightPopup(props: Props) {
 
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
-      return undefined;
+      return;
     }
 
     const updatePosition = () => {

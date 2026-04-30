@@ -678,7 +678,7 @@ class _QueryField extends Component<Props> {
     const containerColumns =
       parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
 
-    let gridColumnsQuantity: undefined | number = undefined;
+    let gridColumnsQuantity: undefined | number;
 
     if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.

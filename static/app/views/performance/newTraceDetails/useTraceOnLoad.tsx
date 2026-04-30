@@ -95,7 +95,7 @@ export function useTraceOnLoad(
 
   useLayoutEffect(() => {
     if (tree.type !== 'trace') {
-      return undefined;
+      return;
     }
 
     let cancel = false;
@@ -174,7 +174,7 @@ export function useTraceIssuesOnLoad(
 
   useLayoutEffect(() => {
     if (tree.type !== 'trace') {
-      return undefined;
+      return;
     }
 
     let cancel = false;

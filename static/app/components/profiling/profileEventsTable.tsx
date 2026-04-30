@@ -323,7 +323,7 @@ function getProjectForRow<F extends FieldType>(
   baggage: ProfileEventsCellProps<F>['baggage'],
   dataRow: ProfileEventsCellProps<F>['dataRow']
 ) {
-  let project: Project | undefined = undefined;
+  let project: Project | undefined;
 
   if (defined(dataRow['project.id'])) {
     const projectId = dataRow['project.id'].toString();

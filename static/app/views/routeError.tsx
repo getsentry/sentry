@@ -36,10 +36,10 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
 
   useEffect(() => {
     if (disableLogSentry) {
-      return undefined;
+      return;
     }
     if (!error) {
-      return undefined;
+      return;
     }
 
     const route = getRouteStringFromRoutes({matches});

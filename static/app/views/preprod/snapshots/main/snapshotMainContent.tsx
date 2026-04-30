@@ -497,7 +497,7 @@ function ColorPickerButton({
 
   useEffect(() => {
     if (!isOpen) {
-      return undefined;
+      return;
     }
     function handleMouseDown(e: MouseEvent) {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {

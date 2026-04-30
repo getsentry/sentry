@@ -55,7 +55,7 @@ export function useSubmitEditDetector<TDetector extends Detector>({
       } catch (error) {
         addErrorMessage(t('Unable to update monitor'));
         onError?.(error);
-        return undefined;
+        return;
       }
     },
     [updateDetector, organization, navigate, onSuccess, onError]

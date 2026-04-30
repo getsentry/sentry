@@ -36,12 +36,12 @@ export function useReplayForCriticalFlow({
 
   useEffect(() => {
     if (!enabled || !shouldForce) {
-      return undefined;
+      return;
     }
 
     const replay = Sentry.getReplay();
     if (!replay) {
-      return undefined;
+      return;
     }
 
     Sentry.setTag('critical_flow', flowName);

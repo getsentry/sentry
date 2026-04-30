@@ -131,7 +131,7 @@ export function AvatarChooser({
       return sentryApp.avatars?.find(appAvatar => appAvatar.color === isColor);
     }
 
-    return undefined;
+    return;
   };
 
   const resetToType = (avatarType: AvatarType) => {

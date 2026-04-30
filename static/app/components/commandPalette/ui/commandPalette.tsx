@@ -298,7 +298,7 @@ export function CommandPalette({
         return item;
       }
     }
-    return undefined;
+    return;
   }, [treeState.collection, sectionKeys]);
 
   const lastFocusableKey = useMemo(() => {
@@ -309,7 +309,7 @@ export function CommandPalette({
         return item;
       }
     }
-    return undefined;
+    return;
   }, [treeState.collection, sectionKeys]);
 
   useLayoutEffect(() => {

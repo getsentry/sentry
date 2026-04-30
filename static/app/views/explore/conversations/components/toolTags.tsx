@@ -24,7 +24,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
   useEffect(() => {
     const container = containerRef.current;
     if (expanded || !container) {
-      return undefined;
+      return;
     }
 
     const calculateHidden = () => {

@@ -18,7 +18,7 @@ export function AutoSizedText({children}: Props) {
     const parentElement = childRef.current?.parentElement; // This is the parent of `AutoSizedText`
 
     if (!childElement || !parentElement) {
-      return undefined;
+      return;
     }
 
     if (!window.ResizeObserver) {
@@ -29,7 +29,7 @@ export function AutoSizedText({children}: Props) {
       const parentDimensions = getElementDimensions(parentElement);
 
       adjustFontSize(childDimensions, parentDimensions);
-      return undefined;
+      return;
     }
 
     // On component first mount, register a `ResizeObserver` on the containing element. The handler fires

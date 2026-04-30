@@ -188,7 +188,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
     }
 
     if (!debugIdBundlesArtifacts) {
-      return undefined;
+      return;
     }
 
     const existingReleaseNames = new Set((releasesData ?? []).map(r => r.version));

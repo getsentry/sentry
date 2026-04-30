@@ -75,7 +75,7 @@ function useHandleCopyMarkdown({
 
   return useMemo(() => {
     if (!aiAutofix.runState) {
-      return undefined;
+      return;
     }
 
     return () => {

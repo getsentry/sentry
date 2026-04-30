@@ -6,7 +6,7 @@ export function useBufferedImageUrl(targetUrl: string): string | null {
 
   useEffect(() => {
     if (targetUrl === activeUrlRef.current) {
-      return undefined;
+      return;
     }
 
     let cancelled = false;
@@ -14,7 +14,7 @@ export function useBufferedImageUrl(targetUrl: string): string | null {
     img.src = targetUrl;
     img
       .decode()
-      .catch(() => undefined)
+      .catch(() => {})
       .then(() => {
         if (!cancelled) {
           activeUrlRef.current = targetUrl;
@@ -44,7 +44,7 @@ export function useBufferedImageGroup(
 
   useEffect(() => {
     if (serialized === activeKeyRef.current) {
-      return undefined;
+      return;
     }
 
     const urls = targetUrlsRef.current;
@@ -56,7 +56,7 @@ export function useBufferedImageGroup(
       }
       const img = new Image();
       img.src = url;
-      return img.decode().catch(() => undefined);
+      return img.decode().catch(() => {});
     });
 
     Promise.all(promises).then(() => {

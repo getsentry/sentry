@@ -48,7 +48,7 @@ function getReleaseProjectId(release: Release, selection: PageFilters) {
   }
 
   // project selector on release detail page will pick it up
-  return undefined;
+  return;
 }
 
 type Props = {

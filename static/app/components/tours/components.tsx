@@ -552,7 +552,7 @@ function getTourElementStyles(
   margin?: CSSProperties['margin']
 ) {
   if (!isOpen) {
-    return undefined;
+    return;
   }
 
   return `

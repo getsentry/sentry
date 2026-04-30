@@ -309,7 +309,7 @@ export function ExplorerDrawerContent({
         container.removeEventListener('scroll', handleScroll);
       };
     }
-    return undefined;
+    return;
   }, []);
 
   // - Keyboard listeners -----------------------------------------------------

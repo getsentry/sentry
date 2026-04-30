@@ -35,7 +35,7 @@ export function useD3Zoom({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
-      return undefined;
+      return;
     }
 
     const zoomBehavior = zoom<HTMLDivElement, unknown>()

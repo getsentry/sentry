@@ -32,7 +32,7 @@ export function coaleseIssueStatsPeriodQuery<QueryView extends {statsPeriod: str
     const {statsPeriod, ...rest} = queryView;
     if (!statsPeriod) {
       // We shouldn't prefetch if the query uses an absolute date range
-      return undefined;
+      return;
     }
     // Look 1 day into the future, from the time the page is loaded for new
     // feedbacks to come in.

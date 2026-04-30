@@ -187,7 +187,7 @@ export function useCreateNotificationAction({
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
       if (!shouldCreateRule || !isCreatingIntegrationNotification) {
-        return undefined;
+        return;
       }
 
       let integrationAction: IntegrationAction;
@@ -216,7 +216,7 @@ export function useCreateNotificationAction({
           };
           break;
         default:
-          return undefined;
+          return;
       }
 
       return createProjectRules.mutateAsync({

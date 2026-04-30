@@ -85,7 +85,7 @@ function WhatsNewContent({
 
   useEffect(() => {
     if (unseenPostIds.length === 0) {
-      return undefined;
+      return;
     }
 
     const MARK_SEEN_DELAY = 2000;

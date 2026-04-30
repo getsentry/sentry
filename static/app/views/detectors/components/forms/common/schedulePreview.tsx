@@ -70,7 +70,7 @@ function useStickyBottomIntersection(
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
-      return undefined;
+      return;
     }
 
     const borderRadius = parseFloat(theme.radius.md);

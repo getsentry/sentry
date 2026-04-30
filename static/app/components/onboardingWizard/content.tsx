@@ -264,7 +264,7 @@ function Task({task, hidePanel}: TaskProps) {
       case 'skipped':
         return t('Task skipped');
       default:
-        return undefined;
+        return;
     }
   }, [task.status]);
 

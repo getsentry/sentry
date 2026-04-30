@@ -189,7 +189,7 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
     return description;
   }
 
-  return undefined;
+  return;
 }
 
 export function getPredefinedValues({

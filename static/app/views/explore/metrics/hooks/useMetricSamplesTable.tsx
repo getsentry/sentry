@@ -141,7 +141,7 @@ function useMetricsQueryKey({
       };
     }
 
-    return undefined;
+    return;
   }, [baseDatetime, ingestionDelaySeconds]);
 
   const pageFilters = {

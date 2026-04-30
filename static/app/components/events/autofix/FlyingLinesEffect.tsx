@@ -12,7 +12,7 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
 
   useLayoutEffect(() => {
     if (!targetElement) {
-      return undefined;
+      return;
     }
 
     function getScrollParents(element: HTMLElement): Element[] {

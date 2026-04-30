@@ -86,7 +86,7 @@ export function getSubmitButtonTitle(form: FormModel) {
   }
 
   if (!form.isError) {
-    return undefined;
+    return;
   }
 
   const errors = form.getErrors();

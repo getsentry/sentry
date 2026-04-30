@@ -118,7 +118,7 @@ function TrialStartedSidebarItem({subscription, organization, children}: Props) 
       const timer = setTimeout(() => setAnimationComplete(true), 1850);
       return () => clearTimeout(timer);
     }
-    return undefined;
+    return;
   }, [trialRequestedOrStarted, animationComplete]);
 
   let wrappedChildren = children;

@@ -35,14 +35,14 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
 
   const lookupSupergroup = useMemo(() => {
     if (!drawerSupergroupId) {
-      return undefined;
+      return;
     }
     for (const sg of Object.values(lookup)) {
       if (sg && String(sg.id) === drawerSupergroupId) {
         return sg;
       }
     }
-    return undefined;
+    return;
   }, [drawerSupergroupId, lookup]);
 
   const {data: fetchedSupergroupResponse, isError} = useQuery(

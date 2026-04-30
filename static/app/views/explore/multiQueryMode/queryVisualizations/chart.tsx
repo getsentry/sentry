@@ -143,7 +143,7 @@ export function MultiQueryModeChart({
     disabled: disableAddToDashboard,
     onAction: () => {
       if (disableAddToDashboard) {
-        return undefined;
+        return;
       }
       trackAnalytics('trace_explorer.save_as', {
         save_type: 'dashboard',

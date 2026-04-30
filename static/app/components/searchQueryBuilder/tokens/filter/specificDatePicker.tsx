@@ -87,7 +87,7 @@ export function SpecificDatePicker({
   // display the wrong date due to timezone differences.
   const internalDate = useMemo<Date | undefined>(() => {
     if (!parsedToken) {
-      return undefined;
+      return;
     }
 
     return getInternalDate(parsedToken.date, true);

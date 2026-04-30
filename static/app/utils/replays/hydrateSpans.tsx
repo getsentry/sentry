@@ -31,7 +31,7 @@ export function hydrateSpans(
           // id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
         };
       } catch {
-        return undefined;
+        return;
       }
     })
     .filter(isSpanFrame);
