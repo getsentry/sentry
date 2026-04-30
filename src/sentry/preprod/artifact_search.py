@@ -27,6 +27,7 @@ search_config = SearchConfig.create_from(
     # Text keys we allow operators to be used on
     text_operator_keys={
         "app_name",
+        "approval_status",
         "build_configuration_name",
         "git_base_ref",
         "git_base_sha",
@@ -62,6 +63,7 @@ search_config = SearchConfig.create_from(
     allowed_keys={
         "app_id",
         "app_name",
+        "approval_status",
         "build_configuration_name",
         "build_number",
         "build_version",
@@ -136,9 +138,23 @@ SIZE_STATE_VALUES: dict[str, int] = {
     member.name.lower(): member.value for member in PreprodArtifactSizeMetrics.SizeAnalysisState
 }
 
+APPROVAL_STATUS_VALUES: dict[str, int] = {
+    member.name.lower(): member.value for member in PreprodComparisonApproval.ApprovalStatus
+}
+
 DISTRIBUTION_ERROR_CODE_VALUES: dict[str, int] = {
     member.name.lower(): member.value for member in PreprodArtifact.InstallableAppErrorCode
 }
+
+
+def _translate_approval_status(value: object) -> int:
+    raw = str(value).lower()
+    if raw not in APPROVAL_STATUS_VALUES:
+        raise InvalidSearchQuery(
+            f"Invalid approval_status value: {value}. "
+            f"Valid values: {', '.join(sorted(APPROVAL_STATUS_VALUES))}"
+        )
+    return APPROVAL_STATUS_VALUES[raw]
 
 
 def _translate_distribution_error_code(value: object) -> int:
@@ -306,6 +322,20 @@ def apply_filters(
                 queryset = queryset.exclude(q)
             else:
                 queryset = queryset.filter(q)
+            continue
+
+        if name == "approval_status":
+            values = token.value.value if token.is_in_filter else [token.value.value]
+            translated = [_translate_approval_status(v) for v in values]
+            approval_exists = PreprodComparisonApproval.objects.filter(
+                preprod_artifact=OuterRef("pk"),
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+                approval_status__in=translated,
+            )
+            if token.is_negation:
+                queryset = queryset.filter(~Exists(approval_exists))
+            else:
+                queryset = queryset.filter(Exists(approval_exists))
             continue
 
         if name == "is_approved":

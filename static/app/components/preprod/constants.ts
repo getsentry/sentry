@@ -5,6 +5,7 @@
 export const MOBILE_BUILDS_ALLOWED_KEYS = [
   'app_id',
   'app_name',
+  'approval_status',
   'build_configuration_name',
   'build_number',
   'build_version',
