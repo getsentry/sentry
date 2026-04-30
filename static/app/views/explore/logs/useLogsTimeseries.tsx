@@ -1,24 +1,16 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
-import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {getIngestDelayFilterValue} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsTimeseriesRequest} from 'sentry/views/explore/logs/useLogsTimeseriesRequest';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {
-  useQueryParamsAggregateSortBys,
-  useQueryParamsGroupBys,
-  useQueryParamsSearch,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -87,53 +79,14 @@ function useLogsTimeseriesImpl({
   queryExtras,
   timeseriesIngestDelay,
 }: UseLogsTimeseriesImplOptions) {
-  const logsSearch = useQueryParamsSearch();
-  const groupBys = useQueryParamsGroupBys();
-  const visualizes = useQueryParamsVisualizes();
-  const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const topEventsLimit = useQueryParamsTopEventsLimit();
-  const [caseInsensitive] = useCaseInsensitivity();
-  const autorefreshEnabled = useLogsAutoRefreshEnabled();
-
-  const [interval] = useChartInterval();
-
-  const orderby: string | string[] | undefined = useMemo(() => {
-    if (!aggregateSortBys.length) {
-      return;
-    }
-
-    return aggregateSortBys.map(formatSort);
-  }, [aggregateSortBys]);
-
-  const search = useMemo(() => {
-    const newSearch = logsSearch.copy();
-    if (autorefreshEnabled) {
-      // We need to add the delay filter to ensure the table data and the graph data are as close as possible when merging buckets.
-      newSearch.addFilterValue(
-        OurLogKnownFieldKey.TIMESTAMP_PRECISE,
-        getIngestDelayFilterValue(timeseriesIngestDelay)
-      );
-    }
-    return newSearch;
-  }, [logsSearch, timeseriesIngestDelay, autorefreshEnabled]);
-
-  const yAxes = useMemo(() => {
-    const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
-    return [...uniqueYAxes];
-  }, [visualizes]);
+  const request = useLogsTimeseriesRequest({
+    enabled,
+    queryExtras,
+    timeseriesIngestDelay,
+  });
 
   const timeseriesResult = useSortedTimeSeries(
-    {
-      enabled,
-      search,
-      yAxis: yAxes,
-      interval,
-      fields: [...groupBys.filter(Boolean), ...yAxes],
-      topEvents: topEventsLimit,
-      orderby,
-      caseInsensitive,
-      ...queryExtras,
-    },
+    request,
     'api.explore.ourlogs-timeseries',
     DiscoverDatasets.OURLOGS
   );

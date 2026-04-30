@@ -2,11 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {DataExport, ExportQueryType} from 'sentry/components/dataExport';
+import {DataExport} from 'sentry/components/exports/dataExport';
+import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import type {Organization} from 'sentry/types/organization';
-
-jest.mock('sentry/actionCreators/indicator');
 
 const mockUnauthorizedOrg = OrganizationFixture({
   features: [],
@@ -86,6 +84,7 @@ describe('DataExport', () => {
       `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       {
         data: {
+          format: 'csv',
           query_type: mockPayload.queryType,
           query_info: mockPayload.queryInfo,
         },
@@ -122,49 +121,6 @@ describe('DataExport', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('button')).toBeEnabled();
-    });
-  });
-
-  it('should display default error message if non provided', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
-      method: 'POST',
-      statusCode: 400,
-    });
-
-    render(<DataExport payload={mockPayload} />, {
-      ...mockContext(mockAuthorizedOrg),
-    });
-
-    await userEvent.click(screen.getByRole('button'));
-
-    await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith(
-        "We tried our hardest, but we couldn't export your data. Give it another go."
-      );
-    });
-
-    await waitFor(() => {
-      expect(screen.getByRole('button')).toBeEnabled();
-    });
-  });
-
-  it('should display provided error message', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
-      method: 'POST',
-      statusCode: 400,
-      body: {detail: 'uh oh'},
-    });
-
-    render(<DataExport payload={mockPayload} />, {
-      ...mockContext(mockAuthorizedOrg),
-    });
-
-    await userEvent.click(screen.getByRole('button'));
-
-    await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('uh oh');
     });
   });
 });
