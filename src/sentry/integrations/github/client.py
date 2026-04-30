@@ -213,7 +213,7 @@ class GithubProxyClient(IntegrationProxyClient):
         if credentials_set == "application":
             if "headers" not in kwargs:
                 kwargs["headers"] = {}
-            kwargs["headers"]["X-Credentials-Set"] = "application"
+            kwargs["headers"]["X-Sentry-Credentials-Set"] = "application"
 
         return super().request(*args, **kwargs)
 
@@ -323,7 +323,7 @@ class GithubProxyClient(IntegrationProxyClient):
             "integration_id": getattr(self.integration, "id", "unknown"),
         }
 
-        credentials_set = prepared_request.headers.pop("X-Credentials-Set", None)
+        credentials_set = prepared_request.headers.pop("X-Sentry-Credentials-Set", None)
         # Only certain routes are authenticated with JWTs....
         if (
             any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES)
