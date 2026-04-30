@@ -168,9 +168,6 @@ class ProjectTraceItemDetailsEndpointTest(
         }
 
     def test_details_exposes_arrays(self) -> None:
-        expected_filenames = ["sentry/web/urls.py", "django/views/base.py"]
-        expected_linenos = [45, 200]
-        expected_in_app = [True, False]
         event_id = uuid.uuid4().hex
         group = self.create_group(project=self.project)
         occ = self.create_eap_occurrence(
@@ -222,11 +219,11 @@ class ProjectTraceItemDetailsEndpointTest(
 
         by_name = {a["name"]: a for a in response.data["attributes"]}
         assert by_name["stack.filename"]["type"] == "array"
-        assert by_name["stack.filename"]["value"] == expected_filenames
+        assert by_name["stack.filename"]["value"] == ["sentry/web/urls.py", "django/views/base.py"]
         assert by_name["stack.lineno"]["type"] == "array"
-        assert by_name["stack.lineno"]["value"] == expected_linenos
+        assert by_name["stack.lineno"]["value"] == ["45", "200"]
         assert by_name["stack.in_app"]["type"] == "array"
-        assert by_name["stack.in_app"]["value"] == expected_in_app
+        assert by_name["stack.in_app"]["value"] == [True, False]
 
     def test_simple_using_spans_item_type(self) -> None:
         previous_trace = uuid.uuid4().hex

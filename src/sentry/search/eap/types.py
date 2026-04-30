@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Literal, NotRequired, TypedDict
 
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode, Reliability
@@ -79,7 +79,7 @@ class AttributeSource(TypedDict):
 class TraceItemAttribute(TypedDict):
     name: str
     type: Literal["string", "number", "boolean", "array"]
-    value: str | int | float | bool | list[Any]
+    value: str | int | float | bool | list[str | int | float | bool]
 
 
 class EAPResponse(EventsResponse):

@@ -32,57 +32,62 @@ from sentry.search.eap.utils import (
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, snuba_rpc
 
-_NUMERIC_COERCIONS: dict[str, type] = {"int": int, "float": float, "double": float}
-
-
-def attribute_value_dict_to_python(value_dict: dict[str, Any]) -> Any:
-    """Deserialize MessageToDict(AttributeValue) to Python (scalars and nested ``val_array``)."""
-    if not value_dict:
-        raise BadRequest("empty attribute value fragment")
-    if value_dict.get("isNull") is True:
-        return None
-    for key, val in value_dict.items():
-        lowered_key = key.lower()
-        if not lowered_key.startswith("val") or lowered_key == "values":
-            continue
-        val_type = lowered_key[3:]
-        if val_type in ("bool", "str"):
-            return val
-        if coerce := _NUMERIC_COERCIONS.get(val_type):
-            # MessageToDict may serialize int64/float64 as decimal strings.
-            if isinstance(val, str):
-                try:
-                    return coerce(val)
-                except ValueError:
-                    pass
-            return val
-        if val_type == "array":
-            if not isinstance(val, dict):
-                raise BadRequest("invalid val_array shape")
-            raw = val.get("values")
-            if not raw:
-                return []
-            return [attribute_value_dict_to_python(x) for x in raw]
-        raise BadRequest(f"unknown column type in protobuf: {val_type}")
-    raise BadRequest(f"unknown attribute value shape: {value_dict!r}")
-
+_NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
 
 _VAL_TYPE_TO_COLUMN_TYPE: dict[str, Literal["string", "number", "boolean", "array"]] = {
-    "bool": "boolean",
-    "str": "string",
-    "int": "number",
-    "float": "number",
-    "double": "number",
-    "array": "array",
+    "valBool": "boolean",
+    "valStr": "string",
+    "valInt": "number",
+    "valFloat": "number",
+    "valDouble": "number",
+    "valArray": "array",
 }
 
 
-def _translate_search_type_for_array_values(
-    values: list[Any],
-) -> Literal["string", "number", "boolean"]:
-    if values and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in values):
-        return "number"
-    return "string"
+def _parse_scalar(column_type, value_type, value: str) -> tuple[int | str | float | bool, str]:
+    parsed_value_type = value_type[3:].lower()
+    match column_type:
+        case "number":
+            if value_type in _NUMERIC_COERCIONS:
+                # Only for nonintegers, always typed as float.
+                try:
+                    return _NUMERIC_COERCIONS[value_type](float(value)), "float"
+                except ValueError:
+                    pass
+            return value, parsed_value_type
+        case "boolean":
+            return bool(value), parsed_value_type
+        case "string":
+            return str(value), parsed_value_type
+        case _:
+            raise BadRequest(
+                f"unknown Value Type in response: [{column_type}, {value_type}, {value}]"
+            )
+
+
+def _get_value_from_attribute(attribute_value: dict[str, Any]) -> tuple:
+    """Column Type, parsed value, and python scalar type like arrays"""
+    for attribute_type_key, value in attribute_value.items():
+        column_type = _VAL_TYPE_TO_COLUMN_TYPE.get(attribute_type_key)
+        if column_type is None:
+            sentry_sdk.logger.warning(f"Unknown Type in Protobuf {attribute_value}, {column_type}")
+            continue
+        if column_type == "array":
+            element_types, elements = [], []
+            for element in value.get("values", []):
+                _, val, ty = _get_value_from_attribute(element)
+                if ty is not None:
+                    element_types.append(ty)
+                    elements.append(val)
+            if len(element_types):
+                return column_type, elements, element_types[0]
+            # When array is empty, we can safely assume type as 'string'.
+            # Type can be overridden by column definitions later
+            return column_type, elements, "string"
+        else:
+            value, python_type = _parse_scalar(column_type, attribute_type_key, value)
+            return column_type, value, python_type
+    return None, None, None
 
 
 def convert_rpc_attribute_to_json(
@@ -104,67 +109,56 @@ def convert_rpc_attribute_to_json(
         source = attribute["value"]
         if len(source) == 0:
             raise BadRequest(f"unknown field in protobuf: {internal_name}")
-        for key, value in source.items():
-            lowered_key = key.lower()
-            if not lowered_key.startswith("val"):
+        column_type, output_value, python_scalar_type = _get_value_from_attribute(source)
+        if column_type is None and output_value is None:
+            continue
+        if column_type == "array":
+            if not isinstance(output_value, list):
+                raise BadRequest("val_array did not decode to a list")
+            translate_type = (
+                translate_search_type_for_internal_column(internal_name, trace_item_type)
+                or python_scalar_type
+            )
+            output_type = "array"
+        else:
+            translate_type = column_type
+            output_type = python_scalar_type
+
+        external_name, _, _ = translate_internal_to_public_alias(
+            internal_name, translate_type, trace_item_type
+        )
+
+        if use_sentry_conventions and external_name:
+            external_name = translate_to_sentry_conventions(external_name, trace_item_type)
+            if external_name in seen_sentry_conventions:
                 continue
-            val_type = lowered_key[3:]
-
-            column_type = _VAL_TYPE_TO_COLUMN_TYPE.get(val_type)
-            if column_type is None:
-                raise BadRequest(f"unknown column type in protobuf: {val_type}")
-
-            output_type = "float" if val_type == "double" else val_type
-            output_value: Any = (
-                attribute_value_dict_to_python({key: value}) if val_type == "array" else value
-            )
-
-            if column_type == "array":
-                if not isinstance(output_value, list):
-                    raise BadRequest("val_array did not decode to a list")
-                translate_type = translate_search_type_for_internal_column(
-                    internal_name, trace_item_type
-                ) or _translate_search_type_for_array_values(output_value)
-            else:
-                translate_type = column_type
-
-            external_name, _, _ = translate_internal_to_public_alias(
-                internal_name, translate_type, trace_item_type
-            )
-
-            if use_sentry_conventions and external_name:
-                external_name = translate_to_sentry_conventions(external_name, trace_item_type)
-                if external_name in seen_sentry_conventions:
-                    continue
-                seen_sentry_conventions.add(external_name)
-            else:
-                if external_name and is_sentry_convention_replacement_attribute(
-                    external_name, trace_item_type
-                ):
-                    continue
-
-            if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith(
-                "sentry."
+            seen_sentry_conventions.add(external_name)
+        else:
+            if external_name and is_sentry_convention_replacement_attribute(
+                external_name, trace_item_type
             ):
-                internal_name = internal_name.replace("sentry.", "", count=1)
+                continue
 
-            if external_name is None:
-                if column_type in ("number", "boolean", "array"):
-                    external_name = f"tags[{internal_name},{column_type}]"
-                else:
-                    external_name = internal_name
+        if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith("sentry."):
+            internal_name = internal_name.replace("sentry.", "", count=1)
 
-            # TODO: this should happen in snuba instead
-            if external_name == "trace" and isinstance(output_value, str):
-                output_value = output_value.replace("-", "")
+        if external_name is None:
+            if column_type in ("number", "boolean", "array"):
+                external_name = f"tags[{internal_name},{column_type}]"
+            else:
+                external_name = internal_name
 
-            result.append(
-                TraceItemAttribute(
-                    name=external_name,
-                    type=output_type,  # type: ignore[typeddict-item]
-                    value=output_value,
-                )
+        # TODO: this should happen in snuba instead
+        if external_name == "trace" and isinstance(output_value, str):
+            output_value = output_value.replace("-", "")
+
+        result.append(
+            TraceItemAttribute(
+                name=external_name,
+                type=output_type,  # type: ignore[typeddict-item]
+                value=output_value,
             )
+        )
 
     return sorted(result, key=lambda x: (x["type"], x["name"]))
 
