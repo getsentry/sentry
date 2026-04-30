@@ -10,10 +10,7 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import type {
-  CMDKQueryOptions,
-  CommandPaletteAction,
-} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import Hook from 'sentry/components/hook';
 import {
   DSN_PATTERN,
@@ -536,7 +533,7 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('Switch Organization'), icon: <IconBuilding />}}
             keywords={[t('organization'), t('change'), t('change organization')]}
             prompt={t('Select an organization...')}
-            resource={(_query: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
+            resource={(_query: string, {state}: CMDKResourceContext) =>
               // organization.slug and the org slugs list are the meaningful cache keys;
               // including the full objects would be too costly to serialize.
               // eslint-disable-next-line @tanstack/query/exhaustive-deps
@@ -624,10 +621,7 @@ export function GlobalCommandPaletteActions() {
                 keywords={navItem.keywords}
                 prompt={t('Select a project...')}
                 limit={4}
-                resource={(
-                  _query: string,
-                  {state}: CMDKResourceContext
-                ): CMDKQueryOptions =>
+                resource={(_query: string, {state}: CMDKResourceContext) =>
                   // `projects` is intentionally omitted from the queryKey:
                   // TanStack serializes the entire key for cache lookups, and
                   // including the full projects array would be too costly —
@@ -715,21 +709,22 @@ export function GlobalCommandPaletteActions() {
               t('autofix'),
             ]}
             limit={10}
-            resource={(): CMDKQueryOptions => {
-              const url = getApiUrl(
-                '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
-                {path: {organizationIdOrSlug: organization.slug}}
-              );
+            resource={() => {
               const query = {per_page: 10, category_key: 'night_shift', owner: 'false'};
               return cmdkQueryOptions({
-                queryKey: [url, {query}],
-                queryFn: () => QUERY_API_CLIENT.requestPromise(url, {query}),
-                select: (data: {data: Array<{run_id: number; title: string}>}) =>
-                  data.data.map(session => ({
+                ...apiOptions.as<{data: Array<{run_id: number; title: string}>}>()(
+                  '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
+                  {
+                    path: {organizationIdOrSlug: organization.slug},
+                    query,
+                    staleTime: 30_000,
+                  }
+                ),
+                select: data =>
+                  data.json.data.map(session => ({
                     display: {label: session.title, icon: <IconSeer />},
                     onAction: () => openSeerExplorer({runId: session.run_id}),
                   })),
-                staleTime: 30_000,
               });
             }}
           >
@@ -772,7 +767,7 @@ export function GlobalCommandPaletteActions() {
               icon: <IconSearch />,
             }}
             prompt={t('Paste a DSN...')}
-            resource={(query: string): CMDKQueryOptions => {
+            resource={(query: string) => {
               return cmdkQueryOptions({
                 ...apiOptions.as<DsnLookupResponse>()(
                   '/organizations/$organizationIdOrSlug/dsn-lookup/',
@@ -807,7 +802,7 @@ export function GlobalCommandPaletteActions() {
         id="cmdk:supplementary:help"
         display={{label: t('Help')}}
         limit={4}
-        resource={(query: string): CMDKQueryOptions => {
+        resource={(query: string) => {
           return cmdkQueryOptions({
             queryKey: ['command-palette-help-search', query, helpSearch],
             queryFn: () =>

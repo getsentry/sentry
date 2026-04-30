@@ -1,10 +1,7 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {
-  cmdkQueryOptions,
-  type CMDKQueryOptions,
-} from 'sentry/components/commandPalette/types';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   type CMDKResourceContext,
@@ -68,7 +65,7 @@ function FilterActions() {
     display: {label: capitalizeLabel(tag.name ?? tag.key)},
     keywords: [tag.key],
     prompt: t('Select a value...'),
-    resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+    resource: (_q: string, ctx: CMDKResourceContext) =>
       // Include currentQuery in the key so onAction closures reference the
       // current filter state and don't overwrite previously applied filters.
       // eslint-disable-next-line @tanstack/query/exhaustive-deps
@@ -107,23 +104,21 @@ function FilterActions() {
       }),
   });
 
-  const makeStringSectionResource =
-    (tags: Tag[], cacheKey: string) =>
-    (_q: string): CMDKQueryOptions =>
-      // Include tags.length so the section updates when attributes finish loading.
-      // Include currentQuery so the item closures capture fresh filter state.
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
-      cmdkQueryOptions({
-        queryKey: [
-          cacheKey,
-          organization.slug,
-          pageFilterCacheKey,
-          currentQuery,
-          tags.length,
-        ],
-        queryFn: () => tags.map(makeStringFilterItem),
-        staleTime: Infinity,
-      });
+  const makeStringSectionResource = (tags: Tag[], cacheKey: string) => (_q: string) =>
+    // Include tags.length so the section updates when attributes finish loading.
+    // Include currentQuery so the item closures capture fresh filter state.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    cmdkQueryOptions({
+      queryKey: [
+        cacheKey,
+        organization.slug,
+        pageFilterCacheKey,
+        currentQuery,
+        tags.length,
+      ],
+      queryFn: () => tags.map(makeStringFilterItem),
+      staleTime: Infinity,
+    });
 
   return (
     <CMDKAction
