@@ -6,6 +6,8 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import type {DashboardDetails, Widget, WidgetQuery} from './types';
 import {DashboardFilterKeys, DisplayType} from './types';
 
+const DESCRIPTION_PREVIEW_MAX_LENGTH = 150;
+
 type FieldChange = {after: string; before: string; field: string};
 
 type FilterChange = {after: string; before: string; label: string};
@@ -85,6 +87,12 @@ export function diffFilters(
   }
 
   return changes;
+}
+
+function truncateDescription(value: string): string {
+  if (!value) return t('(empty)');
+  if (value.length <= DESCRIPTION_PREVIEW_MAX_LENGTH) return value;
+  return value.slice(0, DESCRIPTION_PREVIEW_MAX_LENGTH) + '…';
 }
 
 export type WidgetChange =
@@ -210,8 +218,8 @@ export function diffWidgets(
         snapshotWidget.displayType === DisplayType.TEXT;
       fields.push({
         field: isTextWidget ? t('content') : t('description'),
-        before: baseDescription || t('(empty)'),
-        after: snapshotDescription || t('(empty)'),
+        before: truncateDescription(baseDescription),
+        after: truncateDescription(snapshotDescription),
       });
     }
 

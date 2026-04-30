@@ -171,6 +171,22 @@ describe('diffWidgets', () => {
     });
   });
 
+  it('truncates text widget content longer than 150 characters', () => {
+    const long = 'x'.repeat(200);
+    const base = makeWidget({id: '1', displayType: DisplayType.TEXT, description: long});
+    const snap = makeWidget({
+      id: '1',
+      displayType: DisplayType.TEXT,
+      description: long + 'y',
+    });
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({status: 'modified'});
+    const field = (result[0] as any).fields[0];
+    expect(field.before).toHaveLength(151); // 150 chars + ellipsis char
+    expect(field.before.endsWith('…')).toBe(true);
+    expect(field.after.endsWith('…')).toBe(true);
+  });
+
   it('handles a query being added to a widget', () => {
     const q = {conditions: '', aggregates: [], columns: [], orderby: '', name: ''} as any;
     const base = makeWidget({id: '1', queries: [q]});
