@@ -4,6 +4,33 @@ import type {TooltipProps} from '@sentry/scraps/tooltip';
 
 // We do not want people using this type as it should only be used
 // internally by the different button implementations
+type ButtonPriority =
+  | 'default'
+  | 'primary'
+  | 'danger'
+  | 'warning'
+  | 'link'
+  | 'transparent';
+
+export type ButtonVariant =
+  | 'secondary'
+  | 'primary'
+  | 'danger'
+  | 'warning'
+  | 'link'
+  | 'transparent';
+
+export function DO_NOT_USE_resolveButtonVariant(
+  props: Pick<DO_NOT_USE_CommonButtonProps, 'priority' | 'variant'>
+): ButtonVariant {
+  if (props.variant !== undefined) {
+    return props.variant;
+  }
+  if (props.priority === 'default') {
+    return 'secondary';
+  }
+  return props.priority ?? 'secondary';
+}
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export interface DO_NOT_USE_CommonButtonProps {
@@ -33,8 +60,9 @@ export interface DO_NOT_USE_CommonButtonProps {
    * The semantic "priority" of the button. Use `primary` when the action is
    * contextually the primary action, `danger` if the button will do something
    * destructive, `link` for visual similarity to a link.
+   * @deprecated use `variant`
    */
-  priority?: 'default' | 'primary' | 'danger' | 'warning' | 'link' | 'transparent';
+  priority?: ButtonPriority;
   /**
    * The size of the button
    */
@@ -43,6 +71,12 @@ export interface DO_NOT_USE_CommonButtonProps {
    * Button Tooltip Props
    */
   tooltipProps?: ButtonTooltipProps;
+  /**
+   * The semantic "variant" of the button. Use `primary` when the action is
+   * contextually the primary action, `danger` if the button will do something
+   * destructive, `link` for visual similarity to a link.
+   */
+  variant?: ButtonVariant;
 }
 
 interface ButtonTooltipProps extends Omit<

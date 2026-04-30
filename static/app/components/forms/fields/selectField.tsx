@@ -101,7 +101,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
     onChange: InputFieldProps['onChange'],
     optionObj: ValueType<OptionType, boolean>
   ) => {
-    let value: any = undefined;
+    let value: any;
 
     // If optionObj is empty, then it probably means that the field was "cleared"
     if (!optionObj) {
