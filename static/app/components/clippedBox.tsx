@@ -300,7 +300,7 @@ export function ClippedBox(props: ClippedBoxProps) {
       devicePixelContentBoxSize: [{blockSize: rect.height, inlineSize: rect.width}],
     };
     onResize([entry]);
-    return () => {};
+    return;
   }, [clipFlex, clipHeight, clipped, revealed]);
 
   const showMoreButton = (
