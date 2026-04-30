@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0008_add_seer_run_models
 
-sentry: 1077_add_is_disabled_field
+sentry: 1078_drop_querysubscription_time_window
 
 social_auth: 0003_social_auth_json_field
 

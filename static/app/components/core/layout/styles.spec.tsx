@@ -84,7 +84,7 @@ describe('rc', () => {
   });
 
   it('returns undefined when resolver returns undefined for a plain value', () => {
-    expect(rc('color', 'red', theme, () => undefined)).toBeUndefined();
+    expect(rc('color', 'red', theme, () => {})).toBeUndefined();
   });
 
   it('generates media queries for responsive values', () => {

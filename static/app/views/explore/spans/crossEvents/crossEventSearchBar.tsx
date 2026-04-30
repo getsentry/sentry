@@ -70,7 +70,7 @@ export const SpansTabCrossEventSearchBar = memo(
                     "This key won't affect the results because samples mode does not support aggregate functions"
                   );
                 }
-                return undefined;
+                return;
               }
             : undefined,
         supportedAggregates:

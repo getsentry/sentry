@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 
-import {getUtcDateString} from 'sentry/utils/dates';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+import {createLogDownloadFilename} from 'sentry/views/explore/logs/createLogDownloadFilename';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 function disableMacros(value: string | null | boolean | number | undefined) {
@@ -17,7 +18,7 @@ function disableMacros(value: string | null | boolean | number | undefined) {
 }
 
 export function downloadLogsAsCsv(
-  tableData: OurLogsResponseItem[],
+  rows: OurLogsResponseItem[],
   fields: OurLogFieldKey[],
   filename: string
 ) {
@@ -26,7 +27,7 @@ export function downloadLogsAsCsv(
 
   const csvContent = Papa.unparse({
     fields: headings,
-    data: tableData.map((row: OurLogsResponseItem) =>
+    data: rows.map((row: OurLogsResponseItem) =>
       keys.map((key: OurLogFieldKey) => {
         return disableMacros(row[key]);
       })
@@ -35,17 +36,5 @@ export function downloadLogsAsCsv(
 
   const encodedDataUrl = `data:text/csv;charset=utf8,${encodeURIComponent(csvContent)}`;
 
-  const now = new Date();
-  emptyClickCSV(encodedDataUrl, filename, now);
-}
-
-function emptyClickCSV(encodedDataUrl: string, filename: string, now: Date) {
-  const link = document.createElement('a');
-
-  link.setAttribute('href', encodedDataUrl);
-  link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
-  link.click();
-  link.remove();
-
-  return encodedDataUrl;
+  downloadFromHref(createLogDownloadFilename(filename, 'csv'), encodedDataUrl);
 }

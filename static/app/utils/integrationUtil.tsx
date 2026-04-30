@@ -204,7 +204,7 @@ export const safeGetQsParam = (param: string) => {
     const query = qs.parse(window.location.search) || {};
     return query[param];
   } catch {
-    return undefined;
+    return;
   }
 };
 

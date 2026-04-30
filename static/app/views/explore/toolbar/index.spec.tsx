@@ -367,7 +367,7 @@ describe('ExploreToolbar', () => {
 
   it('clears the last selected group by', async () => {
     let groupBys: readonly string[] = [];
-    let mode: Mode | undefined = undefined;
+    let mode: Mode | undefined;
 
     function Component() {
       groupBys = useQueryParamsGroupBys();
