@@ -171,9 +171,6 @@ def group_categories_from_search_filters(
         group_categories.discard(GroupCategory.INSTRUMENTATION.value)
         group_categories.discard(GroupCategory.CONFIGURATION.value)
 
-    if not features.has("organizations:performance-issues-search", organization):
-        group_categories.discard(GroupCategory.PERFORMANCE.value)
-
     return group_categories
 
 
