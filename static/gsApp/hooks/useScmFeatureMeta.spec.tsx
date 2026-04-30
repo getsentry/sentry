@@ -41,12 +41,13 @@ describe('useScmFeatureMeta', () => {
     expect(result.current.meta[ProductSolution.PROFILING].volume).toBe('Usage-based');
   });
 
-  it('falls back to static volumes when freePlan is missing from planList', async () => {
+  it('falls back to static volumes when billing-config errors', async () => {
     const organization = OrganizationFixture();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       query: {tier: 'am3'},
-      body: {...BillingConfigFixture(PlanTier.AM3), freePlan: 'missing_plan_id'},
+      statusCode: 404,
+      body: {detail: 'Not Found'},
     });
 
     const {result} = renderHookWithProviders(useScmFeatureMeta, {organization});
