@@ -41,6 +41,11 @@ import {
 type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
 
+export interface NavButtonRefs {
+  next: React.RefObject<HTMLButtonElement | null>;
+  prev: React.RefObject<HTMLButtonElement | null>;
+}
+
 interface SnapshotMainContentProps {
   canNavigateNext: boolean;
   canNavigatePrev: boolean;
@@ -51,6 +56,7 @@ interface SnapshotMainContentProps {
   imageBaseUrl: string;
   isSoloView: boolean;
   listItems: SidebarItem[];
+  navButtonRefs: NavButtonRefs;
   onDiffModeChange: (mode: DiffMode) => void;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onOverlayColorChange: (color: string) => void;
@@ -91,6 +97,7 @@ export function SnapshotMainContent({
   onNavigateSingleView,
   canNavigatePrev,
   canNavigateNext,
+  navButtonRefs,
 }: SnapshotMainContentProps) {
   const [isDark, setIsDark] = useState(false);
   const toggleDark = () => setIsDark(v => !v);
@@ -201,6 +208,7 @@ export function SnapshotMainContent({
         canNavigatePrev={canNavigatePrev}
         canNavigateNext={canNavigateNext}
         onNavigateSingleView={onNavigateSingleView}
+        navButtonRefs={navButtonRefs}
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
@@ -247,6 +255,7 @@ export function SnapshotMainContent({
         canNavigatePrev={canNavigatePrev}
         canNavigateNext={canNavigateNext}
         onNavigateSingleView={onNavigateSingleView}
+        navButtonRefs={navButtonRefs}
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
@@ -285,6 +294,7 @@ export function SnapshotMainContent({
       canNavigatePrev={canNavigatePrev}
       canNavigateNext={canNavigateNext}
       onNavigateSingleView={onNavigateSingleView}
+      navButtonRefs={navButtonRefs}
       headerProps={{
         displayName: currentImage.display_name,
         fileName: currentImage.image_file_name,
@@ -306,6 +316,7 @@ function SingleViewLayout({
   canNavigatePrev,
   canNavigateNext,
   onNavigateSingleView,
+  navButtonRefs,
   headerProps,
   body,
   rightControls,
@@ -316,6 +327,7 @@ function SingleViewLayout({
   groupName: string | null;
   headerProps: Omit<React.ComponentProps<typeof CardHeader>, 'isDark' | 'onToggleDark'>;
   isDark: boolean;
+  navButtonRefs: NavButtonRefs;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onToggleDark: () => void;
   soloDiffToggle: React.ReactNode;
@@ -366,8 +378,9 @@ function SingleViewLayout({
             </DarkAware>
           </Flex>
           <NavGutter onClick={e => e.stopPropagation()}>
-            <Tooltip title={t('Previous')} skipWrapper>
+            <Tooltip title={t('Previous (↑)')} skipWrapper>
               <Button
+                ref={navButtonRefs.prev}
                 size="sm"
                 icon={<IconArrow direction="up" />}
                 aria-label={t('Previous snapshot')}
@@ -375,8 +388,9 @@ function SingleViewLayout({
                 onClick={() => onNavigateSingleView('prev')}
               />
             </Tooltip>
-            <Tooltip title={t('Next')} skipWrapper>
+            <Tooltip title={t('Next (↓)')} skipWrapper>
               <Button
+                ref={navButtonRefs.next}
                 size="sm"
                 icon={<IconArrow direction="down" />}
                 aria-label={t('Next snapshot')}
@@ -437,13 +451,13 @@ function ViewModeToggle({
         key="list"
         icon={<IconList />}
         aria-label={t('List view')}
-        tooltip={t('List view')}
+        tooltip={t('List view (←)')}
       />
       <SegmentedControl.Item
         key="single"
         icon={<IconExpand />}
         aria-label={t('Single image view')}
-        tooltip={t('Single image view')}
+        tooltip={t('Single image view (→)')}
       />
     </SegmentedControl>
   );
@@ -588,6 +602,15 @@ const NavGutter = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex-shrink: 0;
+
+  button[aria-pressed='true'] {
+    &::after {
+      transform: translateY(0px);
+    }
+    > span:last-child {
+      transform: translateY(0px);
+    }
+  }
 `;
 
 const SingleViewCard = styled(Card)`
