@@ -29,7 +29,13 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
     SeerOperatorCacheResult,
 )
-from sentry.seer.explorer.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
+from sentry.seer.explorer.client_models import (
+    ExplorerCodingAgentState,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
@@ -437,6 +443,126 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.handoff_errors == [
             "Encountered an error while launching the coding agent"
         ]
+        assert self.entrypoint.handoff_successes == []
+
+    def _build_explorer_state_with_agents(
+        self, agents: dict[str, ExplorerCodingAgentState]
+    ) -> SeerRunState:
+        return SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            coding_agents=agents,
+        )
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_explorer_success(
+        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+    ):
+        mock_read_pref.return_value = self._build_preference_with_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents({})
+        with self.feature("organizations:autofix-on-explorer"):
+            self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_called_once()
+        assert self.entrypoint.handoff_successes == [
+            (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT)
+        ]
+        assert self.entrypoint.handoff_already_exists == []
+        assert self.entrypoint.handoff_errors == []
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_explorer_already_exists_running(
+        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+    ):
+        mock_read_pref.return_value = self._build_preference_with_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents(
+            {
+                "agent-1": ExplorerCodingAgentState(
+                    id="agent-1",
+                    status="running",
+                    provider="cursor_background_agent",
+                    name="Cursor",
+                    started_at=datetime.now(),
+                )
+            }
+        )
+        with self.feature("organizations:autofix-on-explorer"):
+            self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_not_called()
+        assert self.entrypoint.handoff_already_exists == [
+            (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT, False)
+        ]
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_explorer_already_exists_completed(
+        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+    ):
+        mock_read_pref.return_value = self._build_preference_with_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents(
+            {
+                "agent-1": ExplorerCodingAgentState(
+                    id="agent-1",
+                    status="completed",
+                    provider="cursor_background_agent",
+                    name="Cursor",
+                    started_at=datetime.now(),
+                )
+            }
+        )
+        with self.feature("organizations:autofix-on-explorer"):
+            self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_not_called()
+        assert self.entrypoint.handoff_already_exists == [
+            (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT, True)
+        ]
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_explorer_proceeds_when_all_agents_failed(
+        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+    ):
+        mock_read_pref.return_value = self._build_preference_with_handoff()
+        mock_fetch_status.return_value = self._build_explorer_state_with_agents(
+            {
+                "agent-1": ExplorerCodingAgentState(
+                    id="agent-1",
+                    status="failed",
+                    provider="cursor_background_agent",
+                    name="Cursor",
+                    started_at=datetime.now(),
+                )
+            }
+        )
+        with self.feature("organizations:autofix-on-explorer"):
+            self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_called_once()
+        assert self.entrypoint.handoff_successes == [
+            (MOCK_RUN_ID, CodingAgentProviderType.CURSOR_BACKGROUND_AGENT)
+        ]
+        assert self.entrypoint.handoff_already_exists == []
+
+    @patch(
+        "sentry.seer.entrypoints.operator.fetch_run_status",
+        side_effect=Exception("seer down"),
+    )
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
+    def test_trigger_handoff_explorer_state_fetch_error_calls_error_hook(
+        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+    ):
+        mock_read_pref.return_value = self._build_preference_with_handoff()
+        with self.feature("organizations:autofix-on-explorer"):
+            self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
+        mock_trigger_handoff_helper.assert_not_called()
+        assert self.entrypoint.handoff_errors == ["Encountered an error while talking to Seer"]
         assert self.entrypoint.handoff_successes == []
 
     @patch(
@@ -876,7 +1002,7 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         return mock_entrypoint_cls
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_fetches_summary_from_last_assistant_block(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -905,7 +1031,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_uses_default_summary_when_no_assistant_content(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -929,7 +1055,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_returns_early_on_fetch_error(self, mock_fetch):
         mock_fetch.side_effect = Exception("Seer is down")
         mock_entrypoint_cls = Mock(spec=SeerAgentEntrypoint)
@@ -943,7 +1069,7 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         mock_entrypoint_cls.on_agent_update.assert_not_called()
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_skips_entrypoint_without_access(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -984,7 +1110,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             run_id=MOCK_RUN_ID,
         )
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_skips_entrypoint_without_cache(self, mock_fetch):
         state = self._make_state(
             blocks=[
@@ -1002,7 +1128,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_entrypoint_cls.on_agent_update.assert_not_called()
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_records_failure_on_org_mismatch(self, mock_fetch, mock_record):
         state = self._make_state(
             blocks=[
@@ -1023,7 +1149,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_entrypoint_cls.on_agent_update.assert_not_called()
         assert_failure_metric(mock_record, "org_mismatch")
 
-    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_with_empty_blocks(self, mock_fetch):
         state = self._make_state(blocks=[])
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
