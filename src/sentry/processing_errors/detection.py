@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+import sentry_sdk
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -136,7 +137,20 @@ def _detect_for_config(
     if not any(e.get("type") in config.handler_cls.error_types for e in errors):
         return
 
-    metrics.incr(f"processing_errors.{config.slug}.event_with_errors")
+    matching_error_types = sorted(
+        e.get("type") for e in errors if e.get("type") in config.handler_cls.error_types
+    )
+    sentry_sdk.metrics.count(
+        f"processing_errors.{config.slug}.event_with_errors",
+        1,
+        attributes={
+            "org_slug": event.project.organization.slug,
+            "project_id": str(event.project.id),
+            "project_slug": event.project.slug,
+            "platform": event.project.platform or "unknown",
+            "error_type": ",".join(matching_error_types),
+        },
+    )
 
     project_id = event.project.id
 
