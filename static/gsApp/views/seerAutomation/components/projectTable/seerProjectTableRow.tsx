@@ -59,6 +59,7 @@ export function SeerProjectTableRow({
       automatedRunStoppingPoint: 'code_changes',
       automationHandoff: undefined,
       projectId: project.id,
+      projectSlug: project.slug,
       reposCount: 0,
     },
     integrations: integrations ?? [],

@@ -37,6 +37,7 @@ describe('seerAgentHooks', () => {
         initialProps: {
           autofixSettings: {
             projectId: '1',
+            projectSlug: 'project-slug',
             autofixAutomationTuning: 'off',
             automatedRunStoppingPoint: undefined,
             automationHandoff: undefined,
@@ -55,6 +56,7 @@ describe('seerAgentHooks', () => {
         initialProps: {
           autofixSettings: {
             projectId: '1',
+            projectSlug: 'project-slug',
             autofixAutomationTuning: 'medium',
             automatedRunStoppingPoint: undefined,
             automationHandoff: undefined,
@@ -77,6 +79,7 @@ describe('seerAgentHooks', () => {
         initialProps: {
           autofixSettings: {
             projectId: '1',
+            projectSlug: 'project-slug',
             autofixAutomationTuning: 'medium',
             automatedRunStoppingPoint: undefined,
             automationHandoff: {
@@ -113,6 +116,7 @@ describe('seerAgentHooks', () => {
             json: [
               {
                 projectId: '1',
+                projectSlug: 'project-slug',
                 autofixAutomationTuning: 'off' as const,
                 automatedRunStoppingPoint: 'code_changes' as const,
                 automationHandoff: undefined,
@@ -120,6 +124,7 @@ describe('seerAgentHooks', () => {
               },
               {
                 projectId: '2',
+                projectSlug: 'project-slug',
                 autofixAutomationTuning: 'medium' as const,
                 automatedRunStoppingPoint: 'open_pr' as const,
                 automationHandoff: undefined,
