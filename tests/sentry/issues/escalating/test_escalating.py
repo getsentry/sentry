@@ -119,8 +119,8 @@ class HistoricGroupCounts(
         assert len(Group.objects.all()) == 4
         assert profile_error_event.group.issue_category == GroupCategory.ERROR
         assert error_event.group.issue_category == GroupCategory.ERROR
-        assert profile_issue_occurrence.group.issue_category == GroupCategory.PERFORMANCE
-        assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
+        assert profile_issue_occurrence.group.issue_category == GroupCategory.MOBILE
+        assert perf_event.group.issue_category == GroupCategory.DB_QUERY
 
         profile_issue_occurrence_bucket = {
             "count()": 1,

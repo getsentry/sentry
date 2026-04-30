@@ -60,11 +60,11 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
         )
 
         self.assertPasses(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "false"}),
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "false"}),
             event,
         )
         self.assertPasses(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "false"}),
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "false"}),
             group_event,
         )
 
@@ -76,7 +76,7 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
             event,
         )
         self.assertDoesNotPass(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}),
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value}),
             event,
         )
 
@@ -88,7 +88,7 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
             event,
         )
         self.assertDoesNotPass(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "true"}),
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "true"}),
             event,
         )
 

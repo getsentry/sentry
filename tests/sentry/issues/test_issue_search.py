@@ -10,7 +10,7 @@ from sentry.api.event_search import (
     SearchValue,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import PERFORMANCE_ISSUE_CATEGORIES, GroupCategory
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.issues.issue_search import (
     convert_actor_or_none_value,
@@ -433,7 +433,11 @@ class ConvertFirstReleaseValueTest(TestCase):
 class ConvertCategoryValueTest(TestCase):
     def test(self) -> None:
         error_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.ERROR.value)
-        perf_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.PERFORMANCE.value)
+        perf_group_types = {
+            gt
+            for cat in PERFORMANCE_ISSUE_CATEGORIES
+            for gt in GROUP_TYPE_REGISTRY.get_by_category(cat.value)
+        }
         assert (
             set(convert_category_value(["error"], [self.project], self.user, None))
             == error_group_types
