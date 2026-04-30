@@ -2,6 +2,8 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import pick from 'lodash/pick';
 
+import {Heading} from '@sentry/scraps/text';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
@@ -29,7 +31,7 @@ function BuildDebugInfoModal({Header, Body, data}: Props) {
   return (
     <Fragment>
       <Header closeButton>
-        <h3>{t('Build Metadata')}</h3>
+        <Heading as="h3">{t('Build Metadata')}</Heading>
       </Header>
       <Body>
         <StructuredEventData
