@@ -109,6 +109,23 @@ describe('ExplorerDrawerContent', () => {
         ...defaultHookReturn,
         runId: 123,
         isError: true,
+        errorStatusCode: null,
+      });
+
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
+
+      expect(
+        await screen.findByText(/Error loading this session \(run_id=123\)./)
+      ).toBeInTheDocument();
+    });
+
+    it('shows 404-specific error message', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
         errorStatusCode: 404,
       });
 
@@ -116,12 +133,28 @@ describe('ExplorerDrawerContent', () => {
         organization,
       });
 
-      expect(await screen.findByText(/Error loading this session./)).toBeInTheDocument();
-      expect(await screen.findByText(/Status: 404/)).toBeInTheDocument();
-      expect(screen.getByText(/Run ID: 123/)).toBeInTheDocument();
       expect(
-        screen.queryByText('Ask Seer anything about your application.')
-      ).not.toBeInTheDocument();
+        await screen.findByText(/Session not found \(run_id=123\)./)
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/404/)).not.toBeInTheDocument();
+    });
+
+    it('shows generic error message when for non-404 errors', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        errorStatusCode: 444,
+      });
+
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
+
+      expect(
+        await screen.findByText(/Error loading this session \(run_id=123\)./)
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/444/)).not.toBeInTheDocument();
     });
   });
 

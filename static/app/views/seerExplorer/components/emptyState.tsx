@@ -30,7 +30,6 @@ export function EmptyState({
   onSuggestionClick,
 }: EmptyStateProps) {
   const runIdDisplay = runId?.toString() ?? 'null';
-  const errorStatusDisplay = errorStatusCode ?? 'unknown';
   return (
     <Container>
       {isLoading ? (
@@ -42,14 +41,13 @@ export function EmptyState({
         <Fragment>
           <IconSeer size="xl" />
           <Text>
-            {tct(
-              `Error loading this session.[br]Status: [errorStatusDisplay], Run ID: [runIdDisplay]`,
-              {
-                br: <br />,
-                errorStatusDisplay,
-                runIdDisplay,
-              }
-            )}
+            {errorStatusCode === 404
+              ? tct('Session not found (run_id=[runIdDisplay]).', {
+                  runIdDisplay,
+                })
+              : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
+                  runIdDisplay,
+                })}
           </Text>
         </Fragment>
       ) : (
