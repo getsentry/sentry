@@ -8,6 +8,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {DashboardRevisionsButton} from './dashboardRevisions';
@@ -248,6 +249,20 @@ describe('DashboardRevisionsButton', () => {
     expect(
       await screen.findByText('Failed to restore this revision.')
     ).toBeInTheDocument();
+  });
+
+  it('shows the author of the most recent revision in the current version entry', async () => {
+    MockApiClient.addMockResponse({url: REVISIONS_URL, body: [makeRevision()]});
+    MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
+
+    renderButton();
+    renderGlobalModal();
+    await openModal();
+
+    await screen.findAllByRole('radio');
+
+    const currentVersionItem = screen.getByText('Current Version').closest('div');
+    expect(within(currentVersionItem!).getByText('Alice')).toBeInTheDocument();
   });
 
   it('limits displayed revisions to 10', async () => {
