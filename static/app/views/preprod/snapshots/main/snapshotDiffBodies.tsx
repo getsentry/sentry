@@ -310,15 +310,16 @@ function LazyImage({
   return (
     <Container position="relative" display="inline-block" maxWidth="100%">
       {!loaded && (
-        <Placeholder
-          width={width ? `${width}px` : '100%'}
-          height={width && height ? 'auto' : `${MAX_IMAGE_HEIGHT}px`}
+        <PlaceholderSizer
           style={{
+            width: width ? `${width}px` : '100%',
             maxWidth: '100%',
             maxHeight: `${MAX_IMAGE_HEIGHT}px`,
-            aspectRatio: aspectRatio(width, height),
+            aspectRatio: width && height ? `${width} / ${height}` : undefined,
           }}
-        />
+        >
+          <Placeholder width="100%" height="100%" />
+        </PlaceholderSizer>
       )}
       <HiddenUntilLoaded
         ref={refCallback}
@@ -334,6 +335,10 @@ function LazyImage({
     </Container>
   );
 }
+
+const PlaceholderSizer = styled('div')`
+  overflow: hidden;
+`;
 
 const HiddenUntilLoaded = styled('img')`
   display: block;

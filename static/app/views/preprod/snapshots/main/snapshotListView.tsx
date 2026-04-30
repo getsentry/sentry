@@ -1,4 +1,12 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
@@ -25,8 +33,11 @@ interface SnapshotListViewProps {
   diffMode?: DiffMode;
   headBranch?: string | null;
   onOpenSnapshot?: (key: string) => void;
+  onScrollProgress?: (progress: number, firstVisibleIndex: number) => void;
   onSelectSnapshot?: (key: string | null) => void;
+  onVisibleGroupChange?: (name: string | null) => void;
   overlayColor?: string;
+  ref?: React.Ref<SnapshotListViewHandle>;
   selectedSnapshotKey?: string | null;
 }
 
@@ -158,34 +169,38 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
   return groups;
 }
 
-export function SnapshotListView({
+export interface SnapshotListViewHandle {
+  scrollToGroup: (name: string) => void;
+}
+
+export const SnapshotListView = memo(function SnapshotListView({
   items,
   imageBaseUrl,
   headBranch,
   selectedSnapshotKey,
   onSelectSnapshot,
   onOpenSnapshot,
+  onScrollProgress,
   diffMode = 'split',
   overlayColor,
   diffImageBaseUrl,
+  ref,
+  onVisibleGroupChange,
 }: SnapshotListViewProps) {
   const theme = useTheme();
   const groups = useMemo(() => buildGroups(items), [items]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
-  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(event.currentTarget.scrollTop);
-  }, []);
 
   const virtualizer = useVirtualizer({
     count: groups.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: i => groups[i]!.estimatedHeight,
     getItemKey: i => groups[i]!.id,
-    overscan: 2,
-    // Breathing margin between the target card and the chrome when scrollToIndex aligns to either edge
+    overscan: 5,
     scrollPaddingEnd: 8,
   });
+  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = () => false;
 
   // Flat (snapshotKey -> groupIdx / position) index for keyboard nav and scroll; O(1) lookups
   const flatIndex = useMemo(() => {
@@ -193,7 +208,8 @@ export function SnapshotListView({
     const groupIdxByKey = new Map<string, number>();
     const positionByKey = new Map<string, number>();
     for (let gi = 0; gi < groups.length; gi++) {
-      for (const card of groups[gi]!.cards) {
+      const group = groups[gi]!;
+      for (const card of group.cards) {
         const key = snapshotKeyFor(card);
         positionByKey.set(key, order.length);
         order.push(key);
@@ -202,6 +218,97 @@ export function SnapshotListView({
     }
     return {order, groupIdxByKey, positionByKey};
   }, [groups]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToGroup(name: string) {
+        const groupIdx = groups.findIndex(g => g.name === name);
+        if (groupIdx === -1) {
+          return;
+        }
+        virtualizer.scrollToIndex(groupIdx, {align: 'start'});
+      },
+    }),
+    [groups, virtualizer]
+  );
+
+  const rafId = useRef(0);
+  const onVisibleGroupChangeRef = useRef(onVisibleGroupChange);
+  onVisibleGroupChangeRef.current = onVisibleGroupChange;
+  const onScrollProgressRef = useRef(onScrollProgress);
+  onScrollProgressRef.current = onScrollProgress;
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
+  const flatIndexRef = useRef(flatIndex);
+  flatIndexRef.current = flatIndex;
+  const handleScroll = useCallback(() => {
+    cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (!el) {
+        return;
+      }
+      setScrollTop(el.scrollTop);
+      const containerTop = el.getBoundingClientRect().top;
+
+      const rows = el.querySelectorAll<HTMLElement>('[data-index]');
+      const ROW_THRESHOLD = 100;
+      let visibleGroupName = groupsRef.current[0]?.name ?? null;
+      for (const row of rows) {
+        const idx = parseInt(row.dataset.index ?? '', 10);
+        if (isNaN(idx)) {
+          continue;
+        }
+        const rowTop = row.getBoundingClientRect().top - containerTop;
+        if (rowTop <= ROW_THRESHOLD) {
+          visibleGroupName = groupsRef.current[idx]?.name ?? null;
+        }
+      }
+      onVisibleGroupChangeRef.current?.(visibleGroupName);
+
+      if (onScrollProgressRef.current) {
+        const maxScroll = el.scrollHeight - el.clientHeight;
+        const progress = maxScroll > 0 ? (el.scrollTop / maxScroll) * 100 : 0;
+        const cards = el.querySelectorAll<HTMLElement>('[data-snapshot-key]');
+        const SNAP_THRESHOLD = 9;
+        let topCard = 0;
+        for (const card of cards) {
+          const key = card.dataset.snapshotKey;
+          if (!key) {
+            continue;
+          }
+          const pos = flatIndexRef.current.positionByKey.get(key);
+          if (pos === undefined) {
+            continue;
+          }
+          const cardTop = card.getBoundingClientRect().top - containerTop;
+          if (cardTop <= SNAP_THRESHOLD) {
+            topCard = pos;
+          }
+        }
+        onScrollProgressRef.current(progress, topCard);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    el.addEventListener('scroll', handleScroll, {passive: true});
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+      cancelAnimationFrame(rafId.current);
+    };
+  }, [handleScroll]);
+
+  useEffect(() => {
+    if (groups.length > 0) {
+      handleScroll();
+    }
+  }, [groups, handleScroll]);
 
   const initialSnapshotKey = useRef(selectedSnapshotKey ?? null).current;
   const didInitialScroll = useRef(false);
@@ -221,6 +328,14 @@ export function SnapshotListView({
       );
       if (el) {
         el.scrollIntoView({block: 'start'});
+        const groupIdx = flatIndex.groupIdxByKey.get(initialSnapshotKey);
+        if (
+          groupIdx !== undefined &&
+          !groups[groupIdx]?.isUngrouped &&
+          scrollRef.current
+        ) {
+          scrollRef.current.scrollTop -= SNAPSHOT_GROUP_HEADER_HEIGHT;
+        }
       }
     });
   }, [groups, initialSnapshotKey, flatIndex, virtualizer]);
@@ -248,6 +363,16 @@ export function SnapshotListView({
         return false;
       }
       cardEl.scrollIntoView({block});
+      if (block === 'start') {
+        const groupIdx = keyNavRef.current.flatIndex.groupIdxByKey.get(key);
+        if (
+          groupIdx !== undefined &&
+          !groupsRef.current[groupIdx]?.isUngrouped &&
+          scrollRef.current
+        ) {
+          scrollRef.current.scrollTop -= SNAPSHOT_GROUP_HEADER_HEIGHT;
+        }
+      }
       return true;
     }
 
@@ -391,7 +516,7 @@ export function SnapshotListView({
   }
 
   return (
-    <ScrollContainer ref={scrollRef} onScroll={handleScroll}>
+    <ScrollContainer ref={scrollRef}>
       {activeGroupName ? (
         <StickyGroupHeader
           data-bottom-frame={stickyHeaderHasBottomFrame ? '' : undefined}
@@ -428,7 +553,7 @@ export function SnapshotListView({
       </Container>
     </ScrollContainer>
   );
-}
+});
 
 const GroupContainer = memo(function GroupContainer({
   group,

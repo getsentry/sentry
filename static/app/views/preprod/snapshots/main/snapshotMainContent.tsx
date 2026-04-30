@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,6 +12,7 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProgressBar} from 'sentry/components/progressBar';
 import {
   IconArrow,
   IconExpand,
@@ -32,7 +33,12 @@ import {
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
 import {CardHeader, DarkAware} from './snapshotCards';
 import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
-import {buildSnapshotLink, isItemUngrouped, SnapshotListView} from './snapshotListView';
+import {
+  buildSnapshotLink,
+  isItemUngrouped,
+  SnapshotListView,
+  type SnapshotListViewHandle,
+} from './snapshotListView';
 
 type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
@@ -63,8 +69,10 @@ interface SnapshotMainContentProps {
   variantIndex: number;
   viewMode: ViewMode;
   headBranch?: string | null;
+  listViewRef?: React.RefObject<SnapshotListViewHandle | null>;
   onSelectSnapshot?: (key: string | null) => void;
   onSortByChange?: (sort: SortBy) => void;
+  onVisibleGroupChange?: (name: string | null) => void;
   selectedSnapshotKey?: string | null;
   sortBy?: SortBy;
 }
@@ -86,17 +94,60 @@ export function SnapshotMainContent({
   onToggleSoloView,
   comparisonType,
   headBranch,
+  listViewRef,
   selectedSnapshotKey,
   onSelectSnapshot,
   sortBy = 'diff',
   onSortByChange,
+  onVisibleGroupChange,
   onNavigateSingleView,
   canNavigatePrev,
   canNavigateNext,
   navButtonRefs,
 }: SnapshotMainContentProps) {
   const [isDark, setIsDark] = useState(false);
-  const toggleDark = () => setIsDark(v => !v);
+  const toggleDark = useCallback(() => setIsDark(v => !v), []);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+
+  const {cardOffsets, totalCards} = useMemo(() => {
+    const offsets: number[] = [];
+    let total = 0;
+    for (const item of listItems) {
+      offsets.push(total);
+      const count =
+        item.type === 'changed' || item.type === 'renamed'
+          ? item.pairs.length
+          : item.images.length;
+      total += count;
+    }
+    return {cardOffsets: offsets, totalCards: total};
+  }, [listItems]);
+
+  const handleListScrollProgress = useCallback(
+    (progress: number, firstVisibleCardIndex: number) => {
+      setScrollProgress(progress);
+      setCurrentCardIndex(firstVisibleCardIndex);
+    },
+    []
+  );
+
+  const singleViewIndex = useMemo(() => {
+    if (!selectedItem) {
+      return 0;
+    }
+    const idx = listItems.indexOf(selectedItem);
+    return idx === -1 ? 0 : idx;
+  }, [selectedItem, listItems]);
+
+  useEffect(() => {
+    if (viewMode !== 'single') {
+      return;
+    }
+    const cardIndex = (cardOffsets[singleViewIndex] ?? 0) + variantIndex;
+    setCurrentCardIndex(cardIndex);
+    setScrollProgress(totalCards <= 1 ? 100 : (cardIndex / (totalCards - 1)) * 100);
+  }, [viewMode, singleViewIndex, variantIndex, totalCards, cardOffsets]);
 
   const handleOpenSnapshot = useCallback(
     (key: string) => {
@@ -108,6 +159,14 @@ export function SnapshotMainContent({
 
   const toggle = (
     <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+  );
+  const progressIndicator = totalCards > 0 && (
+    <ProgressPill>
+      <ToolbarProgressBar value={scrollProgress} />
+      <ProgressCounter size="xs" variant="muted">
+        {currentCardIndex + 1}/{totalCards}
+      </ProgressCounter>
+    </ProgressPill>
   );
   const hasChangedInList = listItems.some(i => i.type === 'changed');
   const sortDropdown =
@@ -146,6 +205,7 @@ export function SnapshotMainContent({
           <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {toggle}
             {sortDropdown}
+            {progressIndicator}
           </Flex>
           <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {listDiffControls}
@@ -154,15 +214,18 @@ export function SnapshotMainContent({
         </Flex>
         <Separator orientation="horizontal" />
         <SnapshotListView
+          ref={listViewRef}
           items={listItems}
           imageBaseUrl={imageBaseUrl}
           headBranch={headBranch}
           selectedSnapshotKey={selectedSnapshotKey}
           onSelectSnapshot={onSelectSnapshot}
           onOpenSnapshot={handleOpenSnapshot}
+          onScrollProgress={handleListScrollProgress}
           diffMode={diffMode}
           overlayColor={overlayColor}
           diffImageBaseUrl={diffImageBaseUrl}
+          onVisibleGroupChange={onVisibleGroupChange}
         />
       </Flex>
     );
@@ -175,6 +238,7 @@ export function SnapshotMainContent({
           <Flex align="center" gap="md">
             {toggle}
             {sortDropdown}
+            {progressIndicator}
           </Flex>
           {soloDiffToggle}
         </Flex>
@@ -201,6 +265,8 @@ export function SnapshotMainContent({
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
+        sortDropdown={sortDropdown}
+        progressIndicator={progressIndicator}
         canNavigatePrev={canNavigatePrev}
         canNavigateNext={canNavigateNext}
         onNavigateSingleView={onNavigateSingleView}
@@ -249,6 +315,8 @@ export function SnapshotMainContent({
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
+        sortDropdown={sortDropdown}
+        progressIndicator={progressIndicator}
         canNavigatePrev={canNavigatePrev}
         canNavigateNext={canNavigateNext}
         onNavigateSingleView={onNavigateSingleView}
@@ -288,6 +356,8 @@ export function SnapshotMainContent({
       groupName={groupName}
       toggle={toggle}
       soloDiffToggle={soloDiffToggle}
+      sortDropdown={sortDropdown}
+      progressIndicator={progressIndicator}
       canNavigatePrev={canNavigatePrev}
       canNavigateNext={canNavigateNext}
       onNavigateSingleView={onNavigateSingleView}
@@ -310,6 +380,8 @@ function SingleViewLayout({
   groupName,
   toggle,
   soloDiffToggle,
+  sortDropdown,
+  progressIndicator,
   canNavigatePrev,
   canNavigateNext,
   onNavigateSingleView,
@@ -327,7 +399,9 @@ function SingleViewLayout({
   navButtonRefs: NavButtonRefs;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onToggleDark: () => void;
+  progressIndicator: React.ReactNode;
   soloDiffToggle: React.ReactNode;
+  sortDropdown: React.ReactNode;
   toggle: React.ReactNode;
   rightControls?: React.ReactNode;
 }) {
@@ -360,7 +434,11 @@ function SingleViewLayout({
         padding="md xl md 0"
         onClick={e => e.stopPropagation()}
       >
-        {toggle}
+        <Flex align="center" gap="md">
+          {toggle}
+          {sortDropdown}
+          {progressIndicator}
+        </Flex>
         <Flex align="center" gap="md">
           {rightControls}
           {soloDiffToggle}
@@ -633,6 +711,21 @@ const ColorTrigger = styled('button')<{color: string}>`
   &:hover {
     border-color: ${p => p.theme.tokens.border.accent};
   }
+`;
+
+const ProgressPill = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+`;
+
+const ProgressCounter = styled(Text)`
+  white-space: nowrap;
+  font-family: ${p => p.theme.font.family.mono};
+`;
+
+const ToolbarProgressBar = styled(ProgressBar)`
+  width: 50px;
 `;
 
 const ColorSwatch = styled('button')<{color: string; selected: boolean}>`

@@ -59,7 +59,7 @@ export function SnapshotVariantFrame({
     >
       {children}
       {isSelected ? (
-        <Container
+        <SelectedOverlay
           position="absolute"
           inset={0}
           pointerEvents="none"
@@ -80,6 +80,8 @@ export function SnapshotCanvasWrapper({children}: {children: React.ReactNode}) {
   );
 }
 
+const SelectedOverlay = styled(Container)``;
+
 const SnapshotVariantContainer = styled(Container, {
   shouldForwardProp: prop => prop !== '$fillHeight',
 })<{$fillHeight: boolean}>`
@@ -94,5 +96,15 @@ const SnapshotVariantContainer = styled(Container, {
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  &:first-child > ${SelectedOverlay} {
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
+  }
+
+  &:last-child > ${SelectedOverlay} {
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;
