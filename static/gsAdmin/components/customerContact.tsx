@@ -1,4 +1,4 @@
-import {ExternalLink} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -8,10 +8,8 @@ type Props = {
 
 export function CustomerContact({owner}: Props) {
   return owner ? (
-    <ExternalLink
-      href={`mailto:${encodeURIComponent(`"${owner.name}" <${owner.email}>`)}`}
-    >
+    <Link to={`/_admin/users/?query=${encodeURIComponent(owner.email)}`}>
       {owner.email}
-    </ExternalLink>
+    </Link>
   ) : null;
 }
