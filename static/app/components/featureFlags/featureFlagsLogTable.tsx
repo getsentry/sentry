@@ -1,9 +1,10 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import {Pagination} from 'sentry/components/pagination';
 import {GridEditable, type GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

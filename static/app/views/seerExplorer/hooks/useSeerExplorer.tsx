@@ -54,6 +54,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
 const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
+  '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
 ]);
 
@@ -114,8 +115,24 @@ export const useSeerExplorer = () => {
     'seer-explorer.override.ctx-eng',
     true
   );
+  type CodeModeValue = 'off' | 'on' | 'only';
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
-    useLocalStorageState<boolean>('seer-explorer.override.code-mode', true);
+    useLocalStorageState<CodeModeValue>(
+      'seer-explorer.override.code-mode',
+      (storedValue?: unknown): CodeModeValue => {
+        if (storedValue === 'off' || storedValue === 'on' || storedValue === 'only') {
+          return storedValue;
+        }
+        // Migrate legacy boolean values
+        if (storedValue === true) {
+          return 'on';
+        }
+        if (storedValue === false) {
+          return 'off';
+        }
+        return 'on'; // default
+      }
+    );
 
   const [runId, setRunId] = useSeerExplorerRunId();
 
@@ -139,7 +156,7 @@ export const useSeerExplorer = () => {
     {
       insertIndex: number;
       orgSlug: string;
-      overrideCodeModeEnable: boolean;
+      overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
       pageName: string;
       query: string;
@@ -304,7 +321,10 @@ export const useSeerExplorer = () => {
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {apiData, isError, isPolling} = useSeerExplorerPolling({runId, isMutatePending});
+  const {apiData, isPolling, isError, errorStatusCode} = useSeerExplorerPolling({
+    runId,
+    isMutatePending,
+  });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -565,6 +585,7 @@ export const useSeerExplorer = () => {
     sessionData: filteredSessionData,
     isPolling,
     isError,
+    errorStatusCode,
     sendMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */

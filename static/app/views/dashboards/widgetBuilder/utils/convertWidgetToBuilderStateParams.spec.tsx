@@ -177,7 +177,7 @@ describe('convertWidgetToBuilderState', () => {
       description: 'My text content',
     };
     const params = convertWidgetToBuilderState(widget);
-    expect(params.textContent as string).toBe('My text content');
+    expect(params.textContent!).toBe('My text content');
     expect(params.description).toBeUndefined();
   });
 

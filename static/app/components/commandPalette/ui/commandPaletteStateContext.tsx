@@ -184,7 +184,7 @@ export function CommandPaletteHotkeys() {
 
   useHotkeys([
     {
-      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      match: ['mod+shift+p', 'mod+k'],
       includeInputs: true,
       callback: () => {
         if (!organization) {

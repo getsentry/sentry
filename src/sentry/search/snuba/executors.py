@@ -496,59 +496,53 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if query_params is not None:
                     query_params_for_categories[gc] = query_params
 
-        try:
-            bulk_query_results = bulk_raw_query(
-                list(query_params_for_categories.values()), referrer=referrer
-            )
-        except Exception:
-            metrics.incr(
-                "snuba.search.group_category_bulk",
-                tags={
-                    GroupCategory(gc_val).name.lower(): True
-                    for gc_val, _ in query_params_for_categories.items()
-                },
-            )
-            # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
-            # we'll fallback to querying for errors only
-            if GroupCategory.ERROR.value in query_params_for_categories.keys():
-                bulk_query_results = bulk_raw_query(
-                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
-                )
-            else:
-                raise
-
-        rows: list[MergeableRow] = []
-        total = 0
-        row_length = 0
-        for bulk_result in bulk_query_results:
-            if bulk_result:
-                if bulk_result["data"]:
-                    rows.extend(bulk_result["data"])
-                if bulk_result["totals"]["total"]:
-                    total += bulk_result["totals"]["total"]
-                row_length += len(bulk_result)
-
-        rows.sort(key=lambda row: row["group_id"])
-
-        if not get_sample:
-            metrics.distribution("snuba.search.num_result_groups", row_length)
-
-        if get_sample:
-            sort_field = "sample"
-
-        snuba_result = [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore[literal-required]
-        result = snuba_result
-
-        # Double-read from EAP for supported sort strategies
         callsite = "PostgresSnubaQueryExecutor.snuba_search"
-        if (
-            not get_sample
-            and sort_field in EAP_SORT_STRATEGIES
-            and features.has("organizations:issue-feed.eap-search", organization)
-            and EAPOccurrencesComparator.should_check_experiment(callsite)
-        ):
+
+        def _run_snuba_query() -> tuple[list[tuple[int, Any]], int]:
             try:
-                eap_result = run_eap_group_search(
+                bulk_query_results = bulk_raw_query(
+                    list(query_params_for_categories.values()), referrer=referrer
+                )
+            except Exception:
+                metrics.incr(
+                    "snuba.search.group_category_bulk",
+                    tags={
+                        GroupCategory(gc_val).name.lower(): True
+                        for gc_val, _ in query_params_for_categories.items()
+                    },
+                )
+                # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
+                # we'll fallback to querying for errors only
+                if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                    bulk_query_results = bulk_raw_query(
+                        [query_params_for_categories[GroupCategory.ERROR.value]],
+                        referrer=referrer,
+                    )
+                else:
+                    raise
+
+            rows: list[MergeableRow] = []
+            total = 0
+            row_length = 0
+            for bulk_result in bulk_query_results:
+                if bulk_result:
+                    if bulk_result["data"]:
+                        rows.extend(bulk_result["data"])
+                    if bulk_result["totals"]["total"]:
+                        total += bulk_result["totals"]["total"]
+                    row_length += len(bulk_result)
+
+            rows.sort(key=lambda row: row["group_id"])
+
+            if not get_sample:
+                metrics.distribution("snuba.search.num_result_groups", row_length)
+
+            effective_sort_field = "sample" if get_sample else sort_field
+            return [(row["group_id"], row[effective_sort_field]) for row in rows], total  # type: ignore[literal-required]
+
+        def _run_eap_query() -> tuple[list[tuple[int, Any]], int]:
+            try:
+                return run_eap_group_search(
                     start=start,
                     end=end,
                     project_ids=project_ids,
@@ -562,11 +556,25 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     search_filters=snuba_search_filters,
                     referrer=referrer,
                 )
-                result = EAPOccurrencesComparator.check_and_choose(
-                    snuba_result,
-                    eap_result,
-                    callsite,
-                    is_experimental_data_a_null_result=len(eap_result[0]) == 0,
+            except Exception:
+                logger.exception(
+                    "eap.double_read.run_eap_group_search_failed",
+                    extra={"callsite": callsite, "sort_field": sort_field},
+                )
+                return ([], 0)
+
+        # Double-read from EAP for supported sort strategies
+        if (
+            not get_sample
+            and sort_field in EAP_SORT_STRATEGIES
+            and features.has("organizations:issue-feed.eap-search", organization)
+        ):
+            try:
+                return EAPOccurrencesComparator.check_and_choose_with_timings(
+                    control_thunk=_run_snuba_query,
+                    experimental_thunk=_run_eap_query,
+                    callsite=callsite,
+                    null_result_determiner=lambda r: len(r[0]) == 0,
                     reasonable_match_comparator=_reasonable_search_result_match,
                     debug_context={
                         "sort_field": sort_field,
@@ -581,7 +589,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     extra={"callsite": callsite, "sort_field": sort_field},
                 )
 
-        return result
+        return _run_snuba_query()
 
     def has_sort_strategy(self, sort_by: str) -> bool:
         return sort_by in self.sort_strategies.keys()

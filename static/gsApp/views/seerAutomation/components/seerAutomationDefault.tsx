@@ -23,7 +23,6 @@ const seerDefaultsSchema = z.object({
     'high',
     'always',
   ]),
-  enableSeerEnhancedAlerts: z.boolean(),
   enableSeerCoding: z.boolean(),
 });
 
@@ -108,27 +107,6 @@ export function SeerAutomationDefault() {
         )}
       </FieldGroup>
       <FieldGroup title={t('Advanced Settings')}>
-        <AutoSaveForm
-          name="enableSeerEnhancedAlerts"
-          schema={seerDefaultsSchema}
-          initialValue={organization.enableSeerEnhancedAlerts ?? true}
-          mutationOptions={orgMutationOptions}
-        >
-          {field => (
-            <field.Layout.Row
-              label={t('Enable Enhanced Alerts')}
-              hintText={t(
-                'Seer will provide extra context in supported alerts to make them more informative at a glance.'
-              )}
-            >
-              <field.Switch
-                checked={field.state.value}
-                onChange={field.handleChange}
-                disabled={!canWrite}
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveForm>
         <AutoSaveForm
           name="enableSeerCoding"
           schema={seerDefaultsSchema}

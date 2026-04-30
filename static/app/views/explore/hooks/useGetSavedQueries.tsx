@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type RawGroupBy = {
@@ -103,7 +104,8 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 export type ReadableSavedQuery = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays'; // ExploreSavedQueryDataset
+  // ExploreSavedQueryDataset
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -117,6 +119,7 @@ export type ReadableSavedQuery = {
   caseInsensitive?: CaseInsensitive;
   changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
+  crossEvents?: CrossEvent[];
   end?: string;
   environment?: string[];
   isPrebuilt?: boolean;
@@ -137,6 +140,7 @@ export class SavedQuery {
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
   changedReason?: ExploreQueryChangedReason | null;
+  crossEvents?: CrossEvent[];
   createdBy?: User;
   end?: string | DateString;
   environment?: string[];
@@ -146,6 +150,7 @@ export class SavedQuery {
 
   constructor(savedQuery: ReadableSavedQuery) {
     this.changedReason = savedQuery.changedReason;
+    this.crossEvents = savedQuery.crossEvents;
     this.dateAdded = savedQuery.dateAdded;
     this.dateUpdated = savedQuery.dateUpdated;
     this.id = savedQuery.id;

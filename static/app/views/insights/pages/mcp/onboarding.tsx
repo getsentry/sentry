@@ -39,7 +39,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -55,7 +55,7 @@ function useOnboardingProject() {
     projects
   );
   const mcpMonitoringProjects = selectedProject.filter(p =>
-    mcpMonitoringPlatforms.has(p.platform as PlatformKey)
+    mcpMonitoringPlatforms.has(p.platform!)
   );
 
   if (mcpMonitoringProjects.length > 0) {
@@ -255,7 +255,7 @@ export function Onboarding() {
     return <div>{t('No project found')}</div>;
   }
 
-  if (!mcpMonitoringPlatforms.has(project.platform as PlatformKey)) {
+  if (!mcpMonitoringPlatforms.has(project.platform!)) {
     return (
       <OnboardingPanel project={project}>
         <DescriptionWrapper>

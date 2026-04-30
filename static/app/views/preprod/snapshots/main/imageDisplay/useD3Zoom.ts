@@ -6,6 +6,7 @@ interface UseD3ZoomOptions {
   maxScale?: number;
   minScale?: number;
   onTransformChange?: (transform: ZoomTransform) => void;
+  wheelRequiresModifier?: boolean;
 }
 
 interface UseD3ZoomReturn {
@@ -23,6 +24,7 @@ export function useD3Zoom({
   minScale = 0.5,
   maxScale = 10,
   onTransformChange,
+  wheelRequiresModifier = false,
 }: UseD3ZoomOptions = {}): UseD3ZoomReturn {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
@@ -39,8 +41,12 @@ export function useD3Zoom({
     const zoomBehavior = zoom<HTMLDivElement, unknown>()
       .scaleExtent([minScale, maxScale])
       .filter(event => {
+        if (event.type === 'wheel') {
+          return (
+            !wheelRequiresModifier || event.ctrlKey || event.metaKey || event.shiftKey
+          );
+        }
         return (
-          event.type === 'wheel' ||
           event.type === 'touchstart' ||
           (event.type === 'mousedown' && !event.button && !event.ctrlKey)
         );
@@ -57,7 +63,7 @@ export function useD3Zoom({
       select(container).on('.zoom', null);
       zoomBehaviorRef.current = null;
     };
-  }, [minScale, maxScale]);
+  }, [minScale, maxScale, wheelRequiresModifier]);
 
   const zoomIn = useCallback(() => {
     const container = containerRef.current;

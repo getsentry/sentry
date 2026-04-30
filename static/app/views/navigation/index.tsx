@@ -67,7 +67,7 @@ function UserAndOrganizationNavigation() {
       ? []
       : [
           {
-            match: ['command+b', 'ctrl+b'],
+            match: 'mod+b',
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]

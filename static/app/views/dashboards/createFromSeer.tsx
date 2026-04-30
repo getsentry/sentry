@@ -21,8 +21,6 @@ import type {DashboardDetails, Widget} from './types';
 import {DashboardState} from './types';
 import {useSeerDashboardSession} from './useSeerDashboardSession';
 
-const EMPTY_DASHBOARDS: never[] = [];
-
 export default function CreateFromSeer() {
   const organization = useOrganization();
   const location = useLocation();
@@ -174,7 +172,6 @@ export default function CreateFromSeer() {
         <MemoizedDashboardDetail
           initialState={DashboardState.PREVIEW}
           dashboard={dashboard}
-          dashboards={EMPTY_DASHBOARDS} // This prop is unused for the create from seer flow
         />
         <DashboardChatPanel
           blocks={session?.blocks ?? []}

@@ -320,7 +320,7 @@ export function PrimaryNavigationFooterItems() {
           label={
             <Flex gap="xs" align="center">
               {t('Open command palette')}
-              <Hotkey value="command+k" variant="debossed" />
+              <Hotkey value="mod+k" variant="debossed" />
             </Flex>
           }
           analyticsKey="search"

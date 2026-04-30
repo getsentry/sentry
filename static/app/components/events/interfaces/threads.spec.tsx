@@ -38,6 +38,10 @@ describe('Threads', () => {
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
     ProjectsStore.loadInitialData([project]);
     ConfigStore.set('user', UserFixture());
 
