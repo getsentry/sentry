@@ -16,5 +16,5 @@ export function getExportDisabledTooltip(props: ExportDisabledTooltipOptions) {
   if (props.isDataEmpty) {
     return t('No data to export');
   }
-  return undefined;
+  return;
 }
