@@ -2,9 +2,9 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Slider} from '@sentry/scraps/slider';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
@@ -53,7 +53,7 @@ export function DiffImageDisplay({
   const maskSize = computeMaskSize(pair.base_image, pair.head_image);
 
   return (
-    <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
+    <Flex direction="column" gap="lg" padding="0 xl xl" flex="1" minHeight="0">
       <HiddenWhenInactive active={diffMode === 'split'}>
         <SplitView
           baseImageUrl={baseImageUrl}
@@ -111,11 +111,15 @@ function SplitView({
   ]);
   const showOverlay = displayMaskUrl && overlayColor !== TRANSPARENT_COLOR;
   return (
-    <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
-      <Flex direction="column" gap="sm" minHeight="0">
-        <Heading as="h4">{t('Base')}</Heading>
-        <ZoomableArea>
-          <ZoomContainer ref={zoom1.containerRef}>
+    <ZoomableArea>
+      <Grid columns="repeat(2, minmax(0, 1fr))" gap="0" height="100%" minHeight="0">
+        <Flex direction="column" minWidth="0" minHeight="0">
+          <Container padding="sm xl">
+            <Text size="xs" variant="muted" ellipsis monospace>
+              {t('Base')}
+            </Text>
+          </Container>
+          <ZoomContainer ref={zoom1.containerRef} style={splitZoomContainerStyle}>
             <Flex
               justify="center"
               align="center"
@@ -133,13 +137,15 @@ function SplitView({
               )}
             </Flex>
           </ZoomContainer>
-        </ZoomableArea>
-      </Flex>
+        </Flex>
 
-      <Flex direction="column" gap="sm" minHeight="0">
-        <Heading as="h4">{headLabel}</Heading>
-        <ZoomableArea>
-          <ZoomContainer ref={zoom2.containerRef}>
+        <Flex direction="column" minWidth="0" minHeight="0" borderLeft="secondary">
+          <Container padding="sm xl">
+            <Text size="xs" variant="muted" ellipsis monospace>
+              {headLabel}
+            </Text>
+          </Container>
+          <ZoomContainer ref={zoom2.containerRef} style={splitZoomContainerStyle}>
             <Flex
               justify="center"
               align="center"
@@ -166,16 +172,22 @@ function SplitView({
               )}
             </Flex>
           </ZoomContainer>
-          <ZoomControls
-            onZoomIn={zoom2.zoomIn}
-            onZoomOut={zoom2.zoomOut}
-            onReset={zoom2.resetZoom}
-          />
-        </ZoomableArea>
-      </Flex>
-    </Grid>
+        </Flex>
+      </Grid>
+      <ZoomControls
+        onZoomIn={zoom2.zoomIn}
+        onZoomOut={zoom2.zoomOut}
+        onReset={zoom2.resetZoom}
+      />
+    </ZoomableArea>
   );
 }
+
+const splitZoomContainerStyle: React.CSSProperties = {
+  flex: '1 1 0',
+  minHeight: 0,
+  overflow: 'hidden',
+};
 
 function WipeView({
   baseImageUrl,
