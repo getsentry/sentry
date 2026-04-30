@@ -272,7 +272,7 @@ export function useGetSavedQuery(id?: string) {
   const {data, isLoading, isFetched} = useQuery(savedQueryApiOptions({organization, id}));
   const savedQuery = useMemo(() => {
     if (!defined(data)) {
-      return undefined;
+      return;
     }
     return Array.isArray(data.query) && data.query.length > 0
       ? new SavedQuery(data)

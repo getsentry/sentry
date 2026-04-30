@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {DateTime} from 'sentry/components/dateTime';
@@ -14,7 +15,6 @@ import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/u
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

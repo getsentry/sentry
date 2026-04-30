@@ -298,7 +298,7 @@ export function CommandPalette({
         return item;
       }
     }
-    return undefined;
+    return;
   }, [treeState.collection, sectionKeys]);
 
   const lastFocusableKey = useMemo(() => {
@@ -309,7 +309,7 @@ export function CommandPalette({
         return item;
       }
     }
-    return undefined;
+    return;
   }, [treeState.collection, sectionKeys]);
 
   useLayoutEffect(() => {
@@ -803,6 +803,10 @@ function flattenActions(
       }
 
       if (isGroup) {
+        if ('prompt' in node && node.prompt) {
+          results.push({...node, listItemType: 'action'});
+          continue;
+        }
         const children = node.children
           .filter(child => !isEmptyResourceNode(child))
           .map(child => ({...child, listItemType: 'action' as const}));

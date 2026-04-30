@@ -116,7 +116,7 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
-const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
+const helpSearch = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
 const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
@@ -283,7 +283,6 @@ export function GlobalCommandPaletteActions() {
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
 
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
@@ -762,43 +761,41 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
-        {hasDsnLookup && (
-          <CMDKAction
-            display={{
-              label: t('Reverse DSN lookup'),
-              details: t(
-                'Paste a DSN into the search bar to find the project it belongs to.'
+        <CMDKAction
+          display={{
+            label: t('Reverse DSN lookup'),
+            details: t(
+              'Paste a DSN into the search bar to find the project it belongs to.'
+            ),
+            icon: <IconSearch />,
+          }}
+          prompt={t('Paste a DSN...')}
+          resource={(query: string): CMDKQueryOptions => {
+            return cmdkQueryOptions({
+              ...apiOptions.as<DsnLookupResponse>()(
+                '/organizations/$organizationIdOrSlug/dsn-lookup/',
+                {
+                  path: {organizationIdOrSlug: organization.slug},
+                  query: {dsn: query},
+                  staleTime: 30_000,
+                }
               ),
-              icon: <IconSearch />,
-            }}
-            prompt={t('Paste a DSN...')}
-            resource={(query: string): CMDKQueryOptions => {
-              return cmdkQueryOptions({
-                ...apiOptions.as<DsnLookupResponse>()(
-                  '/organizations/$organizationIdOrSlug/dsn-lookup/',
-                  {
-                    path: {organizationIdOrSlug: organization.slug},
-                    query: {dsn: query},
-                    staleTime: 30_000,
-                  }
-                ),
-                enabled: DSN_PATTERN.test(query),
-                select: data =>
-                  getDsnNavTargets(data.json).map((target, i) => ({
-                    to: target.to,
-                    display: {
-                      label: target.label,
-                      details: target.description,
-                      icon: DSN_ICONS[i],
-                    },
-                    keywords: [query],
-                  })),
-              });
-            }}
-          >
-            {data => data.map((item, i) => renderAsyncResult(item, i))}
-          </CMDKAction>
-        )}
+              enabled: DSN_PATTERN.test(query),
+              select: data =>
+                getDsnNavTargets(data.json).map((target, i) => ({
+                  to: target.to,
+                  display: {
+                    label: target.label,
+                    details: target.description,
+                    icon: DSN_ICONS[i],
+                  },
+                  keywords: [query],
+                })),
+            });
+          }}
+        >
+          {data => data.map((item, i) => renderAsyncResult(item, i))}
+        </CMDKAction>
       </CMDKAction>
 
       <ResolvedIdentifierCommandPaletteAction />
@@ -806,6 +803,7 @@ export function GlobalCommandPaletteActions() {
       <CMDKAction
         id="cmdk:supplementary:help"
         display={{label: t('Help')}}
+        limit={4}
         resource={(query: string): CMDKQueryOptions => {
           return cmdkQueryOptions({
             queryKey: ['command-palette-help-search', query, helpSearch],
@@ -818,7 +816,7 @@ export function GlobalCommandPaletteActions() {
             select: data => {
               const results = [];
               for (const index of data) {
-                for (const hit of index.hits.slice(0, 3)) {
+                for (const hit of index.hits) {
                   results.push({
                     display: {
                       label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),

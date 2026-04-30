@@ -1,15 +1,14 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import {Observer} from 'mobx-react-lite';
+import {z} from 'zod';
 
-import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {FormContext} from 'sentry/components/forms/formContext';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -23,7 +22,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
+import {useSubmitEditDetector} from 'sentry/views/detectors/hooks/useSubmitEditDetector';
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
@@ -35,16 +34,10 @@ import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/util
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type ErrorDetectorFormData = {
-  workflowIds: string[];
-};
-
-function ErrorDetectorForm({project}: {project: Project}) {
+function StaticSections({project}: {project: Project}) {
   const organization = useOrganization();
-  const theme = useTheme();
-
   return (
-    <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
+    <Fragment>
       <Container>
         <FormSection step={1} title={t('Detect')}>
           <Text as="p">
@@ -107,8 +100,7 @@ function ErrorDetectorForm({project}: {project: Project}) {
           </Text>
         </FormSection>
       </Container>
-      <AutomateSection step={5} />
-    </Stack>
+    </Fragment>
   );
 }
 
@@ -135,100 +127,98 @@ export function EditExistingErrorDetectorForm({
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const hasPageFrameFeature = useHasPageFrameFeature();
+  const submitEditDetector = useSubmitEditDetector();
 
-  // Error monitors only allow editing workflow connections right now, so that's the only permission we need to check
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
     projectId: detector.projectId,
   });
 
-  const handleFormSubmit = useEditDetectorFormSubmit({
-    detector,
-    formDataToEndpointPayload: (data: ErrorDetectorFormData) => ({
-      type: 'error',
-      name: detector.name,
-      owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
-      projectId: detector.projectId,
-      workflowIds: data.workflowIds,
-      dataSources: [],
-      conditionGroup: {},
-    }),
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {workflowIds: detector.workflowIds},
+    validators: {
+      onDynamic: z.object({
+        workflowIds: z.array(z.string()),
+      }),
+    },
+    onSubmit: async ({value}) => {
+      await submitEditDetector({
+        detectorId: detector.id,
+        type: 'error' as const,
+        name: detector.name,
+        owner: detector.owner ? `${detector.owner.type}:${detector.owner.id}` : '',
+        projectId: detector.projectId,
+        workflowIds: value.workflowIds,
+      });
+    },
   });
 
   return (
-    <EditLayout
-      formProps={{
-        initialData: {
-          projectId: detector.projectId,
-          workflowIds: detector.workflowIds,
-        },
-        onSubmit: handleFormSubmit,
-      }}
-    >
-      {hasPageFrameFeature ? (
-        <Fragment>
-          <TopBar.Slot name="title">
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Monitors'),
-                  to: makeMonitorBasePathname(organization.slug),
-                },
-                {
-                  label: getDetectorTypeLabel(detector.type),
-                  to: makeMonitorTypePathname(organization.slug, detector.type),
-                },
-                {
-                  label: <ProjectBadge disableLink project={project} avatarSize={16} />,
-                  to: makeMonitorDetailsPathname(organization.slug, detector.id),
-                },
-                {label: t('Configure')},
-              ]}
-            />
-          </TopBar.Slot>
-          <AutomationFeedbackButton />
-        </Fragment>
-      ) : (
-        <EditLayout.Header>
-          <EditLayout.HeaderContent>
-            <Fragment>
-              <EditDetectorBreadcrumbs detector={detector} />
-              <EditLayout.Title title={detector.name} project={project} />
-            </Fragment>
-          </EditLayout.HeaderContent>
-          <EditLayout.Actions>
+    <EditLayout>
+      <form.AppForm form={form}>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: t('Monitors'),
+                    to: makeMonitorBasePathname(organization.slug),
+                  },
+                  {
+                    label: getDetectorTypeLabel(detector.type),
+                    to: makeMonitorTypePathname(organization.slug, detector.type),
+                  },
+                  {
+                    label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+                    to: makeMonitorDetailsPathname(organization.slug, detector.id),
+                  },
+                  {label: t('Configure')},
+                ]}
+              />
+            </TopBar.Slot>
             <AutomationFeedbackButton />
-          </EditLayout.Actions>
-        </EditLayout.Header>
-      )}
-
-      <EditLayout.Body>
-        <ErrorDetectorForm project={project} />
-      </EditLayout.Body>
-
-      <FormContext.Consumer>
-        {({form}) => (
-          <EditLayout.Footer maxWidth={maxWidth}>
-            <Observer>
-              {() => (
-                <Button
-                  type="submit"
-                  priority="primary"
-                  size="sm"
-                  busy={form?.isSaving}
-                  disabled={!canEditWorkflowConnections}
-                  tooltipProps={{
-                    title: canEditWorkflowConnections
-                      ? undefined
-                      : getNoPermissionToEditMonitorTooltip(),
-                  }}
-                >
-                  {t('Save')}
-                </Button>
-              )}
-            </Observer>
-          </EditLayout.Footer>
+          </Fragment>
+        ) : (
+          <EditLayout.Header>
+            <EditLayout.HeaderContent>
+              <Fragment>
+                <EditDetectorBreadcrumbs detector={detector} />
+                <EditLayout.Title title={detector.name} project={project} />
+              </Fragment>
+            </EditLayout.HeaderContent>
+            <EditLayout.Actions>
+              <AutomationFeedbackButton />
+            </EditLayout.Actions>
+          </EditLayout.Header>
         )}
-      </FormContext.Consumer>
+
+        <EditLayout.Body>
+          <Stack gap="2xl" maxWidth={maxWidth}>
+            <StaticSections project={project} />
+            <AutomateSection
+              form={form}
+              fields={{workflowIds: 'workflowIds'}}
+              step={5}
+              project={project}
+            />
+          </Stack>
+        </EditLayout.Body>
+
+        <EditLayout.Footer maxWidth={maxWidth}>
+          <form.SubmitButton
+            size="sm"
+            disabled={!canEditWorkflowConnections}
+            tooltipProps={{
+              title: canEditWorkflowConnections
+                ? undefined
+                : getNoPermissionToEditMonitorTooltip(),
+            }}
+          >
+            {t('Save')}
+          </form.SubmitButton>
+        </EditLayout.Footer>
+      </form.AppForm>
     </EditLayout>
   );
 }

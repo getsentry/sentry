@@ -134,7 +134,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   useEffect(() => {
     if (!props.replayTraces?.length || props.tree?.type !== 'trace') {
-      return undefined;
+      return;
     }
 
     const cleanup = props.tree.fetchAdditionalTraces({
