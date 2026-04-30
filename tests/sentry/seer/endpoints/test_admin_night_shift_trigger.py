@@ -106,6 +106,18 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "organization_id must be a valid integer"
 
+    def test_rejects_explicit_null_organization_id(self) -> None:
+        # Frontend may serialize NaN to null when a non-numeric value is typed.
+        # Treat that as a 400 rather than silently fanning out to every org.
+        response = self.get_response(organization_id=None)
+        assert response.status_code == 400
+        assert response.data["detail"] == "organization_id must be a valid integer"
+
+    def test_rejects_empty_string_organization_id(self) -> None:
+        response = self.get_response(organization_id="")
+        assert response.status_code == 400
+        assert response.data["detail"] == "organization_id must be a valid integer"
+
     def test_requires_staff(self) -> None:
         non_staff_user = self.create_user(is_staff=False)
         self.login_as(user=non_staff_user)

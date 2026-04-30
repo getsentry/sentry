@@ -21,13 +21,12 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
     }
 
     def post(self, request: Request) -> Response:
-        organization_id_raw = request.data.get("organization_id")
         organization_id: int | None
-        if organization_id_raw is None or organization_id_raw == "":
+        if "organization_id" not in request.data:
             organization_id = None
         else:
             try:
-                organization_id = int(organization_id_raw)
+                organization_id = int(request.data["organization_id"])
             except (ValueError, TypeError):
                 return Response({"detail": "organization_id must be a valid integer"}, status=400)
 

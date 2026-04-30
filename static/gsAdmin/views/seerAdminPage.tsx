@@ -56,6 +56,13 @@ export function SeerAdminPage() {
       addErrorMessage('Please select a region first');
       return;
     }
+    const trimmed = organizationId.trim();
+    if (trimmed && !/^\d+$/.test(trimmed)) {
+      addErrorMessage(
+        'Organization ID must be a number (leave blank to trigger every org)'
+      );
+      return;
+    }
     triggerNightShift();
   };
 
