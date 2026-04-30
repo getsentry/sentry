@@ -7,7 +7,6 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   TraceMetaDataHeader,
   type TraceMetadataHeaderProps,
@@ -192,22 +191,17 @@ describe('TraceMetaDataHeader', () => {
       );
 
       render(
-        <TopBar.Slot.Provider>
-          <TopBar.Slot.Outlet name="title">
-            {props => <div {...props} data-test-id="topbar-title-slot" />}
-          </TopBar.Slot.Outlet>
-          <TraceMetaDataHeader
-            {...({
-              ...baseProps,
-              metaResults: {
-                data: undefined,
-                errors: [],
-                status: 'pending',
-              },
-            } as TraceMetadataHeaderProps)}
-            organization={pageFrameOrganization}
-          />
-        </TopBar.Slot.Provider>,
+        <TraceMetaDataHeader
+          {...({
+            ...baseProps,
+            metaResults: {
+              data: undefined,
+              errors: [],
+              status: 'pending',
+            },
+          } as TraceMetadataHeaderProps)}
+          organization={pageFrameOrganization}
+        />,
         {
           organization: pageFrameOrganization,
         }

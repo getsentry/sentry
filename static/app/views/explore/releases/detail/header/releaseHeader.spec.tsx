@@ -8,7 +8,6 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseProject} from 'sentry/types/release';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ReleaseHeader} from './releaseHeader';
 
@@ -38,25 +37,14 @@ describe('ReleaseHeader', () => {
     const initialRouterConfig: RouterConfig = {location: {pathname, query}};
 
     return render(
-      <TopBar.Slot.Provider>
-        <TopBar.Slot.Outlet name="title">
-          {props => <div {...props} data-test-id="topbar-title-slot" />}
-        </TopBar.Slot.Outlet>
-        <TopBar.Slot.Outlet name="actions">
-          {props => <div {...props} data-test-id="topbar-actions-slot" />}
-        </TopBar.Slot.Outlet>
-        <TopBar.Slot.Outlet name="feedback">
-          {props => <div {...props} data-test-id="topbar-feedback-slot" />}
-        </TopBar.Slot.Outlet>
-        <ReleaseHeader
-          location={location}
-          organization={org}
-          project={project}
-          refetchData={jest.fn()}
-          release={release}
-          releaseMeta={releaseMeta}
-        />
-      </TopBar.Slot.Provider>,
+      <ReleaseHeader
+        location={location}
+        organization={org}
+        project={project}
+        refetchData={jest.fn()}
+        release={release}
+        releaseMeta={releaseMeta}
+      />,
       {organization: org, initialRouterConfig}
     );
   }

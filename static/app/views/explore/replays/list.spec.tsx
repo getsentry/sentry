@@ -15,7 +15,6 @@ import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import ListPage from 'sentry/views/explore/replays/list';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
@@ -55,16 +54,9 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
   return mockOrg;
 }
 
-function TopBarActionsWrapper({children}: {children: ReactNode}) {
+function SecondaryNavWrapper({children}: {children: ReactNode}) {
   return (
-    <SecondaryNavigationContextProvider>
-      <TopBar.Slot.Provider>
-        <TopBar.Slot.Outlet name="actions">
-          {props => <div {...props} data-test-id="topbar-actions-slot" />}
-        </TopBar.Slot.Outlet>
-        {children}
-      </TopBar.Slot.Provider>
-    </SecondaryNavigationContextProvider>
+    <SecondaryNavigationContextProvider>{children}</SecondaryNavigationContextProvider>
   );
 }
 
@@ -260,7 +252,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       organization: mockOrg,
-      additionalWrapper: TopBarActionsWrapper,
+      additionalWrapper: SecondaryNavWrapper,
     });
 
     await screen.findByTestId('replay-table');
