@@ -1,4 +1,4 @@
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
@@ -45,12 +45,9 @@ describe('useGetTraceItemAttributeValues', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useGetTraceItemAttributeValues({
-        traceItemType: TraceItemDataset.LOGS,
-        type: 'string',
-      })
-    );
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeValues, {
+      initialProps: {traceItemType: TraceItemDataset.LOGS, type: 'string'},
+    });
 
     const tag = {
       key: attributeKey,
@@ -60,7 +57,10 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    const searchResults = await result.current({tag, searchQuery: 'search-query'});
+    let searchResults: string[] = [];
+    await act(async () => {
+      searchResults = await result.current({tag, searchQuery: 'search-query'});
+    });
 
     expect(searchQueryMock).toHaveBeenCalled();
     expect(searchResults).toEqual(['search-result']);
@@ -88,12 +88,9 @@ describe('useGetTraceItemAttributeValues', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useGetTraceItemAttributeValues({
-        traceItemType: TraceItemDataset.LOGS,
-        type: 'number',
-      })
-    );
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeValues, {
+      initialProps: {traceItemType: TraceItemDataset.LOGS, type: 'number'},
+    });
 
     const tag = {
       key: attributeKey,
@@ -103,7 +100,10 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    const searchResults = await result.current({tag, searchQuery: 'search-query'});
+    let searchResults: string[] = [];
+    await act(async () => {
+      searchResults = await result.current({tag, searchQuery: 'search-query'});
+    });
 
     expect(searchQueryMock).not.toHaveBeenCalled();
     expect(searchResults).toEqual([]); // This will always return an empty array because we don't suggest values for numbers
@@ -130,12 +130,9 @@ describe('useGetTraceItemAttributeValues', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useGetTraceItemAttributeValues({
-        traceItemType: TraceItemDataset.LOGS,
-        type: 'boolean',
-      })
-    );
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeValues, {
+      initialProps: {traceItemType: TraceItemDataset.LOGS, type: 'boolean'},
+    });
 
     const tag = {
       key: attributeKey,
@@ -145,7 +142,10 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    const searchResults = await result.current({tag, searchQuery: 'search-query'});
+    let searchResults: string[] = [];
+    await act(async () => {
+      searchResults = await result.current({tag, searchQuery: 'search-query'});
+    });
 
     expect(searchQueryMock).not.toHaveBeenCalled();
     expect(searchResults).toEqual([]); // This will always return an empty array because we don't suggest values for booleans

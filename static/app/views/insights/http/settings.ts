@@ -11,10 +11,6 @@ export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
 
 export const SPAN_ID_DISPLAY_LENGTH = 16;
 
-export const BASE_FILTERS = {
-  'span.op': 'http.client',
-};
-
 export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/backend/requests/';
 

@@ -335,10 +335,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         parameters=[CursorQueryParam],
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        if (
-            features.has("organizations:releases-serializer-v2", organization, actor=request.user)
-            or request.headers.get("X-Performance-Optimizations") == "enabled"
-        ):
+        if request.headers.get("X-Performance-Optimizations") == "enabled":
             return self.__get_new(request, organization)
         else:
             return self.__get_old(request, organization)

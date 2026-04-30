@@ -116,7 +116,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('root_cause', {runId, userContext});
+      startStep('root_cause', {runId, userContext, insertIndex: section.index});
       trackAnalytics('autofix.root_cause.re_run', {
         organization,
         group_id: group.id,
@@ -124,7 +124,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
         referrer,
       });
     },
-    [organization, group, startStep, runId, referrer]
+    [organization, group, startStep, runId, referrer, section.index]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
@@ -167,7 +167,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('solution', {runId, userContext});
+      startStep('solution', {runId, userContext, insertIndex: section.index});
       trackAnalytics('autofix.solution.re_run', {
         organization,
         group_id: group.id,
@@ -175,7 +175,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
         referrer,
       });
     },
-    [organization, group, startStep, runId, referrer]
+    [organization, group, startStep, runId, referrer, section.index]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
@@ -216,7 +216,7 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('code_changes', {runId, userContext});
+      startStep('code_changes', {runId, userContext, insertIndex: section.index});
       trackAnalytics('autofix.code_changes.re_run', {
         organization,
         group_id: group.id,
@@ -224,7 +224,7 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
         referrer,
       });
     },
-    [organization, group, startStep, runId, referrer]
+    [organization, group, startStep, runId, referrer, section.index]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);

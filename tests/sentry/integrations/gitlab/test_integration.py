@@ -235,7 +235,11 @@ class GitlabIssueSyncTest(GitLabTestCase):
             "sync_comments",
             "sync_status_reverse",
             "resolution_strategy",
+            "pr_comments",
         ]
+        # pr_comments must not be gated behind integrations-issue-sync.
+        pr_field = next(f for f in fields if f["name"] == "pr_comments")
+        assert "disabled" not in pr_field
 
     @responses.activate
     def test_update_organization_config(self) -> None:

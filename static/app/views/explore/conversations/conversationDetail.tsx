@@ -4,7 +4,7 @@ import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
-import {ExploreBodyContent} from 'sentry/views/explore/components/styles';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {ConversationViewContent} from 'sentry/views/explore/conversations/components/conversationView';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
@@ -44,9 +44,9 @@ function ConversationDetailPage() {
   );
 
   return (
-    <ExploreBodyContent>
-      <Stack flex={1} padding="md 2xl" gap="md">
-        <Flex direction="column" gap="md" padding="0 0 xl 0">
+    <ViewportConstrainedPage background="secondary">
+      <Stack flex={1} minHeight="0" overflow="hidden" padding="md 2xl" gap="md">
+        <Flex direction="column" gap="md" flexShrink={0}>
           <ConversationSummary
             nodes={nodes}
             nodeTraceMap={nodeTraceMap}
@@ -63,7 +63,7 @@ function ConversationDetailPage() {
           />
         </ConversationViewContainer>
       </Stack>
-    </ExploreBodyContent>
+    </ViewportConstrainedPage>
   );
 }
 
@@ -75,6 +75,7 @@ function ConversationViewContainer({children}: {children: React.ReactNode}) {
       overflow="hidden"
       border="primary"
       radius="md"
+      background="primary"
       display="flex"
     >
       <Flex flex={1} minHeight="0" height="100%">

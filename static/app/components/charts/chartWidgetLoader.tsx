@@ -20,20 +20,6 @@ interface Props extends LoadableChartWidgetProps {
 const CHART_MAP = {
   [EVENT_GRAPH_WIDGET_ID]: () =>
     import('sentry/views/issueDetails/streamline/eventGraphWidget'),
-  overviewApiLatencyChartWidget: () =>
-    import('sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'),
-  overviewCacheMissChartWidget: () =>
-    import('sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget'),
-  overviewJobsChartWidget: () =>
-    import('sentry/views/insights/common/components/widgets/overviewJobsChartWidget'),
-  overviewPageloadsChartWidget: () =>
-    import('sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'),
-  overviewRequestsChartWidget: () =>
-    import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
-  overviewSlowNextjsSSRWidget: () =>
-    import('sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget'),
-  overviewSlowQueriesChartWidget: () =>
-    import('sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**

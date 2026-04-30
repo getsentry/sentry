@@ -28,3 +28,20 @@ export const MOBILE_BUILDS_ALLOWED_KEYS = [
   'is_approved',
   'platform_name',
 ];
+
+export const SNAPSHOT_ALLOWED_KEYS = [
+  'app_id',
+  'git_base_ref',
+  'git_base_sha',
+  'git_head_ref',
+  'git_head_sha',
+  'git_pr_number',
+  'image_count',
+  'images_added',
+  'images_changed',
+  'images_removed',
+  'images_renamed',
+  'images_skipped',
+  'images_unchanged',
+  'is_approved',
+];
