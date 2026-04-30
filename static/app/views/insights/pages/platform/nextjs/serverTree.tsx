@@ -31,7 +31,6 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TreeResponseItem {
   'avg(span.duration)': number;
@@ -159,11 +158,6 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
   }
 
   return root;
-}
-
-export function ServerTree() {
-  const {query} = useTransactionNameQuery();
-  return <BaseServerTree query={query} />;
 }
 
 export function BaseServerTree({

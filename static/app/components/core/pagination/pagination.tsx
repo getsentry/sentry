@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -34,7 +35,7 @@ type Props = {
   onCursor?: CursorHandler;
   pageLinks?: string | null;
   paginationAnalyticsEvent?: (direction: string) => void;
-  size?: 'zero' | 'xs' | 'sm' | 'md';
+  size?: ButtonProps['size'];
   to?: string;
 };
 

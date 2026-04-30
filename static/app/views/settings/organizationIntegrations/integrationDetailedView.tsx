@@ -49,7 +49,7 @@ import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 // Show the features tab if the org has features for the integration
-const integrationFeatures = ['github', 'gitlab', 'slack'];
+const integrationFeatures = ['slack'];
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -64,15 +64,6 @@ const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
 const slackFeaturesSchema = z.object({
   issueAlertsThreadFlag: z.boolean(),
   metricAlertsThreadFlag: z.boolean(),
-});
-
-const githubFeaturesSchema = z.object({
-  githubPRBot: z.boolean(),
-  githubNudgeInvite: z.boolean(),
-});
-
-const gitlabFeaturesSchema = z.object({
-  gitlabPRBot: z.boolean(),
 });
 
 function getOrgMutationOptions(organization: Organization) {
@@ -444,94 +435,6 @@ export default function IntegrationDetailedView() {
     const isDisabled = !hasOrgWrite || !hasIntegration;
 
     switch (provider?.key) {
-      case 'github':
-        return (
-          <FieldGroup>
-            <AutoSaveForm
-              name="githubPRBot"
-              schema={githubFeaturesSchema}
-              initialValue={organization.githubPRBot}
-              mutationOptions={orgMutationOptions}
-            >
-              {field => (
-                <field.Layout.Row
-                  label={t('Enable Comments on Suspect Pull Requests')}
-                  hintText={
-                    hasIntegration
-                      ? t(
-                          'Allow Sentry to comment on recent pull requests suspected of causing issues.'
-                        )
-                      : t('You must have a GitHub integration to enable this feature.')
-                  }
-                >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={isDisabled}
-                    aria-label={t('Enable Comments on Suspect Pull Requests')}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-            <AutoSaveForm
-              name="githubNudgeInvite"
-              schema={githubFeaturesSchema}
-              initialValue={organization.githubNudgeInvite}
-              mutationOptions={orgMutationOptions}
-            >
-              {field => (
-                <field.Layout.Row
-                  label={t('Enable Missing Member Detection')}
-                  hintText={
-                    hasIntegration
-                      ? t(
-                          'Allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization..'
-                        )
-                      : t('You must have a GitHub integration to enable this feature.')
-                  }
-                >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={isDisabled}
-                    aria-label={t('Enable Missing Member Detection')}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-          </FieldGroup>
-        );
-      case 'gitlab':
-        return (
-          <FieldGroup>
-            <AutoSaveForm
-              name="gitlabPRBot"
-              schema={gitlabFeaturesSchema}
-              initialValue={organization.gitlabPRBot}
-              mutationOptions={orgMutationOptions}
-            >
-              {field => (
-                <field.Layout.Row
-                  label={t('Enable Comments on Suspect Pull Requests')}
-                  hintText={
-                    hasIntegration
-                      ? t(
-                          'Allow Sentry to comment on recent pull requests suspected of causing issues.'
-                        )
-                      : t('You must have a GitLab integration to enable this feature.')
-                  }
-                >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={isDisabled}
-                    aria-label={t('Enable Comments on Suspect Pull Requests')}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-          </FieldGroup>
-        );
       case 'slack':
         return (
           <FieldGroup>
