@@ -9,7 +9,7 @@ from social_auth.utils import ctype_to_model, model_to_ctype
 
 @control_silo_test
 class TestSocialAuthBackendGetUser(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.backend = SocialAuthBackend()
 
