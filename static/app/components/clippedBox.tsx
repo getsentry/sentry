@@ -120,9 +120,7 @@ export function ClippedBox(props: ClippedBoxProps) {
   const clipFlex = props.clipFlex || 28;
 
   const handleRenderedHeight = useEffectEvent((height: number) => {
-    if (typeof props.onSetRenderedHeight === 'function') {
-      props.onSetRenderedHeight(height);
-    }
+    props.onSetRenderedHeight?.(height);
   });
 
   const handleReveal = (event: React.MouseEvent<HTMLElement>) => {
