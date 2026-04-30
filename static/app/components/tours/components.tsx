@@ -371,6 +371,12 @@ interface TourGuideProps extends Omit<
   title?: React.ReactNode;
 }
 
+const zIndex = {
+  blur: 10100,
+  element: 10101,
+  overlay: 10102,
+};
+
 export function TourGuide({
   children,
   title,
@@ -422,7 +428,7 @@ export function TourGuide({
       </ClassNames>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
-            <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
+            <PositionWrapper zIndex={zIndex.overlay} {...overlayProps}>
               <ThemeProvider theme={invertedTheme}>
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
@@ -537,7 +543,7 @@ const BlurWindow = styled('div')`
   content: '';
   position: absolute;
   inset: 0;
-  z-index: ${p => p.theme.zIndex.tour.blur};
+  z-index: ${zIndex.blur};
   user-select: none;
   backdrop-filter: blur(3px);
 `;
@@ -557,14 +563,14 @@ function getTourElementStyles(
 
   return `
     position: relative;
-    z-index: ${theme.zIndex.tour.element};
+    z-index: ${zIndex.element};
     user-select: none;
     pointer-events: none;
 
     &:after {
       content: '';
       position: absolute;
-      z-index: ${theme.zIndex.tour.element + 1};
+      z-index: ${zIndex.element + 1};
       inset: 0;
       border-radius: ${theme.radius.md};
       box-shadow: inset 0 0 0 3px ${theme.tokens.border.accent.vibrant};
