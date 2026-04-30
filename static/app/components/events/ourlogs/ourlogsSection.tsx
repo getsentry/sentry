@@ -6,6 +6,8 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
+import {LazyRender} from 'sentry/components/lazyRender';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -39,16 +41,28 @@ export function OurlogsSection({
   project: Project;
 }) {
   const traceId = event.contexts?.trace?.trace_id;
+  if (!traceId) {
+    return null;
+  }
   return (
-    <LogsQueryParamsProvider
-      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-      source="state"
-      freeze={traceId ? {traceId} : undefined}
+    <InterimSection
+      key="logs"
+      type={SectionKey.LOGS}
+      title={t('Logs')}
+      data-test-id="logs-data-section"
     >
-      <LogsPageDataProvider disabled={!traceId} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
-        <OurlogsSectionContent event={event} group={group} project={project} />
-      </LogsPageDataProvider>
-    </LogsQueryParamsProvider>
+      <LazyRender fallback={<LoadingIndicator />}>
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+          source="state"
+          freeze={{traceId}}
+        >
+          <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
+            <OurlogsSectionContent event={event} group={group} project={project} />
+          </LogsPageDataProvider>
+        </LogsQueryParamsProvider>
+      </LazyRender>
+    </InterimSection>
   );
 }
 
@@ -161,53 +175,46 @@ function OurlogsSectionContent({
     return null;
   }
   if (!traceId) {
-    // If there isn't a traceId (eg. profiling issue), we shouldn't show logs since they are trace specific.
-    // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
+  if (tableData.isPending) {
+    return <LoadingIndicator />;
+  }
   if (!tableData?.data || (tableData.data.length === 0 && logsSearch.isEmpty())) {
-    // Like breadcrumbs, we don't show the logs section if there are no logs.
     return null;
   }
   return (
-    <InterimSection
-      key="logs"
-      type={SectionKey.LOGS}
-      title={t('Logs')}
-      data-test-id="logs-data-section"
-    >
-      <Stack>
-        <SmallTable>
-          <TableBody>
-            {abbreviatedTableData?.map((row, index) => (
-              <LogRowContent
-                dataRow={row}
-                meta={tableData.meta}
-                highlightTerms={[]}
-                embedded
-                sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-                key={index}
-                blockRowExpanding
-                onEmbeddedRowClick={onEmbeddedRowClick}
-              />
-            ))}
-          </TableBody>
-        </SmallTable>
-        {tableData.data && tableData.data.length > 5 ? (
-          <div>
-            <Button
-              icon={<IconChevron direction="right" />}
-              aria-label={t('View more')}
-              size="sm"
-              onClick={onOpenLogsDrawer}
-              ref={viewAllButtonRef}
-            >
-              {t('View more')}
-            </Button>
-          </div>
-        ) : null}
-      </Stack>
-    </InterimSection>
+    <Stack>
+      <SmallTable>
+        <TableBody>
+          {abbreviatedTableData?.map((row, index) => (
+            <LogRowContent
+              dataRow={row}
+              meta={tableData.meta}
+              highlightTerms={[]}
+              embedded
+              sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+              key={index}
+              blockRowExpanding
+              onEmbeddedRowClick={onEmbeddedRowClick}
+            />
+          ))}
+        </TableBody>
+      </SmallTable>
+      {tableData.data && tableData.data.length > 5 ? (
+        <div>
+          <Button
+            icon={<IconChevron direction="right" />}
+            aria-label={t('View more')}
+            size="sm"
+            onClick={onOpenLogsDrawer}
+            ref={viewAllButtonRef}
+          >
+            {t('View more')}
+          </Button>
+        </div>
+      ) : null}
+    </Stack>
   );
 }
 

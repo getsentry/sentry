@@ -9,6 +9,8 @@ import {
   TRACE_WATERFALL_PREFERENCES_KEY,
 } from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
+import {LazyRender} from 'sentry/components/lazyRender';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
@@ -193,19 +195,23 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
         </Grid>
       }
     >
-      <OneOtherIssueEvent event={event} />
-      {hasTracePreviewFeature && (
-        <TraceStateProvider
-          initialPreferences={preferences}
-          preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
-        >
-          <EventTraceViewInner
-            event={event}
-            organization={organization}
-            traceId={traceId}
-          />
-        </TraceStateProvider>
-      )}
+      <LazyRender fallback={<LoadingIndicator />}>
+        <Fragment>
+          <OneOtherIssueEvent event={event} />
+          {hasTracePreviewFeature && (
+            <TraceStateProvider
+              initialPreferences={preferences}
+              preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
+            >
+              <EventTraceViewInner
+                event={event}
+                organization={organization}
+                traceId={traceId}
+              />
+            </TraceStateProvider>
+          )}
+        </Fragment>
+      </LazyRender>
     </InterimSection>
   );
 }
