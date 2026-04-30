@@ -131,7 +131,13 @@ describe('Subscription > Notifications', () => {
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '80%'}));
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
 
-    expect(screen.getByText('At least one threshold is required')).toBeInTheDocument();
+    // Close the menu, then submit — defaultFormOptions validates on submit
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+
+    expect(
+      await screen.findByText('At least one threshold is required')
+    ).toBeInTheDocument();
   });
 
   it('calls api with correct args', async () => {
