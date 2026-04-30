@@ -267,9 +267,7 @@ describe('IssueListActions', () => {
         await userEvent.click(resolveButton);
 
         const modal = screen.getByRole('dialog');
-        await userEvent.click(
-          within(modal).getByRole('button', {name: /resolve/i})
-        );
+        await userEvent.click(within(modal).getByRole('button', {name: /resolve/i}));
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -296,9 +294,7 @@ describe('IssueListActions', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
     const modal = screen.getByRole('dialog');
-    await userEvent.click(
-      within(modal).getByRole('button', {name: /reprioritize/i})
-    );
+    await userEvent.click(within(modal).getByRole('button', {name: /reprioritize/i}));
 
     expect(apiMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -323,9 +319,7 @@ describe('IssueListActions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
 
     const modal = screen.getByRole('dialog');
-    await userEvent.click(
-      within(modal).getByRole('button', {name: /archive/i})
-    );
+    await userEvent.click(within(modal).getByRole('button', {name: /archive/i}));
 
     expect(apiMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -365,9 +359,7 @@ describe('IssueListActions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
 
     const modal = screen.getByRole('dialog');
-    await userEvent.click(
-      within(modal).getByRole('button', {name: /unarchive/i})
-    );
+    await userEvent.click(within(modal).getByRole('button', {name: /unarchive/i}));
 
     expect(apiMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -422,9 +414,7 @@ describe('IssueListActions', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
     const modal = screen.getByRole('dialog');
-    await userEvent.click(
-      within(modal).getByRole('button', {name: /resolve/i})
-    );
+    await userEvent.click(within(modal).getByRole('button', {name: /resolve/i}));
 
     // API request should have project ID set to 123
     await waitFor(() => {
@@ -471,9 +461,7 @@ describe('IssueListActions', () => {
       await userEvent.click(reviewButton);
 
       const modal = screen.getByRole('dialog');
-      await userEvent.click(
-        within(modal).getByRole('button', {name: /mark reviewed/i})
-      );
+      await userEvent.click(within(modal).getByRole('button', {name: /mark reviewed/i}));
 
       expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
