@@ -410,7 +410,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
     def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
         return self.create_merge_request_note(
-            project_id=safe_quote(repo.config["project_id"]), pr_key=pr.key, data=data
+            project_id=repo.config["project_id"], pr_key=pr.key, data=data
         )
 
     def create_merge_request_note(self, project_id: str, pr_key: str, data: dict[str, Any]) -> Any:
