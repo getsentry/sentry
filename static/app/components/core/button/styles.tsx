@@ -3,7 +3,11 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
-import type {DO_NOT_USE_CommonButtonProps as CommonButtonProps} from './types';
+import {
+  type ButtonVariant,
+  type DO_NOT_USE_CommonButtonProps as CommonButtonProps,
+  DO_NOT_USE_resolveButtonVariant as resolveButtonVariant,
+} from './types';
 
 export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
   NonNullable<CommonButtonProps['size']>,
@@ -15,26 +19,6 @@ export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
   md: 'sm',
 };
 
-// @TODO: remove Link type in the future
-type ButtonType = 'default' | 'transparent' | 'accent' | 'warning' | 'danger' | 'link';
-
-function priorityToType(priority: ButtonProps['priority']): ButtonType {
-  switch (priority) {
-    case 'primary':
-      return 'accent';
-    case 'danger':
-      return 'danger';
-    case 'warning':
-      return 'warning';
-    case 'transparent':
-      return 'transparent';
-    case 'link':
-      return 'link';
-    default:
-      return 'default';
-  }
-}
-
 const elevation = {
   md: '2px',
   sm: '2px',
@@ -45,13 +29,14 @@ const elevation = {
 const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
-  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled'> & {
-    shapeVariant: 'rectangular' | 'square';
-    size: NonNullable<ButtonProps['size']>;
-    theme: Theme;
-  }
+  p: Pick<CommonButtonProps, 'priority' | 'variant' | 'busy'> &
+    Pick<ButtonProps, 'disabled'> & {
+      shapeVariant: 'rectangular' | 'square';
+      size: NonNullable<ButtonProps['size']>;
+      theme: Theme;
+    }
 ): StrictCSSObject {
-  const type = priorityToType(p.priority);
+  const variant = resolveButtonVariant(p);
 
   const buttonSizes = {
     ...p.theme.form,
@@ -63,7 +48,7 @@ export function DO_NOT_USE_getButtonStyles(
     },
   } as const;
 
-  const buttonTheme = getButtonTheme(type, p.theme);
+  const buttonTheme = getButtonTheme(variant, p.theme);
   const buttonElevation = elevation[p.size];
 
   return {
@@ -197,7 +182,7 @@ export function DO_NOT_USE_getButtonStyles(
       cursor: 'progress',
     },
 
-    ...(p.priority === 'link' && {
+    ...(variant === 'link' && {
       transform: 'translateY(0px)',
 
       '&::before': {
@@ -210,7 +195,7 @@ export function DO_NOT_USE_getButtonStyles(
     }),
 
     // Borderless buttons are not chonky
-    ...((type === 'transparent' || type === 'link') && {
+    ...((variant === 'transparent' || variant === 'link') && {
       border: 'none',
       transform: 'translateY(0px)',
 
@@ -234,7 +219,7 @@ export function DO_NOT_USE_getButtonStyles(
           transform: 'translateY(0px)',
         },
         backgroundColor:
-          p.busy || p.disabled || type === 'link' ? 'inherit' : p.theme.colors.gray100,
+          p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
       },
 
       '&:active': {
@@ -243,11 +228,11 @@ export function DO_NOT_USE_getButtonStyles(
         },
 
         backgroundColor:
-          p.busy || p.disabled || type === 'link' ? 'inherit' : p.theme.colors.gray200,
+          p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
       },
     }),
 
-    ...(p.priority === 'link' && {
+    ...(variant === 'link' && {
       padding: '0',
       height: 'auto',
       minHeight: 'auto',
@@ -268,19 +253,19 @@ export function DO_NOT_USE_getButtonStyles(
   };
 }
 
-function getButtonTheme(type: ButtonType, theme: Theme) {
-  switch (type) {
-    case 'default':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.neutral.background,
-        background: theme.tokens.interactive.chonky.embossed.neutral.chonk,
-        color: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
-      };
-    case 'accent':
+function getButtonTheme(variant: ButtonVariant, theme: Theme) {
+  switch (variant) {
+    case 'primary':
       return {
         surface: theme.tokens.interactive.chonky.embossed.accent.background,
         background: theme.tokens.interactive.chonky.embossed.accent.chonk,
         color: theme.tokens.interactive.chonky.embossed.accent.content,
+      };
+    case 'secondary':
+      return {
+        surface: theme.tokens.interactive.chonky.embossed.neutral.background,
+        background: theme.tokens.interactive.chonky.embossed.neutral.chonk,
+        color: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
       };
     case 'warning':
       return {
