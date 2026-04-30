@@ -558,7 +558,7 @@ class ExtractSlackMessageLinksTest(TestCase):
             SlackMessageLink(channel_id="C0123456", ts="1700000000.222222"),
         ]
 
-    def test_dedups_same_message(self) -> None:
+    def test_dedups_same_link(self) -> None:
         text = (
             "<https://acme.slack.com/archives/C0123456/p1700000000111111|one> "
             "<https://acme.slack.com/archives/C0123456/p1700000000111111|same>"
