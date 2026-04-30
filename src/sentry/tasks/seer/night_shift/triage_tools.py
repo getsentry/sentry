@@ -8,8 +8,8 @@ from sentry.integrations.models.repository_project_path_config import (
 )
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.explorer.custom_tool_utils import ExplorerTool
-from sentry.seer.explorer.tools import get_event_details, get_issue_details
+from sentry.seer.agent.custom_tool_utils import AgentTool
+from sentry.seer.agent.tools import get_event_details, get_issue_details
 from sentry.tasks.seer.night_shift.event_formatter import format_event_output
 from sentry.tasks.seer.night_shift.issue_formatter import format_issue_output
 
@@ -44,13 +44,13 @@ class GetEventDetailsAgenticTriageParams(BaseModel):
     )
 
 
-# Class name intentionally snake_case — the Explorer custom-tool machinery
+# Class name intentionally snake_case — the agent custom-tool machinery
 # uses `__name__` as the tool name the agent sees, and we want this to read
 # like a tool identifier (`get_event_details_agentic_triage`).
 class get_event_details_agentic_triage(  # noqa: N801
-    ExplorerTool[GetEventDetailsAgenticTriageParams]
+    AgentTool[GetEventDetailsAgenticTriageParams]
 ):
-    """Custom Explorer tool for Night Shift agentic triage.
+    """Custom agent tool for Night Shift agentic triage.
 
     Returns the same underlying event data as Seer's built-in `get_event_details`,
     but renders it in the markdown format used by sentry-mcp (`formatEventOutput`)
@@ -135,9 +135,9 @@ class GetIssueDetailsAgenticTriageParams(BaseModel):
 
 # Class name intentionally snake_case — see comment on `get_event_details_agentic_triage`.
 class get_issue_details_agentic_triage(  # noqa: N801
-    ExplorerTool[GetIssueDetailsAgenticTriageParams]
+    AgentTool[GetIssueDetailsAgenticTriageParams]
 ):
-    """Custom Explorer tool for Night Shift agentic triage.
+    """Custom agent tool for Night Shift agentic triage.
 
     Returns the same underlying issue metadata as Seer's built-in `get_issue_details`,
     but reformats it as triage-tuned markdown: header (title/culprit/priority/counts/

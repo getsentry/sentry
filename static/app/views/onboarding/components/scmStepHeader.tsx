@@ -14,11 +14,11 @@ interface ScmStepHeaderProps {
 export function ScmStepHeader({
   heading,
   subtitle,
-  headingSize = '3xl',
-  subtitleSize = 'lg',
+  headingSize = '4xl',
+  subtitleSize = 'xl',
 }: ScmStepHeaderProps) {
   return (
-    <Stack align="center" gap="sm" maxWidth={SCM_STEP_CONTENT_WIDTH}>
+    <Stack gap="md" maxWidth={SCM_STEP_CONTENT_WIDTH}>
       <Heading as="h2" size={headingSize}>
         {heading}
       </Heading>
@@ -26,8 +26,8 @@ export function ScmStepHeader({
         variant="muted"
         size={subtitleSize}
         wrap="pre-line"
-        align="center"
         density="comfortable"
+        textWrap="pretty"
       >
         {subtitle}
       </Text>

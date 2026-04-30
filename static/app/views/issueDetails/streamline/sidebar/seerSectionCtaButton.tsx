@@ -197,7 +197,7 @@ export function SeerSectionCtaButton({
       if (lastStep.type === AutofixStepType.SOLUTION) {
         return t('Fix with Seer');
       }
-      return t('Open Seer');
+      return t('Open Autofix');
     }
 
     return t('Fix with Seer');

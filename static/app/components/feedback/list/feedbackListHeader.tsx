@@ -12,10 +12,10 @@ import {useFeedbackHasNewItems} from 'sentry/components/feedback/useFeedbackHasN
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 
 interface Props extends Pick<
-  ReturnType<typeof useListItemCheckboxContext>,
+  ListItemCheckboxState,
   | 'countSelected'
   | 'deselectAll'
   | 'isAllSelected'

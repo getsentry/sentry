@@ -10,7 +10,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
@@ -159,7 +159,9 @@ export function ExplorerDrawerContent({
   }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
+  const conversationsUrl = runId
+    ? getConversationsUrlForExternalUse('sentry', runId)
+    : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -306,7 +308,7 @@ export function ExplorerDrawerContent({
         container.removeEventListener('scroll', handleScroll);
       };
     }
-    return undefined;
+    return;
   }, []);
 
   // - Keyboard listeners -----------------------------------------------------
@@ -355,24 +357,28 @@ export function ExplorerDrawerContent({
           />
         ) : (
           <Fragment>
-            {blocks.map((block: Block, index: number) => (
-              <BlockComponent
-                key={index} // For slide-in animation - run/mount once per new index
-                ref={el => {
-                  blockRefs.current[index] = el;
-                }}
-                block={block}
-                blockIndex={index}
-                runId={runId ?? undefined}
-                getPageReferrer={getPageReferrer}
-                isAwaitingFileApproval={isFileApprovalPending}
-                isAwaitingQuestion={isQuestionPending}
-                isLatestTodoBlock={index === latestTodoBlockIndex}
-                readOnly={readOnly}
-                showThinking={showThinking}
-                onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
-              />
-            ))}
+            {blocks.map((block: Block, index: number) => {
+              // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
+              const key = block.message.role === 'user' ? `user-${index}` : block.id;
+
+              return (
+                <BlockComponent
+                  key={key}
+                  ref={el => {
+                    blockRefs.current[index] = el;
+                  }}
+                  block={block}
+                  blockIndex={index}
+                  runId={runId ?? undefined}
+                  getPageReferrer={getPageReferrer}
+                  isAwaitingFileApproval={isFileApprovalPending}
+                  isAwaitingQuestion={isQuestionPending}
+                  isLatestTodoBlock={index === latestTodoBlockIndex}
+                  readOnly={readOnly}
+                  showThinking={showThinking}
+                />
+              );
+            })}
             {!readOnly &&
               isFileApprovalPending &&
               fileApprovalIndex < fileApprovalTotalPatches && (

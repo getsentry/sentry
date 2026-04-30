@@ -108,6 +108,13 @@ const FILTER_KEYS: TagCollection = {
     name: 'bar',
     kind: FieldKind.MEASUREMENT,
   },
+  [FieldKey.RELEASE_VERSION]: {
+    key: FieldKey.RELEASE_VERSION,
+    name: 'Release Version',
+    kind: FieldKind.FIELD,
+    predefined: true,
+    values: ['1.0.0', '2.0.0'],
+  },
 };
 
 const FILTER_KEY_SECTIONS: FilterKeySection[] = [
@@ -3336,6 +3343,49 @@ describe('SearchQueryBuilder', () => {
           name: 'does not end with',
         });
         expect(doesNotEndWithOption).toBeInTheDocument();
+      });
+
+      it('replaces the value for fields that do not allow multiple values', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="release.version:1.0.0" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: release.version'})
+        );
+
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
+        expect(
+          screen.queryByRole('checkbox', {name: 'Toggle 1.0.0'})
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(await screen.findByRole('option', {name: '2.0.0'}));
+
+        expect(
+          await screen.findByRole('row', {name: 'release.version:2.0.0'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('row', {name: 'release.version:[1.0.0,2.0.0]'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('keeps comma-separated input as one value for fields that do not allow multiple values', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="release.version:1.0.0" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: release.version'})
+        );
+
+        await userEvent.keyboard('1.0.0,2.0.0{enter}');
+
+        expect(
+          await screen.findByRole('row', {name: 'release.version:"1.0.0,2.0.0"'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('row', {name: 'release.version:[1.0.0,2.0.0]'})
+        ).not.toBeInTheDocument();
       });
     });
 

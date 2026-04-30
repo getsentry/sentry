@@ -12,8 +12,8 @@ import {
 import {toArray} from 'sentry/utils/array/toArray';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
-type QueryKeyValue = undefined | ApiQueryKey | InfiniteApiQueryKey;
-type QueryKeyRef = RefObject<QueryKeyValue>;
+type ListCheckboxQueryKeyValue = undefined | ApiQueryKey | InfiniteApiQueryKey;
+export type ListCheckboxQueryKeyRef = RefObject<ListCheckboxQueryKeyValue>;
 
 interface PublicProps {
   /**
@@ -32,11 +32,11 @@ interface PublicProps {
    * The selection will be reset when then query key changes. Therefore be
    * mindful of query params like `cursor` creating a new query key.
    */
-  queryKey: QueryKeyValue;
+  queryKey: ListCheckboxQueryKeyValue;
 }
 
 interface InternalProps {
-  queryKeyRef: QueryKeyRef;
+  queryKeyRef: ListCheckboxQueryKeyRef;
   setState: Dispatch<SetStateAction<State>>;
   state: State;
 }
@@ -48,7 +48,7 @@ type MergedProps = Omit<PublicProps, 'queryKey'> & InternalProps;
  */
 type State = {ids: Set<string>} | {all: true};
 
-interface Return {
+export interface ListItemCheckboxState {
   /**
    * How many ids are selected
    */
@@ -97,7 +97,7 @@ interface Return {
    *
    * Read `.current` to access the value.
    */
-  queryKeyRef: QueryKeyRef;
+  queryKeyRef: ListCheckboxQueryKeyRef;
 
   /**
    * Record that all are selected, wether or not all feedback ids are loaded or not
@@ -116,12 +116,12 @@ interface Return {
   toggleSelected: (id: string | string[]) => void;
 }
 
-const defaultQueryKeyRef: QueryKeyRef = {current: undefined};
+const defaultQueryKeyRef: ListCheckboxQueryKeyRef = {current: undefined};
 
 const ListItemCheckboxContext = createContext<{
   hits: number;
   knownIds: string[];
-  queryKeyRef: QueryKeyRef;
+  queryKeyRef: ListCheckboxQueryKeyRef;
   setState?: Dispatch<SetStateAction<State>>;
   state?: State;
 }>({
@@ -139,7 +139,7 @@ export function ListItemCheckboxProvider({
   children: React.ReactNode;
   hits: number;
   knownIds: string[];
-  queryKey: QueryKeyValue;
+  queryKey: ListCheckboxQueryKeyValue;
 }) {
   const [state, setState] = useState<State>({ids: new Set()});
   const queryKeyRef = useRef(queryKey);
@@ -192,7 +192,7 @@ function useListItemCheckboxState({
   queryKeyRef,
   state,
   setState,
-}: MergedProps): Return {
+}: MergedProps): ListItemCheckboxState {
   const selectAll = useCallback(() => {
     // Record that the virtual "all" list is enabled.
     setState({all: true});

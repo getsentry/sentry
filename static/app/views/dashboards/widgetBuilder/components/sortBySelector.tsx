@@ -76,7 +76,7 @@ export function WidgetBuilderSortBySelector() {
 
   let disableSort = false;
   let disableSortDirection = false;
-  let disableSortReason: string | undefined = undefined;
+  let disableSortReason: string | undefined;
 
   if (datasetConfig.disableSortOptions) {
     ({disableSort, disableSortDirection, disableSortReason} =
