@@ -46,11 +46,7 @@ export default function CreateDashboard() {
       renderDisabled={renderDisabled}
     >
       <ErrorBoundary>
-        <DashboardDetail
-          initialState={DashboardState.CREATE}
-          dashboard={dashboard}
-          dashboards={[]}
-        />
+        <DashboardDetail initialState={DashboardState.CREATE} dashboard={dashboard} />
       </ErrorBoundary>
     </Feature>
   );

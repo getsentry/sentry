@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
@@ -23,11 +23,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
-import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_DATA_TYPES,
@@ -36,7 +31,6 @@ import {
   MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 export type ModulesWithOnboarding = Exclude<
   ModuleName,
@@ -48,46 +42,6 @@ export type ModulesWithOnboarding = Exclude<
   | ModuleName.MOBILE_UI
   | ModuleName.OTHER
 >;
-
-type ModuleOnboardingProps = {
-  children: React.ReactNode;
-  moduleName: ModulesWithOnboarding;
-};
-
-export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps) {
-  const organization = useOrganization();
-  const onboardingProject = useOnboardingProject();
-  const {reloadProjects} = useProjects();
-  const hasData = useHasFirstSpan(moduleName);
-
-  // Refetch the project metadata if the selected project does not have insights data, because
-  // we may have received insight data (and subsequently updated `Project.hasInsightxx`)
-  // after the initial project fetch.
-  useEffect(() => {
-    if (!hasData) {
-      reloadProjects();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasData]);
-
-  if (onboardingProject) {
-    return (
-      <ModuleLayout.Full>
-        <LegacyOnboarding organization={organization} project={onboardingProject} />
-      </ModuleLayout.Full>
-    );
-  }
-
-  if (!hasData) {
-    return (
-      <ModuleLayout.Full>
-        <ModulesOnboardingPanel moduleName={moduleName} />
-      </ModuleLayout.Full>
-    );
-  }
-
-  return children;
-}
 
 export function ModulesOnboardingPanel({
   moduleName,

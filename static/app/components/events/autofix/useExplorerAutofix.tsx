@@ -144,8 +144,7 @@ interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
-const POLL_INTERVAL = 500;
-const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
+const POLL_INTERVAL = 1000;
 
 function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
@@ -197,10 +196,17 @@ const isActivelyProcessing = (
     state => state.pr_creation_status === 'creating'
   );
 
+  const anyCodingAgentsRunning = Object.values(autofixState.coding_agents ?? {}).some(
+    codingAgent =>
+      codingAgent.status === CodingAgentStatus.PENDING ||
+      codingAgent.status === CodingAgentStatus.RUNNING
+  );
+
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
-    anyPRCreating
+    anyPRCreating ||
+    anyCodingAgentsRunning
   );
 };
 
@@ -212,19 +218,9 @@ const getPollInterval = (
   autofixState: ExplorerAutofixState | null,
   runStarted: boolean
 ): number | false => {
-  // No run and nothing started - don't poll
-  if (!autofixState && !runStarted) {
-    return false;
-  }
-
   // Actively processing - poll fast
   if (isActivelyProcessing(autofixState, runStarted)) {
     return POLL_INTERVAL;
-  }
-
-  // Has a run but not actively processing - poll slow to catch external updates
-  if (autofixState) {
-    return IDLE_POLL_INTERVAL;
   }
 
   return false;
@@ -287,6 +283,7 @@ export interface AutofixSection {
   blocks: Block[];
   status: 'processing' | 'completed';
   step: string;
+  index?: number;
 }
 
 /**
@@ -338,7 +335,8 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     }
   }
 
-  for (const block of blocks) {
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!;
     // Accumulate file patches globally — they need to be merged across all
     // blocks regardless of section boundaries so later patches win per file.
     if (block.merged_file_patches?.length) {
@@ -359,6 +357,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
       }
 
       section = {
+        index: i,
         step: metadata.step,
         artifacts: [],
         blocks: [],
@@ -554,12 +553,29 @@ export function useExplorerAutofix(
   const startStep = useCallback(
     async (
       step: AutofixExplorerStep,
-      startStepOptions?: {runId?: number; userContext?: string}
+      startStepOptions?: {
+        /**
+         * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
+         */
+        insertIndex?: number;
+        /**
+         * The run id where we want to start the step. If not specified, a new run is created
+         */
+        runId?: number;
+        /**
+         * Additional context from the user. If specified, it is added to the builtin prompt
+         */
+        userContext?: string;
+      }
     ) => {
       setWaitingForResponse(true);
 
       try {
         const data: Record<string, any> = {step};
+
+        if (defined(startStepOptions?.insertIndex)) {
+          data.insert_index = startStepOptions.insertIndex;
+        }
 
         if (defined(startStepOptions?.runId)) {
           data.run_id = startStepOptions.runId;

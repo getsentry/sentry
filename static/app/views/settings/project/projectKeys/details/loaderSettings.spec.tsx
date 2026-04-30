@@ -108,7 +108,7 @@ describe('Loader Script Settings', () => {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...ProjectKeysFixture()[0]!,
       dynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -174,7 +174,7 @@ describe('Loader Script Settings', () => {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...ProjectKeysFixture()[0]!,
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -224,7 +224,7 @@ describe('Loader Script Settings', () => {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...ProjectKeysFixture()[0]!,
       dynamicSdkLoaderOptions: {
         hasDebug: true,
         hasFeedback: false,
@@ -277,7 +277,7 @@ describe('Loader Script Settings', () => {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...ProjectKeysFixture()[0]!,
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -326,7 +326,7 @@ describe('Loader Script Settings', () => {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...ProjectKeysFixture()[0]!,
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
     } as ProjectKey;
 
