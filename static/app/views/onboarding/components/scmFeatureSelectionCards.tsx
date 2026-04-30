@@ -6,13 +6,15 @@ import type {DisabledProducts} from 'sentry/components/onboarding/productSelecti
 import {t} from 'sentry/locale';
 
 import {ScmFeatureCard} from './scmFeatureCard';
-import {useScmFeatureMeta} from './useScmFeatureMeta';
+import type {FeatureMeta} from './useScmFeatureMeta';
 
 interface ScmFeatureSelectionCardsProps {
   availableFeatures: ProductSolution[];
   disabledProducts: DisabledProducts;
+  featureMeta: Record<ProductSolution, FeatureMeta>;
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
+  isVolumeLoading?: boolean;
 }
 
 export function ScmFeatureSelectionCards({
@@ -20,8 +22,9 @@ export function ScmFeatureSelectionCards({
   selectedFeatures,
   disabledProducts,
   onToggleFeature,
+  featureMeta,
+  isVolumeLoading,
 }: ScmFeatureSelectionCardsProps) {
-  const {meta: featureMeta, isLoading: isVolumeLoading} = useScmFeatureMeta();
   return (
     <Stack gap="xl" width="100%" justify="center">
       <Flex justify="between" align="center">
