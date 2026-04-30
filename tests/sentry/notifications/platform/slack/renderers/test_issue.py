@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 
@@ -270,11 +269,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             text=f"[{project_slug}] {title}",
         )
 
-    @patch(
-        "sentry.integrations.slack.message_builder.issues.fetch_issue_summary",
-        return_value=None,
-    )
-    def test_render_produces_blocks(self, mock_summary: Any) -> None:
+    def test_render_produces_blocks(self) -> None:
         invocation = self._create_invocation()
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
@@ -291,11 +286,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             event_id=invocation.event_data.event.event_id,
         )
 
-    @patch(
-        "sentry.integrations.slack.message_builder.issues.fetch_issue_summary",
-        return_value=None,
-    )
-    def test_render_with_notes(self, mock_summary: Any) -> None:
+    def test_render_with_notes(self) -> None:
         invocation = self._create_invocation(notes="important note")
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
@@ -313,11 +304,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             notes="important note",
         )
 
-    @patch(
-        "sentry.integrations.slack.message_builder.issues.fetch_issue_summary",
-        return_value=None,
-    )
-    def test_render_with_tags(self, mock_summary: Any) -> None:
+    def test_render_with_tags(self) -> None:
         invocation = self._create_invocation(
             tags=["level"],
             event_data={"message": "tagged event", "level": "error"},

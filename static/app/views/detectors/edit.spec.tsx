@@ -17,6 +17,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
@@ -254,6 +255,33 @@ describe('DetectorEdit', () => {
       await waitFor(() => {
         expect(router.location.pathname).toBe(
           `/organizations/${organization.slug}/monitors/1/`
+        );
+      });
+    });
+
+    it('displays error response detail in a toast when save fails', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        method: 'PUT',
+        statusCode: 403,
+        body: {detail: 'You do not have permission to perform this action.'},
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'You do not have permission to perform this action.'
         );
       });
     });
