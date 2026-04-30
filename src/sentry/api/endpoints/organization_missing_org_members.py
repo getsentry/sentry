@@ -189,7 +189,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
                 continue
 
             if use_oi_config_reads:
-                nudge_enabled_ids = [
+                nudge_enabled_ids = {
                     oi.integration_id
                     for oi in integration_service.get_organization_integrations(
                         organization_id=organization.id,
@@ -197,21 +197,27 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
                         status=ObjectStatus.ACTIVE,
                     )
                     if oi.config.get("nudge_invite", False)
-                ]
-                integration_ids = [iid for iid in integration_ids if iid in nudge_enabled_ids]
-                if not integration_ids:
-                    continue
+                }
+                enabled_ids = [iid for iid in integration_ids if iid in nudge_enabled_ids]
+                enabled = bool(enabled_ids)
+            else:
+                enabled_ids = list(integration_ids)
+                enabled = True
 
-            queryset = _get_missing_organization_members(
-                organization, integration_provider, integration_ids, shared_domain
+            users = []
+            if enabled:
+                queryset = _get_missing_organization_members(
+                    organization, integration_provider, enabled_ids, shared_domain
+                )
+                users = serialize(queryset, request.user, serializer=MissingOrgMemberSerializer())
+
+            missing_org_members.append(
+                {
+                    "integration": integration_provider,
+                    "enabled": enabled,
+                    "users": users,
+                }
             )
-
-            missing_members_for_integration = {
-                "integration": integration_provider,
-                "users": serialize(queryset, request.user, serializer=MissingOrgMemberSerializer()),
-            }
-
-            missing_org_members.append(missing_members_for_integration)
 
         return Response(
             missing_org_members,
