@@ -84,7 +84,10 @@ export function SeerAutomationSettings() {
                   defaultAutofixAutomationTuning: z.enum(['medium', 'off']), // The API stores this as an enum, but it is displayed as a boolean toggle.
                 })}
                 initialValue={
-                  organization.defaultAutofixAutomationTuning === 'off' ? 'off' : 'medium'
+                  !organization.defaultAutofixAutomationTuning ||
+                  organization.defaultAutofixAutomationTuning === 'off'
+                    ? 'off'
+                    : 'medium'
                 }
                 mutationOptions={orgMutationOpts}
               >
