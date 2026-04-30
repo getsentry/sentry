@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {
   getAutofixArtifactFromSection,
@@ -14,6 +15,7 @@ import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
@@ -22,7 +24,7 @@ interface PullRequestsCardProps {
   section: AutofixSection;
 }
 
-export function PullRequestsCard({section}: PullRequestsCardProps) {
+export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
@@ -32,6 +34,8 @@ export function PullRequestsCard({section}: PullRequestsCardProps) {
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
   );
+
+  const runId = autofix.runState?.run_id;
 
   return (
     <ArtifactCard
@@ -83,9 +87,31 @@ export function PullRequestsCard({section}: PullRequestsCardProps) {
         }
 
         return (
-          <Button key={pullRequest.repo_name} priority="primary" disabled>
-            {t('Failed to create PR in %s', pullRequest.repo_name)}
-          </Button>
+          <Flex key={pullRequest.repo_name} direction="column" gap="sm">
+            {pullRequest.pr_creation_error ? (
+              <Text variant="danger" size="sm">
+                {pullRequest.pr_creation_error}
+              </Text>
+            ) : (
+              <Text variant="muted" size="sm">
+                {t('PR creation failed for %s.', pullRequest.repo_name)}
+              </Text>
+            )}
+            {runId !== undefined ? (
+              <Button
+                priority="primary"
+                icon={<IconRefresh size="xs" />}
+                onClick={() => autofix.createPR(runId, pullRequest.repo_name)}
+                disabled={autofix.isPolling}
+              >
+                {t('Try again')}
+              </Button>
+            ) : (
+              <Button priority="primary" disabled>
+                {t('Failed to create PR in %s', pullRequest.repo_name)}
+              </Button>
+            )}
+          </Flex>
         );
       })}
     </ArtifactCard>

@@ -171,9 +171,11 @@ export function PullRequestsPreview({section}: ArtifactPreviewProps) {
         }
 
         return (
-          <ExternalLink key={pullRequest.repo_name} disabled>
-            {t('Failed to create PR in %s', pullRequest.repo_name)}
-          </ExternalLink>
+          <Text key={pullRequest.repo_name} variant="muted" size="sm">
+            {pullRequest.pr_creation_error
+              ? pullRequest.pr_creation_error
+              : t('Failed to create PR in %s', pullRequest.repo_name)}
+          </Text>
         );
       })}
     </ArtifactCard>

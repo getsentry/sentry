@@ -603,6 +603,71 @@ describe('ArtifactCard', () => {
         expect.stringContaining('Pull Requests')
       );
     });
+
+    it('shows error detail and retry button when PR creation fails with error message', async () => {
+      const createPR = jest.fn();
+      const autofixWithRun: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        createPR,
+        runState: {
+          run_id: 99,
+          blocks: [],
+          status: 'completed',
+          updated_at: '',
+        } as any,
+      };
+
+      render(
+        <PullRequestsCard
+          autofix={autofixWithRun}
+          section={makeSection('pull_request', 'completed', [
+            [
+              makePR({
+                repo_name: 'org/repo',
+                pr_creation_status: 'error',
+                pr_creation_error: 'GitHub App lacks push access to this repository.',
+                pr_url: null,
+                pr_number: null,
+              }),
+            ],
+          ])}
+        />
+      );
+
+      expect(
+        screen.getByText('GitHub App lacks push access to this repository.')
+      ).toBeInTheDocument();
+      const retryButton = screen.getByRole('button', {name: 'Try again'});
+      expect(retryButton).toBeInTheDocument();
+
+      await userEvent.click(retryButton);
+      expect(createPR).toHaveBeenCalledWith(99, 'org/repo');
+    });
+
+    it('shows generic failure message when PR creation fails without error detail', async () => {
+      render(
+        <PullRequestsCard
+          autofix={{
+            ...mockAutofix,
+            runState: {run_id: 1, blocks: [], status: 'completed', updated_at: ''} as any,
+          }}
+          section={makeSection('pull_request', 'completed', [
+            [
+              makePR({
+                repo_name: 'org/repo',
+                pr_creation_status: 'error',
+                pr_creation_error: null,
+                pr_url: null,
+                pr_number: null,
+              }),
+            ],
+          ])}
+        />
+      );
+
+      expect(screen.getByText('PR creation failed for org/repo.')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Try again'})).toBeInTheDocument();
+    });
   });
 
   describe('ArtifactCard expand/collapse', () => {
