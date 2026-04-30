@@ -244,7 +244,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         See https://docs.gitlab.com/ee/api/issues.html#new-issue
         """
-        return self.post(GitLabApiClientPath.issues.format(project=project), data=data)
+        return self.post(GitLabApiClientPath.issues.format(project=safe_quote(project)), data=data)
 
     def get_issue_awards(self, project_id: str, issue_id: str):
         return self.get(

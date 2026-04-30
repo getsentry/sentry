@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 import orjson
 
+from sentry.integrations.gitlab.client import safe_quote
 from sentry.integrations.gitlab.utils import (
     GitLabApiClientPath,
     GitLabRateLimitInfo,
@@ -90,7 +91,9 @@ def _fetch_file_blame(
 
     # GitLab returns an invalid file path error if there are leading or trailing slashes
     encoded_path = quote(file.path.strip("/"), safe="")
-    request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
+    request_path = GitLabApiClientPath.blame.format(
+        project=safe_quote(project_id), path=encoded_path
+    )
     params = {"ref": file.ref, "range[start]": file.lineno, "range[end]": file.lineno}
 
     cache_key = client.get_cache_key(request_path, orjson.dumps(params).decode())
