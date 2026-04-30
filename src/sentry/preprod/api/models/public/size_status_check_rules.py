@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from typing import Literal, TypedDict, cast, get_args
 
-from sentry.api.event_search import SearchFilter, SearchValue, parse_search_query
+from sentry.api.event_search import (
+    WILDCARD_CHARS,
+    SearchFilter,
+    SearchValue,
+    parse_search_query,
+    translate_escape_sequences,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.preprod.vcs.status_checks.size.rules import (
@@ -91,7 +97,11 @@ def _negate_operator(
 
 
 def _format_filter_value(raw_value: object) -> str:
-    return str(SearchValue(str(raw_value)).value)
+    return translate_escape_sequences(str(raw_value))
+
+
+def _wildcard_positions(value: str) -> list[int]:
+    return [match.end() - 1 for match in WILDCARD_CHARS.finditer(value)]
 
 
 def _operator_and_values(
@@ -99,21 +109,22 @@ def _operator_and_values(
 ) -> tuple[SizeStatusCheckRuleFilterOperator, list[str]]:
     if not search_value.is_wildcard():
         operator: SizeStatusCheckRuleFilterOperator = "equals"
-        values = [str(search_value.value)]
+        values = [_format_filter_value(search_value.raw_value)]
     else:
         value = str(search_value.raw_value)
-        if value.startswith("*") and value.endswith("*") and len(value) >= 2:
+        wildcard_positions = _wildcard_positions(value)
+        if wildcard_positions == [0, len(value) - 1] and len(value) > 2:
             operator = "contains"
             values = [_format_filter_value(value[1:-1])]
-        elif value.startswith("*"):
+        elif wildcard_positions == [0] and len(value) > 1:
             operator = "endsWith"
             values = [_format_filter_value(value[1:])]
-        elif value.endswith("*"):
+        elif wildcard_positions == [len(value) - 1] and len(value) > 1:
             operator = "startsWith"
             values = [_format_filter_value(value[:-1])]
         else:
             operator = "matches"
-            values = [str(search_value.value)]
+            values = [value]
 
     if is_negation:
         operator = _negate_operator(operator)
@@ -135,7 +146,10 @@ def _condition_from_search_filter(
             operator: SizeStatusCheckRuleFilterOperator = "matches"
             if search_filter.is_negation:
                 operator = _negate_operator(operator)
-            return {"operator": operator, "values": [str(search_filter.value.value)]}
+            return {
+                "operator": operator,
+                "values": [str(raw_value) for raw_value in _raw_filter_values(search_filter)],
+            }
 
         operator = "notIn" if search_filter.is_negation else "in"
         values = [

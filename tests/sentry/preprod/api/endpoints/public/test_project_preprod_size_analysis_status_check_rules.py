@@ -333,6 +333,62 @@ class ProjectPreprodSizeAnalysisStatusCheckRulesEndpointTest(APITestCase):
             {"key": "platform_name", "conditions": [{"operator": "equals", "values": ["apple"]}]},
         ]
 
+    def test_complex_wildcards_serialize_as_matches_patterns(self) -> None:
+        self.project.update_option(
+            RULES_OPTION_KEY,
+            [
+                {
+                    "id": "rule1",
+                    "metric": "install_size",
+                    "measurement": "absolute",
+                    "value": 100,
+                    "filterQuery": "app_id:* app_id:*foo*bar* app_id:foo*bar !app_id:[foo*,*bar]",
+                },
+            ],
+        )
+
+        response = self._get_with_user_token()
+
+        assert response.status_code == 200
+        assert response.json()["rules"][0]["filters"] == [
+            {
+                "key": "app_id",
+                "conditions": [
+                    {"operator": "matches", "values": ["*"]},
+                    {"operator": "matches", "values": ["*foo*bar*"]},
+                    {"operator": "matches", "values": ["foo*bar"]},
+                ],
+            },
+            {
+                "key": "app_id",
+                "conditions": [{"operator": "notMatches", "values": ["foo*", "*bar"]}],
+            },
+        ]
+
+    def test_wildcard_operator_escapes_value_wildcards_before_serializing(self) -> None:
+        self.project.update_option(
+            RULES_OPTION_KEY,
+            [
+                {
+                    "id": "rule1",
+                    "metric": "install_size",
+                    "measurement": "absolute",
+                    "value": 100,
+                    "filterQuery": "app_id:\uf00dStartsWith\uf00dblaaa*",
+                },
+            ],
+        )
+
+        response = self._get_with_user_token()
+
+        assert response.status_code == 200
+        assert response.json()["rules"][0]["filters"] == [
+            {
+                "key": "app_id",
+                "conditions": [{"operator": "startsWith", "values": ["blaaa*"]}],
+            },
+        ]
+
     def test_negated_in_filter_serialization_preserves_runtime_logic(self) -> None:
         filter_query = "!app_id:[com.foo,com.bar]"
         self.project.update_option(
