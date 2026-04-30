@@ -10,5 +10,5 @@ export function traceMetricField(
   metricType: TraceMetricTypeValue,
   unit: DataUnit
 ) {
-  return `${aggregation}(value,${name},${metricType},${unit ?? 'none'})`;
+  return `${aggregation}(value,${name},${metricType},${unit ?? '-'})`;
 }
