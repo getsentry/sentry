@@ -10,7 +10,6 @@ import {
 } from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
@@ -196,7 +195,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
         </Grid>
       }
     >
-      <LazyRender fallback={<LoadingIndicator />}>
+      <LazyRender>
         <Fragment>
           <OneOtherIssueEvent event={event} />
           {hasTracePreviewFeature && (
