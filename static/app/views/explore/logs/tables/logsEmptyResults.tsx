@@ -16,6 +16,7 @@ interface LogsEmptyResultsProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   bytesScanned?: number;
   canResumeAutoFetch?: boolean;
+  estimatedTotalBytes?: number;
   resumeAutoFetch?: () => void;
 }
 
@@ -23,21 +24,36 @@ export function LogsEmptyResults({
   bytesScanned,
   canResumeAutoFetch,
   analyticsPageSource,
+  estimatedTotalBytes,
   resumeAutoFetch,
 }: LogsEmptyResultsProps) {
   const organization = useOrganization();
 
   if (bytesScanned && canResumeAutoFetch && resumeAutoFetch) {
+    const scannedSoFar = estimatedTotalBytes ? (
+      <EmptyStateText size="md">
+        {tct(
+          'We scanned [bytesScanned] of [estimatedTotal] so far but have not found anything matching your filters.',
+          {
+            bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+            estimatedTotal: <FileSize bytes={estimatedTotalBytes} base={2} />,
+          }
+        )}
+      </EmptyStateText>
+    ) : (
+      <EmptyStateText size="md">
+        {tct(
+          'We scanned [bytesScanned] so far but have not found anything matching your filters.',
+          {bytesScanned: <FileSize bytes={bytesScanned} base={2} />}
+        )}
+      </EmptyStateText>
+    );
+
     return (
       <TableStatus>
         <EmptyStateWarning withIcon variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
-          <EmptyStateText size="md">
-            {tct(
-              'We scanned [bytesScanned] so far but have not found anything matching your filters',
-              {bytesScanned: <FileSize bytes={bytesScanned} base={2} />}
-            )}
-          </EmptyStateText>
+          {scannedSoFar}
           <EmptyStateText size="md">
             {t('We can keep digging or you can narrow down your search.')}
           </EmptyStateText>

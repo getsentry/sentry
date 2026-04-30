@@ -18,10 +18,8 @@ import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/s
 import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsItemContainer} from 'sentry/views/explore/logs/styles';
-import {
-  LoadingRenderer,
-  LogsInfiniteTable,
-} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {LogsLoading} from 'sentry/views/explore/logs/tables/logsLoading';
 import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
@@ -42,7 +40,7 @@ export function OurLogs() {
     return (
       <BorderedSection isStatus>
         <GridBody>
-          <LoadingRenderer />
+          <LogsLoading />
         </GridBody>
       </BorderedSection>
     );

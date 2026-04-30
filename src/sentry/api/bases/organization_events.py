@@ -410,6 +410,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 full_scan = meta.pop("full_scan", None)
                 bytes_scanned = meta.pop("bytes_scanned", None)
+                estimated_total_bytes = meta.pop("estimated_total_bytes", None)
                 debug_info = meta.pop("debug_info", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
@@ -434,6 +435,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
                 if bytes_scanned is not None:
                     meta["bytesScanned"] = bytes_scanned
+                if estimated_total_bytes is not None:
+                    meta["estimatedTotalBytes"] = estimated_total_bytes
 
                 # Only appears in meta when debug is passed to the endpoint
                 if debug_info:

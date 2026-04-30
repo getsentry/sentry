@@ -36,6 +36,11 @@ export const LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS = 10_000;
 export const LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS = 20_000;
 
 /**
+ * One TiB: accuracy cutoff to add an "of" estimate for needle-in-haystack searches.
+ */
+export const LOGS_HAYSTACK_DENOMINATOR_MIN_BYTES = 1024 ** 4;
+
+/**
  * These are required fields are always added to the query when fetching the log table.
  */
 export const AlwaysPresentLogFields: OurLogFieldKey[] = [

@@ -25,6 +25,7 @@ import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetail
 import {
   AlwaysPresentLogFields,
   LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
+  LOGS_HAYSTACK_DENOMINATOR_MIN_BYTES,
   LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS,
   LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS,
   MAX_LOG_INGEST_DELAY,
@@ -724,6 +725,7 @@ export function useInfiniteLogsQuery({
     resumeAutoFetch,
     dataScanned,
     bytesScanned: totalBytesScanned,
+    estimatedTotalBytes: normalizeestimatedTotalBytes(lastPage, totalBytesScanned),
   };
 }
 
@@ -819,4 +821,22 @@ export function useLogsQueryHighFidelity() {
     sortBys[0]?.field === 'timestamp' &&
     sortBys[0]?.kind === 'desc'
   );
+}
+
+/** When available, show "X of Y scanned" haystack copy; falsy means single "X scanned" line. */
+function normalizeestimatedTotalBytes(
+  lastPage: ApiResponse<EventsLogsResult> | undefined,
+  totalBytesScanned: number
+) {
+  const lastestimatedTotalBytes = lastPage?.json.meta?.estimatedTotalBytes;
+  if (!lastestimatedTotalBytes) {
+    return undefined;
+  }
+
+  const denominatorBytes = Math.max(lastestimatedTotalBytes, totalBytesScanned);
+  if (denominatorBytes <= LOGS_HAYSTACK_DENOMINATOR_MIN_BYTES) {
+    return undefined;
+  }
+
+  return denominatorBytes;
 }

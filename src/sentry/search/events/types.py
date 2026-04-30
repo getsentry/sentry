@@ -75,6 +75,8 @@ class EventsMeta(TypedDict):
     debug_info: NotRequired[dict[str, Any]]
     full_scan: NotRequired[bool]
     bytes_scanned: NotRequired[int | None]
+    # Heuristic haystack size from estimated_num_rows × (bytes_scanned / query_rows_read)
+    estimated_total_bytes: NotRequired[int]
 
 
 class EventsResponse(TypedDict):

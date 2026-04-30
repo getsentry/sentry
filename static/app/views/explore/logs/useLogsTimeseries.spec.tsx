@@ -98,6 +98,7 @@ describe('useLogsTimeseries', () => {
             hasPreviousPage: false,
             isFetchingNextPage: false,
             isFetchingPreviousPage: false,
+            estimatedTotalBytes: undefined,
             lastPageLength: 0,
             bytesScanned: 0,
             dataScanned: undefined,

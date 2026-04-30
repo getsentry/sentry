@@ -20,6 +20,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {LOGS_HAYSTACK_DENOMINATOR_MIN_BYTES} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -339,6 +340,98 @@ describe('useInfiniteLogsQuery', () => {
       eventsEndpoint,
       expect.objectContaining({data: {highFidelity: true}})
     );
+  });
+
+  it('exposes haystack denominator when estimatedTotalBytes exceeds 1 TiB', async () => {
+    const base = createMockLogsData([
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    const estimatedTotalBytes = LOGS_HAYSTACK_DENOMINATOR_MIN_BYTES + 1;
+    const body = {
+      ...base,
+      meta: {
+        ...base.meta,
+        bytesScanned: 1_000_000,
+        dataScanned: 'full',
+        estimatedTotalBytes,
+      },
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery({}), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.bytesScanned).toBe(1_000_000));
+    await waitFor(() =>
+      expect(result.current.estimatedTotalBytes).toBe(
+        Math.max(estimatedTotalBytes, 1_000_000)
+      )
+    );
+  });
+
+  it('does not expose haystack denominator when hint is at or below 1 TiB', async () => {
+    const base = createMockLogsData([
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    const body = {
+      ...base,
+      meta: {
+        ...base.meta,
+        bytesScanned: 500,
+        dataScanned: 'full',
+        estimatedTotalBytes: LOGS_HAYSTACK_DENOMINATOR_MIN_BYTES,
+      },
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery({}), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.bytesScanned).toBe(500));
+    expect(result.current.estimatedTotalBytes).toBeUndefined();
+  });
+
+  it('does not expose haystack denominator without estimatedTotalBytes', async () => {
+    const base = createMockLogsData([
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    const body = {
+      ...base,
+      meta: {
+        ...base.meta,
+        bytesScanned: 100,
+        dataScanned: 'full',
+        estimatedNumRows: 5_000_000_000,
+      },
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery({}), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.bytesScanned).toBe(100));
+    expect(result.current.estimatedTotalBytes).toBeUndefined();
   });
 
   describe('high fidelity', () => {

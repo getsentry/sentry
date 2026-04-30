@@ -6,25 +6,21 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type RefObject,
 } from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -56,6 +52,7 @@ import {
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
+import {LogsLoading} from 'sentry/views/explore/logs/tables/logsLoading';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {
   OurLogKnownFieldKey,
@@ -79,7 +76,6 @@ import {
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
   analyticsPageSource: LogsAnalyticsPageSource;
@@ -144,6 +140,7 @@ export function LogsInfiniteTable({
     bytesScanned,
     canResumeAutoFetch,
     resumeAutoFetch,
+    estimatedTotalBytes,
   } = useLogsPageDataQueryResult();
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
@@ -454,7 +451,7 @@ export function LogsInfiniteTable({
     return (
       <Fragment>
         <Flex justify="center" align="center" height="100%" minHeight="200px">
-          {isPending && <LoadingRenderer />}
+          {isPending && <LogsLoading />}
           {isError && <ErrorRenderer />}
           {isEmpty &&
             (emptyRenderer ? (
@@ -509,7 +506,12 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
+          {!hasReplay && isPending && (
+            <LogsLoading
+              bytesScanned={bytesScanned}
+              estimatedTotalBytes={estimatedTotalBytes}
+            />
+          )}
           {!hasReplay && isError && <ErrorRenderer />}
           {!hasReplay &&
             isEmpty &&
@@ -521,6 +523,7 @@ export function LogsInfiniteTable({
                 bytesScanned={bytesScanned}
                 canResumeAutoFetch={canResumeAutoFetch}
                 resumeAutoFetch={resumeAutoFetch}
+                estimatedTotalBytes={estimatedTotalBytes}
               />
             ))}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
@@ -684,35 +687,6 @@ function ErrorRenderer() {
     </TableStatus>
   );
 }
-
-export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
-  return (
-    <TableStatus>
-      <Stack align="center">
-        <EmptyStateText size="md" textAlign="center">
-          <StyledLoadingIndicator margin="1em auto" />
-          {defined(bytesScanned) && bytesScanned > 0 && (
-            <Fragment>
-              {t('Searching for a needle in a haystack. This could take a while.')}
-              <br />
-              <span>
-                {tct('[bytesScanned] scanned', {
-                  bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
-                })}
-              </span>
-            </Fragment>
-          )}
-        </EmptyStateText>
-      </Stack>
-    </TableStatus>
-  );
-}
-
-const StyledLoadingIndicator = styled(LoadingIndicator)<{
-  margin: CSSProperties['margin'];
-}>`
-  ${p => p.margin && `margin: ${p.margin}`};
-`;
 
 function HoveringRowLoadingRenderer({
   position,

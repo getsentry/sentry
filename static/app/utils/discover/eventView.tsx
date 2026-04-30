@@ -72,6 +72,7 @@ export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   bytesScanned?: number | null;
   dataScanned?: 'full' | 'partial';
   discoverSplitDecision?: WidgetType;
+  estimatedTotalBytes?: number;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
 };

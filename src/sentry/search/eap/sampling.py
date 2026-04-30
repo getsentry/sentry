@@ -28,14 +28,36 @@ def events_meta_from_rpc_request_meta(meta: ResponseMeta) -> EventsMeta:
     bytes_scanned = (
         sum(info.stats.progress_bytes for info in meta.query_info) if meta.query_info else None
     )
+    storage_meta = meta.downsampled_storage_meta
+    enr = storage_meta.estimated_num_rows
+    estimated_num_rows: int | None = int(enr) if enr > 0 else None
+
+    query_rows_read: int | None = None
+    if meta.query_info:
+        query_rows_read = sum(int(info.stats.rows_read) for info in meta.query_info)
+
+    # Heuristic: extrapolate total haystack bytes from row estimate × bytes per scanned row.
+    # rows_read and estimated_num_rows may not align 1:1 in semantics; treat as UI hint only.
+    estimated_total_bytes: int | None = None
+    if (
+        estimated_num_rows is not None
+        and query_rows_read is not None
+        and query_rows_read > 0
+        and bytes_scanned is not None
+        and bytes_scanned > 0
+    ):
+        estimated_total_bytes = int(estimated_num_rows * (bytes_scanned / float(query_rows_read)))
 
     span = sentry_sdk.get_current_span()
     if span:
         span.set_data("data_scanned", "full" if full_scan else "partial")
         span.set_data("bytes_scanned", bytes_scanned)
 
-    return EventsMeta(
+    result: EventsMeta = EventsMeta(
         fields={},
         full_scan=full_scan,
         bytes_scanned=bytes_scanned,
     )
+    if estimated_total_bytes is not None:
+        result["estimated_total_bytes"] = estimated_total_bytes
+    return result

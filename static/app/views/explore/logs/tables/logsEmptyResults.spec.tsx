@@ -37,6 +37,25 @@ describe('LogsEmptyResults', () => {
     );
   });
 
+  it('renders X of Y when haystack denominator is shown', () => {
+    const twoTib = 2 * 1024 ** 4;
+    render(
+      <LogsEmptyResults
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        bytesScanned={500_000_000}
+        canResumeAutoFetch
+        estimatedTotalBytes={twoTib}
+        resumeAutoFetch={jest.fn()}
+      />,
+      {organization, additionalWrapper: TableBodyWrapper}
+    );
+
+    const emptyState = screen.getByTestId('empty-state');
+    expect(emptyState).toHaveTextContent(
+      /We scanned .+ of .+ so far but have not found anything matching your filters/
+    );
+  });
+
   it('renders the continue-scanning state when bytes were scanned and auto-fetch can resume', () => {
     const mockResumeAutoFetch = jest.fn();
 
