@@ -42,8 +42,3 @@ export const FRONTEND_PLATFORMS: PlatformKey[] = frontend.filter(
     // Next, Remix and Sveltekit have both, frontend and backend transactions.
     !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
-
-export const PAGE_SPAN_OPS = ['all', 'pageload', 'navigation'] as const;
-export type PageSpanOps = (typeof PAGE_SPAN_OPS)[number];
-export const DEFAULT_SPAN_OP_SELECTION: PageSpanOps = 'all';
-export const SPAN_OP_QUERY_PARAM = 'span.op';

@@ -1,14 +1,4 @@
 import {t} from 'sentry/locale';
-import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
-import type {SpanFields, SubregionCode} from 'sentry/views/insights/types';
-
-export type ModuleFilters = {
-  [SpanFields.SPAN_ACTION]?: string;
-  [SpanFields.SPAN_DOMAIN]?: string;
-  [SpanFields.SPAN_GROUP]?: string;
-  [SpanFields.SPAN_OP]?: string;
-  [SpanFields.USER_GEO_SUBREGION]?: SubregionCode[];
-};
 
 type DataKey =
   | 'change'
@@ -61,25 +51,4 @@ export const DataTitles: Record<DataKey, string> = {
   'cache_miss_rate()': t('Miss Rate'),
   'transaction.duration': t('Transaction Duration'),
   performanceScore: t('Perf Score'),
-};
-
-export const getDurationChartTitle = (spanOp?: string) => {
-  if (spanOp) {
-    return t('Average Duration');
-  }
-
-  return '--';
-};
-
-export const getThroughputChartTitle = (
-  spanOp?: string,
-  throughputUnit = RateUnit.PER_MINUTE
-) => {
-  if (spanOp?.startsWith('db')) {
-    return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;
-  }
-  if (spanOp) {
-    return `${t('Requests')} ${RATE_UNIT_TITLE[throughputUnit]}`;
-  }
-  return '--';
 };

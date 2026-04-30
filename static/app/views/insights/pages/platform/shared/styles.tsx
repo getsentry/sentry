@@ -1,15 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Panel} from 'sentry/components/panels/panel';
-
-export const ModalChartContainer = styled('div')`
-  height: 280px;
-`;
-
-export const ModalTableWrapper = styled(Panel)`
-  margin-top: ${p => p.theme.space.xl};
-`;
-
 const getColumns = (props: {columns?: number}) => {
   return props.columns || 3;
 };
