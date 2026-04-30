@@ -35,6 +35,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
+from sentry.silo.base import SiloMode
 from sentry.taskworker.timeout import timeout_alarm
 from sentry.utils import metrics, redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
@@ -98,6 +99,11 @@ def _create_circuit_breaker(
         organization_context.organization,
     ):
         return None
+
+    # We don't want to make a circuit breaker in CONTROL silo as it's only used for installation webhooks which are v. low volume
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        return None
+
     config = options.get("sentry-apps.webhook.circuit-breaker.config")
     return CircuitBreaker(
         key=f"sentry-app.webhook.{sentry_app.slug}",
