@@ -669,12 +669,12 @@ def query_trace_data(
         errors_future = query_thread_pool.submit(
             _run_errors_query,
             errors_query,
-            referrer=referrer.value,
+            referrer=referrer,
         )
         occurrence_future = query_thread_pool.submit(
             _run_perf_issues_query,
             occurrence_query,
-            referrer=referrer.value,
+            referrer=referrer,
         )
         uptime_future = None
         if include_uptime and uptime_query:
