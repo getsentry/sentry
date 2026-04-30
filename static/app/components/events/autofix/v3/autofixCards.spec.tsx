@@ -436,7 +436,7 @@ describe('ArtifactCard', () => {
     });
 
     it('renders error state when all patches have no changes', () => {
-      const emptyPatch: ExplorerFilePatch = {
+      const emptyPatch = {
         repo_name: 'org/repo',
         diff: '',
         patch: {
