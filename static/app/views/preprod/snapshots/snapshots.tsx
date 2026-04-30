@@ -205,6 +205,7 @@ export default function SnapshotsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const viewOverride = location.query.view;
+  const hasDiffComparison = data?.comparison_type === 'diff';
   const comparisonType =
     viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
   const comparisonRunInfo = data?.comparison_run_info;
@@ -588,6 +589,7 @@ export default function SnapshotsPage() {
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           listItems={listItems}
+          hasDiffComparison={hasDiffComparison}
           isSoloView={isSoloView}
           onToggleSoloView={handleToggleView}
           comparisonType={comparisonType}
