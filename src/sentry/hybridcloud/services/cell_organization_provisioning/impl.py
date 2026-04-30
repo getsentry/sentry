@@ -2,7 +2,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
 
-from sentry import analytics, audit_log, options, roles
+from sentry import analytics, audit_log, roles
 from sentry.analytics.events.data_consent_org_creation import (
     AggregatedDataConsentOrganizationCreatedEvent,
 )
@@ -181,12 +181,6 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
     def _record_organization_create_analytics(
         self, organization: Organization, provision_options: OrganizationOptions
     ) -> None:
-        if not (
-            provision_options.owner
-            and options.get("provision_organization_in_cell.record_analytics")
-        ):
-            return
-
         # These operations involve RPC calls to control so do them outside of the transaction
         audit_data = organization.get_audit_log_data()
         actor_label = None
