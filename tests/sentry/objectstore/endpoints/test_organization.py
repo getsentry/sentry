@@ -17,7 +17,6 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.cell import override_cells
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test, create_test_cells
 from sentry.testutils.skips import requires_objectstore
 from sentry.types.cell import Cell
@@ -34,7 +33,7 @@ def local_live_server(request: pytest.FixtureRequest, live_server: LiveServer) -
 @cell_silo_test
 @requires_objectstore
 @pytest.mark.usefixtures("local_live_server")
-class OrganizationObjectstoreEndpointTest(TransactionTestCase):
+class ObjectstoreEndpointTest(TransactionTestCase):
     endpoint = "sentry-api-0-organization-objectstore"
     live_server: LiveServer
 
@@ -68,13 +67,11 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         session = client.session(Usecase("test"), org=self.organization.id)
         return session
 
-    @with_feature("organizations:objectstore-endpoint")
     def test_health(self) -> None:
         url = self.get_endpoint_url() + "health"
         res = requests.get(url, headers=self.get_auth_headers())
         res.raise_for_status()
 
-    @with_feature("organizations:objectstore-endpoint")
     def test_full_cycle(self) -> None:
         session = self.get_session()
 
@@ -95,7 +92,6 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         with pytest.raises(RequestError):
             session.get(object_key)
 
-    @with_feature("organizations:objectstore-endpoint")
     def test_uncompressed(self) -> None:
         session = self.get_session()
 
@@ -105,7 +101,6 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         retrieved = session.get(object_key)
         assert retrieved.payload.read() == b"test data"
 
-    @with_feature("organizations:objectstore-endpoint")
     def test_accept_encoding_passthrough(self) -> None:
         data = os.urandom(10 * 1024)
         ctx = zstandard.ZstdCompressor()
@@ -152,7 +147,6 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         with dctx.stream_reader(raw_body) as reader:
             assert reader.read() == data
 
-    @with_feature("organizations:objectstore-endpoint")
     def test_large_payload(self) -> None:
         session = self.get_session()
         data = b"A" * 1_000_000
@@ -169,9 +163,8 @@ test_region = create_test_cells("us")[0]
 
 @cell_silo_test(cells=(test_region,))
 @requires_objectstore
-@with_feature("organizations:objectstore-endpoint")
 @pytest.mark.usefixtures("local_live_server")
-class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
+class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
     endpoint = "sentry-api-0-organization-objectstore"
     live_server: LiveServer
 
