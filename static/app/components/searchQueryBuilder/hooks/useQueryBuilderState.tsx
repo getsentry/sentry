@@ -652,20 +652,18 @@ function updateFilterMultipleValues(
 ) {
   // Deduplicate by canonical form while preserving the original text of the
   // first occurrence (so the query string keeps the user's original formatting)
-  const uniqNonEmptyValues = Array.from(
-    values
-      .filter(value => value.length > 0)
-      .reduce((canonicalValues, value) => {
-        const canonicalValue = canonicalizeSearchValue(value);
-
-        if (!canonicalValues.has(canonicalValue)) {
-          canonicalValues.set(canonicalValue, value);
-        }
-
-        return canonicalValues;
-      }, new Map<string, string>())
-      .values()
-  );
+  const seen = new Set<string>();
+  const uniqNonEmptyValues = values.filter(value => {
+    if (value.length === 0) {
+      return false;
+    }
+    const canonical = canonicalizeSearchValue(value);
+    if (seen.has(canonical)) {
+      return false;
+    }
+    seen.add(canonical);
+    return true;
+  });
   if (uniqNonEmptyValues.length === 0) {
     return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
