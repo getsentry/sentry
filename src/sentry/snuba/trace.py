@@ -40,7 +40,7 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
@@ -621,10 +621,10 @@ def _serialize_columnar_uptime_item(
 def query_trace_data(
     snuba_params: SnubaParams,
     trace_id: str,
+    referrer: str | None,
     error_id: str | None = None,
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
-    referrer: Referrer = Referrer.API_TRACE_VIEW_GET_EVENTS,
     organization: Organization | None = None,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
@@ -641,6 +641,9 @@ def query_trace_data(
     # Attributes added only for metric tagging that should not appear in the response
     metric_only_attributes = metric_attributes - set(additional_attributes or [])
 
+    if referrer is None or referrer == "" or not is_valid_referrer(referrer):
+        referrer = Referrer.API_TRACE_VIEW_GET_EVENTS.value
+
     errors_query = _errors_query(snuba_params, trace_id, error_id)
     occurrence_query = _perf_issues_query(snuba_params, trace_id, organization)
     uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
@@ -655,7 +658,7 @@ def query_trace_data(
             Spans.run_trace_query,
             trace_id=trace_id,
             params=snuba_params,
-            referrer=referrer.value,
+            referrer=referrer,
             config=SearchResolverConfig(),
             additional_attributes=all_additional_attributes,
         )
@@ -681,7 +684,7 @@ def query_trace_data(
         eap_errors_data = _run_errors_query_eap(
             snuba_params=snuba_params,
             trace_id=trace_id,
-            referrer=referrer.value,
+            referrer=referrer,
             error_id=error_id,
         )
         errors_data = EAPOccurrencesComparator.check_and_choose(

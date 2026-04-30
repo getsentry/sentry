@@ -11,8 +11,7 @@ import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/inte
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-const SEER_COMPATIBLE_PROVIDERS = new Set(['github', 'gitlab']);
+import {isSeerCompatibleProvider} from 'sentry/views/settings/organizationRepositories/seerCompatibleProviders';
 
 interface Props {
   onAddIntegration: (data: IntegrationWithConfig) => void;
@@ -23,10 +22,10 @@ export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
 
-  const hasSeerCompatible = providers.some(p => SEER_COMPATIBLE_PROVIDERS.has(p.key));
+  const hasSeerCompatible = providers.some(p => isSeerCompatibleProvider(p.key));
 
   const items: MenuItemProps[] = providers.map(provider => {
-    const isSeerCompatible = SEER_COMPATIBLE_PROVIDERS.has(provider.key);
+    const isSeerCompatible = isSeerCompatibleProvider(provider.key);
     return {
       key: provider.key,
       label: isSeerCompatible ? (
