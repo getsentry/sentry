@@ -678,7 +678,7 @@ class Referrer(StrEnum):
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
 
     # TODO(telex-team): temporary referrer, remove once low value spans job is no longer needed
-    LOW_VALUE_SPANS_JOB = "low_value_spans_job"
+    LOW_VALUE_SPANS_JOB = "autopilot.low_value_spans_job"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     BILLING_USAGE_SERVICE_CLICKHOUSE = "billing.usage_service.clickhouse"
