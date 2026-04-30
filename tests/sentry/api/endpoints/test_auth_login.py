@@ -39,7 +39,7 @@ class AuthLoginEndpointTest(APITestCase):
         response = self.get_error_response(
             username=self.user.username, password="admin", status_code=400
         )
-        assert response.data["errors"]
+        assert "Your account has been suspended." in str(response.data["errors"])
 
     @patch(
         "sentry.api.endpoints.auth_login.ratelimiter.backend.is_limited",
