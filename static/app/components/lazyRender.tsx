@@ -28,10 +28,6 @@ export interface LazyRenderProps {
    * When true, skips lazy loading and renders children immediately.
    */
   disabled?: boolean;
-  /**
-   * Content to render before the component becomes visible in the viewport.
-   */
-  fallback?: React.ReactNode;
   observerOptions?: Partial<IntersectionObserverInit>;
   /**
    * Removes the wrapping div once visible
@@ -97,5 +93,5 @@ export function LazyRender(props: LazyRenderProps) {
     return props.children;
   }
 
-  return <div ref={onRefNode}>{visible ? props.children : (props.fallback ?? null)}</div>;
+  return <div ref={onRefNode}>{visible ? props.children : null}</div>;
 }
