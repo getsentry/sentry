@@ -35,7 +35,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     alwaysEnabled: true,
     volume: t('5,000 errors / mo'),
     volumeTooltip: t(
-      'Free plan includes 5,000 errors / month. Additional usage starts at $0.00029/event.'
+      'Free plan includes 5,000 errors / month. Upgrade to Team or Business to send more.'
     ),
   },
   [ProductSolution.PERFORMANCE_MONITORING]: {
@@ -46,7 +46,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     ),
     volume: t('5M spans / mo'),
     volumeTooltip: t(
-      'Free plan includes 5M spans / month. Additional usage starts at $0.000002/span.'
+      'Free plan includes 5M spans / month. Upgrade to Team or Business to send more.'
     ),
   },
   [ProductSolution.SESSION_REPLAY]: {
@@ -55,7 +55,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t('Watch real user sessions to see what went wrong'),
     volume: t('50 replays / mo'),
     volumeTooltip: t(
-      'Free plan includes 50 replays / month. Additional usage starts at $0.00285/replay.'
+      'Free plan includes 50 replays / month. Upgrade to Team or Business to send more.'
     ),
   },
   [ProductSolution.LOGS]: {
@@ -63,7 +63,9 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     icon: IconTerminal,
     description: t('See logs in context with errors and performance issues'),
     volume: t('5 GB logs / mo'),
-    volumeTooltip: t('Free plan includes 5 GB logs / month. Additional usage $0.50/GB.'),
+    volumeTooltip: t(
+      'Free plan includes 5 GB logs / month. Upgrade to Team or Business to send more.'
+    ),
   },
   [ProductSolution.PROFILING]: {
     label: t('Profiling'),
@@ -72,7 +74,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
       'Pinpoint the functions and lines of code responsible for performance issues'
     ),
     volume: t('Usage-based'),
-    volumeTooltip: t('Requires a team or business plan. Starts at $0.031525/hr.'),
+    volumeTooltip: t('Upgrade to Team or Business to send more.'),
   },
   [ProductSolution.METRICS]: {
     label: t('Application Metrics'),
