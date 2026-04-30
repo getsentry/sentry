@@ -31,6 +31,7 @@ from sentry.integrations.source_code_management.metrics import (
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.utils.metrics import IntegrationEventLifecycle
+from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
@@ -47,6 +48,7 @@ from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.utils import metrics
 from sentry.utils.cursored_scheduler import CursoredScheduler
 from sentry.utils.iterators import chunked
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +148,23 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
     Fetches all repos from the SCM provider, diffs against Sentry's
     Repository table, then dispatches batched apply tasks.
     """
+    lock = locks.get(
+        f"repo-sync:{organization_integration_id}",
+        duration=300,
+        name="sync_repos_for_org",
+    )
+    try:
+        lock.acquire()
+    except UnableToAcquireLock:
+        return
+
+    try:
+        _sync_repos_for_org(organization_integration_id)
+    finally:
+        lock.release()
+
+
+def _sync_repos_for_org(organization_integration_id: int) -> None:
     ctx = _get_sync_context(organization_integration_id)
     if ctx is None:
         return
