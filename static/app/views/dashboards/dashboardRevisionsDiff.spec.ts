@@ -142,6 +142,17 @@ describe('diffWidgets', () => {
     });
   });
 
+  it('does not flag a change when one widget has null description and the other has empty string', () => {
+    const base = makeWidget({
+      id: '1',
+      displayType: DisplayType.TEXT,
+      description: null as any,
+    });
+    const snap = makeWidget({id: '1', displayType: DisplayType.TEXT, description: ''});
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result).toEqual([]);
+  });
+
   it('detects a text widget content change', () => {
     const base = makeWidget({
       id: '1',

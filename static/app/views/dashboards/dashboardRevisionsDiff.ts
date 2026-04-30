@@ -202,14 +202,16 @@ export function diffWidgets(
       });
     }
 
-    if (match.description !== snapshotWidget.description) {
+    const baseDescription = match.description || '';
+    const snapshotDescription = snapshotWidget.description || '';
+    if (baseDescription !== snapshotDescription) {
       const isTextWidget =
         match.displayType === DisplayType.TEXT ||
         snapshotWidget.displayType === DisplayType.TEXT;
       fields.push({
         field: isTextWidget ? t('content') : t('description'),
-        before: match.description || t('(empty)'),
-        after: snapshotWidget.description || t('(empty)'),
+        before: baseDescription || t('(empty)'),
+        after: snapshotDescription || t('(empty)'),
       });
     }
 
