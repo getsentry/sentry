@@ -44,7 +44,7 @@ export type AutofixAutomationSettings = {
   autofixAutomationTuning: AutofixAutomationTuning;
   automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
   automationHandoff: ProjectSeerPreferences['automation_handoff'];
-  projectId: string;
+  projectId: string | number; // Ideally this is a string, but in reality it can be a number.
   reposCount: number;
 };
 
