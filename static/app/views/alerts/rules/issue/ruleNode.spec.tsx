@@ -6,7 +6,6 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ModalStore} from 'sentry/stores/modalStore';
 import {IssueAlertFilterType} from 'sentry/types/alerts';
-import {IssueCategory} from 'sentry/types/group';
 import {RuleNode} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 describe('RuleNode', () => {
@@ -273,7 +272,7 @@ describe('RuleNode', () => {
   });
 
   describe('issue category field', () => {
-    it('remove deprecated category options', async () => {
+    it('removes deprecated category options', async () => {
       renderRuleNode(
         {
           label: "The issue's category is equal to {value}",
@@ -282,9 +281,9 @@ describe('RuleNode', () => {
             value: {
               type: 'choice',
               choices: [
-                ['1', IssueCategory.ERROR],
-                ['2', IssueCategory.PERFORMANCE],
-                ['3', IssueCategory.DB_QUERY],
+                ['1', 'Error'],
+                ['2', 'Performance'],
+                ['12', 'Database Query'],
               ],
             },
           },
@@ -295,17 +294,51 @@ describe('RuleNode', () => {
         }
       );
 
-      await userEvent.click(await screen.findByText('error'));
+      await userEvent.click(await screen.findByText('Error'));
 
-      // Should show error and db_query options, but not performance
+      // Should show Error and Database Query options (valid), but not Performance (deprecated)
       expect(
-        await screen.findByRole('menuitemradio', {name: 'db_query'})
+        await screen.findByRole('menuitemradio', {name: 'Database Query'})
       ).toBeInTheDocument();
       expect(
-        await screen.findByRole('menuitemradio', {name: 'error'})
+        await screen.findByRole('menuitemradio', {name: 'Error'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('menuitemradio', {name: 'performance'})
+        screen.queryByRole('menuitemradio', {name: 'Performance'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows Metric Issues as a valid category option', async () => {
+      renderRuleNode(
+        {
+          label: "The issue's category is equal to {value}",
+          name: 'Issue Category',
+          formFields: {
+            value: {
+              type: 'choice',
+              choices: [
+                ['1', 'Error'],
+                ['11', 'Metric Issues'],
+                ['2', 'Performance'],
+              ],
+            },
+          },
+        },
+        {
+          id: IssueAlertFilterType.ISSUE_CATEGORY,
+          value: '1',
+        }
+      );
+
+      await userEvent.click(await screen.findByText('Error'));
+
+      // Metric Issues should be shown (value "11" is valid)
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Metric Issues'})
+      ).toBeInTheDocument();
+      // Performance should not be shown (value "2" is deprecated)
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Performance'})
       ).not.toBeInTheDocument();
     });
   });
@@ -319,8 +352,8 @@ describe('RuleNode', () => {
           value: {
             type: 'choice',
             choices: [
-              ['1', IssueCategory.ERROR],
-              ['2', IssueCategory.PERFORMANCE],
+              ['1', 'Error'],
+              ['2', 'Performance'],
             ],
           },
         },
