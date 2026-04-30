@@ -26,8 +26,8 @@ interface StepLabel {
 // Shared labels for tag/field investigation steps
 const TAG_INVESTIGATION_LABELS: StepLabel[] = [
   {loading: 'Investigating your tags...', completed: 'Investigated tags'},
-  {loading: 'Looking at more tags...', completed: 'Checked more tags'},
-  {loading: 'Checking additional tags...', completed: 'Found more tags'},
+  {loading: 'Looking for more tags...', completed: 'Found more tags'},
+  {loading: 'Checking additional tags...', completed: 'Checked additional tags'},
 ];
 
 /**
@@ -36,10 +36,21 @@ const TAG_INVESTIGATION_LABELS: StepLabel[] = [
  * Array format allows for variation when steps repeat.
  */
 const STEP_LABELS: Record<string, StepLabel[]> = {
-  fetch_tag_values: TAG_INVESTIGATION_LABELS,
   get_field_values: TAG_INVESTIGATION_LABELS,
-  get_tag_values: TAG_INVESTIGATION_LABELS,
   get_errors_field_values: TAG_INVESTIGATION_LABELS,
+  execute_query: [
+    {loading: 'Fine-tuning your query...', completed: 'Fine-tuned query'},
+    {loading: 'Trying another approach...', completed: 'Tried another approach'},
+    {loading: 'Running one more test...', completed: 'Ran another test'},
+  ],
+  finalize_queries: [{loading: 'Double-checking everything...', completed: 'All done!'}],
+  mark_unsupported: [
+    {loading: 'Working through this...', completed: 'This query is not supported'},
+  ],
+
+  // DEPRECATED
+  fetch_tag_values: TAG_INVESTIGATION_LABELS,
+  get_tag_values: TAG_INVESTIGATION_LABELS,
   test_query: [
     {loading: 'Testing your query...', completed: 'Tested query'},
     {loading: 'Trying another approach...', completed: 'Tried another approach'},
@@ -126,14 +137,14 @@ function formatStepKey(key: string, isLoading: boolean): string {
  * Format a step for display.
  * @param step - The step to format
  * @param isLoading - Whether the step is currently in progress
- * @param occurrence - Which occurrence of this step (0-indexed)
+ * @param occurrence - How many times this step key has occurred before (0-indexed)
  */
 function formatStep(step: AskSeerStep, isLoading: boolean, occurrence: number): string {
   const key = normalizeStepKey(step);
   const labelVariants = STEP_LABELS[key];
   if (labelVariants && labelVariants.length > 0) {
     // Use modulo to cycle through variants if we have more occurrences than variants
-    const variantIndex = Math.min(occurrence, labelVariants.length - 1);
+    const variantIndex = occurrence % labelVariants.length;
     const labels = labelVariants[variantIndex];
     if (labels) {
       return isLoading ? labels.loading : labels.completed;
@@ -149,7 +160,7 @@ interface AskSeerProgressBlocksProps {
 }
 
 /**
- * Count occurrences of each step key up to (and including) the given index.
+ * Count occurrences of each step key up to (and excluding) the given index.
  * Uses normalized keys to handle comma-separated parallel calls.
  */
 function countOccurrences(
@@ -158,13 +169,13 @@ function countOccurrences(
   upToIndex: number
 ): number {
   let count = 0;
-  for (let i = 0; i <= upToIndex && i < steps.length; i++) {
+  for (let i = 0; i < upToIndex && i < steps.length; i++) {
     const step = steps[i];
     if (step && normalizeStepKey(step) === targetKey) {
       count++;
     }
   }
-  return count - 1; // 0-indexed occurrence
+  return count;
 }
 
 /**

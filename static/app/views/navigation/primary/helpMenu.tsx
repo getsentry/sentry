@@ -1,6 +1,7 @@
+import {useEffect} from 'react';
+
 import {Flex} from '@sentry/scraps/layout';
 
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
   IconBuilding,
@@ -22,6 +23,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
@@ -30,7 +32,58 @@ import {
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+function getContactSupportItem(organization: Organization): MenuItemProps | null {
+  const supportEmail = ConfigStore.get('supportEmail');
+
+  if (!supportEmail) {
+    return null;
+  }
+
+  const hasIntercom = organization.features.includes('intercom-support');
+
+  // Use Intercom if feature flag is enabled (lazily initialized on first click)
+  if (hasIntercom) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      async onAction() {
+        trackAnalytics('intercom_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+        try {
+          await showIntercom(organization.slug);
+        } catch {
+          // Fall back to mailto
+          window.location.href = `mailto:${supportEmail}`;
+        }
+      },
+    };
+  }
+
+  // Fall back to Zendesk if available
+  if (hasZendesk()) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      onAction() {
+        activateZendesk();
+        trackAnalytics('zendesk_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+      },
+    };
+  }
+
+  // Fall back to mailto
+  return {
+    key: 'support',
+    label: t('Contact Support'),
+    externalHref: `mailto:${supportEmail}`,
+  };
+}
 
 export function PrimaryNavigationHelpMenu() {
   const organization = useOrganization();
@@ -38,30 +91,20 @@ export function PrimaryNavigationHelpMenu() {
   const openForm = useFeedbackForm();
   const {startTour} = useNavigationTour();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const hasPageFrame = useHasPageFrameFeature();
+  const hasIntercom = organization.features.includes('intercom-support');
 
-  const items = hasPageFrame
-    ? getPageFrameItems({contactSupportItem, privacyUrl, termsUrl})
-    : getLegacyItems({contactSupportItem});
+  useEffect(() => {
+    if (hasIntercom) {
+      trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
+    }
+  }, [hasIntercom, organization]);
+
+  const items = getPageFrameItems({contactSupportItem, privacyUrl, termsUrl});
 
   return (
     <PrimaryNavigation.Menu
       triggerWrap={NavigationTourReminder}
       items={[
-        ...(hasPageFrame
-          ? // When page frame feature flag is enabled, the search menu is
-            // rendered as part of the footer items and is always visible
-            // to the user.
-            []
-          : [
-              {
-                key: 'search',
-                label: t('Search support, docs and more'),
-                onAction() {
-                  openHelpSearchModal({organization});
-                },
-              },
-            ]),
         ...items,
         {
           key: 'actions',
@@ -69,11 +112,11 @@ export function PrimaryNavigationHelpMenu() {
             {
               key: 'give-feedback',
               label: t('Give feedback'),
-              leadingItems: hasPageFrame ? (
+              leadingItems: (
                 <MenuIcon>
                   <IconMegaphone />
                 </MenuIcon>
-              ) : undefined,
+              ),
               onAction() {
                 openForm?.({
                   tags: {
@@ -86,11 +129,11 @@ export function PrimaryNavigationHelpMenu() {
             {
               key: 'tour',
               label: t('Tour the new navigation'),
-              leadingItems: hasPageFrame ? (
+              leadingItems: (
                 <MenuIcon>
                   <IconGlobe />
                 </MenuIcon>
-              ) : undefined,
+              ),
               onAction() {
                 startTour();
               },
@@ -266,74 +309,4 @@ function getPageFrameItems({
         ]
       : []),
   ];
-}
-
-function getLegacyItems({
-  contactSupportItem,
-}: {
-  contactSupportItem: MenuItemProps | null;
-}): MenuItemProps[] {
-  return [
-    {
-      key: 'resources',
-      label: t('Resources'),
-      children: [
-        {
-          key: 'help-center',
-          label: t('Help Center'),
-          externalHref: 'https://sentry.zendesk.com/hc/en-us',
-        },
-        {
-          key: 'docs',
-          label: t('Documentation'),
-          externalHref: 'https://docs.sentry.io',
-        },
-      ],
-    },
-    {
-      key: 'help',
-      label: t('Get Help'),
-      children: [
-        ...(contactSupportItem ? [contactSupportItem] : []),
-        {
-          key: 'github',
-          label: t('Sentry on GitHub'),
-          externalHref: 'https://github.com/getsentry/sentry/issues',
-        },
-        {
-          key: 'discord',
-          label: t('Join our Discord'),
-          externalHref: 'https://discord.com/invite/sentry',
-        },
-      ],
-    },
-  ];
-}
-
-function getContactSupportItem(organization: Organization): MenuItemProps | null {
-  const supportEmail = ConfigStore.get('supportEmail');
-
-  if (!supportEmail) {
-    return null;
-  }
-
-  if (hasZendesk()) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      onAction() {
-        activateZendesk();
-        trackAnalytics('zendesk_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-      },
-    };
-  }
-
-  return {
-    key: 'support',
-    label: t('Contact Support'),
-    externalHref: `mailto:${supportEmail}`,
-  };
 }

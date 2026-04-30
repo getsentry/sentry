@@ -268,6 +268,74 @@ def test_S016() -> None:
     src = "from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor\n"
     assert _run(src) == []
 
+    # Attribute access via `concurrent.futures.ThreadPoolExecutor()` should be flagged
+    src = "import concurrent.futures\nconcurrent.futures.ThreadPoolExecutor(max_workers=4)\n"
+    errors = _run(src)
+    assert errors == [
+        "t.py:2:0: S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor`"
+        " instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation.",
+    ]
+
+    # Attribute access without call should also be flagged
+    src = "import concurrent.futures\nx = concurrent.futures.ThreadPoolExecutor\n"
+    errors = _run(src)
+    assert errors == [
+        "t.py:2:4: S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor`"
+        " instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation.",
+    ]
+
+    # Other concurrent.futures attributes are fine
+    src = "import concurrent.futures\nconcurrent.futures.as_completed([])\n"
+    assert _run(src) == []
+
+
+def test_S018() -> None:
+    expected_msg = (
+        "S018 Use `sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache` "
+        "instead of `django.core.cache.backends.memcached.PyMemcacheCache`."
+    )
+
+    src = """\
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": ["127.0.0.1:11211"],
+    }
+}
+"""
+    errors = _run(src)
+    assert errors == [f"t.py:3:19: {expected_msg}"]
+
+    src = 'BACKEND = "django.core.cache.backends.memcached.PyMemcacheCache"\n'
+    errors = _run(src)
+    assert errors == [f"t.py:1:10: {expected_msg}"]
+
+    src = "from django.core.cache.backends.memcached import PyMemcacheCache\n"
+    errors = _run(src)
+    assert errors == [f"t.py:1:0: {expected_msg}"]
+
+    src = "from django.core.cache.backends.memcached import PyMemcacheCache, PyLibMCCache\n"
+    errors = _run(src)
+    assert errors == [f"t.py:1:0: {expected_msg}"]
+
+    src = "from django.core.cache.backends.memcached import PyLibMCCache\n"
+    assert _run(src) == []
+
+    src = "from sentry.cache.backends.reconnectingmemcache import ReconnectingMemcache\n"
+    assert _run(src) == []
+
+    src = """\
+CACHES = {
+    "default": {
+        "BACKEND": "sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache",
+    }
+}
+"""
+    assert _run(src) == []
+
+    src = '"PyMemcacheCache is a Django backend"\n'
+    assert _run(src) == []
+
 
 def test_S015_current_or_future_year() -> None:
     cy = datetime.now(timezone.utc).year

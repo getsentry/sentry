@@ -1,10 +1,10 @@
+import {parseAsString, useQueryState} from 'nuqs';
+
 import {defined} from 'sentry/utils';
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 
 export function useDashboardWidgetSource(): DashboardWidgetSource | '' {
-  const {getParamValue} = useUrlParams('source');
-  const source = getParamValue();
+  const [source] = useQueryState('source', parseAsString);
 
   const validSources = Object.values(
     DashboardWidgetSource

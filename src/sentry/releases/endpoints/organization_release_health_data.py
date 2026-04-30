@@ -71,19 +71,16 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
         """
         fields = request.GET.getlist("field", [])
         for field in fields:
-            try:
-                metric_field = parse_field(field, allow_mri=True)
-                if (
-                    metric_field.op is None
-                    and not metric_field.metric_mri.startswith("e:")
-                    and metric_field.metric_mri
-                    != "d:sessions/duration.exited@second"  # this is special case, derived metric without 'e' as entity
-                ):
-                    raise ParseError(
-                        detail="You can not use generic metric public field without operation"
-                    )
-            except InvalidParams as exc:
-                raise ParseError(detail=str(exc))
+            metric_field = parse_field(field, allow_mri=True)
+            if (
+                metric_field.op is None
+                and not metric_field.metric_mri.startswith("e:")
+                and metric_field.metric_mri
+                != "d:sessions/duration.exited@second"  # this is special case, derived metric without 'e' as entity
+            ):
+                raise ParseError(
+                    detail="You can not use generic metric public field without operation"
+                )
 
     def get(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)

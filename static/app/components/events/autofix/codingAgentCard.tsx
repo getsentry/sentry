@@ -21,13 +21,12 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {sanitizedMarkedNoHeadings} from 'sentry/utils/marked/marked';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
-  transition: testableTransition({duration: 0.3}),
+  transition: {duration: 0.3},
 };
 
 interface CodingAgentCardProps {
@@ -225,7 +224,7 @@ const StyledCard = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   padding-left: ${p => p.theme.space.xl};
   padding-right: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.primary};

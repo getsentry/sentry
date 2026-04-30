@@ -96,7 +96,7 @@ describe('resolveRoute', () => {
   });
 
   it('should use path slugs when switching orgs without multi-region', () => {
-    ConfigStore.set('features', new Set([]));
+    ConfigStore.set('features', new Set());
     ConfigStore.set('customerDomain', null);
 
     const result = resolveRoute(
@@ -110,10 +110,10 @@ describe('resolveRoute', () => {
     ConfigStore.set('customerDomain', {
       subdomain: otherOrg.slug,
       organizationUrl: `https://${otherOrg.slug}.sentry.io`,
-      sentryUrl: `https://sentry.io`,
+      sentryUrl: 'https://sentry.io',
     });
 
     const result = resolveRoute(`/organizations/${otherOrg.slug}/issues/`, otherOrg);
-    expect(result).toBe(`/issues/`);
+    expect(result).toBe('/issues/');
   });
 });

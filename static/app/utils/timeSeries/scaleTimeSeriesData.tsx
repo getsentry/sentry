@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import partialRight from 'lodash/partialRight';
 
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
@@ -23,8 +22,7 @@ export function scaleTimeSeriesData(
 ): TimeSeries {
   // TODO: Instead of a fallback, allow this to be `null`, which might happen
   const sourceType =
-    (timeSeries.meta?.valueType as AggregationOutputType) ??
-    (FALLBACK_TYPE as AggregationOutputType);
+    (timeSeries.meta?.valueType as AggregationOutputType) ?? FALLBACK_TYPE;
 
   // Don't bother trying to convert numbers, dates, etc.
   if (!isAUnitConvertibleFieldType(sourceType)) {
@@ -43,10 +41,6 @@ export function scaleTimeSeriesData(
     (sourceType === 'size' && !isASizeUnit(destinationUnit)) ||
     (sourceType === 'rate' && !isARateUnit(destinationUnit))
   ) {
-    Sentry.captureMessage(
-      `Attempted invalid timeseries conversion from ${sourceType} in ${sourceUnit} to ${destinationUnit}`
-    );
-
     return timeSeries;
   }
 

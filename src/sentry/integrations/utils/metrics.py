@@ -208,7 +208,7 @@ class EventLifecycle:
                 if outcome == EventLifecycleOutcome.FAILURE:
                     logger.warning(key, **log_params)
                 elif outcome == EventLifecycleOutcome.HALTED:
-                    logger.info(key, **log_params)
+                    logger.warning(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:
@@ -448,6 +448,7 @@ class IntegrationWebhookEventType(StrEnum):
     # This represents a webhook event for an inbound sync operation, such as syncing external resources or data into Sentry.
     INBOUND_SYNC = "inbound_sync"
     INSTALLATION = "installation"
+    INSTALLATION_REPOSITORIES = "installation_repositories"
     ISSUE_COMMENT = "issue_comment"
     MERGE_REQUEST = "pull_request"
     MERGE_REQUEST_REVIEW = "pull_request_review"

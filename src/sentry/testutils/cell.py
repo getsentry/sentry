@@ -16,20 +16,23 @@ class TestEnvCellDirectory(CellDirectory):
         self._default_cell = next(iter(cells))
         self._apply_cells(cells)
 
-    def _apply_cells(self, cells: Collection[Cell]) -> None:
-        localities = frozenset(
-            Locality(
-                name=c.name,
-                cells=frozenset([c.name]),
-                category=c.category,
-                visible=c.visible,
-                new_org_cell=c.name,
-            )
-            for c in cells
-        )
+    def _apply_cells(
+        self, cells: Collection[Cell], localities: Collection[Locality] | None = None
+    ) -> None:
+        if localities is None:
+            localities = [
+                Locality(
+                    name=c.name,
+                    cells=frozenset([c.name]),
+                    category=c.category,
+                    visible=c.visible,
+                    new_org_cell=c.name,
+                )
+                for c in cells
+            ]
         self._cells = frozenset(cells)
         self._by_name = {c.name: c for c in self._cells}
-        self._localities = localities
+        self._localities = frozenset(localities)
         self._localities_by_name = {loc.name: loc for loc in localities}
         self._cell_to_locality = {cell_name: loc for loc in localities for cell_name in loc.cells}
 
@@ -37,6 +40,7 @@ class TestEnvCellDirectory(CellDirectory):
     def swap_state(
         self,
         cells: Sequence[Cell],
+        localities: Sequence[Locality] | None = None,
         local_cell: Cell | None = None,
     ) -> Generator[None]:
         prev_state = (
@@ -49,11 +53,11 @@ class TestEnvCellDirectory(CellDirectory):
         )
         try:
             self._default_cell = local_cell or cells[0]
-            self._apply_cells(cells)
+            self._apply_cells(cells, localities)
             monolith_cell = cells[0]
             with override_settings(SENTRY_MONOLITH_REGION=monolith_cell.name):
                 if local_cell:
-                    with override_settings(SENTRY_REGION=local_cell.name):
+                    with override_settings(SENTRY_LOCAL_CELL=local_cell.name):
                         yield
                 else:
                     yield
@@ -70,7 +74,7 @@ class TestEnvCellDirectory(CellDirectory):
     @contextmanager
     def swap_to_default_cell(self) -> Generator[None]:
         """Swap to the monolith cell when entering cell mode."""
-        with override_settings(SENTRY_REGION=self._default_cell.name):
+        with override_settings(SENTRY_LOCAL_CELL=self._default_cell.name):
             yield
 
     @contextmanager
@@ -79,7 +83,7 @@ class TestEnvCellDirectory(CellDirectory):
         cell = self.get_cell_by_name(cell_name)
         if cell is None:
             raise Exception("specified swap cell not found")
-        with override_settings(SENTRY_REGION=cell.name):
+        with override_settings(SENTRY_LOCAL_CELL=cell.name):
             yield
 
 
@@ -93,9 +97,9 @@ def get_test_env_directory() -> TestEnvCellDirectory:
 def override_cells(cells: Sequence[Cell], local_cell: Cell | None = None) -> Generator[None]:
     """Override the global set of existing cells.
 
-    The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
+    The overriding value takes the place of the `SENTRY_CELLS` setting and
     changes the behavior of the module-level functions in `sentry.types.cell`. This
-    is preferable to overriding the `SENTRY_REGION_CONFIG` setting value directly
+    is preferable to overriding the `SENTRY_CELLS` setting value directly
     because the cell mapping may already be cached.
     """
     with get_test_env_directory().swap_state(cells, local_cell=local_cell):

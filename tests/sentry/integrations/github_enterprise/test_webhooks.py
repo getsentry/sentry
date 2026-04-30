@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
+from django.http import HttpRequest
+from django.test import RequestFactory
 
 from fixtures.github_enterprise import (
     ISSUES_ASSIGNED_EVENT_EXAMPLE,
@@ -14,13 +16,17 @@ from fixtures.github_enterprise import (
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
+from sentry.integrations.github_enterprise.webhook import (
+    GitHubEnterpriseInstallationRepositoriesEventWebhook,
+    get_host,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import override_options
 
 
@@ -251,6 +257,66 @@ class WebhookTest(APITestCase):
         )
         assert response.status_code == 400
         assert b"Missing headers X-Hub-Signature-256 or X-Hub-Signature" in response.content
+
+
+@patch("sentry.integrations.github_enterprise.client.get_jwt")
+@patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+class InstallationRepositoriesEventWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        self.url = "/extensions/github-enterprise/webhook/"
+        self.metadata = {
+            "url": "35.232.149.196",
+            "id": "2",
+            "name": "test-app",
+            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_dispatches_task_with_ghe_provider(
+        self,
+        mock_apply_async: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+        mock_get_jwt: MagicMock,
+    ) -> None:
+        """Verify the GHE handler looks up integrations with the correct provider."""
+        mock_get_jwt.return_value = ""
+        mock_get_installation_metadata.return_value = self.metadata
+
+        integration = self.create_integration(
+            external_id="35.232.149.196:12345",
+            organization=self.project.organization,
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "12345",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+
+        handler = GitHubEnterpriseInstallationRepositoriesEventWebhook()
+        handler(
+            event={
+                "installation": {"id": 12345},
+                "action": "added",
+                "repositories_added": [{"id": 1, "full_name": "testorg/repo", "private": False}],
+                "repositories_removed": [],
+                "repository_selection": "selected",
+                "sender": {"id": 1, "login": "testuser"},
+            },
+            host="35.232.149.196",
+        )
+
+        mock_apply_async.assert_called_once()
+        kwargs = mock_apply_async.call_args[1]["kwargs"]
+        assert kwargs["integration_id"] == integration.id
 
 
 @patch("sentry.integrations.github_enterprise.client.get_jwt")
@@ -888,3 +954,30 @@ class IssuesEventWebhookTest(APITestCase):
             mock_sync.assert_called_once()
 
         assert_success_metric(mock_record)
+
+
+class GetHostTest(TestCase):
+    def _make_request(self, headers: dict[str, str]) -> HttpRequest:
+        factory = RequestFactory()
+        request = factory.post("/", content_type="application/json")
+        for key, value in headers.items():
+            request.META[f"HTTP_{key.upper().replace('-', '_')}"] = value
+        return request
+
+    def test_returns_enterprise_host_header(self) -> None:
+        request = self._make_request({"x-github-enterprise-host": "github.example.org"})
+        assert get_host(request) == "github.example.org"
+
+    def test_returns_ghe_cloud_host_from_tenant_header(self) -> None:
+        request = self._make_request({"x-github-tenant": "acme-corp"})
+        assert get_host(request) == "acme-corp.ghe.com"
+
+    def test_enterprise_host_takes_precedence_over_tenant(self) -> None:
+        request = self._make_request(
+            {"x-github-enterprise-host": "github.example.org", "x-github-tenant": "acme-corp"}
+        )
+        assert get_host(request) == "github.example.org"
+
+    def test_returns_none_when_no_host_headers(self) -> None:
+        request = self._make_request({})
+        assert get_host(request) is None

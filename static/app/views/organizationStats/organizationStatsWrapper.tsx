@@ -8,7 +8,7 @@ import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirect
 export function OrganizationStatsWrapper() {
   const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/stats/',
-    newPathPrefix: `/settings/stats/`,
+    newPathPrefix: '/settings/stats/',
   });
 
   if (redirectPath) {

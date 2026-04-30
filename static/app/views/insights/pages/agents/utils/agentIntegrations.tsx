@@ -41,13 +41,13 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
 };
 
 export const PYTHON_AGENT_INTEGRATIONS = [
+  AgentIntegration.OPENAI,
   AgentIntegration.OPENAI_AGENTS,
   AgentIntegration.ANTHROPIC,
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
   AgentIntegration.LANGGRAPH,
   AgentIntegration.LITTELLM,
-  AgentIntegration.OPENAI,
   AgentIntegration.PYDANTIC_AI,
   AgentIntegration.MANUAL,
 ];

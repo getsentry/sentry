@@ -47,7 +47,7 @@ export default function ExistingOrCreate() {
     // Has multiple existing alert rules
     if (existingRules.length > 1) {
       const url = makeAlertsPathname({
-        path: `/rules/`,
+        path: '/rules/',
         organization,
       });
       navigate(
@@ -64,7 +64,7 @@ export default function ExistingOrCreate() {
 
     // No alert rules, create a new one
     const url = makeAlertsPathname({
-      path: `/new/uptime/`,
+      path: '/new/uptime/',
       organization,
     });
     navigate(url, {replace: true});

@@ -1,6 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
-import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -62,9 +61,6 @@ describe('StackTrace', () => {
     // stack trace content
     const stackTraceContent = screen.getByTestId('stack-trace-content');
     expect(stackTraceContent).toBeInTheDocument();
-
-    // platform icon
-    expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
 
     // frame list
     const frames = screen.getByTestId('frames');
@@ -451,96 +447,6 @@ describe('StackTrace', () => {
         'Occurred in non-app: raven/scripts/runner.py in main at line 112'
       );
       expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
-    });
-  });
-
-  describe('platform icons', () => {
-    it('uses the top in-app frame file extension for mixed stack trace platforms', () => {
-      render(
-        <StackTraceContent
-          {...defaultProps}
-          data={{
-            ...data,
-            frames: [
-              EventStacktraceFrameFixture({
-                inApp: true,
-                filename: 'foo.cs',
-              }),
-              EventStacktraceFrameFixture({
-                inApp: true,
-                filename: 'foo.py',
-              }),
-              EventStacktraceFrameFixture({
-                inApp: true,
-                filename: 'foo',
-              }),
-              EventStacktraceFrameFixture({
-                inApp: false,
-                filename: 'foo.rb',
-              }),
-            ],
-          }}
-          event={event}
-        />
-      );
-
-      // foo.py is the most recent in-app frame with a valid file extension
-      expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
-    });
-
-    it('uses frame.platform if file extension does not work', () => {
-      render(
-        <StackTraceContent
-          {...defaultProps}
-          data={{
-            ...data,
-            frames: [
-              EventStacktraceFrameFixture({
-                inApp: true,
-                filename: 'foo.cs',
-              }),
-              EventStacktraceFrameFixture({
-                inApp: true,
-                filename: 'foo',
-                platform: 'node',
-              }),
-              EventStacktraceFrameFixture({
-                inApp: true,
-                filename: 'foo',
-              }),
-              EventStacktraceFrameFixture({
-                inApp: false,
-                filename: 'foo.rb',
-              }),
-            ],
-          }}
-          event={event}
-        />
-      );
-
-      expect(screen.getByTestId('platform-icon-node')).toBeInTheDocument();
-    });
-
-    it('falls back to the event platform if there is no other information', () => {
-      render(
-        <StackTraceContent
-          {...defaultProps}
-          data={{
-            ...data,
-            frames: [
-              EventStacktraceFrameFixture({
-                inApp: true,
-                filename: 'foo',
-                platform: null,
-              }),
-            ],
-          }}
-          platform="python"
-          event={event}
-        />
-      );
-
-      expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
     });
   });
 });

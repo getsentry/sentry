@@ -28,6 +28,6 @@ export function RepoProviderIcon({provider, ...props}: Props) {
     const Icon = PROVIDER_ICONS[provider as keyof typeof PROVIDER_ICONS];
     return <Icon {...props} />;
   }
-  Sentry.logger.error(`Unknown provider in RepoProviderIcon`, {provider});
+  Sentry.logger.error('Unknown provider in RepoProviderIcon', {provider});
   return <IconOpen {...props} />;
 }

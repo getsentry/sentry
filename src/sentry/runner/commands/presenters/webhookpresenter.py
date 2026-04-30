@@ -53,8 +53,8 @@ class WebhookPresenter(OptionsPresenter):
             return
 
         region: str | None = (
-            settings.SENTRY_REGION
-            if settings.SENTRY_REGION
+            settings.SENTRY_LOCAL_CELL
+            if settings.SENTRY_LOCAL_CELL
             else settings.CUSTOMER_ID
             if settings.CUSTOMER_ID
             else settings.SILO_MODE

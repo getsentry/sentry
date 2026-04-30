@@ -58,7 +58,7 @@ class RuleGroupHistorySerializer(Serializer):
 @cell_silo_endpoint
 class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-projectrulegroupstats-get",
+        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
     }
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -86,7 +86,9 @@ class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid start and end dates")
 
-        results = fetch_rule_groups_paginated(rule, start, end, cursor, per_page)
+        results = fetch_rule_groups_paginated(
+            rule, start, end, cursor, per_page, project_id=project.id
+        )
 
         response = Response(serialize(results.results, request.user, RuleGroupHistorySerializer()))
         self.add_cursor_headers(request, response, results)

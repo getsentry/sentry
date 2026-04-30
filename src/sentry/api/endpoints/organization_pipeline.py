@@ -22,6 +22,7 @@ from sentry.integrations.pipeline import (
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.types import PipelineStepAction
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,12 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
             return result
         pipeline = result
 
+        metrics.incr(
+            "integrations.pipeline_api.advance",
+            tags={"provider": pipeline.provider.key, "pipeline": pipeline_name},
+            sample_rate=1.0,
+        )
+
         step_result = pipeline.api_advance(request._request, request.data)
 
         response_data = step_result.serialize()
@@ -120,5 +127,24 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
             return Response({"detail": "Pipeline does not support API mode."}, status=400)
 
         pipeline.set_api_mode()
+
+        metrics.incr(
+            "integrations.pipeline_api.initialize",
+            tags={"provider": provider_id, "pipeline": pipeline_name},
+            sample_rate=1.0,
+        )
+
+        # If the provider defines an initial data serializer, validate the
+        # initialData dict from the request and bind it to pipeline state.
+        # This supports provider-initiated flows where the frontend already
+        # has data (e.g. installation_id from a GitHub redirect) that needs
+        # to be available to pipeline steps.
+        serializer_cls = pipeline.provider.get_initial_data_serializer_cls()
+        if serializer_cls is not None:
+            initial_data = request.data.get("initialData") or {}
+            serializer = serializer_cls(data=initial_data)
+            serializer.is_valid(raise_exception=True)
+            for key, value in serializer.validated_data.items():
+                pipeline.bind_state(key, value)
 
         return Response(pipeline.get_current_step_info())

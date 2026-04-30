@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -22,7 +23,7 @@ import {
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  makeAutofixQueryKey,
+  autofixApiOptions,
   useAutofixData,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
@@ -32,8 +33,6 @@ import {IconChat, IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -109,7 +108,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
+  transition: {
     duration: 1.0,
     height: {
       type: 'spring',
@@ -123,7 +122,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 function BranchButton({change}: {change: AutofixCodebaseChange}) {
@@ -426,7 +425,7 @@ const PrefixText = styled('span')``;
 const ChangesContainer = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   padding: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.primary};
 `;
@@ -546,10 +545,10 @@ function CreatePRsButton({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       setHasClicked(true);
     },
@@ -629,10 +628,10 @@ function CreateBranchButton({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {

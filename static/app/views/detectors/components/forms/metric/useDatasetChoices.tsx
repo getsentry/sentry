@@ -58,8 +58,8 @@ export function useDatasetChoices(): Array<SelectValue<DetectorDataset>> {
         ? [
             {
               value: DetectorDataset.METRICS,
-              label: t('Metrics'),
-              trailingItems: <FeatureBadge type="beta" />,
+              label: t('Application Metrics'),
+              trailingItems: <FeatureBadge type="new" />,
             },
           ]
         : []),

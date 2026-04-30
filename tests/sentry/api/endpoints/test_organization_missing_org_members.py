@@ -264,6 +264,32 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
 
+    def test_oi_config_reads_flag_skips_non_nudge_integrations(self) -> None:
+        """With the flag on and no OI having nudge_invite, the endpoint returns []."""
+        from sentry.integrations.models.organization_integration import (
+            OrganizationIntegration,
+        )
+        from sentry.testutils.helpers.features import Feature
+
+        with Feature({"organizations:scm-config-oi-reads": True}):
+            response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 0
+
+        # Now turn the nudge_invite flag on for one of the two github OIs. The
+        # endpoint must still return missing members for the org.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            oi = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            )
+            oi.config = {"nudge_invite": True}
+            oi.save(update_fields=["config"])
+
+        with Feature({"organizations:scm-config-oi-reads": True}):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["integration"] == "github"
+        assert len(response.data[0]["users"]) > 0
+
     def test_nongithub_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()

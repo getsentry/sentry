@@ -22,10 +22,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {
-  FILTER_SELECTOR_MAX_WIDTH,
-  MenuTitleWrapper,
-} from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
@@ -38,6 +35,8 @@ import {
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
+
+import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
 
 enum CustomOperator {
   BETWEEN = 'between',
@@ -331,7 +330,7 @@ export function NumericFilterSelector({
         </MenuBodyWrap>
       }
       trigger={triggerProps => (
-        <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
+        <Container maxWidth={FILTER_SELECTOR_TRIGGER_MAX_WIDTH}>
           <OverlayTrigger.Button {...triggerProps}>
             {filter.renderSelectorTrigger()}
           </OverlayTrigger.Button>

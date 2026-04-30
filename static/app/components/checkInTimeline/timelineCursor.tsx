@@ -4,7 +4,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Overlay} from 'sentry/components/overlay';
 import {Sticky} from 'sentry/components/sticky';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 const TOOLTIP_OFFSET = 10;
 
@@ -142,7 +141,7 @@ function useTimelineCursor<E extends HTMLElement>({
             initial="initial"
             animate="animate"
             exit="exit"
-            transition={testableTransition({duration: 0.1})}
+            transition={{duration: 0.1}}
             variants={{
               initial: {opacity: 0},
               animate: {opacity: 1},

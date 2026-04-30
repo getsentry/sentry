@@ -255,11 +255,6 @@ const appConfig: Configuration = {
      */
     app: ['sentry/utils/statics-setup', 'sentry'],
 
-    /**
-     * Pipeline View for integrations
-     */
-    pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
-
     // admin interface
     gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
 
@@ -305,10 +300,22 @@ const appConfig: Configuration = {
      */
     rules: [
       {
+        test: /stories[/\\]storyFrontmatterIndex\.ts$/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: path.resolve(
+              import.meta.dirname,
+              './build-utils/frontmatter-index-loader.ts'
+            ),
+          },
+        ],
+      },
+      {
         test: /\.(js|jsx|ts|tsx)$/,
         // core-js: Avoids recompiling core-js based on usage imports
         // react-select: Ships pre-compiled ESM with emotion's keyframes already
-        // compiled via Babel. Re-processing with @swc/plugin-emotion causes
+        // compiled via swc. Re-processing with @swc/plugin-emotion causes
         // "illegal escape sequence" warnings in dev mode.
         exclude: /node_modules[\\/](core-js|react-select)/,
         loader: 'builtin:swc-loader',
@@ -836,7 +843,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: IS_ADMIN_UI_DEV ? ['pipeline', 'app'] : ['pipeline', 'gsAdmin'],
+      excludeChunks: IS_ADMIN_UI_DEV ? ['app'] : ['gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,
@@ -846,15 +853,18 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
 }
 
 if (IS_PRODUCTION) {
-  // This compression-webpack-plugin generates pre-compressed files
-  // ending in .gz, to be picked up and served by our internal static media
-  // server as well as nginx when paired with the gzip_static module.
-  appConfig.plugins?.push(
-    new CompressionPlugin({
-      algorithm: 'gzip',
-      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-    })
-  );
+  if (!IS_DEPLOY_PREVIEW) {
+    // This compression-webpack-plugin generates pre-compressed files
+    // ending in .gz, to be picked up and served by our internal static media
+    // server as well as nginx when paired with the gzip_static module.
+    // Skipped for deploy previews since Vercel handles compression itself.
+    appConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
+  }
 
   // Enable sentry-webpack-plugin for production builds
   appConfig.plugins?.push(

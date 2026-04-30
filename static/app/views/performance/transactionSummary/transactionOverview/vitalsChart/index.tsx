@@ -114,7 +114,7 @@ export function VitalsChart({
         size="sm"
         position="top"
         title={t(
-          `Web Vitals Breakdown reflects the 75th percentile of web vitals over time.`
+          'Web Vitals Breakdown reflects the 75th percentile of web vitals over time.'
         )}
       />
     </HeaderTitleLegend>

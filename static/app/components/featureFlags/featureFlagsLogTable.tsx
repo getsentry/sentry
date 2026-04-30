@@ -1,14 +1,14 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import {Pagination} from 'sentry/components/pagination';
 import {GridEditable, type GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -16,7 +16,7 @@ export type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
 
 interface FeatureFlagsLogTableProps {
   columns: Array<GridColumnOrder<ColumnKey>>;
-  error: RequestError | null;
+  error: Error | null;
   flags: RawFlag[];
   isPending: boolean;
   pageLinks: string | null;

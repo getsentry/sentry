@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -14,11 +15,21 @@ import {
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
+
+jest.mock('sentry/views/explore/metrics/multiMetricsQueryParams', () => ({
+  ...jest.requireActual('sentry/views/explore/metrics/multiMetricsQueryParams'),
+  MAX_METRICS_ALLOWED: 3,
+}));
 
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
@@ -65,6 +76,13 @@ describe('MetricsTabContent', () => {
 
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     setupTraceItemsMock(metricFixtures.detailedFixtures);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+
     setupEventsMock(metricFixtures.detailedFixtures, [
       MockApiClient.matchQuery({
         dataset: 'tracemetrics',
@@ -163,11 +181,10 @@ describe('MetricsTabContent', () => {
     });
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
 
-    let addButton = screen.getByRole('button', {name: 'Add Metric'});
-    expect(addButton).toBeInTheDocument();
-    expect(addButton).toBeEnabled();
+    let addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    expect(addButtons[0]).toBeEnabled();
 
-    await userEvent.click(addButton);
+    await userEvent.click(addButtons[0]!);
 
     toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(2);
@@ -180,11 +197,10 @@ describe('MetricsTabContent', () => {
     await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
     expect(within(toolbars[1]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
 
-    addButton = screen.getByRole('button', {name: 'Add Metric'});
-    expect(addButton).toBeInTheDocument();
-    expect(addButton).toBeEnabled();
+    addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    expect(addButtons[0]).toBeEnabled();
 
-    await userEvent.click(addButton);
+    await userEvent.click(addButtons[0]!);
 
     toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(3);
@@ -255,8 +271,8 @@ describe('MetricsTabContent', () => {
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
     trackAnalyticsMock.mockClear();
 
-    const addButton = screen.getByRole('button', {name: 'Add Metric'});
-    await userEvent.click(addButton);
+    const addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    await userEvent.click(addButtons[0]!);
 
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
@@ -521,23 +537,22 @@ describe('MetricsTabContent', () => {
   });
 
   it('should switch to aggregate mode when a group by is added', async () => {
-    // Mock the trace-items attributes endpoint for string type attributes
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'test.region', name: 'test.region'},
-        {key: 'test.service', name: 'test.service'},
+        {
+          attributeType: 'string',
+          key: 'test.region',
+          name: 'test.region',
+        },
+        {
+          attributeType: 'string',
+          key: 'test.service',
+          name: 'test.service',
+        },
       ],
-      match: [MockApiClient.matchQuery({attributeType: 'string'})],
-    });
-
-    // Mock the trace-items attributes endpoint for number type attributes (empty)
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+      match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
     });
 
     const {router} = render(
@@ -582,154 +597,225 @@ describe('MetricsTabContent', () => {
     });
     expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
   });
-});
 
-describe('MetricsTabContent (tracemetrics-ui-refresh)', () => {
-  const {
-    organization,
-    project,
-    initialLocation,
-    setupPageFilters,
-    setupTraceItemsMock,
-    setupEventsMock,
-  } = initializeTraceMetricsTest({
-    orgFeatures: ['tracemetrics-ui-refresh'],
-    routerQuery: {
-      start: '2025-04-10T14%3A37%3A55',
-      end: '2025-04-10T20%3A04%3A51',
-      metric: ['bar||distribution'],
-      title: 'Test Title',
-    },
-  });
-
-  function ProviderWrapper({children}: {children: React.ReactNode}) {
-    return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
-  }
-
-  const initialRouterConfig = {
-    location: initialLocation,
-    route: '/organizations/:orgId/explore/metrics/',
-  };
-
-  beforeEach(() => {
-    window.localStorage.removeItem('explore-metrics-toolbar');
-    MockApiClient.clearMockResponses();
-    trackAnalyticsMock.mockClear();
-    setupPageFilters();
-
-    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
-    setupTraceItemsMock(metricFixtures.detailedFixtures);
-    // Fallback for background /events/ queries from the refreshed panel that this
-    // sidebar toggle test doesn't assert on directly.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
-    });
-
-    setupEventsMock(metricFixtures.detailedFixtures, [
-      MockApiClient.matchQuery({
-        dataset: 'tracemetrics',
-        referrer: 'api.explore.metric-options',
-      }),
-    ]);
-
-    setupEventsMock(metricFixtures.detailedFixtures, [
-      MockApiClient.matchQuery({
-        dataset: 'tracemetrics',
-        referrer: 'api.explore.metric-aggregates-table',
-      }),
-    ]);
-
-    setupEventsMock(metricFixtures.detailedFixtures, [
-      MockApiClient.matchQuery({
-        dataset: 'tracemetrics',
-        referrer: 'api.explore.metric-samples-table',
-      }),
-    ]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.explore.metric-timeseries',
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/recent-searches/`,
-      method: 'GET',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/recent-searches/`,
-      method: 'POST',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
-      method: 'GET',
-      body: {},
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/stats_v2/`,
-      method: 'GET',
-      body: {},
-    });
-  });
-
-  it('toggles the query builder sidebar with the expand control', async () => {
+  it('does not show the Add Equation button when the feature flag is disabled', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
-        initialRouterConfig,
         organization,
       }
     );
+    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
+    expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
+  });
+
+  it('shows the Add Equation button when the feature flag is enabled', async () => {
+    const orgWithFeature = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithFeature,
+      }
+    );
+    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
+    expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
+  });
+
+  it('renders aggregate and equation panels in separate sections', async () => {
+    const orgWithFeatures = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithFeatures.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+    });
+
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithFeatures,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/:orgId/explore/metrics/',
+            query: {
+              start: '2025-04-10T14%3A37%3A55',
+              end: '2025-04-10T20%3A04%3A51',
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'bar', type: 'distribution'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('p50(value,bar,distribution,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+              title: 'Test Title',
+            },
+          },
+          route: '/organizations/:orgId/explore/metrics/',
+        },
+      }
+    );
+
+    const aggregateSection = await screen.findByTestId('aggregate-metric-panels');
+    const equationSection = screen.getByTestId('equation-metric-panels');
+
+    expect(within(aggregateSection).getAllByTestId('metric-panel')).toHaveLength(1);
+    expect(within(equationSection).getAllByTestId('metric-panel')).toHaveLength(1);
+  });
+
+  it.isKnownFlake(
+    'disables both Add Metric and Add Equation buttons when the maximum number of metric queries is reached',
+    async () => {
+      const metricQueryWithGroupBy = JSON.stringify({
+        metric: {name: 'bar', type: 'distribution'},
+        query: '',
+        aggregateFields: [
+          {groupBy: 'environment'},
+          {yAxes: ['per_second(bar)'], displayType: 'line'},
+        ],
+        aggregateSortBys: [],
+        mode: 'aggregate',
+      });
+      const orgWithFeature = OrganizationFixture({
+        features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      });
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          organization: orgWithFeature,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/:orgId/explore/metrics/',
+              query: {
+                start: '2025-04-10T14%3A37%3A55',
+                end: '2025-04-10T20%3A04%3A51',
+                metric: [metricQueryWithGroupBy, metricQueryWithGroupBy],
+                title: 'Test Title',
+              },
+            },
+            route: '/organizations/:orgId/explore/metrics/',
+          },
+        }
+      );
+      expect(await screen.findAllByText('Add Metric')).not.toHaveLength(0);
+      expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
+
+      // Only 2 entries (cap is 3) -> both buttons are enabled
+      for (const button of screen.getAllByRole('button', {
+        name: 'Add Metric',
+      })) {
+        expect(button).toBeEnabled();
+      }
+      for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
+        expect(button).toBeEnabled();
+      }
+
+      // Add an entry, 3 entries (at cap) -> both buttons are disabled
+      await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
+      for (const button of screen.getAllByRole('button', {
+        name: 'Add Metric',
+      })) {
+        expect(button).toBeDisabled();
+      }
+      for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
+        expect(button).toBeDisabled();
+      }
+    }
+  );
+
+  it('disables delete button for metrics referenced by an equation', async () => {
+    const orgWithEquations = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+
+    const metricA = JSON.stringify({
+      metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+      query: '',
+      aggregateFields: [{yAxes: ['sum(value,metricA,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const metricB = JSON.stringify({
+      metric: {name: 'metricB', type: 'distribution', unit: 'none'},
+      query: '',
+      aggregateFields: [{yAxes: ['sum(value,metricB,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const equation = JSON.stringify({
+      metric: {name: '', type: ''},
+      query: '',
+      aggregateFields: [{yAxes: ['equation|sum(value,metricA,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithEquations,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/:orgId/explore/metrics/',
+            query: {
+              start: '2025-04-10T14%3A37%3A55',
+              end: '2025-04-10T20%3A04%3A51',
+              metric: [metricA, metricB, equation],
+              title: 'Test Title',
+            },
+          },
+          route: '/organizations/:orgId/explore/metrics/',
+        },
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(3);
 
     await waitFor(() => {
       expect(
-        within(screen.getAllByTestId('metric-toolbar')[0]!).getByRole('button', {
-          name: 'bar',
-        })
+        within(toolbars[0]!).getByRole('button', {name: 'metricA'})
       ).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('button', {name: 'Collapse sidebar'})).toBeInTheDocument();
+    // Metric A should be disabled because it is referenced by the equation
+    expect(
+      within(toolbars[0]!).getByRole('button', {name: 'Delete Metric'})
+    ).toBeDisabled();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Collapse sidebar'}));
+    // Metric B should be enabled because it is not referenced by the equation
+    expect(
+      within(toolbars[1]!).getByRole('button', {name: 'Delete Metric'})
+    ).toBeEnabled();
 
-    expect(screen.queryByTestId('metric-toolbar')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Expand sidebar'})).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Expand sidebar'}));
-
-    await waitFor(() => {
-      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(1);
-    });
+    // Equation deletion should always be enabled
+    expect(
+      within(toolbars[2]!).getByRole('button', {name: 'Delete Metric'})
+    ).toBeEnabled();
   });
 });

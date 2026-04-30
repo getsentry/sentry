@@ -52,11 +52,13 @@ const getSuggestedKey = (key: string) => {
 interface TokensProp {
   expression: string;
   dispatch?: Dispatch<ArithmeticBuilderAction>;
+  references?: Set<string>;
 }
 
 function Tokens(props: TokensProp) {
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: props.expression,
+    references: props.references,
   });
 
   const wrappedDispatch = useCallback(
@@ -76,6 +78,7 @@ function Tokens(props: TokensProp) {
         functionArguments,
         getFieldDefinition: getSpanFieldDefinition,
         getSuggestedKey,
+        references: props.references,
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
@@ -417,6 +420,46 @@ describe('token', () => {
       expect(parenthesis).toHaveAttribute('data-paren-side', 'right');
 
       await waitFor(() => expect(getLastInput()).toHaveFocus());
+    });
+
+    it('allows selecting reference using mouse', async () => {
+      render(<Tokens expression="" references={new Set(['A', 'B'])} />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+
+      // 3 originally because of the parens
+      expect(screen.getAllByRole('option')).toHaveLength(3);
+
+      await userEvent.click(screen.getByRole('option', {name: 'A'}));
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.type(getLastInput(), '{Escape}');
+
+      expect(await screen.findByRole('row', {name: 'A'})).toBeInTheDocument();
+    });
+
+    it('automatically replaces freetext token with reference when typing a match', async () => {
+      render(<Tokens expression="" references={new Set(['A', 'B'])} />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
+      expect(screen.getByRole('option', {name: 'A'})).toBeInTheDocument();
+      await userEvent.type(input, 'A');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.type(getLastInput(), '{Escape}');
+
+      expect(await screen.findByRole('row', {name: 'A'})).toBeInTheDocument();
     });
   });
 

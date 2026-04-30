@@ -242,7 +242,7 @@ export function CustomerContractDetails() {
   const {orgId} = useParams<{orgId: string}>();
   const {data, isPending, isError, refetch} = useApiQuery<Contract>(
     [
-      getApiUrl(`/_admin/customers/$organizationIdOrSlug/contract/`, {
+      getApiUrl('/_admin/customers/$organizationIdOrSlug/contract/', {
         path: {organizationIdOrSlug: orgId},
       }),
     ],

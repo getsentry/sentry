@@ -1,10 +1,7 @@
 import type {ChangeEvent, FocusEvent} from 'react';
 import {Fragment, useCallback, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
-
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token, TokenLiteral} from 'sentry/components/arithmeticBuilder/token';
@@ -13,6 +10,12 @@ import {
   isTokenParenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
+import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
+import {
+  GridCell,
+  LeftGridCell,
+  Row,
+} from 'sentry/components/arithmeticBuilder/token/styles';
 import {
   nextTokenKeyOfKind,
   tokenizeExpression,
@@ -20,7 +23,6 @@ import {
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
@@ -50,12 +52,13 @@ export function ArithmeticTokenLiteral({
       tabIndex={-1}
       aria-label={token.text}
       aria-invalid={false}
+      withBorder
     >
       <LeftGridCell {...gridCellProps}>
         <InternalInput item={item} state={state} token={token} />
       </LeftGridCell>
       <GridCell {...gridCellProps}>
-        <DeleteLiteral token={token} />
+        <DeleteButton token={token} label={t('Remove literal %s', token.text)} />
       </GridCell>
     </Row>
   );
@@ -266,91 +269,6 @@ function InternalInput({item, state, token}: InternalInputProps) {
   );
 }
 
-interface DeleteLiteralProps {
-  token: TokenLiteral;
-}
-
-function DeleteLiteral({token}: DeleteLiteralProps) {
-  const {dispatch} = useArithmeticBuilder();
-
-  const onClick = useCallback(() => {
-    dispatch({
-      type: 'DELETE_TOKEN',
-      token,
-    });
-  }, [dispatch, token]);
-
-  return (
-    <DeleteButton aria-label={t('Remove literal %s', token.text)} onClick={onClick}>
-      <InteractionStateLayer />
-      <IconClose legacySize="8px" />
-    </DeleteButton>
-  );
-}
-
 function validateLiteral(text: string): boolean {
   return !!text && !isNaN(+text);
 }
-
-const Row = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 24px;
-  max-width: 100%;
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
-
-  :focus {
-    background-color: ${p => p.theme.colors.gray100};
-    outline: none;
-  }
-
-  &:last-child {
-    flex-grow: 1;
-  }
-
-  &[aria-invalid='true'] {
-    input {
-      color: ${p => p.theme.colors.red500};
-    }
-  }
-
-  &[aria-selected='true'] {
-    [data-hidden-text='true']::before {
-      content: '';
-      position: absolute;
-      left: ${p => p.theme.space.xs};
-      right: ${p => p.theme.space.xs};
-      top: 0;
-      bottom: 0;
-      background-color: ${p => p.theme.colors.gray100};
-    }
-  }
-`;
-
-const GridCell = styled('div')`
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: 100%;
-`;
-
-const LeftGridCell = styled(GridCell)`
-  padding-left: ${p => p.theme.space.xs};
-`;
-
-const DeleteButton = styled('button')`
-  background: none;
-  border: none;
-  color: ${p => p.theme.tokens.content.secondary};
-  outline: none;
-  user-select: none;
-  padding-right: ${p => p.theme.space.xs};
-
-  :focus {
-    background-color: ${p => p.theme.colors.gray100};
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    outline: none;
-  }
-`;

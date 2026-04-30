@@ -30,12 +30,12 @@ import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggre
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   FlamegraphProvider,
   useFlamegraph,
-} from 'sentry/views/profiling/flamegraphProvider';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+} from 'sentry/views/explore/profiling/flamegraphProvider';
+import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 
 const PROFILE_TYPE = 'transaction aggregate flamegraph';
 
@@ -251,13 +251,13 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
       ];
     }, []);
 
-  const onResetZoom = useCallback(() => {
+  const onResetZoom = () => {
     props.scheduler.dispatch('reset zoom');
     trackAnalytics('profiling_views.aggregate_flamegraph.zoom.reset', {
       organization,
       profile_type: 'transaction aggregate flamegraph',
     });
-  }, [props.scheduler, organization]);
+  };
 
   const onFrameFilterChange = useCallback(
     (value: {value: 'application' | 'system' | 'all'}) => {
@@ -322,8 +322,8 @@ const CollapseExpandButton = styled(Button)`
 function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
   return (
     <Flex>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+      <IconChevron style={{marginRight: '-3px'}} {...props} />
+      <IconChevron style={{marginLeft: '-3px'}} {...props} />
     </Flex>
   );
 }

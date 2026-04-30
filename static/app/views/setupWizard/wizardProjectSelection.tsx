@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -73,7 +73,7 @@ function errorIsHasNoDsnError(e: unknown): boolean | undefined {
 
 export function WizardProjectSelection({
   hash,
-  organizations = [],
+  organizations,
 }: {
   hash: string;
   organizations: OrganizationWithRegion[];
@@ -221,57 +221,44 @@ export function WizardProjectSelection({
 
   const isFormValid = selectedOrg && isProjectSelected;
 
-  const handleSubmit = useCallback(
-    async (event: React.FormEvent) => {
-      event.preventDefault();
-      if (!isFormValid || !selectedOrg || !selectedProjectId) {
-        return;
-      }
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!isFormValid || !selectedOrg || !selectedProjectId) {
+      return;
+    }
 
-      let projectId = selectedProjectId;
-      try {
-        if (isCreateProjectSelected) {
-          const project = await createProjectMutation.mutateAsync({
-            organization: selectedOrg,
-            team: newProjectTeam,
-            name: newProjectName,
-            platform: newProjectPlatform || platformParam || 'other',
-          });
-
-          projectId = project.id;
-        }
-      } catch {
-        addErrorMessage('Failed to create project! Please try again');
-        return;
-      }
-
-      try {
-        await updateWizardCacheMutation.mutateAsync({
-          organizationId: selectedOrg.id,
-          projectId,
+    let projectId = selectedProjectId;
+    try {
+      if (isCreateProjectSelected) {
+        const project = await createProjectMutation.mutateAsync({
+          organization: selectedOrg,
+          team: newProjectTeam,
+          name: newProjectName,
+          platform: newProjectPlatform || platformParam || 'other',
         });
-      } catch (e) {
-        const errorMessage = errorIsHasNoDsnError(e)
-          ? t(
-              'The selected project has no active DSN. Please add an active DSN to the project.'
-            )
-          : t('Something went wrong! Please try again.');
 
-        addErrorMessage(errorMessage);
+        projectId = project.id;
       }
-    },
-    [
-      isFormValid,
-      selectedOrg,
-      selectedProjectId,
-      isCreateProjectSelected,
-      createProjectMutation,
-      newProjectTeam,
-      newProjectName,
-      newProjectPlatform,
-      updateWizardCacheMutation,
-    ]
-  );
+    } catch {
+      addErrorMessage('Failed to create project! Please try again');
+      return;
+    }
+
+    try {
+      await updateWizardCacheMutation.mutateAsync({
+        organizationId: selectedOrg.id,
+        projectId,
+      });
+    } catch (e) {
+      const errorMessage = errorIsHasNoDsnError(e)
+        ? t(
+            'The selected project has no active DSN. Please add an active DSN to the project.'
+          )
+        : t('Something went wrong! Please try again.');
+
+      addErrorMessage(errorMessage);
+    }
+  };
 
   if (isSuccess) {
     return <WaitingForWizardToConnect hash={hash} organizations={organizations} />;
@@ -289,7 +276,7 @@ export function WizardProjectSelection({
     <FieldWrapper>
       <label>{t('Platform')}</label>
       <StyledCompactSelect
-        value={newProjectPlatform as string}
+        value={newProjectPlatform!}
         search
         options={platformOptions}
         trigger={triggerProps => (
@@ -332,7 +319,7 @@ export function WizardProjectSelection({
           <label>{t('Organization')}</label>
           <StyledCompactSelect
             autoFocus
-            value={selectedOrgId as string}
+            value={selectedOrgId!}
             search
             options={orgOptions}
             trigger={triggerProps => (
@@ -374,7 +361,7 @@ export function WizardProjectSelection({
               search={{onChange: setSearch}}
               onClose={() => setSearch('')}
               disabled={!selectedOrgId}
-              value={selectedProjectId as string}
+              value={selectedProjectId!}
               options={sortedProjectOptions}
               trigger={triggerProps => (
                 <OverlayTrigger.Button
@@ -430,7 +417,7 @@ export function WizardProjectSelection({
                 <FieldWrapper>
                   <label>{t('Team')}</label>
                   <StyledCompactSelect
-                    value={newProjectTeam as string}
+                    value={newProjectTeam!}
                     options={
                       selectableTeams?.map(team => ({
                         value: team.slug,

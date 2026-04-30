@@ -5,6 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -15,7 +16,22 @@ import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+function LogsTabContentHarness({
+  datePageFilterProps,
+}: {
+  datePageFilterProps: DatePageFilterProps;
+}) {
+  const tableExpando = useTableExpando();
+  return (
+    <LogsTabContent
+      datePageFilterProps={datePageFilterProps}
+      tableExpando={tableExpando}
+    />
+  );
+}
 
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
@@ -27,6 +43,8 @@ const datePageFilterProps: DatePageFilterProps = {
     '7d': 'Last 7 days',
   }),
 };
+
+beforeEach(mockGetBoundingClientRect);
 
 describe('LogsTabContent', () => {
   const {organization, project, setupPageFilters} = initializeLogsTest();
@@ -175,7 +193,7 @@ describe('LogsTabContent', () => {
   it('should call APIs as expected', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -198,7 +216,6 @@ describe('LogsTabContent', () => {
       `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          caseInsensitive: undefined,
           dataset: 'ourlogs',
           disableAggregateExtrapolation: '0',
           environment: [],
@@ -212,7 +229,6 @@ describe('LogsTabContent', () => {
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
-          topEvents: undefined,
           yAxis: ['count(message)'],
         }),
       })
@@ -227,7 +243,7 @@ describe('LogsTabContent', () => {
   it('should switch between modes', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -271,7 +287,7 @@ describe('LogsTabContent', () => {
   it('should pass caseInsensitive to the query', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -316,7 +332,6 @@ describe('LogsTabContent', () => {
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
-          topEvents: undefined,
           yAxis: ['count(message)'],
         }),
       })
@@ -328,7 +343,7 @@ describe('LogsTabContent', () => {
     autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
         initialRouterConfig: autorefreshEnabledRouterConfig,

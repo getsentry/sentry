@@ -1,19 +1,18 @@
 import {useCallback, useRef} from 'react';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useReplayLayout} from 'sentry/utils/replays/hooks/useReplayLayout';
-import {useOrganization} from 'sentry/utils/useOrganization';
-
 type CSSValuePct = `${number}%`;
 type CSSValueFR = '1fr';
 
+type TrackingCallback = (params: {
+  slideMotion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
+}) => void;
+
 type Options = {
   slideDirection: 'updown' | 'leftright';
+  track: TrackingCallback | undefined;
 };
 
-export function useSplitPanelTracking({slideDirection}: Options) {
-  const organization = useOrganization();
-  const {getLayout} = useReplayLayout();
+export function useSplitPanelTracking({slideDirection, track}: Options) {
   const startSizeCSSRef = useRef<number>(0);
 
   const setStartPosition = useCallback(
@@ -30,13 +29,9 @@ export function useSplitPanelTracking({slideDirection}: Options) {
       const endSizeCSS = Number(
         endPosition?.endsWith('fr') ? '50' : endPosition?.replace('%', '') || 0
       );
-      trackAnalytics('replay.details-resized-panel', {
-        organization,
-        layout: getLayout(),
-        slide_motion: endSizeCSS > startSizeCSSRef.current ? bigger : smaller,
-      });
+      track?.({slideMotion: endSizeCSS > startSizeCSSRef.current ? bigger : smaller});
     },
-    [getLayout, organization, slideDirection]
+    [slideDirection, track]
   );
 
   return {

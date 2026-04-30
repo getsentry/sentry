@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
 
@@ -53,7 +53,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.api.serializers.models.organization import OrganizationSerializerResponse
+    from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -75,6 +75,7 @@ _PROJECT_SCOPE_PREFIX = "projects:"
 
 LATEST_DEPLOYS_KEY: Final = "latestDeploys"
 UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
+ORGANIZATION_KEY: Final = "organization"
 
 
 # These features are not used on the frontend,
@@ -94,8 +95,8 @@ class CrashFreeRatesWithHealthData(CurrentAndPreviousCrashFreeRate):
 
 
 def _get_team_memberships(
-    team_list: Sequence[int], user: User | RpcUser | AnonymousUser
-) -> Iterable[OrganizationMemberTeam]:
+    team_list: Collection[int], user: User | RpcUser | AnonymousUser
+) -> list[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return []
@@ -103,7 +104,7 @@ def _get_team_memberships(
     return list(
         OrganizationMemberTeam.objects.filter(
             organizationmember__user_id=user.id, team__in=team_list
-        )
+        ).select_related("organizationmember__organization")
     )
 
 
@@ -117,12 +118,16 @@ def get_access_by_project(
     )
 
     project_to_teams = defaultdict(list)
-    teams_list = []
+    teams_set: set[int] = set()
     for project_id, team_id in project_teams:
         project_to_teams[project_id].append(team_id)
-        teams_list.append(team_id)
+        teams_set.add(team_id)
 
-    team_memberships = _get_team_memberships(teams_list, user)
+    team_memberships = _get_team_memberships(teams_set, user)
+
+    memberships_by_team: dict[int, OrganizationMemberTeam] = {
+        m.team_id: m for m in team_memberships
+    }
 
     org_ids = {i.organization_id for i in projects}
     org_roles = get_org_roles(org_ids, user)
@@ -133,8 +138,11 @@ def get_access_by_project(
     has_team_roles_cache: dict[int, bool] = {}
     with sentry_sdk.start_span(op="project.check-access"):
         for project in projects:
-            parent_teams = [t for t in project_to_teams.get(project.id, [])]
-            member_teams = [m for m in team_memberships if m.team_id in parent_teams]
+            member_teams = [
+                memberships_by_team[tid]
+                for tid in project_to_teams.get(project.id, ())
+                if tid in memberships_by_team
+            ]
             is_member = any(member_teams)
             org_role = org_roles.get(project.organization_id)
 
@@ -951,7 +959,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
-    organization: OrganizationSerializerResponse
+    organization: OrganizationSummarySerializerResponse
     plugins: list[Plugin]
     platforms: list[str]
     processingIssues: int
@@ -964,6 +972,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchScreenshots: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
     seerScannerAutomation: NotRequired[bool]
+    seerNightshiftTweaks: NotRequired[Any]
     scmSourceContextEnabled: NotRequired[bool]
     debugFilesRole: NotRequired[str | None]
 
@@ -979,7 +988,16 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
-        orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
+        if self._collapse(ORGANIZATION_KEY):
+            orgs = {
+                str(i.organization_id): {
+                    "id": str(i.organization_id),
+                    "slug": i.organization.slug,
+                }
+                for i in item_list
+            }
+        else:
+            orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
 
         # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
@@ -1114,6 +1132,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "seerScannerAutomation": self.get_value_with_default(
                 attrs, "sentry:seer_scanner_automation"
             ),
+            "seerNightshiftTweaks": self.get_value_with_default(
+                attrs, "sentry:seer_nightshift_tweaks"
+            ),
             "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
             "scmSourceContextEnabled": self.get_value_with_default(
                 attrs, "sentry:scm_source_context_enabled"
@@ -1187,6 +1208,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_snapshot_status_checks_fail_on_removed": options.get(
                 "sentry:preprod_snapshot_status_checks_fail_on_removed", True
             ),
+            "sentry:preprod_snapshot_status_checks_fail_on_changed": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_changed", True
+            ),
+            "sentry:preprod_snapshot_status_checks_fail_on_renamed": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_renamed", False
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
             "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),
             "sentry:preprod_distribution_enabled_query": options.get(
@@ -1200,6 +1227,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "sentry:preprod_distribution_pr_comments_enabled_by_customer": self.get_value_with_default(
                 attrs, "sentry:preprod_distribution_pr_comments_enabled_by_customer"
+            ),
+            "sentry:preprod_snapshot_pr_comments_enabled": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_enabled"
+            ),
+            "sentry:preprod_snapshot_pr_comments_only_if_diff": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_only_if_diff"
             ),
         }
 

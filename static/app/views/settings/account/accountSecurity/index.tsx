@@ -82,7 +82,7 @@ export default function AccountSecurity() {
         ? 'sessionHistory'
         : 'settings';
 
-  const routePrefix = `/settings/account/security/`;
+  const routePrefix = '/settings/account/security/';
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
@@ -207,7 +207,7 @@ export default function AccountSecurity() {
                           tooltipProps={{
                             title: deleteDisabled
                               ? t(
-                                  `Two-factor authentication is required for organization(s): %s.`,
+                                  'Two-factor authentication is required for organization(s): %s.',
                                   formatOrgSlugs()
                                 )
                               : undefined,

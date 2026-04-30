@@ -34,7 +34,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
     from sentry.api.serializers import SCIMMeta
-    from sentry.api.serializers.models.organization import OrganizationSerializerResponse
+    from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
     from sentry.api.serializers.models.project import ProjectSerializerResponse
     from sentry.integrations.api.serializers.models.external_actor import ExternalActorResponse
 
@@ -124,7 +124,7 @@ def get_access_requests(
 
 class _TeamSerializerResponseOptional(TypedDict, total=False):
     externalTeams: list[ExternalActorResponse]
-    organization: OrganizationSerializerResponse
+    organization: OrganizationSummarySerializerResponse
     projects: list[ProjectSerializerResponse]
 
 
@@ -249,7 +249,9 @@ class BaseTeamSerializer(Serializer):
 
         if self._expand("projects"):
             project_teams = ProjectTeam.objects.get_for_teams_with_org_cache(item_list)
-            projects = [pt.project for pt in project_teams]
+
+            # A project can be on multiple teams, dedupe before serializing
+            projects = list({pt.project_id: pt.project for pt in project_teams}.values())
 
             projects_by_id = {
                 project.id: data

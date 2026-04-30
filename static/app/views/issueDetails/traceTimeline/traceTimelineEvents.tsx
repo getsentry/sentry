@@ -184,7 +184,7 @@ function NodeGroup({
         <Tooltip
           title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
           overlayStyle={{
-            padding: `0 !important`,
+            padding: '0 !important',
           }}
           position="bottom"
           isHoverable
@@ -225,7 +225,7 @@ const IconNode = styled('div')`
   height: 8px;
   border-radius: 50%;
   color: ${p => p.theme.colors.white};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.shadow.low};
   user-select: none;
   background-color: ${p => color(p.theme.colors.red200).alpha(0.3).string()};
   margin-left: -8px;

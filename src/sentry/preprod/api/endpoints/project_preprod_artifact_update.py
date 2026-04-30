@@ -26,8 +26,7 @@ from sentry.preprod.models import (
     PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.producer import PreprodFeature
-from sentry.preprod.quotas import should_run_distribution, should_run_size
+from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -440,11 +439,11 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 distro_error_code = PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
                 distro_error_message = "Distribution quota exceeded"
             elif distro_skip_reason == "disabled":
-                distro_error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
+                distro_error_code = PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_DISABLED
                 distro_error_message = "Distribution disabled for this project"
             else:
-                distro_error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
-                distro_error_message = "Distribution filtered out by project settings"
+                distro_error_code = PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_FILTERED
+                distro_error_message = "Build filtered out by project settings"
 
             head_artifact.installable_app_error_code = distro_error_code
             head_artifact.installable_app_error_message = distro_error_message

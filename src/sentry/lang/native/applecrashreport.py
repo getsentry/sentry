@@ -20,7 +20,13 @@ REPORT_VERSION = "104"
 
 class AppleCrashReport:
     def __init__(
-        self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
+        self,
+        threads=None,
+        context=None,
+        debug_images=None,
+        symbolicated=False,
+        exceptions=None,
+        prioritized_thread_id=None,
     ):
         """
         Create an Apple crash report from the provided data.
@@ -31,6 +37,9 @@ class AppleCrashReport:
         self.context = context
         self.symbolicated = symbolicated
         self.exceptions = exceptions if exceptions else []
+        self.prioritized_thread_id = (
+            str(prioritized_thread_id) if prioritized_thread_id is not None else None
+        )
         self.image_addrs_to_vmaddrs = {}
 
         # Remove frames that don't have an `instruction_addr` and convert
@@ -210,12 +219,35 @@ class AppleCrashReport:
     @sentry_sdk.trace
     def get_threads_apple_string(self):
         rv = []
-        exception = self.exceptions or []
+        exceptions = self.exceptions or []
         threads = self.threads or []
-        for thread_info in exception + threads:
+
+        if self.prioritized_thread_id is not None:
+            threads = sorted(
+                threads,
+                key=lambda t: str(t.get("id")) != self.prioritized_thread_id,
+            )
+
+        # Process threads first, tracking which ones produced output.
+        # When an exception's thread_id matches a thread that produced
+        # output, we skip the exception to avoid duplication (the thread
+        # carries richer metadata like name/crashed state).
+        output_thread_ids = set()
+        for thread_info in threads:
             thread_string = self.get_thread_apple_string(thread_info)
             if thread_string is not None:
                 rv.append(thread_string)
+                thread_id = thread_info.get("id")
+                if thread_id is not None:
+                    output_thread_ids.add(thread_id)
+
+        for exception_info in exceptions:
+            if exception_info.get("thread_id") in output_thread_ids:
+                continue
+            thread_string = self.get_thread_apple_string(exception_info)
+            if thread_string is not None:
+                rv.append(thread_string)
+
         return "\n\n".join(rv)
 
     def get_thread_apple_string(self, thread_info):

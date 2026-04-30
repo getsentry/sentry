@@ -163,7 +163,9 @@ export function Slider({
 
     if (ticks) {
       const range = max - min;
-      return [...new Array(ticks)].map((_, i) => min + i * (range / (ticks - 1)));
+      return [...Array.from({length: ticks})].map(
+        (_, i) => min + i * (range / (ticks - 1))
+      );
     }
 
     return [];
@@ -266,7 +268,7 @@ export function Slider({
             </SliderTick>
           ))}
 
-          {[...new Array(nThumbs)].map((_, index) => (
+          {[...Array.from({length: nThumbs})].map((_, index) => (
             <SliderThumb
               ref={node => {
                 if (!node) {
@@ -339,7 +341,7 @@ const SliderTrack = styled('div', {
   margin-bottom: ${p => (p.hasTickLabels ? '2em' : '0.5rem')};
   margin-top: ${p => (p.hasThumbLabels ? '2em' : '0.5rem')};
 
-  ${p => p.disabled && `pointer-events: none;`}
+  ${p => p.disabled && 'pointer-events: none;'}
 
   /* Users can click on the track to quickly jump to a value. We should extend the click
   area to make the action easier. */

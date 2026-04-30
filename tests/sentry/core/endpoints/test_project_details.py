@@ -115,6 +115,17 @@ class ProjectDetailsTest(APITestCase):
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 
+    def test_collapse_organization(self) -> None:
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            qs_params={"collapse": ["organization"]},
+        )
+        assert response.data["organization"] == {
+            "id": str(self.project.organization.id),
+            "slug": self.project.organization.slug,
+        }
+
     def test_filters_disabled_plugins(self) -> None:
         from sentry.plugins.base import plugins
 
@@ -795,20 +806,19 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("filters:react-hydration-errors", "1")
         assert project.get_option("filters:chunk-load-error", "1")
 
-        self.project.update_option(
-            "relay.cardinality-limiter.limits",
-            [
-                {
-                    "limit": {
-                        "id": "project-override-custom",
-                        "window": {"windowSeconds": 3600, "granularitySeconds": 600},
-                        "limit": 1000,
-                        "namespace": "custom",
-                        "scope": "name",
-                    }
-                }
-            ],
+    def test_preprod_snapshot_pr_comments_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsEnabled=False
         )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_enabled") is False
+
+    def test_preprod_snapshot_pr_comments_only_if_diff_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsOnlyIfDiff=True
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_only_if_diff") is True
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -836,6 +846,20 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader="")
         assert self.project.get_option("sentry:token_header") == ""
         assert resp.data["securityTokenHeader"] == ""
+
+    def test_security_token_header_max_length(self) -> None:
+        # exactly 64 characters should succeed
+        value = "X-" + "A" * 62
+        assert len(value) == 64
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
+        assert self.project.get_option("sentry:token_header") == value
+        assert resp.data["securityTokenHeader"] == value
+
+        # 65 characters should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, securityTokenHeader="X-" + "A" * 63, status_code=400
+        )
+        assert b"securityTokenHeader" in resp.content
 
     def test_verify_ssl(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, verifySSL=False)

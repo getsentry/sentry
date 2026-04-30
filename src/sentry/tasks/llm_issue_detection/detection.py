@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -12,30 +11,35 @@ from django.conf import settings
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
-from sentry import features, options
-from sentry.constants import VALID_PLATFORMS
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
+from sentry import features
+from sentry.constants import VALID_PLATFORMS, ObjectStatus
+from sentry.issues.grouptype import (
+    AIDetectedCodeHealthGroupType,
+    AIDetectedDBGroupType,
+    AIDetectedGeneralGroupType,
+    AIDetectedHTTPGroupType,
+    AIDetectedRuntimePerformanceGroupType,
+    AIDetectedSecurityGroupType,
+    GroupType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.explorer.utils import normalize_description
+from sentry.seer.agent.utils import normalize_description
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils.redis import redis_clusters
+from sentry.utils import json
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
+SEER_CHECK_BUDGET_ENDPOINT_PATH = "/v1/automation/issue-detection/check-budget"
 SEER_TIMEOUT_S = 10
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
-NUM_TRANSACTIONS_TO_PROCESS = 10
-TRACE_PROCESSING_TTL_SECONDS = 7200
-# Character limit for LLM-generated fields to protect against abuse.
-# Word limits are enforced by Seer's prompt (see seer/automation/issue_detection/analyze.py).
-# This limit prevents excessively long outputs from malicious or malfunctioning LLMs.
 MAX_LLM_FIELD_LENGTH = 2000
 
 
@@ -47,45 +51,14 @@ seer_issue_detection_connection_pool = connection_from_url(
 )
 
 
-def _get_unprocessed_traces(trace_ids: list[str]) -> set[str]:
-    """Return set of trace_ids that have NOT been processed"""
-    if not trace_ids:
-        return set()
-    cluster = redis_clusters.get("default")
-    keys = [f"llm_detection:processed:{tid}" for tid in trace_ids]
-    results = cluster.mget(keys)
-    return {tid for tid, val in zip(trace_ids, results) if val is None}
-
-
-def mark_traces_as_processed(trace_ids: list[str]) -> None:
-    """
-    Mark traces as processed for LLM issue detection to prevent duplicate analysis.
-
-    Will overwrite existing keys to refresh the TTL, since reaching this point
-    means we have confirmation that the trace is being processed.
-    """
-    if not trace_ids:
-        return
-
-    cluster = redis_clusters.get("default")
-    with cluster.pipeline() as pipeline:
-        for trace_id in trace_ids:
-            key = f"llm_detection:processed:{trace_id}"
-            pipeline.set(key, "1", ex=TRACE_PROCESSING_TTL_SECONDS)
-        pipeline.execute()
-
-
 class DetectedIssue(BaseModel):
     # LLM generated fields
     title: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     explanation: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     impact: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     evidence: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    missing_telemetry: str | None = Field(None, max_length=MAX_LLM_FIELD_LENGTH)
     offender_span_ids: list[str]
     transaction_name: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    category: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     group_for_fingerprint: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     project_id: int | None = None
@@ -103,6 +76,7 @@ class IssueDetectionRequest(BaseModel):
     organization_id: int
     project_id: int
     org_slug: str
+    plan_tier: str = "business"
 
 
 def make_issue_detection_request(
@@ -149,6 +123,37 @@ def get_base_platform(platform: str | None) -> str | None:
     return None
 
 
+TITLE_TO_GROUP_TYPE: dict[str, type[GroupType]] = {
+    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
+    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
+    "Failed HTTP Operation": AIDetectedHTTPGroupType,
+    "Inefficient Database Queries": AIDetectedDBGroupType,
+    "Degraded Database Operation": AIDetectedDBGroupType,
+    "Main Thread Blocking Operation": AIDetectedRuntimePerformanceGroupType,
+    "Degraded UI Performance": AIDetectedRuntimePerformanceGroupType,
+    "Potential Security Leak": AIDetectedSecurityGroupType,
+    "Potential Security Risk": AIDetectedSecurityGroupType,
+    "Configuration Warning": AIDetectedCodeHealthGroupType,
+    "Deprecation Warning": AIDetectedCodeHealthGroupType,
+}
+
+GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
+    AIDetectedHTTPGroupType: "ai_detected_http_enabled",
+    AIDetectedDBGroupType: "ai_detected_db_enabled",
+    AIDetectedRuntimePerformanceGroupType: "ai_detected_runtime_performance_enabled",
+    AIDetectedSecurityGroupType: "ai_detected_security_enabled",
+    AIDetectedCodeHealthGroupType: "ai_detected_code_health_enabled",
+    AIDetectedGeneralGroupType: "ai_detected_general_enabled",
+}
+
+
+FALLBACK_ISSUE_TITLE = "AI-Detected Application Issue"
+
+
+def get_group_type_for_title(title: str) -> type[GroupType]:
+    return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
+
+
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
     project: Project,
@@ -156,14 +161,21 @@ def create_issue_occurrence_from_detection(
     """
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
+    group_type = get_group_type_for_title(detected_issue.title)
+    setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
+    if setting_key:
+        perf_settings = project.get_option("sentry:performance_issue_settings", default={})
+        if not perf_settings.get(setting_key, True):
+            return
+
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
     transaction_name = normalize_description(detected_issue.transaction_name)
-    group_for_fingerprint = detected_issue.group_for_fingerprint
+    transaction_slug = transaction_name.strip().lower().replace(" ", "-")
 
-    fingerprint = [f"llm-detected-{group_for_fingerprint.strip().lower().replace(' ', '-')}"]
+    fingerprint = [f"1-{group_type.type_id}-{transaction_slug}"]
 
     evidence_data = {
         "trace_id": trace_id,
@@ -171,7 +183,6 @@ def create_issue_occurrence_from_detection(
         "explanation": detected_issue.explanation,
         "impact": detected_issue.impact,
         "evidence": detected_issue.evidence,
-        "missing_telemetry": detected_issue.missing_telemetry,
         "offender_span_ids": detected_issue.offender_span_ids,
     }
 
@@ -186,12 +197,14 @@ def create_issue_occurrence_from_detection(
         event_id=event_id,
         project_id=project.id,
         fingerprint=fingerprint,
-        issue_title=detected_issue.title,
+        issue_title=(
+            FALLBACK_ISSUE_TITLE if detected_issue.title == "Other" else detected_issue.title
+        ),
         subtitle=detected_issue.explanation[:200],  # Truncate for subtitle
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
-        type=LLMDetectedExperimentalGroupTypeV2,
+        type=get_group_type_for_title(detected_issue.title),
         detection_time=detection_time,
         culprit=transaction_name,
         level="warning",
@@ -221,68 +234,80 @@ def create_issue_occurrence_from_detection(
     )
 
 
-def get_enabled_project_ids() -> list[int]:
-    """
-    Get the list of project IDs that are explicitly enabled for LLM detection.
-
-    Returns the allowlist from system options.
-    """
-    return options.get("issue-detection.llm-detection.projects-allowlist")
-
-
-@instrumented_task(
-    name="sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-    namespace=issues_tasks,
-    processing_deadline_duration=120,  # 2 minutes
-)
-def run_llm_issue_detection() -> None:
-    """
-    Main scheduled task for LLM issue detection.
-    """
-    if not options.get("issue-detection.llm-detection.enabled"):
-        return
-
-    enabled_project_ids = get_enabled_project_ids()
-    if not enabled_project_ids:
-        return
-
-    # Spawn a sub-task for each project with staggered delays
-    for index, project_id in enumerate(enabled_project_ids):
-        detect_llm_issues_for_project.apply_async(
-            args=[project_id],
-            countdown=index * 90,
-            headers={"sentry-propagate-traces": False},
-        )
+def _is_org_eligible(org_id: int) -> bool:
+    try:
+        org = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        return False
+    return (
+        features.has("organizations:ai-issue-detection", org)
+        and features.has("organizations:gen-ai-features", org)
+        and not org.get_option("sentry:hide_ai_features")
+    )
 
 
 @instrumented_task(
-    name="sentry.tasks.llm_issue_detection.detect_llm_issues_for_project",
+    name="sentry.tasks.llm_issue_detection.detect_llm_issues_for_org",
     namespace=issues_tasks,
     processing_deadline_duration=180,  # 3 minutes
 )
-def detect_llm_issues_for_project(project_id: int) -> None:
+def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     """
-    Process a single project for LLM issue detection.
+    Process a single organization for LLM issue detection.
 
-    Gets the project's top TRANSACTION_BATCH_SIZE transaction spans from the last START_TIME_DELTA_MINUTES, sorted by -sum(span.duration).
-    From those transactions, dedupes on normalized transaction_name.
-    For each deduped transaction, gets first trace_id from the start of time window, which has small random variation.
-    Sends these trace_ids to seer, which uses get_trace_waterfall to construct an EAPTrace to analyze.
+    Picks one random active project, selects 1 trace, and sends to Seer.
+    Budget enforcement happens on the Seer side.
     """
     from sentry.tasks.llm_issue_detection.trace_data import (  # circular imports
+        get_next_project_id,
         get_project_top_transaction_traces_for_llm_detection,
     )
 
-    project = Project.objects.get_from_cache(id=project_id)
-    organization = project.organization
-    organization_id = organization.id
-    organization_slug = organization.slug
-
-    has_access = features.has("organizations:gen-ai-features", organization) and not bool(
-        organization.get_option("sentry:hide_ai_features")
-    )
-    if not has_access:
+    try:
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
         return
+
+    project_ids = list(
+        Project.objects.filter(
+            organization_id=org_id,
+            status=ObjectStatus.ACTIVE,
+        ).values_list("id", flat=True)
+    )
+    if not project_ids:
+        return
+
+    project_id = get_next_project_id(organization, project_ids)
+    if not project_id:
+        return
+
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        return
+    perf_settings = project.get_option("sentry:performance_issue_settings", default={})
+    if not perf_settings.get("ai_issue_detection_enabled", True):
+        return
+
+    budget_response = make_signed_seer_api_request(
+        seer_issue_detection_connection_pool,
+        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{org_id}?plan_tier={plan_tier}",
+        body=b"",
+        method="GET",
+        timeout=SEER_TIMEOUT_S,
+    )
+    if budget_response.status == 200:
+        # fail-open since there is an additional budget check on the seer side
+        try:
+            body = json.loads(budget_response.data)
+            if not body.get("has_budget", True):
+                logger.info(
+                    "llm_issue_detection.budget_exceeded",
+                    extra={"organization_id": org_id},
+                )
+                return
+        except json.JSONDecodeError:
+            pass
 
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(
         project_id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=START_TIME_DELTA_MINUTES
@@ -290,23 +315,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not evidence_traces:
         return
 
-    # Shuffle to randomize selection
-    random.shuffle(evidence_traces)
-
-    # Bulk check which traces are already processed
-    all_trace_ids = [t.trace_id for t in evidence_traces]
-    unprocessed_ids = _get_unprocessed_traces(all_trace_ids)
-    skipped = len(all_trace_ids) - len(unprocessed_ids)
-    if skipped:
-        sentry_sdk.metrics.count("llm_issue_detection.trace.skipped", skipped)
-
-    # Take up to NUM_TRANSACTIONS_TO_PROCESS
-    traces_to_send: list[TraceMetadataWithSpanCount] = [
-        t for t in evidence_traces if t.trace_id in unprocessed_ids
-    ][:NUM_TRANSACTIONS_TO_PROCESS]
-
-    if not traces_to_send:
-        return
+    traces_to_send = evidence_traces[:1]
 
     sentry_sdk.metrics.count(
         "llm_issue_detection.seer_request",
@@ -316,12 +325,13 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
     seer_request = IssueDetectionRequest(
         traces=traces_to_send,
-        organization_id=organization_id,
+        organization_id=org_id,
         project_id=project_id,
-        org_slug=organization_slug,
+        org_slug=organization.slug,
+        plan_tier=plan_tier,
     )
 
-    viewer_context = SeerViewerContext(organization_id=organization_id)
+    viewer_context = SeerViewerContext(organization_id=org_id)
     response = make_issue_detection_request(
         seer_request,
         timeout=SEER_TIMEOUT_S,
@@ -330,26 +340,14 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     )
 
     if response.status == 202:
-        mark_traces_as_processed([trace.trace_id for trace in traces_to_send])
-
-        logger.info(
-            "llm_issue_detection.request_accepted",
-            extra={
-                "project_id": project_id,
-                "organization_id": organization_id,
-                "trace_count": len(traces_to_send),
-            },
-        )
         return
 
-    # Log (+ send to sentry) unexpected responses
     logger.error(
         "llm_issue_detection.unexpected_response",
         extra={
             "status_code": response.status,
             "response_data": response.data,
             "project_id": project_id,
-            "organization_id": organization_id,
-            "trace_count": len(traces_to_send),
+            "organization_id": org_id,
         },
     )

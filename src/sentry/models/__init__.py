@@ -31,7 +31,6 @@ from .deletedproject import *  # NOQA
 from .deletedteam import *  # NOQA
 from .deploy import *  # NOQA
 from .distribution import *  # NOQA
-from .dynamicsampling import *  # NOQA
 from .environment import *  # NOQA
 from .event import *  # NOQA
 from .eventattachment import *  # NOQA
@@ -71,6 +70,7 @@ from .latestreporeleaseenvironment import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
+from .organizationavatarreplica import *  # NOQA
 from .organizationcontributors import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA

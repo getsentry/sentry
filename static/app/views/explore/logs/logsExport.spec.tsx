@@ -83,7 +83,9 @@ describe('LogsExportButton', () => {
   });
 
   it('should send correct payload for async export with all LogsQueryInfo parameters', async () => {
-    const largeTableData = new Array(QUERY_PAGE_LIMIT).fill(mockTableData[0]);
+    const largeTableData = Array.from<(typeof mockTableData)[number]>({
+      length: QUERY_PAGE_LIMIT,
+    }).fill(mockTableData[0]!);
 
     const exportMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/`,

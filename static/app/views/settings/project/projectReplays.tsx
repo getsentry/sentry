@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -14,8 +15,8 @@ import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -35,6 +36,7 @@ const ReplaySettingsAlert = HookOrDefault({
 export default function ProjectReplaySettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
@@ -52,9 +54,11 @@ export default function ProjectReplaySettings() {
     onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
   };
 
-  const {getParamValue, setParamValue} = useUrlParams(
+  const [tab, setTab] = useQueryState(
     'replaySettingsTab',
-    'replay-issues'
+    parseAsStringLiteral(['replay-issues', 'bulk-delete'] as const).withDefault(
+      'replay-issues'
+    )
   );
 
   return (
@@ -63,17 +67,19 @@ export default function ProjectReplaySettings() {
         <SettingsPageHeader
           title={t('Replays')}
           action={
-            <LinkButton
-              external
-              href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
-            >
-              {t('Read the Docs')}
-            </LinkButton>
+            !hasPageFrameFeature && (
+              <LinkButton
+                external
+                href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
+              >
+                {t('Read the Docs')}
+              </LinkButton>
+            )
           }
         />
         <TabsWithGap
-          defaultValue={getParamValue()}
-          onChange={value => setParamValue(String(value))}
+          value={tab}
+          onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}
         >
           <TabList>
             <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>

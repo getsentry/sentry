@@ -15,6 +15,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.utils.auth import AuthenticatedHttpRequest
+from sentry.workflow_engine.endpoints.utils.filters import exclude_disallowed_metric_detectors
 from sentry.workflow_engine.models import Detector
 
 
@@ -59,7 +60,7 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
             }
             return self.respond(empty_response)
 
-        queryset = Detector.objects.with_type_filters().filter(
+        base_queryset = Detector.objects.with_type_filters().filter(
             status=ObjectStatus.ACTIVE,
             project__organization_id=organization.id,
             project_id__in=filter_params["project_id"],
@@ -68,7 +69,9 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
         # Filter by detector types if specified
         detector_types = request.GET.getlist("type")
         if detector_types:
-            queryset = queryset.filter(type__in=detector_types)
+            base_queryset = base_queryset.filter(type__in=detector_types)
+
+        queryset = exclude_disallowed_metric_detectors(base_queryset, organization)
 
         counts = queryset.aggregate(
             active=Count(

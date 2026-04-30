@@ -235,7 +235,7 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    if (!prevGuide || prevGuide.guide !== nextGuide.guide) {
+    if (prevGuide?.guide !== nextGuide.guide) {
       this.recordCue(nextGuide.guide);
       this.state = {...this.state, prevGuide: nextGuide};
     }

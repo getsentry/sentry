@@ -9,7 +9,7 @@ import UpdatedEmptyState from 'sentry/components/updatedEmptyState';
 
 function renderMockRequests({firstIssue}: {firstIssue?: string} = {}) {
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug/project-slug/keys/`,
+    url: '/projects/org-slug/project-slug/keys/',
     method: 'GET',
     body: [ProjectKeysFixture()[0]],
   });
@@ -21,13 +21,13 @@ function renderMockRequests({firstIssue}: {firstIssue?: string} = {}) {
   });
 
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug/project-slug/`,
+    url: '/projects/org-slug/project-slug/',
     method: 'GET',
     body: ProjectFixture({platform: 'python-django', firstEvent: firstIssue ?? null}),
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sdks/`,
+    url: '/organizations/org-slug/sdks/',
     method: 'GET',
   });
 }
@@ -105,7 +105,7 @@ describe('UpdatedEmptyState', () => {
 
     expect(screen.getByRole('button', {name: 'Take me to my error'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/1/?referrer=onboarding-first-event-indicator`
+      '/organizations/org-slug/issues/1/?referrer=onboarding-first-event-indicator'
     );
 
     expect(screen.getByRole('button', {name: 'Back'})).toBeEnabled();

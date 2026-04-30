@@ -27,8 +27,10 @@ export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
 export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
+export const FOUR_DAYS = 5760;
 export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
+export const TWELVE_HOURS = 720;
 export const SIX_HOURS = 360;
 const THREE_HOURS = 180;
 export const ONE_HOUR = 60;
@@ -106,12 +108,12 @@ export class GranularityLadder {
         fmt`Invalid duration supplied to interval function. (minutes: ${String(minutes)})`
       );
 
-      return (this.steps.at(-1) as GranularityStep)[1];
+      return this.steps.at(-1)![1];
     }
 
     const step = this.steps.find(([threshold]) => {
       return minutes >= threshold;
-    }) as GranularityStep;
+    })!;
 
     return step[1];
   }
@@ -282,13 +284,10 @@ export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce(
-    (selection, series) => {
-      selection[series] = false;
-      return selection;
-    },
-    {} as Record<string, boolean>
-  );
+  return unselectedSeries.reduce<Record<string, boolean>>((selection, series) => {
+    selection[series] = false;
+    return selection;
+  }, {});
 }
 
 /**

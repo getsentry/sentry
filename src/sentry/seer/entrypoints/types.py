@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
 from sentry.models.organization import Organization
+from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.sentry_apps.metrics import SentryAppEventType
 
 
@@ -51,6 +52,30 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
+    def on_trigger_handoff_already_exists(
+        self, *, run_id: int, target: CodingAgentProviderType, has_complete_stage: bool
+    ) -> None:
+        """
+        Called when a coding-agent handoff was already launched for the run
+
+        Example Usage: Sending a 'handoff in progress' message, etc.
+        """
+        ...
+
+    def on_trigger_handoff_error(self, *, error: str) -> None:
+        """Called when a coding-agent handoff failed to start.'
+
+        Example Usage: Sending a 'Cursor failed to start' message, etc.
+        """
+        ...
+
+    def on_trigger_handoff_success(self, *, run_id: int, target: CodingAgentProviderType) -> None:
+        """Called when a coding-agent handoff has been launched successfully.
+
+        Example Usage: Mentioning the hand-off agent, etc.
+        """
+        ...
+
     def create_autofix_cache_payload(self) -> CachePayloadT:
         """
         Creates a cached payload which will be provided to on_autofix_update.
@@ -78,10 +103,10 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         ...
 
 
-class SeerExplorerEntrypoint[CachePayloadT](Protocol):
+class SeerAgentEntrypoint[CachePayloadT](Protocol):
     """
-    Protocol for entrypoints that support explorer workflows.
-    Implement this to trigger explorer operations and receive completion updates.
+    Protocol for entrypoints that support Seer Agent workflows.
+    Implement this to trigger Agent operations and receive completion updates.
     """
 
     key: SeerEntrypointKey
@@ -95,34 +120,34 @@ class SeerExplorerEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
-    def on_trigger_explorer_error(self, *, error: str) -> None:
-        """Called when Explorer failed to start."""
+    def on_trigger_agent_error(self, *, error: str) -> None:
+        """Called when the Agent failed to start."""
         ...
 
-    def on_trigger_explorer_success(self, *, run_id: int) -> None:
-        """Called when Explorer run started successfully."""
+    def on_trigger_agent_success(self, *, run_id: int) -> None:
+        """Called when an Agent run started successfully."""
         ...
 
-    def create_explorer_cache_payload(self) -> CachePayloadT:
-        """Creates cached payload for Explorer completion hook."""
+    def create_agent_cache_payload(self) -> CachePayloadT:
+        """Creates cached payload for the Agent completion hook."""
         ...
 
     @staticmethod
-    def on_explorer_update(
+    def on_agent_update(
         cache_payload: CachePayloadT,
         summary: str | None,
         run_id: int,
     ) -> None:
         """
-        Called when an Explorer run completes, via ExplorerOnCompletionHook.
+        Called when an Agent run completes, via AgentOnCompletionHook.
 
         Unlike on_autofix_update which receives streaming webhook events during a run,
-        this is invoked once when the Explorer run reaches a terminal state. The completion
-        hook (ExplorerOnCompletionHook.execute) retrieves the cached payload, fetches the
+        this is invoked once when the Agent run reaches a terminal state. The completion
+        hook (AgentOnCompletionHook.execute) retrieves the cached payload, fetches the
         run state from Seer, and delegates to this method so the entrypoint can notify the
-        external service (e.g., post a thread reply with the Explorer summary and result link).
+        external service (e.g., post a thread reply with the Agent summary and result link).
 
-        The shape of the cached payload is determined by `create_explorer_cache_payload`.
+        The shape of the cached payload is determined by `create_agent_cache_payload`.
 
         Note: This is a static method. The entrypoint instance is NOT persisted between
         trigger and completion, so leverage the cached payload to persist any state.

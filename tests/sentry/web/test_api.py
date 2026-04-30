@@ -366,7 +366,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with override_settings(SENTRY_REGION="eu"):
+        with override_settings(SENTRY_LOCAL_CELL="eu"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"

@@ -88,7 +88,7 @@ function MetricIssueChartContent({
   openPeriods: GroupOpenPeriod[];
 }) {
   const {selection} = usePageFilters();
-  const {openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
+  const {data: openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
     groupId: group.id,
     eventId: event?.id,
   });

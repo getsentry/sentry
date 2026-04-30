@@ -14,7 +14,7 @@ function BrowserProfilingBetaWarning() {
   return (
     <Alert variant="info" showIcon={false}>
       {tct(
-        `Browser profiling is currently in Beta as we wait for the JS Self Profiling spec to gain wider support. You can read the detailed explanation [explainer].`,
+        'Browser profiling is currently in Beta as we wait for the JS Self Profiling spec to gain wider support. You can read the detailed explanation [explainer].',
         {
           explainer: (
             <a href="https://docs.sentry.io/platforms/javascript/profiling/">

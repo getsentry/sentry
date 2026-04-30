@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {RadioField as RadioGroupField} from 'sentry/components/forms/fields/radioField';
@@ -18,7 +17,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -102,7 +100,7 @@ function CancelSubscriptionForm() {
   const api = useApi();
   const {data: subscription, isPending} = useApiQuery<Subscription>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -195,15 +193,12 @@ function CancelSubscriptionForm() {
           {tct(
             `Your organization is currently subscribed to the [planName] plan on a [interval] contract.
              Cancelling your subscription will downgrade your account to a free plan at the end
-             of your contract on [contractEndDate]. See [changesLink:upcoming changes] to our free Developer plan.`,
+             of your contract on [contractEndDate].`,
             {
               interval: subscription?.contractInterval === ANNUAL ? 'annual' : 'monthly',
               planName: <strong>{subscription?.planDetails?.name}</strong>,
               contractEndDate: (
                 <strong>{moment(subscription.contractPeriodEnd).format('ll')}</strong>
-              ),
-              changesLink: (
-                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/26206897429275-Changes-to-our-Developer-plan" />
               ),
             }
           )}
@@ -273,9 +268,7 @@ function CancelSubscriptionForm() {
               </Button>
               <Button
                 onClick={() => {
-                  browserHistory.push(
-                    normalizeUrl(`/settings/${organization.slug}/billing/`)
-                  );
+                  navigate(normalizeUrl(`/settings/${organization.slug}/billing/`));
                 }}
               >
                 {t('Never Mind')}

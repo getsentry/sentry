@@ -1,3 +1,4 @@
+import type {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {
   DatasetSource,
@@ -64,6 +65,7 @@ export interface Organization extends OrganizationSummary {
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
+  defaultAutomatedRunStoppingPoint: AutofixStoppingPoint;
   defaultCodeReviewTriggers: CodeReviewTrigger[];
   defaultCodingAgent: string | null;
   defaultCodingAgentIntegrationId: string | number | null;
@@ -113,8 +115,8 @@ export interface Organization extends OrganizationSummary {
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
   enableSeerCoding?: boolean;
-  enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
+  experiments?: Record<string, string>;
   extraOptions?: {
     traces: {
       checkSpanExtractionDate: boolean;
@@ -415,29 +417,4 @@ export enum SessionStatus {
   ERRORED = 'errored',
   UNHANDLED = 'unhandled',
   CRASHED = 'crashed',
-}
-
-interface IssuesMetricsTimeseries {
-  axis: 'new_issues_count' | 'resolved_issues_count' | 'new_issues_count_by_release';
-  groupBy: string[];
-  meta: {
-    interval: number;
-    isOther: boolean;
-    order: number;
-    valueType: string;
-    valueUnit: null | string;
-  };
-  values: Array<{
-    timestamp: number;
-    value: number;
-  }>;
-}
-
-export interface IssuesMetricsApiResponse {
-  meta: {
-    dataset: string;
-    end: number;
-    start: number;
-  };
-  timeseries: IssuesMetricsTimeseries[];
 }

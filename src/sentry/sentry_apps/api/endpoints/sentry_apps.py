@@ -108,7 +108,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppParser(data=data, access=request.access)
+        serializer = SentryAppParser(data=data, access=request.access, context={"request": request})
 
         if serializer.is_valid():
             if data.get("isInternal"):

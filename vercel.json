@@ -18,7 +18,17 @@
     {
       "source": "/api/(.*)",
       "headers": [{"key": "Referer", "value": "https://sentry.io/"}]
+    },
+    {
+      "source": "/_assets/(chunks|assets)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
-  "github": {"silent": true}
+  "github": {"silent": true},
+  "ignoreCommand": "git rev-parse -q --verify HEAD^&& ! git diff --name-only HEAD^|grep -qE '^(static|build-utils|src/sentry/(locale|static/sentry/images))|^(package\\.json|pnpm-lock\\.yaml|tsconfig\\.json|rspack\\.config\\.ts|vercel\\.json|\\.vercelignore)$'"
 }

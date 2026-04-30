@@ -80,17 +80,17 @@ describe('Performance > Widgets > WidgetContainer', () => {
     ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       body: {},
     });
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [{}],
         meta: {},
@@ -99,7 +99,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     issuesListMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [
           {
@@ -123,13 +123,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics-compatibility/`,
+      url: '/organizations/org-slug/metrics-compatibility/',
       body: [],
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics-compatibility-sums/`,
+      url: '/organizations/org-slug/metrics-compatibility-sums/',
       body: [],
     });
   });
@@ -279,7 +279,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       statusCode: 400,
       body: {
         detail: 'Request did not work :(',
@@ -287,7 +287,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       statusCode: 400,
       body: {
         detail: 'Request did not work :(',
@@ -370,172 +370,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
           yAxis: 'failure_rate()',
         }),
       })
-    );
-  });
-
-  it('Widget with MEP enabled and metric meta set to true', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['performance-use-metrics'],
-      }
-    );
-
-    eventStatsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
-      body: {
-        data: [],
-        isMetricsData: true,
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
-    });
-
-    eventsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events/`,
-      body: {
-        data: [{}],
-        meta: {isMetricsData: true},
-      },
-    });
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-      />
-    );
-
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-
-    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'processed'
-    );
-  });
-
-  it('Widget with MEP enabled and metric meta set to undefined', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['performance-use-metrics'],
-      }
-    );
-
-    eventStatsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
-      body: {
-        data: [],
-        isMetricsData: undefined,
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
-    });
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-      />
-    );
-
-    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-  });
-
-  it('Widget with MEP enabled and metric meta set to false', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['performance-use-metrics'],
-      }
-    );
-
-    eventStatsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
-      body: {
-        data: [],
-        isMetricsData: false,
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
-    });
-
-    eventsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events/`,
-      body: {
-        data: [{}],
-        meta: {isMetricsData: false},
-      },
-    });
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-      />
-    );
-
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metrics'}),
-      })
-    );
-
-    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'indexed'
     );
   });
 
@@ -1059,7 +893,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     const data = initializeData(
       {},
       {
-        features: ['performance-use-metrics'],
+        features: ['dynamic-sampling'],
       }
     );
 

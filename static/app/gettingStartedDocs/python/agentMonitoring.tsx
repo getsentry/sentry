@@ -8,6 +8,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 import {getPythonInstallCodeBlock} from './utils';
 
@@ -293,29 +294,30 @@ sentry_sdk.init(
       ],
     };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
-    if (selected === 'openai') {
+    const selected =
+      (params.platformOptions as any)?.integration ?? AgentIntegration.OPENAI;
+    if (selected === AgentIntegration.OPENAI) {
       return [openaiSdkStep];
     }
-    if (selected === 'anthropic') {
+    if (selected === AgentIntegration.ANTHROPIC) {
       return [anthropicSdkStep];
     }
-    if (selected === 'langchain') {
+    if (selected === AgentIntegration.LANGCHAIN) {
       return [langchainStep];
     }
-    if (selected === 'langgraph') {
+    if (selected === AgentIntegration.LANGGRAPH) {
       return [langgraphStep];
     }
-    if (selected === 'litellm') {
+    if (selected === AgentIntegration.LITTELLM) {
       return [liteLLMStep];
     }
-    if (selected === 'google_genai') {
+    if (selected === AgentIntegration.GOOGLE_GENAI) {
       return [googleGenAIStep];
     }
-    if (selected === 'pydantic_ai') {
+    if (selected === AgentIntegration.PYDANTIC_AI) {
       return [pydanticAiStep];
     }
-    if (selected === 'manual') {
+    if (selected === AgentIntegration.MANUAL) {
       return [manualStep];
     }
     return [openaiAgentsStep];
@@ -565,29 +567,30 @@ print(result.output)
       ],
     };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
-    if (selected === 'openai') {
+    const selected =
+      (params.platformOptions as any)?.integration ?? AgentIntegration.OPENAI;
+    if (selected === AgentIntegration.OPENAI) {
       return [openaiSdkVerifyStep];
     }
-    if (selected === 'anthropic') {
+    if (selected === AgentIntegration.ANTHROPIC) {
       return [anthropicSdkVerifyStep];
     }
-    if (selected === 'langchain') {
+    if (selected === AgentIntegration.LANGCHAIN) {
       return [langchainVerifyStep];
     }
-    if (selected === 'langgraph') {
+    if (selected === AgentIntegration.LANGGRAPH) {
       return [langgraphVerifyStep];
     }
-    if (selected === 'litellm') {
+    if (selected === AgentIntegration.LITTELLM) {
       return [liteLLMVerifyStep];
     }
-    if (selected === 'google_genai') {
+    if (selected === AgentIntegration.GOOGLE_GENAI) {
       return [googleGenAIVerifyStep];
     }
-    if (selected === 'pydantic_ai') {
+    if (selected === AgentIntegration.PYDANTIC_AI) {
       return [pydanticAiVerifyStep];
     }
-    if (selected === 'manual') {
+    if (selected === AgentIntegration.MANUAL) {
       return [manualVerifyStep];
     }
     return [openaiAgentsVerifyStep];

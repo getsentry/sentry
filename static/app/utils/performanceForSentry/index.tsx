@@ -357,7 +357,7 @@ const addCustomMeasurements = (transaction: TransactionEvent) => {
     ttfb: ttfbValue,
     browserTimeOrigin,
     transactionStart: transaction.start_timestamp,
-    transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
+    transactionOp: transaction.contexts?.trace?.op! ?? 'pageload',
   };
 
   for (const [name, fn] of Object.entries(customMeasurements)) {
@@ -544,7 +544,7 @@ const addSlowAppInit = (transaction: TransactionEvent) => {
       s.start_timestamp < appInitSpan.start_timestamp
   );
   longTaskSpans.forEach(s => {
-    s.op = `ui.long-task.app-init`;
+    s.op = 'ui.long-task.app-init';
   });
   if (longTaskSpans.length) {
     const sum = longTaskSpans.reduce(

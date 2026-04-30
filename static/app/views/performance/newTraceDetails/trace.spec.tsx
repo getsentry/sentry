@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {TransactionEventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
@@ -122,7 +123,7 @@ function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
 
 function mockProjectDetailsResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug//`,
+    url: '/projects/org-slug//',
     method: 'GET',
     asyncDelay: 1,
     ...resp,
@@ -149,7 +150,7 @@ function mockTraceRootEvent(id: string, resp?: Partial<ResponseType>) {
 
 function mockTraceRootFacets(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events-facets/`,
+    url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
     body: {},
@@ -159,7 +160,7 @@ function mockTraceRootFacets(resp?: Partial<ResponseType>) {
 
 function mockTraceEventDetails(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/`,
+    url: '/organizations/org-slug/events/',
     method: 'GET',
     asyncDelay: 1,
     body: {},
@@ -545,7 +546,11 @@ async function simpleTestSetup() {
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
-async function completeTestSetup() {
+async function completeTestSetup({
+  organization,
+}: {
+  organization?: ReturnType<typeof OrganizationFixture>;
+} = {}) {
   mockPerformanceSubscriptionDetailsResponse();
   mockProjectDetailsResponse();
   const start = Date.now() / 1e3;
@@ -746,6 +751,7 @@ async function completeTestSetup() {
 
   const value = render(<TraceView />, {
     initialRouterConfig,
+    organization,
   });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
@@ -779,6 +785,8 @@ function printVirtualizedList(container: HTMLElement) {
 
   const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
   const searchResultIterator = screen.queryByTestId('trace-search-result-iterator');
+  // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
   const searchInput = screen.queryByPlaceholderText(
     'Search in trace'
   ) as HTMLInputElement;
@@ -808,9 +816,9 @@ function printVirtualizedList(container: HTMLElement) {
   );
 
   for (const r of [...rows]) {
-    const count = (r.querySelector('.TraceChildrenCount') as HTMLElement)?.textContent;
-    const op = (r.querySelector('.TraceOperation') as HTMLElement)?.textContent;
-    const desc = (r.querySelector('.TraceDescription') as HTMLElement)?.textContent;
+    const count = r.querySelector('.TraceChildrenCount')?.textContent;
+    const op = r.querySelector('.TraceOperation')?.textContent;
+    const desc = r.querySelector('.TraceDescription')?.textContent;
     let t = (count ?? '') + ' ' + (op ?? '') + ' — ' + (desc ?? '');
 
     if (r.classList.contains('SearchResult')) {
@@ -824,6 +832,8 @@ function printVirtualizedList(container: HTMLElement) {
       t = t + ' ⬅ focused ';
     }
 
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const leftColumn = r.querySelector('.TraceLeftColumnInner') as HTMLElement;
     const left = Math.round(Number.parseInt(leftColumn.style.paddingLeft, 10) / 10);
 
@@ -943,7 +953,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We were unable to find any spans for this trace. Seeing this often?/i
+        /We were unable to find any spans for this trace\. If you came here from Logs or Application Metrics/i
       )
     ).toBeInTheDocument();
   });
@@ -977,6 +987,18 @@ describe('trace view', () => {
       )
     ).toBeInTheDocument();
   });
+
+  it.isKnownFlake(
+    'does not render the summary tab even when the legacy feature flag is enabled',
+    async () => {
+      const organization = OrganizationFixture({features: ['single-trace-summary']});
+
+      await completeTestSetup({organization});
+
+      expect(await screen.findByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
+    }
+  );
 
   describe('pageload', () => {
     it('scrolls to trace root', async () => {

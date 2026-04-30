@@ -41,6 +41,7 @@ EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 class ActionType(StrEnum):
     SLACK = "slack"
+    SLACK_STAGING = "slack_staging"
     MSTEAMS = "msteams"
     DISCORD = "discord"
 
@@ -111,6 +112,12 @@ class ActionFieldMapping(TypedDict):
 ACTION_FIELD_MAPPINGS: dict[str, ActionFieldMapping] = {
     ActionType.SLACK: ActionFieldMapping(
         id="sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+        integration_id_key="workspace",
+        target_identifier_key="channel_id",
+        target_display_key="channel",
+    ),
+    ActionType.SLACK_STAGING: ActionFieldMapping(
+        id="sentry.integrations.slack.staging.notify_action.SlackStagingNotifyServiceAction",
         integration_id_key="workspace",
         target_identifier_key="channel_id",
         target_display_key="channel",
@@ -299,13 +306,13 @@ class SlackActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
             ],
         ]
@@ -317,6 +324,12 @@ class SlackActionTranslator(BaseActionTranslator):
     @property
     def blob_type(self) -> type[DataBlob]:
         return SlackDataBlob
+
+
+class SlackStagingActionTranslator(SlackActionTranslator):
+    @property
+    def action_type(self) -> ActionType:
+        return ActionType.SLACK_STAGING
 
 
 class DiscordActionTranslator(BaseActionTranslator):
@@ -766,6 +779,7 @@ class EmailDataBlob(DataBlob):
 
 issue_alert_action_translator_mapping: dict[str, type[BaseActionTranslator]] = {
     ACTION_FIELD_MAPPINGS[ActionType.SLACK]["id"]: SlackActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.SLACK_STAGING]["id"]: SlackStagingActionTranslator,
     ACTION_FIELD_MAPPINGS[ActionType.DISCORD]["id"]: DiscordActionTranslator,
     ACTION_FIELD_MAPPINGS[ActionType.MSTEAMS]["id"]: MSTeamsActionTranslator,
     ACTION_FIELD_MAPPINGS[ActionType.PAGERDUTY]["id"]: PagerDutyActionTranslator,

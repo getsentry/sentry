@@ -1,6 +1,6 @@
+import type {UIMatch} from 'react-router-dom';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterPropsFixture} from 'sentry-fixture/routerPropsFixture';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
@@ -18,6 +18,13 @@ const HALF_ADVANCE_PERIOD = DELAY_TIME_MS * 0.6;
 
 jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
 
+function makeMatch(path: string): UIMatch {
+  return {id: path, pathname: path, params: {}, data: undefined, handle: {path}};
+}
+
+const SETTINGS_MATCHES = [makeMatch('/settings/:orgId/projects/:projectId/')];
+const RELEASES_MATCHES = [makeMatch('/organizations/:orgId/releases/:release/')];
+
 describe('useRouteActivatedHook', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({organization});
@@ -27,18 +34,13 @@ describe('useRouteActivatedHook', () => {
   function genProps(extraRouteParams = {}): any {
     const props = {
       organization,
-      ...RouterPropsFixture({
-        location: LocationFixture({
-          pathname: `/settings/${organization.slug}/${project.slug}/`,
-        }),
-        params: {orgId: organization.slug},
-        routes: [
-          {path: '/'},
-          {path: '/settings/'},
-          {path: ':orgId/'},
-          {path: 'projects/:projectId/'},
-        ],
+      location: LocationFixture({
+        pathname: `/settings/${organization.slug}/${project.slug}/`,
       }),
+      params: {orgId: organization.slug},
+      routes: [],
+      router: {} as any,
+      matches: SETTINGS_MATCHES,
       ...extraRouteParams,
     };
     return props;
@@ -173,14 +175,7 @@ describe('useRouteActivatedHook', () => {
       location: LocationFixture({
         pathname: `/organizations/${organization.slug}/releases/some-release/`,
       }),
-      routes: [
-        {path: '/'},
-        {path: '/organizations/:orgId/releases/'},
-        {path: ':release/'},
-      ],
-      ...LocationFixture({
-        pathname: `/organizations/${organization.slug}/releases/some-release/`,
-      }),
+      matches: RELEASES_MATCHES,
     });
     const loadTime = Date.now();
     act(() => rerender(newProps));
@@ -225,6 +220,7 @@ describe('useRouteActivatedHook', () => {
   it('route changes triggers early analytics event', () => {
     jest.useFakeTimers();
     let loadTime = Date.now();
+
     const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -235,14 +231,7 @@ describe('useRouteActivatedHook', () => {
       location: LocationFixture({
         pathname: `/organizations/${organization.slug}/releases/some-release/`,
       }),
-      routes: [
-        {path: '/'},
-        {path: '/organizations/:orgId/releases/'},
-        {path: ':release/'},
-      ],
-      ...LocationFixture({
-        pathname: `/organizations/${organization.slug}/releases/some-release/`,
-      }),
+      matches: RELEASES_MATCHES,
     });
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(0);
 

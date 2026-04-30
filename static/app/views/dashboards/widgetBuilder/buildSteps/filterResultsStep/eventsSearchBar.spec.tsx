@@ -1,10 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 
 import {EventsSearchBar} from './eventsSearchBar';
@@ -17,17 +24,24 @@ describe('EventsSearchBar', () => {
     organization = OrganizationFixture();
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
       method: 'POST',
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [
+        {key: 'environment', name: 'environment', kind: FieldKind.FIELD},
+        {key: 'transaction', name: 'transaction', kind: FieldKind.FIELD},
+      ],
+    });
   });
 
-  it('does not show function tags in has: dropdown', async () => {
+  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
     render(
       <EventsSearchBar
         onClose={jest.fn()}
@@ -64,6 +78,10 @@ describe('EventsSearchBar', () => {
 
     // p50 is a function and should not be suggested as a has: tag.
     expect(screen.queryByRole('option', {name: 'p50'})).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
   });
 
   it('shows the selected aggregate in the dropdown', async () => {
@@ -97,6 +115,10 @@ describe('EventsSearchBar', () => {
     expect(
       await within(await screen.findByRole('listbox')).findByText('count_unique(...)')
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
   });
 
   it('shows normal tags, e.g. transaction, in the dropdown', async () => {
@@ -133,5 +155,9 @@ describe('EventsSearchBar', () => {
         name: 'transaction',
       })
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
   });
 });

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import Hook from 'sentry/components/hook';
@@ -23,8 +23,8 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,6 +35,7 @@ import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
+import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
@@ -78,18 +79,21 @@ const scmOnboardingSteps: StepDescriptor[] = [
     id: OnboardingStepId.SCM_CONNECT,
     title: t('Connect repository'),
     Component: ScmConnect,
+    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Platform & features'),
     Component: ScmPlatformFeatures,
+    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PROJECT_DETAILS,
     title: t('Project details'),
     Component: ScmProjectDetails,
+    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
@@ -112,28 +116,42 @@ function WelcomeVariable(props: StepProps) {
 interface ContainerVariableProps {
   hasFooter: boolean;
   hasNewWelcomeUI: boolean;
+  hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
   const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
-  const Component = newWelcomeUIStep ? ContainerNewWelcomeUI : Container;
+
+  if (newWelcomeUIStep && !props.hasScmOnboarding) {
+    return (
+      <OnboardingContainerNewWelcomeUI hasFooter>
+        {props.children}
+      </OnboardingContainerNewWelcomeUI>
+    );
+  }
 
   return (
-    <Component hasFooter={props.hasFooter || newWelcomeUIStep}>
+    <OnboardingContainer
+      hasFooter={props.hasFooter || newWelcomeUIStep}
+      hasScmOnboarding={props.hasScmOnboarding}
+    >
       {props.children}
-    </Component>
+    </OnboardingContainer>
   );
 }
 
 interface OnboardingStepVariableProps {
   hasNewWelcomeUI: boolean;
+  hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
   const Component =
-    props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME
+    props.hasNewWelcomeUI &&
+    props.id === OnboardingStepId.WELCOME &&
+    !props.hasScmOnboarding
       ? OnboardingStepNewUi
       : OnboardingStep;
 
@@ -143,10 +161,9 @@ function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableP
       animate="animate"
       exit="exit"
       variants={{animate: {}}}
-      transition={testableTransition({
+      transition={{
         staggerChildren: 0.2,
-      })}
-      key={props.id}
+      }}
       data-test-id={`onboarding-step-${props.id}`}
     >
       {props.children}
@@ -164,8 +181,22 @@ export function OnboardingWithoutContext() {
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
-  const hasScmOnboarding = organization.features.includes('onboarding-scm');
-  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+  });
+
+  // Only report exposure for users who are actually in SCM onboarding —
+  // the assignment is irrelevant for legacy onboarding.
+  const {inExperiment: hasProjectDetailsStep} = useExperiment({
+    feature: 'onboarding-scm-project-details-experiment',
+    reportExposure: hasScmOnboarding,
+  });
+
+  const scmSteps = hasProjectDetailsStep
+    ? scmOnboardingSteps
+    : scmOnboardingSteps.filter(s => s.id !== OnboardingStepId.SCM_PROJECT_DETAILS);
+
+  const onboardingSteps = hasScmOnboarding ? scmSteps : legacyOnboardingSteps;
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -255,28 +286,40 @@ export function OnboardingWithoutContext() {
     isRecentCreatedProjectActive: isProjectActive,
   });
 
-  const goNextStep = useCallback(
-    (
-      step: StepDescriptor,
-      platform?: OnboardingSelectedSDK,
-      query?: Record<string, string[]>
-    ) => {
-      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1]!;
+  const goNextStep = (
+    step: StepDescriptor,
+    platform?: OnboardingSelectedSDK,
+    query?: Record<string, string[]>
+  ) => {
+    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+    const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      if (
-        nextStep.id === OnboardingStepId.SETUP_DOCS &&
-        !platform &&
-        !onboardingContext.selectedPlatform
-      ) {
-        return;
-      }
+    if (
+      nextStep.id === OnboardingStepId.SETUP_DOCS &&
+      !platform &&
+      !onboardingContext.selectedPlatform
+    ) {
+      return;
+    }
 
-      const pathname = `/onboarding/${organization.slug}/${nextStep.id}/`;
-      navigate(query ? normalizeUrl({pathname, query}) : normalizeUrl(pathname));
-    },
-    [organization.slug, navigate, onboardingSteps, onboardingContext.selectedPlatform]
-  );
+    const pathname = `/onboarding/${organization.slug}/${nextStep.id}/`;
+    navigate(query ? normalizeUrl({pathname, query}) : normalizeUrl(pathname));
+  };
+
+  const genBackButton = () => {
+    if (!hasScmOnboarding || stepIndex <= 0) {
+      return null;
+    }
+    return (
+      <Button
+        onClick={() => handleGoBack()}
+        icon={<IconArrow direction="left" />}
+        priority="link"
+      >
+        {t('Back')}
+      </Button>
+    );
+  };
 
   const genSkipOnboardingLink = () => {
     const source = `targeted-onboarding-${stepId}`;
@@ -290,7 +333,7 @@ export function OnboardingWithoutContext() {
           onboardingContext.setSelectedPlatform(undefined);
           activateSidebar({
             userClicked: false,
-            source: `targeted_onboarding_select_platform_skip`,
+            source: 'targeted_onboarding_select_platform_skip',
           });
         }}
         to={normalizeUrl(
@@ -315,48 +358,61 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header>
-        <LogoSvg />
+      <Header columns={{'2xs': 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} as="header">
+        <LogoSvg showWordmark={!hasScmOnboarding} />
         {stepIndex !== -1 && (
-          <StyledStepper
-            numSteps={onboardingSteps.length}
-            currentStepIndex={stepIndex}
-            onClick={i => {
-              if (i < stepIndex && shallProjectBeDeleted) {
-                handleGoBack(i);
-                return;
-              }
-
-              goToStep(onboardingSteps[i]!);
+          <Flex
+            justify="center"
+            display={{
+              '2xs': 'none',
+              xs: 'none',
+              sm: 'none',
+              md: 'flex',
             }}
-          />
+          >
+            <Stepper
+              numSteps={onboardingSteps.length}
+              currentStepIndex={stepIndex}
+              onClick={i => {
+                if (i < stepIndex && shallProjectBeDeleted) {
+                  handleGoBack(i);
+                  return;
+                }
+
+                goToStep(onboardingSteps[i]!);
+              }}
+            />
+          </Flex>
         )}
-        <UpsellWrapper>
+        <Flex align="center" justify="end" gap="md">
           <Hook
             name="onboarding:targeted-onboarding-header"
             source="targeted-onboarding"
           />
-        </UpsellWrapper>
+          {hasScmOnboarding && <OnboardingSkipButton stepId={stepObj.id} />}
+        </Flex>
       </Header>
       <ContainerVariable
         hasFooter={containerHasFooter}
         id={stepObj.id}
         hasNewWelcomeUI={hasNewWelcomeUI}
+        hasScmOnboarding={hasScmOnboarding}
       >
-        <AdaptivePageCorners
-          // Controls the current corner variant
-          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-        />
-        {stepIndex > 0 && (
+        {hasScmOnboarding ? null : (
+          <AdaptivePageCorners
+            // Controls the current corner variant
+            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+          />
+        )}
+        {stepIndex > 0 && !hasScmOnboarding && (
           <BackMotionDiv
             initial="initial"
             animate="visible"
-            transition={testableTransition()}
             variants={{
               initial: {opacity: 0, visibility: 'hidden'},
               visible: {
                 opacity: 1,
-                transition: testableTransition({delay: 1}),
+                transition: {delay: 1},
                 transitionEnd: {
                   visibility: 'visible',
                 },
@@ -373,7 +429,12 @@ export function OnboardingWithoutContext() {
           </BackMotionDiv>
         )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
-          <OnboardingStepVariable id={stepObj.id} hasNewWelcomeUI={hasNewWelcomeUI}>
+          <OnboardingStepVariable
+            key={stepObj.id}
+            id={stepObj.id}
+            hasNewWelcomeUI={hasNewWelcomeUI}
+            hasScmOnboarding={hasScmOnboarding}
+          >
             {stepObj.Component && (
               <stepObj.Component
                 data-test-id={`onboarding-step-${stepObj.id}`}
@@ -385,6 +446,7 @@ export function OnboardingWithoutContext() {
                 }}
                 recentCreatedProject={recentCreatedProject}
                 genSkipOnboardingLink={genSkipOnboardingLink}
+                genBackButton={genBackButton}
               />
             )}
           </OnboardingStepVariable>
@@ -402,7 +464,9 @@ function Onboarding() {
   );
 }
 
-const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
+const OnboardingContainerNewWelcomeUI = styled('div')<{
+  hasFooter: boolean;
+}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -421,20 +485,23 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   }
 `;
 
-const Container = styled('div')<{hasFooter: boolean}>`
+const OnboardingContainer = styled('div')<{
+  hasFooter: boolean;
+  hasScmOnboarding: boolean;
+}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  padding: 120px ${p => p.theme.space['2xl']};
+  padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};
   margin-bottom: ${p => p.hasFooter && '72px'};
 `;
 
-const Header = styled('header')`
+const Header = styled(Grid)`
   background: ${p => p.theme.tokens.background.primary};
   padding-left: ${p => p.theme.space['3xl']};
   padding-right: ${p => p.theme.space['3xl']};
@@ -444,13 +511,9 @@ const Header = styled('header')`
   top: 0;
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  justify-items: stretch;
 `;
 
 const LogoSvg = styled(LogoSentry)`
-  width: 130px;
   height: 30px;
   color: ${p => p.theme.tokens.content.primary};
 `;
@@ -476,13 +539,6 @@ const AdaptivePageCorners = styled(PageCorners)`
   }
 `;
 
-const StyledStepper = styled(Stepper)`
-  justify-self: center;
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
-  }
-`;
-
 const BackMotionDiv = styled(motion.div)`
   position: absolute;
   top: 40px;
@@ -495,11 +551,6 @@ const BackMotionDiv = styled(motion.div)`
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${p => p.theme.space['3xl']};
-`;
-
-const UpsellWrapper = styled('div')`
-  grid-column: 3;
-  margin-left: auto;
 `;
 
 export default Onboarding;

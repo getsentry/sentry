@@ -47,14 +47,16 @@ export const HeaderButtonContainer = styled('div')`
 export const Body = styled(
   ({
     children,
+    contentsBody,
     showVerticalScrollbar: _,
     ...props
   }: React.ComponentProps<typeof Panel> & {
     children?: React.ReactNode;
+    contentsBody?: boolean;
     showVerticalScrollbar?: boolean;
   }) => (
     <Panel {...props}>
-      <StyledPanelBody>{children}</StyledPanelBody>
+      <PanelBody display={contentsBody ? 'contents' : undefined}>{children}</PanelBody>
     </Panel>
   )
 )`
@@ -98,6 +100,8 @@ export const Grid = styled('table')<{
       ? css`
           height: 100%;
           max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+          flex: 1;
+          min-height: 0;
 
           &:has(> thead + tbody) {
             grid-template-rows: auto 1fr;
@@ -335,8 +339,4 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
-`;
-
-const StyledPanelBody = styled(PanelBody)`
-  height: 100%;
 `;

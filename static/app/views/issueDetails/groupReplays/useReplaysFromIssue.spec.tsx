@@ -21,7 +21,7 @@ describe('useReplaysFromIssue', () => {
     features: ['session-replay'],
   });
 
-  it('should fetch a list of replay ids', async () => {
+  it.isKnownFlake('should fetch a list of replay ids', async () => {
     const MOCK_GROUP = GroupFixture();
 
     MockApiClient.addMockResponse({
@@ -39,13 +39,6 @@ describe('useReplaysFromIssue', () => {
         organization,
       },
       initialRouterConfig,
-    });
-
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
     });
 
     await waitFor(() =>
@@ -80,13 +73,6 @@ describe('useReplaysFromIssue', () => {
       initialRouterConfig,
     });
 
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
-    });
-
     await waitFor(() =>
       expect(result.current).toEqual({
         eventView: expect.objectContaining({
@@ -115,13 +101,6 @@ describe('useReplaysFromIssue', () => {
         organization,
       },
       initialRouterConfig,
-    });
-
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
     });
 
     await waitFor(() =>

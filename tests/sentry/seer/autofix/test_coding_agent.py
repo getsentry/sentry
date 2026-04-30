@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.integrations.claude_code.utils import ClaudeSessionEvent
+from sentry.integrations.claude_code.utils import ClaudeSessionEvent, ClaudeSessionEventStatus
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
@@ -25,7 +25,8 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     CodingAgentStatus,
 )
-from sentry.seer.models import SeerApiError, SeerRepoDefinition
+from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
@@ -37,6 +38,14 @@ class TestLaunchAgentsForRepos(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.run_id = 12345
 
+        repository = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123456",
+            name="getsentry/sentry",
+        )
+        SeerProjectRepository.objects.create(project=self.project, repository=repository)
+
         # Create a basic autofix state with a solution that references a repo
         self.autofix_state = AutofixState(
             run_id=self.run_id,
@@ -46,7 +55,7 @@ class TestLaunchAgentsForRepos(TestCase):
                 issue={"id": 1, "title": "Test Issue"},
                 repos=[
                     SeerRepoDefinition(
-                        provider="github",
+                        provider="integrations:github",
                         owner="getsentry",
                         name="sentry",
                         external_id="123456",
@@ -70,27 +79,30 @@ class TestLaunchAgentsForRepos(TestCase):
             ],
         )
 
+    def _enable_auto_create_pr(self) -> None:
+        """Set automation handoff project options."""
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 123)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
-    def test_auto_create_pr_defaults_to_false_on_seer_api_error(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
+    def test_auto_create_pr_falls_back_to_false_when_project_missing(
+        self, mock_get_prompt, mock_store_states
     ):
-        """Test that auto_create_pr defaults to False when get_project_seer_preferences raises SeerApiError."""
-        # Setup: Mock get_project_seer_preferences to raise SeerApiError
-        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
-
-        # Mock the prompt response
+        """When the project is missing from the cache, auto_create_pr falls back to False."""
+        self.autofix_state.request.project_id = 999999  # non-existent project id
         mock_get_prompt.return_value = "Test prompt"
 
-        # Mock the installation and its launch method
         mock_installation = MagicMock()
         mock_installation.launch.return_value = {
             "url": "https://example.com/agent",
             "id": "agent-123",
         }
 
-        # Call the function
         _launch_agents_for_repos(
             installation=mock_installation,
             autofix_state=self.autofix_state,
@@ -104,57 +116,21 @@ class TestLaunchAgentsForRepos(TestCase):
         launch_request = mock_installation.launch.call_args[0][0]
         assert launch_request.auto_create_pr is False
 
-        # Verify that get_project_seer_preferences was called
-        mock_get_preferences.assert_called_once_with(self.project.id)
-
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     def test_auto_create_pr_uses_preference_when_available(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
+        self, mock_get_prompt, mock_store_states
     ):
         """Test that auto_create_pr uses the preference value when available."""
-        from sentry.seer.models import (
-            AutofixHandoffPoint,
-            PreferenceResponse,
-            SeerAutomationHandoffConfiguration,
-            SeerProjectPreference,
-        )
-
-        # Setup: Mock get_project_seer_preferences to return a preference with auto_create_pr=True
-        preference = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                SeerRepoDefinition(
-                    provider="github",
-                    owner="getsentry",
-                    name="sentry",
-                    external_id="123456",
-                )
-            ],
-            automation_handoff=SeerAutomationHandoffConfiguration(
-                handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
-                target="cursor_background_agent",
-                integration_id=123,
-                auto_create_pr=True,
-            ),
-        )
-        mock_get_preferences.return_value = PreferenceResponse(
-            preference=preference, code_mapping_repos=[]
-        )
-
-        # Mock the prompt response
+        self._enable_auto_create_pr()
         mock_get_prompt.return_value = "Test prompt"
 
-        # Mock the installation and its launch method
         mock_installation = MagicMock()
         mock_installation.launch.return_value = {
             "url": "https://example.com/agent",
             "id": "agent-123",
         }
 
-        # Call the function
         _launch_agents_for_repos(
             installation=mock_installation,
             autofix_state=self.autofix_state,
@@ -170,80 +146,20 @@ class TestLaunchAgentsForRepos(TestCase):
 
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
-    def test_auto_create_pr_defaults_to_false_when_no_preference(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
-    ):
-        """Test that auto_create_pr defaults to False when preference is None."""
-        from sentry.seer.models import PreferenceResponse
-
-        # Setup: Mock get_project_seer_preferences to return None preference
-        mock_get_preferences.return_value = PreferenceResponse(
-            preference=None, code_mapping_repos=[]
-        )
-
-        # Mock the prompt response
-        mock_get_prompt.return_value = "Test prompt"
-
-        # Mock the installation and its launch method
-        mock_installation = MagicMock()
-        mock_installation.launch.return_value = {
-            "url": "https://example.com/agent",
-            "id": "agent-123",
-        }
-
-        # Call the function
-        _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        # Assert: Verify that launch was called with auto_create_pr=False
-        assert mock_installation.launch.called
-        launch_request = mock_installation.launch.call_args[0][0]
-        assert launch_request.auto_create_pr is False
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     def test_auto_create_pr_defaults_to_false_when_no_automation_handoff(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
+        self, mock_get_prompt, mock_store_states
     ):
         """Test that auto_create_pr defaults to False when automation_handoff is None."""
-        from sentry.seer.models import PreferenceResponse, SeerProjectPreference
+        # No handoff options set → _build_automation_handoff returns None.
 
-        # Setup: Mock get_project_seer_preferences to return preference without automation_handoff
-        preference = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                SeerRepoDefinition(
-                    provider="github",
-                    owner="getsentry",
-                    name="sentry",
-                    external_id="123456",
-                )
-            ],
-            automation_handoff=None,
-        )
-        mock_get_preferences.return_value = PreferenceResponse(
-            preference=preference, code_mapping_repos=[]
-        )
-
-        # Mock the prompt response
         mock_get_prompt.return_value = "Test prompt"
 
-        # Mock the installation and its launch method
         mock_installation = MagicMock()
         mock_installation.launch.return_value = {
             "url": "https://example.com/agent",
             "id": "agent-123",
         }
 
-        # Call the function
         _launch_agents_for_repos(
             installation=mock_installation,
             autofix_state=self.autofix_state,
@@ -259,12 +175,8 @@ class TestLaunchAgentsForRepos(TestCase):
 
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
-    def test_api_error_401_includes_credentials_message(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
-    ):
+    def test_api_error_401_includes_credentials_message(self, mock_get_prompt, mock_store_states):
         """Test that 401 ApiError failures include credentials hint in error message."""
-        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
         mock_get_prompt.return_value = "Test prompt"
 
         mock_installation = MagicMock()
@@ -293,12 +205,10 @@ class TestLaunchAgentsForRepos(TestCase):
 
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     def test_verify_branch_error_returns_cursor_github_access_failure_type(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
+        self, mock_get_prompt, mock_store_states
     ):
         """Test that a 400 ApiError with 'Failed to verify existence of branch' returns cursor_github_access failure_type."""
-        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
         mock_get_prompt.return_value = "Test prompt"
 
         mock_installation = MagicMock(spec=CursorAgentIntegration)
@@ -323,12 +233,8 @@ class TestLaunchAgentsForRepos(TestCase):
 
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
-    def test_api_error_non_401_includes_status_code(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
-    ):
+    def test_api_error_non_401_includes_status_code(self, mock_get_prompt, mock_store_states):
         """Test that non-401 ApiError failures include status code in error message."""
-        mock_get_preferences.side_effect = SeerApiError("API Error", 500)
         mock_get_prompt.return_value = "Test prompt"
 
         mock_installation = MagicMock()
@@ -353,43 +259,9 @@ class TestLaunchAgentsForRepos(TestCase):
 
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
-    def test_short_id_passed_to_prompt(
-        self, mock_get_preferences, mock_get_prompt, mock_store_states
-    ):
+    def test_short_id_passed_to_prompt(self, mock_get_prompt, mock_store_states):
         """Test that short_id is passed to get_coding_agent_prompt."""
-        from sentry.seer.models import (
-            AutofixHandoffPoint,
-            PreferenceResponse,
-            SeerAutomationHandoffConfiguration,
-            SeerProjectPreference,
-        )
-
         self.autofix_state.request.issue["short_id"] = "AIML-2301"
-
-        # Setup: Mock preferences with auto_create_pr=True
-        preference = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                SeerRepoDefinition(
-                    provider="github",
-                    owner="getsentry",
-                    name="sentry",
-                    external_id="123456",
-                )
-            ],
-            automation_handoff=SeerAutomationHandoffConfiguration(
-                handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
-                target="cursor_background_agent",
-                integration_id=123,
-                auto_create_pr=False,
-            ),
-        )
-        mock_get_preferences.return_value = PreferenceResponse(
-            preference=preference, code_mapping_repos=[]
-        )
-
         mock_get_prompt.return_value = "Test prompt with Fixes AIML-2301"
 
         mock_installation = MagicMock()
@@ -703,7 +575,7 @@ MOCK_DJANGO_SETTINGS_PATH = "sentry.seer.autofix.coding_agent.django_settings"
 
 
 def _make_agent_event(text: str) -> ClaudeSessionEvent:
-    return ClaudeSessionEvent(type="agent", content=[{"type": "text", "text": text}])
+    return ClaudeSessionEvent(type="agent.message", content=[{"type": "text", "text": text}])
 
 
 class TestExtractResultFromEvents(TestCase):
@@ -891,7 +763,7 @@ class TestPollClaudeCodeAgents(TestCase):
         mock_client = MagicMock()
         mock_client.list_session_events.return_value = [
             {
-                "type": "agent",
+                "type": "agent.message",
                 "content": [
                     {
                         "type": "text",
@@ -899,7 +771,7 @@ class TestPollClaudeCodeAgents(TestCase):
                     }
                 ],
             },
-            {"type": "status_idle"},
+            {"type": ClaudeSessionEventStatus.IDLE},
         ]
         mock_client.build_result_from_session.return_value = MagicMock(
             pr_url="https://github.com/getsentry/sentry/pull/999"
@@ -925,8 +797,8 @@ class TestPollClaudeCodeAgents(TestCase):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
         mock_client.list_session_events.return_value = [
-            {"type": "agent", "content": [{"type": "text", "text": "Done, no PR."}]},
-            {"type": "status_idle"},
+            {"type": "agent.message", "content": [{"type": "text", "text": "Done, no PR."}]},
+            {"type": ClaudeSessionEventStatus.IDLE},
         ]
         mock_client.build_result_from_session.return_value = MagicMock(pr_url=None)
         mock_import_string.return_value = lambda **kwargs: mock_client
@@ -947,8 +819,8 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        # Last event is status_running — agent is already RUNNING, no update needed
-        mock_client.list_session_events.return_value = [{"type": "status_running"}]
+        # Last event is session.status_running — agent is already RUNNING, no update needed
+        mock_client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent()}
@@ -982,7 +854,7 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "agent", "content": []}]
+        mock_client.list_session_events.return_value = [{"type": "agent.message", "content": []}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.PENDING)}
@@ -996,12 +868,14 @@ class TestPollClaudeCodeAgents(TestCase):
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
-    def test_stays_pending_on_status_pending_event(
+    def test_stays_pending_on_status_rescheduling_event(
         self, mock_integration_service, mock_import_string, mock_update_state
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "status_pending"}]
+        mock_client.list_session_events.return_value = [
+            {"type": ClaudeSessionEventStatus.RESCHEDULING}
+        ]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.PENDING)}
@@ -1047,7 +921,7 @@ class TestPollClaudeCodeAgents(TestCase):
 
         def make_client(**kwargs):
             client = MagicMock()
-            client.list_session_events.return_value = [{"type": "status_running"}]
+            client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
             clients[kwargs["api_key"]] = client
             return client
 
@@ -1087,7 +961,7 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "status_running"}]
+        mock_client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agent_a = self._create_claude_agent(agent_id="session-a")

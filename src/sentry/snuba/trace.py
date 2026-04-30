@@ -4,7 +4,9 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypedDict
 
+from sentry import options
 from sentry.uptime.subscriptions.regions import get_region_config
+from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
@@ -38,7 +40,7 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
@@ -619,10 +621,10 @@ def _serialize_columnar_uptime_item(
 def query_trace_data(
     snuba_params: SnubaParams,
     trace_id: str,
+    referrer: str | None,
     error_id: str | None = None,
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
-    referrer: Referrer = Referrer.API_TRACE_VIEW_GET_EVENTS,
     organization: Organization | None = None,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
@@ -634,6 +636,14 @@ def query_trace_data(
     # the thread pool, database connections can hang around as the threads are not cleaned
     # up. Because of that, tests can fail during tear down as there are active connections
     # to the database preventing a DROP.
+    metric_attributes = {"span.status", "origin", "sdk.version"}
+    all_additional_attributes = list({*(additional_attributes or []), *metric_attributes})
+    # Attributes added only for metric tagging that should not appear in the response
+    metric_only_attributes = metric_attributes - set(additional_attributes or [])
+
+    if referrer is None or referrer == "" or not is_valid_referrer(referrer):
+        referrer = Referrer.API_TRACE_VIEW_GET_EVENTS.value
+
     errors_query = _errors_query(snuba_params, trace_id, error_id)
     occurrence_query = _perf_issues_query(snuba_params, trace_id, organization)
     uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
@@ -648,9 +658,9 @@ def query_trace_data(
             Spans.run_trace_query,
             trace_id=trace_id,
             params=snuba_params,
-            referrer=referrer.value,
+            referrer=referrer,
             config=SearchResolverConfig(),
-            additional_attributes=additional_attributes,
+            additional_attributes=all_additional_attributes,
         )
         errors_future = query_thread_pool.submit(
             _run_errors_query,
@@ -674,7 +684,7 @@ def query_trace_data(
         eap_errors_data = _run_errors_query_eap(
             snuba_params=snuba_params,
             trace_id=trace_id,
-            referrer=referrer.value,
+            referrer=referrer,
             error_id=error_id,
         )
         errors_data = EAPOccurrencesComparator.check_and_choose(
@@ -775,6 +785,20 @@ def query_trace_data(
             if span["id"] in id_to_error:
                 errors = id_to_error.pop(span["id"])
                 span["errors"].extend(errors)
+                if span.get("span.status", "") == "ok":
+                    metrics.incr(
+                        "performance.trace.span_with_errors_ok_status",
+                        sample_rate=options.get(
+                            "performance.trace.span_with_errors_ok_status.sample_rate"
+                        ),
+                        tags={
+                            "sdk_name": span.get("sdk.name", ""),
+                            "sdk_version": span.get("sdk.version", ""),
+                            "origin": span.get("origin", ""),
+                            "project_id": str(span.get("project.id", "")),
+                            "project_slug": span.get("project.slug", ""),
+                        },
+                    )
             if span["id"] in id_to_occurrence:
                 occurrences: list[TraceOccurrenceEvent] = [
                     {
@@ -802,6 +826,11 @@ def query_trace_data(
                 "performance.trace.max_ts_offset",
                 snuba_params.end_date.timestamp() - span_max_ts,
             )
+
+    if metric_only_attributes:
+        for span in spans_data:
+            for attr in metric_only_attributes:
+                span.pop(attr, None)
 
     with sentry_sdk.start_span(op="process.errors_data"):
         for errors in id_to_error.values():

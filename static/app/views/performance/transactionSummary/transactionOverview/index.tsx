@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {WebVital} from 'sentry/utils/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
@@ -34,6 +34,7 @@ import {
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
+  EAP_WEB_VITALS,
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
@@ -370,6 +371,8 @@ function getEAPTotalsEventView(
   _organization: Organization,
   eventView: EventView
 ): EventView {
+  const vitals = EAP_WEB_VITALS;
+
   const totalsColumns: QueryFieldValue[] = [
     {
       kind: 'function',
@@ -381,7 +384,16 @@ function getEAPTotalsEventView(
     },
   ];
 
-  return eventView.withColumns([...totalsColumns]);
+  return eventView.withColumns([
+    ...totalsColumns,
+    ...vitals.map(
+      vital =>
+        ({
+          kind: 'function',
+          function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
+        }) as Column
+    ),
+  ]);
 }
 
 export default TransactionOverview;

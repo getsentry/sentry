@@ -48,12 +48,13 @@ import type {
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -61,6 +62,7 @@ export interface GetExploreUrlArgs {
   aggregateField?: Array<GroupBy | BaseVisualize>;
   caseInsensitive?: CaseInsensitive;
   chartSelection?: ChartSelectionQueryParam;
+  crossEvents?: CrossEvent[];
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -92,6 +94,7 @@ export function getExploreUrl({
   title,
   referrer,
   caseInsensitive,
+  crossEvents,
 }: GetExploreUrlArgs) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -117,6 +120,7 @@ export function getExploreUrl({
     referrer,
     caseInsensitive: caseInsensitive ? '1' : undefined,
     chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
+    crossEvents: crossEvents?.length ? JSON.stringify(crossEvents) : undefined,
   };
 
   return (
@@ -320,6 +324,8 @@ export function generateTargetQuery({
       } else {
         search.setFilterValues(groupBy, [value]);
       }
+    } else if (!defined(value)) {
+      search.addFilterValue('!has', groupBy);
     }
   }
 
@@ -713,6 +719,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.PREPROD]: undefined,
   [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
   [TraceItemDataset.PROCESSING_ERRORS]: undefined,
+  [TraceItemDataset.ERRORS]: undefined,
 };
 
 /**

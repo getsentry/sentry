@@ -27,6 +27,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricsEquationVisualize} from 'sentry/views/detectors/components/forms/metric/metricsEquationVisualize';
 import {MetricsVisualize} from 'sentry/views/detectors/components/forms/metric/metricsVisualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -36,6 +37,7 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 /**
@@ -219,9 +221,20 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
 }
 
 export function Visualize() {
+  const organization = useOrganization();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
 
   if (dataset === DetectorDataset.METRICS) {
+    if (canUseMetricsEquationsInAlerts(organization)) {
+      return (
+        <MetricsEquationVisualize
+          projectIds={projectId ? [Number(projectId)] : undefined}
+          environments={environment ? [environment] : undefined}
+        />
+      );
+    }
     return <MetricsVisualize />;
   }
 

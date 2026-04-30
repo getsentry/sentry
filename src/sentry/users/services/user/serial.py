@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
-from django.utils.functional import LazyObject
+from django.utils.functional import LazyObject, empty
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.users.models.user import User
@@ -23,7 +23,10 @@ def serialize_generic_user(user: Any) -> RpcUser | None:
     Return None if the user is anonymous (not logged in).
     """
     if isinstance(user, LazyObject):  # from auth middleware
-        user = getattr(user, "_wrapped")
+        lazy: Any = user
+        if lazy._wrapped is empty:
+            lazy._setup()
+        user = lazy._wrapped
     if user is None or user.id is None:
         return None
     if isinstance(user, RpcUser):

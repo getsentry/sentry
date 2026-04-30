@@ -28,6 +28,8 @@ import {fieldContext, formContext, useFormContext} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const InvalidInput = document.querySelector(
       `#${CSS.escape(formApi.formId)} [aria-invalid="true"]`
     ) as HTMLInputElement;
@@ -57,7 +59,7 @@ const fieldComponents = {
 
 export type BoundFieldComponents = typeof fieldComponents;
 
-const {useAppForm, withFieldGroup} = createFormHook({
+const {useAppForm, withFieldGroup, withForm} = createFormHook({
   fieldComponents,
   formComponents: {
     FieldGroup,
@@ -113,7 +115,8 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 }
 
 export const useScrapsForm = useAppForm;
-export {withFieldGroup};
+/** @public */
+export {formOptions, withFieldGroup, withForm};
 
 /**
  * Type for field errors that can be set after form submission (e.g., from backend validation).
@@ -135,6 +138,8 @@ type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
  * When given a `RequestError`, only keys matching existing form fields are used.
  * String values are used directly; array values use the first element.
  *
+ * @returns `true` if field errors were set, `false` if no valid errors were found (when given a `RequestError` without matching fields).
+ *
  * @example
  * ```tsx
  * // With manual field errors:
@@ -153,11 +158,11 @@ type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
  */
 export function setFieldErrors<
   TForm extends {setErrorMap: (...args: any[]) => unknown; state: {values: unknown}},
->(formApi: TForm, errors: FieldErrors<InferFormData<TForm>> | RequestError): void {
+>(formApi: TForm, errors: FieldErrors<InferFormData<TForm>> | RequestError): boolean {
   if (errors instanceof RequestError) {
     const responseJSON = errors.responseJSON;
     if (!responseJSON) {
-      return;
+      return false;
     }
     const formValues = formApi.state.values;
     const fieldErrors: Record<string, {message: string}> = {};
@@ -179,12 +184,14 @@ export function setFieldErrors<
       formApi.setErrorMap({
         onSubmit: {fields: fieldErrors},
       });
+      return true;
     }
-    return;
+    return false;
   }
   formApi.setErrorMap({
     onSubmit: {
       fields: errors,
     },
   });
+  return true;
 }

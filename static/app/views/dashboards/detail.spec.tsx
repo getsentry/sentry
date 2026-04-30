@@ -33,6 +33,7 @@ import {DashboardState} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
@@ -70,7 +71,7 @@ class MockIntersectionObserver {
     }));
 
     if (entries.length > 0) {
-      this.callback(entries as IntersectionObserverEntry[], this as any);
+      this.callback(entries, this as any);
     }
   }
 }
@@ -84,9 +85,6 @@ describe('Dashboards > Detail', () => {
   const DASHBOARD_WIDGET_ROUTE =
     '/organizations/:orgId/dashboard/:dashboardId/widget/:widgetId/';
   const DASHBOARD_NEW_ROUTE = '/organizations/:orgId/dashboards/new/';
-  const DASHBOARD_TEMPLATE_ROUTE = '/organizations/:orgId/dashboards/new/:templateId/';
-  const DASHBOARD_TEMPLATE_WIDGET_ROUTE =
-    '/organizations/:orgId/dashboards/new/:templateId/widget/:widgetId/';
   const DASHBOARD_WIDGET_BUILDER_ROUTE =
     '/organizations/:orgId/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/';
   const DASHBOARD_NEW_WIDGET_BUILDER_ROUTE =
@@ -115,6 +113,18 @@ describe('Dashboards > Detail', () => {
         ...(route ? {route} : {routes}),
       },
     };
+  }
+
+  /**
+   * Clicks the edit dashboard button and waits for a known button to be visible.
+   * Note that this bypasses hover state to avoid overlays intercepting clicks.
+   */
+  async function activateDashboardEditMode() {
+    const button = await screen.findByRole('button', {name: 'edit-dashboard'});
+    act(() => {
+      button.click();
+    });
+    await screen.findByRole('button', {name: 'Save and Finish'});
   }
 
   window.IntersectionObserver = MockIntersectionObserver as any;
@@ -262,44 +272,6 @@ describe('Dashboards > Detail', () => {
 
       expect(await screen.findByText('Default Widget 1')).toBeInTheDocument();
       expect(screen.getByText('Default Widget 2')).toBeInTheDocument();
-    });
-
-    it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', async () => {
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-
-      render(<CreateDashboard />, {
-        ...makeDashboardRouterConfig({
-          pathname: '/organizations/org-slug/dashboards/new/default-template/widget/2/',
-          route: DASHBOARD_TEMPLATE_WIDGET_ROUTE,
-          query: initialData.router.location.query,
-        }),
-        organization: initialData.organization,
-      });
-
-      await waitFor(() => {
-        expect(openWidgetViewerModal).toHaveBeenCalledWith(
-          expect.objectContaining({
-            organization: initialData.organization,
-            widget: expect.objectContaining({
-              displayType: 'line',
-              interval: '5m',
-              queries: [
-                {
-                  aggregates: ['count()'],
-                  columns: [],
-                  conditions: '',
-                  fields: ['count()'],
-                  name: 'Events',
-                  orderby: 'count()',
-                },
-              ],
-              title: 'Events',
-              widgetType: types.WidgetType.ERRORS,
-            }),
-            onClose: expect.anything(),
-          })
-        );
-      });
     });
   });
 
@@ -502,8 +474,7 @@ describe('Dashboards > Detail', () => {
 
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
 
-      // Enter edit mode.
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
 
       // Remove the second and third widgets
       await userEvent.click(
@@ -581,8 +552,7 @@ describe('Dashboards > Detail', () => {
         })
       );
 
-      // Enter edit mode.
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       expect(await screen.findByRole('button', {name: 'Add Widget'})).toBeInTheDocument();
     });
 
@@ -615,9 +585,40 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
+    it('renders the linked dashboard breadcrumb in the top bar when page frame is enabled', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'page-frame'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
+      );
+
+      const breadcrumbs = await screen.findByTestId('breadcrumb-list');
+      expect(within(breadcrumbs).getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/dashboards/'
+      );
+      expect(within(breadcrumbs).getByText('Custom Errors')).toBeInTheDocument();
+      expect(within(breadcrumbs).getAllByRole('img')).toHaveLength(1);
+      expect(
+        screen.queryByRole('heading', {name: 'Custom Errors'})
+      ).not.toBeInTheDocument();
+    });
+
     it('hides add widget option', async () => {
-      // @ts-expect-error this is assigning to readonly property...
-      types.MAX_WIDGETS = 1;
+      jest.spyOn(types, 'MAX_WIDGETS', 'get').mockReturnValue(1 as 30);
 
       render(
         <OrganizationContext value={initialData.organization}>
@@ -630,8 +631,7 @@ describe('Dashboards > Detail', () => {
         })
       );
 
-      // Enter edit mode.
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       expect(screen.queryByRole('button', {name: 'Add widget'})).not.toBeInTheDocument();
     });
 
@@ -725,7 +725,7 @@ describe('Dashboards > Detail', () => {
         organization: initialData.organization,
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       await userEvent.click(await screen.findByText('Save and Finish'));
 
       expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeInTheDocument();
@@ -767,7 +767,9 @@ describe('Dashboards > Detail', () => {
         organization: initialData.organization,
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
+      // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+      // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
       const widget = (await screen.findByText('First Widget')).closest(
         '.react-grid-item'
       ) as HTMLElement;
@@ -811,7 +813,7 @@ describe('Dashboards > Detail', () => {
         organization: initialData.organization,
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       await userEvent.click(await screen.findByText('Cancel'));
 
       expect(window.confirm).not.toHaveBeenCalled();
@@ -922,70 +924,6 @@ describe('Dashboards > Detail', () => {
           }),
         })
       );
-    });
-
-    it('saves a template with the page filters', async () => {
-      const mockPOST = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/',
-        method: 'POST',
-        body: [],
-      });
-      const locationWithFilters = {
-        ...initialData.router.location,
-        query: {
-          ...initialData.router.location.query,
-          statsPeriod: '7d',
-          project: [2],
-          environment: ['alpha', 'beta'],
-        },
-      };
-      render(<CreateDashboard />, {
-        ...makeDashboardRouterConfig({
-          pathname: '/organizations/org-slug/dashboards/new/default-template/',
-          route: DASHBOARD_TEMPLATE_ROUTE,
-          query: locationWithFilters.query,
-        }),
-        organization: initialData.organization,
-      });
-
-      await userEvent.click(await screen.findByText('Add Dashboard'));
-      expect(mockPOST).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/',
-        expect.objectContaining({
-          data: expect.objectContaining({
-            projects: [2],
-            environment: ['alpha', 'beta'],
-            period: '7d',
-          }),
-        })
-      );
-    });
-
-    it('does not render save and cancel buttons on templates', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/',
-        body: [
-          ReleaseFixture({
-            shortVersion: 'sentry-android-shop@1.2.0',
-            version: 'sentry-android-shop@1.2.0',
-          }),
-        ],
-      });
-      render(<CreateDashboard />, {
-        ...makeDashboardRouterConfig({
-          pathname: '/organizations/org-slug/dashboards/new/default-template/',
-          route: DASHBOARD_TEMPLATE_ROUTE,
-          query: initialData.router.location.query,
-        }),
-        organization: initialData.organization,
-      });
-
-      await userEvent.click(await screen.findByText('24H'));
-      await userEvent.click(screen.getByText('Last 7 days'));
-      await screen.findByText('7D');
-
-      expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
-      expect(screen.queryByText('Save')).not.toBeInTheDocument();
     });
 
     it('opens the widget viewer with saved dashboard filters', async () => {
@@ -1138,7 +1076,6 @@ describe('Dashboards > Detail', () => {
       });
       const browserHistoryPush = jest.spyOn(browserHistory, 'push');
 
-      await screen.findByText('7D');
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
       await userEvent.click(screen.getAllByText('Clear')[0]!);
       screen.getByText('All Releases');
@@ -1236,7 +1173,6 @@ describe('Dashboards > Detail', () => {
       });
       const browserHistoryPush = jest.spyOn(browserHistory, 'push');
 
-      await screen.findByText('7D');
       await userEvent.click(await screen.findByText('All Releases'));
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.keyboard('{Escape}');
@@ -1926,7 +1862,6 @@ describe('Dashboards > Detail', () => {
           dashboard={DashboardFixture([], {
             prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
           })}
-          dashboards={[]}
           onDashboardUpdate={jest.fn()}
         />
       );
@@ -1972,7 +1907,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1991,7 +1925,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2010,7 +1943,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2029,7 +1961,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2059,7 +1990,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2107,7 +2037,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2161,7 +2090,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2219,7 +2147,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {

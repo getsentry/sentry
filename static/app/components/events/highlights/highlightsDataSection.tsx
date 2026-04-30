@@ -1,5 +1,5 @@
-import {useCallback, useMemo, useRef} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {useMemo, useRef} from 'react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -63,7 +63,7 @@ function useOpenEditHighlightsModal({
     [isProjectAdmin]
   );
 
-  const openEditHighlightsModal = useCallback(() => {
+  const openEditHighlightsModal = () => {
     trackAnalytics('highlights.issue_details.edit_clicked', {organization});
     openModal(
       deps => (
@@ -78,7 +78,7 @@ function useOpenEditHighlightsModal({
       ),
       {modalCss: highlightModalCss(theme)}
     );
-  }, [organization, detailedProject, event, theme]);
+  };
 
   return {openEditHighlightsModal, editProps};
 }

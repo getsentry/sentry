@@ -182,7 +182,7 @@ class ReplicatedCellModel(CellOutboxProducingModel):
         Subclasses generally should override payload_for_update to customize
         this behavior.
         """
-        return self.category.as_region_outbox(
+        return self.category.as_cell_outbox(
             model=self,
             payload=self.payload_for_update(),
             shard_identifier=shard_identifier,

@@ -38,7 +38,7 @@ export const replay: OnboardingConfig = {
               filename: 'entry.client.tsx',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/remix";`,
+                importStatement: 'import * as Sentry from "@sentry/remix";',
                 dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
@@ -9,6 +10,7 @@ import {
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DataCategory} from 'sentry/types/core';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
@@ -849,6 +851,32 @@ describe('Subscription > UsageHistory', () => {
     expect(await screen.findByText(/UI Profile Hours/i)).toBeInTheDocument();
     expect(await screen.findByText('2%')).toBeInTheDocument();
     expect(screen.queryByText('>100%')).not.toBeInTheDocument();
+  });
+
+  it('opens the per-project CSV URL for the selected project', async () => {
+    window.open = jest.fn();
+    const project = ProjectFixture({slug: 'my-project'});
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/`,
+      method: 'GET',
+      body: [BillingHistoryFixture()],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<UsageHistory />, {organization});
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: /Download Project Breakdown/i})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'my-project'}));
+
+    expect(window.open).toHaveBeenCalledWith(
+      'https://sentry.io/organizations/acme/billing/history/625529670/export/per-project/my-project/',
+      '_blank'
+    );
   });
 
   it('shows >100% for UI profile duration overage', async () => {

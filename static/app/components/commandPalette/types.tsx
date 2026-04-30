@@ -1,9 +1,8 @@
 import type {ReactNode} from 'react';
+import {queryOptions, type UseQueryOptions} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
-export type CommandPaletteGroupKey = 'search-result' | 'navigate' | 'add' | 'help';
-
-interface CommonCommandPaletteAction {
+interface Action {
   display: {
     /** Primary text shown to the user */
     label: string;
@@ -12,36 +11,37 @@ interface CommonCommandPaletteAction {
     /** Icon to render for this action */
     icon?: ReactNode;
   };
-  /** Section to group the action in the palette */
-  groupingKey?: CommandPaletteGroupKey;
-  /** Whether this action should be hidden from the palette */
-  hidden?: boolean;
   /** Optional keywords to improve searchability */
   keywords?: string[];
+  /** Max results shown before a "See all" expansion item appears */
+  limit?: number;
 }
 
-export interface CommandPaletteActionLink extends CommonCommandPaletteAction {
+export type CMDKQueryOptions = Omit<
+  UseQueryOptions<any, Error, CommandPaletteAction[], any>,
+  'meta'
+> & {
+  meta: {[key: string]: unknown; cmdk: true};
+};
+
+/**
+ * Wraps a query options object and injects the cmdk meta marker required for
+ * the command palette loading indicator to track this query via useIsFetching.
+ * All resource functions passed to CMDKAction must use this helper.
+ */
+export function cmdkQueryOptions(
+  options: Omit<CMDKQueryOptions, 'meta'>
+): CMDKQueryOptions {
+  return queryOptions({...options, meta: {cmdk: true}}) as CMDKQueryOptions;
+}
+
+interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
 }
 
-export interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
-  /**
-   * Execute a callback when the action is selected.
-   * Use the `to` prop if you want to navigate to a route.
-   */
+interface CommandPaletteActionCallback extends Action {
   onAction: () => void;
-}
-
-export type CommandPaletteActionChild =
-  | CommandPaletteActionCallback
-  | CommandPaletteActionLink;
-
-export interface CommandPaletteActionGroup<
-  T = CommandPaletteActionChild,
-> extends CommonCommandPaletteAction {
-  /** Nested actions to show when this action is selected */
-  actions: T[];
 }
 
 export type CommandPaletteAction =
@@ -49,17 +49,7 @@ export type CommandPaletteAction =
   | CommandPaletteActionCallback
   | CommandPaletteActionGroup;
 
-// Internally, a key is added to the actions in order to track them for registration and selection.
-export type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
-export type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
-  key: string;
-};
-type CommandPaletteActionGroupWithKey<T> = CommandPaletteActionGroup<T> & {
-  key: string;
-};
-export type CommandPaletteActionWithKey =
-  | CommandPaletteActionLinkWithKey
-  | CommandPaletteActionCallbackWithKey
-  | CommandPaletteActionGroupWithKey<
-      CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey
-    >;
+interface CommandPaletteActionGroup extends Action {
+  /** Nested actions to show when this action is selected */
+  actions: CommandPaletteAction[];
+}

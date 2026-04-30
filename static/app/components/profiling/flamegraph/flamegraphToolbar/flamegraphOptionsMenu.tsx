@@ -39,13 +39,13 @@ function FlamegraphOptionsMenu({
     [dispatch]
   );
 
-  const onResetZoom = useCallback(() => {
+  const onResetZoom = () => {
     canvasPoolManager.dispatch('reset zoom', []);
     trackAnalytics('profiling_views.flamegraph.zoom.reset', {
       organization,
       profile_type: profileType,
     });
-  }, [canvasPoolManager, organization, profileType]);
+  };
 
   const continuousLocationDescriptor = useMemo(
     () => {

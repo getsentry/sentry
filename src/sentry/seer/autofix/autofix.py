@@ -15,20 +15,18 @@ from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
-from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.types import ExternalProviders
 from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
     get_sorted_code_mapping_configs,
 )
 from sentry.issues.grouptype import WebVitalsGroup
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.agent.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES, AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
@@ -38,12 +36,13 @@ from sentry.seer.autofix.types import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_autofix_repos_from_project_code_mappings,
     make_autofix_start_request,
     make_autofix_update_request,
+    read_preference_from_sentry_db,
 )
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.models import SeerProjectPreference
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.seer.utils import get_github_username_for_user
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
@@ -310,7 +309,10 @@ def _get_trace_tree_for_event(
 
         trace_endpoint = OrganizationTraceEndpoint()
         trace = trace_endpoint.query_trace_data(
-            snuba_params, trace_id, organization=project.organization
+            snuba_params,
+            trace_id,
+            Referrer.SEER_AUTOFIX_GET_TRACE_EVENTS.value,
+            organization=project.organization,
         )
 
         if not trace:
@@ -453,71 +455,11 @@ def _respond_with_error(reason: str, status: int):
     )
 
 
-def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
-    """
-    Get GitHub username for a user by checking multiple sources.
-
-    This function attempts to resolve a Sentry user to their GitHub username by:
-    1. Checking ExternalActor for explicit user→GitHub mappings
-    2. Falling back to CommitAuthor records matched by email (like suspect commits)
-    3. Extracting the GitHub username from the CommitAuthor external_id
-    """
-    # Method 1: Check ExternalActor for direct user→GitHub mapping
-    external_actor: ExternalActor | None = (
-        ExternalActor.objects.filter(
-            user_id=user.id,
-            organization_id=organization_id,
-            provider__in=[
-                ExternalProviders.GITHUB.value,
-                ExternalProviders.GITHUB_ENTERPRISE.value,
-            ],
-        )
-        .order_by("-date_added")
-        .first()
-    )
-
-    if external_actor and external_actor.external_name:
-        username = external_actor.external_name
-        return username[1:] if username.startswith("@") else username
-
-    # Method 2: Check CommitAuthor by email matching (like suspect commits does)
-    # Get all verified emails for this user
-    user_emails: list[str] = []
-    try:
-        # Both User and RpcUser models have a get_verified_emails method
-        if hasattr(user, "get_verified_emails"):
-            verified_emails = user.get_verified_emails()
-            user_emails.extend([e.email for e in verified_emails])
-    except Exception:
-        # If we can't get verified emails, don't use any
-        pass
-
-    if user_emails:
-        # Find CommitAuthors with matching emails that have GitHub external_id
-        commit_author = (
-            CommitAuthor.objects.filter(
-                organization_id=organization_id,
-                email__in=[email.lower() for email in user_emails],
-                external_id__isnull=False,
-            )
-            .exclude(external_id="")
-            .order_by("-id")
-            .first()
-        )
-
-        if commit_author:
-            commit_username = commit_author.get_username_from_external_id()
-            if commit_username:
-                return commit_username
-
-    return None
-
-
 def _call_autofix(
     *,
     user: User | AnonymousUser | RpcUser,
     group: Group,
-    repos: list[dict],
+    preference: SeerProjectPreference,
     serialized_event: dict[str, Any],
     profile: dict[str, Any] | None,
     trace_tree: dict[str, Any] | None,
@@ -535,7 +477,8 @@ def _call_autofix(
         {
             "organization_id": group.organization.id,
             "project_id": group.project.id,
-            "repos": repos,
+            "preference": preference.dict(),
+            "repos": [repo.dict() for repo in preference.repositories],
             "issue": {
                 "id": group.id,
                 "title": group.title,
@@ -691,7 +634,7 @@ def get_all_tags_overview(
     }
 
 
-def trigger_autofix(
+def trigger_legacy_autofix(
     *,
     group: Group,
     event_id: str | None = None,
@@ -737,7 +680,8 @@ def trigger_autofix(
         return _respond_with_error("Cannot fix issues without an event.", 400)
 
     code_mappings = get_sorted_code_mapping_configs(group.project)
-    repos = get_autofix_repos_from_project_code_mappings(group.project, code_mappings=code_mappings)
+
+    preference = read_preference_from_sentry_db(group.project)
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
@@ -777,13 +721,13 @@ def trigger_autofix(
     # get github username for user
     github_username = None
     if not isinstance(user, AnonymousUser):
-        github_username = _get_github_username_for_user(user, group.organization.id)
+        github_username = get_github_username_for_user(user, group.organization.id)
 
     try:
         run_id = _call_autofix(
             user=user,
             group=group,
-            repos=repos,
+            preference=preference,
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
@@ -824,14 +768,14 @@ def trigger_autofix(
     )
 
 
-def update_autofix(
+def update_legacy_autofix(
     *,
     organization_id: int,
     run_id: int,
     payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
 ) -> Response:
     """
-    Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
+    Issue an update to an autofix run. Intentionally matching the output of trigger_legacy_autofix.
     """
     if payload.get("type") in CODING_PAYLOAD_TYPES:
         try:

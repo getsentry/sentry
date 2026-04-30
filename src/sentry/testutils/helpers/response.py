@@ -19,11 +19,21 @@ def is_streaming_response(response: HttpResponseBase) -> TypeGuard[StreamingHttp
 
 async def _async_streaming_response_content(response: StreamingHttpResponse) -> bytes:
     data = []
-    async for chunk in response:
-        data.append(chunk)
+    try:
+        async for chunk in response:
+            data.append(chunk)
+    except RuntimeError as e:
+        if "Event loop is closed" not in str(e):
+            raise
+        # Occurs when the async view and close_streaming_response run on different event
+        # loops. Harmless — all data was already received before httpcore attempts cleanup.
     iterator = response._iterator  # type: ignore[attr-defined]
     if hasattr(iterator, "aclose"):
-        await iterator.aclose()
+        try:
+            await iterator.aclose()
+        except RuntimeError as e:
+            if "Event loop is closed" not in str(e):
+                raise
     return b"".join(data)
 
 

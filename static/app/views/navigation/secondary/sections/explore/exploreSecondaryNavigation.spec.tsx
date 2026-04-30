@@ -27,12 +27,12 @@ describe('ExploreSecondaryNavigation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/assistant/',
       body: [],
     });
   });
@@ -56,5 +56,38 @@ describe('ExploreSecondaryNavigation', () => {
     );
 
     expect(screen.getByText('Traces')).toBeInTheDocument();
+  });
+
+  it('links Discover to homepage when discover-query is enabled', () => {
+    const {organization: orgWithQuery} = initializeOrg({
+      organization: {
+        features: [
+          'performance-view',
+          'visibility-explore-view',
+          'discover-basic',
+          'discover-query',
+        ],
+      },
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: orgWithQuery,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
+        },
+      }
+    );
+
+    expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/discover/homepage/'
+    );
   });
 });

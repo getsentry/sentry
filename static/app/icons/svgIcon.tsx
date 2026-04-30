@@ -4,6 +4,8 @@ import type {ContentVariant, IconSize} from 'sentry/utils/theme';
 
 import {useIconDefaults} from './useIconDefaults';
 
+export type IconVariant = ContentVariant | 'muted';
+
 export interface SVGIconProps extends Omit<
   React.SVGAttributes<SVGSVGElement>,
   'color' | 'type'
@@ -16,7 +18,7 @@ export interface SVGIconProps extends Omit<
   legacySize?: string;
   ref?: React.Ref<SVGSVGElement>;
   size?: IconSize;
-  variant?: ContentVariant | 'muted';
+  variant?: IconVariant;
 }
 
 export function SvgIcon(props: SVGIconProps) {

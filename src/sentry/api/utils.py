@@ -310,7 +310,7 @@ def generate_locality_url(locality_name: str | None = None) -> str:
 
     If locality_name is not provided, it is inferred from the running silo:
     in CELL mode the local cell's locality is used; in MONOLITH mode with
-    SENTRY_REGION set the corresponding locality is resolved from that cell name.
+    SENTRY_LOCAL_CELL set the corresponding locality is resolved from that cell name.
     Falls back to system.url-prefix when no template or locality name is available.
     """
     region_url_template: str | None = options.get("system.region-api-url-template")
@@ -320,9 +320,9 @@ def generate_locality_url(locality_name: str | None = None) -> str:
     if (
         locality_name is None
         and SiloMode.get_current_mode() == SiloMode.MONOLITH
-        and settings.SENTRY_REGION
+        and settings.SENTRY_LOCAL_CELL
     ):
-        locality_name = get_locality_name_for_cell(settings.SENTRY_REGION)
+        locality_name = get_locality_name_for_cell(settings.SENTRY_LOCAL_CELL)
     if not region_url_template or not locality_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", locality_name)

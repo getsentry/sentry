@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -18,10 +19,12 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
   getIntegrationFeatureGate,
+  isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -31,7 +34,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import RouteError from 'sentry/views/routeError';
-import {AddIntegration} from 'sentry/views/settings/organizationIntegrations/addIntegration';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {
@@ -51,7 +53,7 @@ function trackExternalAnalytics({
   organization,
   provider,
 }: {
-  eventName: IntegrationAnalyticsKey;
+  eventName: 'integrations.installation_start';
   organization: Organization | null;
   provider: IntegrationProvider | null;
   startSession?: boolean;
@@ -65,6 +67,7 @@ function trackExternalAnalytics({
     {
       integration_type: 'first_party',
       integration: provider.key,
+      is_scm: isScmProvider(provider),
       // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
       already_installed: false,
       view: 'external_install',
@@ -92,24 +95,22 @@ export default function IntegrationOrganizationLink() {
     {staleTime: Infinity}
   );
 
-  const isOrganizationQueryEnabled = !!selectedOrgSlug;
-  const organizationQuery = useApiQuery<Organization>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/', {
-        path: {organizationIdOrSlug: selectedOrgSlug!},
-      }),
-      {query: {include_feature_flags: 1}},
-    ],
-    {staleTime: Infinity, enabled: isOrganizationQueryEnabled}
+  const hasSelectedOrg = !!selectedOrgSlug;
+  const organizationQuery = useQuery(
+    apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+      path: hasSelectedOrg ? {organizationIdOrSlug: selectedOrgSlug} : skipToken,
+      query: {include_feature_flags: 1},
+      staleTime: Infinity,
+    })
   );
   const organization = organizationQuery.data ?? null;
   useEffect(() => {
-    if (isOrganizationQueryEnabled && organizationQuery.error) {
+    if (hasSelectedOrg && organizationQuery.error) {
       addErrorMessage(t('Failed to retrieve organization details'));
     }
-  }, [isOrganizationQueryEnabled, organizationQuery.error]);
+  }, [hasSelectedOrg, organizationQuery.error]);
 
-  const isProviderQueryEnabled = !!selectedOrgSlug;
+  const isProviderQueryEnabled = hasSelectedOrg;
   const providerQuery = useApiQuery<{
     providers: IntegrationProvider[];
   }>(
@@ -145,7 +146,7 @@ export default function IntegrationOrganizationLink() {
 
   // These two queries are recomputed when an organization is selected
   const isPendingSelection =
-    (isOrganizationQueryEnabled && organizationQuery.isPending) ||
+    (hasSelectedOrg && organizationQuery.isPending) ||
     (isProviderQueryEnabled && providerQuery.isPending);
 
   const selectOrganization = useCallback(
@@ -166,7 +167,7 @@ export default function IntegrationOrganizationLink() {
   useEffect(() => {
     // If only one organization, select it and redirect
     if (organizations.length === 1) {
-      selectOrganization((organizations[0] as Organization).slug);
+      selectOrganization(organizations[0]!.slug);
     }
     // Now, check the subdomain and use that org slug if it exists
     const customerDomain = ConfigStore.get('customerDomain');
@@ -228,37 +229,19 @@ export default function IntegrationOrganizationLink() {
 
     const {IntegrationFeatures} = getIntegrationFeatureGate();
 
-    // Github uses a different installation flow with the installationId as a parameter
-    // We have to wrap our installation button with AddIntegration so we can get the
-    // addIntegrationWithInstallationId callback.
-    // if we don't have an installationId, we need to use the finishInstallation callback.
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
         {({disabled, disabledReason}) => (
-          <AddIntegration
+          <AddIntegrationButton
             provider={provider}
-            onInstall={onInstallWithInstallationId}
             organization={organization}
-          >
-            {addIntegrationWithInstallationId => (
-              <ButtonWrapper>
-                <Button
-                  priority="primary"
-                  disabled={!hasAccess || disabled}
-                  onClick={() =>
-                    installationId
-                      ? addIntegrationWithInstallationId({
-                          installation_id: installationId,
-                        })
-                      : finishInstallation()
-                  }
-                >
-                  {t('Install %s', provider.name)}
-                </Button>
-                {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
-              </ButtonWrapper>
-            )}
-          </AddIntegration>
+            onInstall={onInstallWithInstallationId}
+            installationId={installationId}
+            hasAccess={hasAccess}
+            disabled={disabled}
+            disabledReason={disabledReason}
+            finishInstallation={finishInstallation}
+          />
         )}
       </IntegrationFeatures>
     );
@@ -344,7 +327,7 @@ export default function IntegrationOrganizationLink() {
     const target_url = `https://github.com/${installationData?.account.login}`;
 
     const alertText = tct(
-      `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
+      'GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.',
       {
         account_type: <strong>{installationData?.account.type}</strong>,
         account_login: (
@@ -417,6 +400,50 @@ export default function IntegrationOrganizationLink() {
       </FieldGroup>
       {renderBottom}
     </NarrowLayout>
+  );
+}
+
+function AddIntegrationButton({
+  provider,
+  organization,
+  onInstall,
+  installationId,
+  hasAccess,
+  disabled,
+  disabledReason,
+  finishInstallation,
+}: {
+  disabled: boolean;
+  disabledReason: React.ReactNode;
+  finishInstallation: () => void;
+  hasAccess: boolean | undefined;
+  onInstall: (data: Integration) => void;
+  organization: Organization;
+  provider: IntegrationProvider;
+  installationId?: string;
+}) {
+  const {startFlow} = useAddIntegration();
+
+  return (
+    <ButtonWrapper>
+      <Button
+        priority="primary"
+        disabled={!hasAccess || disabled}
+        onClick={() =>
+          installationId
+            ? startFlow({
+                provider,
+                organization,
+                onInstall,
+                urlParams: {installation_id: installationId},
+              })
+            : finishInstallation()
+        }
+      >
+        {t('Install %s', provider.name)}
+      </Button>
+      {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
+    </ButtonWrapper>
   );
 }
 

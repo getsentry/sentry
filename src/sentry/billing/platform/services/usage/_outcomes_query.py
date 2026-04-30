@@ -28,7 +28,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.orderby import Direction
 
-from sentry.billing.platform.services.usage._category_mapping import proto_to_relay_category
+from sentry.billing.platform.services.category_mapping import proto_to_sentry_category
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
@@ -58,7 +58,7 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     end = _timestamp_to_datetime(request.end) + timedelta(days=1)
     # Proto categories use different int values from Relay/ClickHouse
     # (e.g., proto ATTACHMENT=3 vs Relay ATTACHMENT=4). Convert before querying.
-    categories = [proto_to_relay_category(c) for c in request.categories]
+    categories = [proto_to_sentry_category(c) for c in request.categories]
 
     snuba_request = _build_query(org_id, start, end, categories, total_outcomes=_BILLABLE_OUTCOMES)
     result = raw_snql_query(snuba_request, referrer=_REFERRER)

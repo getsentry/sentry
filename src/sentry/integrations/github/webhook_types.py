@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Any, Literal, TypedDict
 
 GITHUB_WEBHOOK_TYPE_HEADER = "HTTP_X_GITHUB_EVENT"
 GITHUB_WEBHOOK_TYPE_HEADER_KEY = "X-GITHUB-EVENT"
@@ -22,7 +23,25 @@ class GithubWebhookType(StrEnum):
 
 
 # Event type strings (X-GitHub-Event header values) that the cell webhook endpoint processes.
-# INSTALLATION is handled in control only.
-CELL_PROCESSED_GITHUB_EVENTS = frozenset(
-    t.value for t in GithubWebhookType if t != GithubWebhookType.INSTALLATION
+# INSTALLATION and INSTALLATION_REPOSITORIES are handled in control only.
+_CONTROL_ONLY_EVENTS = frozenset(
+    {GithubWebhookType.INSTALLATION, GithubWebhookType.INSTALLATION_REPOSITORIES}
 )
+CELL_PROCESSED_GITHUB_EVENTS = frozenset(
+    t.value for t in GithubWebhookType if t not in _CONTROL_ONLY_EVENTS
+)
+
+
+class GitHubInstallationRepo(TypedDict):
+    id: int
+    full_name: str
+    private: bool
+
+
+class InstallationRepositoriesEvent(TypedDict):
+    action: Literal["added", "removed"]
+    installation: dict[str, Any]
+    repositories_added: list[GitHubInstallationRepo]
+    repositories_removed: list[GitHubInstallationRepo]
+    repository_selection: Literal["all", "selected"]
+    sender: dict[str, Any]

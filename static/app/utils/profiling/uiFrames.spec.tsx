@@ -34,7 +34,7 @@ describe('UIFrames', () => {
     [{unit: 'nanoseconds', values: [{elapsed: 0, value: 1}]}, undefined],
     [undefined, undefined],
   ])(
-    `does not throw`,
+    'does not throw',
     (
       slow: ConstructorParameters<typeof UIFrames>[0]['slow'],
       frozen: ConstructorParameters<typeof UIFrames>[0]['frozen']

@@ -1,16 +1,13 @@
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
+
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 
-export function useDrawerTab({enabled}: {enabled: boolean}) {
-  const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams(
-    'tab',
-    DrawerTab.TAGS
-  );
+const tabParser = parseAsStringLiteral(Object.values(DrawerTab)).withDefault(
+  DrawerTab.TAGS
+);
 
-  return enabled
-    ? {
-        tab: getTabParam() as DrawerTab,
-        setTab: setTabParam,
-      }
-    : {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
+export function useDrawerTab({enabled}: {enabled: boolean}) {
+  const [tab, setTab] = useQueryState('tab', tabParser);
+
+  return enabled ? {tab, setTab} : {tab: DrawerTab.TAGS, setTab: (_tab: DrawerTab) => {}};
 }

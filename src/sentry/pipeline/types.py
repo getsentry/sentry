@@ -41,8 +41,8 @@ class PipelineStepResult:
     data: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def advance(cls, data: dict[str, Any] | None = None) -> PipelineStepResult:
-        return cls(action=PipelineStepAction.ADVANCE, data=data or {})
+    def advance(cls) -> PipelineStepResult:
+        return cls(action=PipelineStepAction.ADVANCE)
 
     @classmethod
     def stay(cls, data: dict[str, Any] | None = None) -> PipelineStepResult:

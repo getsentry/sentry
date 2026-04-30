@@ -293,8 +293,8 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         )
 
 
-class OrganizationDetectorIndexPostTest(APITestCase):
-    endpoint = "sentry-api-0-organization-detector-index"
+class OrganizationDetectorProjectIndexPostTest(APITestCase):
+    endpoint = "sentry-api-0-organization-project-detector-index"
     method = "post"
 
     def setUp(self) -> None:
@@ -308,6 +308,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
+            self.project.slug,
             **invalid_data,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
@@ -325,6 +326,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
+            self.project.slug,
             **valid_data,
             status_code=status.HTTP_201_CREATED,
         )
@@ -360,6 +362,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
+            self.project.slug,
             **valid_data,
             status_code=status.HTTP_201_CREATED,
         )
@@ -393,6 +396,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
+            self.project.slug,
             **invalid_data,
             status_code=status.HTTP_400_BAD_REQUEST,
         )

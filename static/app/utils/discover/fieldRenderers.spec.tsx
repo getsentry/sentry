@@ -420,7 +420,7 @@ describe('getFieldRenderer', () => {
 
     expect(screen.queryByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/123214/`
+      '/organizations/org-slug/issues/123214/'
     );
     expect(screen.getByText('SENTRY-T6P')).toBeInTheDocument();
   });

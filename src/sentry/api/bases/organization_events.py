@@ -29,7 +29,7 @@ from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
-from sentry.discover.arithmetic import is_equation, strip_equation
+from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
 from sentry.discover.models import (
     DatasetSourcesTypes,
     DiscoverSavedQuery,
@@ -52,7 +52,7 @@ from sentry.search.eap.constants import (
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import AdditionalQueries, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
-from sentry.search.events.fields import get_function_alias
+from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -346,22 +346,25 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def _get_rate_unit(self, field: str) -> str | None:
         """Get the rate unit for a field by checking for known rate functions."""
-        # Only use the opening parenthesis to identify rate functions because
-        # some functions may contain arguments, making a direct string match not work.
-        per_second_fns = {"eps(", "sps(", "tps(", "sample_eps(", "per_second("}
-        per_minute_fns = {"epm(", "spm(", "tpm(", "sample_epm(", "per_minute("}
+        per_second_fns = {"eps", "sps", "tps", "sample_eps", "per_second", "per_second_if"}
+        per_minute_fns = {"epm", "spm", "tpm", "sample_epm", "per_minute", "per_minute_if"}
 
-        if any(field.startswith(fn) for fn in per_second_fns):
-            return "1/second"
-        if any(field.startswith(fn) for fn in per_minute_fns):
-            return "1/minute"
         # For equation fields, check if any known rate function appears in the expression
-        if field.startswith("equation|"):
-            for fn in per_second_fns:
-                if fn in field:
+        if is_equation(field):
+            _, _, functions = parse_arithmetic(strip_equation(field))
+            for function in functions:
+                if function_match := is_function(function):
+                    function_name = function_match.group("function")
+                    if function_name in per_second_fns:
+                        return "1/second"
+                    elif function_name in per_minute_fns:
+                        return "1/minute"
+        else:
+            if function_match := is_function(field):
+                function_name = function_match.group("function")
+                if function_name in per_second_fns:
                     return "1/second"
-            for fn in per_minute_fns:
-                if fn in field:
+                if function_name in per_minute_fns:
                     return "1/minute"
         return None
 

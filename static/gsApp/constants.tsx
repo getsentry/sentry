@@ -196,6 +196,16 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ),
     shortenedUnitName: 'GB',
   },
+  [DataCategoryExact.TRACE_METRIC_BYTE]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.TRACE_METRIC_BYTE],
+    canProductTrial: true,
+    freeEventsMultiple: 1,
+    feature: 'expose-category-trace-metric-byte',
+    shortenedUnitName: 'GB',
+    checkoutTooltip: t(
+      'Application Metrics capture key signals from your application using counters, gauges, and distributions.'
+    ),
+  },
   [DataCategoryExact.SEER_USER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER],
     feature: 'seer-user-billing-launch',

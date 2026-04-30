@@ -9,7 +9,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -17,6 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.project import Project
@@ -35,7 +35,7 @@ class OrganizationProjectDetectorPermission(ProjectPermission):
 @extend_schema(tags=["Monitors"])
 class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
     permission_classes = (OrganizationProjectDetectorPermission,)
@@ -54,6 +54,7 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_DETECTOR,
     )
     def post(self, request: Request, project: Project) -> Response:
         """
@@ -67,11 +68,16 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
 
-        # Restrict creating metric issue detectors by plan type
+        # Restrict creating metric issue detectors by plan type.
+        # This is a coarse pre-check; the validator enforces the dataset-specific
+        # is_metric_subscription_allowed check after the dataset is validated.
         if detector_type == MetricIssue.slug and not features.has(
             "organizations:incidents", organization, actor=request.user
         ):
-            raise ResourceDoesNotExist
+            return Response(
+                serialize({"detail": "Unable to process request, confirm payment options."}),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         validator = get_detector_validator(request, project, detector_type)
         if not validator.is_valid():

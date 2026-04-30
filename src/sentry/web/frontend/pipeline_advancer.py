@@ -11,6 +11,7 @@ from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri, create_redirect_url
 from sentry.utils.json import dumps_htmlsafe
 from sentry.web.frontend.base import BaseView, all_silo_view
@@ -28,11 +29,16 @@ TRAMPOLINE_HTML = """\
     style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     flex-direction:column;padding:2rem">
-<script type="module">
+<script type="module" nonce="{nonce}">
   const data = {data_json};
   if (window.opener) {{
     window.opener.postMessage(data, {origin});
     window.close();
+  }} else if ({fallback_url}) {{
+    // GitHub apps installed directly from GitHub won't have an opener window.
+    // Redirect to the integration install org picker instead of showing a
+    // dead-end page.
+    window.location.assign({fallback_url});
   }} else {{
     document.getElementById("fallback").style.display = "flex";
   }}
@@ -44,14 +50,25 @@ TRAMPOLINE_HTML = """\
 </html>"""
 
 
-def _render_trampoline(request: HttpRequest, pipeline: object) -> HttpResponse:
+def _render_trampoline(request: HttpRequest, pipeline: object, provider_id: str) -> HttpResponse:
     """Render a minimal page that posts callback params back to the opener."""
-    params: dict[str, str] = {"source": "sentry-pipeline"}
+    params: dict[str, str] = {"_pipeline_source": "sentry-pipeline"}
     for key, values in parse_qs(request.META.get("QUERY_STRING", "")).items():
         if values:
             params[key] = values[0]
 
     data_json = str(dumps_htmlsafe(params))
+
+    # When the callback looks like a GitHub direct install (setup_action=install
+    # with an installation_id), pre-compute the fallback redirect URL so the
+    # trampoline can navigate there if there's no opener window.
+    installation_id = request.GET.get("installation_id")
+    if request.GET.get("setup_action") == "install" and installation_id:
+        fallback_url = str(
+            dumps_htmlsafe(reverse("integration-installation", args=[provider_id, installation_id]))
+        )
+    else:
+        fallback_url = "null"
 
     # In multi-region the opener may be on a different origin (e.g.
     # org-slug.sentry.io) than the trampoline (sentry.io/extensions/...),
@@ -62,8 +79,15 @@ def _render_trampoline(request: HttpRequest, pipeline: object) -> HttpResponse:
     else:
         origin = "document.origin"
 
+    nonce = getattr(request, "csp_nonce", "")
+
     return HttpResponse(
-        TRAMPOLINE_HTML.format(data_json=data_json, origin=origin),
+        TRAMPOLINE_HTML.format(
+            data_json=data_json,
+            origin=origin,
+            nonce=nonce,
+            fallback_url=fallback_url,
+        ),
         content_type="text/html",
     )
 
@@ -100,12 +124,13 @@ class PipelineAdvancerView(BaseView):
         # GitHub apps may be installed directly from GitHub, in which case
         # they will redirect here *without* being in the pipeline. If that happens
         # redirect to the integration install org picker.
+        installation_id = request.GET.get("installation_id")
         if (
             provider_id == IntegrationProviderSlug.GITHUB.value
             and request.GET.get("setup_action") == "install"
             and pipeline is None
+            and installation_id
         ):
-            installation_id = request.GET.get("installation_id")
             return self.redirect(
                 reverse("integration-installation", args=[provider_id, installation_id])
             )
@@ -118,7 +143,18 @@ class PipelineAdvancerView(BaseView):
         # that relays the callback params back to the opener window via
         # postMessage instead of processing the callback server-side.
         if pipeline.is_api_mode:
-            return _render_trampoline(request, pipeline)
+            metrics.incr(
+                "integrations.pipeline_advancer.trampoline",
+                tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
+                sample_rate=1.0,
+            )
+            return _render_trampoline(request, pipeline, provider_id)
+
+        metrics.incr(
+            "integrations.pipeline_advancer.legacy",
+            tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
+            sample_rate=1.0,
+        )
 
         subdomain = pipeline.fetch_state("subdomain")
         if subdomain is not None and request.subdomain != subdomain:

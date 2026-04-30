@@ -35,6 +35,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.hybridcloud.rpc.resolvers import CellResolutionStrategy
@@ -571,8 +572,13 @@ class _RemoteSiloCall:
         return settings.RPC_TIMEOUT
 
     def _send_to_remote_silo(self, use_test_client: bool) -> Any:
+        vc = get_viewer_context()
+        meta: dict[str, Any] = {}
+        if vc is not None:
+            meta["viewer_context"] = vc.serialize()
+
         request_body = {
-            "meta": {},  # reserved for future use
+            "meta": meta,
             "args": self.serial_arguments,
         }
         data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)

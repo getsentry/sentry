@@ -161,6 +161,20 @@ def _detect_for_config(
             if result.is_triggered:
                 _set_detector_triggered(config, project_id)
                 metrics.incr(f"processing_errors.{config.slug}.triggered")
+                error_types = sorted(
+                    config.handler_cls.error_types.intersection(
+                        filter(None, (e.get("type") for e in errors))
+                    )
+                )
+                logger.info(
+                    "processing_errors.%s.occurrence_created",
+                    config.slug,
+                    extra={
+                        "organization_slug": event.project.organization.slug,
+                        "project_id": project_id,
+                        "error_types": error_types,
+                    },
+                )
 
 
 def detect_processing_issues(job: PostProcessJob) -> None:

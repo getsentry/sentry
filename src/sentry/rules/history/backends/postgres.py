@@ -53,11 +53,17 @@ def convert_hourly_stats(
     return results
 
 
-def get_rule_workflow_ids(target: Workflow | Rule) -> IdPair:
+def get_rule_workflow_ids(target: Workflow | Rule, project_id: int | None = None) -> IdPair:
     if isinstance(target, Workflow):
         workflow_id = target.id
         try:
-            alert_rule_workflow = AlertRuleWorkflow.objects.get(workflow=target)
+            qs = AlertRuleWorkflow.objects.filter(workflow=target)
+            if project_id is not None:
+                # rule_id is not a Django FK, so we use an __in subquery to
+                # scope to the project.  Django evaluates this as a single SQL
+                # statement (subquery), not a separate round-trip.
+                qs = qs.filter(rule_id__in=Rule.objects.filter(project_id=project_id).values("id"))
+            alert_rule_workflow = qs.get()
             rule_id = alert_rule_workflow.rule_id
         except AlertRuleWorkflow.DoesNotExist:
             rule_id = None
@@ -186,8 +192,9 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         end: datetime,
         cursor: Cursor | None = None,
         per_page: int = 25,
+        project_id: int | None = None,
     ) -> CursorResult[RuleGroupHistory]:
-        workflow_id, rule_id = get_rule_workflow_ids(target)
+        workflow_id, rule_id = get_rule_workflow_ids(target, project_id=project_id)
 
         if not workflow_id and isinstance(target, Rule):
             logger.warning("No workflow associated with rule", extra={"rule_id": rule_id})
@@ -257,12 +264,13 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         target: Rule | Workflow,
         start: datetime,
         end: datetime,
+        project_id: int | None = None,
     ) -> Sequence[TimeSeriesValue]:
         start = start.replace(tzinfo=timezone.utc)
         end = end.replace(tzinfo=timezone.utc)
         existing_data: dict[datetime, TimeSeriesValue] = {}
 
-        workflow_id, rule_id = get_rule_workflow_ids(target)
+        workflow_id, rule_id = get_rule_workflow_ids(target, project_id=project_id)
         if not workflow_id and isinstance(target, Rule):
             logger.warning("No workflow associated with rule", extra={"rule_id": target.id})
             existing_data = self._fetch_rule_fire_history_hourly_stats(target, start, end)

@@ -15,6 +15,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     create_preprod_snapshot_status_check_task,
@@ -59,9 +60,6 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
         except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Artifact not found"}, status=404)
 
-        # TODO(hybrid-cloud): approved_by is a User FK (control silo). This cell silo
-        # endpoint stores the ID, and the snapshot GET resolves it via User.objects.filter().
-        # Both will need to use an RPC service when hybrid cloud enforcement is enabled.
         # exists()+create() instead of get_or_create — no unique constraint on this model
         # (see snapshots/tasks.py for rationale)
         already_approved = PreprodComparisonApproval.objects.filter(
@@ -89,11 +87,17 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
         ).delete()
 
         task = STATUS_CHECK_TASK_MAP[feature_type]
-        task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "approval_endpoint",
-            }
+        task(
+            preprod_artifact_id=artifact.id,
+            caller="approval_endpoint",
         )
+
+        if feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS:
+            create_preprod_snapshot_pr_comment_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact.id,
+                    "caller": "approval_endpoint",
+                },
+            )
 
         return Response({"detail": "Approved"}, status=201)

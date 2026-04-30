@@ -3,8 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {testableTransition} from 'sentry/utils/testableTransition';
-
 type TextProps = {
   percent: number;
   theme: Theme;
@@ -67,7 +65,6 @@ const animatedTextDefaultProps = {
   initial: {opacity: 0, y: -10},
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0, y: 10},
-  transition: testableTransition(),
 };
 
 export function ProgressRing({

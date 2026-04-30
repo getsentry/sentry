@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {
@@ -406,19 +406,14 @@ describe('useCopyIssueDetails', () => {
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
-          match: 'command+alt+c',
-          callback: expect.any(Function),
-          skipPreventDefault: expect.any(Boolean),
-        },
-        {
-          match: 'ctrl+alt+c',
+          match: 'mod+alt+c',
           callback: expect.any(Function),
           skipPreventDefault: expect.any(Boolean),
         },
       ]);
     });
 
-    it('provides partial data when event is undefined', () => {
+    it('provides partial data when event is undefined', async () => {
       let capturedText = '';
 
       mockCopy.mockImplementation((text: string) => {
@@ -428,14 +423,7 @@ describe('useCopyIssueDetails', () => {
 
       renderHook(() => useCopyIssueDetails(group, undefined));
 
-      // Trigger the keyboard event (command+alt+c)
-      const keyboardEvent = new KeyboardEvent('keydown', {
-        keyCode: 67, // 'C'.charCodeAt(0)
-        metaKey: true,
-        altKey: true,
-        bubbles: true,
-      } as KeyboardEventInit);
-      document.dispatchEvent(keyboardEvent);
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
@@ -446,7 +434,7 @@ describe('useCopyIssueDetails', () => {
       expect(capturedText).not.toContain('## Exception');
     });
 
-    it('generates markdown with the correct data when event is provided', () => {
+    it('generates markdown with the correct data when event is provided', async () => {
       let capturedText = '';
 
       mockCopy.mockImplementation((text: string) => {
@@ -456,14 +444,7 @@ describe('useCopyIssueDetails', () => {
 
       renderHook(() => useCopyIssueDetails(group, event));
 
-      // Trigger the keyboard event (command+alt+c)
-      const keyboardEvent = new KeyboardEvent('keydown', {
-        keyCode: 67, // 'C'.charCodeAt(0)
-        metaKey: true,
-        altKey: true,
-        bubbles: true,
-      } as KeyboardEventInit);
-      document.dispatchEvent(keyboardEvent);
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);

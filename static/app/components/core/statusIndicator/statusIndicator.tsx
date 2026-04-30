@@ -91,6 +91,18 @@ function getDotTokens(
 }
 
 const gentlePulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+  }
+  33% {
+    transform: scale(0.95);
+  }
+  67% {
+    transform: scale(1.05);
+  }
+`;
+
+const gentleSpin = keyframes`
   0% {
     opacity: 0;
     border-radius: 6px;
@@ -110,22 +122,28 @@ const gentlePulse = keyframes`
 
 const Dot = styled('span')<{variant: StatusIndicatorVariant}>`
   position: relative;
-  isolation: isolate;
-  border-radius: ${p => p.theme.radius.xs};
   width: 8px;
   height: 8px;
-  background-color: ${p => getDotTokens(p.variant, p.theme).dot};
-
   &::before {
     content: '';
     position: absolute;
-    z-index: -1;
     top: -2px;
     left: -2px;
     width: 12px;
     height: 12px;
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => getDotTokens(p.variant, p.theme).pulse};
-    animation: ${gentlePulse} 2.2s cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+    animation: ${gentleSpin} 2.2s cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: ${p => p.theme.radius.xs};
+    background-color: ${p => getDotTokens(p.variant, p.theme).dot};
+    animation: ${gentlePulse} 2.2s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite;
   }
 `;

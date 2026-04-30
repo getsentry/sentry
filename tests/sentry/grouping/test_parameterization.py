@@ -13,6 +13,7 @@ from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
     ParameterizationRegex,
     Parameterizer,
+    _log_example_data,
     experimental_parameterizer,
     is_valid_ip,
     parameterizer,
@@ -49,8 +50,11 @@ standard_cases = [
     ("ip - v4", "11.21.12.31", "<ip>"),
     ("ip - v6 unspecified", "::", "<ip>"),
     ("ip - v6 loopback", "::1", "<ip>"),
+    ("ip - v6 loopback with port", "[::1]:1121", "[<ip>]:<int>"),
     ("ip - v6 ULA", "fc00::/7", "<ip>"),
-    ("ip - v6 compressed", "2012:d157::cbe:908:2013", "<ip>"),
+    ("ip - v6 initial compressed segment", "::cbe:908:2013", "<ip>"),
+    ("ip - v6 compressed segment in middle", "2012:d157::cbe:908:2013", "<ip>"),
+    ("ip - v6 final compressed segment", "2012:d157::", "<ip>"),
     ("ip - v4 mapped to v6", "::ffff:192.168.1.1", "<ip>"),
     ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
     ("ip - double colon object property", "Option::unwrap()", "Option::unwrap()"),
@@ -60,8 +64,15 @@ standard_cases = [
         "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
         "traceparent: <traceparent>",
     ),
-    ("ip - too many initial characters", "12345:6:789", "<int>:<int>:<int>"),
-    ("ip - too many final characters", "123:4:56789", "<int>:<int>:<int>"),
+    ("ip - too few segments", "12:31:99", "<int>:<int>:<int>"),
+    ("ip - too many initial characters", "12345::6:789", "<int>::<int>:<int>"),
+    ("ip - too many final characters", "123:4::56789", "<int>:<int>::<int>"),
+    ("ip - too many initial colons", ":::1121", ":::<int>"),
+    ("ip - too many interior colons", "1231:::1121", "<int>:::<int>"),
+    ("ip - too many final colons", "1231:::", "<int>:::"),
+    ("ip - three colons alone", ":::", ":::"),
+    ("ip - single leading colon", "Script error. :0:0", "Script error. :<int>:<int>"),
+    ("ip - single trailing colon", "12::31:", "<int>::<int>:"),
     ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
     (
         "traceparent - aws, but not word boundary",
@@ -76,6 +87,14 @@ standard_cases = [
     ),
     ("sha1", "5fc35719b9cf96ec602dbc748ff31c587a46961d", "<sha1>"),
     ("md5", "0751007cd28df267e8e051b51f918c60", "<md5>"),
+    ("mac address - lowercase with colons", "e4:55:a8:26:1e:2d", "<mac_addr>"),
+    ("mac address - uppercase with colons", "E4:55:A8:26:1E:2D", "<mac_addr>"),
+    ("mac address - lowercase with dashes", "e4-55-a8-26-1e-2d", "<mac_addr>"),
+    ("mac address - uppercase with dashes", "E4-55-A8-26-1E-2D", "<mac_addr>"),
+    ("mac address - lowercase with spaces", "e4 55 a8 26 1e 2d", "<mac_addr>"),
+    ("mac address - uppercase with spaces", "E4 55 A8 26 1E 2D", "<mac_addr>"),
+    ("mac address - lowercase with dots", "e455.a826.1e2d", "<mac_addr>"),
+    ("mac address - uppercase with dots", "E455.A826.1E2D", "<mac_addr>"),
     ("date", "2024-02-20T22:16:36", "<date>"),
     ("date - RFC822", "Mon, 02 Jan 06 15:04 MST", "<date>"),
     ("date - RFC822Z", "Mon, 02 Jan 06 15:04 -0700", "<date>"),
@@ -184,9 +203,20 @@ standard_cases = [
     ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
     ("hex without prefix - no letters, 8+ digits, negative", "-12345678", "<hex>"),
+    ("hex without prefix - leading underscore", "img_3f26.jpg", "img_<hex>.jpg"),
+    ("hex without prefix - trailing underscore", "3f26_thumbnail.jpg", "<hex>_thumbnail.jpg"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
+    ("random id", "k9Mtd2gDcgG", "<random_id>"),
+    ("random id - too short ", "k9M", "k9M"),
+    ("random id - insufficient letter/number switches", "k92MtdgDcgG", "k92MtdgDcgG"),
+    ("random id - no capitals", "k9mtd2gdcgg", "k9mtd2gdcgg"),
+    ("random id - no capitals until later", "k9mtd2gdcgg DOGS", "k9mtd2gdcgg DOGS"),
+    ("random id - no lowercase", "K9MTD2GDCGG", "K9MTD2GDCGG"),
+    ("random id - no lowercase until later", "K9MTD2GDCGG dogs", "K9MTD2GDCGG dogs"),
+    ("random id - no numbers", "kMtdgDcgG", "kMtdgDcgG"),
+    ("random id - no numbers until later", "kMtdgDcgG 1121", "kMtdgDcgG <int>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
     ("int - negative", "-23", "<int>"),
@@ -195,6 +225,8 @@ standard_cases = [
     ("int - separator negative with space", "value: -17502", "value: <int>"),
     ("int - in dashed string with numbers", "415-908", "<int>-<int>"),
     ("int - in dashed string with letters", "maisey-908", "maisey-<int>"),
+    ("int - leading underscore", "img_1121.jpg", "img_<int>.jpg"),
+    ("int - trailing underscore", "1231_thumbnail.jpg", "<int>_thumbnail.jpg"),
     ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
     ("int - date - invalid day", "2006-01-40", "<int>-<int>-<int>"),
     ("int - date - invalid month", "2006-20-02", "<int>-<int>-<int>"),
@@ -265,6 +297,30 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "date - slashes, day-month-year",
+        "31/Dec/2012",
+        "<date>",
+        "<int>/Dec/<int>",
+    ),
+    (
+        "date - colon btwn date and time",
+        "21/Nov/2012:12:31:12",
+        "<date>",
+        "<int>/Nov/<int>:<date>",
+    ),
+    (
+        "float - postive, too many segments",
+        "1.2.3",
+        "<int>.<int>.<int>",
+        "<float>.<int>",
+    ),
+    (
+        "float - negative, too many segments",
+        "-1.2.3",
+        "<int>.<int>.<int>",
+        "<float>.<int>",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
@@ -275,6 +331,24 @@ incorrect_cases = [
         "4,150,908",
         "<int>",
         "<int>,<int>,<int>",
+    ),
+    (
+        "ip - v4, leading zeros",
+        "11.21.12.001",
+        "<int>.<int>.<int>.<int>",
+        "<float>.<float>",
+    ),
+    (
+        "ip - v4, segment > 255",
+        "12.31.12.908",
+        "<int>.<int>.<int>.<int>",
+        "<float>.<float>",
+    ),
+    (
+        "ip - v4, too many segments",
+        "11.21.12.31.12",
+        "<int>.<int>.<int>.<int>.<int>",
+        "<ip>.<int>",
     ),
     (
         "ip - short double colon object property including only hex",
@@ -295,12 +369,6 @@ incorrect_cases = [
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
         "{'dogs are great': <bool>, 'dog_id': '<id>'}",
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
-    ),
-    (
-        "random sequence as id",
-        "invoice k9Mtd2gDcgG",
-        "invoice <random_str>",
-        "invoice k9Mtd2gDcgG",
     ),
     (
         "url - non-http protocol with username/password/port",
@@ -708,3 +776,42 @@ def test_replacement_callback_false_positive_triggers_individual_regex_fallback(
             )
             == 0
         )
+
+        # We also only counted the false positive once, even though we hit it both during the main
+        # combo-regex parameterization and during fallback
+        assert (
+            count_matching_calls(
+                mock_metrics_incr, "grouping.parameterization_false_positive", tags={"key": "ip"}
+            )
+            == 1
+        )
+
+
+@patch("sentry.grouping.parameterization.logger")
+def test_example_data_logging(mock_logger: MagicMock) -> None:
+    for i in range(15):
+        _log_example_data("dog_fact_1", extra={"input_str": "dogs are great", "num": i}, limit=10)
+
+    for i in range(105):
+        _log_example_data("dog_fact_2", extra={"input_str": "all dogs are good dogs", "num": i})
+
+    # In the first loop, we specified a limit of 10, so the logger was called 10 times, even though
+    # we called the helper 15 times
+    assert (
+        count_matching_calls(
+            mock_logger.info,
+            "grouping.parameterization.dog_fact_1",
+            extra={"input_str": "dogs are great", "num": ANY},
+        )
+        == 10
+    )
+    # In the second loop, we didn't specify a limit, so the logger was called 100 times (the
+    # default limit), even though we called the helper 105 times
+    assert (
+        count_matching_calls(
+            mock_logger.info,
+            "grouping.parameterization.dog_fact_2",
+            extra={"input_str": "all dogs are good dogs", "num": ANY},
+        )
+        == 100
+    )

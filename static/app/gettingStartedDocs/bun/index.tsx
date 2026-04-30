@@ -4,6 +4,7 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
+import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
 import {getNodeLogsOnboarding} from 'sentry/gettingStartedDocs/node/utils';
 
 import {crashReport} from './crashReport';
@@ -14,6 +15,9 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
+  featureFlagOnboarding: featureFlag({
+    packageName: '@sentry/bun',
+  }),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'bun',
     packageName: '@sentry/bun',

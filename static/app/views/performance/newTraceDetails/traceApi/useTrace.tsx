@@ -187,7 +187,7 @@ function useDemoTrace(
   const demoEventQuery = useApiQuery<EventTransaction>(
     [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
         {
           path: {
             organizationIdOrSlug: organization.slug,
@@ -225,6 +225,7 @@ function useDemoTrace(
 type UseTraceOptions = {
   additionalAttributes?: string[];
   limit?: number;
+  referrer?: string;
   /**
    * When passed we make sure that the corresponding event is a part of the trace (if it exists)
    * irrespective of the trace query count limit.
@@ -234,9 +235,9 @@ type UseTraceOptions = {
   traceSlug?: string;
 };
 
-export function useTrace(
-  options: UseTraceOptions
-): UseApiQueryResult<TraceTree.Trace, RequestError> {
+export type TraceQueryResult = UseApiQueryResult<TraceTree.Trace, RequestError>;
+
+export function useTrace(options: UseTraceOptions): TraceQueryResult {
   const filters = usePageFilters();
   const organization = useOrganization();
   const query = qs.parse(location.search);
@@ -282,16 +283,20 @@ export function useTrace(
     maxPickableDays > defaultStatsDays;
 
   const fallbackQueryParams = useMemo(
-    () => ({...queryParams, statsPeriod: `${maxPickableDays}d`}),
-    [queryParams, maxPickableDays]
+    () => ({
+      ...queryParams,
+      statsPeriod: `${maxPickableDays}d`,
+      referrer: options.referrer,
+    }),
+    [queryParams, maxPickableDays, options.referrer]
   );
 
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events-trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
-      {query: queryParams},
+      {query: {...queryParams, referrer: options.referrer}},
     ],
     {
       staleTime: Infinity,
@@ -301,7 +306,7 @@ export function useTrace(
 
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/trace/$traceId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {
@@ -309,6 +314,7 @@ export function useTrace(
           ...queryParams,
           project: -1,
           additional_attributes: options.additionalAttributes,
+          referrer: options.referrer,
         },
       },
     ],
@@ -331,7 +337,7 @@ export function useTrace(
 
   const traceFallbackQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events-trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {query: fallbackQueryParams},
@@ -349,7 +355,7 @@ export function useTrace(
 
   const eapTraceFallbackQuery = useApiQuery<TraceTree.EAPTrace>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/trace/$traceId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {

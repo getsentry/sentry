@@ -35,7 +35,7 @@ describe('Subscription > Notifications', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [],
     });

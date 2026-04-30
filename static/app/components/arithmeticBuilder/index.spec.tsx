@@ -19,13 +19,20 @@ const getSpanFieldDefinition = (key: string) => {
   return getFieldDefinition(key, 'span', argument?.kind);
 };
 
-function ArithmeticBuilderWrapper({expression}: {expression: string}) {
+function ArithmeticBuilderWrapper({
+  expression,
+  references,
+}: {
+  expression: string;
+  references?: Set<string>;
+}) {
   return (
     <ArithmeticBuilder
       aggregations={aggregations}
       functionArguments={functionArguments}
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
+      references={references}
     />
   );
 }
@@ -255,5 +262,13 @@ describe('ArithmeticBuilder', () => {
     }
 
     expect(screen.getAllByRole('row')).toHaveLength(1);
+  });
+
+  it('throws when provided invalid references', () => {
+    expect(() => {
+      render(
+        <ArithmeticBuilderWrapper expression="A + B" references={new Set(['!invalid'])} />
+      );
+    }).toThrow('Invalid reference: !invalid');
   });
 });

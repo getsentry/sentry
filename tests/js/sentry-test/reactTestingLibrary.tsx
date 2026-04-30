@@ -16,20 +16,23 @@ import {
   type Router,
   type RouterNavigateOptions,
 } from '@remix-run/router';
+import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
+import {GlobalDrawer} from '@sentry/scraps/drawer';
+
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {GlobalModal} from 'sentry/components/globalModal';
 import type {Organization} from 'sentry/types/organization';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
@@ -119,11 +122,15 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <OrganizationContext value={optionalOrganization}>
-        <GlobalDrawer>
-          <AdditionalWrapper>{children}</AdditionalWrapper>
-        </GlobalDrawer>
-      </OrganizationContext>
+      <TopBar.Slot.Provider>
+        <LLMContextProvider>
+          <OrganizationContext value={optionalOrganization}>
+            <GlobalDrawer>
+              <AdditionalWrapper>{children}</AdditionalWrapper>
+            </GlobalDrawer>
+          </OrganizationContext>
+        </LLMContextProvider>
+      </TopBar.Slot.Provider>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;
@@ -358,7 +365,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
 
 function renderHookWithProviders<Result = unknown, Props = unknown>(
   callback: (initialProps: Props) => Result,
-  options: RenderHookWithProvidersOptions<Props> = {} as RenderHookWithProvidersOptions<Props>
+  options: RenderHookWithProvidersOptions<Props> = {}
 ): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 

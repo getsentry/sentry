@@ -1,18 +1,15 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -20,10 +17,8 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,7 +32,13 @@ import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueLi
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
-import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
+import {
+  BULK_LIMIT,
+  BULK_LIMIT_STR,
+  ConfirmAction,
+  invalidateIssueQueries,
+  performBulkUpdate,
+} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
@@ -183,6 +184,7 @@ export function IssueListActions({
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
+  const area = useAnalyticsArea();
   const theme = useTheme();
 
   const disableActions = useMedia(
@@ -247,110 +249,30 @@ export function IssueListActions({
           project_id: trackProject?.id,
           platform: trackProject?.platform,
           items_merged: allInQuerySelected ? 'all_in_query' : itemIds?.length,
+          area,
         });
       }
     });
   }
 
-  // If all selected groups are from the same project, return the project ID.
-  // Otherwise, return the global selection projects. This is important because
-  // resolution in release requires that a project is specified, but the global
-  // selection may not have that information if My Projects is selected.
-  function getSelectedProjectIds(selectedGroupIds: string[] | undefined) {
-    if (!selectedGroupIds) {
-      return selection.projects;
-    }
-
-    const groups = selectedGroupIds.map(id => GroupStore.get(id));
-
-    const projectIds = new Set(groups.map(group => group?.project?.id).filter(defined));
-
-    if (projectIds.size === 1) {
-      return [...projectIds];
-    }
-
-    return selection.projects;
-  }
-
   function handleUpdate(data: IssueUpdateData) {
-    if ('status' in data && data.status === 'ignored') {
-      const statusDetails =
-        'ignoreCount' in data.statusDetails
-          ? 'ignoreCount'
-          : 'ignoreDuration' in data.statusDetails
-            ? 'ignoreDuration'
-            : 'ignoreUserCount' in data.statusDetails
-              ? 'ignoreUserCount'
-              : undefined;
-      trackAnalytics('issues_stream.archived', {
-        action_status_details: statusDetails,
-        action_substatus: data.substatus,
-        organization,
-      });
-    }
-
-    if ('priority' in data) {
-      trackAnalytics('issues_stream.updated_priority', {
-        organization,
-        priority: data.priority,
-      });
-    }
-
     actionSelectedGroups(itemIds => {
-      // If `itemIds` is undefined then it means we expect to bulk update all items
-      // that match the query.
-      //
-      // We need to always respect the projects selected in the global selection header:
-      // * users with no global views requires a project to be specified
-      // * users with global views need to be explicit about what projects the query will run against
-      const projectConstraints = {project: getSelectedProjectIds(itemIds)};
-
-      if (itemIds?.length) {
-        addLoadingMessage(t('Saving changes\u2026'));
-      }
-
-      bulkUpdate(
+      performBulkUpdate({
         api,
-        {
-          orgId: organization.slug,
-          itemIds,
-          data,
-          query,
-          environment: selection.environments,
-          failSilently: true,
-          ...projectConstraints,
-          ...selection.datetime,
+        data,
+        itemIds,
+        organizationSlug: organization.slug,
+        query,
+        selection,
+        onSuccess: updatedItemIds => {
+          onActionTaken?.(updatedItemIds ?? [], data);
+          invalidateIssueQueries({
+            itemIds: updatedItemIds,
+            organizationSlug: organization.slug,
+            queryClient,
+          });
         },
-        {
-          success: () => {
-            clearIndicators();
-            onActionTaken?.(itemIds ?? [], data);
-
-            // Prevents stale data on issue details
-            if (itemIds?.length) {
-              for (const itemId of itemIds) {
-                queryClient.invalidateQueries({
-                  queryKey: [`/organizations/${organization.slug}/issues/${itemId}/`],
-                  exact: false,
-                });
-              }
-            } else {
-              // If we're doing a full query update we invalidate all issue queries to be safe
-              queryClient.invalidateQueries({
-                predicate: apiQuery =>
-                  typeof apiQuery.queryKey[0] === 'string' &&
-                  apiQuery.queryKey[0].startsWith(
-                    `/organizations/${organization.slug}/issues/`
-                  ),
-              });
-            }
-          },
-          error: () => {
-            clearIndicators();
-            addErrorMessage(t('Unable to update issues'));
-          },
-        }
-      );
+      });
     });
   }
 
@@ -377,8 +299,8 @@ export function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <Alert system variant="warning" showIcon={false}>
-          <Flex justify="center" wrap="wrap" gap="md">
+        <Alert system variant="info">
+          <Flex justify="start" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(

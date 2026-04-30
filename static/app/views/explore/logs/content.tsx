@@ -1,10 +1,14 @@
-import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';
@@ -15,6 +19,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -24,15 +29,18 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 export default function LogsContent() {
   const organization = useOrganization();
+  const tableExpando = useTableExpando();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
@@ -57,29 +65,58 @@ export default function LogsContent() {
             : undefined
         }
       >
-        <LogsQueryParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          source="location"
-        >
-          <Stack flex={1}>
-            <LogsHeader />
-            <LogsPageDataProvider allowHighFidelity>
-              {defined(onboardingProject) ? (
-                <LogsTabOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                  datePageFilterProps={datePageFilterProps}
-                />
-              ) : (
-                <LogsTabContent datePageFilterProps={datePageFilterProps} />
-              )}
-            </LogsPageDataProvider>
-          </Stack>
-        </LogsQueryParamsProvider>
+        <AnalyticsArea name="explore.logs">
+          <LogsPageStack
+            flex={1}
+            data-footer-constrained={tableExpando.enabled ? '' : undefined}
+            data-hide-footer={tableExpando.expanded === true ? '' : undefined}
+          >
+            <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              source="location"
+            >
+              <LogsHeader />
+              <LogsPageDataProvider allowHighFidelity>
+                {defined(onboardingProject) ? (
+                  <LogsTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    datePageFilterProps={datePageFilterProps}
+                  />
+                ) : (
+                  <LogsTabContent
+                    datePageFilterProps={datePageFilterProps}
+                    tableExpando={tableExpando}
+                  />
+                )}
+              </LogsPageDataProvider>
+            </LogsQueryParamsProvider>
+          </LogsPageStack>
+        </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
+
+const LogsPageStack = styled(Stack)`
+  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
+    &[data-footer-constrained] ~ footer {
+      display: none;
+    }
+  }
+
+  &[data-hide-footer] ~ footer {
+    display: none;
+  }
+`;
+
+const logsFeedbackOptions = {
+  messagePlaceholder: t('How can we make logs work better for you?'),
+  tags: {
+    ['feedback.source']: 'logs-listing',
+    ['feedback.owner']: 'performance',
+  },
+};
 
 function LogsHeader() {
   const pageId = useQueryParamsId();
@@ -91,36 +128,54 @@ function LogsHeader() {
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
 
-  return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${t('Logs')}`}
-            orgSlug={organization?.slug}
-          />
-        ) : null}
-        {title && defined(pageId) ? (
-          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
-        ) : null}
+  const documentTitle = hasSavedQueryTitle ? (
+    <SentryDocumentTitle
+      title={`${savedQuery.name} — ${t('Logs')}`}
+      orgSlug={organization?.slug}
+    />
+  ) : null;
 
-        <Layout.Title>{title ? title : t('Logs')}</Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <FeedbackButton
-            feedbackOptions={{
-              messagePlaceholder: t('How can we make logs work better for you?'),
-              tags: {
-                ['feedback.source']: 'logs-listing',
-                ['feedback.owner']: 'performance',
-              },
-            }}
+  const titleTooltip = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/explore/logs/"
+      title={t(
+        'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
+      )}
+      linkLabel={t('Read the Docs')}
+    />
+  );
+
+  const hasBreadcrumb = Boolean(title && defined(pageId));
+
+  return (
+    <Fragment>
+      {documentTitle}
+      <TopBar.Slot name="title">
+        {hasBreadcrumb ? (
+          <ExploreBreadcrumb
+            traceItemDataset={TraceItemDataset.LOGS}
+            savedQueryName={savedQuery?.name}
           />
-          {defined(onboardingProject) && <SetupLogsButton />}
-        </Grid>
-      </Layout.HeaderActions>
-    </Layout.Header>
+        ) : (
+          title || t('Logs')
+        )}
+        {titleTooltip}
+      </TopBar.Slot>
+      {defined(onboardingProject) && (
+        <TopBar.Slot name="actions">
+          <SetupLogsButton />
+        </TopBar.Slot>
+      )}
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          feedbackOptions={logsFeedbackOptions}
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 
@@ -151,7 +206,6 @@ function SetupLogsButton() {
       priority="primary"
       href="https://docs.sentry.io/product/explore/logs/getting-started/"
       external
-      size="xs"
       onClick={() => {
         trackAnalytics('logs.explorer.setup_button_clicked', {
           organization,

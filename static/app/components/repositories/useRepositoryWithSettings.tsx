@@ -17,7 +17,7 @@ export function getRepositoryWithSettingsQueryKey(
   repoId: string
 ) {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/repos/$repoId/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/repos/$repoId/', {
       path: {organizationIdOrSlug: organization.slug, repoId},
     }),
     {query: {expand: 'settings'}},

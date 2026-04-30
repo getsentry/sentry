@@ -1,15 +1,14 @@
 import {useMemo} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import type {UseMutationOptions} from '@tanstack/react-query';
 
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  useMutation,
-  useQueryClient,
-  type UseMutationOptions,
-} from 'sentry/utils/queryClient';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -114,7 +113,7 @@ export function useUpdateBulkAutofixAutomationSettings(
       return fetchMutation({
         method: 'POST',
         url: getApiUrl(
-          `/organizations/$organizationIdOrSlug/autofix/automation-settings/`,
+          '/organizations/$organizationIdOrSlug/autofix/automation-settings/',
           {
             path: {organizationIdOrSlug: organization.slug},
           }
@@ -124,13 +123,14 @@ export function useUpdateBulkAutofixAutomationSettings(
     },
     ...options,
     onSettled: (...args) => {
+      const bulkAutofixAutomationSettingsQueryOptions =
+        bulkAutofixAutomationSettingsInfiniteOptions({
+          organization,
+        });
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl(`/organizations/$organizationIdOrSlug/autofix/automation-settings/`, {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
+        queryKey: bulkAutofixAutomationSettingsQueryOptions.queryKey,
       });
+
       const [, , data] = args;
       data.projectIds.forEach(projectId => {
         const project = projectsById.get(projectId);
@@ -139,29 +139,15 @@ export function useUpdateBulkAutofixAutomationSettings(
         }
         // Invalidate the query for ProjectOptions to Settings>Project>Seer details page
         queryClient.invalidateQueries({
-          queryKey: [
-            getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                projectIdOrSlug: project.slug,
-              },
-            }),
-          ],
+          queryKey: makeDetailedProjectQueryKey({
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+          }),
         });
         // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
-        queryClient.invalidateQueries({
-          queryKey: [
-            getApiUrl(
-              `/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/`,
-              {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }
-            ),
-          ],
-        });
+        queryClient.invalidateQueries(
+          projectSeerPreferencesApiOptions(organization.slug, project.slug)
+        );
       });
 
       options?.onSettled?.(...args);

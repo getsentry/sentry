@@ -11,7 +11,7 @@ import {
   guessPlatformForProject,
 } from 'sentry/views/settings/project/preprod/types';
 
-export function MobileBuildPreviewSection() {
+export function MobileBuildPreviewSection({step}: {step: number}) {
   const measurement =
     usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.measurement) ??
     'install_size';
@@ -39,7 +39,7 @@ export function MobileBuildPreviewSection() {
   const thresholdDisplay = highThreshold ? `${threshold} ${thresholdUnit}` : '\u2026';
 
   return (
-    <IssuePreviewSection>
+    <IssuePreviewSection step={step}>
       <DetectorIssuePreview
         issueTitle={t('%s threshold exceeded', metricLabel)}
         project={project}

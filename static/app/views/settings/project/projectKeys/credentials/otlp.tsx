@@ -69,7 +69,7 @@ export function OtlpTab({
           <FieldGroup
             label={t('OTLP Logs Endpoint')}
             help={tct(
-              `Set this URL as your OTLP exporter's log endpoint. [link:Learn more]`,
+              "Set this URL as your OTLP exporter's log endpoint. [link:Learn more]",
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-logs" />
@@ -86,7 +86,7 @@ export function OtlpTab({
 
           <FieldGroup
             label={t('OTLP Logs Endpoint Headers')}
-            help={t(`Set these security headers when configuring your OTLP exporter.`)}
+            help={t('Set these security headers when configuring your OTLP exporter.')}
             inline={false}
             flexibleControlStateSize
           >
@@ -102,7 +102,7 @@ export function OtlpTab({
           <FieldGroup
             label={t('OTLP Traces Endpoint')}
             help={tct(
-              `Set this URL as your OTLP exporter's trace endpoint. [link:Learn more]`,
+              "Set this URL as your OTLP exporter's trace endpoint. [link:Learn more]",
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-traces" />
@@ -119,7 +119,7 @@ export function OtlpTab({
 
           <FieldGroup
             label={t('OTLP Traces Endpoint Headers')}
-            help={t(`Set these security headers when configuring your OTLP exporter.`)}
+            help={t('Set these security headers when configuring your OTLP exporter.')}
             inline={false}
             flexibleControlStateSize
           >

@@ -15,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useIsShortViewport} from 'sentry/utils/useIsShortViewport';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -118,6 +119,7 @@ function Graph({
   timeseriesResult,
   visualize,
 }: GraphProps) {
+  const isShortViewport = useIsShortViewport();
   const {isEmpty: tableIsEmpty, isPending: tableIsPending} = useLogsPageDataQueryResult();
 
   const aggregate = visualize.yAxis;
@@ -222,7 +224,9 @@ function Graph({
     <Widget
       Title={Title}
       Actions={Actions}
-      Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
+      Visualization={
+        visualize.visible && <ChartVisualization chartInfo={chartInfo} notMerge={false} />
+      }
       Footer={
         visualize.visible && (
           <ConfidenceFooter
@@ -235,7 +239,7 @@ function Graph({
           />
         )
       }
-      height={visualize.visible ? 200 : 50}
+      height={visualize.visible ? (isShortViewport ? 175 : 200) : 50}
       revealActions="always"
     />
   );

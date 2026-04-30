@@ -24,7 +24,6 @@ import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -33,7 +32,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -48,6 +46,7 @@ import type {
   Widget,
 } from 'sentry/views/dashboards/types';
 import {
+  DashboardFilter,
   DEFAULT_WIDGET_NAME,
   DisplayType,
   MAX_WIDGETS,
@@ -143,8 +142,7 @@ function AddToDashboardModal({
   const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
   const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
   const shouldOpenWidgetLibrary =
-    !isWidgetEditable(widget.displayType) ||
-    (widgetTemplate && widgetTemplate.isCustomizable === false);
+    !isWidgetEditable(widget.displayType) || widgetTemplate?.isCustomizable === false;
 
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
@@ -152,7 +150,7 @@ function AddToDashboardModal({
   };
 
   const handleWidgetTableColumnResize = (columns: TabularColumn[]) => {
-    const widths = columns.map(column => column.width as number);
+    const widths = columns.map(column => column.width!);
     setTableWidths(widths);
   };
 
@@ -169,7 +167,9 @@ function AddToDashboardModal({
     // Track mounted state so we dont call setState on unmounted components
     let unmounted = false;
 
-    fetchDashboards(api, organization.slug).then(response => {
+    fetchDashboards(api, organization.slug, {
+      filter: DashboardFilter.EXCLUDE_PREBUILT,
+    }).then(response => {
       // If component has unmounted, dont set state
       if (unmounted) {
         return;
@@ -388,7 +388,6 @@ function AddToDashboardModal({
           tooltipOptions: {position: 'right', isHoverable: true},
         },
         ...dashboards
-          .filter(dashboard => !defined(dashboard.prebuiltId)) // Cannot add to prebuilt dashboards
           .filter(dashboard =>
             // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
             currentDashboardId ? dashboard.id !== currentDashboardId : true
@@ -540,7 +539,6 @@ function AddToDashboardModal({
                         disableTableActions
                       />
                     </WidgetCardWrapper>
-                    <IndexedEventsSelectionAlert widget={widget} />
                   </MEPSettingProvider>
                 </DashboardsMEPProvider>
               )}

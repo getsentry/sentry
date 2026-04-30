@@ -266,7 +266,7 @@ export function PlatformPicker({
           title={t("We don't have an SDK for that yet!")}
         >
           {tct(
-            `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
+            "Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].",
             {
               linkOther: (
                 <Button

@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -14,12 +16,7 @@ import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -38,17 +35,17 @@ export function UserDetails() {
   const queryClient = useQueryClient();
 
   const makeFetchUserQueryKey = (): ApiQueryKey => [
-    getApiUrl(`/users/$userId/`, {
+    getApiUrl('/users/$userId/', {
       path: {userId},
     }),
   ];
   const makeFetchUserIdentitiesQueryKey = (): ApiQueryKey => [
-    getApiUrl(`/users/$userId/user-identities/`, {
+    getApiUrl('/users/$userId/user-identities/', {
       path: {userId},
     }),
   ];
   const makeFetchTokensQueryKey = (): ApiQueryKey => [
-    getApiUrl(`/api-tokens/`),
+    getApiUrl('/api-tokens/'),
     {query: {userId}},
   ];
 

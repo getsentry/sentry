@@ -427,6 +427,27 @@ export function getGroupActivityItem(
           message: tct('by [author] in a commit', {author}),
         };
       }
+      case GroupActivityType.REFERENCED_IN_COMMIT: {
+        if (activity.data.commit) {
+          return {
+            title: t('Referenced in Commit'),
+            message: tct('by [author] in [commit]', {
+              author,
+              commit: (
+                <CommitLink
+                  inline
+                  commitId={activity.data.commit.id}
+                  repository={activity.data.commit.repository}
+                />
+              ),
+            }),
+          };
+        }
+        return {
+          title: t('Referenced in Commit'),
+          message: tct('by [author] in a commit', {author}),
+        };
+      }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;

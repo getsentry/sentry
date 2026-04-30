@@ -17,7 +17,7 @@ beforeEach(() => {
 describe('StackTracePreview', () => {
   it('renders error message', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/123/events/recommended/`,
+      url: '/organizations/org-slug/issues/123/events/recommended/',
       statusCode: 400,
     });
 
@@ -30,7 +30,7 @@ describe('StackTracePreview', () => {
 
   it('warns about no stacktrace', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/123/events/recommended/`,
+      url: '/organizations/org-slug/issues/123/events/recommended/',
       body: EventFixture({id: '456', entries: []}),
     });
 
@@ -94,7 +94,7 @@ describe('StackTracePreview', () => {
     } as EventError;
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/123/events/recommended/`,
+      url: '/organizations/org-slug/issues/123/events/recommended/',
       body: EventFixture(errorEvent),
     });
 

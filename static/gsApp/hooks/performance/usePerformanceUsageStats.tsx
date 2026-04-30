@@ -27,7 +27,7 @@ export function usePerformanceUsageStats({
   projectIds: PageFilters['projects'];
 }) {
   const {start, end, period} = dateRange;
-  const pathname = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+  const pathname = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
     path: {organizationIdOrSlug: organization.slug},
   });
 

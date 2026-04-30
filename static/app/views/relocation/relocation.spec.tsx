@@ -14,7 +14,7 @@ jest.mock('sentry/actionCreators/indicator');
 
 const fakeOrgSlug = 'test-org';
 const fakePromoCode = 'free-hugs';
-const fakePublicKey = `FAKE-PK-ANY`;
+const fakePublicKey = 'FAKE-PK-ANY';
 
 type FakeRegion = {
   name: string;
@@ -215,7 +215,7 @@ describe('Relocation', () => {
       // Note: only one fails, but that is enough.
       const failingFetchExistingEarthRelocation = MockApiClient.addMockResponse({
         host: fakeRegions.Earth!.url,
-        url: `/relocations/`,
+        url: '/relocations/',
         statusCode: 400,
       });
       const successfulFetchExistingMoonRelocation = MockApiClient.addMockResponse({
@@ -297,7 +297,7 @@ describe('Relocation', () => {
       // Note: only one fails, but that is enough.
       const failingFetchEarthPublicKey = MockApiClient.addMockResponse({
         host: fakeRegions.Earth!.url,
-        url: `/publickeys/relocations/`,
+        url: '/publickeys/relocations/',
         statusCode: 400,
       });
       const successfulFetchMoonPublicKey = MockApiClient.addMockResponse({
@@ -452,7 +452,7 @@ describe('Relocation', () => {
 
     it('starts relocation job if form data is available from previous steps', async () => {
       const postRelocation = MockApiClient.addMockResponse({
-        url: `/relocations/`,
+        url: '/relocations/',
         method: 'POST',
         responseJSON: [
           {
@@ -489,7 +489,7 @@ describe('Relocation', () => {
 
     it('throws error if user already has an in-progress relocation job', async () => {
       const postRelocation = MockApiClient.addMockResponse({
-        url: `/relocations/`,
+        url: '/relocations/',
         method: 'POST',
         statusCode: 409,
       });
@@ -514,7 +514,7 @@ describe('Relocation', () => {
 
     it('throws error if daily limit of relocations has been reached', async () => {
       const postRelocation = MockApiClient.addMockResponse({
-        url: `/relocations/`,
+        url: '/relocations/',
         method: 'POST',
         statusCode: 429,
       });
@@ -539,7 +539,7 @@ describe('Relocation', () => {
 
     it('throws error if user session has expired', async () => {
       const postRelocation = MockApiClient.addMockResponse({
-        url: `/relocations/`,
+        url: '/relocations/',
         method: 'POST',
         statusCode: 401,
       });
@@ -562,7 +562,7 @@ describe('Relocation', () => {
 
     it('throws error for 500 error', async () => {
       const postRelocation = MockApiClient.addMockResponse({
-        url: `/relocations/`,
+        url: '/relocations/',
         method: 'POST',
         statusCode: 500,
       });

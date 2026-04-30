@@ -85,7 +85,7 @@ def _configure_test_env_cells() -> None:
         RegionCategory.MULTI_TENANT,
     )
 
-    settings.SENTRY_REGION = cell_name
+    settings.SENTRY_LOCAL_CELL = cell_name
     settings.SENTRY_MONOLITH_REGION = cell_name
 
     # This not only populates the environment with the default cell, but also

@@ -13,6 +13,7 @@ export const PENDING_DELETION = 'Pending Deletion';
 export const POPULARITY_WEIGHT: Record<string, number> = {
   // First-party-integrations
   slack: 50,
+  slack_staging: 49,
   github: 20,
   jira: 15,
   bitbucket: 10,

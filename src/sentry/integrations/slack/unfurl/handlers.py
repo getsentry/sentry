@@ -1,12 +1,16 @@
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.slack.unfurl.dashboards import dashboards_handler
 from sentry.integrations.slack.unfurl.discover import discover_handler
+from sentry.integrations.slack.unfurl.explore import explore_handler
 from sentry.integrations.slack.unfurl.issues import issues_handler
 from sentry.integrations.slack.unfurl.metric_alerts import metric_alert_handler
 from sentry.integrations.slack.unfurl.types import Handler, LinkType
 
 link_handlers: dict[LinkType, Handler] = {
+    LinkType.EXPLORE: explore_handler,
+    LinkType.DASHBOARDS: dashboards_handler,
     LinkType.DISCOVER: discover_handler,
     LinkType.METRIC_ALERT: metric_alert_handler,
     LinkType.ISSUES: issues_handler,

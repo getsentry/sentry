@@ -80,6 +80,7 @@ export function Layout() {
                 Spike Projection Generation
               </NavLink>
               <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+              <NavLink to="/_admin/seer/">Seer</NavLink>
             </Navigation>
             <div>
               <ThemeToggle
@@ -116,7 +117,7 @@ const AppContainer = styled('div')`
   padding-left: var(--sidebarWidth);
 `;
 
-const Content = styled(`main`)`
+const Content = styled('main')`
   width: 100%;
   max-width: var(--contentWidth);
   padding: 0 ${p => p.theme.space['2xl']};

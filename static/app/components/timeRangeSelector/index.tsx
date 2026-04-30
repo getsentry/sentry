@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import * as React from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
@@ -27,7 +28,6 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {DateRange} from './dateRange';
 import {SelectorItems} from './selectorItems';
@@ -168,7 +168,7 @@ export function TimeRangeSelector({
   menuFooterMessage,
   ...selectProps
 }: TimeRangeSelectorProps) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const organization = useOrganization({allowNull: true});
 
   const defaultMaxPickableDays = useDefaultMaxPickableDays();
@@ -270,34 +270,31 @@ export function TimeRangeSelector({
     );
   }, [showRelative, onChange, internalValue, hasChanges]);
 
-  const handleChange = useCallback(
-    (option: SelectOption<string>) => {
-      // The absolute option was selected -> open absolute selector
-      if (option.value === ABSOLUTE_OPTION_VALUE) {
-        setInternalValue(current => {
-          const defaultStart = defaultAbsolute?.start
-            ? defaultAbsolute.start
-            : getPeriodAgo(
-                'hours',
-                parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-              ).toDate();
-          const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
-          return {
-            ...current,
-            // Update default values for absolute selector
-            start: start ? getInternalDate(start, utc) : defaultStart,
-            end: end ? getInternalDate(end, utc) : defaultEnd,
-          };
-        });
-        setShowAbsoluteSelector(true);
-        return;
-      }
+  const handleChange = (option: SelectOption<string>) => {
+    // The absolute option was selected -> open absolute selector
+    if (option.value === ABSOLUTE_OPTION_VALUE) {
+      setInternalValue(current => {
+        const defaultStart = defaultAbsolute?.start
+          ? defaultAbsolute.start
+          : getPeriodAgo(
+              'hours',
+              parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
+            ).toDate();
+        const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
+        return {
+          ...current,
+          // Update default values for absolute selector
+          start: start ? getInternalDate(start, utc) : defaultStart,
+          end: end ? getInternalDate(end, utc) : defaultEnd,
+        };
+      });
+      setShowAbsoluteSelector(true);
+      return;
+    }
 
-      setInternalValue(current => ({...current, relative: option.value}));
-      onChange?.({relative: option.value, start: undefined, end: undefined});
-    },
-    [start, end, utc, defaultAbsolute, defaultPeriod, relative, onChange]
-  );
+    setInternalValue(current => ({...current, relative: option.value}));
+    onChange?.({relative: option.value, start: undefined, end: undefined});
+  };
 
   const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
 
@@ -420,7 +417,7 @@ export function TimeRangeSelector({
 
                           trackAnalytics('dateselector.utc_changed', {
                             utc: newUtc,
-                            path: getRouteStringFromRoutes(routes),
+                            path: getRouteStringFromRoutes({matches}),
                             organization,
                           });
 

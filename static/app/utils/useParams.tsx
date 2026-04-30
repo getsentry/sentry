@@ -20,7 +20,9 @@ type ParamKeys =
   | 'baseArtifactId'
   | 'beaconId'
   | 'broadcastId'
+  | 'clientID'
   | 'codeId'
+  | 'conversationId'
   | 'dashboardId'
   | 'dataExportId'
   | 'dataForwarderId'
@@ -74,6 +76,7 @@ type ParamKeys =
  * const params = useParams<{projectId: string}>();
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function useParams<P extends Partial<Record<ParamKeys, string | undefined>>>(): P {
   const contextParams = useReactRouter6Params() as P;
 
@@ -82,7 +85,7 @@ export function useParams<P extends Partial<Record<ParamKeys, string | undefined
   return useMemo(() => {
     if (USING_CUSTOMER_DOMAIN && CUSTOMER_DOMAIN && contextParams.orgId === undefined) {
       // We do not know if the caller of this hook requires orgId, so we populate orgId implicitly.
-      return {...contextParams, orgId: CUSTOMER_DOMAIN} as P;
+      return {...contextParams, orgId: CUSTOMER_DOMAIN};
     }
     return contextParams;
   }, [contextParams]);

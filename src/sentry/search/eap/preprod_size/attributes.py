@@ -1,3 +1,5 @@
+from typing import Literal
+
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ResolvedAttribute, datetime_processor
 from sentry.search.eap.common_columns import COMMON_COLUMNS
@@ -7,9 +9,9 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
     for column in COMMON_COLUMNS
     + [
         ResolvedAttribute(
-            public_alias="metrics_artifact_type",
+            public_alias="artifact_type",
             internal_name="metrics_artifact_type",
-            search_type="integer",
+            search_type="string",
         ),
         ResolvedAttribute(
             public_alias="install_size",
@@ -52,9 +54,34 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="git_base_ref",
+            internal_name="git_base_ref",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_base_sha",
+            internal_name="git_base_sha",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="git_head_ref",
             internal_name="git_head_ref",
             search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_head_sha",
+            internal_name="git_head_sha",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_pr_number",
+            internal_name="git_pr_number",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="installable",
+            internal_name="has_installable_file",
+            search_type="boolean",
         ),
         ResolvedAttribute(
             public_alias="timestamp",
@@ -64,4 +91,24 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             processor=datetime_processor,
         ),
     ]
+}
+
+PREPROD_SIZE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
+    Literal["string", "number", "boolean"], dict[str, str]
+] = {
+    "string": {
+        definition.internal_name: definition.public_alias
+        for definition in PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "string"
+    },
+    "boolean": {
+        definition.internal_name: definition.public_alias
+        for definition in PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "boolean"
+    },
+    "number": {
+        definition.internal_name: definition.public_alias
+        for definition in PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type != "string"
+    },
 }

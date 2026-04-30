@@ -174,7 +174,7 @@ describe('InviteMembersModal', () => {
     expect(mockPostApi).toHaveBeenCalled();
 
     expect(mockPostApi).toHaveBeenCalledWith(
-      `/organizations/org-slug/members/`,
+      '/organizations/org-slug/members/',
       expect.objectContaining({
         data: {email: 'test1@test.com', role: 'admin', teams: []},
       })
@@ -194,7 +194,7 @@ describe('InviteMembersModal', () => {
     const mockPostApi = mocks[1];
     expect(mockPostApi).toHaveBeenCalled();
     expect(mockPostApi).toHaveBeenCalledWith(
-      `/organizations/org-slug/members/`,
+      '/organizations/org-slug/members/',
       expect.objectContaining({
         data: {email: 'test1@test.com', role: 'admin', teams: ['team-slug']},
       })
@@ -268,7 +268,7 @@ describe('InviteMembersModal', () => {
 
     const apiMock = mocks[1];
     expect(apiMock).toHaveBeenCalledWith(
-      `/organizations/org-slug/members/`,
+      '/organizations/org-slug/members/',
       expect.objectContaining({
         data: {email: initialEmail, role: 'member', teams: ['team-slug']},
       })
@@ -304,7 +304,7 @@ describe('InviteMembersModal', () => {
 
     const apiMock = mocks[1];
     expect(apiMock).toHaveBeenCalledWith(
-      `/organizations/org-slug/members/`,
+      '/organizations/org-slug/members/',
       expect.objectContaining({
         data: {email: initialEmail, role, teams: [TeamFixture().slug]},
       })

@@ -6,6 +6,7 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
+from re import Match
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
@@ -24,6 +25,7 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
 from sentry.incidents import tasks
 from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.models.alert_rule import (
@@ -107,7 +109,6 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
-from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
 from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -482,6 +483,8 @@ class AlertRuleNameAlreadyUsedError(Exception):
 
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
+# Comparison alerts query twice (current + comparison window), so we scale
+# resolution down to compensate for the increased query load.
 DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER = 2
 DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION = {
     30: 2,
@@ -505,13 +508,25 @@ query_datasets_to_type = {
 }
 
 
-def get_alert_resolution(time_window: int, organization: Organization) -> int:
+def get_alert_resolution(time_window: int, organization: Organization) -> timedelta:
+    """
+    Return the Snuba subscription evaluation interval for a given alert time window.
+
+    Larger time windows don't need fine-grained resolution, so we map them to
+    coarser buckets to reduce query load. See DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.
+
+    :param time_window: The alert's aggregation window, in minutes.
+    :param organization: The organization (reserved for future per-org overrides).
+    :return: The evaluation interval as a timedelta.
+    """
     index = bisect.bisect_right(SORTED_TIMEWINDOWS, time_window)
 
     if index == 0:
-        return DEFAULT_ALERT_RULE_RESOLUTION
+        minutes = DEFAULT_ALERT_RULE_RESOLUTION
+    else:
+        minutes = DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[SORTED_TIMEWINDOWS[index - 1]]
 
-    return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[SORTED_TIMEWINDOWS[index - 1]]
+    return timedelta(minutes=minutes)
 
 
 class _OwnerKwargs(TypedDict):
@@ -585,7 +600,7 @@ def create_alert_rule(
         raise ResourceDoesNotExist("Your organization does not have access to this feature.")
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
-        resolution = time_window
+        resolution = timedelta(minutes=time_window)
         # NOTE: we hardcode seasonality for EA
         seasonality = AlertRuleSeasonality.AUTO
         if not sensitivity:
@@ -617,8 +632,7 @@ def create_alert_rule(
                 raise ValidationError("Comparison delta is not a valid field for this alert type")
 
     if comparison_delta is not None:
-        # Since comparison alerts make twice as many queries, run the queries less frequently.
-        resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+        resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
@@ -629,7 +643,7 @@ def create_alert_rule(
             query=query,
             aggregate=aggregate,
             time_window=timedelta(minutes=time_window),
-            resolution=timedelta(minutes=resolution),
+            resolution=resolution,
             environment=environment,
             event_types=event_types,
             extrapolation_mode=extrapolation_mode,
@@ -900,11 +914,9 @@ def update_alert_rule(
         )
 
         if resolution_comparison_delta is not None:
-            updated_query_fields["resolution"] = timedelta(
-                minutes=(resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER)
-            )
-        else:
-            updated_query_fields["resolution"] = timedelta(minutes=resolution)
+            resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+
+        updated_query_fields["resolution"] = resolution
 
     if detection_type:
         updated_fields["detection_type"] = detection_type
@@ -917,10 +929,12 @@ def update_alert_rule(
             updated_fields["sensitivity"] = None
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            if time_window is not None:
+                updated_query_fields["resolution"] = timedelta(minutes=time_window)
+            else:
+                # snuba_query.time_window is already in seconds
+                updated_query_fields["resolution"] = timedelta(seconds=snuba_query.time_window)
             # NOTE: we set seasonality for EA
-            updated_query_fields["resolution"] = timedelta(
-                minutes=time_window if time_window is not None else snuba_query.time_window
-            )
             updated_fields["seasonality"] = AlertRuleSeasonality.AUTO
             updated_fields["comparison_delta"] = None
             if (
@@ -1079,15 +1093,33 @@ def enable_disable_subscriptions(
         bulk_disable_snuba_subscriptions(query_subscriptions)
 
 
-def update_detector(detector: Detector, enabled: bool) -> None:
+def update_detector_status(detector: Detector, enabled: bool) -> None:
+    """
+    Updates the status of a detector and the associated query subscriptions.
+
+    This is used to toggle whether a metric Detector is allowed for the owning
+    organization, and manages the associated subscription state.
+
+    This is separate from Detector.enabled, which is for snoozing.
+    """
     with transaction.atomic(router.db_for_write(Detector)):
-        toggle_detector(detector, enabled)
+        target_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+        detector.update(status=target_status)
 
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )
         if query_subscriptions:
             enable_disable_subscriptions(query_subscriptions, enabled)
+        # TODO: Determine whether there was work to be done, and return the result
+        # as a boolean.
+
+
+def update_detector(detector: Detector, enabled: bool) -> None:
+    """
+    Temporary alias for update_detector_status to ease cross-repo changes.
+    """
+    update_detector_status(detector, enabled)
 
 
 def delete_alert_rule(
@@ -1835,12 +1867,15 @@ EAP_FUNCTIONS = [
 
 
 def get_column_from_aggregate(
-    aggregate: str, allow_mri: bool, allow_eap: bool = False
+    aggregate: str,
+    allow_mri: bool,
+    allow_eap: bool = False,
+    match: Match[str] | None = None,
 ) -> str | None:
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
-    match = is_function(aggregate)
+    match = is_function(aggregate) if match is None else match
     if match and (
         match.group("function") in SPANS_METRICS_FUNCTIONS
         or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
@@ -1887,21 +1922,29 @@ def check_aggregate_column_support(
     aggregate: str, allow_mri: bool = False, allow_eap: bool = False
 ) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
-    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
-    match = is_function(aggregate)
-    function = match.group("function") if match else None
-    return (
-        column is None
-        or is_measurement(column)
-        or column in SUPPORTED_COLUMNS
-        or column in TRANSLATABLE_COLUMNS
-        or (is_mri(column) and allow_mri)
-        or (
-            isinstance(function, str)
-            and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
-        )
-        or allow_eap
-    )
+    if is_equation(aggregate):
+        _, _, terms = parse_arithmetic(strip_equation(aggregate))
+    else:
+        terms = [aggregate]
+
+    for term in terms:
+        match = is_function(term)
+        column = get_column_from_aggregate(term, allow_mri, allow_eap, match)
+        function = match.group("function") if match else None
+        if not (
+            column is None
+            or is_measurement(column)
+            or column in SUPPORTED_COLUMNS
+            or column in TRANSLATABLE_COLUMNS
+            or (is_mri(column) and allow_mri)
+            or (
+                isinstance(function, str)
+                and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
+            )
+            or allow_eap
+        ):
+            return False
+    return True
 
 
 def translate_aggregate_field(

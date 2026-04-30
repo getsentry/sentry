@@ -234,13 +234,13 @@ describe('project renders and toggles', () => {
       statusCode: 200,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/notifications/available-actions/`,
+      url: '/organizations/org-slug/notifications/available-actions/',
       method: 'GET',
       body: AvailableNotificationActionsFixture(),
       statusCode: 200,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/notifications/actions/`,
+      url: '/organizations/org-slug/notifications/actions/',
       match: [MockApiClient.matchQuery({triggerType: 'spike-protection'})],
       method: 'GET',
       body: [],
@@ -312,7 +312,7 @@ describe('project renders and toggles', () => {
     await validateComponents(projects[0]!, false);
     await validateComponents(projects[1]!, true);
 
-    const enableAll = await screen.findByTestId(`sp-enable-all`);
+    const enableAll = await screen.findByTestId('sp-enable-all');
 
     await userEvent.click(enableAll);
     await userEvent.click(await screen.findByTestId('confirm-button'));
@@ -333,7 +333,7 @@ describe('project renders and toggles', () => {
     await validateComponents(projects[0]!, false);
     await validateComponents(projects[1]!, true);
 
-    const disableAll = await screen.findByTestId(`sp-disable-all`);
+    const disableAll = await screen.findByTestId('sp-disable-all');
 
     await userEvent.click(disableAll);
     await userEvent.click(await screen.findByTestId('confirm-button'));

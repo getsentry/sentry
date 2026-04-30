@@ -14,7 +14,7 @@ describe('TrialEndingModal', () => {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [
         MemberFixture({

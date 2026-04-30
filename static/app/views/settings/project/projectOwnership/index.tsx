@@ -1,4 +1,5 @@
 import {useTheme} from '@emotion/react';
+import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,13 +22,12 @@ import {
   fetchMutation,
   setApiQueryData,
   useApiQuery,
-  useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
@@ -48,7 +48,7 @@ export default function ProjectOwnership() {
   const {project} = useProjectSettingsOutlet();
 
   const ownershipQueryKey: ApiQueryKey = [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
     }),
   ];
@@ -59,7 +59,7 @@ export default function ProjectOwnership() {
   } = useApiQuery<IssueOwnership>(ownershipQueryKey, {staleTime: Infinity});
 
   const codeownersQueryKey: ApiQueryKey = [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/', {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
     }),
     {query: {expand: ['codeMapping', 'ownershipSyntax']}},
@@ -116,6 +116,8 @@ export default function ProjectOwnership() {
     ));
   };
 
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const buttonSize = hasPageFrameFeature ? 'md' : 'sm';
   const disabled = !hasEveryAccess(['project:write'], {organization, project});
   const editOwnershipRulesDisabled = !hasEveryAccess(['project:read'], {
     organization,
@@ -136,58 +138,58 @@ export default function ProjectOwnership() {
     return <LoadingIndicator />;
   }
 
+  const actionButtons = (
+    <Grid flow="column" align="center" gap="md">
+      {hasCodeowners && (
+        <Access access={['org:integrations']} project={project}>
+          {({hasAccess}) => (
+            <Button
+              onClick={handleAddCodeOwner}
+              size={buttonSize}
+              data-test-id="add-codeowner-button"
+              disabled={!hasAccess}
+            >
+              {t('Import CODEOWNERS')}
+            </Button>
+          )}
+        </Access>
+      )}
+      <Button
+        type="button"
+        size={buttonSize}
+        icon={<IconEdit />}
+        priority="primary"
+        onClick={() =>
+          openEditOwnershipRules({
+            organization,
+            project,
+            ownership: ownership!,
+            onSave: handleOwnershipSave,
+            theme,
+          })
+        }
+        disabled={!!ownership && editOwnershipRulesDisabled}
+      >
+        {t('Edit Rules')}
+      </Button>
+    </Grid>
+  );
+
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/ownership/">
       <SentryDocumentTitle title={routeTitleGen(ownershipTitle, project.slug, false)}>
         <SettingsPageHeader
           title={t('Ownership Rules')}
-          action={
-            <Grid flow="column" align="center" gap="md">
-              {hasCodeowners && (
-                <Access access={['org:integrations']} project={project}>
-                  {({hasAccess}) => (
-                    <Button
-                      onClick={handleAddCodeOwner}
-                      size="sm"
-                      data-test-id="add-codeowner-button"
-                      disabled={!hasAccess}
-                    >
-                      {t('Import CODEOWNERS')}
-                    </Button>
-                  )}
-                </Access>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                icon={<IconEdit />}
-                priority="primary"
-                onClick={() =>
-                  openEditOwnershipRules({
-                    organization,
-                    project,
-                    ownership: ownership!,
-                    onSave: handleOwnershipSave,
-                    theme,
-                  })
-                }
-                disabled={!!ownership && editOwnershipRulesDisabled}
-              >
-                {t('Edit Rules')}
-              </Button>
-            </Grid>
-          }
-        />
-        <TextBlock>
-          {tct(
-            `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
+          subtitle={tct(
+            'Auto-assign issues to users and teams. To learn more, [link:read the docs].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
               ),
             }
           )}
-        </TextBlock>
+          action={!hasPageFrameFeature && actionButtons}
+        />
         <ProjectPermissionAlert
           access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
           project={project}
@@ -211,6 +213,7 @@ export default function ProjectOwnership() {
             <OwnershipRulesTable
               projectRules={ownership.schema?.rules ?? []}
               codeowners={codeowners ?? []}
+              actions={hasPageFrameFeature ? actionButtons : undefined}
             />
           </ErrorBoundary>
         )}

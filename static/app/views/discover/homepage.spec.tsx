@@ -98,7 +98,7 @@ describe('Discover > Homepage', () => {
         location: {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -123,7 +123,7 @@ describe('Discover > Homepage', () => {
             field: ['project'],
           },
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -141,7 +141,7 @@ describe('Discover > Homepage', () => {
         location: {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -173,7 +173,7 @@ describe('Discover > Homepage', () => {
         location: {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -220,7 +220,7 @@ describe('Discover > Homepage', () => {
         location: {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -245,7 +245,7 @@ describe('Discover > Homepage', () => {
             field: ['title'],
           },
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -273,7 +273,7 @@ describe('Discover > Homepage', () => {
             field: ['title'],
           },
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -302,7 +302,7 @@ describe('Discover > Homepage', () => {
             field: ['title'],
           },
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -336,7 +336,7 @@ describe('Discover > Homepage', () => {
             field: ['title'],
           },
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -385,7 +385,7 @@ describe('Discover > Homepage', () => {
         location: {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -412,7 +412,7 @@ describe('Discover > Homepage', () => {
             field: ['title'],
           },
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });
@@ -467,7 +467,7 @@ describe('Discover > Homepage', () => {
         location: {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
         },
-        route: `/organizations/:orgId/explore/discover/homepage/`,
+        route: '/organizations/:orgId/explore/discover/homepage/',
       },
       organization,
     });

@@ -1,4 +1,3 @@
-import _thread
 import contextvars
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
@@ -16,15 +15,7 @@ from sentry.utils.concurrent import (
     SynchronousExecutor,
     ThreadedExecutor,
     TimedFuture,
-    execute,
 )
-
-
-def test_execute() -> None:
-    assert execute(_thread.get_ident).result() != _thread.get_ident()
-
-    with pytest.raises(Exception):
-        assert execute(mock.Mock(side_effect=Exception("Boom!"))).result()
 
 
 def test_future_set_callback_success() -> None:

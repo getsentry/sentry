@@ -1,47 +1,36 @@
-import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
+import type {HeadingSize, TextSize} from 'sentry/utils/theme';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 interface ScmStepHeaderProps {
   heading: string;
-  stepNumber: number;
   subtitle: string;
-  tag?: string;
-  totalSteps?: number;
+  headingSize?: HeadingSize;
+  subtitleSize?: TextSize;
 }
 
 export function ScmStepHeader({
-  stepNumber,
-  totalSteps = 3,
   heading,
   subtitle,
-  tag,
+  headingSize = '3xl',
+  subtitleSize = 'lg',
 }: ScmStepHeaderProps) {
   return (
-    <Stack align="center" gap="md">
-      <Flex align="center" gap="lg">
-        <Text variant="muted" size="lg" bold density="comfortable">
-          {t('Step %s of %s', stepNumber, totalSteps)}
-        </Text>
-        {tag && <Tag variant="muted">{tag}</Tag>}
-      </Flex>
-      <Stack align="center" gap="sm">
-        <Heading as="h2" size="3xl">
-          {heading}
-        </Heading>
-        <Text
-          variant="muted"
-          size="lg"
-          wrap="pre-line"
-          align="center"
-          bold
-          density="comfortable"
-        >
-          {subtitle}
-        </Text>
-      </Stack>
+    <Stack align="center" gap="sm" maxWidth={SCM_STEP_CONTENT_WIDTH}>
+      <Heading as="h2" size={headingSize}>
+        {heading}
+      </Heading>
+      <Text
+        variant="muted"
+        size={subtitleSize}
+        wrap="pre-line"
+        align="center"
+        density="comfortable"
+      >
+        {subtitle}
+      </Text>
     </Stack>
   );
 }

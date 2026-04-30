@@ -1,7 +1,7 @@
 import {createContext, useContext, useEffect, useRef} from 'react';
+import {useMatches} from 'react-router-dom';
 
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface Props {
   children: React.ReactNode;
@@ -18,19 +18,19 @@ export function useLastKnownRoute() {
  * This is used to better group issues when we hit "route not found" errors.
  */
 export function LastKnownRouteContextProvider({children}: Props) {
-  const route = useRoutes();
+  const matches = useMatches();
 
   // We could use `usePrevious` here if we didn't need the additional logic to
   // ensure we don't track the not found route, which isn't useful for issue grouping.
-  const prevRoute = useRef(route);
+  const prevMatches = useRef(matches);
   useEffect(() => {
     // only store the new value if it's not the "not found" route
-    if (getRouteStringFromRoutes(route) !== '/*') {
-      prevRoute.current = route;
+    if (getRouteStringFromRoutes({matches}) !== '/*') {
+      prevMatches.current = matches;
     }
-  }, [route]);
+  }, [matches]);
 
-  const lastKnownRoute = getRouteStringFromRoutes(prevRoute.current);
+  const lastKnownRoute = getRouteStringFromRoutes({matches: prevMatches.current});
 
   return <LastKnownRouteContext value={lastKnownRoute}>{children}</LastKnownRouteContext>;
 }

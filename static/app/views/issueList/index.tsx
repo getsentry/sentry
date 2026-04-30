@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import * as qs from 'query-string';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -113,7 +114,9 @@ export function IssueListContainer({children, title = t('Issues')}: Props) {
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <IssueViewWrapper>{children}</IssueViewWrapper>
+      <AnalyticsArea name="issue_list">
+        <IssueViewWrapper>{children}</IssueViewWrapper>
+      </AnalyticsArea>
     </SentryDocumentTitle>
   );
 }

@@ -1,11 +1,11 @@
 import {useEffect} from 'react';
+import {useMatches} from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
 
 type Props = {
@@ -32,8 +32,8 @@ function useShouldRedirect(oldPathPrefix: `/${string}`) {
  */
 function useLogUnexpectedNavigationRedirect({shouldRedirect}: {shouldRedirect: boolean}) {
   const lastKnownRoute = useLastKnownRoute();
-  const route = useRoutes();
-  const routeString = getRouteStringFromRoutes(route);
+  const matches = useMatches();
+  const routeString = getRouteStringFromRoutes({matches});
 
   useEffect(() => {
     if (shouldRedirect && lastKnownRoute !== routeString) {

@@ -6,14 +6,14 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 
-export type ProviderNode = {
+type ProviderNode = {
   integrationCount: number;
   isExpanded: boolean;
   provider: IntegrationProvider;
   type: 'provider';
 };
 
-export type IntegrationNode = {
+type IntegrationNode = {
   connectedRepoCount: number;
   integration: OrganizationIntegration;
   isExpanded: boolean;
@@ -22,7 +22,7 @@ export type IntegrationNode = {
   type: 'integration';
 };
 
-export type RepoNode = {
+type RepoNode = {
   integration: Integration;
   isConnected: boolean;
   isToggling: boolean;
@@ -30,25 +30,25 @@ export type RepoNode = {
   type: 'repo';
 };
 
-export type AddConfigNode = {
+type AddConfigNode = {
   provider: IntegrationProvider;
   type: 'add-config';
 };
 
-export type NoMatchNode = {
+type NoMatchNode = {
   integrationId: string;
   repoFilter: RepoFilter;
   search: string;
   type: 'no-match';
 };
 
-export type DisconnectedSectionNode = {
+type DisconnectedSectionNode = {
   isExpanded: boolean;
   repoCount: number;
   type: 'disconnected-section';
 };
 
-export type DisconnectedRepoNode = {
+type DisconnectedRepoNode = {
   isToggling: boolean;
   repo: Repository;
   type: 'disconnected-repo';

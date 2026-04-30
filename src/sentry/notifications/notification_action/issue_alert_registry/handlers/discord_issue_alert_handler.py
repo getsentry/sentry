@@ -2,6 +2,7 @@ from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.workflow_engine.models import Action
@@ -20,12 +21,20 @@ class DiscordIssueAlertHandler(BaseIssueAlertHandler):
         return {}
 
     @classmethod
-    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
-        integration = integration_service.get_integration(
-            integration_id=blob["server"],
-            organization_id=organization_id,
-            status=ObjectStatus.ACTIVE,
-        )
+    def render_label(
+        cls,
+        organization_id: int,
+        blob: dict[str, Any],
+        integration_cache: dict[int, RpcIntegration] | None = None,
+    ) -> str:
+        integration_id = blob["server"]
+        integration = cls._get_cached_integration(integration_id, integration_cache)
+        if integration is None:
+            integration = integration_service.get_integration(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
         if not integration:
             return ""
 

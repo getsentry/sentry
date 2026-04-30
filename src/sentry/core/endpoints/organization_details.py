@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
@@ -26,7 +27,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
-    DetailedOrganizationSerializerWithProjectsAndTeams,
+    OrganizationWithProjectsAndTeamsSerializer,
     TrustedRelaySerializer,
 )
 from sentry.apidocs.constants import (
@@ -45,18 +46,15 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
-    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    GITHUB_COMMENT_BOT_DEFAULT,
-    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
@@ -110,6 +108,7 @@ from sentry.organizations.services.organization.model import (
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
 from sentry.users.services.user.serial import serialize_generic_user
@@ -121,6 +120,50 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
+
+
+# Maps legacy organization-option keys to the (integration provider,
+# OrganizationIntegration.config key) they now mirror. Used by the Phase 1
+# dual-write during the VDY-110 migration of SCM toggles onto the
+# per-integration config.
+_SCM_OPTION_TO_OI_CONFIG: dict[str, tuple[str, str]] = {
+    "sentry:github_pr_bot": ("github", "pr_comments"),
+    "sentry:github_nudge_invite": ("github", "nudge_invite"),
+    "sentry:gitlab_pr_bot": ("gitlab", "pr_comments"),
+}
+
+
+def _mirror_scm_option_to_oi_config(organization_id: int, option_key: str, value: bool) -> None:
+    mapping = _SCM_OPTION_TO_OI_CONFIG.get(option_key)
+    if mapping is None:
+        return
+    provider, config_key = mapping
+
+    ois = integration_service.get_organization_integrations(
+        organization_id=organization_id,
+        providers=[provider],
+        status=ObjectStatus.ACTIVE,
+    )
+    for oi in ois:
+        merged = dict(oi.config or {})
+        if merged.get(config_key) == value:
+            continue
+        merged[config_key] = value
+        integration_service.update_organization_integration(org_integration_id=oi.id, config=merged)
+
+
+def _schedule_scm_option_mirror(org: Organization, option_key: str, value: object) -> None:
+    if option_key not in _SCM_OPTION_TO_OI_CONFIG:
+        return
+    transaction.on_commit(
+        functools.partial(
+            _mirror_scm_option_to_oi_config,
+            organization_id=org.id,
+            option_key=option_key,
+            value=bool(value),
+        ),
+        using=router.db_for_write(Organization),
+    )
 
 
 ORG_OPTIONS = (
@@ -186,24 +229,6 @@ ORG_OPTIONS = (
         HIDE_AI_FEATURES_DEFAULT,
     ),
     (
-        "githubPRBot",
-        "sentry:github_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "githubNudgeInvite",
-        "sentry:github_nudge_invite",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "gitlabPRBot",
-        "sentry:gitlab_pr_bot",
-        bool,
-        GITLAB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -223,19 +248,13 @@ ORG_OPTIONS = (
         "defaultAutofixAutomationTuning",
         "sentry:default_autofix_automation_tuning",
         str,
-        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+        AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     ),
     (
         "defaultSeerScannerAutomation",
         "sentry:default_seer_scanner_automation",
         bool,
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ),
-    (
-        "enableSeerEnhancedAlerts",
-        "sentry:enable_seer_enhanced_alerts",
-        bool,
-        ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ),
     (
         "enableSeerCoding",
@@ -349,9 +368,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    githubNudgeInvite = serializers.BooleanField(required=False)
-    githubPRBot = serializers.BooleanField(required=False)
-    gitlabPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -376,7 +392,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
     dashboardsAsyncQueueParallelLimit = serializers.IntegerField(required=False, min_value=1)
-    enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     defaultCodingAgent = serializers.ChoiceField(
         choices=["seer", "cursor", "claude_code", "cursor_background_agent", "claude_code_agent"],
@@ -384,9 +399,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_null=True,
     )
     defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
-    defaultAutomatedRunStoppingPoint = serializers.ChoiceField(
-        choices=["code_changes", "open_pr"], required=False
-    )
+    defaultAutomatedRunStoppingPoint = serializers.CharField(required=False)
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
@@ -432,6 +445,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             integration_id=value, organization_id=organization.id
         ):
             raise serializers.ValidationError("Integration does not exist.")
+        return value
+
+    def validate_defaultAutomatedRunStoppingPoint(self, value: str) -> str:
+        organization = self.context["organization"]
+        if value not in get_valid_automated_run_stopping_points(organization):
+            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
     def validate_sensitiveFields(self, value):
@@ -664,12 +683,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
                 if data[key] != default_value:
                     changed_data[key] = f"to {data[key]}"
+                    _schedule_scm_option_mirror(org, option, data[key])
             else:
                 option_inst.value = data[key]
                 # check if ORG_OPTIONS changed
                 if has_changed(option_inst, "value"):
                     old_val = old_value(option_inst, "value")
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
+                    _schedule_scm_option_mirror(org, option, data[key])
                 option_inst.save()
 
         trusted_relay_info = data.get("trustedRelays")
@@ -1081,22 +1102,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         required=False,
     )
 
-    # github features
-    githubPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
-        required=False,
-    )
-    githubNudgeInvite = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
-        required=False,
-    )
-
-    # gitlab features
-    gitlabPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
-        required=False,
-    )
-
     # slack features
     issueAlertsThreadFlag = serializers.BooleanField(
         help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for an Issue Alert notification. Requires a Slack integration.",
@@ -1133,7 +1138,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.DETAILED],
         request=None,
         responses={
-            200: org_serializers.OrganizationSerializer,
+            200: org_serializers.OrganizationSummarySerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -1148,14 +1153,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
-        serializer = org_serializers.OrganizationSerializer
+        serializer = org_serializers.OrganizationSummarySerializer
 
         if request.access.has_scope("org:read") or is_active_staff(request):
             is_detailed = request.GET.get("detailed", "1") != "0"
 
-            serializer = org_serializers.DetailedOrganizationSerializer
+            serializer = org_serializers.OrganizationSerializer
             if is_detailed:
-                serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
+                serializer = org_serializers.OrganizationWithProjectsAndTeamsSerializer
 
         context = serialize(
             organization,
@@ -1174,7 +1179,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         ],
         request=OrganizationDetailsPutSerializer,
         responses={
-            200: DetailedOrganizationSerializerWithProjectsAndTeams,
+            200: OrganizationWithProjectsAndTeamsSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -1339,7 +1344,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context = serialize(
                 organization,
                 request.user,
-                org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
+                org_serializers.OrganizationWithProjectsAndTeamsSerializer(),
                 access=request.access,
                 include_feature_flags=include_feature_flags,
             )
@@ -1417,7 +1422,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
+            org_serializers.OrganizationWithProjectsAndTeamsSerializer(),
             access=request.access,
         )
         return self.respond(context, status=202)

@@ -2,8 +2,12 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
+import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ActionGroup,
@@ -11,6 +15,7 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ActionNodeContext,
   actionNodesMap,
@@ -62,7 +67,9 @@ export function ActionNodeList({
   onDeleteRow,
   updateAction,
 }: ActionNodeListProps) {
-  const {data: availableActions = []} = useAvailableActionsQuery();
+  const organization = useOrganization();
+  const {data: availableActions = [], isLoading: isLoadingActions} =
+    useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
   const {connectedDetectors} = useConnectedDetectors();
 
@@ -110,9 +117,33 @@ export function ActionNodeList({
   return (
     <Fragment>
       {actions.map(action => {
+        if (isLoadingActions) {
+          return null;
+        }
         const handler = getActionHandler(action, availableActions);
         if (!handler) {
-          return null;
+          const actionLabel = actionNodesMap.get(action.type)?.label;
+          return (
+            <AutomationBuilderRow
+              key={`actionFilters.${conditionGroupId}.action.${action.id}`}
+              onDelete={() => {
+                onDeleteRow(action.id);
+              }}
+              hasError
+              errorMessage={
+                actionLabel
+                  ? t(
+                      'The %s action is no longer available. Please remove and reconfigure this action.',
+                      actionLabel
+                    )
+                  : t(
+                      'The integration is no longer available. Please remove and reconfigure this action.'
+                    )
+              }
+            >
+              {actionLabel ?? t('Unknown integration')}
+            </AutomationBuilderRow>
+          );
         }
         const error = errors?.[action.id];
         const warningMessage = getIncompatibleActionWarning(action, {
@@ -150,6 +181,26 @@ export function ActionNodeList({
         }}
         placeholder={placeholder}
         value={null}
+        components={{
+          Menu: ({children, ...props}) => (
+            <selectComponents.Menu {...props}>
+              <Fragment>
+                {children}
+                <Container padding="md" borderTop="muted">
+                  <LinkButton
+                    size="xs"
+                    priority="default"
+                    icon={<IconAdd />}
+                    href={`/settings/${organization.slug}/integrations/`}
+                    external
+                  >
+                    {t('Add another integration')}
+                  </LinkButton>
+                </Container>
+              </Fragment>
+            </selectComponents.Menu>
+          ),
+        }}
       />
       {errors[conditionGroupId] && (
         <Alert variant="danger">{errors[conditionGroupId]}</Alert>

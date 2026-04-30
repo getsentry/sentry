@@ -22,14 +22,13 @@ import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
-  transition: testableTransition({duration: 0.3}),
+  transition: {duration: 0.3},
 };
 interface StepProps {
   groupId: string;

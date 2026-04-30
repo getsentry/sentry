@@ -44,7 +44,7 @@ function Overview({subscription}: Props) {
     isError,
   } = useApiQuery<CustomerUsage>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/usage/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/usage/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

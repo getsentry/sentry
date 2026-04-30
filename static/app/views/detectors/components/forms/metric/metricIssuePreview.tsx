@@ -4,7 +4,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
 import {ownerToActor} from 'sentry/views/detectors/components/forms/common/ownerToActor';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
+import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -76,15 +76,15 @@ function useMetricIssuePreviewSubtitle() {
   }
 }
 
-export function MetricIssuePreview() {
+export function MetricIssuePreview({step}: {step?: number}) {
   const name = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.name);
   const owner = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.owner);
   const subtitle = useMetricIssuePreviewSubtitle();
   const assignee = ownerToActor(owner);
-  const {project} = useDetectorFormContext();
+  const project = useDetectorFormProject();
 
   return (
-    <IssuePreviewSection>
+    <IssuePreviewSection step={step}>
       <DetectorIssuePreview
         issueTitle={name || t('Monitor title')}
         subtitle={subtitle}

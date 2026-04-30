@@ -17,7 +17,13 @@
  * Known node types for the LLM context tree.
  * Add new types here as new context-aware components are registered.
  */
-export type LLMContextNodeType = 'chart' | 'dashboard' | 'widget';
+export type LLMContextNodeType =
+  | 'chart'
+  | 'dashboard'
+  | 'trace'
+  | 'traces-explorer'
+  | 'widget'
+  | 'widget-builder';
 
 /**
  * A single node in the flat registry.
@@ -58,6 +64,7 @@ export interface LLMContextNodeSnapshot {
   children: LLMContextNodeSnapshot[];
   data: unknown;
   nodeType: string;
+  priority: number;
 }
 
 /**

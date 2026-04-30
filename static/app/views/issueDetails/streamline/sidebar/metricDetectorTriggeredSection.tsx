@@ -28,6 +28,7 @@ import type {
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -363,10 +364,13 @@ function TriggeredConditionDetails({
   const {conditions, dataSources, value} = evidenceData;
   const dataSource = dataSources[0];
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
-  const triggeredCondition = conditions[0];
+  const triggeredCondition = conditions.reduce<MetricCondition | undefined>(
+    (max, c) => (!max || c.conditionResult > max.conditionResult ? c : max),
+    undefined
+  );
   const [fallbackEndDate] = useState(() => new Date().toISOString());
   const detectionType = evidenceData.config?.detectionType ?? 'static';
-  const {openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
+  const {data: openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
     groupId,
     eventId,
   });
@@ -437,7 +441,9 @@ function TriggeredConditionDetails({
             },
             {
               key: 'aggregate',
-              value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
+              value: datasetConfig.fromApiAggregate(
+                stripEquationPrefix(snubaQuery.aggregate)
+              ),
               subject: t('Aggregate'),
             },
             ...(snubaQuery.query
@@ -465,7 +471,7 @@ function TriggeredConditionDetails({
               value: (
                 <pre>
                   {getConditionDescription({
-                    aggregate: snubaQuery.aggregate,
+                    aggregate: stripEquationPrefix(snubaQuery.aggregate),
                     condition: triggeredCondition,
                     config: evidenceData.config ?? {
                       detectionType: 'static',

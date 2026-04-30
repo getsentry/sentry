@@ -218,6 +218,15 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
     },
   ],
   [
+    ActionType.SLACK_STAGING,
+    {
+      label: t('Slack (Staging)'),
+      action: SlackNode,
+      details: SlackDetails,
+      validate: validateSlackAction,
+    },
+  ],
+  [
     ActionType.WEBHOOK,
     {
       label: t('Send a notification via an integration'),

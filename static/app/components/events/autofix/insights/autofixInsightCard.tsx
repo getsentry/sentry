@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 interface AutofixInsightCardProps {
   groupId: string;
@@ -34,7 +33,7 @@ export const cardAnimationProps = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
+  transition: {
     duration: 1.0,
     height: {
       type: 'spring',
@@ -48,7 +47,7 @@ export const cardAnimationProps = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 export function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
@@ -340,7 +339,7 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-color: ${p => (p.expanded ? p.theme.tokens.border.primary : 'transparent')};
 
-  box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
+  box-shadow: ${p => (p.expanded ? p.theme.shadow.medium : 'none')};
 `;
 
 const MiniHeader = styled('p')<{expanded?: boolean}>`

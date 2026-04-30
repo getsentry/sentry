@@ -28,8 +28,15 @@ interface ArithmeticBuilderProps {
    * to a known column.
    */
   getSuggestedKey?: (key: string) => string | null;
+  /**
+   * When provided, the arithmetic builder will use the references to suggest
+   * keys for the user instead of aggregations and function arguments.
+   */
+  references?: Set<string>;
   setExpression?: (expression: Expression) => void;
 }
+
+const VALID_REFERENCE_PATTERN = /^[A-Z]$/;
 
 export function ArithmeticBuilder({
   'data-test-id': dataTestId,
@@ -41,9 +48,19 @@ export function ArithmeticBuilder({
   getSuggestedKey,
   className,
   disabled,
+  references,
 }: ArithmeticBuilderProps) {
+  if (references) {
+    for (const reference of references) {
+      if (!VALID_REFERENCE_PATTERN.test(reference)) {
+        throw new Error(`Invalid reference: ${reference}`);
+      }
+    }
+  }
+
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: expression || '',
+    references,
     updateExpression: setExpression,
   });
 
@@ -57,6 +74,7 @@ export function ArithmeticBuilder({
       functionArguments,
       getFieldDefinition,
       getSuggestedKey,
+      references,
     };
   }, [
     state,
@@ -65,6 +83,7 @@ export function ArithmeticBuilder({
     functionArguments,
     getFieldDefinition,
     getSuggestedKey,
+    references,
   ]);
 
   return (

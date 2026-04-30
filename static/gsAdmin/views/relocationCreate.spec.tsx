@@ -94,7 +94,7 @@ describe('Relocation Create', () => {
 
   it('should submit form if data is correct', async () => {
     const mockapi = MockApiClient.addMockResponse({
-      url: `/relocations/`,
+      url: '/relocations/',
       method: 'POST',
       body: {
         dateAdded: '2023-12-18T01:02:03:45.678Z',
@@ -134,7 +134,7 @@ describe('Relocation Create', () => {
     expect(mockapi).toHaveBeenCalled();
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/_admin/relocations/test/d39f84fc-554a-4d7d-95b7-78f983bcba73/`,
+        pathname: '/_admin/relocations/test/d39f84fc-554a-4d7d-95b7-78f983bcba73/',
       })
     );
   });

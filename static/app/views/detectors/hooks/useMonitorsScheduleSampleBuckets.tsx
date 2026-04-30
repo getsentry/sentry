@@ -58,7 +58,7 @@ export function useMonitorsScheduleSampleBuckets({
 
   return useApiQuery<Array<CheckInBucket<SchedulePreviewStatus>>>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/monitors-schedule-buckets/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/monitors-schedule-buckets/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query},

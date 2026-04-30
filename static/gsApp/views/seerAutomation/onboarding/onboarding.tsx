@@ -1,5 +1,7 @@
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {Redirect} from 'sentry/components/redirect';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SeerAutomationOnboarding as SeerOnboardingLegacy} from './onboardingLegacy';
@@ -12,11 +14,14 @@ export default function SeerOnboarding() {
   const organization = useOrganization();
 
   if (showNewSeer(organization)) {
-    return (
-      <AnalyticsArea name="onboarding">
-        <SeerOnboardingSeatBased />
-      </AnalyticsArea>
-    );
+    if (organization.features.includes('seer-wizard')) {
+      return (
+        <AnalyticsArea name="onboarding">
+          <SeerOnboardingSeatBased />
+        </AnalyticsArea>
+      );
+    }
+    return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
   }
 
   return (

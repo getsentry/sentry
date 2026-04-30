@@ -70,7 +70,7 @@ export function makeDefaultCta({
     }
     if (traceItemType === TraceItemDataset.TRACEMETRICS) {
       return {
-        buttonText: t('Open in Metrics'),
+        buttonText: t('Open in Application Metrics'),
         to: getAlertRuleMetricsUrl({
           rule,
           organization,

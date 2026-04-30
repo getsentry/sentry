@@ -24,9 +24,12 @@ describe('DetectorDetailsAutomations', () => {
   const automation1 = AutomationFixture({id: '1', name: 'Alert 1'});
   const issueStreamDetector = IssueStreamDetectorFixture({id: '4'});
 
+  const project = ProjectFixture({id: '1'});
+
   beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
@@ -297,8 +300,7 @@ describe('DetectorDetailsAutomations', () => {
         projectId: '1',
         workflowIds: [automation1.id],
       });
-
-      act(() => ProjectsStore.loadInitialData([projectWithoutAlertsWrite]));
+      ProjectsStore.loadInitialData([projectWithoutAlertsWrite]);
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',

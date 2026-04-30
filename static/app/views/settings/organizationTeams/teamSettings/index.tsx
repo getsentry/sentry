@@ -1,3 +1,4 @@
+import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -22,7 +23,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';

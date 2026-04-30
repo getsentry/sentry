@@ -4,6 +4,7 @@ import type {Node} from '@react-types/shared';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
@@ -50,6 +51,8 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
 
+  const analyticsArea = useAnalyticsArea();
+
   const currentFilterValueType = getFilterValueType(
     token,
     getFieldDefinition(getKeyName(token.key))
@@ -63,6 +66,11 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       if (keyName === ASK_SEER_ITEM_KEY) {
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
+          action: 'opened',
+        });
+        trackAnalytics('ai_query.interface', {
+          organization,
+          area: analyticsArea,
           action: 'opened',
         });
         setDisplayAskSeer(true);
@@ -79,6 +87,11 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
+          action: 'consent_accepted',
+        });
+        trackAnalytics('ai_query.interface', {
+          organization,
+          area: analyticsArea,
           action: 'consent_accepted',
         });
         seerAcknowledgeMutate();
@@ -119,6 +132,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       onCommit();
     },
     [
+      analyticsArea,
       currentFilterValueType,
       currentInputValueRef,
       dispatch,

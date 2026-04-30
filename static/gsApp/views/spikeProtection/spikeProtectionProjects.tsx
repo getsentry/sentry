@@ -5,11 +5,11 @@ import debounce from 'lodash/debounce';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -121,55 +121,49 @@ function SpikeProtectionProjects({subscription}: Props) {
     setIsLoading(false);
   }, [fetchAvailableNotificationActions]);
 
-  const fetchProjectNotificationActions = useCallback(
-    async (
-      project: Project,
-      projectNotificationActions: Record<string, NotificationAction[]>
-    ) => {
-      const projectId = project.id;
-      const data = await api.requestPromise(
-        `/organizations/${organization.slug}/notifications/actions/`,
-        {query: {triggerType, project: projectId}}
-      );
+  const fetchProjectNotificationActions = async (
+    project: Project,
+    projectNotificationActions: Record<string, NotificationAction[]>
+  ) => {
+    const projectId = project.id;
+    const data = await api.requestPromise(
+      `/organizations/${organization.slug}/notifications/actions/`,
+      {query: {triggerType, project: projectId}}
+    );
 
-      const notifActionsById = {...projectNotificationActions};
-      data.forEach((action: NotificationAction) => {
-        if (notifActionsById[projectId]) {
-          notifActionsById[projectId].push(action);
-        } else {
-          notifActionsById[projectId] = [action];
-        }
-      });
-      setNotificationActionsById(notifActionsById);
-    },
-    [api, organization]
-  );
-
-  const updateAllProjects = useCallback(
-    async (isEnabling: boolean) => {
-      try {
-        await api.requestPromise(
-          `/organizations/${organization.slug}/spike-protections/?projectSlug=$all`,
-          {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
-        );
-        const newProjects = projects.map(p => ({
-          ...p,
-          options: {...p.options, [SPIKE_PROTECTION_OPTION_DISABLED]: !isEnabling},
-        }));
-        setProjects(newProjects);
-        await fetchData();
-        addSuccessMessage(
-          tct(`[action] spike protection for all projects`, {
-            action: isEnabling ? t('Enabled') : t('Disabled'),
-          })
-        );
-      } catch (err) {
-        Sentry.captureException(err);
-        addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+    const notifActionsById = {...projectNotificationActions};
+    data.forEach((action: NotificationAction) => {
+      if (notifActionsById[projectId]) {
+        notifActionsById[projectId].push(action);
+      } else {
+        notifActionsById[projectId] = [action];
       }
-    },
-    [api, organization, projects, fetchData]
-  );
+    });
+    setNotificationActionsById(notifActionsById);
+  };
+
+  const updateAllProjects = async (isEnabling: boolean) => {
+    try {
+      await api.requestPromise(
+        `/organizations/${organization.slug}/spike-protections/?projectSlug=$all`,
+        {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
+      );
+      const newProjects = projects.map(p => ({
+        ...p,
+        options: {...p.options, [SPIKE_PROTECTION_OPTION_DISABLED]: !isEnabling},
+      }));
+      setProjects(newProjects);
+      await fetchData();
+      addSuccessMessage(
+        tct('[action] spike protection for all projects', {
+          action: isEnabling ? t('Enabled') : t('Disabled'),
+        })
+      );
+    } catch (err) {
+      Sentry.captureException(err);
+      addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+    }
+  };
 
   useEffect(() => {
     fetchProjects();
@@ -200,7 +194,7 @@ function SpikeProtectionProjects({subscription}: Props) {
   function AllProjectsAction(isEnabling: boolean) {
     const action = isEnabling ? t('Enable') : t('Disable');
     const confirmationText = tct(
-      `This will [action] spike protection for all projects in the organization immediately. Are you sure?`,
+      'This will [action] spike protection for all projects in the organization immediately. Are you sure?',
       {action: action.toLowerCase()}
     );
     return (
@@ -219,7 +213,7 @@ function SpikeProtectionProjects({subscription}: Props) {
             title: hasOrgWrite
               ? undefined
               : tct(
-                  `You do not have permission to [action] spike protection for all projects.`,
+                  'You do not have permission to [action] spike protection for all projects.',
                   {action: action.toLowerCase()}
                 ),
           }}

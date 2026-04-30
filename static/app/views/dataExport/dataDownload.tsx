@@ -51,6 +51,7 @@ type BaseDownload = {
   };
   dateExpired?: string;
   dateFinished?: string;
+  export_format?: 'csv' | 'jsonl';
 };
 
 type ExploreDownload = BaseDownload & {
@@ -287,16 +288,11 @@ export default function DataDownload() {
   };
 
   const renderOpenInButton = () => {
-    const {
-      query = {
-        type: ExportQueryType.ISSUES_BY_TAG,
-        info: {},
-      },
-    } = download;
+    const {query} = download;
 
     // default to IssuesByTag because we don't want to
     // display this unless we're sure its a discover query
-    const {type = ExportQueryType.ISSUES_BY_TAG} = query;
+    const {type} = query;
 
     return type === 'Discover' || type === 'Explore' ? (
       <Fragment>
@@ -313,7 +309,8 @@ export default function DataDownload() {
   };
 
   const renderValid = (): React.ReactNode => {
-    const {dateExpired, checksum} = download;
+    const {dateExpired, checksum, export_format} = download;
+    const exportFormatLabel = export_format?.toUpperCase() ?? 'CSV';
 
     return (
       <Fragment>
@@ -327,7 +324,7 @@ export default function DataDownload() {
             icon={<IconDownload />}
             href={`/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`}
           >
-            {t('Download CSV')}
+            {t('Download %s', exportFormatLabel)}
           </LinkButton>
           <p>
             {t("That link won't last forever — it expires:")}

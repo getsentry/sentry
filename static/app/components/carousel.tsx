@@ -97,7 +97,7 @@ const CarouselItems = styled('div')`
 
 const StyledArrowButton = styled(Button)<{direction: string}>`
   position: absolute;
-  ${p => (p.direction === 'left' ? `left: 0;` : `right: 0;`)}
+  ${p => (p.direction === 'left' ? 'left: 0;' : 'right: 0;')}
   top: 0;
   bottom: 0;
   height: 36px;

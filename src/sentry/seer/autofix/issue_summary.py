@@ -18,8 +18,12 @@ from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
-from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
+from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_legacy_autofix
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    NoSeerQuotaException,
+    trigger_autofix_agent,
+)
 from sentry.seer.autofix.constants import (
     AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
@@ -29,12 +33,11 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    GetProjectPreferenceRequest,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
-    make_get_project_preference_request,
+    read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -45,7 +48,6 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
-from sentry.seer.supergroups.lightweight_rca import trigger_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -62,12 +64,14 @@ auto_run_source_map = {
     SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
     SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
+    SeerAutomationSource.NIGHT_SHIFT: "night_shift",
 }
 
 referrer_map = {
     SeerAutomationSource.ISSUE_DETAILS: AutofixReferrer.ISSUE_SUMMARY_FIXABILITY,
     SeerAutomationSource.ALERT: AutofixReferrer.ISSUE_SUMMARY_ALERT_FIXABILITY,
     SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+    SeerAutomationSource.NIGHT_SHIFT: AutofixReferrer.NIGHT_SHIFT,
 }
 
 STOPPING_POINT_HIERARCHY = {
@@ -91,31 +95,6 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
         return AutofixStoppingPoint.CODE_CHANGES
     else:
         return AutofixStoppingPoint.OPEN_PR
-
-
-def _fetch_user_preference(project_id: int) -> str | None:
-    """
-    Fetch the user's automated_run_stopping_point preference from Seer.
-    Returns None if preference is not set or if the API call fails.
-    """
-    try:
-        response = make_get_project_preference_request(
-            GetProjectPreferenceRequest(project_id=project_id),
-            timeout=5,
-        )
-
-        if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
-
-        result = response.json()
-        preference = result.get("preference")
-        if preference:
-            return preference.get("automated_run_stopping_point")
-        return None
-    except Exception as e:
-        sentry_sdk.set_context("project", {"project_id": project_id})
-        sentry_sdk.capture_exception(e)
-        return None
 
 
 def _apply_user_preference_upper_bound(
@@ -215,25 +194,21 @@ def _trigger_autofix_task(
         else:
             user = AnonymousUser()
 
-        # Route to explorer-based autofix if both feature flags are enabled
+        # Route to agent-based autofix if both feature flags are enabled
         run_id: int | None = None
         if features.has("organizations:autofix-on-explorer", group.organization):
-            run_id = trigger_autofix_explorer(
-                group=group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=referrer,
-                run_id=None,
-                stopping_point=stopping_point,
-            )
             try:
-                trigger_lightweight_rca(group)
-            except Exception:
-                logger.exception(
-                    "lightweight_rca.trigger_error_in_trigger_autofix_task",
-                    extra={"group_id": group_id},
+                run_id = trigger_autofix_agent(
+                    group=group,
+                    step=AutofixStep.ROOT_CAUSE,
+                    referrer=referrer,
+                    run_id=None,
+                    stopping_point=stopping_point,
                 )
+            except NoSeerQuotaException:
+                pass
         else:
-            response = trigger_autofix(
+            response = trigger_legacy_autofix(
                 group=group,
                 event_id=event_id,
                 user=user,
@@ -283,6 +258,7 @@ def _call_seer(
     group: Group,
     serialized_event: dict[str, Any],
     trace_tree: dict[str, Any] | None,
+    experiment_variant: str | None = None,
 ):
     body = SummarizeIssueRequest(
         group_id=group.id,
@@ -296,6 +272,7 @@ def _call_seer(
         organization_slug=group.organization.slug,
         organization_id=group.organization.id,
         project_id=group.project.id,
+        experiment_variant=experiment_variant,
     )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
@@ -426,16 +403,15 @@ def run_automation(
         return
 
     # Check event count for ALERT source with seat-based tier
-    if is_seer_seat_based_tier_enabled(group.organization):
-        if source == SeerAutomationSource.ALERT:
-            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-            times_seen = (
-                group.times_seen_with_pending
-                if hasattr(group, "_times_seen_pending")
-                else group.times_seen
-            )
-            if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
-                return
+    if is_seer_seat_based_tier_enabled(group.organization) and source == SeerAutomationSource.ALERT:
+        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+        times_seen = (
+            group.times_seen_with_pending
+            if hasattr(group, "_times_seen_pending")
+            else group.times_seen
+        )
+        if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
+            return
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
@@ -510,7 +486,9 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
     """
     fixability_score = get_and_update_group_fixability_score(group)
     fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
-    user_preference = _fetch_user_preference(group.project.id)
+
+    user_preference = read_preference_from_sentry_db(group.project).automated_run_stopping_point
+
     return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
 
 
@@ -539,11 +517,31 @@ def _generate_summary(
                 exc_info=True,
             )
 
+    is_experiment = features.has("organizations:issue-summary-experimental", group.organization)
+
     issue_summary = _call_seer(
         group,
         serialized_event,
         trace_tree,
+        experiment_variant="control" if is_experiment else None,
     )
+
+    # Experiment: test summary quality without breadcrumbs and trace
+    if is_experiment:
+        try:
+            experimental_event = {
+                **serialized_event,
+                "entries": [
+                    e for e in serialized_event.get("entries", []) if e.get("type") != "breadcrumbs"
+                ],
+            }
+            _call_seer(group, experimental_event, None, experiment_variant="experimental")
+        except Exception:
+            logger.warning(
+                "Failed to generate experimental issue summary",
+                extra={"group_id": group.id},
+                exc_info=True,
+            )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id

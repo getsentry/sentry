@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -13,10 +14,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
-import {
-  getRepositoryWithSettingsQueryKey,
-  useRepositoryWithSettings,
-} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
@@ -27,7 +25,6 @@ import {
 } from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
@@ -35,7 +32,6 @@ import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/use
 interface Props {
   gridColumns: string;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
-  mutationData: Record<string, RepositoryWithSettings>;
   repository: RepositoryWithSettings;
   style?: React.CSSProperties;
 }
@@ -43,27 +39,13 @@ interface Props {
 export function SeerRepoTableRow({
   gridColumns,
   mutateRepositorySettings,
-  mutationData,
-  repository: initialRepository,
+  repository,
   style,
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
-
-  // We're defaulting to read from the list data, which is passed in as `initialRepository`
-  // But if an update has been made to one record, we're going to enable reading
-  // from `useRepositoryWithSettings` which will have the latest data, letting us
-  // do optimistic updates, without re-rendering the entire table.
-  // `initialRepository` will become stale at that point, but we'll have fresh data
-  // in the cache to override it.
-  const {data, isError, isPending} = useRepositoryWithSettings({
-    repositoryId: initialRepository.id,
-    initialData: [initialRepository, undefined, undefined],
-    enabled: mutationData[initialRepository.id] !== undefined,
-  });
-  const repository = isError || isPending ? initialRepository : data;
 
   return (
     <Grid

@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -18,12 +19,7 @@ import type {
 } from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -52,7 +48,7 @@ function makePluginQueryKey({
   pluginSlug: string;
 }): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
     {query: {plugins: pluginSlug}},

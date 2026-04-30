@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -42,7 +42,7 @@ export function ConfigureCodeReviewStep() {
   const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
     useBulkUpdateRepositorySettings();
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = () => {
     const existingRepostoriesToRemove = unselectedCodeReviewRepositories
       .filter(repo => repo.settings?.enabledCodeReview)
       .map(repo => repo.id);
@@ -134,15 +134,7 @@ export function ConfigureCodeReviewStep() {
           t('Failed to update AI Code Review settings, reload and try again')
         );
       });
-  }, [
-    clearRootCauseAnalysisRepositories,
-    selectedCodeReviewRepositories,
-    unselectedCodeReviewRepositories,
-    currentStep,
-    setCurrentStep,
-    updateRepositorySettings,
-    organization,
-  ]);
+  };
 
   return (
     <Fragment>
@@ -151,14 +143,14 @@ export function ConfigureCodeReviewStep() {
           <PanelBody>
             <PanelDescription>
               <Flex direction="column" gap="lg">
-                <Text>{t(`You've successfully connected to GitHub!`)}</Text>
+                <Text>{t("You've successfully connected to GitHub!")}</Text>
                 <Separator orientation="horizontal" border="muted" />
 
                 <Flex direction="column" gap="sm">
                   <Text bold>{t('AI Code Review')}</Text>
                   <Text variant="muted" density="comfortable">
                     {t(
-                      `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
+                      "For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. "
                     )}
                   </Text>
                 </Flex>

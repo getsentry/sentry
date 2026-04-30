@@ -202,7 +202,7 @@ function NoticeModal({
     case ModalType.USAGE_EXCEEDED:
       title = t('Usage exceeded');
       body = t(
-        `Your organization has depleted its event capacity for the current usage period and is currently not receiving new events.`
+        'Your organization has depleted its event capacity for the current usage period and is currently not receiving new events.'
       );
       link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
       primaryButtonMessage = t('Continue');
@@ -211,10 +211,10 @@ function NoticeModal({
       title = t('Unable to bill your account');
       body = billingPermissions
         ? t(
-            `There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.`
+            'There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.'
           )
         : t(
-            `There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.`
+            'There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.'
           );
       link = billingPermissions
         ? normalizeUrl(
@@ -249,7 +249,7 @@ function NoticeModal({
         : t('To ensure uninterrupted service, upgrade your subscription.');
     } else {
       subText = tct(
-        `To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.`,
+        'To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.',
         {
           budgetTerm: subscription.planDetails.budgetTerm,
         }
@@ -1042,7 +1042,7 @@ class GSBanner extends Component<Props, State> {
               }
             >
               {tct(
-                `[firstSentence] [middleSentence] Upgrade your plan to increase your limit.`,
+                '[firstSentence] [middleSentence] Upgrade your plan to increase your limit.',
                 {
                   firstSentence:
                     subscription.totalLicenses === 1

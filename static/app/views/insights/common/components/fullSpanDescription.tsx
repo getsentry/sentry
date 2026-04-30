@@ -7,7 +7,7 @@ import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -21,7 +21,7 @@ const formatter = new SQLishFormatter();
 interface Props {
   moduleName: ModuleName;
   filters?: Record<string, string>;
-  group?: string;
+  group?: string | null;
   shortDescription?: string;
 }
 
@@ -33,7 +33,10 @@ export function FullSpanDescription({
 }: Props) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
-      search: MutableSearch.fromQueryObject({'span.group': group, ...filters}),
+      search: MutableSearch.fromQueryObject({
+        'span.group': group ?? undefined,
+        ...filters,
+      }),
       limit: 1,
       fields: [
         SpanFields.PROJECT_ID,
@@ -104,7 +107,7 @@ export function FullSpanDescription({
 
 type TruncatedQueryClipBoxProps = {
   children: ReactNode;
-  group: string | undefined;
+  group: string | null | undefined;
 };
 
 function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
@@ -114,16 +117,20 @@ function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
 
   return (
     <StyledClippedBox
-      btnText={t('View full query')}
+      btnText={group ? t('View full query') : undefined}
       clipHeight={500}
-      buttonProps={{
-        icon: <IconOpen />,
-        onClick: () =>
-          navigate({
-            pathname: `${databaseURL}/spans/span/${group}`,
-            query: {...location.query, isExpanded: true},
-          }),
-      }}
+      buttonProps={
+        group
+          ? {
+              icon: <IconOpen />,
+              onClick: () =>
+                navigate({
+                  pathname: `${databaseURL}/spans/span/${group}`,
+                  query: {...location.query, isExpanded: true},
+                }),
+            }
+          : undefined
+      }
     >
       {children}
     </StyledClippedBox>

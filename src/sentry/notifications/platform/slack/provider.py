@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from slack_sdk.models.blocks import (
     ActionsBlock,
@@ -58,8 +58,8 @@ class SlackProviderThreadingContext(ProviderThreadingContext):
 
 class SlackRenderable(TypedDict):
     blocks: list[Block]
+    attachments: NotRequired[list[dict[str, Any]]]
     text: str
-    color: NotRequired[str]
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -206,3 +206,8 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             return SendSuccessResult(provider_message_id=response.get("ts"), is_threaded=True)
         except IntegrationError as e:
             return integration_error_result(e, is_threaded=True)
+
+
+@provider_registry.register(NotificationProviderKey.SLACK_STAGING)
+class SlackStagingNotificationProvider(SlackNotificationProvider):
+    key = NotificationProviderKey.SLACK_STAGING

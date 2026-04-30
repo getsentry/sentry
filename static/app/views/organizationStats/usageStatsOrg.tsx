@@ -149,7 +149,7 @@ export function getChartProps({
     | 'cardStats'
   >;
   dataCategory: DataCategory;
-  error: RequestError | null;
+  error: Error | null;
   handleChangeState: (state: {
     clientDiscard?: boolean;
     dataCategory?: DataCategory;
@@ -372,7 +372,7 @@ export function UsageStatsOrganization({
 
   const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

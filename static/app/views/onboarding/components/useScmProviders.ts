@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useQuery} from 'sentry/utils/queryClient';
+import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ScmProvidersData = {
@@ -16,12 +17,11 @@ type ScmProvidersData = {
 
 /**
  * Fetches SCM integration providers and active installations for use in the
- * onboarding connect step. Providers are identified by having a feature gate
- * that includes 'commits'.
+ * onboarding connect step. SCM providers are identified by `isScmProvider`.
  *
- * Note: This duplicates the provider filter from useScmIntegrationTreeData but
- * intentionally avoids reusing that hook -- it fetches connected repos and
- * pagination data we don't need, and doesn't filter integrations by active status.
+ * Note: Intentionally avoids reusing useScmIntegrationTreeData -- it fetches
+ * connected repos and pagination data we don't need, and doesn't filter
+ * integrations by active status.
  */
 export function useScmProviders(): ScmProvidersData {
   const organization = useOrganization();
@@ -37,10 +37,7 @@ export function useScmProviders(): ScmProvidersData {
   );
 
   const scmProviders = useMemo(
-    () =>
-      (providersQuery.data?.providers ?? []).filter(p =>
-        p.metadata.features.some(f => f.featureGate.includes('commits'))
-      ),
+    () => (providersQuery.data?.providers ?? []).filter(isScmProvider),
     [providersQuery.data]
   );
 

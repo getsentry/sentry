@@ -36,7 +36,7 @@ function canComparePrices(subscription: Subscription, initialPlan: Plan) {
 export function useUpgradeNowParams({organization, subscription, enabled = true}: Opts) {
   const {isPending, data: billingConfig} = useApiQuery<BillingConfig>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -108,6 +108,7 @@ export function useUpgradeNowParams({organization, subscription, enabled = true}
         reservedSeerScanner: reserved.seerScanner,
         reservedSeerUsers: reserved.seerUsers,
         reservedSizeAnalyses: reserved.sizeAnalyses,
+        reservedTraceMetricBytes: reserved.traceMetricBytes,
       },
     };
   }, [billingConfig, isPending, subscription, enabled]);

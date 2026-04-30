@@ -21,7 +21,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
-  makeAutofixQueryKey,
+  autofixApiOptions,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -29,7 +29,6 @@ import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -92,10 +91,10 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {
@@ -133,10 +132,10 @@ function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {
@@ -178,10 +177,10 @@ function useRethinkWithCommentThread({groupId, runId}: {groupId: string; runId: 
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       addLoadingMessage(t('Rethinking based on this thread...'));
     },
@@ -646,9 +645,9 @@ export function AutofixHighlightPopup(props: Props) {
       initial={{opacity: 0, x: 10}}
       animate={{opacity: 1, x: 0}}
       exit={{opacity: 0, x: 10}}
-      transition={testableTransition({
+      transition={{
         duration: 0.2,
-      })}
+      }}
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
@@ -700,7 +699,7 @@ const Container = styled(motion.div, {
   border-radius: ${p => p.theme.radius.md};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   overflow: hidden;
-  box-shadow: ${p => (p.isFocused ? p.theme.dropShadowHeavy : p.theme.dropShadowLight)};
+  box-shadow: ${p => (p.isFocused ? p.theme.shadow.high : p.theme.shadow.low)};
   transition: box-shadow 200ms ease;
 
   &:before {

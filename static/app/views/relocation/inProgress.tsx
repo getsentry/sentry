@@ -2,7 +2,6 @@ import {motion} from 'framer-motion';
 
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {Wrapper} from 'sentry/views/relocation/components/wrapper';
 
 import type {StepProps} from './types';
@@ -14,7 +13,6 @@ export function InProgress(props: StepProps) {
     <Wrapper data-test-id="in-progress">
       <motion.h2>{t('Your relocation is under way!')}</motion.h2>
       <motion.div
-        transition={testableTransition()}
         variants={{
           initial: {y: 30, opacity: 0},
           animate: {y: 0, opacity: 1},

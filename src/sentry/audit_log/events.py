@@ -384,3 +384,38 @@ class RepoSettingsEditAuditLogEvent(AuditLogEvent):
         return "updated repository settings for {repository_count} repositories".format(
             repository_count=data.get("repository_count", 0),
         )
+
+
+def _render_repo_event(action: str, audit_log_entry: AuditLogEntry) -> str:
+    data = audit_log_entry.data
+    actor = audit_log_entry.actor_label or "unknown"
+    repo_name = data.get("repo_name", "unknown")
+    source = data.get("source", "")
+    msg = f"{actor} {action} repository {repo_name}"
+    if source:
+        msg += f" (via {source})"
+    return msg
+
+
+class RepoAddedAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(event_id=1170, name="REPO_ADDED", api_name="repo.added")
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        return _render_repo_event("added", audit_log_entry)
+
+
+class RepoDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(event_id=1171, name="REPO_DISABLED", api_name="repo.disabled")
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        return _render_repo_event("disabled", audit_log_entry)
+
+
+class RepoEnabledAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(event_id=1172, name="REPO_ENABLED", api_name="repo.enabled")
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        return _render_repo_event("enabled", audit_log_entry)

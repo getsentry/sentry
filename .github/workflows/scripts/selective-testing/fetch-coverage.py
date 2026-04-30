@@ -5,87 +5,107 @@ import argparse
 import shutil
 import subprocess
 import sys
-import urllib.request
 from pathlib import Path
 
-GCS_BUCKET = "sentry-coverage-data"
-GCS_BASE_URL = f"https://storage.googleapis.com/{GCS_BUCKET}"
+GCS_PATH = "gs://getsentry-coverage-data/latest/.coverage.combined"
 COVERAGE_FILENAME = ".coverage.combined"
-DEFAULT_MAX_COMMITS = 30
+CACHE_DIR = Path.home() / ".cache" / "sentry" / "coverage" / "latest"
 
 
-def detect_base_ref() -> str:
+def ensure_gcloud_authed() -> None:
+    if shutil.which("gcloud") is None:
+        raise SystemExit(
+            """\
+Error: gcloud is not installed.
+
+Make sure you've run `direnv allow`.
+
+Install the Google Cloud CLI: https://cloud.google.com/sdk/docs/install
+  macOS (Homebrew): brew install --cask google-cloud-sdk"""
+        )
+
+    # gcloud config config-helper exits 1 if there is no active account,
+    # and also prompts for yubikey 2FA if it needs refreshing.
     result = subprocess.run(
-        ["git", "merge-base", "origin/master", "HEAD"],
+        ["gcloud", "config", "config-helper"],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return
+
+    subprocess.run(
+        ["gcloud", "auth", "login", "--activate", "--update-adc"],
+        check=False,
+    )
+
+    # Check again, and if something's still wrong then exit.
+    result = subprocess.run(
+        ["gcloud", "config", "config-helper"],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise SystemExit(
+            """\
+Error: Not authenticated with gcloud.
+
+To authenticate, run:
+  gcloud auth login"""
+        )
+
+
+def get_remote_generation() -> str | None:
+    """Return the GCS object generation number, used to detect staleness."""
+    result = subprocess.run(
+        ["gcloud", "storage", "ls", "-l", GCS_PATH],
         capture_output=True,
         text=True,
         check=False,
     )
-    if result.returncode == 0:
-        return result.stdout.strip()
+    if result.returncode != 0:
+        return None
+    # Output format: "  <size>  <created>  gs://..."
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if len(parts) >= 3 and parts[-1].startswith("gs://"):
+            return parts[1]  # creation/update timestamp as cache key
+    return None
 
-    print("Error: Could not find merge-base with origin/master", file=sys.stderr)
-    print("Make sure you have fetched from the remote (git fetch origin)", file=sys.stderr)
-    sys.exit(1)
 
+def download_coverage(output_path: Path) -> None:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cached_file = CACHE_DIR / COVERAGE_FILENAME
+    generation_file = CACHE_DIR / ".generation"
 
-def get_commit_list(base_ref: str) -> list[str]:
+    remote_gen = get_remote_generation()
+
+    if cached_file.exists() and remote_gen and generation_file.exists():
+        if generation_file.read_text().strip() == remote_gen:
+            print(f"Using cached coverage data (generation {remote_gen})")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(cached_file, output_path)
+            return
+
+    print(f"Downloading coverage data from {GCS_PATH}...")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     result = subprocess.run(
-        ["git", "rev-list", base_ref, f"--max-count={DEFAULT_MAX_COMMITS}"],
-        capture_output=True,
-        text=True,
-        check=True,
+        ["gcloud", "storage", "cp", GCS_PATH, str(output_path)],
+        check=False,
     )
-    return [sha.strip() for sha in result.stdout.strip().splitlines() if sha.strip()]
+    if result.returncode != 0:
+        raise SystemExit("Error: Failed to download coverage database from GCS.")
 
-
-def check_coverage_exists(sha: str) -> bool:
-    url = f"{GCS_BASE_URL}/{sha}/{COVERAGE_FILENAME}"
-    req = urllib.request.Request(url, method="HEAD")
-    try:
-        urllib.request.urlopen(req, timeout=5)
-        return True
-    except Exception as e:
-        print(f"  Warning: Error checking {sha[:12]}: {e}", file=sys.stderr)
-        return False
-
-
-def download_coverage(sha: str, output_path: Path) -> bool:
-    cache_dir = Path.home() / ".cache" / "sentry" / "coverage"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cached_file = cache_dir / sha / COVERAGE_FILENAME
-
-    if cached_file.exists():
-        print(f"Using cached coverage data for {sha[:12]}")
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        # Copy from cache (symlink would break if cache is cleaned)
-        shutil.copy2(cached_file, output_path)
-        return True
-
-    url = f"{GCS_BASE_URL}/{sha}/{COVERAGE_FILENAME}"
-    print(f"Downloading coverage data from {sha[:12]}...")
-
-    try:
-        urllib.request.urlretrieve(url, str(output_path))
-    except (urllib.error.HTTPError, urllib.error.URLError) as e:
-        print(f"Error downloading coverage data: {e}", file=sys.stderr)
-        return False
-
-    # Cache the download
-    cached_file.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(output_path, cached_file)
-    print(f"Cached coverage data at {cached_file}")
-
-    return True
+    if remote_gen:
+        generation_file.write_text(remote_gen)
+    print(f"Coverage database written to {output_path}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Fetch coverage data from GCS for selective testing"
-    )
-    parser.add_argument(
-        "--base-ref",
-        help="Base git ref to walk history from (default: origin/master)",
+        description="Fetch latest coverage data from GCS for selective testing"
     )
     parser.add_argument(
         "--output",
@@ -94,31 +114,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    base_ref = args.base_ref or detect_base_ref()
-    output_path = Path(args.output)
-
-    print(f"Looking for coverage data from {base_ref} (up to {DEFAULT_MAX_COMMITS} commits)")
-
-    commits = get_commit_list(base_ref)
-    if not commits:
-        print("No commits found to check", file=sys.stderr)
-        return 1
-
-    for sha in commits:
-        print(f"  Checking {sha[:12]}...", end=" ")
-        if check_coverage_exists(sha):
-            print("found!")
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            if download_coverage(sha, output_path):
-                print(f"Coverage database written to {output_path}")
-                return 0
-            else:
-                return 1
-        else:
-            print("no coverage")
-
-    print(f"No coverage data found in last {DEFAULT_MAX_COMMITS} commits", file=sys.stderr)
-    return 2
+    ensure_gcloud_authed()
+    download_coverage(Path(args.output))
+    return 0
 
 
 if __name__ == "__main__":

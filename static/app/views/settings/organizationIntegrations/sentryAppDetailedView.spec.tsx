@@ -44,7 +44,7 @@ describe('SentryAppDetailedView', () => {
 
     beforeEach(() => {
       sentryAppInteractionRequest = MockApiClient.addMockResponse({
-        url: `/sentry-apps/clickup/interaction/`,
+        url: '/sentry-apps/clickup/interaction/',
         method: 'POST',
         statusCode: 200,
         body: {},
@@ -54,7 +54,7 @@ describe('SentryAppDetailedView', () => {
         url: '/sentry-apps/clickup/',
         body: {
           status: 'published',
-          scopes: [],
+          scopes: ['org:ci'],
           isAlertable: false,
           clientSecret:
             '193583e573d14d61832de96a9efc32ceb64e59a494284f58b50328a656420a55',
@@ -111,7 +111,7 @@ describe('SentryAppDetailedView', () => {
       renderSentryAppDetailedView({integrationSlug: 'clickup'});
 
       expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
-        `/sentry-apps/clickup/interaction/`,
+        '/sentry-apps/clickup/interaction/',
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -123,6 +123,7 @@ describe('SentryAppDetailedView', () => {
       // Shows the Integration name and install status
       expect(await screen.findByText('ClickUp')).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
+      expect(screen.getByText(/Continuous Integration \(CI\)/)).toBeInTheDocument();
 
       // Shows the Accept & Install button
       expect(screen.getByRole('button', {name: 'Accept & Install'})).toBeEnabled();
@@ -152,7 +153,7 @@ describe('SentryAppDetailedView', () => {
   describe('Internal Sentry App', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/my-headband-washer-289499/interaction/`,
+        url: '/sentry-apps/my-headband-washer-289499/interaction/',
         method: 'POST',
         statusCode: 200,
         body: {},
@@ -221,7 +222,7 @@ describe('SentryAppDetailedView', () => {
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/la-croix-monitor/interaction/`,
+        url: '/sentry-apps/la-croix-monitor/interaction/',
         method: 'POST',
         statusCode: 200,
         body: {},
@@ -302,7 +303,7 @@ describe('SentryAppDetailedView', () => {
     let createRequest: jest.Mock;
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/go-to-google/interaction/`,
+        url: '/sentry-apps/go-to-google/interaction/',
         method: 'POST',
         statusCode: 200,
         body: {},

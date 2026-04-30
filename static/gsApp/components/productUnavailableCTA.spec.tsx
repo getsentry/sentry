@@ -103,7 +103,7 @@ describe('ProductUnavailableCTA', () => {
 
       await waitFor(() => {
         expect(mockRequests?.requestUpdatePlan).toHaveBeenCalledWith(
-          `/organizations/org-slug/plan-upgrade-request/`,
+          '/organizations/org-slug/plan-upgrade-request/',
           expect.objectContaining({
             method: 'POST',
           })
@@ -219,6 +219,7 @@ describe('ProductUnavailableCTA', () => {
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
         reservedSizeAnalyses: undefined,
+        reservedTraceMetricBytes: undefined,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});

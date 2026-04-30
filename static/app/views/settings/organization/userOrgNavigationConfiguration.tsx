@@ -103,6 +103,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
+          keywords: ['data scrubbing', 'privacy', 'pii', 'attachments'],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
           ),
@@ -111,6 +112,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/auth/`,
           title: t('Auth'),
+          keywords: ['sso', 'single sign-on', 'authentication', 'login'],
           description: t('Configure single sign-on'),
           id: 'sso',
         },
@@ -132,7 +134,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Data Forwarding'),
           description: t('Manage data forwarding across your organization'),
           id: 'data-forwarding',
-          badge: () => <FeatureBadge type="new" />,
           recordAnalytics: true,
         },
         {
@@ -140,12 +141,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
           id: 'relay',
-        },
-        {
-          path: `${organizationSettingsPathPrefix}/repos/`,
-          title: t('Repositories'),
-          description: t('Manage repositories connected to the organization'),
-          id: 'repos',
         },
         {
           path: `${organizationSettingsPathPrefix}/early-features/`,
@@ -175,7 +170,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),
-          show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
         {
@@ -201,6 +195,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/integrations/`,
           title: t('Integrations'),
+          keywords: ['slack', 'github', 'bitbucket', 'jira', 'azure devops', 'vercel'],
           description: t(
             'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
           ),
@@ -208,8 +203,16 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           recordAnalytics: true,
         },
         {
+          path: `${organizationSettingsPathPrefix}/repos/`,
+          title: t('Repositories'),
+          description: t('Manage repositories connected to the organization'),
+          id: 'repos',
+          recordAnalytics: true,
+        },
+        {
           path: `${organizationSettingsPathPrefix}/developer-settings/`,
           title: t('Custom Integrations'),
+          keywords: ['integration', 'developer', 'vercel'],
           description: t('Manage custom integrations'),
           id: 'developer-settings',
         },
@@ -222,12 +225,28 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
           title: t('Organization Tokens'),
+          keywords: [
+            'auth',
+            'auth token',
+            'auth tokens',
+            'api token',
+            'token',
+            'credentials',
+          ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
         },
         {
           path: `${userSettingsPathPrefix}/api/auth-tokens/`,
           title: t('Personal Tokens'),
+          keywords: [
+            'auth',
+            'auth token',
+            'auth tokens',
+            'api token',
+            'token',
+            'credentials',
+          ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
           ),

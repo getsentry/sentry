@@ -1,14 +1,20 @@
-import {css, ThemeProvider} from '@emotion/react';
+import {css} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {BreakpointSize} from 'sentry/utils/theme';
 
-// eslint-disable-next-line boundaries/entry-point
+// eslint-disable-next-line boundaries/dependencies
 import {rc, useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
 
 const theme = ThemeFixture();
+const normalizeCss = (value: string) =>
+  value
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .join('\n');
 
 // Mock window.matchMedia
 const mockMatchMedia = (matches: boolean) => ({
@@ -21,13 +27,6 @@ const mockMatchMedia = (matches: boolean) => ({
   removeEventListener: jest.fn(),
   dispatchEvent: jest.fn(),
 });
-
-// Helper function to create a wrapper with theme
-const createWrapper = () => {
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
-  };
-};
 
 // Helper to set up media query mocks for specific breakpoints
 const setupMediaQueries = (
@@ -58,16 +57,15 @@ const setupMediaQueries = (
 };
 
 describe('rc', () => {
-  // Emotion appends ';' after each interpolated string value in a css template literal.
-  // So css`${output}`.styles === output + ';'.
-
   it('returns a simple CSS declaration for a plain string value', () => {
-    const output = rc('color', 'red', theme);
+    const output = rc('color', 'red', theme)!;
     expect(
-      css`
-        ${output}
-      `.styles
-    ).toBe(output + ';');
+      normalizeCss(
+        css`
+          ${output}
+        `.styles
+      )
+    ).toEqual(normalizeCss(output));
   });
 
   it('returns undefined when value is undefined', () => {
@@ -75,12 +73,14 @@ describe('rc', () => {
   });
 
   it('applies a resolver to a plain value', () => {
-    const output = rc('color', 'primary', theme, value => `resolved-${value}`);
+    const output = rc('color', 'primary', theme, value => `resolved-${value}`)!;
     expect(
-      css`
-        ${output}
-      `.styles
-    ).toBe(output + ';');
+      normalizeCss(
+        css`
+          ${output}
+        `.styles
+      )
+    ).toEqual(normalizeCss(output));
   });
 
   it('returns undefined when resolver returns undefined for a plain value', () => {
@@ -89,30 +89,32 @@ describe('rc', () => {
 
   it('generates media queries for responsive values', () => {
     // First defined breakpoint gets both min-width and max-width; subsequent get min-width only.
-    const output = rc('color', {xs: 'blue', md: 'green'}, theme);
+    const output = rc('color', {xs: 'blue', md: 'green'}, theme)!;
     expect(
-      css`
-        ${output}
-      `.styles
-    ).toBe(output + ';');
+      normalizeCss(
+        css`
+          ${output}
+        `.styles
+      )
+    ).toEqual(normalizeCss(output));
   });
 
   it('skips undefined intermediate breakpoints', () => {
     // xs and md are defined; 2xs, sm, lg, xl, 2xl are absent from the output.
-    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme);
+    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme)!;
     expect(
-      css`
-        ${output}
-      `.styles
-    ).toBe(output + ';');
+      normalizeCss(
+        css`
+          ${output}
+        `.styles
+      )
+    ).toEqual(normalizeCss(output));
   });
 });
 
 describe('useResponsivePropValue', () => {
   it('returns identity for non-responsive values', () => {
-    const {result} = renderHook(() => useResponsivePropValue('hello'), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() => useResponsivePropValue('hello'));
 
     expect(result.current).toBe('hello');
   });
@@ -131,9 +133,9 @@ describe('useResponsivePropValue', () => {
       md: 'medium',
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue(responsiveValue)
+    );
 
     expect(result.current).toBe('medium');
     cleanup();
@@ -151,9 +153,9 @@ describe('useResponsivePropValue', () => {
       md: 'medium',
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue(responsiveValue)
+    );
 
     expect(result.current).toBe('medium');
     cleanup();
@@ -169,9 +171,9 @@ describe('useResponsivePropValue', () => {
       sm: 'small',
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue(responsiveValue)
+    );
 
     expect(result.current).toBe('small');
     cleanup();
@@ -190,9 +192,9 @@ describe('useResponsivePropValue', () => {
       lg: 'large',
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue(responsiveValue)
+    );
 
     expect(result.current).toBe('small');
     cleanup();
@@ -211,20 +213,18 @@ describe('useResponsivePropValue', () => {
       lg: undefined,
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue(responsiveValue)
+    );
 
     expect(result.current).toBe('medium');
     cleanup();
   });
 
   it('throws an error when no breakpoints are defined in responsive prop', () => {
-    expect(() =>
-      renderHook(() => useResponsivePropValue({}), {
-        wrapper: createWrapper(),
-      })
-    ).toThrow('Responsive prop must contain at least one breakpoint');
+    expect(() => renderHookWithProviders(() => useResponsivePropValue({}))).toThrow(
+      'Responsive prop must contain at least one breakpoint'
+    );
   });
 });
 
@@ -241,9 +241,7 @@ describe('useActiveBreakpoint', () => {
       xl: false,
     });
 
-    const {result} = renderHook(() => useActiveBreakpoint(), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() => useActiveBreakpoint());
 
     expect(result.current).toBe('2xs');
     cleanup();
@@ -258,9 +256,7 @@ describe('useActiveBreakpoint', () => {
       xl: false,
     });
 
-    const {result} = renderHook(() => useActiveBreakpoint(), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() => useActiveBreakpoint());
 
     expect(result.current).toBe('md');
     cleanup();
@@ -270,9 +266,7 @@ describe('useActiveBreakpoint', () => {
     const matchMediaSpy = jest.fn(() => mockMatchMedia(false));
     window.matchMedia = matchMediaSpy;
 
-    renderHook(() => useActiveBreakpoint(), {
-      wrapper: createWrapper(),
-    });
+    renderHookWithProviders(() => useActiveBreakpoint());
 
     // Should create media queries for all breakpoints (in reverse order)
     expect(matchMediaSpy).toHaveBeenCalledTimes(Object.keys(theme.breakpoints).length);
@@ -295,9 +289,7 @@ describe('useActiveBreakpoint', () => {
       xl: true,
     });
 
-    const {result} = renderHook(() => useActiveBreakpoint(), {
-      wrapper: createWrapper(),
-    });
+    const {result} = renderHookWithProviders(() => useActiveBreakpoint());
 
     // Should return xl (largest) when all are active
     expect(result.current).toBe('xl');
@@ -336,11 +328,8 @@ describe('useActiveBreakpoint', () => {
       return mockQuery;
     });
 
-    const {result} = renderHook(
-      () => useResponsivePropValue({xs: 'small', md: 'medium', lg: 'large'}),
-      {
-        wrapper: createWrapper(),
-      }
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue({xs: 'small', md: 'medium', lg: 'large'})
     );
 
     // Initially query matches 'medium'
@@ -387,11 +376,8 @@ describe('useActiveBreakpoint', () => {
       dispatchEvent: jest.fn(),
     }));
 
-    const {unmount} = renderHook(
-      () => useResponsivePropValue({xs: 'small', md: 'medium'}),
-      {
-        wrapper: createWrapper(),
-      }
+    const {unmount} = renderHookWithProviders(() =>
+      useResponsivePropValue({xs: 'small', md: 'medium'})
     );
 
     // Sets up listeners for all breakpoints

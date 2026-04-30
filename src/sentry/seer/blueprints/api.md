@@ -27,12 +27,12 @@ Retrieves a paginated list of projects with their autofix automation settings.
 
 **Attributes**
 
-| Column                    | Type   | Description                                                                                                                  |
-| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| projectId                 | int    | The project ID                                                                                                               |
-| autofixAutomationTuning   | string | The tuning setting for automated autofix. One of: `off`, `medium`, (deprecated values: `super_low`, `low`, `high`, `always`) |
-| automatedRunStoppingPoint | string | The stopping point for automated runs. One of: `code_changes`, `open_pr`, (deprecated values: `root_cause`, `solution`)      |
-| reposCount                | int    | Number of repositories configured for the project                                                                            |
+| Column                    | Type   | Description                                                                                                                                                         |
+| ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| projectId                 | int    | The project ID                                                                                                                                                      |
+| autofixAutomationTuning   | string | The tuning setting for automated autofix. One of: `off`, `medium`, (deprecated values: `super_low`, `low`, `high`, `always`)                                        |
+| automatedRunStoppingPoint | string | The stopping point for automated runs. One of: `code_changes`, `open_pr`, `root_cause` (requires `root-cause-stopping-point` flag), (deprecated values: `solution`) |
+| reposCount                | int    | Number of repositories configured for the project                                                                                                                   |
 
 - Response 200
 
@@ -61,11 +61,11 @@ Bulk create/update the autofix automation settings for multiple projects in a si
 
 **Attributes**
 
-| Column                    | Type      | Required | Description                                                                                            |
-| ------------------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------ |
-| projectIds                | list[int] | Yes      | List of project IDs to update (min: 1, max: 1000)                                                      |
-| autofixAutomationTuning   | string    | No\*     | The tuning setting. One of: `off`, `medium`, (deprecated values: `super_low`, `low`, `high`, `always`) |
-| automatedRunStoppingPoint | string    | No\*     | The stopping point. One of: `code_changes`, `open_pr`, (deprecated values: `root_cause`, `solution`)   |
+| Column                    | Type      | Required | Description                                                                                                                                      |
+| ------------------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| projectIds                | list[int] | Yes      | List of project IDs to update (min: 1, max: 1000)                                                                                                |
+| autofixAutomationTuning   | string    | No\*     | The tuning setting. One of: `off`, `medium`, (deprecated values: `super_low`, `low`, `high`, `always`)                                           |
+| automatedRunStoppingPoint | string    | No\*     | The stopping point. One of: `code_changes`, `open_pr`, `root_cause` (requires `root-cause-stopping-point` flag), (deprecated values: `solution`) |
 
 \* At least one of either `autofixAutomationTuning` or `automatedRunStoppingPoint` must be provided.
 

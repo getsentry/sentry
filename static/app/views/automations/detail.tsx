@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -20,7 +20,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -34,6 +34,7 @@ import {AutomationHistoryList} from 'sentry/views/automations/components/automat
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
 import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
@@ -41,39 +42,51 @@ import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
   const warning = getAutomationActionsWarning(automation);
-
   const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
     undefined
+  );
+  const breadcrumbs = (
+    <Breadcrumbs
+      crumbs={[
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug),
+        },
+        {label: automation.name},
+      ]}
+    />
   );
 
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <DetailLayout.Header>
-          <DetailLayout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Alerts'),
-                  to: makeAutomationBasePathname(organization.slug),
-                },
-                {label: automation.name},
-              ]}
-            />
-            <DetailLayout.Title title={automation.name} />
-          </DetailLayout.HeaderContent>
-          <DetailLayout.Actions>
-            <Actions automation={automation} />
-          </DetailLayout.Actions>
-        </DetailLayout.Header>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+            <AutomationFeedbackButton />
+          </Fragment>
+        ) : (
+          <DetailLayout.Header>
+            <DetailLayout.HeaderContent>
+              {breadcrumbs}
+              <DetailLayout.Title title={automation.name} />
+            </DetailLayout.HeaderContent>
+            <DetailLayout.Actions>
+              <AutomationFeedbackButton />
+              <Actions automation={automation} size="sm" />
+            </DetailLayout.Actions>
+          </DetailLayout.Header>
+        )}
         <DetailLayout.Body>
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
@@ -83,7 +96,16 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               </Alert>
             )}
             <PageFiltersContainer>
-              <DatePageFilter />
+              {hasPageFrameFeature ? (
+                <Flex align="center" justify="between" gap="md">
+                  <DatePageFilter />
+                  <Flex flex={1} justify="end" gap="md">
+                    <Actions automation={automation} size="sm" />
+                  </Flex>
+                </Flex>
+              ) : (
+                <DatePageFilter />
+              )}
               <ErrorBoundary>
                 <AutomationStatsChart
                   automationId={automation.id}
@@ -106,12 +128,28 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                 </ErrorBoundary>
               </DetailSection>
-              <DetailSection title={t('Connected Monitors')}>
+              <DetailSection
+                title={t('Connected Projects')}
+                description={t(
+                  'All issues belonging to a connected project will trigger this alert when conditions are met.'
+                )}
+              >
+                <ErrorBoundary mini>
+                  <ConnectedProjectsList automationId={automation.id} />
+                </ErrorBoundary>
+              </DetailSection>
+              <DetailSection
+                title={t('Connected Monitors')}
+                description={t(
+                  'Issues created by a connected monitor will trigger this alert when conditions are met.'
+                )}
+              >
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
-                    detectorIds={automation.detectorIds}
+                    workflowId={automation.id}
                     cursor={monitorListCursor}
                     onCursor={setMonitorListCursor}
+                    query="!type:issue_stream"
                   />
                 </ErrorBoundary>
               </DetailSection>
@@ -133,10 +171,10 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             <DetailSection title={t('Environment')}>
               {automation.environment || t('All environments')}
             </DetailSection>
-            <DetailSection title={t('Action Interval')}>
-              {tct('Every [frequency]', {
-                frequency: getDuration((automation.config.frequency || 0) * 60),
-              })}
+            <DetailSection title={t('Throttling')}>
+              {automation.config.frequency
+                ? getDuration(automation.config.frequency * 60)
+                : t('Notify on every trigger')}
             </DetailSection>
             <DetailSection title={t('Conditions')}>
               <ErrorBoundary mini>
@@ -212,11 +250,11 @@ export default function AutomationDetail() {
   );
 }
 
-function Actions({automation}: {automation: Automation}) {
+function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
-  const toggleDisabled = useCallback(() => {
+  const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
     updateAutomation(
       {
@@ -230,19 +268,18 @@ function Actions({automation}: {automation: Automation}) {
         },
       }
     );
-  }, [updateAutomation, automation]);
+  };
 
   return (
     <Fragment>
-      <AutomationFeedbackButton />
-      <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
+      <Button priority="default" size={size} onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
         priority="primary"
         icon={<IconEdit />}
-        size="sm"
+        size={size}
       >
         {t('Edit')}
       </LinkButton>

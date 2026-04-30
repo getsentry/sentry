@@ -2,14 +2,14 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
-import {TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -22,11 +22,10 @@ import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
+import {GroupStatus, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   getAnalyticsDataForEvent,
@@ -37,8 +36,8 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -55,7 +54,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {GroupHeader} from 'sentry/views/issueDetails/header';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourContext,
@@ -71,7 +69,7 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
@@ -80,7 +78,6 @@ import {
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-  useHasStreamlinedUI,
   useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
 
@@ -214,14 +211,13 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
         defined(storeGroup.participants) &&
         defined(storeGroup.activity)
       ) {
-        setApiQueryData(
-          queryClient,
-          makeFetchGroupQueryKey({
+        queryClient.setQueryData(
+          groupApiOptions({
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-          }),
-          storeGroup
+          }).queryKey,
+          prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
     }, undefined) as () => void;
@@ -234,8 +230,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const location = useLocation();
   const params = useParams<{groupId: string; eventId?: string}>();
   const navigate = useNavigate();
-  const defaultIssueEvent = useDefaultIssueEvent();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const {projects} = useProjects();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
@@ -248,7 +242,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const {
     data: event,
     isPending: loadingEvent,
-    isError: isEventError,
     refetch: refetchEvent,
   } = useGroupEvent({
     groupId,
@@ -262,50 +255,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     error: groupError,
     refetch: refetchGroupCall,
   } = useGroup({groupId});
-
-  /**
-   * TODO(streamline-ui): Remove this whole hook once the legacy UI is removed. The streamlined UI exposes the
-   * filters on the page so the user is expected to clear it themselves, and the empty state is actually expected.
-   */
-  useEffect(() => {
-    if (hasStreamlinedUI) {
-      return;
-    }
-
-    const eventIdUrl = params.eventId ?? defaultIssueEvent;
-    const isLatestOrRecommendedEvent =
-      eventIdUrl === 'latest' || eventIdUrl === 'recommended';
-
-    if (
-      isLatestOrRecommendedEvent &&
-      isEventError &&
-      // Expanding this list to ensure invalid date ranges get removed as well as queries
-      (location.query.query ||
-        location.query.start ||
-        location.query.end ||
-        location.query.statsPeriod)
-    ) {
-      // If we get an error from the helpful event endpoint, it probably means
-      // the query failed validation. We should remove the query to try again if
-      // we are not using streamlined UI.
-      navigate(
-        {
-          ...location,
-          query: {
-            project: location.query.project,
-          },
-        },
-        {replace: true}
-      );
-    }
-  }, [
-    defaultIssueEvent,
-    isEventError,
-    navigate,
-    location,
-    params.eventId,
-    hasStreamlinedUI,
-  ]);
 
   /**
    * Allows the GroupEventHeader to display the previous event while the new event is loading.
@@ -443,7 +392,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [group?.project.id, allProjectChanged, navigate]);
 
-  const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
+  const errorType =
+    groupError instanceof RequestError
+      ? getFetchDataRequestErrorType(groupError.status)
+      : null;
   useEffect(() => {
     if (isGroupError) {
       Sentry.captureException(groupError);
@@ -525,7 +477,6 @@ function useTrackView({
     location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -544,7 +495,6 @@ function useTrackView({
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
     enforced_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
-    has_streamlined_ui: hasStreamlinedUI,
     has_seer_access: hasAutofixQuota,
     notification_uuid:
       typeof notification_uuid === 'string' ? notification_uuid : undefined,
@@ -579,51 +529,6 @@ function useTrackView({
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }
-
-const trackTabChanged = ({
-  organization,
-  project,
-  group,
-  event,
-  tab,
-}: {
-  event: Event | null;
-  group: Group;
-  organization: Organization;
-  project: Project;
-  tab: Tab;
-}) => {
-  if (!project || !group) {
-    return;
-  }
-
-  trackAnalytics('issue_details.tab_changed', {
-    organization,
-    project_id: parseInt(project.id, 10),
-    tab,
-    ...getAnalyticsDataForGroup(group),
-  });
-
-  if (group.issueCategory !== IssueCategory.ERROR) {
-    return;
-  }
-
-  const analyticsData = event
-    ? event.tags
-        .filter(({key}) => ['device', 'os', 'browser'].includes(key))
-        .reduce<Record<string, string>>((acc, {key, value}) => {
-          acc[key] = value;
-          return acc;
-        }, {})
-    : {};
-
-  trackAnalytics('issue_group_details.tab.clicked', {
-    organization,
-    tab,
-    platform: project.platform,
-    ...analyticsData,
-  });
-};
 
 function GroupDetailsContentError({
   errorType,
@@ -676,29 +581,24 @@ function GroupDetailsContent({
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
-  const {isDrawerOpen} = useDrawer();
+  const {isAnyDrawerOpen} = useDrawer();
 
-  const {currentTab, baseUrl} = useGroupDetailsRoute();
+  const {currentTab} = useGroupDetailsRoute();
   const {seerDrawer} = useLocationQuery({
     fields: {
       seerDrawer: decodeBoolean,
     },
   });
 
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const {hasAutofixQuota} = useAiConfig(group, project);
 
   useEffect(() => {
-    if (isDrawerOpen) {
+    if (isAnyDrawerOpen) {
       return;
     }
 
     if (seerDrawer) {
       openSeerDrawer();
-      return;
-    }
-
-    if (!hasStreamlinedUI) {
       return;
     }
 
@@ -714,8 +614,7 @@ function GroupDetailsContent({
     }
   }, [
     currentTab,
-    hasStreamlinedUI,
-    isDrawerOpen,
+    isAnyDrawerOpen,
     seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,
@@ -743,7 +642,7 @@ function GroupDetailsContent({
     Tab.ACTIVITY,
   ].includes(currentTab);
 
-  return hasStreamlinedUI ? (
+  return (
     <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
       {isDisplayingEventDetails ? (
         // The router displays a loading indicator when switching to any of these tabs
@@ -753,22 +652,6 @@ function GroupDetailsContent({
         children
       )}
     </GroupDetailsLayout>
-  ) : (
-    <Tabs
-      value={currentTab}
-      onChange={tab => trackTabChanged({tab, group, project, event, organization})}
-    >
-      <GroupHeader
-        organization={organization}
-        event={event}
-        group={group}
-        baseUrl={baseUrl}
-        project={project}
-      />
-      <GroupTabPanels>
-        <TabPanels.Item key={currentTab}>{children}</TabPanels.Item>
-      </GroupTabPanels>
-    </Tabs>
   );
 }
 
@@ -940,12 +823,4 @@ export default Sentry.withProfiler(GroupDetails);
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${p => p.theme.space.xl};
-`;
-
-const GroupTabPanels = styled(TabPanels)`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
-  padding-top: 0;
 `;

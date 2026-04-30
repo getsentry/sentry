@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from collections.abc import Mapping
+from types import SimpleNamespace
+from typing import Any, TypedDict, cast
 
-from django import forms
-from django.http import HttpRequest, HttpResponseBase
+from django.db import models
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+from rest_framework.fields import CharField, ChoiceField, URLField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -17,17 +21,20 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.perforce.client import PerforceClient
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
-from sentry.web.frontend.base import determine_active_organization
-from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 
@@ -85,86 +92,45 @@ metadata = IntegrationMetadata(
 )
 
 
-class PerforceInstallationForm(forms.Form):
-    """Form for Perforce installation configuration."""
-
-    p4port = forms.CharField(
-        label=_("P4PORT (Server Address)"),
-        help_text=_(
-            "Perforce server address in P4PORT format. "
-            "Examples: 'ssl:perforce.company.com:1666' (encrypted), "
-            "'perforce.company.com:1666' or 'tcp:perforce.company.com:1666' (plaintext). "
-            "SSL is strongly recommended for production use."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "ssl:perforce.company.com:1666"}),
-    )
-    user = forms.CharField(
-        label=_("Perforce Username"),
-        help_text=_(
-            "Username for authenticating with Perforce. "
-            "Required for both password and ticket authentication."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "sentry-bot"}),
-    )
-    auth_type = forms.ChoiceField(
-        label=_("Authentication Type"),
-        choices=[
-            ("password", _("Password")),
-            ("ticket", _("P4 Ticket")),
-        ],
-        initial="password",
-        help_text=_(
-            "Select whether you're providing a password or a P4 ticket. "
-            "Tickets are obtained via 'p4 login -p' and don't require re-authentication."
-        ),
-    )
-    password = forms.CharField(
-        label=_("Password / Ticket"),
-        help_text=_(
-            "Your Perforce password or P4 authentication ticket "
-            "(depending on the authentication type selected above)."
-        ),
-        widget=forms.PasswordInput(attrs={"placeholder": "••••••••"}),
-    )
-    client = forms.CharField(
-        label=_("Perforce Client/Workspace (Optional)"),
-        help_text=_("Optional: Specify a client workspace name"),
-        widget=forms.TextInput(attrs={"placeholder": "sentry-workspace"}),
-        required=False,
-    )
-    ssl_fingerprint = forms.CharField(
-        label=_("SSL Fingerprint (Required for SSL)"),
-        help_text=_(
-            "SSL fingerprint for secure connections. "
-            "Required when using 'ssl:' protocol. "
-            "Obtain with: p4 -p ssl:host:port trust -y"
-        ),
-        widget=forms.TextInput(
-            attrs={"placeholder": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01"}
-        ),
-        required=False,
-    )
-    web_url = forms.URLField(
-        label=_("P4 Code Review URL (Optional)"),
-        help_text=_("Optional: URL to P4 Code Review web viewer for browsing files"),
-        widget=forms.URLInput(attrs={"placeholder": "https://swarm.company.com"}),
-        required=False,
-        assume_scheme="https",
-    )
-
-    def clean_p4port(self) -> str:
-        """Strip off trailing / and whitespace from p4port"""
-        return self.cleaned_data["p4port"].strip().rstrip("/")
-
-    def clean_web_url(self) -> str:
-        """Strip off trailing / from web_url"""
-        web_url = self.cleaned_data.get("web_url", "")
-        if web_url:
-            return web_url.rstrip("/")
-        return web_url
+class AuthType(models.TextChoices):
+    PASSWORD = "password", _("Password")
+    TICKET = "ticket", _("P4 Ticket")
 
 
-class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
+class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
+    p4port = CharField(required=True)
+    user = CharField(required=True)
+    auth_type = ChoiceField(choices=AuthType.choices, default=AuthType.PASSWORD)
+    password = CharField(required=True, write_only=True)
+    client = CharField(required=False, allow_blank=True, default="")
+    ssl_fingerprint = CharField(required=False, allow_blank=True, default="")
+    web_url = URLField(required=False, allow_blank=True, default="")
+
+    def validate_p4port(self, value: str) -> str:
+        return value.strip().rstrip("/")
+
+    def validate_web_url(self, value: str) -> str:
+        return value.rstrip("/")
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if attrs["p4port"].startswith("ssl") and not attrs.get("ssl_fingerprint"):
+            raise serializers.ValidationError(
+                {"ssl_fingerprint": "SSL fingerprint is required when P4PORT uses ssl"}
+            )
+        return attrs
+
+
+# Allowlist of metadata keys safe to return from get_config_data().
+# The `password` key holds either a Perforce password or a P4 ticket (see
+# PerforceInstallationSerializer.auth_type). Both are live credentials usable
+# against the external Perforce server, so this list is allowlist-only —
+# anything new added to metadata stays out of the API response by default.
+_CONFIG_DATA_ALLOWLIST = frozenset(
+    {"p4port", "user", "auth_type", "ssl_fingerprint", "client", "web_url"}
+)
+
+
+class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIntegration):
     """
     Integration for P4 Core version control system.
     Provides stacktrace linking to depot files and suspect commit detection.
@@ -183,6 +149,11 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
     ):
         super().__init__(model=model, organization_id=organization_id)
         self._client: PerforceClient | None = None
+
+    def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
+        raise NotImplementedError(
+            "Perforce external_id is derived from the depot path, not the API response"
+        )
 
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
@@ -349,8 +320,13 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         return url
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
-    ) -> list[dict[str, Any]]:
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
+        use_cache: bool = False,
+        raise_on_page_limit: bool = False,
+    ) -> list[RepositoryInfo]:
         """
         Get list of depots/streams from Perforce server.
 
@@ -365,7 +341,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             client = self.get_client()
             depots = client.get_depots()
 
-            repositories = []
+            repositories: list[RepositoryInfo] = []
             for depot in depots:
                 depot_name = depot["name"]
                 depot_path = f"//{depot_name}"
@@ -378,6 +354,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                     {
                         "name": depot_name,
                         "identifier": depot_path,
+                        "external_id": "",  # Perforce derives external_id from the user-provided depot path, not the API response
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )
@@ -490,11 +467,15 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         Since we store credentials in integration.metadata (not org_integration.config),
         we override the base implementation to read from metadata.
 
+        Returns only fields in _CONFIG_DATA_ALLOWLIST. The credential field is
+        excluded — it surfaces in the org integrations API response, which is
+        readable by org:read.
+
         Returns:
-            Dictionary of current configuration values that will be used to populate
-            the form fields defined in get_organization_config()
+            Dictionary of non-secret configuration values that will be used to
+            populate the form fields defined in get_organization_config().
         """
-        return self.model.metadata
+        return {k: v for k, v in self.model.metadata.items() if k in _CONFIG_DATA_ALLOWLIST}
 
     def update_organization_config(self, data: Mapping[str, Any]) -> None:
         """
@@ -546,11 +527,12 @@ class PerforceIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.COMMITS,
         ]
     )
-    requires_feature_flag = True
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        """Get pipeline views for installation flow."""
-        return [PerforceInstallationView()]
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [PerforceInstallationApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         """
@@ -643,118 +625,69 @@ class PerforceIntegrationProvider(IntegrationProvider):
         )
 
 
-class PerforceInstallationView:
-    """
-    Installation view for Perforce configuration.
-    Collects and validates Perforce server credentials during installation.
-    """
+class PerforceInstallationApiStep:
+    step_name = "installation_config"
 
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        """
-        Handle installation request with form validation.
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
 
-        Args:
-            request: HTTP request object
-            pipeline: Installation pipeline
+    def get_serializer_cls(self) -> type:
+        return PerforceInstallationSerializer
 
-        Returns:
-            HTTP response (form render or redirect to next step)
-        """
-        if request.method == "POST":
-            form = PerforceInstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
-
-                # Verify connection to Perforce server before completing installation
-                try:
-                    client = PerforceClient(
-                        integration=type(
-                            "obj",
-                            (object,),
-                            {
-                                "metadata": {
-                                    "p4port": form_data.get("p4port"),
-                                    "user": form_data.get("user"),
-                                    "password": form_data.get("password"),
-                                    "auth_type": form_data.get("auth_type", "password"),
-                                    "client": form_data.get("client"),
-                                    "ssl_fingerprint": form_data.get("ssl_fingerprint"),
-                                }
-                            },
-                        )(),
-                        org_integration=type("obj", (object,), {})(),
-                    )
-                    # Test connection by fetching depot list
-                    client.get_depots()
-
-                    pipeline.get_logger().info(
-                        "perforce.setup.connection-verified",
-                        extra={
-                            "p4port": form_data.get("p4port"),
-                            "user": form_data.get("user"),
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        # We want to verify the supplied credentials before completing the
+        # pipeline, but PerforceClient is built to read its config from a real
+        # Integration row — which does not exist yet at this point in setup.
+        #
+        # Fake just enough of the Integration / OrganizationIntegration shape
+        # for the client's constructor: a `metadata` dict on `integration`, and
+        # any truthy object for `org_integration` (the constructor only checks
+        # that it is not None). `get_depots()` does not touch either beyond
+        # that, so this is safe for a one-shot connection probe.
+        #
+        # TODO(epurkhiser): We should decouple the client from the integration
+        # so we don't have to do this.
+        try:
+            client = PerforceClient(
+                integration=cast(
+                    Integration,
+                    SimpleNamespace(
+                        metadata={
+                            "p4port": validated_data.get("p4port"),
+                            "user": validated_data.get("user"),
+                            "password": validated_data.get("password"),
+                            "auth_type": validated_data.get("auth_type", "password"),
+                            "client": validated_data.get("client"),
+                            "ssl_fingerprint": validated_data.get("ssl_fingerprint"),
                         },
-                    )
-                except ApiUnauthorized as e:
-                    form.add_error(
-                        None,
-                        f"Authentication failed: {e}. Please check your username and password.",
-                    )
-                    return render_to_response(
-                        template="sentry/integrations/perforce-config.html",
-                        context={"form": form},
-                        request=request,
-                    )
-                except ApiError as e:
-                    form.add_error(
-                        None,
-                        f"Failed to connect to Perforce server: {e}. Please verify your server address and SSL fingerprint.",
-                    )
-                    return render_to_response(
-                        template="sentry/integrations/perforce-config.html",
-                        context={"form": form},
-                        request=request,
-                    )
-                except Exception as e:
-                    pipeline.get_logger().error(
-                        "perforce.setup.connection-verification-failed",
-                        extra={
-                            "p4port": form_data.get("p4port"),
-                            "error": str(e),
-                        },
-                        exc_info=True,
-                    )
-                    form.add_error(
-                        None,
-                        f"Unexpected error during connection verification: {e}",
-                    )
-                    return render_to_response(
-                        template="sentry/integrations/perforce-config.html",
-                        context={"form": form},
-                        request=request,
-                    )
+                    ),
+                ),
+                org_integration=cast(OrganizationIntegration, SimpleNamespace()),
+            )
+            client.get_depots()
+        except ApiUnauthorized as e:
+            return PipelineStepResult.error(
+                f"Authentication failed: {e}. Please check your username and password."
+            )
+        except ApiError as e:
+            return PipelineStepResult.error(
+                f"Failed to connect to Perforce server: {e}. Please verify your server address and SSL fingerprint."
+            )
+        except Exception as e:
+            logger.exception(
+                "perforce.setup.connection-verification-failed",
+                extra={
+                    "p4port": validated_data.get("p4port"),
+                    "error": str(e),
+                },
+            )
+            return PipelineStepResult.error(f"Unexpected error during connection verification: {e}")
 
-                # Bind configuration data to pipeline state
-                pipeline.bind_state("installation_data", form_data)
-                # Include organization_id to create unique external_id per org
-                active_org = determine_active_organization(request)
-                if active_org:
-                    pipeline.bind_state("organization_id", active_org.organization.id)
-
-                pipeline.get_logger().info(
-                    "perforce.setup.installation-config-view.success",
-                    extra={
-                        "p4port": form_data.get("p4port"),
-                        "user": form_data.get("user"),
-                        "has_ssl_fingerprint": bool(form_data.get("ssl_fingerprint")),
-                        "has_web_url": bool(form_data.get("web_url")),
-                    },
-                )
-                return pipeline.next_step()
-        else:
-            form = PerforceInstallationForm()
-
-        return render_to_response(
-            template="sentry/integrations/perforce-config.html",
-            context={"form": form},
-            request=request,
-        )
+        pipeline.bind_state("installation_data", validated_data)
+        pipeline.bind_state("organization_id", pipeline.organization.id)
+        return PipelineStepResult.advance()

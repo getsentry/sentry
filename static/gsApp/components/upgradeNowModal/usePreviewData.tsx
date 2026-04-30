@@ -57,7 +57,7 @@ export function usePreviewData({
     data: previewData,
   } = useApiQuery<PreviewData>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/subscription/preview/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/subscription/preview/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

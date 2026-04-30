@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 
@@ -10,9 +11,7 @@ export function useResetDashboardLists() {
   const getStarredDashboards = useGetStarredDashboards();
 
   return useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/dashboards/`],
-    });
+    queryClient.invalidateQueries(dashboardsApiOptions(organization));
     getStarredDashboards.refetch();
   }, [queryClient, organization, getStarredDashboards]);
 }

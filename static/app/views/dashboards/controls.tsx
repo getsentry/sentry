@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
@@ -17,7 +18,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,17 +29,18 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {DashboardRevisionsButton} from './dashboardRevisions';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
-import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
+import type {DashboardDetails, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
 type Props = {
   dashboard: DashboardDetails;
   dashboardState: DashboardState;
-  dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet, openWidgetTemplates: boolean) => void;
   onCancel: () => void;
   onCommit: () => void;
@@ -48,6 +49,7 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
+  hideAddWidget?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
@@ -55,8 +57,8 @@ type Props = {
 export function Controls({
   dashboardState,
   dashboard,
-  dashboards,
   hasUnsavedFilters,
+  hideAddWidget = false,
   widgetLimitReached,
   onChangeEditAccess,
   onEdit,
@@ -67,6 +69,7 @@ export function Controls({
   isSaving,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const queryClient = useQueryClient();
   function renderCancelButton(label = t('Cancel')) {
     return (
@@ -109,7 +112,6 @@ export function Controls({
           priority="danger"
           message={t('Are you sure you want to delete this dashboard?')}
           onConfirm={onDelete}
-          disabled={dashboards.length <= 1}
         >
           <Button size="sm" data-test-id="dashboard-delete" priority="danger">
             {t('Delete')}
@@ -268,6 +270,40 @@ export function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
+            <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
+              <Button
+                size="sm"
+                aria-label={t('star-dashboard')}
+                icon={
+                  <IconStar
+                    variant={isFavorited ? 'warning' : 'muted'}
+                    isSolid={isFavorited}
+                    aria-label={isFavorited ? t('Unstar') : t('Star')}
+                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                  />
+                }
+                onClick={async () => {
+                  try {
+                    setIsFavorited(!isFavorited);
+                    await updateDashboardFavorite(
+                      api,
+                      queryClient,
+                      organization,
+                      dashboard.id,
+                      !isFavorited
+                    );
+                    trackAnalytics('dashboards_manage.toggle_favorite', {
+                      organization,
+                      dashboard_id: dashboard.id,
+                      favorited: !isFavorited,
+                    });
+                  } catch (error) {
+                    // If the api call fails, revert the state
+                    setIsFavorited(isFavorited);
+                  }
+                }}
+              />
+            </Tooltip>
             <Feature features="dashboards-import">
               <Tooltip title={t('Export Dashboard')}>
                 <Button
@@ -283,50 +319,61 @@ export function Controls({
                 />
               </Tooltip>
             </Feature>
-            {dashboard.id !== 'default-overview' && !isPrebuiltDashboard && (
+            {hasPageFrameFeature &&
+              hasFeature &&
+              (isPrebuiltDashboard ? (
+                <Button
+                  data-test-id="dashboard-edit"
+                  aria-label={t('edit-dashboard')}
+                  icon={<IconEdit />}
+                  disabled
+                  tooltipProps={{
+                    title: tct(
+                      'This is a [label] dashboard and cannot be edited. Duplicate it to make changes.',
+                      {label: PREBUILT_DASHBOARD_LABEL}
+                    ),
+                  }}
+                  priority="default"
+                  size="sm"
+                />
+              ) : (
+                <Button
+                  data-test-id="dashboard-edit"
+                  aria-label={t('edit-dashboard')}
+                  onClick={e => {
+                    e.preventDefault();
+                    onEdit();
+                  }}
+                  icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
+                  disabled={hasUnsavedFilters || !hasEditAccess || isSaving}
+                  tooltipProps={{
+                    title:
+                      (isSaving
+                        ? DASHBOARD_SAVING_MESSAGE
+                        : hasEditAccess
+                          ? hasUnsavedFilters
+                            ? UNSAVED_FILTERS_MESSAGE
+                            : null
+                          : t('You do not have permission to edit this dashboard')) ??
+                      t('Edit Dashboard'),
+                  }}
+                  priority="default"
+                  size="sm"
+                />
+              ))}
+            {!isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
               />
             )}
-            {dashboard.id !== 'default-overview' && (
-              <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
-                <Button
-                  size="sm"
-                  aria-label={t('star-dashboard')}
-                  icon={
-                    <IconStar
-                      variant={isFavorited ? 'warning' : 'muted'}
-                      isSolid={isFavorited}
-                      aria-label={isFavorited ? t('Unstar') : t('Star')}
-                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                    />
-                  }
-                  onClick={async () => {
-                    try {
-                      setIsFavorited(!isFavorited);
-                      await updateDashboardFavorite(
-                        api,
-                        queryClient,
-                        organization,
-                        dashboard.id,
-                        !isFavorited
-                      );
-                      trackAnalytics('dashboards_manage.toggle_favorite', {
-                        organization,
-                        dashboard_id: dashboard.id,
-                        favorited: !isFavorited,
-                      });
-                    } catch (error) {
-                      // If the api call fails, revert the state
-                      setIsFavorited(isFavorited);
-                    }
-                  }}
-                />
-              </Tooltip>
+            {!hasPageFrameFeature && renderEditButton(hasFeature)}
+            {hasFeature && (
+              <Feature features="dashboards-revisions">
+                <DashboardRevisionsButton dashboard={dashboard} />
+              </Feature>
             )}
-            {renderEditButton(hasFeature)}
-            {hasFeature && !isPrebuiltDashboard && (
+            {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
               <Tooltip
                 title={tooltipMessage}
                 disabled={!widgetLimitReached && hasEditAccess}

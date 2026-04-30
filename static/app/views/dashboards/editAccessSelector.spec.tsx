@@ -229,7 +229,7 @@ describe('When EditAccessSelector is rendered with Teams', () => {
     const org = OrganizationFixture();
     OrganizationStore.onUpdate(org, {replace: true});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/teams/`,
+      url: '/organizations/org-slug/teams/',
       method: 'GET',
       body: teams,
     });

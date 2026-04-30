@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Self
 
 from django.db import models
 from django.db.models.functions import Now, TruncSecond
@@ -11,7 +11,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
-from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
+from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.rpc import CELL_NAME_LENGTH, IDEMPOTENCY_KEY_LENGTH
 from sentry.models.organization import OrganizationStatus
 
 if TYPE_CHECKING:
@@ -30,6 +31,11 @@ class OrganizationMapping(Model):
     # references, so there is no need to explicitly include it in the export.
     __relocation_scope__ = RelocationScope.Excluded
 
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
+        cache_fields=("organization_id", "slug"),
+        cache_ttl=60 * 60,  # 1 hour
+    )
+
     organization_id = BoundedBigIntegerField(db_index=True, unique=True)
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=64)
@@ -39,7 +45,7 @@ class OrganizationMapping(Model):
     # If a record already exists with the same slug, the organization_id can only be
     # updated IF the idempotency key is identical.
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
-    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
+    cell_name = models.CharField(max_length=CELL_NAME_LENGTH, db_column="region_name")
 
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Any
@@ -67,7 +67,7 @@ from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
     DashboardLastVisited,
-    DashboardTombstone,
+    DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -76,10 +76,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
-)
-from sentry.models.dynamicsampling import (
-    CustomDynamicSamplingRule,
-    CustomDynamicSamplingRuleProject,
 )
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -604,7 +600,12 @@ class ExhaustiveFixtures(Fixtures):
             field="count()",
             dashboard=linked_dashboard,
         )
-        DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
+        DashboardRevision.objects.create(
+            dashboard=dashboard,
+            created_by_id=owner_id,
+            title=dashboard.title,
+            snapshot_schema_version=1,
+        )
 
         # *Search
         RecentSearch.objects.create(
@@ -817,20 +818,6 @@ class ExhaustiveFixtures(Fixtures):
             data_forwarder=data_forwarder,
             project=project,
             overrides={"write_key": "test_override_write_key"},
-        )
-
-        custom_rule = CustomDynamicSamplingRule.objects.create(
-            organization=org,
-            created_by_id=owner_id,
-            condition='{"op":"and","inner":[]}',
-            end_date=timezone.now() + timedelta(days=1),
-            num_samples=100,
-            condition_hash="abc123def456abc123def456abc123def4560000",
-            sample_rate=0.5,
-        )
-        CustomDynamicSamplingRuleProject.objects.create(
-            custom_dynamic_sampling_rule=custom_rule,
-            project=project,
         )
 
         return org

@@ -99,7 +99,7 @@ class AlertRuleBase(APITestCase):
         return {
             "aggregate": "count()",
             "query": "",
-            "timeWindow": "300",
+            "timeWindow": "5",
             "resolveThreshold": 100,
             "thresholdType": 0,
             "triggers": [
@@ -391,17 +391,9 @@ class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
         assert len(new_data) == len(old_data)
 
         for old_rule, new_rule in zip(old_data, new_data):
-            old_sorted = {
-                **old_rule,
-                "triggers": sorted(old_rule.get("triggers", []), key=lambda t: t.get("label", "")),
-            }
-            new_sorted = {
-                **new_rule,
-                "triggers": sorted(new_rule.get("triggers", []), key=lambda t: t.get("label", "")),
-            }
             assert_serializer_parity(
-                old=old_sorted,
-                new=new_sorted,
+                old=old_rule,
+                new=new_rule,
                 known_differences={
                     # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
                     # but workflow engine always creates a resolve condition during migration.
@@ -540,7 +532,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:workflow-engine-rule-serializers",
+                    "organizations:workflow-engine-metric-alert-endpoints-post",
                 ]
             ),
         ):
@@ -1090,61 +1082,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.snuba_query.query == "is:unresolved"
-
-    def test_spm_function(self) -> None:
-        with (
-            outbox_runner(),
-            self.feature(
-                [
-                    "organizations:incidents",
-                    "organizations:performance-view",
-                    "organizations:dynamic-sampling",
-                ]
-            ),
-        ):
-            data = {
-                "dataset": "generic_metrics",
-                "eventTypes": ["transaction"],
-                "aggregate": "spm()",
-                "query": "span.module:db has:span.description",
-                "timeWindow": 60,
-                "thresholdPeriod": 1,
-                "triggers": [
-                    {
-                        "label": "critical",
-                        "alertThreshold": 7000000,
-                        "actions": [
-                            {
-                                "type": "email",
-                                "targetType": "team",
-                                "targetIdentifier": self.team.id,
-                            }
-                        ],
-                    }
-                ],
-                "projects": [self.project.slug],
-                "environment": None,
-                "resolveThreshold": None,
-                "thresholdType": 1,
-                "owner": self.user.id,
-                "name": "Insights Queries SPM Alert",
-                "projectId": "1",
-                "alertType": "insights_metrics",
-                "monitorType": 0,
-                "activationCondition": 0,
-                "comparisonDelta": None,
-                "queryType": 1,
-            }
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query.query == "span.module:db has:span.description"
-        assert alert_rule.snuba_query.aggregate == "spm()"
 
     def test_performance_score_function(self) -> None:
         with (
@@ -1902,16 +1839,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
             test_params = {**self.alert_rule_dict, "dataset": "transactions"}
 
-            resp = self.get_error_response(
+            resp = self.get_success_response(
                 self.organization.slug,
-                status_code=400,
+                status_code=201,
                 **test_params,
             )
 
-            assert (
-                resp.data["dataset"][0]
-                == "Performance alerts must use the `generic_metrics` dataset"
-            )
+            assert resp.data["dataset"] == "transactions"
 
     def test_alert_with_metrics_layer(self) -> None:
         with self.feature(
@@ -2067,13 +2001,18 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         data = deepcopy(self.alert_rule_dict)
         data["dataset"] = "events_analytics_platform"
         data["alertType"] = "eap_metrics"
+
+        # Below the 5-minute floor
         data["timeWindow"] = 1
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert (
-            resp.data["nonFieldErrors"][0]
-            == "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
-        )
+        assert "Invalid Time Window" in resp.data["nonFieldErrors"][0]
+
+        # Above the floor but not a valid granularity (7 minutes = 420 seconds)
+        data["timeWindow"] = 7
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "Invalid Time Window" in resp.data["nonFieldErrors"][0]
 
     def test_transactions_dataset_deprecation_validation(self) -> None:
         data = deepcopy(self.alert_rule_dict)
@@ -2106,6 +2045,55 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert (
             resp.data[0]
             == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
+    def test_am1_org_transactions_dataset_allowed(self) -> None:
+        """AM1 orgs (no dynamic-sampling or on-demand-metrics) cannot create generic_metrics alerts."""
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "generic_metrics"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert "id" in resp.data
+        assert resp.data["dataset"] == "transactions"
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_am1_org_generic_metrics_creates_transactions_snuba_subscription(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
+        """AM1 orgs creating generic_metrics alerts should create a Snuba subscription against the
+        transactions dataset, not generic_metrics."""
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "generic_metrics"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+                resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+
+                (method, url) = urlopen.call_args[0]
+                assert method == "POST"
+                assert url.startswith("/transactions/")
+
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.snuba_query.dataset == "transactions"
+        assert resp.data == serialize(alert_rule, self.user)
+        assert resp.data["aggregate"] == "count()"
+        assert resp.data["dataset"] == "transactions"
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)
+            .order_by("id")[0]
+            .type
+            == SnubaQueryEventType.EventType.TRANSACTION.value
         )
 
     def test_invalid_extrapolation_mode(self) -> None:

@@ -37,13 +37,22 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, run_eap_group_search
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+from sentry.utils.snuba import (
+    EmptyGroupIdIntersectionError,
+    SnubaQueryParams,
+    aliased_query_params,
+    bulk_raw_query,
+)
+
+logger = logging.getLogger(__name__)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -88,6 +97,19 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
 
 ENTITY_EVENTS = "events"
 ENTITY_SEARCH_ISSUES = "search_issues"
+
+
+def _reasonable_search_result_match(
+    control: tuple[list[tuple[int, Any]], int],
+    experimental: tuple[list[tuple[int, Any]], int],
+) -> bool:
+    control_group_ids = {gid for gid, _ in control[0]}
+    experimental_group_ids = {gid for gid, _ in experimental[0]}
+
+    if not experimental_group_ids:
+        return True
+
+    return experimental_group_ids.issubset(control_group_ids)
 
 
 @dataclass
@@ -147,6 +169,7 @@ def group_categories_from_search_filters(
         # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
         group_categories.discard(GroupCategory.INSTRUMENTATION.value)
+        group_categories.discard(GroupCategory.CONFIGURATION.value)
 
     if not features.has("organizations:performance-issues-search", organization):
         group_categories.discard(GroupCategory.PERFORMANCE.value)
@@ -269,7 +292,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         having: Sequence[Sequence[Any]],
         aggregate_kwargs: TrendsSortWeights | None = None,
-        replace_trends_aggregation: bool | None = False,
+        use_issue_platform: bool = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -280,8 +303,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            if replace_trends_aggregation and alias == "trends":
-                aggregation = self.aggregation_defs["trends_issue_platform"]
+            if use_issue_platform and alias in ("trends", "recommended"):
+                aggregation = self.aggregation_defs[f"{alias}_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -333,14 +356,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        if sort_field == "trends" and group_category is not GroupCategory.ERROR.value:
-            aggregations = self._prepare_aggregations(
-                sort_field, start, end, having, aggregate_kwargs, True
-            )
-        else:
-            aggregations = self._prepare_aggregations(
-                sort_field, start, end, having, aggregate_kwargs
-            )
+        use_issue_platform = group_category is not GroupCategory.ERROR.value
+        aggregations = self._prepare_aggregations(
+            sort_field, start, end, having, aggregate_kwargs, use_issue_platform
+        )
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -469,51 +488,108 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
+            except EmptyGroupIdIntersectionError:
+                # Postgres candidates and the snuba group_id condition are
+                # disjoint for this category — it can't match anything. Skip it.
+                pass
             else:
                 if query_params is not None:
                     query_params_for_categories[gc] = query_params
 
-        try:
-            bulk_query_results = bulk_raw_query(
-                list(query_params_for_categories.values()), referrer=referrer
-            )
-        except Exception:
-            metrics.incr(
-                "snuba.search.group_category_bulk",
-                tags={
-                    GroupCategory(gc_val).name.lower(): True
-                    for gc_val, _ in query_params_for_categories.items()
-                },
-            )
-            # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
-            # we'll fallback to querying for errors only
-            if GroupCategory.ERROR.value in query_params_for_categories.keys():
+        callsite = "PostgresSnubaQueryExecutor.snuba_search"
+
+        def _run_snuba_query() -> tuple[list[tuple[int, Any]], int]:
+            try:
                 bulk_query_results = bulk_raw_query(
-                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
+                    list(query_params_for_categories.values()), referrer=referrer
                 )
-            else:
-                raise
+            except Exception:
+                metrics.incr(
+                    "snuba.search.group_category_bulk",
+                    tags={
+                        GroupCategory(gc_val).name.lower(): True
+                        for gc_val, _ in query_params_for_categories.items()
+                    },
+                )
+                # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
+                # we'll fallback to querying for errors only
+                if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                    bulk_query_results = bulk_raw_query(
+                        [query_params_for_categories[GroupCategory.ERROR.value]],
+                        referrer=referrer,
+                    )
+                else:
+                    raise
 
-        rows: list[MergeableRow] = []
-        total = 0
-        row_length = 0
-        for bulk_result in bulk_query_results:
-            if bulk_result:
-                if bulk_result["data"]:
-                    rows.extend(bulk_result["data"])
-                if bulk_result["totals"]["total"]:
-                    total += bulk_result["totals"]["total"]
-                row_length += len(bulk_result)
+            rows: list[MergeableRow] = []
+            total = 0
+            row_length = 0
+            for bulk_result in bulk_query_results:
+                if bulk_result:
+                    if bulk_result["data"]:
+                        rows.extend(bulk_result["data"])
+                    if bulk_result["totals"]["total"]:
+                        total += bulk_result["totals"]["total"]
+                    row_length += len(bulk_result)
 
-        rows.sort(key=lambda row: row["group_id"])
+            rows.sort(key=lambda row: row["group_id"])
 
-        if not get_sample:
-            metrics.distribution("snuba.search.num_result_groups", row_length)
+            if not get_sample:
+                metrics.distribution("snuba.search.num_result_groups", row_length)
 
-        if get_sample:
-            sort_field = "sample"
+            effective_sort_field = "sample" if get_sample else sort_field
+            return [(row["group_id"], row[effective_sort_field]) for row in rows], total  # type: ignore[literal-required]
 
-        return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore[literal-required]
+        def _run_eap_query() -> tuple[list[tuple[int, Any]], int]:
+            try:
+                return run_eap_group_search(
+                    start=start,
+                    end=end,
+                    project_ids=project_ids,
+                    environment_ids=environment_ids,
+                    sort_field=sort_field,
+                    organization=organization,
+                    cursor=cursor,
+                    group_ids=group_ids,
+                    limit=limit,
+                    offset=offset,
+                    search_filters=snuba_search_filters,
+                    referrer=referrer,
+                )
+            except Exception:
+                logger.exception(
+                    "eap.double_read.run_eap_group_search_failed",
+                    extra={"callsite": callsite, "sort_field": sort_field},
+                )
+                return ([], 0)
+
+        # Double-read from EAP for supported sort strategies
+        if (
+            not get_sample
+            and sort_field in EAP_SORT_STRATEGIES
+            and features.has("organizations:issue-feed.eap-search", organization)
+        ):
+            try:
+                return EAPOccurrencesComparator.check_and_choose_with_timings(
+                    control_thunk=_run_snuba_query,
+                    experimental_thunk=_run_eap_query,
+                    callsite=callsite,
+                    null_result_determiner=lambda r: len(r[0]) == 0,
+                    reasonable_match_comparator=_reasonable_search_result_match,
+                    debug_context={
+                        "sort_field": sort_field,
+                        "organization_id": organization.id,
+                        "num_group_ids": len(group_ids) if group_ids else 0,
+                        "num_filters": len(snuba_search_filters),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "eap.double_read.snuba_search_failed",
+                    extra={"callsite": callsite, "sort_field": sort_field},
+                )
+
+        return _run_snuba_query()
 
     def has_sort_strategy(self, sort_by: str) -> bool:
         return sort_by in self.sort_strategies.keys()
@@ -700,11 +776,92 @@ def trends_aggregation_impl(
             ]
 
 
+def _recommended_aggregation(
+    timestamp_column: str, type_column: str | None = None
+) -> Sequence[str]:
+    hour = 3600
+
+    # Recency: exponential decay based on time since last event (24hr halflife)
+    recency_weight = options.get("snuba.search.recommended.recency-weight")
+    age_hours = f"divide(minus(now(), max({timestamp_column})), {hour})"
+    recency = f"divide(1, pow(2, divide({age_hours}, 24)))"
+
+    # Spike: ratio of recent 6hr events to total 3d events
+    spike_weight = options.get("snuba.search.recommended.spike-weight")
+    recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
+    total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
+    spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
+
+    # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
+    severity_weight = options.get("snuba.search.recommended.severity-weight")
+    severity = (
+        "max(multiIf("
+        "equals(level, 'fatal'), 1.0, "
+        "equals(level, 'error'), 0.75, "
+        "equals(level, 'warning'), 0.5, "
+        "equals(level, 'info'), 0.25, "
+        "0.0))"
+    )
+
+    # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
+    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
+    user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
+
+    # Event volume: ln(count() + 1)/ln(10001) - maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
+    event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
+    event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
+
+    # Group type boost: additive signal per issue type
+    group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
+    if group_type_boosts:
+        type_expr = f"any({type_column})" if type_column else "1"
+        conditions = []
+        for type_id, boost in group_type_boosts.items():
+            conditions.append(f"equals({type_expr}, {type_id}), {boost}")
+        type_boost = f"multiIf({', '.join(conditions)}, 0.0)"
+    else:
+        type_boost = "0.0"
+
+    return [
+        (
+            f"plus(plus(plus(plus(plus("
+            f"multiply({recency_weight}, {recency}), "
+            f"multiply({spike_weight}, {spike})), "
+            f"multiply({severity_weight}, {severity})), "
+            f"multiply({user_impact_weight}, {user_impact})), "
+            f"multiply({event_volume_weight}, {event_volume})), "
+            f"{type_boost})"
+        ),
+        "",
+    ]
+
+
+def recommended_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: Any = None,
+) -> Sequence[str]:
+    return _recommended_aggregation(timestamp_column="timestamp")
+
+
+def recommended_issue_platform_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: Any = None,
+) -> Sequence[str]:
+    return _recommended_aggregation(
+        timestamp_column="client_timestamp", type_column="occurrence_type_id"
+    )
+
+
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
     logger = logging.getLogger("sentry.search.postgressnuba")
-    dependency_aggregations = {"trends": ["last_seen", "times_seen"]}
+    dependency_aggregations = {
+        "trends": ["last_seen", "times_seen"],
+        "recommended": ["last_seen", "times_seen", "user_count"],
+    }
     postgres_only_fields = {*SKIP_SNUBA_FIELDS, "regressed_in_release"}
     # add specific fields here on top of skip_snuba_fields from the serializer
     sort_strategies = {
@@ -712,6 +869,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "freq": "times_seen",
         "new": "first_seen",
         "trends": "trends",
+        "recommended": "recommended",
         "user": "user_count",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
@@ -723,10 +881,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "first_seen": ["multiply(toUInt64(min(coalesce(group_first_seen, timestamp))), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
         "trends": trends_aggregation,
+        "recommended": recommended_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
         "trends_issue_platform": trends_issue_platform_aggregation,
+        "recommended_issue_platform": recommended_issue_platform_aggregation,
     }
 
     @property

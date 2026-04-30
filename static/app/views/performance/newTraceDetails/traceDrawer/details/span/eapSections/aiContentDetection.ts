@@ -18,10 +18,7 @@ interface AIContentDetectionResult {
   wasFixed?: boolean;
 }
 
-/**
- * Best-effort conversion of a Python dict literal to a JSON-parseable string.
- * Returns the parsed object on success, or null if conversion fails.
- */
+/** Best-effort conversion of a Python dict literal to a JSON-parseable string. */
 export function tryParsePythonDict(text: string): Record<PropertyKey, unknown> | null {
   const trimmed = text.trim();
   if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
@@ -50,10 +47,7 @@ export function tryParsePythonDict(text: string): Record<PropertyKey, unknown> |
   }
 }
 
-/**
- * Splits text into segments of plain text and XML-like tag blocks.
- * Matches `<tagname>...</tagname>` patterns (including multiline content).
- */
+/** Splits text into segments of plain text and XML-like tag blocks. */
 export function parseXmlTagSegments(text: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
   const xmlTagRegex = /<([a-zA-Z][\w-]*)>([\s\S]*?)<\/\1>/g;
@@ -78,6 +72,19 @@ export function parseXmlTagSegments(text: string): ContentSegment[] {
   return segments;
 }
 
+/** Replaces inline XML tags with italic markdown, leaves block-level tags untouched. */
+export function preprocessInlineXmlTags(text: string): string {
+  const xmlTagRegex = /<([a-zA-Z][\w-]*)>([\s\S]*?)<\/\1>/g;
+  return text.replace(xmlTagRegex, (match, tagName, content, offset) => {
+    const isBlock = offset === 0 || /\n\s*$/.test(text.slice(0, offset));
+    if (isBlock) {
+      return match;
+    }
+    const stripped = content.replace(/<\/?[a-zA-Z][\w-]*>/g, '').trim();
+    return `*${tagName}: ${stripped}*`;
+  });
+}
+
 const XML_TAG_REGEX = /<([a-zA-Z][\w-]*)>[\s\S]*?<\/\1>/;
 
 const MARKDOWN_INDICATORS = [
@@ -91,16 +98,7 @@ const MARKDOWN_INDICATORS = [
   /^```/m, // code fences
 ];
 
-/**
- * Detects the content type of an AI response string.
- * Short-circuits on first match in priority order:
- * 1. Valid JSON (object/array)
- * 2. Python dict
- * 3. Partial/truncated JSON (fixable)
- * 4. Markdown with XML tags
- * 5. Markdown
- * 6. Plain text
- */
+/** Detects AI content type: JSON, Python dict, markdown-with-xml, markdown, or plain text. */
 export function detectAIContentType(text: string): AIContentDetectionResult {
   const trimmed = text.trim();
   if (!trimmed) {

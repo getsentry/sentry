@@ -157,10 +157,7 @@ export default function AlertWizard() {
     );
   }
 
-  const hasMetricIssues = organization.features.includes(
-    'workflow-engine-metric-issue-ui'
-  );
-  const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
+  const panelContent = getAlertWizardPanelContent()[alertOption];
   return (
     <Stack flex={1}>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />

@@ -1,20 +1,15 @@
-import {useCallback} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValuesParams} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  TraceItemDataset,
-  UseTraceItemAttributeBaseProps,
-} from 'sentry/views/explore/types';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
+import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 
 interface TraceItemAttributeValue {
   first_seen: null;
@@ -27,55 +22,7 @@ interface TraceItemAttributeValue {
 interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
   datetime?: PageFilters['datetime'];
   projectIds?: PageFilters['projects'];
-}
-
-function traceItemAttributeValuesQueryKey({
-  orgSlug,
-  attributeKey,
-  search,
-  projectIds,
-  datetime,
-  traceItemType,
-  type = 'string',
-}: {
-  attributeKey: string;
-  orgSlug: string;
-  traceItemType: TraceItemDataset;
-  datetime?: PageFilters['datetime'];
-  projectIds?: number[];
-  search?: string;
-  type?: 'string' | 'number' | 'boolean';
-}): ApiQueryKey {
-  const query: Record<string, string | string[] | number[]> = {
-    itemType: traceItemType,
-    attributeType: type,
-  };
-
-  if (search) {
-    query.substringMatch = search;
-  }
-
-  if (projectIds?.length) {
-    query.project = projectIds.map(String);
-  }
-
-  if (datetime) {
-    Object.entries(normalizeDateTimeParams(datetime)).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query[key] = value as string | string[];
-      }
-    });
-  }
-
-  return [
-    getApiUrl(
-      '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
-      {
-        path: {organizationIdOrSlug: orgSlug, key: attributeKey},
-      }
-    ),
-    {query},
-  ];
+  query?: string;
 }
 
 /**
@@ -86,54 +33,54 @@ export function useGetTraceItemAttributeValues({
   traceItemType,
   projectIds,
   datetime,
-  type = 'string',
+  type,
+  query: filterQuery,
 }: UseGetTraceItemAttributeValuesProps) {
-  const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const queryClient = useQueryClient();
 
-  // Create a function that can be used as getTagValues
-  const getTraceItemAttributeValues = useCallback<GetTagValues>(
-    async (tag, queryString) => {
+  const {mutateAsync: getTraceItemAttributeValues} = useMutation({
+    mutationFn: async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
       if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
         // We can't really auto suggest values for aggregate functions, numbers, or booleans
         return Promise.resolve([]);
       }
 
-      const queryKey = traceItemAttributeValuesQueryKey({
-        orgSlug: organization.slug,
-        attributeKey: tag.key,
-        search: queryString,
-        projectIds: projectIds ?? selection.projects,
-        datetime: datetime ?? selection.datetime,
-        traceItemType,
-        type,
-      });
+      const project =
+        projectIds && projectIds.length > 0
+          ? projectIds.map(String)
+          : selection.projects.map(String);
+      const datetimeParams = datetime
+        ? normalizeDateTimeParams(datetime)
+        : normalizeDateTimeParams(selection.datetime);
+
+      const options = apiOptions.as<TraceItemAttributeValue[]>()(
+        '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
+        {
+          path: {organizationIdOrSlug: organization.slug, key: tag.key},
+          staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+          query: {
+            itemType: traceItemType,
+            attributeType: type,
+            query: filterQuery && filterQuery !== '' ? filterQuery : undefined,
+            substringMatch: searchQuery && searchQuery !== '' ? searchQuery : undefined,
+            project,
+            ...datetimeParams,
+          },
+        }
+      );
 
       try {
-        const {url, options} = parseQueryKey(queryKey);
-        const result = await api.requestPromise(url, {
-          method: 'GET',
-          query: {...options?.query},
-        });
-        return result
+        const {json} = await queryClient.fetchQuery(options);
+        return json
           .filter((item: TraceItemAttributeValue) => defined(item.value))
           .map((item: TraceItemAttributeValue) => item.value);
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);
       }
     },
-    [
-      api,
-      type,
-      organization.slug,
-      projectIds,
-      selection.projects,
-      selection.datetime,
-      datetime,
-      traceItemType,
-    ]
-  );
+  });
 
   return getTraceItemAttributeValues;
 }

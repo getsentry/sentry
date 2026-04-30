@@ -46,7 +46,6 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {combineStatus} from './debugMeta/utils';
 import {Context} from './frame/context';
@@ -112,8 +111,6 @@ function NativeFrame({
     getFoldSectionKey(SectionKey.DEBUGMETA),
     debugSectionConfig?.initialCollapse ?? false
   );
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   const fullStackTrace = stackView === StackView.FULL;
 
   const absolute = displayOptions.includes('absolute-addresses');
@@ -127,8 +124,7 @@ function NativeFrame({
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
     !isHoverPreviewed &&
-    // We know the debug section is rendered (only once streamline ui is enabled)
-    (hasStreamlinedUI ? !!debugSectionConfig : true);
+    !!debugSectionConfig;
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({
@@ -255,10 +251,8 @@ function NativeFrame({
       DebugMetaStore.updateFilter(searchTerm);
     }
 
-    if (hasStreamlinedUI) {
-      // Expand the section
-      setIsCollapsed(false);
-    }
+    // Expand the section
+    setIsCollapsed(false);
 
     // Scroll to the section
     document
@@ -474,8 +468,8 @@ export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-
 
 const AddressCell = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
-  ${p => p.onClick && `cursor: pointer`};
-  ${p => p.onClick && `color:` + p.theme.tokens.interactive.link.accent.rest};
+  ${p => p.onClick && 'cursor: pointer'};
+  ${p => p.onClick && 'color:' + p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FunctionNameCell = styled('div')`
@@ -555,7 +549,7 @@ const RowHeader = styled('span')<{
   padding: ${p => p.theme.space.md};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
-  ${p => p.expandable && `cursor: pointer;`};
+  ${p => p.expandable && 'cursor: pointer;'};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Matches the updated desktop layout */

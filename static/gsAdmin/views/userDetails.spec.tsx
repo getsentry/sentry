@@ -28,7 +28,7 @@ describe('User Details', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
       body: [
         {
           id: '8',
@@ -56,7 +56,7 @@ describe('User Details', () => {
           location: {
             pathname: `/admin/users/${mockUser.id}/`,
           },
-          route: `/admin/users/:userId/`,
+          route: '/admin/users/:userId/',
         },
       });
 
@@ -71,7 +71,7 @@ describe('User Details', () => {
           location: {
             pathname: `/admin/users/${mockUser.id}/`,
           },
-          route: `/admin/users/:userId/`,
+          route: '/admin/users/:userId/',
         },
       });
 
@@ -88,7 +88,7 @@ describe('User Details', () => {
           location: {
             pathname: `/admin/users/${mockUser.id}/`,
           },
-          route: `/admin/users/:userId/`,
+          route: '/admin/users/:userId/',
         },
       });
 

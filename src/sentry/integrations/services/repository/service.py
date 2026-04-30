@@ -87,6 +87,38 @@ class RepositoryService(RpcService):
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def disable_repositories_by_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+    ) -> None:
+        """
+        Disables specific repositories by external_id for a given integration.
+        Only active repositories are affected. Code mappings and commits are preserved.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def find_recently_active_repo_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+        cutoff_days: int,
+    ) -> list[str]:
+        """
+        Of the given ``external_ids`` (scoped to the org/integration/provider),
+        return the subset whose underlying ``Repository`` rows have at least one
+        commit, pull request, or code review event in the last ``cutoff_days``.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def disassociate_organization_integration(
         self,
         *,
@@ -97,6 +129,19 @@ class RepositoryService(RpcService):
         """
         Disassociates all repositories for an organization integration.
         This will also delete code owners, and code mapping associated with matching repositories.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def schedule_update_gitlab_project_webhooks(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+    ) -> None:
+        """
+        Schedules a task to update all GitLab project webhooks for an integration.
+        This is used when sync settings change and webhooks need to be updated.
         """
 
 

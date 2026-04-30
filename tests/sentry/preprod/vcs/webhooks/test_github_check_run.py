@@ -193,11 +193,9 @@ class HandlePreprodCheckRunEventTest(TestCase):
         assert approval.extras == {"github": {"id": 12345, "login": "octocat"}}
         assert approval.approved_at is not None
 
-        mock_task.apply_async.assert_called_once_with(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "github_approve_webhook",
-            }
+        mock_task.assert_called_once_with(
+            preprod_artifact_id=artifact.id,
+            caller="github_approve_webhook",
         )
 
     def test_creates_approvals_for_all_sibling_artifacts(self) -> None:

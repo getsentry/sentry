@@ -2,8 +2,6 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {testableTransition} from 'sentry/utils/testableTransition';
-
 /**
  * The minimum number in pixels which the selection should be considered valid
  * and will fire the onSelect handler.
@@ -157,7 +155,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
           initial="initial"
           animate="animate"
           exit="exit"
-          transition={testableTransition({duration: 0.2})}
+          transition={{duration: 0.2}}
           variants={{
             initial: {opacity: 0},
             animate: {opacity: 1},

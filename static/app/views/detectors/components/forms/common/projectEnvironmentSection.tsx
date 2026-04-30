@@ -13,9 +13,13 @@ export type {EnvironmentConfig};
 
 interface ProjectEnvironmentSectionProps {
   environment?: EnvironmentConfig;
+  step?: number;
 }
 
-export function ProjectEnvironmentSection({environment}: ProjectEnvironmentSectionProps) {
+export function ProjectEnvironmentSection({
+  environment,
+  step,
+}: ProjectEnvironmentSectionProps) {
   const environmentConfig = {
     includeAllEnvironments: true,
     ...environment,
@@ -24,6 +28,7 @@ export function ProjectEnvironmentSection({environment}: ProjectEnvironmentSecti
   return (
     <Container>
       <FormSection
+        step={step}
         title={t('Choose the Project and Environment')}
         description={t('This is where issues will be created.')}
       >

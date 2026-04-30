@@ -3,13 +3,16 @@ import styled from '@emotion/styled';
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function ProjectField() {
   const {projects, fetching} = useProjects();
-  const {project, detectorType} = useDetectorFormContext();
+  const {detectorType, detector} = useDetectorFormContext();
+  const project = useDetectorFormProject();
   const canEditDetector = useCanEditDetector({projectId: project.id, detectorType});
+  const isEditing = !!detector;
 
   return (
     <StyledProjectField
@@ -26,7 +29,7 @@ export function ProjectField() {
       label={t('Project')}
       placeholder={t('Project')}
       aria-label={t('Select Project')}
-      disabled={fetching}
+      disabled={fetching || isEditing}
       size="sm"
       required
       validate={() => {

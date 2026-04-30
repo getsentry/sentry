@@ -61,7 +61,7 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
         (spanDescription.split('?')[0] ?? '').split('.').pop()?.toLowerCase() ?? ''
       );
 
-    if (isImage) {
+    if (isImage && spanGroup) {
       const projectId = span[SpanFields.PROJECT_ID]
         ? Number(span[SpanFields.PROJECT_ID])
         : undefined;

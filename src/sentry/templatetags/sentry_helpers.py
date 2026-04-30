@@ -314,8 +314,6 @@ def sanitize_periods(value):
     Primarily used in email templates when a field may contain a domain name to prevent
     email clients from creating a clickable link to the domain.
     """
-    word_joiner = "\u2060"
+    from sentry.utils.email.sanitize import sanitize_outbound_name
 
-    # Adding the Unicode character before every period
-    output_string = value.replace(".", word_joiner + ".")
-    return output_string
+    return sanitize_outbound_name(value)

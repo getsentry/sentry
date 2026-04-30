@@ -25,7 +25,7 @@ import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'search-query-builder-input-flow-changes'],
+    features: ['workflow-engine-ui'],
   });
   const project = ProjectFixture({id: '1', slug: 'project-1'});
   const detector = MetricDetectorFixture({
@@ -39,6 +39,14 @@ describe('AutomationsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -180,11 +188,29 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
-      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       await screen.findByText('Slack Automation');
       expect(mockAutomationActionSlack).toHaveBeenCalled();
+    });
+
+    it('can filter by created_by', async () => {
+      const mockAutomationCreatedBy = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        body: [AutomationFixture({name: 'My Automation'})],
+        match: [MockApiClient.matchQuery({query: 'created_by:me'})],
+      });
+
+      render(<AutomationsList />, {organization});
+      await screen.findByText('Automation 1');
+
+      // Click through menus to select created_by:me
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'created_by'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'me'}));
+
+      await screen.findByText('My Automation');
+      expect(mockAutomationCreatedBy).toHaveBeenCalled();
     });
   });
 
@@ -193,6 +219,10 @@ describe('AutomationsList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {},
       });
       // Set up multiple automations with different states
       MockApiClient.addMockResponse({
@@ -433,7 +463,6 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
-      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       // Wait for filtered results to load
@@ -479,6 +508,10 @@ describe('AutomationsList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
