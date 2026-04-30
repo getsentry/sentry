@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
@@ -30,8 +31,6 @@ import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-const LAZY_RENDER_OBSERVER_OPTIONS = {rootMargin: '200px 0px'};
-
 export function OurlogsSection({
   event,
   project,
@@ -49,7 +48,7 @@ export function OurlogsSection({
   return (
     <LazyRender
       disabled={location.query[LOGS_DRAWER_QUERY_PARAM] === 'true'}
-      observerOptions={LAZY_RENDER_OBSERVER_OPTIONS}
+      observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
       withoutContainer
     >
       <LogsQueryParamsProvider

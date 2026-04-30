@@ -9,6 +9,7 @@ import {
   TRACE_WATERFALL_PREFERENCES_KEY,
 } from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
@@ -57,8 +58,6 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     width: 0.5,
   },
 };
-
-const LAZY_RENDER_OBSERVER_OPTIONS = {rootMargin: '200px 0px'};
 
 interface EventTraceViewInnerProps {
   event: Event;
@@ -198,7 +197,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       }
     >
       <OneOtherIssueEvent event={event} />
-      <LazyRender observerOptions={LAZY_RENDER_OBSERVER_OPTIONS}>
+      <LazyRender observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}>
         {hasTracePreviewFeature && (
           <TraceStateProvider
             initialPreferences={preferences}

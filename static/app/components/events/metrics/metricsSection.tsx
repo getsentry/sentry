@@ -4,6 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
 import {LazyRender} from 'sentry/components/lazyRender';
@@ -24,8 +25,6 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
 
 import {NUMBER_ABBREVIATED_METRICS} from './useMetricsIssueSection';
-
-const LAZY_RENDER_OBSERVER_OPTIONS = {rootMargin: '200px 0px'};
 
 export function MetricsSection({
   event,
@@ -51,7 +50,7 @@ export function MetricsSection({
   return (
     <LazyRender
       disabled={location.query[METRICS_DRAWER_QUERY_PARAM] === 'true'}
-      observerOptions={LAZY_RENDER_OBSERVER_OPTIONS}
+      observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
       withoutContainer
     >
       <TraceViewMetricsProviderWrapper traceSlug={traceId}>
