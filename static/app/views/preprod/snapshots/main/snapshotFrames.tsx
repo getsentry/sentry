@@ -6,23 +6,26 @@ import {Heading} from '@sentry/scraps/text';
 
 export function SnapshotCardFrame({
   children,
+  fillHeight = false,
   groupName,
 }: {
   children: React.ReactNode;
+  fillHeight?: boolean;
   groupName?: string | null;
 }) {
   return (
-    <Stack
+    <SnapshotCardContainer
       gap="0"
       width="100%"
       background="primary"
       border="primary"
       radius="md"
       overflow="hidden"
+      $fillHeight={fillHeight}
     >
       {groupName ? <SnapshotGroupHeader name={groupName} /> : null}
       {children}
-    </Stack>
+    </SnapshotCardContainer>
   );
 }
 
@@ -38,15 +41,22 @@ export function SnapshotGroupHeader({name}: {name: string}) {
 
 export function SnapshotVariantFrame({
   children,
+  fillHeight = false,
   isSelected,
   ...props
 }: {
   children: React.ReactNode;
+  fillHeight?: boolean;
   isSelected?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const theme = useTheme();
   return (
-    <SnapshotVariantContainer position="relative" background="primary" {...props}>
+    <SnapshotVariantContainer
+      position="relative"
+      background="primary"
+      $fillHeight={fillHeight}
+      {...props}
+    >
       {children}
       {isSelected ? (
         <Container
@@ -70,7 +80,29 @@ export function SnapshotCanvasWrapper({children}: {children: React.ReactNode}) {
   );
 }
 
-const SnapshotVariantContainer = styled(Container)`
+const SnapshotCardContainer = styled(Stack, {
+  shouldForwardProp: prop => prop !== '$fillHeight',
+})<{$fillHeight: boolean}>`
+  ${p =>
+    p.$fillHeight &&
+    `
+      flex: 1 1 0;
+      min-height: 0;
+    `}
+`;
+
+const SnapshotVariantContainer = styled(Container, {
+  shouldForwardProp: prop => prop !== '$fillHeight',
+})<{$fillHeight: boolean}>`
+  ${p =>
+    p.$fillHeight &&
+    `
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0;
+      min-height: 0;
+    `}
+
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
