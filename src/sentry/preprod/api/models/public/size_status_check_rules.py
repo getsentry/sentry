@@ -186,7 +186,7 @@ def create_status_check_rule_dict(rule: StatusCheckRule) -> SizeStatusCheckRuleR
         "value": _format_rule_value(rule.value),
         "filterQuery": rule.filter_query,
         "filters": create_filters(rule.filter_query),
-        "artifactType": cast(SizeStatusCheckRuleArtifactType, artifact_type.value),
+        "artifactType": artifact_type.value,
     }
 
 
