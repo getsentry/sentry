@@ -9,11 +9,11 @@ from urllib.parse import quote
 
 import orjson
 
-from sentry.integrations.gitlab.client import safe_quote
 from sentry.integrations.gitlab.utils import (
     GitLabApiClientPath,
     GitLabRateLimitInfo,
     get_rate_limit_info_from_response,
+    safe_quote,
 )
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,

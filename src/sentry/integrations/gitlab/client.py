@@ -3,14 +3,14 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 
 from django.urls import reverse
 from requests import PreparedRequest
 
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.gitlab.blame import fetch_file_blames
-from sentry.integrations.gitlab.utils import GitLabApiClientPath
+from sentry.integrations.gitlab.utils import GitLabApiClientPath, safe_quote
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
     FileBlameInfo,
@@ -30,10 +30,6 @@ if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
 logger = logging.getLogger("sentry.integrations.gitlab")
-
-
-def safe_quote(s: Any) -> str:
-    return quote(unquote(str(s)), safe="")
 
 
 class GitLabSetupApiClient(IntegrationProxyClient):
