@@ -111,7 +111,7 @@ export type DO_NOT_USE_ButtonProps =
 
 type LinkElementProps = Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
-  'label' | 'size' | 'title' | 'href'
+  'label' | 'size' | 'title' | 'href' | 'target'
 >;
 
 interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementProps {
@@ -124,13 +124,19 @@ interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementP
 interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
   href: string;
   /**
-   * Determines if the link is external and should open in a new tab.
+   * Determines if the link is external. External links always open in a new tab.
    */
   external?: boolean;
 }
 
 interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
   to: string | LocationDescriptor;
+  /**
+   * Opens the link in a new tab. Use sparingly — internal links typically
+   * should not open in a new tab. For external links, use `href` with
+   * `external` instead, which always opens in a new tab.
+   */
+  openInNewTab?: boolean;
   /**
    * If true, the link will not reset the scroll position of the page when clicked.
    */

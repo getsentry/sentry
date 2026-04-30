@@ -87,6 +87,27 @@ Use the `href` prop for external URLs. External links automatically open in a ne
 </LinkButton>
 ```
 
+### Opening Internal Links in a New Tab
+
+In rare cases, you may need an internal link to open in a new tab. Use the `openInNewTab` prop with `to`.
+
+<Storybook.Demo>
+  <LinkButton to="/explore/logs" openInNewTab>
+    Open Logs in New Tab
+  </LinkButton>
+</Storybook.Demo>
+```jsx
+<LinkButton to="/explore/logs" openInNewTab>
+  Open Logs in New Tab
+</LinkButton>
+```
+
+> [!WARNING]
+> Use `openInNewTab` sparingly. Opening internal links in a new tab breaks
+> the single-page app navigation flow and should only be used when users
+> need to preserve their current context (e.g., opening a reference page
+> from a drawer).
+
 ## Sizes
 
 LinkButtons are available in the same sizes as regular buttons.
@@ -176,7 +197,7 @@ Disabled LinkButtons prevent navigation and show a non-interactive appearance.
 
 ## External Link Security
 
-LinkButtons with the `external` prop automatically include security attributes (`target="_blank"`, `rel="noreferrer noopener"`) to prevent security vulnerabilities when opening external links.
+LinkButtons with the `external` prop automatically include security attributes (`target="_blank"`, `rel="noreferrer noopener"`) and always open in a new tab. External links cannot opt out of new-tab behavior.
 
 <Storybook.Demo>
   <LinkButton href="https://docs.sentry.io" external priority="primary">
