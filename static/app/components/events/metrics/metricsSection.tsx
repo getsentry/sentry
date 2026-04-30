@@ -25,6 +25,8 @@ import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTrace
 
 import {NUMBER_ABBREVIATED_METRICS} from './useMetricsIssueSection';
 
+const LAZY_RENDER_OBSERVER_OPTIONS = {rootMargin: '200px 0px'};
+
 export function MetricsSection({
   event,
   project,
@@ -47,7 +49,11 @@ export function MetricsSection({
   }
 
   return (
-    <LazyRender disabled={location.query[METRICS_DRAWER_QUERY_PARAM] === 'true'}>
+    <LazyRender
+      disabled={location.query[METRICS_DRAWER_QUERY_PARAM] === 'true'}
+      observerOptions={LAZY_RENDER_OBSERVER_OPTIONS}
+      withoutContainer
+    >
       <TraceViewMetricsProviderWrapper traceSlug={traceId}>
         <MetricsSectionContent
           event={event}

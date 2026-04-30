@@ -58,6 +58,8 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
+const LAZY_RENDER_OBSERVER_OPTIONS = {rootMargin: '200px 0px'};
+
 interface EventTraceViewInnerProps {
   event: Event;
   organization: Organization;
@@ -196,7 +198,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       }
     >
       <OneOtherIssueEvent event={event} />
-      <LazyRender>
+      <LazyRender observerOptions={LAZY_RENDER_OBSERVER_OPTIONS}>
         {hasTracePreviewFeature && (
           <TraceStateProvider
             initialPreferences={preferences}
