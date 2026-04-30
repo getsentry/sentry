@@ -47,7 +47,10 @@ export function OurlogsSection({
   }
   return (
     <LazyRender
-      disabled={location.query[LOGS_DRAWER_QUERY_PARAM] === 'true'}
+      disabled={
+        location.query[LOGS_DRAWER_QUERY_PARAM] === 'true' ||
+        location.hash === `#${SectionKey.LOGS}`
+      }
       observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
       withoutContainer
     >

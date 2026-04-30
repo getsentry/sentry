@@ -49,7 +49,10 @@ export function MetricsSection({
 
   return (
     <LazyRender
-      disabled={location.query[METRICS_DRAWER_QUERY_PARAM] === 'true'}
+      disabled={
+        location.query[METRICS_DRAWER_QUERY_PARAM] === 'true' ||
+        location.hash === `#${SectionKey.METRICS}`
+      }
       observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
       withoutContainer
     >
