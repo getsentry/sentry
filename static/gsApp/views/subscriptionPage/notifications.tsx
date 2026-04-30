@@ -130,7 +130,7 @@ function ThresholdsForm({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: backendThresholds,
-    validators: {onChange: getThresholdsSchema(onDemandEnabled)},
+    validators: {onDynamic: getThresholdsSchema(onDemandEnabled)},
     onSubmit: async ({value}) => {
       try {
         await fetchMutation({
