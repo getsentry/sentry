@@ -13,7 +13,7 @@ class RepositoryCascadeDeleteOnHideTest(TestCase):
     def test_deletes_child_relations(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
-        self.integration, org_integration = self.create_provider_integration_for(
+        _, org_integration = self.create_provider_integration_for(
             org, self.user, provider="github", name="Example", external_id="abcd"
         )
         repo = Repository.objects.create(
@@ -33,7 +33,7 @@ class RepositoryCascadeDeleteOnHideTest(TestCase):
             key="1234abcd",
             author=commit_author,
         )
-        pull = PullRequest.objects.create(
+        pull_request = PullRequest.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
             key="42",
@@ -41,7 +41,7 @@ class RepositoryCascadeDeleteOnHideTest(TestCase):
             message="various fixes",
             author=commit_author,
         )
-        path_config = RepositoryProjectPathConfig.objects.create(
+        code_mapping = RepositoryProjectPathConfig.objects.create(
             project=project,
             repository=repo,
             stack_root="",
@@ -55,8 +55,8 @@ class RepositoryCascadeDeleteOnHideTest(TestCase):
         repository_cascade_delete_on_hide(repo_id=repo.id)
 
         assert not Commit.objects.filter(id=commit.id).exists()
-        assert not PullRequest.objects.filter(id=pull.id).exists()
-        assert not RepositoryProjectPathConfig.objects.filter(id=path_config.id).exists()
+        assert not PullRequest.objects.filter(id=pull_request.id).exists()
+        assert not RepositoryProjectPathConfig.objects.filter(id=code_mapping.id).exists()
 
     def test_preserves_seer_project_repository(self) -> None:
         org = self.create_organization()
