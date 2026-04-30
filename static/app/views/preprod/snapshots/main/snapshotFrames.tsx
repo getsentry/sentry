@@ -26,7 +26,7 @@ export function SnapshotCardFrame({
   );
 }
 
-export function SnapshotGroupHeader({name}: {name: string}) {
+function SnapshotGroupHeader({name}: {name: string}) {
   return (
     <Container padding="lg xl" borderBottom="secondary">
       <Heading as="h3" size="md">
