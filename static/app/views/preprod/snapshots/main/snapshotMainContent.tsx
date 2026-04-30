@@ -47,6 +47,7 @@ interface SnapshotMainContentProps {
   comparisonType: 'diff' | 'solo' | undefined;
   diffImageBaseUrl: string;
   diffMode: DiffMode;
+  hasDiffComparison: boolean;
   imageBaseUrl: string;
   isSoloView: boolean;
   listItems: SidebarItem[];
@@ -78,6 +79,7 @@ export function SnapshotMainContent({
   viewMode,
   onViewModeChange,
   listItems,
+  hasDiffComparison,
   isSoloView,
   onToggleSoloView,
   comparisonType,
@@ -119,7 +121,7 @@ export function SnapshotMainContent({
       </Flex>
     ) : null;
   let soloDiffToggle: React.ReactNode = null;
-  if (comparisonType === 'diff') {
+  if (hasDiffComparison) {
     soloDiffToggle = (
       <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
     );
@@ -400,6 +402,7 @@ function SoloDiffToggle({
     <SegmentedControl
       size="xs"
       value={isSoloView ? 'head' : 'diff'}
+      aria-label={t('Comparison view')}
       onChange={value => {
         if ((value === 'head') !== isSoloView) {
           onToggleSoloView();
