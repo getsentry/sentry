@@ -10,7 +10,7 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
-import {useBufferedImageUrl} from './useBufferedImageUrl';
+import {useBufferedImageGroup} from './useBufferedImageUrl';
 import {useSyncedD3Zoom} from './useD3Zoom';
 import {
   ZoomableArea,
@@ -21,6 +21,20 @@ import {
 } from './zoomControls';
 
 export type DiffMode = 'split' | 'wipe' | 'onion';
+
+function computeMaskSize(
+  baseImage: SnapshotDiffPair['base_image'],
+  headImage: SnapshotDiffPair['head_image']
+): string {
+  const headW = headImage.width;
+  const headH = headImage.height;
+  if (!headW || !headH) {
+    return '100% 100%';
+  }
+  const maskW = Math.max(baseImage.width || headW, headW);
+  const maskH = Math.max(baseImage.height || headH, headH);
+  return `${(maskW / headW) * 100}% ${(maskH / headH) * 100}%`;
+}
 
 export const TRANSPARENT_COLOR = 'transparent';
 
@@ -47,6 +61,8 @@ export function DiffImageDisplay({
     ? `${diffImageBaseUrl}${pair.diff_image_key}/`
     : null;
 
+  const maskSize = computeMaskSize(pair.base_image, pair.head_image);
+
   return (
     <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
       <HiddenWhenInactive active={diffMode === 'split'}>
@@ -55,6 +71,7 @@ export function DiffImageDisplay({
           headImageUrl={headImageUrl}
           overlayColor={overlayColor}
           diffMaskUrl={diffMaskUrl}
+          maskSize={maskSize}
         />
       </HiddenWhenInactive>
 
@@ -78,6 +95,7 @@ interface SplitViewProps {
   baseImageUrl: string;
   diffMaskUrl: string | null;
   headImageUrl: string;
+  maskSize: string;
   overlayColor: string;
 }
 
@@ -86,11 +104,15 @@ function SplitView({
   headImageUrl,
   overlayColor,
   diffMaskUrl,
+  maskSize,
 }: SplitViewProps) {
   const [zoom1, zoom2] = useSyncedD3Zoom();
-  const showOverlay = diffMaskUrl && overlayColor !== TRANSPARENT_COLOR;
-  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
-  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
+  const [displayBaseUrl, displayHeadUrl, displayMaskUrl] = useBufferedImageGroup([
+    baseImageUrl,
+    headImageUrl,
+    diffMaskUrl,
+  ]);
+  const showOverlay = displayMaskUrl && overlayColor !== TRANSPARENT_COLOR;
   return (
     <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
       <Flex direction="column" gap="sm" minHeight="0">
@@ -104,12 +126,14 @@ function SplitView({
               height="100%"
               style={zoomTransformStyle(zoom1.transform)}
             >
-              <ZoomableImage
-                src={displayBaseUrl}
-                alt={t('Base')}
-                loading="eager"
-                decoding="async"
-              />
+              {displayBaseUrl && (
+                <ZoomableImage
+                  src={displayBaseUrl}
+                  alt={t('Base')}
+                  loading="eager"
+                  decoding="async"
+                />
+              )}
             </Flex>
           </ZoomContainer>
         </ZoomableArea>
@@ -126,17 +150,23 @@ function SplitView({
               height="100%"
               style={zoomTransformStyle(zoom2.transform)}
             >
-              <ImageWrapper>
-                <ZoomableImage
-                  src={displayHeadUrl}
-                  alt={t('Current Branch')}
-                  loading="eager"
-                  decoding="async"
-                />
-                {showOverlay && (
-                  <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
-                )}
-              </ImageWrapper>
+              {displayHeadUrl && (
+                <ImageWrapper>
+                  <ZoomableImage
+                    src={displayHeadUrl}
+                    alt={t('Current Branch')}
+                    loading="eager"
+                    decoding="async"
+                  />
+                  {showOverlay && displayMaskUrl && (
+                    <DiffOverlay
+                      $overlayColor={overlayColor}
+                      $maskUrl={displayMaskUrl}
+                      $maskSize={maskSize}
+                    />
+                  )}
+                </ImageWrapper>
+              )}
             </Flex>
           </ZoomContainer>
           <ZoomControls
@@ -157,33 +187,37 @@ function WipeView({
   baseImageUrl: string;
   headImageUrl: string;
 }) {
-  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
-  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
+  const [displayBaseUrl, displayHeadUrl] = useBufferedImageGroup([
+    baseImageUrl,
+    headImageUrl,
+  ]);
   return (
     <Flex flex="1" minHeight="0">
-      <ContentSliderDiff.Body
-        before={
-          <Flex justify="center" align="center" height="100%">
-            <ConstrainedImage
-              src={displayBaseUrl}
-              alt={t('Base')}
-              loading="eager"
-              decoding="async"
-            />
-          </Flex>
-        }
-        after={
-          <Flex justify="center" align="center" height="100%">
-            <ConstrainedImage
-              src={displayHeadUrl}
-              alt={t('Current Branch')}
-              loading="eager"
-              decoding="async"
-            />
-          </Flex>
-        }
-        minHeight="200px"
-      />
+      {displayBaseUrl && displayHeadUrl && (
+        <ContentSliderDiff.Body
+          before={
+            <Flex justify="center" align="center" height="100%">
+              <ConstrainedImage
+                src={displayBaseUrl}
+                alt={t('Base')}
+                loading="eager"
+                decoding="async"
+              />
+            </Flex>
+          }
+          after={
+            <Flex justify="center" align="center" height="100%">
+              <ConstrainedImage
+                src={displayHeadUrl}
+                alt={t('Current Branch')}
+                loading="eager"
+                decoding="async"
+              />
+            </Flex>
+          }
+          minHeight="200px"
+        />
+      )}
     </Flex>
   );
 }
@@ -199,8 +233,10 @@ function OnionView({
   onOpacityChange: (value: number) => void;
   opacity: number;
 }) {
-  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
-  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
+  const [displayBaseUrl, displayHeadUrl] = useBufferedImageGroup([
+    baseImageUrl,
+    headImageUrl,
+  ]);
   return (
     <Flex
       direction="column"
@@ -210,30 +246,32 @@ function OnionView({
       align="center"
       justify="center"
     >
-      <Flex
-        justify="center"
-        border="primary"
-        radius="md"
-        overflow="hidden"
-        background="secondary"
-      >
-        <OnionContainer>
-          <ConstrainedImage
-            src={displayBaseUrl}
-            alt={t('Base')}
-            loading="eager"
-            decoding="async"
-          />
-          <OnionOverlayLayer style={{opacity: opacity / 100}}>
+      {displayBaseUrl && displayHeadUrl && (
+        <Flex
+          justify="center"
+          border="primary"
+          radius="md"
+          overflow="hidden"
+          background="secondary"
+        >
+          <OnionContainer>
             <ConstrainedImage
-              src={displayHeadUrl}
-              alt={t('Current Branch')}
+              src={displayBaseUrl}
+              alt={t('Base')}
               loading="eager"
               decoding="async"
             />
-          </OnionOverlayLayer>
-        </OnionContainer>
-      </Flex>
+            <OnionOverlayLayer style={{opacity: opacity / 100}}>
+              <ConstrainedImage
+                src={displayHeadUrl}
+                alt={t('Current Branch')}
+                loading="eager"
+                decoding="async"
+              />
+            </OnionOverlayLayer>
+          </OnionContainer>
+        </Flex>
+      )}
       <Flex align="center" gap="lg">
         <Text size="sm" variant="muted">
           {t('Base')}
@@ -266,7 +304,11 @@ const ImageWrapper = styled('div')`
   max-width: 100%;
 `;
 
-const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
+const DiffOverlay = styled('span')<{
+  $maskSize: string;
+  $maskUrl: string;
+  $overlayColor: string;
+}>`
   position: absolute;
   top: 0;
   left: 0;
@@ -275,10 +317,12 @@ const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
   pointer-events: none;
   background-color: ${p => p.$overlayColor};
   mask-image: url(${p => p.$maskUrl});
-  mask-size: 100% 100%;
+  mask-size: ${p => p.$maskSize};
+  mask-position: top left;
   mask-mode: luminance;
   -webkit-mask-image: url(${p => p.$maskUrl});
-  -webkit-mask-size: 100% 100%;
+  -webkit-mask-size: ${p => p.$maskSize};
+  -webkit-mask-position: top left;
 `;
 
 const OnionContainer = styled('div')`

@@ -30,7 +30,14 @@ export function SingleImageDisplay({imageUrl, alt}: SingleImageDisplayProps) {
             height="100%"
             style={zoomTransformStyle(transform)}
           >
-            <ZoomableImage src={displayUrl} alt={alt} loading="eager" decoding="async" />
+            {displayUrl && (
+              <ZoomableImage
+                src={displayUrl}
+                alt={alt}
+                loading="eager"
+                decoding="async"
+              />
+            )}
           </Flex>
         </ZoomContainer>
         <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />

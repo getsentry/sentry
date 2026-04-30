@@ -1,4 +1,4 @@
-import {memo, useCallback, useState} from 'react';
+import {memo, type ReactNode, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -15,6 +15,17 @@ import {useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
 
 export const MAX_IMAGE_HEIGHT = 480;
+
+function computeMaskSize(baseImage: SnapshotImage, headImage: SnapshotImage): string {
+  const headW = headImage.width;
+  const headH = headImage.height;
+  if (!headW || !headH) {
+    return '100% 100%';
+  }
+  const maskW = Math.max(baseImage.width || headW, headW);
+  const maskH = Math.max(baseImage.height || headH, headH);
+  return `${(maskW / headW) * 100}% ${(maskH / headH) * 100}%`;
+}
 
 export const SplitPairBody = memo(function SplitPairBody({
   baseUrl,
@@ -71,17 +82,20 @@ export const SplitPairBody = memo(function SplitPairBody({
           </Container>
           <ZoomViewport ref={zoom2.containerRef}>
             <ZoomTransformLayer style={zoomTransformStyle(zoom2.transform)}>
-              <Container position="relative" display="inline-block" maxWidth="100%">
-                <LazyImage
-                  src={headUrl}
-                  alt={`${altPrefix} (head)`}
-                  width={headImage.width || undefined}
-                  height={headImage.height || undefined}
-                />
+              <LazyImage
+                src={headUrl}
+                alt={`${altPrefix} (head)`}
+                width={headImage.width || undefined}
+                height={headImage.height || undefined}
+              >
                 {diffMaskUrl && (
-                  <DiffOverlay $overlayColor={overlayColor!} $maskUrl={diffMaskUrl} />
+                  <DiffOverlay
+                    $overlayColor={overlayColor!}
+                    $maskUrl={diffMaskUrl}
+                    $maskSize={computeMaskSize(baseImage, headImage)}
+                  />
                 )}
-              </Container>
+              </LazyImage>
             </ZoomTransformLayer>
           </ZoomViewport>
         </Stack>
@@ -127,17 +141,20 @@ export const ImageColumn = memo(function ImageColumn({
         </Container>
       )}
       <Flex justify="center" padding="xl">
-        <Container position="relative" display="inline-block" maxWidth="100%">
-          <LazyImage
-            src={src}
-            alt={alt}
-            width={image.width || undefined}
-            height={image.height || undefined}
-          />
+        <LazyImage
+          src={src}
+          alt={alt}
+          width={image.width || undefined}
+          height={image.height || undefined}
+        >
           {diffMaskUrl && (
-            <DiffOverlay $overlayColor={overlayColor!} $maskUrl={diffMaskUrl} />
+            <DiffOverlay
+              $overlayColor={overlayColor!}
+              $maskUrl={diffMaskUrl}
+              $maskSize="100% 100%"
+            />
           )}
-        </Container>
+        </LazyImage>
       </Flex>
     </Stack>
   );
@@ -269,14 +286,22 @@ function LazyImage({
   alt,
   width,
   height,
+  children,
 }: {
   alt: string;
   src: string;
+  children?: ReactNode;
   height?: number;
   width?: number;
 }) {
   const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [src]);
+
   const onLoad = useCallback(() => setLoaded(true), []);
+  const onError = useCallback(() => setLoaded(true), []);
   const refCallback = useCallback((el: HTMLImageElement | null) => {
     if (el?.complete && el.naturalWidth > 0) {
       setLoaded(true);
@@ -300,8 +325,10 @@ function LazyImage({
         width={width || undefined}
         height={height || undefined}
         onLoad={onLoad}
+        onError={onError}
         style={loaded ? undefined : {position: 'absolute', top: 0, left: 0, opacity: 0}}
       />
+      {children}
     </Container>
   );
 }
@@ -314,7 +341,11 @@ const HiddenUntilLoaded = styled('img')`
   max-height: ${MAX_IMAGE_HEIGHT}px;
 `;
 
-const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
+const DiffOverlay = styled('span')<{
+  $maskSize: string;
+  $maskUrl: string;
+  $overlayColor: string;
+}>`
   position: absolute;
   top: 0;
   left: 0;
@@ -323,10 +354,12 @@ const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
   pointer-events: none;
   background-color: ${p => p.$overlayColor};
   mask-image: url(${p => p.$maskUrl});
-  mask-size: 100% 100%;
+  mask-size: ${p => p.$maskSize};
+  mask-position: top left;
   mask-mode: luminance;
   -webkit-mask-image: url(${p => p.$maskUrl});
-  -webkit-mask-size: 100% 100%;
+  -webkit-mask-size: ${p => p.$maskSize};
+  -webkit-mask-position: top left;
 `;
 
 const ZoomViewport = styled('div')`
