@@ -1,7 +1,7 @@
-import type {FieldObject} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import {slugify} from 'sentry/utils/slugify';
 
-export const PolicySchema: FieldObject[] = [
+export const PolicySchema: Field[] = [
   {
     name: 'name',
     type: 'string',
@@ -35,7 +35,7 @@ export const PolicySchema: FieldObject[] = [
   },
 ];
 
-export const PolicyRevisionSchema: FieldObject[] = [
+export const PolicyRevisionSchema: Field[] = [
   {
     name: 'version',
     type: 'string',
