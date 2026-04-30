@@ -10,7 +10,34 @@ from sentry.rules.filters import EventFilter
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity
 
-CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).lower()) for gc in GroupCategory])
+CATEGORY_DISPLAY_NAMES: dict[GroupCategory, str] = {
+    GroupCategory.ERROR: "Error",
+    GroupCategory.PERFORMANCE: "Performance",
+    GroupCategory.PROFILE: "Profile",
+    GroupCategory.CRON: "Cron Monitor",
+    GroupCategory.REPLAY: "Replay",
+    GroupCategory.FEEDBACK: "User Feedback",
+    GroupCategory.UPTIME: "Uptime",
+    GroupCategory.METRIC_ALERT: "Metric Alert (deprecated)",
+    GroupCategory.TEST_NOTIFICATION: "Test Notification",
+    GroupCategory.OUTAGE: "Outage",
+    GroupCategory.METRIC: "Metric Issues",
+    GroupCategory.DB_QUERY: "Database Query",
+    GroupCategory.HTTP_CLIENT: "HTTP Client",
+    GroupCategory.FRONTEND: "Frontend",
+    GroupCategory.MOBILE: "Mobile",
+    GroupCategory.AI_DETECTED: "AI Detected",
+    GroupCategory.PREPROD: "Pre-Production",
+    GroupCategory.INSTRUMENTATION: "Instrumentation",
+    GroupCategory.CONFIGURATION: "Configuration",
+}
+
+CATEGORY_CHOICES = OrderedDict(
+    [
+        (f"{gc.value}", CATEGORY_DISPLAY_NAMES.get(gc, str(gc.name).lower()))
+        for gc in GroupCategory
+    ]
+)
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
 
 
@@ -64,8 +91,7 @@ class IssueCategoryFilter(EventFilter):
 
     def render_label(self) -> str:
         value = self.data["value"]
-        title = CATEGORY_CHOICES.get(value)
-        group_category_name = title.title() if title else ""
+        group_category_name = CATEGORY_CHOICES.get(value, "")
         include_label = INCLUDE_CHOICES.get(self.data.get("include", "true"), "equal to")
         return self.label.format(include=include_label, value=group_category_name)
 

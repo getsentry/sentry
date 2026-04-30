@@ -30,8 +30,7 @@ import {
   MailActionTargetType,
 } from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
-import type {IssueCategory} from 'sentry/types/group';
-import {VALID_ISSUE_CATEGORIES} from 'sentry/types/group';
+import {VALID_ISSUE_CATEGORY_FILTER_VALUES} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {MemberTeamFields} from 'sentry/views/alerts/rules/issue/memberTeamFields';
@@ -265,21 +264,10 @@ function getFormFieldsRecord(
   return node.formFields;
 }
 
-function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
-  const formFields = getFormFieldsRecord(node);
-  const fieldConfig = formFields?.value;
-
-  if (fieldConfig?.type !== 'choice') {
-    return undefined;
-  }
-
-  return fieldConfig.choices?.find(
-    ([value]: [string | number, string]) => value === data.value
-  )?.[1];
-}
-
 /**
  * For the issue category filter, hide deprecated categories unless already selected.
+ * Filters by the numeric value string (e.g. "11" for Metric) rather than the label
+ * so this remains correct regardless of how the backend formats category names.
  */
 function filterCategoryChoices(
   data: Props['data'],
@@ -290,8 +278,7 @@ function filterCategoryChoices(
   if (data.id === IssueAlertFilterType.ISSUE_CATEGORY && name === 'value') {
     return options.filter(
       opt =>
-        VALID_ISSUE_CATEGORIES.includes(opt.label as IssueCategory) ||
-        opt.value === selectedValue
+        VALID_ISSUE_CATEGORY_FILTER_VALUES.has(opt.value) || opt.value === selectedValue
     );
   }
   return options;
@@ -560,9 +547,8 @@ export function RuleNode({
 
     if (
       data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
-      !VALID_ISSUE_CATEGORIES.includes(
-        getSelectedCategoryLabel({data, node}) as IssueCategory
-      )
+      data.value !== undefined &&
+      !VALID_ISSUE_CATEGORY_FILTER_VALUES.has(String(data.value))
     ) {
       return (
         <FooterAlert variant="warning">
