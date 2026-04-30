@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
+from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.night_shift.cron import (
@@ -23,7 +23,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class FakeExplorerClient:
-    """Stub SeerExplorerClient that returns canned triage verdicts."""
+    """Stub SeerAgentClient that returns canned triage verdicts."""
 
     def __init__(self, verdicts: list[tuple[int, str]]):
         verdict_dicts = [
@@ -223,11 +223,11 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         fake_client = FakeExplorerClient(verdicts)
         with (
             patch(
-                "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
+                "sentry.tasks.seer.night_shift.agentic_triage.SeerAgentClient",
                 return_value=fake_client,
             ),
             patch(
-                "sentry.tasks.seer.night_shift.cron.trigger_autofix_explorer",
+                "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent",
                 side_effect=side_effect,
             ) as mock_trigger,
             patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
@@ -335,7 +335,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         mock_client.start_run.side_effect = RuntimeError("explorer down")
         with (
             patch(
-                "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
+                "sentry.tasks.seer.night_shift.agentic_triage.SeerAgentClient",
                 return_value=mock_client,
             ),
         ):
@@ -448,7 +448,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             ),
             patch("sentry.tasks.seer.night_shift.cron.agentic_triage_strategy") as mock_triage,
             patch(
-                "sentry.tasks.seer.night_shift.cron.trigger_autofix_explorer",
+                "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent",
             ) as mock_trigger,
         ):
             run_night_shift_for_org(org.id)

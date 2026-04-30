@@ -1233,7 +1233,7 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Explorer context engine indexing options
+# Agent context engine indexing options
 register(
     "explorer.context_engine_indexing.enable",
     default=False,

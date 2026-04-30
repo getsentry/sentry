@@ -16,6 +16,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.agent.tools import get_trace_item_attributes
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.endpoints.seer_rpc import (
     bulk_get_project_preferences,
@@ -29,7 +30,6 @@ from sentry.seer.endpoints.seer_rpc import (
     trigger_coding_agent_launch,
     validate_repo,
 )
-from sentry.seer.explorer.tools import get_trace_item_attributes
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
@@ -186,7 +186,7 @@ class TestSeerRpcMethods(APITestCase):
             ],
         }
 
-        with patch("sentry.seer.explorer.tools.client.get") as mock_get:
+        with patch("sentry.seer.agent.tools.client.get") as mock_get:
             mock_get.return_value.data = mock_response_data
             result = get_trace_item_attributes(
                 org_id=self.organization.id,

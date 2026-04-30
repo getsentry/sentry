@@ -47,6 +47,7 @@ interface SnapshotMainContentProps {
   comparisonType: 'diff' | 'solo' | undefined;
   diffImageBaseUrl: string;
   diffMode: DiffMode;
+  hasDiffComparison: boolean;
   imageBaseUrl: string;
   isSoloView: boolean;
   listItems: SidebarItem[];
@@ -78,6 +79,7 @@ export function SnapshotMainContent({
   viewMode,
   onViewModeChange,
   listItems,
+  hasDiffComparison,
   isSoloView,
   onToggleSoloView,
   comparisonType,
@@ -119,7 +121,7 @@ export function SnapshotMainContent({
       </Flex>
     ) : null;
   let soloDiffToggle: React.ReactNode = null;
-  if (comparisonType === 'diff') {
+  if (hasDiffComparison) {
     soloDiffToggle = (
       <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
     );
@@ -137,7 +139,7 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <Flex align="center" justify="between" gap="md" padding="md 2xl md 0">
+        <Flex align="center" justify="between" gap="md" padding="md xl md 0">
           <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {toggle}
             {sortDropdown}
@@ -166,7 +168,7 @@ export function SnapshotMainContent({
   if (!selectedItem) {
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <Flex align="center" justify="between" gap="md" padding="md xl">
+        <Flex align="center" justify="between" gap="md" padding="md xl md 0">
           <Flex align="center" gap="md">
             {toggle}
             {sortDropdown}
@@ -339,7 +341,7 @@ function SingleViewLayout({
         align="center"
         justify="between"
         gap="md"
-        padding="md xl"
+        padding="md xl md 0"
         onClick={e => e.stopPropagation()}
       >
         {toggle}
@@ -400,6 +402,7 @@ function SoloDiffToggle({
     <SegmentedControl
       size="xs"
       value={isSoloView ? 'head' : 'diff'}
+      aria-label={t('Comparison view')}
       onChange={value => {
         if ((value === 'head') !== isSoloView) {
           onToggleSoloView();
