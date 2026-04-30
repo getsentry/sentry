@@ -118,14 +118,14 @@ const StyledLinkButton = styled(
       );
     }
 
-    // @ts-expect-error these props cannot be statically determined at this point
     const {
       external: _e,
       replace: _r,
       preventScrollReset: _p,
       openInNewTab: _o,
       ...rest
-    } = props;
+      // cast because props cannot be statically determined at this point
+    } = props as any;
     return <a {...rest} role="button" />;
   },
   {
