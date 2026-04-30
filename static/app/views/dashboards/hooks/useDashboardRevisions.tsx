@@ -30,8 +30,12 @@ type RawDashboardRevision = {
   title: string;
 };
 
-export type DashboardRevision = Omit<RawDashboardRevision, 'createdBy'> & {
+export type DashboardRevision = {
   createdBy: RevisionCreatedBy | null;
+  dateCreated: string;
+  id: string;
+  source: 'edit' | 'edit-with-agent' | 'pre-restore';
+  title: string;
 };
 
 function normalizeRevision(raw: RawDashboardRevision): DashboardRevision {
