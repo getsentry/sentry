@@ -14,6 +14,7 @@ export enum ExportQueryType {
   ISSUES_BY_TAG = 'Issues-by-Tag',
   DISCOVER = 'Discover',
   EXPLORE = 'Explore',
+  TRACE_ITEM_FULL_EXPORT = 'trace_item_full_export',
 }
 
 // NOTE: Coordinate with data_export's OutputMode (src/sentry/data_export/writers.py)
