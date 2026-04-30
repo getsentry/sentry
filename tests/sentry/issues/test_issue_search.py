@@ -365,6 +365,9 @@ class ConvertActorOrNoneValueTest(TestCase):
             ["my_teams"], [self.project], self.user, None
         ) == get_teams_for_users([self.project], [self.user])
 
+    def test_my_team_no_projects(self) -> None:
+        assert convert_actor_or_none_value(["my_teams"], [], self.user, None) == []
+
     def test_none(self) -> None:
         assert convert_actor_or_none_value(["none"], [self.project], self.user, None) == [None]
 
