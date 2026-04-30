@@ -365,7 +365,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         slack_request: SlackEventRequest,
         conversation_type: SlackSeerAgentConversation,
     ) -> Response:
-        """Shared handler for app mentions and DMs that trigger the Seer Explorer agent."""
+        """Shared handler for app mentions and DMs that trigger the Seer Agent."""
         if conversation_type == SlackSeerAgentConversation.DIRECT_MESSAGE:
             interaction_type = MessagingInteractionType.DIRECT_MESSAGE
         else:

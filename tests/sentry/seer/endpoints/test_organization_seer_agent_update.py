@@ -9,20 +9,18 @@ from sentry.testutils.helpers.features import with_feature
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
-class TestOrganizationSeerExplorerUpdate(APITestCase):
+class TestOrganizationSeerAgentUpdate(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.organization = self.create_organization(owner=self.user)
-        # Explorer requires open team membership
+        # the agent requires open team membership
         self.organization.flags.allow_joinleave = True
         self.organization.save()
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/123/"
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
-    )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
     def test_explorer_update_successful(
         self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
@@ -54,10 +52,8 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         assert sent_data["organization_id"] == self.organization.id
         assert sent_data["payload"]["type"] == "interrupt"
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
-    )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
     def test_explorer_update_missing_payload(
         self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
@@ -73,9 +69,7 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         assert "Need a body with a payload" in str(response.data)
         mock_request.assert_not_called()
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
-    )
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     def test_explorer_update_ai_features_hidden(self, mock_has_access: MagicMock) -> None:
         mock_has_access.return_value = (False, "AI features are disabled for this organization.")
 
@@ -92,9 +86,7 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "AI features are disabled" in str(response.data)
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
-    )
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     def test_explorer_update_no_seer_acknowledgement(self, mock_has_access: MagicMock) -> None:
         mock_has_access.return_value = (
             False,
@@ -115,16 +107,14 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         assert "Seer has not been acknowledged" in str(response.data)
 
 
-class TestOrganizationSeerExplorerUpdateFeatureFlags(APITestCase):
+class TestOrganizationSeerAgentUpdateFeatureFlags(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.organization = self.create_organization(owner=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/123/"
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
-    )
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     def test_explorer_update_feature_flag_disabled(self, mock_has_access: MagicMock) -> None:
         mock_has_access.return_value = (False, "Feature flag not enabled")
 
@@ -144,7 +134,7 @@ class TestOrganizationSeerExplorerUpdateFeatureFlags(APITestCase):
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
-class TestOrganizationSeerExplorerUpdateCodingDisabled(APITestCase):
+class TestOrganizationSeerAgentUpdateCodingDisabled(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -153,10 +143,8 @@ class TestOrganizationSeerExplorerUpdateCodingDisabled(APITestCase):
         self.organization.save()
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/123/"
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
-    )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
     def test_coding_payload_blocked_when_coding_disabled(
         self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
@@ -172,10 +160,8 @@ class TestOrganizationSeerExplorerUpdateCodingDisabled(APITestCase):
 
         mock_request.assert_not_called()
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
-    )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
     def test_non_coding_payload_allowed_when_coding_disabled(
         self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:

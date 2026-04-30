@@ -5,8 +5,8 @@ Tests for custom tool utilities.
 import pytest
 from pydantic import BaseModel, Field
 
-from sentry.seer.explorer.custom_tool_utils import (
-    ExplorerTool,
+from sentry.seer.agent.custom_tool_utils import (
+    AgentTool,
     call_custom_tool,
     extract_tool_schema,
 )
@@ -45,7 +45,7 @@ class ProcessItemsParams(BaseModel):
 
 
 # Test helper tool classes (defined in module scope so they can be imported by call_custom_tool)
-class SampleCustomTool(ExplorerTool[CustomToolParams]):
+class SampleCustomTool(AgentTool[CustomToolParams]):
     params_model = CustomToolParams
 
     @classmethod
@@ -57,7 +57,7 @@ class SampleCustomTool(ExplorerTool[CustomToolParams]):
         return params.message * params.count
 
 
-class SampleToolWithDefault(ExplorerTool[ToolWithDefaultParams]):
+class SampleToolWithDefault(AgentTool[ToolWithDefaultParams]):
     params_model = ToolWithDefaultParams
 
     @classmethod
@@ -69,7 +69,7 @@ class SampleToolWithDefault(ExplorerTool[ToolWithDefaultParams]):
         return params.value + params.suffix
 
 
-class BadTool(ExplorerTool[EmptyParams]):
+class BadTool(AgentTool[EmptyParams]):
     params_model = EmptyParams
 
     @classmethod
@@ -81,7 +81,7 @@ class BadTool(ExplorerTool[EmptyParams]):
         return 123  # type: ignore[return-value]  # Returns wrong type to test runtime validation
 
 
-class GetUserInfoTool(ExplorerTool[GetUserInfoParams]):
+class GetUserInfoTool(AgentTool[GetUserInfoParams]):
     params_model = GetUserInfoParams
 
     @classmethod
@@ -93,7 +93,7 @@ class GetUserInfoTool(ExplorerTool[GetUserInfoParams]):
         return f"User {params.user_id}"
 
 
-class SearchLogsTool(ExplorerTool[SearchLogsParams]):
+class SearchLogsTool(AgentTool[SearchLogsParams]):
     params_model = SearchLogsParams
 
     @classmethod
@@ -105,7 +105,7 @@ class SearchLogsTool(ExplorerTool[SearchLogsParams]):
         return f"Found logs for: {params.query}"
 
 
-class ProcessItemsTool(ExplorerTool[ProcessItemsParams]):
+class ProcessItemsTool(AgentTool[ProcessItemsParams]):
     params_model = ProcessItemsParams
 
     @classmethod
@@ -128,7 +128,7 @@ class CustomToolUtilsTest(TestCase):
         """Test validation fails for nested classes."""
 
         class OuterClass:
-            class NestedTool(ExplorerTool[EmptyParams]):
+            class NestedTool(AgentTool[EmptyParams]):
                 params_model = EmptyParams
 
                 @classmethod
@@ -182,7 +182,7 @@ class CustomToolUtilsTest(TestCase):
     def test_call_custom_tool_success(self) -> None:
         """Test calling a custom tool successfully."""
         # Use test tool from this test module
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.SampleCustomTool"
+        module_path = "tests.sentry.seer.agent.test_custom_tool_utils.SampleCustomTool"
 
         # Call via the utility function
         result = call_custom_tool(
@@ -196,7 +196,7 @@ class CustomToolUtilsTest(TestCase):
 
     def test_call_custom_tool_with_optional_param(self) -> None:
         """Test calling a custom tool with default parameter."""
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.SampleToolWithDefault"
+        module_path = "tests.sentry.seer.agent.test_custom_tool_utils.SampleToolWithDefault"
         result = call_custom_tool(
             module_path=module_path,
             allowed_prefixes=("sentry.", "tests.sentry."),
@@ -227,7 +227,7 @@ class CustomToolUtilsTest(TestCase):
 
     def test_call_custom_tool_wrong_return_type(self) -> None:
         """Test error when tool returns non-string."""
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.BadTool"
+        module_path = "tests.sentry.seer.agent.test_custom_tool_utils.BadTool"
         with pytest.raises(RuntimeError) as cm:
             call_custom_tool(
                 module_path=module_path,
@@ -240,7 +240,7 @@ class CustomToolUtilsTest(TestCase):
         """Test that a tool without params_model raises an error at class definition time."""
         with pytest.raises(TypeError) as cm:
             # This should raise when the class is defined, not when extract_tool_schema is called
-            class NoParamsTool(ExplorerTool[BaseModel]):
+            class NoParamsTool(AgentTool[BaseModel]):
                 @classmethod
                 def get_description(cls) -> str:
                     return "Tool without params_model"

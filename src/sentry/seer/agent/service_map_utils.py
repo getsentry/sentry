@@ -1,9 +1,9 @@
 """
-Celery Tasks for Explorer Service Map
+Celery Tasks for Agent Service Map
 
 This module contains periodic tasks that analyze distributed traces to extract
 service dependency graphs and send them to Seer for hierarchical retrieval.
-The service map helps Explorer understand which services call which others.
+The service map helps the agent understand which services call which others.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from sentry.seer.signed_seer_api import (
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
-logger = logging.getLogger("sentry.seer.explorer.explorer_service_map_utils")
+logger = logging.getLogger(__name__)
 
 # Maximum rows Snuba returns per query
 _SNUBA_MAX_ROWS = 10000

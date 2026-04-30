@@ -9,7 +9,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 @with_feature("organizations:seer-explorer")
-class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
+class TestOrganizationSeerAgentPRGroupsEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-seer-explorer-pr-groups"
 
     def setUp(self) -> None:
@@ -20,20 +20,20 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         self.login_as(user=self.user)
 
         self.seer_access_patcher = patch(
-            "sentry.seer.explorer.client_utils.has_seer_explorer_access_with_detail",
+            "sentry.seer.agent.client_utils.has_seer_agent_access_with_detail",
             return_value=(True, None),
         )
         self.seer_access_patcher.start()
 
         self.client_patcher = patch(
-            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient"
+            "sentry.seer.endpoints.organization_seer_agent_pr_groups.SeerAgentClient"
         )
         self.mock_client_class = self.client_patcher.start()
         self.mock_client = MagicMock()
         self.mock_client_class.return_value = self.mock_client
 
         self.serialize_patcher = patch(
-            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.serialize"
+            "sentry.seer.endpoints.organization_seer_agent_pr_groups.serialize"
         )
         self.mock_serialize = self.serialize_patcher.start()
 
@@ -301,7 +301,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         assert response.status_code == 403
 
 
-class TestOrganizationSeerExplorerPRGroupsEndpointAuth(APITestCase):
+class TestOrganizationSeerAgentPRGroupsEndpointAuth(APITestCase):
     endpoint = "sentry-api-0-organization-seer-explorer-pr-groups"
 
     def setUp(self) -> None:
@@ -324,7 +324,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpointAuth(APITestCase):
 
 
 @with_feature("organizations:seer-explorer")
-class TestOrganizationSeerExplorerPRGroupsPermissionErrors(APITestCase):
+class TestOrganizationSeerAgentPRGroupsPermissionErrors(APITestCase):
     endpoint = "sentry-api-0-organization-seer-explorer-pr-groups"
 
     def setUp(self) -> None:
@@ -336,7 +336,7 @@ class TestOrganizationSeerExplorerPRGroupsPermissionErrors(APITestCase):
 
     def test_seer_permission_error_returns_403(self) -> None:
         with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient",
+            "sentry.seer.endpoints.organization_seer_agent_pr_groups.SeerAgentClient",
             side_effect=SeerPermissionError("Feature flag not enabled"),
         ):
             response = self.client.get(self.url + f"?project={self.project.id}")

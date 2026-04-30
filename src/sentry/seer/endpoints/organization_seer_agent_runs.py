@@ -13,31 +13,31 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.models import SeerPermissionError
 
 logger = logging.getLogger(__name__)
 
 
-class OrganizationSeerExplorerRunsPermission(OrganizationPermission):
+class OrganizationSeerAgentRunsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
     }
 
 
 @cell_silo_endpoint
-class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
+class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    permission_classes = (OrganizationSeerExplorerRunsPermission,)
+    permission_classes = (OrganizationSeerAgentRunsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Get a list of explorer runs for the organization.
+        Get a list of agent runs for the organization.
 
         By default, results are scoped to the requesting user. Pass ``owner=false``
         to return runs from all users (e.g. system-created night-shift runs).
@@ -48,7 +48,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
             category_key: Optional category key to filter by (e.g., "night_shift", "autofix")
             category_value: Optional category value to filter by (e.g., "org-123")
         """
-        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)
 
@@ -58,7 +58,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
 
         def _make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
             try:
-                client = SeerExplorerClient(organization, request.user)
+                client = SeerAgentClient(organization, request.user)
                 runs = client.get_runs(
                     category_key=category_key,
                     category_value=category_value,

@@ -57,6 +57,32 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
+from sentry.seer.agent.custom_tool_utils import call_custom_tool
+from sentry.seer.agent.index_data import (
+    rpc_get_issues_for_transaction,
+    rpc_get_profiles_for_trace,
+    rpc_get_trace_for_transaction,
+    rpc_get_transactions_for_project,
+)
+from sentry.seer.agent.on_completion_hook import call_on_completion_hook
+from sentry.seer.agent.tools import (
+    execute_table_query,
+    execute_timeseries_query,
+    execute_trace_table_query,
+    get_baseline_tag_distribution,
+    get_comparative_attribute_distributions,
+    get_dsn,
+    get_event_details,
+    get_issue_and_event_details_v2,
+    get_issue_details,
+    get_log_attributes_for_trace,
+    get_metric_attributes_for_trace,
+    get_replay_metadata,
+    get_repository_definition,
+    get_trace_item_attributes,
+    rpc_get_profile_flamegraph,
+    rpc_get_trace_waterfall,
+)
 from sentry.seer.assisted_query.discover_tools import (
     get_event_filter_key_values,
     get_event_filter_keys,
@@ -88,32 +114,6 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.custom_tool_utils import call_custom_tool
-from sentry.seer.explorer.index_data import (
-    rpc_get_issues_for_transaction,
-    rpc_get_profiles_for_trace,
-    rpc_get_trace_for_transaction,
-    rpc_get_transactions_for_project,
-)
-from sentry.seer.explorer.on_completion_hook import call_on_completion_hook
-from sentry.seer.explorer.tools import (
-    execute_table_query,
-    execute_timeseries_query,
-    execute_trace_table_query,
-    get_baseline_tag_distribution,
-    get_comparative_attribute_distributions,
-    get_dsn,
-    get_event_details,
-    get_issue_and_event_details_v2,
-    get_issue_details,
-    get_log_attributes_for_trace,
-    get_metric_attributes_for_trace,
-    get_replay_metadata,
-    get_repository_definition,
-    get_trace_item_attributes,
-    rpc_get_profile_flamegraph,
-    rpc_get_trace_waterfall,
-)
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
@@ -915,7 +915,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_event_filter_keys": get_event_filter_keys,
     "get_event_filter_key_values": get_event_filter_key_values,
     #
-    # Explorer
+    # Agent
     "get_transactions_for_project": rpc_get_transactions_for_project,
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,

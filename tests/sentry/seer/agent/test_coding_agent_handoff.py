@@ -4,7 +4,7 @@ import pytest
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from sentry.integrations.cursor.integration import CursorAgentIntegration
-from sentry.seer.explorer.coding_agent_handoff import _resolve_client, launch_coding_agents
+from sentry.seer.agent.coding_agent_handoff import _resolve_client, launch_coding_agents
 from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
@@ -28,8 +28,8 @@ class TestLaunchCodingAgents(TestCase):
         self.organization = self.create_organization()
         self.run_id = 12345
 
-    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
     def test_successful_launch(self, mock_validate, mock_store):
         """Test successful coding agent launch."""
         mock_integration = MagicMock()
@@ -54,8 +54,8 @@ class TestLaunchCodingAgents(TestCase):
         mock_installation.launch.assert_called_once()
         mock_store.assert_called_once()
 
-    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
     def test_launch_raises_value_error(self, mock_validate, mock_store):
         """Test that ValueError from integration launch is handled as failure."""
         mock_integration = MagicMock()
@@ -77,8 +77,8 @@ class TestLaunchCodingAgents(TestCase):
         assert result["failures"][0]["failure_type"] == "generic"
         mock_installation.launch.assert_called_once()
 
-    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
     def test_multiple_repos_partial_failure(self, mock_validate, mock_store):
         """Test handling of partial failures across multiple repos."""
         from requests import HTTPError
@@ -106,8 +106,8 @@ class TestLaunchCodingAgents(TestCase):
         assert result["successes"][0]["repo_name"] == "owner/repo1"
         assert result["failures"][0]["repo_name"] == "owner/repo2"
 
-    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
     def test_branch_name_is_sanitized(self, mock_validate, mock_store):
         """Test that branch name is sanitized before launch."""
         mock_integration = MagicMock()
@@ -128,10 +128,10 @@ class TestLaunchCodingAgents(TestCase):
         launch_request = mock_installation.launch.call_args[0][0]
         assert launch_request.branch_name.startswith("my-fix-")
 
-    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.explorer.coding_agent_handoff.GithubCopilotAgentClient")
-    @patch("sentry.seer.explorer.coding_agent_handoff.github_copilot_identity_service")
-    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    @patch("sentry.seer.agent.coding_agent_handoff.features.has")
     def test_copilot_not_licensed_403_returns_github_copilot_not_licensed_failure_type(
         self,
         mock_features,
@@ -170,8 +170,8 @@ class TestLaunchCodingAgents(TestCase):
         assert failure["failure_type"] == "github_copilot_not_licensed"
         assert "Copilot license" in failure["error_message"]
 
-    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
     def test_verify_branch_error_returns_cursor_github_access_failure_type(
         self, mock_validate, mock_store
     ):
@@ -205,7 +205,7 @@ class TestLaunchCodingAgents(TestCase):
         assert "install the Cursor GitHub App" in failure["error_message"]
 
 
-MOCK_HANDOFF_PATH = "sentry.seer.explorer.coding_agent_handoff"
+MOCK_HANDOFF_PATH = "sentry.seer.agent.coding_agent_handoff"
 
 
 class TestResolveClient(TestCase):

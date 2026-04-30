@@ -14,20 +14,20 @@ class OnCompletionHookDefinition(BaseModel):
     module_path: str
 
 
-class ExplorerOnCompletionHook(ABC):
-    """Base class for Explorer on-completion hooks.
+class AgentOnCompletionHook(ABC):
+    """Base class for the agent on-completion hooks.
 
-    Hooks are called when an Explorer agent run completes (regardless of status).
+    Hooks are called when an agent run completes (regardless of status).
 
     Example:
-        class MyCompletionHook(ExplorerOnCompletionHook):
+        class MyCompletionHook(AgentOnCompletionHook):
             @classmethod
             def execute(cls, organization: Organization, run_id: int) -> None:
                 # Do something when the run completes
                 notify_user(organization, run_id)
 
         # Pass to client
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user,
             on_completion_hook=MyCompletionHook
@@ -56,9 +56,9 @@ class ExplorerOnCompletionHook(ABC):
 
 
 def extract_hook_definition(
-    hook_class: type[ExplorerOnCompletionHook],
+    hook_class: type[AgentOnCompletionHook],
 ) -> OnCompletionHookDefinition:
-    """Extract hook definition from an ExplorerOnCompletionHook class."""
+    """Extract hook definition from an AgentOnCompletionHook class."""
     # Enforce module-level classes only (no nested classes)
     if "." in hook_class.__qualname__:
         raise ValueError(
@@ -110,11 +110,9 @@ def call_on_completion_hook(
     except (ImportError, AttributeError) as e:
         raise ValueError(f"Could not import {module_path}: {e}")
 
-    # Validate it's an ExplorerOnCompletionHook subclass
-    if not isinstance(hook_class, type) or not issubclass(hook_class, ExplorerOnCompletionHook):
-        raise ValueError(
-            f"{module_path} must be a class that inherits from ExplorerOnCompletionHook"
-        )
+    # Validate it's an AgentOnCompletionHook subclass
+    if not isinstance(hook_class, type) or not issubclass(hook_class, AgentOnCompletionHook):
+        raise ValueError(f"{module_path} must be a class that inherits from AgentOnCompletionHook")
 
     # Execute the hook
     hook_class.execute(organization, run_id)

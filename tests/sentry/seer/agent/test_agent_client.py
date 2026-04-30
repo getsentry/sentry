@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import BaseModel
 
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_models import (
-    ExplorerFilePatch,
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import (
+    AgentFilePatch,
     FilePatch,
     MemoryBlock,
     Message,
@@ -17,49 +17,49 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
 
 
-class TestSeerExplorerClient(TestCase):
+class TestSeerAgentClient(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_checks_access(self, mock_access):
         """Test that client initialization checks base Seer access and raises on denial"""
         mock_access.return_value = (False, "Feature flag not enabled")
 
         with pytest.raises(SeerPermissionError) as exc_info:
-            SeerExplorerClient(self.organization, self.user)
+            SeerAgentClient(self.organization, self.user)
         assert "Feature flag not enabled" in str(exc_info.value)
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_succeeds_with_access(self, mock_access):
         """Test that client initialization succeeds with proper access"""
         mock_access.return_value = (True, None)
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         assert client.organization == self.organization
         assert client.user == self.user
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_raises_when_coding_option_disabled(self, mock_access):
         """Test that client initialization raises SeerPermissionError when enable_coding is True but org option is disabled"""
         mock_access.return_value = (True, None)
         self.organization.update_option("sentry:enable_seer_coding", False)
 
         with pytest.raises(SeerPermissionError):
-            SeerExplorerClient(self.organization, self.user, enable_coding=True)
+            SeerAgentClient(self.organization, self.user, enable_coding=True)
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_succeeds_when_coding_option_not_set(self, mock_access):
         """Test that client initialization succeeds when enable_coding is True and org option is not set (interpreted as True by default)"""
         mock_access.return_value = (True, None)
-        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        client = SeerAgentClient(self.organization, self.user, enable_coding=True)
         assert client.enable_coding is True
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_basic(self, mock_collect_context, mock_post, mock_access):
         """Test starting a new run collects user context"""
         mock_access.return_value = (True, None)
@@ -69,16 +69,16 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         run_id = client.start_run("Test query")
 
         assert run_id == 123
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=None)
         assert mock_post.called
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_request(self, mock_collect_context, mock_post, mock_access):
         """Test starting a new run passes request object to collect_user_org_context"""
         mock_access.return_value = (True, None)
@@ -88,7 +88,7 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         request, _ = make_request()
         run_id = client.start_run("Test query", request=request)
 
@@ -96,8 +96,8 @@ class TestSeerExplorerClient(TestCase):
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=request)
         assert mock_post.called
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_start_run_with_optional_params(self, mock_post, mock_access):
         """Test starting a run with optional parameters"""
         mock_access.return_value = (True, None)
@@ -106,27 +106,27 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         run_id = client.start_run("Query", on_page_context="some context")
 
         assert run_id == 789
         call_args = mock_post.call_args
         assert call_args is not None
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_start_run_http_error(self, mock_post, mock_access):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
         mock_post.return_value.status = 500
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerApiError):
             client.start_run("Test query")
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_categories(self, mock_collect_context, mock_post, mock_access):
         """Test starting a run with category fields"""
         mock_access.return_value = (True, None)
@@ -136,7 +136,7 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             self.organization, self.user, category_key="bug-fixer", category_value="issue-123"
         )
         run_id = client.start_run("Fix bug")
@@ -146,7 +146,7 @@ class TestSeerExplorerClient(TestCase):
         assert body["category_key"] == "bug-fixer"
         assert body["category_value"] == "issue-123"
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_init_category_key_only_raises_error(self, mock_access):
         """Test that ValueError is raised when only category_key is provided"""
         mock_access.return_value = (True, None)
@@ -154,9 +154,9 @@ class TestSeerExplorerClient(TestCase):
         with pytest.raises(
             ValueError, match="category_key and category_value must be provided together"
         ):
-            SeerExplorerClient(self.organization, self.user, category_key="bug-fixer")
+            SeerAgentClient(self.organization, self.user, category_key="bug-fixer")
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_init_category_value_only_raises_error(self, mock_access):
         """Test that ValueError is raised when only category_value is provided"""
         mock_access.return_value = (True, None)
@@ -164,27 +164,27 @@ class TestSeerExplorerClient(TestCase):
         with pytest.raises(
             ValueError, match="category_key and category_value must be provided together"
         ):
-            SeerExplorerClient(self.organization, self.user, category_value="issue-123")
+            SeerAgentClient(self.organization, self.user, category_value="issue-123")
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_with_intelligence_level(self, mock_access):
         """Test that intelligence_level is stored"""
         mock_access.return_value = (True, None)
 
-        client = SeerExplorerClient(self.organization, self.user, intelligence_level="high")
+        client = SeerAgentClient(self.organization, self.user, intelligence_level="high")
         assert client.intelligence_level == "high"
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_default_intelligence_level(self, mock_access):
         """Test that intelligence_level defaults to 'medium'"""
         mock_access.return_value = (True, None)
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         assert client.intelligence_level == "medium"
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_includes_intelligence_level(
         self, mock_collect_context, mock_post, mock_access
     ):
@@ -196,32 +196,32 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user, intelligence_level="low")
+        client = SeerAgentClient(self.organization, self.user, intelligence_level="low")
         run_id = client.start_run("Test query")
 
         assert run_id == 555
         body = mock_post.call_args[0][0]
         assert body["intelligence_level"] == "low"
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_with_max_iterations(self, mock_access):
         """Test that max_iterations is stored"""
         mock_access.return_value = (True, None)
 
-        client = SeerExplorerClient(self.organization, self.user, max_iterations=3)
+        client = SeerAgentClient(self.organization, self.user, max_iterations=3)
         assert client.max_iterations == 3
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_default_max_iterations(self, mock_access):
         """Test that max_iterations defaults to None"""
         mock_access.return_value = (True, None)
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         assert client.max_iterations is None
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_includes_max_iterations(self, mock_collect_context, mock_post, mock_access):
         """Test that max_iterations is included in the payload when set"""
         mock_access.return_value = (True, None)
@@ -231,16 +231,16 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user, max_iterations=3)
+        client = SeerAgentClient(self.organization, self.user, max_iterations=3)
         run_id = client.start_run("Test query")
 
         assert run_id == 444
         body = mock_post.call_args[0][0]
         assert body["max_iterations"] == 3
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_excludes_max_iterations_when_none(
         self, mock_collect_context, mock_post, mock_access
     ):
@@ -252,15 +252,15 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         run_id = client.start_run("Test query")
 
         assert run_id == 445
         body = mock_post.call_args[0][0]
         assert "max_iterations" not in body
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_basic(self, mock_post, mock_access):
         """Test continuing an existing run"""
         mock_access.return_value = (True, None)
@@ -269,14 +269,14 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         run_id = client.continue_run(456, "Follow up query")
 
         assert run_id == 456
         assert mock_post.called
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_with_all_params(self, mock_post, mock_access):
         """Test continuing a run with all optional parameters"""
         mock_access.return_value = (True, None)
@@ -285,26 +285,26 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         run_id = client.continue_run(789, "Follow up", insert_index=2, on_page_context="context")
 
         assert run_id == 789
         call_args = mock_post.call_args
         assert call_args is not None
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_http_error(self, mock_post, mock_access):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
         mock_post.return_value.status = 500
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerApiError):
             client.continue_run(123, "Test query")
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
     def test_get_run_immediate(self, mock_fetch, mock_access):
         """Test getting run status without waiting"""
         mock_access.return_value = (True, None)
@@ -316,7 +316,7 @@ class TestSeerExplorerClient(TestCase):
         )
         mock_fetch.return_value = mock_state
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         result = client.get_run(123)
 
         assert result.run_id == 123
@@ -325,8 +325,8 @@ class TestSeerExplorerClient(TestCase):
             123, self.organization, viewer_context=client.viewer_context
         )
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.poll_until_done")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.poll_until_done")
     def test_get_run_with_blocking(self, mock_poll, mock_access):
         """Test getting run status with polling"""
         mock_access.return_value = (True, None)
@@ -338,7 +338,7 @@ class TestSeerExplorerClient(TestCase):
         )
         mock_poll.return_value = mock_state
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         result = client.get_run(123, blocking=True, poll_interval=1.0, poll_timeout=30.0)
 
         assert result.run_id == 123
@@ -347,19 +347,19 @@ class TestSeerExplorerClient(TestCase):
             123, self.organization, 1.0, 30.0, viewer_context=client.viewer_context
         )
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
     def test_get_run_http_error(self, mock_fetch, mock_access):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
         mock_fetch.side_effect = SeerApiError("API Error", 500)
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerApiError):
             client.get_run(123)
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_runs_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_runs_request")
     def test_get_runs_basic(self, mock_post, mock_access):
         """Test getting runs with filters"""
         mock_access.return_value = (True, None)
@@ -379,7 +379,7 @@ class TestSeerExplorerClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         runs = client.get_runs(category_key="bug-fixer", category_value="issue-123")
 
         assert len(runs) == 1
@@ -389,7 +389,7 @@ class TestSeerExplorerClient(TestCase):
         assert body["category_value"] == "issue-123"
 
 
-class TestSeerExplorerClientArtifacts(TestCase):
+class TestSeerAgentClientArtifacts(TestCase):
     """Test artifact schema passing and retrieval"""
 
     def setUp(self) -> None:
@@ -397,9 +397,9 @@ class TestSeerExplorerClientArtifacts(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_artifact_schema(self, mock_collect_context, mock_post, mock_access):
         """Test that artifact key and schema are serialized and sent to API"""
         mock_access.return_value = (True, None)
@@ -413,7 +413,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
             issue_count: int
             severity: str
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         run_id = client.start_run(
             "Analyze errors", artifact_key="analysis", artifact_schema=IssueAnalysis
         )
@@ -428,8 +428,8 @@ class TestSeerExplorerClientArtifacts(TestCase):
         assert "issue_count" in body["artifact_schema"]["properties"]
         assert "severity" in body["artifact_schema"]["properties"]
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_start_run_artifact_schema_requires_key(self, mock_post, mock_access):
         """Test that artifact_schema without artifact_key raises ValueError"""
         mock_access.return_value = (True, None)
@@ -437,15 +437,15 @@ class TestSeerExplorerClientArtifacts(TestCase):
         class IssueAnalysis(BaseModel):
             issue_count: int
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(
             ValueError, match="artifact_key and artifact_schema must be provided together"
         ):
             client.start_run("Analyze", artifact_schema=IssueAnalysis)
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_continue_run_with_artifact_schema(self, mock_collect_context, mock_post, mock_access):
         """Test continuing a run with a new artifact key and schema"""
         mock_access.return_value = (True, None)
@@ -459,7 +459,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
             description: str
             steps: list[str]
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         run_id = client.continue_run(
             123, "Propose a fix", artifact_key="solution", artifact_schema=Solution
         )
@@ -472,8 +472,8 @@ class TestSeerExplorerClientArtifacts(TestCase):
         assert body["artifact_schema"]["type"] == "object"
         assert "description" in body["artifact_schema"]["properties"]
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_artifact_schema_requires_key(self, mock_post, mock_access):
         """Test that artifact_schema without artifact_key raises ValueError"""
         mock_access.return_value = (True, None)
@@ -481,17 +481,17 @@ class TestSeerExplorerClientArtifacts(TestCase):
         class Solution(BaseModel):
             description: str
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(
             ValueError, match="artifact_key and artifact_schema must be provided together"
         ):
             client.continue_run(123, "Fix it", artifact_schema=Solution)
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
     def test_get_run_with_artifacts_on_blocks(self, mock_fetch, mock_access):
         """Test that artifacts on blocks are returned and can be retrieved typed"""
-        from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message
+        from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message
 
         mock_access.return_value = (True, None)
 
@@ -521,7 +521,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
         )
         mock_fetch.return_value = mock_state
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         result = client.get_run(123)
 
         # Verify artifacts can be retrieved via get_artifacts()
@@ -535,11 +535,11 @@ class TestSeerExplorerClientArtifacts(TestCase):
         assert artifact.bug_count == 5
         assert artifact.severity == "high"
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
     def test_get_artifact_returns_none_when_missing(self, mock_fetch, mock_access):
         """Test that get_artifact returns None for missing or pending artifacts"""
-        from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message
+        from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message
 
         mock_access.return_value = (True, None)
 
@@ -568,7 +568,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
         )
         mock_fetch.return_value = mock_state
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         result = client.get_run(123)
 
         # Missing key returns None
@@ -576,11 +576,11 @@ class TestSeerExplorerClientArtifacts(TestCase):
         # Pending artifact (data=None) returns None
         assert result.get_artifact("pending", MySchema) is None
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
     def test_get_run_with_multiple_artifacts_on_blocks(self, mock_fetch, mock_access):
         """Test retrieving multiple artifacts from blocks in a multi-step run"""
-        from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message
+        from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message
 
         mock_access.return_value = (True, None)
 
@@ -626,7 +626,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
         )
         mock_fetch.return_value = mock_state
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         result = client.get_run(123)
 
         # Retrieve both artifacts typed
@@ -641,11 +641,11 @@ class TestSeerExplorerClientArtifacts(TestCase):
         assert solution.description == "Fix the leak"
         assert solution.steps == ["Step 1", "Step 2"]
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
     def test_get_artifacts_returns_latest_version(self, mock_fetch, mock_access):
         """Test that get_artifacts returns the latest version when artifact is updated"""
-        from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message
+        from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message
 
         mock_access.return_value = (True, None)
 
@@ -686,7 +686,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
         )
         mock_fetch.return_value = mock_state
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         result = client.get_run(123)
 
         # Should get the latest version
@@ -695,7 +695,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
         assert root_cause.cause == "New cause"
 
 
-class TestSeerExplorerClientPushChanges(TestCase):
+class TestSeerAgentClientPushChanges(TestCase):
     """Test push_changes method"""
 
     def setUp(self) -> None:
@@ -703,9 +703,9 @@ class TestSeerExplorerClientPushChanges(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
-    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_push_changes_sends_correct_payload(self, mock_post, mock_fetch, mock_access):
         """Test that push_changes sends correct payload"""
         mock_access.return_value = (True, None)
@@ -724,7 +724,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
             },
         )
 
-        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        client = SeerAgentClient(self.organization, self.user, enable_coding=True)
         result = client.push_changes(123, repo_name="owner/repo")
 
         body = mock_post.call_args[0][0]
@@ -734,10 +734,10 @@ class TestSeerExplorerClientPushChanges(TestCase):
         assert result is not None
         assert result.repo_pr_states["owner/repo"].pr_url == "https://github.com/owner/repo/pull/1"
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
-    @patch("sentry.seer.explorer.client.make_explorer_update_request")
-    @patch("sentry.seer.explorer.client.time.sleep")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    @patch("sentry.seer.agent.client.time.sleep")
     def test_push_changes_polls_until_complete(
         self, mock_sleep, mock_post, mock_fetch, mock_access
     ):
@@ -765,7 +765,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
         )
         mock_fetch.side_effect = [creating_state, completed_state]
 
-        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        client = SeerAgentClient(self.organization, self.user, enable_coding=True)
         result = client.push_changes(123)
 
         assert mock_fetch.call_count == 2
@@ -773,11 +773,11 @@ class TestSeerExplorerClientPushChanges(TestCase):
         assert result is not None
         assert result.repo_pr_states["owner/repo"].pr_creation_status == "completed"
 
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.fetch_run_status")
-    @patch("sentry.seer.explorer.client.make_explorer_update_request")
-    @patch("sentry.seer.explorer.client.time.sleep")
-    @patch("sentry.seer.explorer.client.time.time")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.fetch_run_status")
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    @patch("sentry.seer.agent.client.time.sleep")
+    @patch("sentry.seer.agent.client.time.time")
     def test_push_changes_timeout(self, mock_time, mock_sleep, mock_post, mock_fetch, mock_access):
         """Test that push_changes raises TimeoutError after timeout"""
         mock_access.return_value = (True, None)
@@ -795,7 +795,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
 
         # get_option call in client init interferes with the mock time.time() - patch it
         self.organization.get_option = MagicMock(return_value=True)
-        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        client = SeerAgentClient(self.organization, self.user, enable_coding=True)
 
         with pytest.raises(TimeoutError, match="PR creation timed out"):
             client.push_changes(123, poll_timeout=120.0)
@@ -833,7 +833,7 @@ class TestSeerRunStateCodeChanges(TestCase):
                     message=Message(role="assistant", content="Fixed"),
                     timestamp="2024-01-01T00:00:00Z",
                     merged_file_patches=[
-                        ExplorerFilePatch(
+                        AgentFilePatch(
                             repo_name="owner/repo",
                             patch=FilePatch(path="file.py", type="M", added=10, removed=5),
                         )
@@ -858,7 +858,7 @@ class TestSeerRunStateCodeChanges(TestCase):
                     message=Message(role="assistant", content="Fixed"),
                     timestamp="2024-01-01T00:00:00Z",
                     merged_file_patches=[
-                        ExplorerFilePatch(
+                        AgentFilePatch(
                             repo_name="owner/repo",
                             patch=FilePatch(path="file.py", type="M", added=10, removed=5),
                         )
@@ -891,15 +891,15 @@ class TestSeerRunStateCodeChanges(TestCase):
                     message=Message(role="assistant", content="Fixed"),
                     timestamp="2024-01-01T00:00:00Z",
                     merged_file_patches=[
-                        ExplorerFilePatch(
+                        AgentFilePatch(
                             repo_name="owner/repo1",
                             patch=FilePatch(path="file1.py", type="M", added=10, removed=5),
                         ),
-                        ExplorerFilePatch(
+                        AgentFilePatch(
                             repo_name="owner/repo2",
                             patch=FilePatch(path="file2.py", type="A", added=20, removed=0),
                         ),
-                        ExplorerFilePatch(
+                        AgentFilePatch(
                             repo_name="owner/repo1",
                             patch=FilePatch(path="file3.py", type="M", added=5, removed=2),
                         ),
@@ -925,7 +925,7 @@ class TestSeerRunStateCodeChanges(TestCase):
                     message=Message(role="assistant", content="First edit"),
                     timestamp="2024-01-01T00:00:00Z",
                     merged_file_patches=[
-                        ExplorerFilePatch(
+                        AgentFilePatch(
                             repo_name="owner/repo1",
                             patch=FilePatch(path="file1.py", type="M", added=10, removed=5),
                         ),
@@ -936,7 +936,7 @@ class TestSeerRunStateCodeChanges(TestCase):
                     message=Message(role="assistant", content="Second edit"),
                     timestamp="2024-01-01T00:01:00Z",
                     merged_file_patches=[
-                        ExplorerFilePatch(
+                        AgentFilePatch(
                             repo_name="owner/repo1",
                             patch=FilePatch(path="file1.py", type="A", added=100, removed=0),
                         ),
@@ -961,13 +961,13 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         access_patcher = patch(
-            "sentry.seer.explorer.client.has_seer_access_with_detail",
+            "sentry.seer.agent.client.has_seer_access_with_detail",
             return_value=(True, None),
         )
         access_patcher.start()
         self.addCleanup(access_patcher.stop)
         context_patcher = patch(
-            "sentry.seer.explorer.client.collect_user_org_context",
+            "sentry.seer.agent.client.collect_user_org_context",
             return_value={},
         )
         context_patcher.start()
@@ -979,8 +979,8 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_response.json.return_value = {"run_id": run_id, **flags}
         return mock_response
 
-    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_triggers_indexing_when_explorer_index_missing(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
         mock_dispatch.return_value = iter([])
@@ -988,7 +988,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         project.flags.has_transactions = True
         project.save()
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with self.options(
             {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
         ):
@@ -999,10 +999,10 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         projects_batch = list(mock_dispatch.call_args[0][0])
         assert (project.id, self.organization.id) in projects_batch
 
-    @patch("sentry.seer.explorer.client.index_org_project_knowledge")
-    @patch("sentry.seer.explorer.client.build_service_map")
-    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.index_org_project_knowledge")
+    @patch("sentry.seer.agent.client.build_service_map")
+    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_triggers_indexing_when_org_project_context_missing(
         self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
     ):
@@ -1012,7 +1012,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         project.flags.has_transactions = True
         project.save()
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with self.options(
             {
                 "seer.explorer_index.enable": True,
@@ -1027,8 +1027,8 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_index_knowledge.apply_async.assert_called_once_with(args=[self.organization.id])
         mock_build_service_map.apply_async.assert_called_once_with(args=[self.organization.id])
 
-    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_excludes_projects_without_transactions_from_batch(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
         mock_dispatch.return_value = iter([])
@@ -1037,7 +1037,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         project_with_txns.save()
         project_without_txns = self.create_project(organization=self.organization)
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with self.options(
             {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
         ):
@@ -1047,36 +1047,36 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         assert (project_with_txns.id, self.organization.id) in projects_batch
         assert (project_without_txns.id, self.organization.id) not in projects_batch
 
-    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_skips_indexing_when_index_present(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response(
             has_explorer_index=True, has_org_project_context=True
         )
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with self.options({"seer.explorer_index.enable": True}):
             run_id = client.start_run("Why are my errors spiking?")
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
 
-    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_skips_indexing_when_flags_absent_from_response(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response()
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with self.options({"seer.explorer_index.enable": True}):
             run_id = client.start_run("Why are my errors spiking?")
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
 
-    @patch("sentry.seer.explorer.client.index_org_project_knowledge")
-    @patch("sentry.seer.explorer.client.build_service_map")
-    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.index_org_project_knowledge")
+    @patch("sentry.seer.agent.client.build_service_map")
+    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_skips_indexing_when_enable_option_off(
         self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
     ):
@@ -1087,7 +1087,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         project.flags.has_transactions = True
         project.save()
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with self.options(
             {"seer.explorer_index.enable": False, "explorer.context_engine_indexing.enable": True}
         ):
@@ -1097,10 +1097,10 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_index_knowledge.apply_async.assert_not_called()
         mock_build_service_map.apply_async.assert_not_called()
 
-    @patch("sentry.seer.explorer.client.index_org_project_knowledge")
-    @patch("sentry.seer.explorer.client.build_service_map")
-    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.index_org_project_knowledge")
+    @patch("sentry.seer.agent.client.build_service_map")
+    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_skips_indexing_when_killswitch_on(
         self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
     ):
@@ -1111,7 +1111,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         project.flags.has_transactions = True
         project.save()
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with self.options(
             {
                 "seer.explorer_index.enable": True,
@@ -1125,13 +1125,13 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_index_knowledge.apply_async.assert_not_called()
         mock_build_service_map.apply_async.assert_not_called()
 
-    @patch("sentry.seer.explorer.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_skips_indexing_when_no_projects_with_transactions(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
         self.create_project(organization=self.organization)
 
-        client = SeerExplorerClient(self.organization, self.user)
+        client = SeerAgentClient(self.organization, self.user)
         with self.options(
             {"seer.explorer_index.enable": True, "seer.explorer_index.killswitch.enable": False}
         ):

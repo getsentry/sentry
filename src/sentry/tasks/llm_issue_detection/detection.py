@@ -28,7 +28,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.explorer.utils import normalize_description
+from sentry.seer.agent.utils import normalize_description
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks

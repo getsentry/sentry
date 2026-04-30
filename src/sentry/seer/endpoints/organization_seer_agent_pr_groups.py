@@ -16,30 +16,30 @@ from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerPermissionError
 
 logger = logging.getLogger(__name__)
 
 
-class OrganizationSeerExplorerPRGroupsPermission(OrganizationPermission):
+class OrganizationSeerAgentPRGroupsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
     }
 
 
 @cell_silo_endpoint
-class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
+class OrganizationSeerAgentPRGroupsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    permission_classes = (OrganizationSeerExplorerPRGroupsPermission,)
+    permission_classes = (OrganizationSeerAgentPRGroupsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Get a list of issues that have a PR created from Seer Explorer
+        Get a list of issues that have a PR created from Seer Agent
 
         Query Parameters:
             None
@@ -54,7 +54,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
 
         def _make_seer_runs_request(offset: int, limit: int) -> dict[str, list[dict]]:
             try:
-                client = SeerExplorerClient(organization, request.user)
+                client = SeerAgentClient(organization, request.user)
                 seer_data = client.get_runs(
                     category_key="autofix",
                     offset=offset,
@@ -102,7 +102,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                     serialized_group = groups_by_id.get(str(run.group_id))
                     if serialized_group is None:
                         logger.warning(
-                            "Seer Explorer PR: group not found",
+                            "Seer Agent PR: group not found",
                             extra={
                                 "group_id": run.group_id,
                                 "project_ids": project_ids,
@@ -110,7 +110,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                         )
                 else:
                     logger.warning(
-                        "Seer Explorer PR: run has no group_id",
+                        "Seer Agent PR: run has no group_id",
                         extra={
                             "run_id": run.run_id,
                             "project_ids": project_ids,

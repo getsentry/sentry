@@ -604,7 +604,7 @@ class SlackAgentEntrypointTest(TestCase):
     def test_has_feature_flag(self) -> None:
         """
         has_feature_flag is the cheap, control-silo-safe gate: it only checks the Slack
-        feature flag, not the subscription-gated Seer Explorer access. Used by the
+        feature flag, not the subscription-gated Seer Agent access. Used by the
         parser to avoid evaluating Flagpole rules that need subscription context
         (which getsentry's FlagpoleFeatureHandler does not populate in control silo).
         """

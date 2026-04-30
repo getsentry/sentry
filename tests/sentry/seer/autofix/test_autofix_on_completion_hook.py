@@ -1,6 +1,14 @@
 from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
+from sentry.seer.agent.client_models import (
+    AgentFilePatch,
+    Artifact,
+    FilePatch,
+    MemoryBlock,
+    Message,
+    SeerRunState,
+)
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import (
@@ -9,14 +17,6 @@ from sentry.seer.autofix.on_completion_hook import (
     AutofixOnCompletionHook,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.explorer.client_models import (
-    Artifact,
-    ExplorerFilePatch,
-    FilePatch,
-    MemoryBlock,
-    Message,
-    SeerRunState,
-)
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
@@ -90,7 +90,7 @@ def code_changes_memory_block(referrer: str | None = None) -> MemoryBlock:
         ),
         timestamp="2026-02-10T00:00:00Z",
         merged_file_patches=[
-            ExplorerFilePatch(
+            AgentFilePatch(
                 repo_name="test-repo",
                 patch=FilePatch(path="test.py", type="M", added=5, removed=2),
             )
@@ -237,21 +237,21 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
 
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_maybe_continue_pipeline_no_metadata(self, mock_trigger):
         """Does not continue when metadata is missing."""
         state = run_state(blocks=[root_cause_memory_block()])
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_maybe_continue_pipeline_no_stopping_point_in_metadata(self, mock_trigger):
         """Does not continue when stopping_point is missing from metadata."""
         state = run_state(blocks=[root_cause_memory_block()], metadata={"group_id": self.group.id})
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_maybe_continue_pipeline_at_stopping_point(self, mock_trigger):
         """Does not continue when current step matches stopping point."""
         state = run_state(
@@ -264,7 +264,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_maybe_continue_pipeline_continues_to_next_step(self, mock_trigger):
         """Continues to next step when not at stopping point."""
         # No handoff configured - should continue with normal pipeline.
@@ -630,7 +630,7 @@ class AutofixOnCompletionHookTest(TestCase):
     """Test the AutofixOnCompletionHook behavior."""
 
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_next_step_not_triggered_when_coding_disabled(
         self, mock_trigger_autofix, mock_fetch_run_status
     ):
@@ -651,11 +651,11 @@ class AutofixOnCompletionHookTest(TestCase):
         # Execute the hook
         AutofixOnCompletionHook.execute(self.organization, 123)
 
-        # Verify: trigger_autofix_explorer was NOT called (next step blocked)
+        # Verify: trigger_autofix_agent was NOT called (next step blocked)
         mock_trigger_autofix.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_next_step_triggered_when_coding_enabled(
         self, mock_trigger_autofix, mock_fetch_run_status
     ):
@@ -676,7 +676,7 @@ class AutofixOnCompletionHookTest(TestCase):
         # Execute the hook
         AutofixOnCompletionHook.execute(self.organization, 123)
 
-        # Verify: trigger_autofix_explorer WAS called with CODE_CHANGES step
+        # Verify: trigger_autofix_agent WAS called with CODE_CHANGES step
         mock_trigger_autofix.assert_called_once()
         call_kwargs = mock_trigger_autofix.call_args.kwargs
         assert call_kwargs["step"] == AutofixStep.CODE_CHANGES

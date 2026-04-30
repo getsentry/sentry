@@ -17,8 +17,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
 from sentry.replays.testutils import mock_replay
 from sentry.search.utils import parse_iso_timestamp
-from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
-from sentry.seer.explorer.tools import (
+from sentry.seer.agent.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     _get_issue_event_timeseries,
     _get_recommended_event,
@@ -39,6 +38,7 @@ from sentry.seer.explorer.tools import (
     get_trace_waterfall,
     rpc_get_profile_flamegraph,
 )
+from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
@@ -396,7 +396,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         )
         assert table_result is None
 
-    @patch("sentry.seer.explorer.tools.client.get")
+    @patch("sentry.seer.agent.tools.client.get")
     def test_spans_table_query_error_handling(self, mock_client_get):
         """Test error handling for API errors: 400 errors return error dict, non-400 errors are re-raised"""
         # Test 400 error with dict body containing detail
@@ -825,7 +825,7 @@ class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             "organizations:visibility-explore-view": True,
         }
 
-    @patch("sentry.seer.explorer.tools.client")
+    @patch("sentry.seer.agent.tools.client")
     def test_trace_table_basic(self, mock_client: Mock) -> None:
         """Basic integration test for execute_trace_table_query RPC. This is a passthrough to the OrganizationTracesEndpoint, which is tested more extensively."""
         mock_client.get.side_effect = client.get
@@ -900,7 +900,7 @@ class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
                 == f"/organizations/{self.organization.slug}/traces/"
             )
 
-    @patch("sentry.seer.explorer.tools.client.get")
+    @patch("sentry.seer.agent.tools.client.get")
     def test_trace_table_query_error_handling(self, mock_client_get: Mock) -> None:
         with self.feature(self.features):
             # Test 400 error with dict body containing detail
@@ -965,7 +965,7 @@ class _Actor(BaseModel):
 
 class _IssueMetadata(BaseModel):
     """
-    A subset of BaseGroupSerializerResponse fields useful for Seer Explorer. In prod we send the full response.
+    A subset of BaseGroupSerializerResponse fields useful for Seer Agent. In prod we send the full response.
     """
 
     id: int
@@ -996,7 +996,7 @@ class _IssueMetadata(BaseModel):
 
 class _SentryEventData(BaseModel):
     """
-    Required fields for the serialized events used by Seer Explorer.
+    Required fields for the serialized events used by Seer Agent.
     """
 
     title: str
@@ -1031,8 +1031,8 @@ class TestGetIssueAndEventDetailsV2(
 ):
     """Integration tests for the get_issue_and_event_details RPC."""
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def _test_get_ie_details_from_issue_id(
         self,
         mock_get_tags,
@@ -1170,8 +1170,8 @@ class TestGetIssueAndEventDetailsV2(
             end=before_now(days=0).isoformat(),
         )
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_get_ie_details_from_issue_id_no_valid_events(
         self,
         mock_get_tags,
@@ -1220,8 +1220,8 @@ class TestGetIssueAndEventDetailsV2(
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_get_ie_details_from_issue_id_single_event(
         self,
         mock_get_tags,
@@ -1285,8 +1285,8 @@ class TestGetIssueAndEventDetailsV2(
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def _test_get_ie_details_from_event_id(
         self,
         mock_get_tags,
@@ -1355,8 +1355,8 @@ class TestGetIssueAndEventDetailsV2(
             include_issue=False,
         )
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_get_ie_details_from_issue_id_with_occurrence(self, mock_get_tags, mock_get_timeseries):
         """Test that occurrence data is included when fetching by issue_id."""
         mock_get_timeseries.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1382,8 +1382,8 @@ class TestGetIssueAndEventDetailsV2(
         assert result is not None
         self._assert_occurrence_in_response(result, occurrence)
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_get_ie_details_from_event_id_with_occurrence_single_project(
         self, mock_get_tags, mock_get_timeseries
     ):
@@ -1411,8 +1411,8 @@ class TestGetIssueAndEventDetailsV2(
         assert result["event_id"] == occurrence.event_id
         self._assert_occurrence_in_response(result, occurrence)
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_get_ie_details_from_event_id_with_occurrence_multi_project(
         self, mock_get_tags, mock_get_timeseries
     ):
@@ -1477,8 +1477,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     # --- basic shape and group lookup ---
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_by_numeric_issue_id(self, mock_tags, mock_ts):
         """Fetching by numeric issue_id returns issue metadata."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1500,8 +1500,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_by_qualified_short_id(self, mock_tags, mock_ts):
         """Fetching by qualified short ID (PROJECT-123) resolves the correct group."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1524,8 +1524,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     # --- timeseries ---
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_timeseries_values_forwarded(self, mock_tags, mock_ts):
         """Timeseries data and its period/interval metadata are included in the response."""
         mock_ts.return_value = ({"count()": {"data": [[1000, [{"count": 3}]]]}}, "24h", "1h")
@@ -1545,8 +1545,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["timeseries_stats_period"] == "24h"
         assert result["timeseries_interval"] == "1h"
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_timeseries_start_end_forwarded(self, mock_tags, mock_ts):
         """start/end strings are parsed and forwarded to _get_issue_event_timeseries."""
         mock_ts.return_value = ({"count()": {"data": []}}, "7d", "6h")
@@ -1570,8 +1570,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert call_kwargs["start"] == parse_iso_timestamp(start)
         assert call_kwargs["end"] == parse_iso_timestamp(end)
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_timeseries_failure_returns_nulls(self, mock_tags, mock_ts):
         """If _get_issue_event_timeseries raises, timeseries fields are None rather than propagating."""
         mock_ts.side_effect = Exception("snuba down")
@@ -1593,8 +1593,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     # --- tags ---
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_tags_overview_forwarded(self, mock_tags, mock_ts):
         """tags_overview from get_all_tags_overview is included in the response."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1612,8 +1612,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result is not None
         assert result["tags_overview"] == expected_tags
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_tags_failure_returns_none(self, mock_tags, mock_ts):
         """If get_all_tags_overview raises, tags_overview is None rather than propagating."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1635,8 +1635,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     # --- user activity ---
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_user_activity_included(self, mock_tags, mock_ts):
         """Activity records for the group are serialized and included."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1666,8 +1666,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     # --- assignee ---
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_assigned_user_included(self, mock_tags, mock_ts):
         """Issue metadata includes assignedTo when a user is assigned."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1692,8 +1692,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert md.assignedTo.email == self.user.email
         assert md.assignedTo.name == self.user.get_display_name()
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_assigned_team_included(self, mock_tags, mock_ts):
         """Issue metadata includes assignedTo when a team is assigned."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1720,8 +1720,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     # --- project scoping ---
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_no_projects_returns_none(self, mock_tags, mock_ts):
         """Returns None when project_slug doesn't match any project."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1866,7 +1866,7 @@ class TestGetEventDetails(
 
     # --- fetch by issue_id (recommended event) ---
 
-    @patch("sentry.seer.explorer.tools._get_recommended_event")
+    @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_numeric(self, mock_recommended):
         """Fetching by numeric issue_id calls _get_recommended_event with the correct group and org."""
         event = self._make_error_event()
@@ -1886,7 +1886,7 @@ class TestGetEventDetails(
         assert args[3] is None  # no end
         self._assert_event_response_shape(result, expected_event_id=event.event_id)
 
-    @patch("sentry.seer.explorer.tools._get_recommended_event")
+    @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_qualified_short_id(self, mock_recommended):
         """Qualified short ID (e.g. PROJECT-1) resolves to the correct group before calling _get_recommended_event."""
         event = self._make_error_event()
@@ -1906,7 +1906,7 @@ class TestGetEventDetails(
         assert args[3] is None  # no end
         self._assert_event_response_shape(result, expected_event_id=event.event_id)
 
-    @patch("sentry.seer.explorer.tools._get_recommended_event")
+    @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_with_time_range(self, mock_recommended):
         """start/end strings are parsed into datetimes and forwarded to _get_recommended_event."""
         event = self._make_error_event(timestamp=before_now(days=5))
@@ -1932,7 +1932,7 @@ class TestGetEventDetails(
         assert args[2] == parse_iso_timestamp(start)
         assert args[3] == parse_iso_timestamp(end)
 
-    @patch("sentry.seer.explorer.tools._get_recommended_event")
+    @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_no_events_returns_none(self, mock_recommended):
         """Returns None when _get_recommended_event returns None."""
         event = self._make_error_event()
@@ -1966,8 +1966,8 @@ class TestGetEventDetails(
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Unit tests for the util that derives a response from an event and group."""
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_get_ie_response_tags_exception(self, mock_get_tags, mock_ts):
         mock_get_tags.side_effect = Exception("Test exception")
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -1991,8 +1991,8 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
         assert isinstance(result.get("issue"), dict)
         _IssueMetadata.parse_obj(result.get("issue", {}))
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_get_ie_response_with_assigned_user(
         self,
         mock_get_tags,
@@ -2021,8 +2021,8 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
         assert md.assignedTo.email == self.user.email
         assert md.assignedTo.name == self.user.get_display_name()
 
-    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_get_ie_response_with_assigned_team(self, mock_get_tags, mock_ts):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
@@ -2052,7 +2052,7 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
 class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
     """Tests for _get_issue_event_timeseries — resolution selection and API call params."""
 
-    @patch("sentry.seer.explorer.tools.client")
+    @patch("sentry.seer.agent.tools.client")
     def test_no_start_end_uses_group_date_range(self, mock_api_client):
         """Selects resolution based on group lifespan and passes correct start/end to the API."""
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
@@ -2110,7 +2110,7 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
             # Ensure next iteration makes a fresh group.
             group.delete()
 
-    @patch("sentry.seer.explorer.tools.client")
+    @patch("sentry.seer.agent.tools.client")
     def test_with_start_end_uses_explicit_range(self, mock_api_client):
         """Selects resolution based on explicit start/end and passes correct params to the API."""
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
@@ -2220,9 +2220,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             "sentry.quotas.backend.get_event_retention",
             return_value=retention_days,
         ):
-            with patch(
-                "sentry.seer.explorer.tools.execute_table_query"
-            ) as mock_execute_table_query:
+            with patch("sentry.seer.agent.tools.execute_table_query") as mock_execute_table_query:
                 mock_execute_table_query.return_value = {"data": []}
                 result = _get_recommended_event(
                     group=event.group,
@@ -2578,8 +2576,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
-    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
-    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_finds_transaction_profile(
         self, mock_fetch_profile, mock_convert_tree
     ):
@@ -2609,8 +2607,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         assert result["metadata"]["profile_id"] == full_profile_id
         assert result["metadata"]["is_continuous"] is False
 
-    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
-    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_finds_continuous_profile(
         self, mock_fetch_profile, mock_convert_tree
     ):
@@ -2646,8 +2644,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         assert result["metadata"]["profile_id"] == full_profiler_id
         assert result["metadata"]["is_continuous"] is True
 
-    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
-    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_aggregates_timestamps_across_spans(
         self, mock_fetch_profile, mock_convert_tree
     ):
@@ -2689,8 +2687,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         # The min should be from span1, max from span3
         assert metadata["start_ts"] <= metadata["end_ts"]
 
-    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
-    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_sliding_window_finds_old_profile(
         self, mock_fetch_profile, mock_convert_tree
     ):
@@ -2719,8 +2717,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         assert "execution_tree" in result
         assert result["metadata"]["profile_id"] == full_profile_id
 
-    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
-    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_full_32char_id(self, mock_fetch_profile, mock_convert_tree):
         """Test with full 32-character profile ID (no wildcard needed)"""
         full_profile_id = "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6"
@@ -3519,7 +3517,7 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, Sear
 
 
 class TestGetComparativeAttributeDistributions(TestCase):
-    @patch("sentry.seer.explorer.tools.query_attribute_distributions")
+    @patch("sentry.seer.agent.tools.query_attribute_distributions")
     def test_attr_comparison_calls_query_function(
         self, mock_query_attribute_distributions: Mock
     ) -> None:
@@ -3585,7 +3583,7 @@ class TestGetComparativeAttributeDistributions(TestCase):
         assert snuba_params.end >= range_end
         assert snuba_params.end <= datetime.now(UTC)
 
-    @patch("sentry.seer.explorer.tools.query_attribute_distributions")
+    @patch("sentry.seer.agent.tools.query_attribute_distributions")
     def test_attr_comparison_empty_query_and_time_filter(
         self, mock_query_attribute_distributions: Mock
     ) -> None:

@@ -39,15 +39,15 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.constants import ISSUE_ID_ALIAS
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
-from sentry.seer.autofix.autofix import get_all_tags_overview
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
-from sentry.seer.explorer.utils import (
+from sentry.seer.agent.index_data import UNESCAPED_QUOTE_RE
+from sentry.seer.agent.utils import (
     _convert_profile_to_execution_tree,
     fetch_profile_data,
     get_group_date_range,
     get_retention_boundary,
 )
+from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -73,7 +73,7 @@ def _get_full_trace_id(
     Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
     TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
     This can be done with a materialized string column for the first 8 chars and a secondary index.
-    Alternatively we can try more consistent ways of passing the full ID to Explorer.
+    Alternatively we can try more consistent ways of passing the full ID to the agent.
     """
     now = datetime.now(timezone.utc)
     window_days = 14
@@ -969,7 +969,7 @@ def _get_recommended_event(
     return fallback_event or get_latest_event()
 
 
-# Activity types to include in issue details for Seer Explorer (manual actions only)
+# Activity types to include in issue details for Seer Agent (manual actions only)
 _SEER_EXPLORER_ACTIVITY_TYPES = [
     ActivityType.NOTE.value,
     ActivityType.SET_RESOLVED.value,

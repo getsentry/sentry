@@ -16,23 +16,23 @@ from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
-from sentry.seer.explorer.client_utils import (
-    ExplorerChatRequest,
-    ExplorerRunsRequest,
-    ExplorerUpdateRequest,
+from sentry.seer.agent.client_models import AgentRun, AgentRunWithPrs, SeerRunState
+from sentry.seer.agent.client_utils import (
+    AgentChatRequest,
+    AgentRunsRequest,
+    AgentUpdateRequest,
     collect_user_org_context,
     fetch_run_status,
     get_proxy_headers,
-    make_explorer_chat_request,
-    make_explorer_runs_request,
-    make_explorer_update_request,
+    make_agent_chat_request,
+    make_agent_runs_request,
+    make_agent_update_request,
     poll_until_done,
 )
-from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
-from sentry.seer.explorer.custom_tool_utils import ExplorerTool, extract_tool_schema
-from sentry.seer.explorer.on_completion_hook import (
-    ExplorerOnCompletionHook,
+from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
+from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
+from sentry.seer.agent.on_completion_hook import (
+    AgentOnCompletionHook,
     extract_hook_definition,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
@@ -46,20 +46,20 @@ from sentry.users.services.user import RpcUser
 logger = logging.getLogger(__name__)
 
 
-class SeerExplorerClient:
+class SeerAgentClient:
     """
-    A simple client for Seer Explorer, our general debugging agent.
+    A simple client for the Seer Agent, our general debugging agent.
 
     This provides a class-based interface for Sentry developers to build agentic features
     with full Sentry context.
 
     Example usage:
     ```python
-        from sentry.seer.explorer.client import SeerExplorerClient
+        from sentry.seer.agent.client import SeerAgentClient
         from pydantic import BaseModel
 
         # SIMPLE USAGE
-        client = SeerExplorerClient(organization, user)
+        client = SeerAgentClient(organization, user)
         run_id = client.start_run("Analyze trace XYZ and find performance issues")
         state = client.get_run(run_id)
 
@@ -72,7 +72,7 @@ class SeerExplorerClient:
             description: str
             steps: list[str]
 
-        client = SeerExplorerClient(organization, user)
+        client = SeerAgentClient(organization, user)
 
         # Step 1: Generate root cause artifact
         run_id = client.start_run(
@@ -95,13 +95,13 @@ class SeerExplorerClient:
 
         # WITH CUSTOM TOOLS
         from pydantic import BaseModel, Field
-        from sentry.seer.explorer.custom_tool_utils import ExplorerTool
+        from sentry.seer.agent.custom_tool_utils import AgentTool
 
         class DeploymentStatusParams(BaseModel):
             environment: str = Field(description="Environment name (e.g., 'production', 'staging')")
             service: str = Field(description="Service name")
 
-        class DeploymentStatusTool(ExplorerTool[DeploymentStatusParams]):
+        class DeploymentStatusTool(AgentTool[DeploymentStatusParams]):
             params_model = DeploymentStatusParams
 
             @classmethod
@@ -112,7 +112,7 @@ class SeerExplorerClient:
             def execute(cls, organization, params: DeploymentStatusParams) -> str:
                 return "deployed" if check_deployment(organization, params.environment, params.service) else "not deployed"
 
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user,
             custom_tools=[DeploymentStatusTool]
@@ -120,15 +120,15 @@ class SeerExplorerClient:
         run_id = client.start_run("Check if payment-service is deployed in production")
 
         # WITH ON-COMPLETION HOOK
-        from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
+        from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 
-        class NotifyOnComplete(ExplorerOnCompletionHook):
+        class NotifyOnComplete(AgentOnCompletionHook):
             @classmethod
             def execute(cls, organization: Organization, run_id: int) -> None:
                 # Called when the agent completes (regardless of status)
-                send_notification(organization, f"Explorer run {run_id} completed")
+                send_notification(organization, f"agent run {run_id} completed")
 
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user,
             on_completion=NotifyOnComplete
@@ -136,7 +136,7 @@ class SeerExplorerClient:
         run_id = client.start_run("Analyze this issue")
 
         # WITH CODE EDITING AND PR CREATION
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user,
             enable_coding=True,  # Enable code editing tools
@@ -158,7 +158,7 @@ class SeerExplorerClient:
                     print(f"PR created: {pr_state.pr_url}")
 
         # WITH EXTERNAL CODING AGENTS (e.g., Cursor)
-        client = SeerExplorerClient(organization, user)
+        client = SeerAgentClient(organization, user)
         run_id = client.start_run("Analyze the authentication bug")
         state = client.get_run(run_id, blocking=True)
 
@@ -181,8 +181,8 @@ class SeerExplorerClient:
             project: Optional project for project-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
-            custom_tools: Optional list of `ExplorerTool` classes to make available as tools to the agent. Each tool must inherit from ExplorerTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
-            on_completion_hook: Optional `ExplorerOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
+            custom_tools: Optional list of `AgentTool` classes to make available as tools to the agent. Each tool must inherit from AgentTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
+            on_completion_hook: Optional `AgentOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
@@ -196,8 +196,8 @@ class SeerExplorerClient:
         project: Project | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
-        custom_tools: list[type[ExplorerTool[Any]]] | None = None,
-        on_completion_hook: type[ExplorerOnCompletionHook] | None = None,
+        custom_tools: list[type[AgentTool[Any]]] | None = None,
+        on_completion_hook: type[AgentOnCompletionHook] | None = None,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
@@ -231,7 +231,7 @@ class SeerExplorerClient:
         if bool(category_key) != bool(category_value):
             raise ValueError("category_key and category_value must be provided together")
 
-        # Validate base Seer access on init (Explorer-specific flag checks are done at the endpoint level)
+        # Validate base Seer access on init (agent-specific flag checks are done at the endpoint level)
         has_access, error = has_seer_access_with_detail(organization, user)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
@@ -255,7 +255,7 @@ class SeerExplorerClient:
         override_ce_enable: bool = True,
     ) -> int:
         """
-        Start a new Seer Explorer session.
+        Start a new Seer Agent session.
 
         Args:
             prompt: The initial task/query for the agent
@@ -277,7 +277,7 @@ class SeerExplorerClient:
 
         user_org_context = collect_user_org_context(self.user, self.organization, request=request)
 
-        chat_body: ExplorerChatRequest = ExplorerChatRequest(
+        chat_body: AgentChatRequest = AgentChatRequest(
             organization_id=self.organization.id,
             query=prompt,
             run_id=None,
@@ -341,7 +341,7 @@ class SeerExplorerClient:
         ):
             chat_body["is_context_engine_enabled"] = override_ce_enable
 
-        response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
+        response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -409,7 +409,7 @@ class SeerExplorerClient:
         request: Request | None = None,
     ) -> int:
         """
-        Continue an existing Seer Explorer session. This allows you to add follow-up queries to an ongoing conversation.
+        Continue an existing Seer Agent session. This allows you to add follow-up queries to an ongoing conversation.
 
         Args:
             run_id: The run ID from start_run()
@@ -429,7 +429,7 @@ class SeerExplorerClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
-        chat_body: ExplorerChatRequest = ExplorerChatRequest(
+        chat_body: AgentChatRequest = AgentChatRequest(
             organization_id=self.organization.id,
             query=prompt,
             run_id=run_id,
@@ -459,7 +459,7 @@ class SeerExplorerClient:
         ):
             chat_body["is_context_engine_enabled"] = True
 
-        response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
+        response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -474,7 +474,7 @@ class SeerExplorerClient:
         poll_timeout: float = 600.0,
     ) -> SeerRunState:
         """
-        Get the status/result of a Seer Explorer session.
+        Get the status/result of a Seer Agent session.
 
         Args:
             run_id: The run ID returned from start_run()
@@ -514,7 +514,7 @@ class SeerExplorerClient:
         only_current_user: bool = ...,
         start: datetime | None = ...,
         end: datetime | None = ...,
-    ) -> list[ExplorerRunWithPrs]: ...
+    ) -> list[AgentRunWithPrs]: ...
 
     @overload
     def get_runs(
@@ -528,7 +528,7 @@ class SeerExplorerClient:
         only_current_user: bool = ...,
         start: datetime | None = ...,
         end: datetime | None = ...,
-    ) -> list[ExplorerRun]: ...
+    ) -> list[AgentRun]: ...
 
     def get_runs(
         self,
@@ -541,9 +541,9 @@ class SeerExplorerClient:
         only_current_user: bool = True,
         start: datetime | None = None,
         end: datetime | None = None,
-    ) -> list[ExplorerRunWithPrs] | list[ExplorerRun]:
+    ) -> list[AgentRunWithPrs] | list[AgentRun]:
         """
-        Get a list of Seer Explorer runs for the organization with optional filters.
+        Get a list of Seer Agent runs for the organization with optional filters.
 
         Args:
             category_key: Optional category key to filter by (e.g., "bug-fixer")
@@ -555,12 +555,12 @@ class SeerExplorerClient:
 
         Returns:
             List of runs matching the filters, sorted by most recent first.
-            Returns ExplorerRunWithPrs when expand="prs", ExplorerRun otherwise.
+            Returns AgentRunWithPrs when expand="prs", AgentRun otherwise.
 
         Raises:
             SeerApiError: If the Seer API request fails
         """
-        runs_body: ExplorerRunsRequest = ExplorerRunsRequest(
+        runs_body: AgentRunsRequest = AgentRunsRequest(
             organization_id=self.organization.id,
         )
 
@@ -589,13 +589,13 @@ class SeerExplorerClient:
         if end is not None:
             runs_body["end"] = end
 
-        response = make_explorer_runs_request(runs_body, viewer_context=self.viewer_context)
+        response = make_agent_runs_request(runs_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
         result = response.json()
 
-        Model = ExplorerRunWithPrs if expand == "prs" else ExplorerRun
+        Model = AgentRunWithPrs if expand == "prs" else AgentRun
         runs = [Model(**run) for run in result.get("data", [])]
         return runs
 
@@ -641,12 +641,12 @@ class SeerExplorerClient:
             payload["pr_description_suffix"] = pr_description_suffix
         if self.on_completion_hook:
             payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
-        update_body = ExplorerUpdateRequest(
+        update_body = AgentUpdateRequest(
             run_id=run_id,
             organization_id=self.organization.id,
             payload=payload,
         )
-        response = make_explorer_update_request(update_body, viewer_context=self.viewer_context)
+        response = make_agent_update_request(update_body, viewer_context=self.viewer_context)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 
@@ -684,13 +684,13 @@ class SeerExplorerClient:
         user_id: int | None = None,
     ) -> dict[str, list]:
         """
-        Launch coding agents for an Explorer run.
+        Launch coding agents for an agent run.
 
         This triggers coding agents (e.g., Cursor) to work on code changes.
         The caller provides the prompt and target repos.
 
         Args:
-            run_id: The Explorer run ID (used to store coding agent state)
+            run_id: The agent run ID (used to store coding agent state)
             integration_id: The coding agent integration ID (for org-installed integrations)
             prompt: The instruction/prompt for the coding agent
             repos: List of SeerRepoDefinition objects with full repo metadata

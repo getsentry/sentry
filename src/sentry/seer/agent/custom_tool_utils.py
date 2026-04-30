@@ -7,13 +7,13 @@ from typing import Any, Generic, TypeVar
 from pydantic import BaseModel
 
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client_models import CustomToolDefinition
+from sentry.seer.agent.client_models import CustomToolDefinition
 
 ParamsT = TypeVar("ParamsT", bound=BaseModel)
 
 
-class ExplorerTool(ABC, Generic[ParamsT]):
-    """Base class for custom Explorer tools.
+class AgentTool(ABC, Generic[ParamsT]):
+    """Base class for custom agent tools.
 
     Define parameters via a Pydantic model.
 
@@ -24,7 +24,7 @@ class ExplorerTool(ABC, Generic[ParamsT]):
             environment: str = Field(description="Environment name (e.g., 'production', 'staging')")
             service: str = Field(description="Service name")
 
-        class DeploymentStatusTool(ExplorerTool[DeploymentStatusParams]):
+        class DeploymentStatusTool(AgentTool[DeploymentStatusParams]):
             params_model = DeploymentStatusParams
 
             @classmethod
@@ -77,11 +77,11 @@ class ExplorerTool(ABC, Generic[ParamsT]):
         return f"{cls.__module__}.{cls.__name__}"
 
 
-def extract_tool_schema(tool_class: type[ExplorerTool[Any]]) -> CustomToolDefinition:
-    """Extract tool schema from an ExplorerTool class.
+def extract_tool_schema(tool_class: type[AgentTool[Any]]) -> CustomToolDefinition:
+    """Extract tool schema from an AgentTool class.
 
     Args:
-        tool_class: A class that inherits from ExplorerTool
+        tool_class: A class that inherits from AgentTool
 
     Returns:
         CustomToolDefinition with the tool's name, description, param_schema, and module path
@@ -145,9 +145,9 @@ def call_custom_tool(
     except (ImportError, AttributeError) as e:
         raise ValueError(f"Could not import {module_path}: {e}")
 
-    # Validate it's an ExplorerTool subclass
-    if not isinstance(tool_class, type) or not issubclass(tool_class, ExplorerTool):
-        raise ValueError(f"{module_path} must be a class that inherits from ExplorerTool")
+    # Validate it's an AgentTool subclass
+    if not isinstance(tool_class, type) or not issubclass(tool_class, AgentTool):
+        raise ValueError(f"{module_path} must be a class that inherits from AgentTool")
 
     # Validate and parse params through the model
     try:

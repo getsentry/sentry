@@ -139,11 +139,11 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
         run_id: int,
     ) -> None:
         """
-        Called when an Agent run completes, via ExplorerOnCompletionHook.
+        Called when an Agent run completes, via AgentOnCompletionHook.
 
         Unlike on_autofix_update which receives streaming webhook events during a run,
         this is invoked once when the Agent run reaches a terminal state. The completion
-        hook (ExplorerOnCompletionHook.execute) retrieves the cached payload, fetches the
+        hook (AgentOnCompletionHook.execute) retrieves the cached payload, fetches the
         run state from Seer, and delegates to this method so the entrypoint can notify the
         external service (e.g., post a thread reply with the Agent summary and result link).
 

@@ -13,7 +13,7 @@ from sentry import features, options, quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
+from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     SeerAutomationSource,
@@ -268,7 +268,7 @@ def run_night_shift_execution(
 
     seer_run_id_by_group: dict[int, str | None] = {}
     if not resolved_options["dry_run"]:
-        # Populate each candidate group's FK cache so trigger_autofix_explorer doesn't
+        # Populate each candidate group's FK cache so trigger_autofix_agent doesn't
         # re-fetch group.project on every call. Group.organization is a property that
         # delegates to self.project.organization, so caching the org on the project is
         # enough to avoid both lookups.
@@ -449,7 +449,7 @@ def _run_autofix_for_candidates(
         )
 
         try:
-            seer_run_id = trigger_autofix_explorer(
+            seer_run_id = trigger_autofix_agent(
                 group=c.group,
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,

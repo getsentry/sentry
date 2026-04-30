@@ -18,7 +18,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-class TestGetSeerExplorerEnabledProjects(TestCase):
+class TestGetSeerAgentEnabledProjects(TestCase):
     @freeze_time("2024-01-15 12:00:00")
     def test_returns_projects_with_feature_flag(self) -> None:
         org1 = self.create_organization()
@@ -410,7 +410,7 @@ class TestDispatchExplorerIndexProjects(TestCase):
 
 @django_db_all
 class TestRunExplorerIndexForProjects(TestCase):
-    @patch("sentry.tasks.seer.explorer_index.make_explorer_index_request")
+    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
     def test_calls_seer_endpoint_successfully(self, mock_request):
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {"scheduled_count": 3, "projects": []}
@@ -429,7 +429,7 @@ class TestRunExplorerIndexForProjects(TestCase):
             {"org_id": 200, "project_id": 3},
         ]
 
-    @patch("sentry.tasks.seer.explorer_index.make_explorer_index_request")
+    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
     def test_handles_request_error(self, mock_request):
         mock_request.return_value.status = 500
 
@@ -443,7 +443,7 @@ class TestRunExplorerIndexForProjects(TestCase):
     def test_skips_when_option_disabled(self) -> None:
         with self.options({"seer.explorer_index.enable": False}):
             with mock.patch(
-                "sentry.tasks.seer.explorer_index.make_explorer_index_request"
+                "sentry.tasks.seer.explorer_index.make_agent_index_request"
             ) as mock_request:
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
                 mock_request.assert_not_called()

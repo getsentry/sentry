@@ -12,36 +12,36 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.models.organization import Organization
-from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
-from sentry.seer.explorer.client_utils import (
-    explorer_connection_pool,
-    has_seer_explorer_access_with_detail,
+from sentry.seer.agent.client_utils import (
+    agent_connection_pool,
+    has_seer_agent_access_with_detail,
 )
+from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
 
 
-class OrganizationSeerExplorerUpdatePermission(OrganizationPermission):
+class OrganizationSeerAgentUpdatePermission(OrganizationPermission):
     scope_map = {
         "POST": ["org:read"],
     }
 
 
 @cell_silo_endpoint
-class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
+class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    permission_classes = (OrganizationSeerExplorerUpdatePermission,)
+    permission_classes = (OrganizationSeerAgentUpdatePermission,)
 
     def post(self, request: Request, organization: Organization, run_id: int) -> Response:
         """
-        Send an update event to explorer for a given run.
+        Send an update event to the agent for a given run.
         """
-        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
             return Response({"detail": error}, status=403)
 
@@ -70,7 +70,7 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
         )
 
         response = make_signed_seer_api_request(
-            explorer_connection_pool,
+            agent_connection_pool,
             path,
             body,
         )

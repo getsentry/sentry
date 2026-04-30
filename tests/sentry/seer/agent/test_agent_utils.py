@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry.seer.explorer.utils import (
+from sentry.seer.agent.utils import (
     _convert_profile_to_execution_tree,
     convert_profile_to_execution_tree,
     normalize_description,

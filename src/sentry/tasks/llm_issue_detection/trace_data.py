@@ -9,7 +9,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.utils import normalize_description
+from sentry.seer.agent.utils import normalize_description
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.llm_issue_detection.detection import TraceMetadataWithSpanCount

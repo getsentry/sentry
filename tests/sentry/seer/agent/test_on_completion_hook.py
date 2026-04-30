@@ -1,8 +1,8 @@
 import pytest
 
 from sentry.models.organization import Organization
-from sentry.seer.explorer.on_completion_hook import (
-    ExplorerOnCompletionHook,
+from sentry.seer.agent.on_completion_hook import (
+    AgentOnCompletionHook,
     OnCompletionHookDefinition,
     call_on_completion_hook,
     extract_hook_definition,
@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 # Test hook class (defined at module level as required)
-class SampleCompletionHook(ExplorerOnCompletionHook):
+class SampleCompletionHook(AgentOnCompletionHook):
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
         # Side effect: write to organization options so we can verify execution
@@ -30,7 +30,7 @@ class OnCompletionHookTest(TestCase):
         """Test that nested classes are rejected."""
 
         class OuterClass:
-            class NestedHook(ExplorerOnCompletionHook):
+            class NestedHook(AgentOnCompletionHook):
                 @classmethod
                 def execute(cls, organization: Organization, run_id: int) -> None:
                     pass
@@ -41,7 +41,7 @@ class OnCompletionHookTest(TestCase):
 
     def test_call_on_completion_hook_success(self) -> None:
         """Test calling a completion hook successfully."""
-        module_path = "tests.sentry.seer.explorer.test_on_completion_hook.SampleCompletionHook"
+        module_path = "tests.sentry.seer.agent.test_on_completion_hook.SampleCompletionHook"
 
         call_on_completion_hook(
             module_path=module_path,
@@ -75,8 +75,8 @@ class OnCompletionHookTest(TestCase):
         assert "Could not import" in str(cm.value)
 
     def test_call_on_completion_hook_not_a_hook_class(self) -> None:
-        """Test calling something that isn't an ExplorerOnCompletionHook."""
-        # BaseModel is importable but not an ExplorerOnCompletionHook
+        """Test calling something that isn't an AgentOnCompletionHook."""
+        # BaseModel is importable but not an AgentOnCompletionHook
         with pytest.raises(ValueError) as cm:
             call_on_completion_hook(
                 module_path="pydantic.BaseModel",
@@ -84,4 +84,4 @@ class OnCompletionHookTest(TestCase):
                 run_id=123,
                 allowed_prefixes=("pydantic.",),
             )
-        assert "must be a class that inherits from ExplorerOnCompletionHook" in str(cm.value)
+        assert "must be a class that inherits from AgentOnCompletionHook" in str(cm.value)

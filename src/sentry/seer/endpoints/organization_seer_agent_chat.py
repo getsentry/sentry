@@ -15,9 +15,9 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_utils import (
-    has_seer_explorer_access_with_detail,
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_utils import (
+    has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
@@ -63,11 +63,11 @@ class CodeModeField(serializers.Field):
         return str(value)
 
 
-class SeerExplorerChatSerializer(serializers.Serializer):
+class SeerAgentChatSerializer(serializers.Serializer):
     query = serializers.CharField(
         required=True,
         allow_blank=False,
-        help_text="The user's query to send to the Seer Explorer.",
+        help_text="The user's query to send to the Seer Agent.",
     )
     insert_index = serializers.IntegerField(
         required=False,
@@ -99,7 +99,7 @@ class SeerExplorerChatSerializer(serializers.Serializer):
     )
 
 
-class OrganizationSeerExplorerChatPermission(OrganizationPermission):
+class OrganizationSeerAgentChatPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
         "POST": ["org:read"],
@@ -107,7 +107,7 @@ class OrganizationSeerExplorerChatPermission(OrganizationPermission):
 
 
 @cell_silo_endpoint
-class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
+class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -128,15 +128,15 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             },
         }
     )
-    permission_classes = (OrganizationSeerExplorerChatPermission,)
+    permission_classes = (OrganizationSeerAgentChatPermission,)
 
     def get(
         self, request: Request, organization: Organization, run_id: int | None = None
     ) -> Response:
         """
-        Get the current state of a Seer Explorer session.
+        Get the current state of a Seer Agent session.
         """
-        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
         has_dashboards_ai_generate_access = has_seer_access and features.has(
@@ -150,7 +150,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"session": None}, status=404)
 
         try:
-            client = SeerExplorerClient(organization, request.user)
+            client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=int(run_id))
             return Response({"session": state.dict()})
         except SeerPermissionError as e:
@@ -164,7 +164,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 status=500,
             )
         except ValueError:
-            logger.exception("Error getting Explorer run state")
+            logger.exception("Error getting agent run state")
             return Response({"session": None}, status=404)
 
     def post(
@@ -182,7 +182,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         Returns:
         - run_id: The run ID.
         """
-        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
         has_dashboards_ai_generate_access = has_seer_access and features.has(
@@ -196,7 +196,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         if not has_access and not can_continue_dashboards_generate_run:
             raise PermissionDenied(error)
 
-        serializer = SeerExplorerChatSerializer(data=request.data)
+        serializer = SeerAgentChatSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -232,7 +232,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools = override_code_mode_enable
             else:
                 enable_code_mode_tools = "on"
-            client = SeerExplorerClient(
+            client = SeerAgentClient(
                 organization,
                 request.user,
                 is_interactive=True,

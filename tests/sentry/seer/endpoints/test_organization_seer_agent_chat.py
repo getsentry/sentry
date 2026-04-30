@@ -3,7 +3,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
-from sentry.seer.endpoints.organization_seer_explorer_chat import SeerExplorerChatSerializer
+from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -12,7 +12,7 @@ from sentry.utils import json
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:gen-ai-consent-flow-removal")
-class OrganizationSeerExplorerChatEndpointTest(APITestCase):
+class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.organization.flags.allow_joinleave = True
@@ -26,9 +26,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 404
         assert response.data == {"session": None}
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_with_run_id_calls_client(self, mock_client_class: MagicMock) -> None:
-        from sentry.seer.explorer.client_models import SeerRunState
+        from sentry.seer.agent.client_models import SeerRunState
 
         # Mock client response
         mock_state = SeerRunState(
@@ -48,9 +48,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data["session"]["status"] == "completed"
         mock_client.get_run.assert_called_once_with(run_id=123)
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
-        from sentry.seer.explorer.client_models import (
+        from sentry.seer.agent.client_models import (
             MemoryBlock,
             Message,
             SeerRunState,
@@ -100,7 +100,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
         mock_client = MagicMock()
         mock_client.start_run.return_value = 456
@@ -127,7 +127,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             request=ANY,
         )
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_enable_coding(self, mock_client_class: MagicMock):
         for i, (feature_enabled, option_enabled) in enumerate(
             [(True, True), (True, False), (False, True)]
@@ -157,7 +157,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 reasoning_effort="medium",
             )
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.continue_run.return_value = 789
@@ -188,7 +188,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             request=ANY,
         )
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_enable_coding(self, mock_client_class: MagicMock) -> None:
         for i, (feature_enabled, option_enabled) in enumerate(
             [(True, True), (True, False), (False, True), (False, False)]
@@ -213,12 +213,12 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 reasoning_effort="medium",
             )
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_run_allowed_with_dashboards_ai_generate_flag(
         self, mock_client_class: MagicMock
     ) -> None:
         """GET with run_id should succeed with dashboards-ai-generate flag even without seer-explorer."""
-        from sentry.seer.explorer.client_models import SeerRunState
+        from sentry.seer.agent.client_models import SeerRunState
 
         mock_state = SeerRunState(
             run_id=123,
@@ -241,7 +241,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["session"]["run_id"] == 123
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_continue_run_allowed_with_dashboards_ai_generate_flag(
         self, mock_client_class: MagicMock
     ) -> None:
@@ -287,7 +287,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
         assert response.status_code == 403
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_json_on_page_context_converted_to_markdown(
         self, mock_client_class: MagicMock
     ) -> None:
@@ -314,7 +314,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert "# Dashboard" in context
         assert '- **title**: "My Dashboard"' in context
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_ascii_on_page_context_passed_through(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = 456
@@ -332,17 +332,17 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:gen-ai-consent-flow-removal")
-class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
-    """End-to-end tests verifying is_context_engine_enabled reaches make_explorer_chat_request."""
+class OrganizationSeerAgentChatContextEngineTest(APITestCase):
+    """End-to-end tests verifying is_context_engine_enabled reaches make_agent_chat_request."""
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_false_sets_context_engine_disabled(
         self, mock_collect_context, mock_access, mock_chat_request
     ):
@@ -361,9 +361,9 @@ class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
         body = mock_chat_request.call_args[0][0]
         assert body["is_context_engine_enabled"] is False
 
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_true_sets_context_engine_enabled(
         self, mock_collect_context, mock_access, mock_chat_request
     ):
@@ -382,9 +382,9 @@ class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
         body = mock_chat_request.call_args[0][0]
         assert body["is_context_engine_enabled"] is True
 
-    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
-    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_ignored_without_feature_flag(
         self, mock_collect_context, mock_access, mock_chat_request
     ):
@@ -421,18 +421,18 @@ class TestCodeModeSerializerField:
     )
     def test_valid_values(self, input_val, expected):
         data = {"query": "test", "override_code_mode_enable": input_val}
-        serializer = SeerExplorerChatSerializer(data=data)
+        serializer = SeerAgentChatSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["override_code_mode_enable"] == expected
 
     def test_omitted_defaults_to_none(self):
         data = {"query": "test"}
-        serializer = SeerExplorerChatSerializer(data=data)
+        serializer = SeerAgentChatSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["override_code_mode_enable"] is None
 
     def test_invalid_string_rejected(self):
         data = {"query": "test", "override_code_mode_enable": "invalid"}
-        serializer = SeerExplorerChatSerializer(data=data)
+        serializer = SeerAgentChatSerializer(data=data)
         assert not serializer.is_valid()
         assert "override_code_mode_enable" in serializer.errors

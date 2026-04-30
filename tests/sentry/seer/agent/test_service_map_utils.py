@@ -1,8 +1,8 @@
 """
-Tests for Explorer Service Map Tasks
+Tests for Agent Service Map Tasks
 
 Tests the service map building, graph analysis, and task execution
-for the Explorer service map feature.
+for the agent service map feature.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -13,7 +13,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.explorer_service_map_utils import (
+from sentry.seer.agent.service_map_utils import (
     _build_nodes,
     _query_service_dependencies,
     _send_to_seer,
@@ -67,7 +67,7 @@ class TestSendToSeer(TestCase):
         mock_response.status = 200
 
         with mock.patch(
-            "sentry.seer.explorer.explorer_service_map_utils.make_service_map_update_request",
+            "sentry.seer.agent.service_map_utils.make_service_map_update_request",
             return_value=mock_response,
         ) as mock_request:
             _send_to_seer(org.id, nodes, edges)
@@ -111,7 +111,7 @@ class TestSendToSeer(TestCase):
         mock_response.status = 200
 
         with mock.patch(
-            "sentry.seer.explorer.explorer_service_map_utils.make_service_map_update_request",
+            "sentry.seer.agent.service_map_utils.make_service_map_update_request",
             return_value=mock_response,
         ) as mock_request:
             _send_to_seer(org.id, nodes, edges)
@@ -189,7 +189,7 @@ class TestBuildServiceMap(TestCase):
 class TestQueryServiceDependenciesPhase2(TestCase):
     """Unit tests for Phase 2 fallback scan for uncovered projects"""
 
-    @mock.patch("sentry.seer.explorer.explorer_service_map_utils.Spans.run_table_query")
+    @mock.patch("sentry.seer.agent.service_map_utils.Spans.run_table_query")
     def test_phase2_triggered_for_uncovered_projects(self, mock_query):
         org = self.create_organization()
         project_covered = self.create_project(organization=org)
@@ -229,7 +229,7 @@ class TestQueryServiceDependenciesPhase2(TestCase):
         # Phase 2 must NOT use has:parent_span
         assert "has:parent_span" not in phase2_call_kwargs["query_string"]
 
-    @mock.patch("sentry.seer.explorer.explorer_service_map_utils.Spans.run_table_query")
+    @mock.patch("sentry.seer.agent.service_map_utils.Spans.run_table_query")
     def test_phase2_not_triggered_when_all_projects_covered(self, mock_query):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -261,7 +261,7 @@ class TestQueryServiceDependenciesPhase2(TestCase):
         phase3_call_kwargs = mock_query.call_args_list[1][1]
         assert "is_transaction" not in phase3_call_kwargs["query_string"]
 
-    @mock.patch("sentry.seer.explorer.explorer_service_map_utils.Spans.run_table_query")
+    @mock.patch("sentry.seer.agent.service_map_utils.Spans.run_table_query")
     def test_phase1_uses_has_parent_span_filter(self, mock_query):
         org = self.create_organization()
         project = self.create_project(organization=org)

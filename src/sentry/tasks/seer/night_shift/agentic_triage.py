@@ -10,8 +10,8 @@ import sentry_sdk
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
@@ -53,7 +53,7 @@ def agentic_triage_strategy(
     extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
 ) -> tuple[list[TriageResult], int | None]:
     """
-    Select candidates via fixability scoring, then use the Seer Explorer agent
+    Select candidates via fixability scoring, then use the Seer Agent
     to investigate each candidate and decide the appropriate action.
 
     Returns a tuple of (triage_results, agent_run_id).
@@ -81,7 +81,7 @@ def _triage_candidates(
     extra_triage_instructions: str,
 ) -> tuple[list[TriageResult], int | None]:
     """
-    Start a Seer Explorer run to investigate candidate issues and return
+    Start a Seer Agent run to investigate candidate issues and return
     triage verdicts. The agent can browse the repo, inspect stacktraces,
     and use its tools to make informed decisions.
 
@@ -90,7 +90,7 @@ def _triage_candidates(
     groups_by_id = {c.group.id: c.group for c in candidates}
 
     try:
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user=None,
             category_key="night_shift",
@@ -196,11 +196,11 @@ POLL_INTERVAL = 2.0
 
 
 def _poll_with_logging(
-    client: SeerExplorerClient,
+    client: SeerAgentClient,
     agent_run_id: int,
     organization_id: int,
 ) -> SeerRunState:
-    """Poll an Explorer run, logging new non-loading blocks as they appear."""
+    """Poll an agent run, logging new non-loading blocks as they appear."""
     start_time = time.monotonic()
     seen_block_ids: set[str] = set()
 

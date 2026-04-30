@@ -2,10 +2,10 @@ import jwt
 from django.test import override_settings
 
 from sentry.models.organizationmember import OrganizationMember
-from sentry.seer.explorer.client_utils import (
+from sentry.seer.agent.client_utils import (
     collect_user_org_context,
     get_proxy_headers,
-    has_seer_explorer_access_with_detail,
+    has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -15,7 +15,7 @@ from sentry.testutils.requests import make_request
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 
-class TestHasSeerExplorerAccessWithDetail(TestCase):
+class TestHasSeerAgentAccessWithDetail(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user)
@@ -23,32 +23,32 @@ class TestHasSeerExplorerAccessWithDetail(TestCase):
         self.org.save()
 
     def test_gen_ai_features_disabled(self) -> None:
-        result = has_seer_explorer_access_with_detail(self.org, self.user)
+        result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
     def test_hide_ai_features_option_set(self) -> None:
         self.org.update_option("sentry:hide_ai_features", True)
         with self.feature("organizations:gen-ai-features"):
-            result = has_seer_explorer_access_with_detail(self.org, self.user)
+            result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "AI features are disabled for this organization.")
 
     def test_no_explorer_flags_enabled(self) -> None:
         with self.feature("organizations:gen-ai-features"):
-            result = has_seer_explorer_access_with_detail(self.org, self.user)
+            result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
     def test_only_seer_explorer_flag(self) -> None:
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
         ):
-            result = has_seer_explorer_access_with_detail(self.org, self.user)
+            result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
     def test_only_autofix_on_explorer_flag(self) -> None:
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:autofix-on-explorer": True}
         ):
-            result = has_seer_explorer_access_with_detail(self.org, self.user)
+            result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
     def test_all_explorer_flags_enabled(self) -> None:
@@ -59,7 +59,7 @@ class TestHasSeerExplorerAccessWithDetail(TestCase):
                 "organizations:autofix-on-explorer": True,
             }
         ):
-            result = has_seer_explorer_access_with_detail(self.org, self.user)
+            result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
     def test_allow_joinleave_disabled(self) -> None:
@@ -72,7 +72,7 @@ class TestHasSeerExplorerAccessWithDetail(TestCase):
                 "organizations:autofix-on-explorer": True,
             }
         ):
-            result = has_seer_explorer_access_with_detail(self.org, self.user)
+            result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (
             False,
             "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely.",
