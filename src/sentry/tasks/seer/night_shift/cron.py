@@ -83,12 +83,20 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
 )
-def schedule_night_shift(**kwargs: Any) -> None:
+def schedule_night_shift(
+    *,
+    run_options: SeerNightShiftRunOptionsPartial | None = None,
+    **kwargs: Any,
+) -> None:
     """
     Nightly scheduler: collects org ids that have a Seer-connected repo, then
     dispatches per-org worker tasks in batches with jitter. Feature flags
     still gate the dispatch — SeerProjectRepository rows can outlive a paid
     Seer subscription.
+
+    The real cron caller passes nothing (defaults). Manual admin triggers
+    forward `run_options` so every per-org task inherits the same overrides
+    (source="manual", dry_run, max_candidates, etc.).
     """
     if not options.get("seer.night_shift.enable"):
         return
@@ -104,6 +112,7 @@ def schedule_night_shift(**kwargs: Any) -> None:
 
     spread_seconds = int(NIGHT_SHIFT_SPREAD_DURATION.total_seconds())
     batch_index = 0
+    task_kwargs: dict[str, Any] = {"options": dict(run_options)} if run_options else {}
 
     for org_id_chunk in chunked(seer_org_ids, 100):
         org_batch = list(
@@ -114,7 +123,7 @@ def schedule_night_shift(**kwargs: Any) -> None:
         )
         for org in _get_eligible_orgs_from_batch(org_batch):
             delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
-            run_night_shift_for_org.apply_async(args=[org.id], countdown=delay)
+            run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
             batch_index += 1
 
     sentry_sdk.metrics.count("night_shift.orgs_dispatched", batch_index)

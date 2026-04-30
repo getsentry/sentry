@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
@@ -24,11 +25,12 @@ export function SeerAdminPage() {
 
   const {mutate: triggerNightShift, isPending: isNightShiftPending} = useMutation({
     mutationFn: () => {
+      const trimmedOrgId = organizationId.trim();
       return fetchMutation({
         url: '/internal/seer/night-shift/trigger/',
         method: 'POST',
         data: {
-          organization_id: parseInt(organizationId, 10),
+          ...(trimmedOrgId ? {organization_id: parseInt(trimmedOrgId, 10)} : {}),
           dry_run: dryRun,
           ...(maxCandidates ? {max_candidates: parseInt(maxCandidates, 10)} : {}),
         },
@@ -37,9 +39,10 @@ export function SeerAdminPage() {
     },
     onSuccess: () => {
       const mode = dryRun ? ' (dry run)' : '';
-      addSuccessMessage(
-        `Night shift run triggered for organization ${organizationId}${mode}`
-      );
+      const target = organizationId.trim()
+        ? `organization ${organizationId.trim()}`
+        : 'all eligible orgs';
+      addSuccessMessage(`Night shift run triggered for ${target}${mode}`);
       setOrganizationId('');
     },
     onError: () => {
@@ -53,12 +56,17 @@ export function SeerAdminPage() {
       addErrorMessage('Please select a region first');
       return;
     }
-    if (!organizationId.trim()) {
-      addErrorMessage('Organization ID is required');
+    const trimmed = organizationId.trim();
+    if (trimmed && !/^\d+$/.test(trimmed)) {
+      addErrorMessage(
+        'Organization ID must be a number (leave blank to trigger every org)'
+      );
       return;
     }
     triggerNightShift();
   };
+
+  const isFullSchedule = !organizationId.trim();
 
   return (
     <div>
@@ -93,18 +101,28 @@ export function SeerAdminPage() {
               <Flex direction="column" gap="md" align="start">
                 <Heading as="h3">Trigger Night Shift Run</Heading>
                 <Text as="p" variant="muted">
-                  Dispatch a night shift run for a specific organization. This will select
-                  candidate issues and run agentic triage on them.
+                  Dispatch a night shift run. Provide an organization ID to scope the run
+                  to a single org, or leave it blank to trigger the full scheduler across
+                  every eligible org in the selected region.
                 </Text>
+                <Alert.Container>
+                  <Alert variant="warning">
+                    Be careful — this dispatches real Celery tasks that call Seer and can
+                    trigger autofix runs. Leaving the organization ID blank fans out to{' '}
+                    <strong>every Seer-enabled org in the region</strong>, which will
+                    incur Seer cost and worker load. Prefer dry run when iterating, and
+                    don't fire repeatedly.
+                  </Alert>
+                </Alert.Container>
                 <label htmlFor="organizationId">
-                  <Text bold>Organization ID:</Text>
+                  <Text bold>Organization ID (blank = all orgs):</Text>
                 </label>
                 <Input
                   type="text"
                   name="organizationId"
                   value={organizationId}
                   onChange={e => setOrganizationId(e.target.value)}
-                  placeholder="Enter organization ID"
+                  placeholder="Leave blank to trigger every eligible org"
                 />
                 <label htmlFor="maxCandidates">
                   <Text bold>Max candidates (optional):</Text>
@@ -128,9 +146,11 @@ export function SeerAdminPage() {
                 <Button
                   priority="primary"
                   type="submit"
-                  disabled={!organizationId.trim() || !region || isNightShiftPending}
+                  disabled={!region || isNightShiftPending}
                 >
-                  Trigger Night Shift
+                  {isFullSchedule
+                    ? 'Trigger Night Shift (all orgs)'
+                    : 'Trigger Night Shift'}
                 </Button>
               </Flex>
             </Container>

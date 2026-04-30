@@ -86,6 +86,30 @@ class TestScheduleNightShift(TestCase):
             schedule_night_shift()
             mock_worker.apply_async.assert_called_once()
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
+            assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {}
+
+    def test_dispatches_with_run_options(self) -> None:
+        org = self.create_org_with_seer()
+
+        with (
+            self.options({"seer.night_shift.enable": True}),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:gen-ai-features": [org.slug],
+                    "organizations:seat-based-seer-enabled": [org.slug],
+                }
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+        ):
+            schedule_night_shift(
+                run_options={"source": "manual", "dry_run": True, "max_candidates": 3}
+            )
+            mock_worker.apply_async.assert_called_once()
+            assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
+            assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {
+                "options": {"source": "manual", "dry_run": True, "max_candidates": 3},
+            }
 
     def test_skips_orgs_without_seat_based_seer(self) -> None:
         org = self.create_org_with_seer()
