@@ -625,18 +625,16 @@ class LinkedMessagesContextTest(TestCase):
 
 class BuildInaccessibleLinksRenderableTest(TestCase):
     def test_single_channel_uses_inline_link(self) -> None:
-        renderable = _build_inaccessible_links_renderable(team_id="T0TEAM", channel_ids=["C0AAA"])
-        assert "the Slack message you linked" in renderable["text"]
-        assert "<slack://channel?team=T0TEAM&id=C0AAA|Open the channel>" in renderable["text"]
+        renderable = _build_inaccessible_links_renderable(channel_ids=["C0AAA"])
+        assert "a Slack message you linked" in renderable["text"]
+        assert "<#C0AAA>" in renderable["text"]
         assert "/invite @Sentry" in renderable["text"]
 
     def test_multiple_channels_use_bullet_list(self) -> None:
-        renderable = _build_inaccessible_links_renderable(
-            team_id="T0TEAM", channel_ids=["C0AAA", "C0BBB"]
-        )
+        renderable = _build_inaccessible_links_renderable(channel_ids=["C0AAA", "C0BBB"])
         assert "some of the Slack messages you linked" in renderable["text"]
-        assert "• <slack://channel?team=T0TEAM&id=C0AAA|Open channel>" in renderable["text"]
-        assert "• <slack://channel?team=T0TEAM&id=C0BBB|Open channel>" in renderable["text"]
+        assert "- <#C0AAA>" in renderable["text"]
+        assert "- <#C0BBB>" in renderable["text"]
 
 
 class CapLinkedThreadTest(TestCase):

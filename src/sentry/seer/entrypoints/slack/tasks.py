@@ -439,10 +439,7 @@ def _send_inaccessible_links_prompt(
     channel_ids: list[str],
 ) -> None:
     """Tell the user we couldn't read the linked messages and how to fix it."""
-    renderable = _build_inaccessible_links_renderable(
-        team_id=entrypoint.integration.external_id,
-        channel_ids=channel_ids,
-    )
+    renderable = _build_inaccessible_links_renderable(channel_ids=channel_ids)
     entrypoint.install.send_threaded_ephemeral_message(
         slack_user_id=entrypoint.slack_user_id,
         channel_id=entrypoint.channel_id,
@@ -453,21 +450,17 @@ def _send_inaccessible_links_prompt(
 
 def _build_inaccessible_links_renderable(
     *,
-    team_id: str,
     channel_ids: list[str],
 ) -> SlackRenderable:
     """Build the ephemeral nudging the user to /invite the bot."""
     plural = len(channel_ids) > 1
     if not plural:
-        deep_link = f"<slack://channel?team={team_id}&id={channel_ids[0]}|Open the channel>"
         message = (
-            "I couldn't read the Slack message you linked. "
-            f"{deep_link} and run `/invite @Sentry` so I can read messages there next time."
+            "I couldn't read a Slack message you linked. "
+            f"Go to <#{channel_ids[0]}> and run `/invite @Sentry` so I can read messages there next time."
         )
     else:
-        bullets = "\n".join(
-            f"- <slack://channel?team={team_id}&id={cid}|Open channel>" for cid in channel_ids
-        )
+        bullets = "\n".join(f"- <#{cid}>" for cid in channel_ids)
         message = (
             "I couldn't read some of the Slack messages you linked. "
             "Run `/invite @Sentry` in each channel so I can read messages there next time:\n"
