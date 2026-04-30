@@ -207,11 +207,7 @@ export const ImageCard = memo(function ImageCard({
           showBottomBorder={false}
         />
         <Container padding="0 xl xl">
-          <ImageColumn
-            src={imageUrl}
-            alt={getImageName(image)}
-            image={image}
-          />
+          <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
         </Container>
       </SnapshotVariantFrame>
     </DarkAware>
