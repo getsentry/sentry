@@ -20,7 +20,10 @@ import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -391,7 +394,7 @@ function SelectAllCheckbox({
 }: {
   disabled: boolean;
   knownIds: string[];
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
 }) {
   return (
     <Checkbox

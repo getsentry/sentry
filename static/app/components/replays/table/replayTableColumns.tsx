@@ -29,7 +29,10 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -46,7 +49,7 @@ type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
 interface HeaderProps {
   columnIndex: number;
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
   replays: ReplayListRecord[];
 }
 

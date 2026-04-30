@@ -5,6 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DeleteReplays} from 'sentry/components/replays/table/deleteReplays';
+import {ReplayBulkViewedActions} from 'sentry/components/replays/table/replayBulkViewedActions';
 import {
   ReplaySelectColumn,
   type ReplayTableColumn,
@@ -34,6 +35,7 @@ export function ReplayTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {
     countSelected,
+    deselectAll,
     isAllSelected,
     isAnySelected,
     queryKeyRef,
@@ -76,7 +78,22 @@ export function ReplayTableHeader({
               replays={replays}
             />
           </TableCellFirst>
-          <Flex align="center" flex="1" column="2 / -1">
+          <Flex
+            align="center"
+            column="2 / -1"
+            flex="1"
+            gap="md"
+            justify="start"
+            wrap="wrap"
+          >
+            {selectedIds !== 'all' && (
+              <ReplayBulkViewedActions
+                deselectAll={deselectAll}
+                queryKeyRef={queryKeyRef}
+                replays={replays}
+                selectedIds={selectedIds}
+              />
+            )}
             <DeleteReplays
               queryOptions={queryOptions}
               replays={replays}

@@ -9,6 +9,11 @@ export type ReplayEventParameters = {
     area: string;
   };
   'replay.ai_tab_shown': Record<string, unknown>;
+  'replay.bulk_mark_viewed': {
+    failed: number;
+    multiProject: boolean;
+    succeeded: number;
+  };
   'replay.canvas-detected-banner-clicked': {
     sdk_needs_update?: boolean;
   };
@@ -166,6 +171,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
+  'replay.bulk_mark_viewed': 'Replay List Mark Selected as Viewed',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.gaps_detected': 'Number of Gaps in Replay Timeline',
   'replay.play-pause': 'Played/Paused Replay',
