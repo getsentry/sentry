@@ -909,7 +909,7 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
     def test_api_timeout_error(self) -> None:
         from sentry.shared_integrations.exceptions import ApiTimeoutError
 
-        exc = ApiTimeoutError.from_exception(Exception("timed out"))
+        exc = ApiTimeoutError("timed out")
         assert self.installation.is_broken_integration_error(exc) == "host_timeout"
 
     def test_api_connection_reset(self) -> None:
@@ -1028,7 +1028,7 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     def test_api_timeout_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
         from sentry.shared_integrations.exceptions import ApiTimeoutError
 
-        mock_get_repositories.side_effect = ApiTimeoutError.from_exception(Exception("timed out"))
+        mock_get_repositories.side_effect = ApiTimeoutError("timed out")
 
         with self.feature("organizations:github-repo-auto-sync"), self.tasks():
             sync_repos_for_org(self.oi.id)

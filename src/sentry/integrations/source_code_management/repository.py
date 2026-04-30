@@ -232,7 +232,7 @@ class RepositoryIntegration(
             return "configuration_error"
         if isinstance(exc, IntegrationError):
             cause = exc.__context__
-            if cause is not None:
+            if isinstance(cause, Exception):
                 return self.is_broken_integration_error(cause)
             return None
 
