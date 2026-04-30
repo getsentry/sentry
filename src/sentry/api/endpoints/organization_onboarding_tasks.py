@@ -72,8 +72,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
                 level="warning",
             )
 
-        if instance or created:
-            onboarding_tasks.try_mark_onboarding_complete(organization.id)
+        onboarding_tasks.try_mark_onboarding_complete(organization.id)
 
         return Response(status=204)
 
