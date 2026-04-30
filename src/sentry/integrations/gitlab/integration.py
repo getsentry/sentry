@@ -480,7 +480,6 @@ The following issues were detected after merging:
 
 
 class GitlabPRCommentWorkflow(PRCommentWorkflow):
-    organization_option_key = "sentry:gitlab_pr_bot"
     referrer = Referrer.GITLAB_PR_COMMENT_BOT
     referrer_id = GITLAB_PR_BOT_REFERRER
 

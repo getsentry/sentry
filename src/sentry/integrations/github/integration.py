@@ -635,7 +635,6 @@ This pull request was merged and Sentry observed the following issues:
 
 
 class GitHubPRCommentWorkflow(PRCommentWorkflow):
-    organization_option_key = "sentry:github_pr_bot"
     referrer = Referrer.GITHUB_PR_COMMENT_BOT
     referrer_id = GITHUB_PR_BOT_REFERRER
 

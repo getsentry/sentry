@@ -8,11 +8,11 @@ from django.utils import timezone
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.gitlab.integration import GitlabIntegration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.tasks import pr_comment_workflow
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
@@ -24,6 +24,7 @@ from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils import json
 from sentry.utils.cache import cache
 
@@ -343,9 +344,12 @@ class TestCommentWorkflow(GitlabCommentTestCase):
         self.app_id = "app_1"
         self.pr = self.create_pr_issues()
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:gitlab_pr_bot", value=True
-        )
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            oi = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            )
+            oi.config = {"pr_comments": True}
+            oi.save(update_fields=["config"])
 
     @patch(
         "sentry.integrations.gitlab.integration.GitlabPRCommentWorkflow.get_top_5_issues_by_count"

@@ -10,10 +10,10 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegration, GitHubIntegrationProvider
 from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
@@ -374,9 +374,12 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.app_id = "app_1"
         self.pr = self.create_pr_issues()
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_pr_bot", value=True
-        )
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            oi = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            )
+            oi.config = {"pr_comments": True}
+            oi.save(update_fields=["config"])
 
     @patch(
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
@@ -551,27 +554,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch(
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
     )
-    def test_comment_workflow_missing_org_option(self, mock_issues: MagicMock) -> None:
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_pr_bot", value=False
-        )
-        github_comment_workflow(self.pr.id, self.project.id)
-
-        assert not mock_issues.called
-
-    @patch(
-        "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
-    )
-    def test_comment_workflow_reads_oi_config_when_flag_on(self, mock_issues: MagicMock) -> None:
-        from sentry.integrations.models.organization_integration import (
-            OrganizationIntegration,
-        )
-        from sentry.testutils.helpers.features import Feature
-
-        # Leave the org option True so the flag-on path is the gating one.
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_pr_bot", value=True
-        )
+    def test_comment_workflow_oi_config_disabled(self, mock_issues: MagicMock) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             oi = OrganizationIntegration.objects.get(
                 integration_id=self.integration.id, organization_id=self.organization.id
@@ -579,8 +562,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             oi.config = {"pr_comments": False}
             oi.save(update_fields=["config"])
 
-        with Feature({"organizations:scm-config-oi-reads": True}):
-            github_comment_workflow(self.pr.id, self.project.id)
+        github_comment_workflow(self.pr.id, self.project.id)
 
         assert not mock_issues.called
 
