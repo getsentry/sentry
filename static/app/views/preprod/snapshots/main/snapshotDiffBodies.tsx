@@ -1,4 +1,4 @@
-import {memo, useCallback, useRef, useState} from 'react';
+import {memo, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -100,7 +100,6 @@ export const ImageColumn = memo(function ImageColumn({
   src,
   alt,
   image,
-  withLeftBorder,
   overlayColor,
   diffImageKey,
   diffImageBaseUrl,
@@ -112,7 +111,6 @@ export const ImageColumn = memo(function ImageColumn({
   diffImageKey?: string | null;
   label?: string | null;
   overlayColor?: string;
-  withLeftBorder?: boolean;
 }) {
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
   const diffMaskUrl =
@@ -120,7 +118,7 @@ export const ImageColumn = memo(function ImageColumn({
       ? `${diffImageBaseUrl}${diffImageKey}/`
       : null;
   return (
-    <Stack minWidth="0" borderLeft={withLeftBorder ? 'secondary' : undefined}>
+    <Stack minWidth="0">
       {label && (
         <Container padding="sm xl" borderBottom="secondary">
           <Text size="xs" variant="muted" ellipsis monospace>
@@ -278,10 +276,8 @@ function LazyImage({
   width?: number;
 }) {
   const [loaded, setLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
   const onLoad = useCallback(() => setLoaded(true), []);
   const refCallback = useCallback((el: HTMLImageElement | null) => {
-    (imgRef as React.MutableRefObject<HTMLImageElement | null>).current = el;
     if (el?.complete && el.naturalWidth > 0) {
       setLoaded(true);
     }
