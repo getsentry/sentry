@@ -215,7 +215,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
               return id;
             }
 
-            return undefined;
+            return;
           }
         );
 

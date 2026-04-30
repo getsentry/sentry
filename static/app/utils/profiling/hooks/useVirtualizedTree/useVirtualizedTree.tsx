@@ -230,7 +230,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     const scrollContainer = props.scrollContainer;
 
     if (!scrollContainer) {
-      return undefined;
+      return;
     }
 
     let raf: number;
@@ -348,7 +348,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     const scrollContainer = props.scrollContainer;
 
     if (!scrollContainer) {
-      return undefined;
+      return;
     }
 
     // Because nodes dont span the full width, it's possible for users to
@@ -418,7 +418,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   useEffect(() => {
     const container = props.scrollContainer;
     if (!container) {
-      return undefined;
+      return;
     }
 
     function onMouseLeave() {
@@ -868,7 +868,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   // Similarly to handleScroll, we use requestAnimationFrame to avoid overupdating the UI
   useEffect(() => {
     if (!props.scrollContainer) {
-      return undefined;
+      return;
     }
     let rafId: number | undefined;
     const resizeObserver = new window.ResizeObserver(elements => {

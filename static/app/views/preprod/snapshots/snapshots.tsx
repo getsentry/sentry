@@ -142,7 +142,9 @@ export default function SnapshotsPage() {
   );
   const [variantIndex, setVariantIndex] = useState(0);
   const palette = theme.chart.getColorPalette(10);
-  const [overlayColor, setOverlayColor] = useLocalStorageState(
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+  const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
     palette.at(-5) ?? palette[0]
   );

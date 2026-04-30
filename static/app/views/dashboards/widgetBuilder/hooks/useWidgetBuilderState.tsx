@@ -1288,7 +1288,7 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
           field: maybeLinkedDashboard.field,
         } satisfies LinkedDashboard;
       }
-      return undefined;
+      return;
     })
     .filter(defined);
 }

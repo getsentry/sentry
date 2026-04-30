@@ -545,7 +545,7 @@ class DashboardDetail extends Component<Props, State> {
         if (a.length === 0 && b.length === 0) {
           return a === b;
         }
-        return undefined;
+        return;
       })
     ) {
       browserHistory.push({
@@ -610,7 +610,7 @@ class DashboardDetail extends Component<Props, State> {
         return newDashboard;
       },
       // `updateDashboard` does its own error handling
-      () => undefined
+      () => {}
     );
   };
 
@@ -966,7 +966,7 @@ class DashboardDetail extends Component<Props, State> {
               );
             },
             // `updateDashboard` does its own error handling
-            () => undefined
+            () => {}
           );
 
           return;
@@ -1377,7 +1377,7 @@ class DashboardDetail extends Component<Props, State> {
                                     this.setState({isSavingDashboardFilters: false});
                                   },
                                   // `updateDashboard` does its own error handling
-                                  () => undefined
+                                  () => {}
                                 );
                               }}
                             />
