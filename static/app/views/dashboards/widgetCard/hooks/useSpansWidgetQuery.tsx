@@ -1,8 +1,7 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
-import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
@@ -10,8 +9,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
@@ -28,8 +26,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
@@ -286,8 +282,14 @@ export function useSpansTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    return filteredWidget.queries.map(query => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  // Use native useQueries with queue-integrated queryFn
+  // React Query auto-refetches when keys change, but API calls go through the queue
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
 
       const requestParams: DiscoverQueryRequestParams = {
@@ -332,69 +334,55 @@ export function useSpansTableQuery(
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
-      const baseQueryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
+      const baseOptions = apiOptions.as<SpansTableResponse>()(
+        '/organizations/$organizationIdOrSlug/events/',
         {
+          path: {organizationIdOrSlug: organization.slug},
           method: 'GET' as const,
           query: queryParams,
-        },
-      ];
-
-      return [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseQueryKey];
-    });
-  }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
-
-  const createQueryFnTable = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<SpansTableResponse>> => {
-        const modifiedContext = {
-          ...context,
-          queryKey: context.queryKey.slice(STARRED_SEGMENT_TABLE_QUERY_KEY.length), // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call,
-        };
-
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<SpansTableResponse>(modifiedContext).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
+          staleTime: getWidgetStaleTime(pageFilters),
         }
-        return fetchDataQuery<SpansTableResponse>(modifiedContext);
-      },
-    [queue]
-  );
+      );
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
+      // eslint-disable-next-line @tanstack/query/exhaustive-deps
+      return queryOptions({
+        ...baseOptions,
+        queryKey: [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseOptions.queryKey] as never,
+        queryFn: (context): Promise<ApiResponse<SpansTableResponse>> => {
+          const modifiedContext = {
+            ...context,
+            // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call
+            queryKey: baseOptions.queryKey,
+          };
 
-  // Use native useQueries with queue-integrated queryFn
-  // React Query auto-refetches when keys change, but API calls go through the queue
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFnTable(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-    })),
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<SpansTableResponse>(modifiedContext).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<SpansTableResponse>(modifiedContext);
+        },
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -412,12 +400,11 @@ export function useSpansTableQuery(
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = q.data.json;
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -445,7 +432,7 @@ export function useSpansTableQuery(
       tableResults.push(transformedDataItem);
 
       // Get page links from response meta
-      responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
+      responsePageLinks = q.data.headers.Link;
     });
 
     // Check if rawData is the same as before to prevent unnecessary rerenders

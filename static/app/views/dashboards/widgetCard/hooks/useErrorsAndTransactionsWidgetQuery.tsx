@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
@@ -10,8 +10,7 @@ import type {
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -22,8 +21,6 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -373,8 +370,12 @@ export function useErrorsAndTransactionsTableQuery(
     onDemandControlContext
   );
 
-  const queryKeys = useMemo(() => {
-    return filteredWidget.queries.map(query => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
 
       const queryExtras: Record<string, any> = {
@@ -407,73 +408,48 @@ export function useErrorsAndTransactionsTableQuery(
         ...requestParams,
       };
 
-      const baseQueryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<ErrorsAndTransactionsTableResponse>()(
+          '/organizations/$organizationIdOrSlug/events/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<ErrorsAndTransactionsTableResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<ErrorsAndTransactionsTableResponse>(context).then(
+                    resolve,
+                    reject
+                  ),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<ErrorsAndTransactionsTableResponse>(context);
         },
-      ];
-
-      return baseQueryKey;
-    });
-  }, [
-    filteredWidget,
-    organization,
-    pageFilters,
-    cursor,
-    limit,
-    isMEPEnabled,
-    useOnDemandMetrics,
-  ]);
-
-  const createQueryFnTable = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<ErrorsAndTransactionsTableResponse>> => {
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<ErrorsAndTransactionsTableResponse>(context).then(
-                  resolve,
-                  reject
-                ),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-        return fetchDataQuery<ErrorsAndTransactionsTableResponse>(context);
-      },
-    [queue]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFnTable(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const error = queryResults.find(q => q?.error)?.error as any;
 
     const errorMessage = (() => {
@@ -507,12 +483,11 @@ export function useErrorsAndTransactionsTableQuery(
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = q.data.json;
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -527,7 +502,7 @@ export function useErrorsAndTransactionsTableQuery(
 
       tableResults.push(transformedDataItem);
 
-      responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
+      responsePageLinks = q.data.headers.Link;
     });
 
     let finalRawData = rawData;
