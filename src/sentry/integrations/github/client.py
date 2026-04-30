@@ -323,16 +323,15 @@ class GithubProxyClient(IntegrationProxyClient):
             "integration_id": getattr(self.integration, "id", "unknown"),
         }
 
+        credentials_set = prepared_request.headers.pop("X-Credentials-Set", None)
         # Only certain routes are authenticated with JWTs....
         if (
             any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES)
-            or prepared_request.headers.get("X-Credentials-Set") == "application"
+            or credentials_set == "application"
         ):
             jwt = self._get_jwt()
             logger.info("token.jwt", extra=logger_extra)
             return jwt
-
-        prepared_request.headers.pop("X-Credentials-Set", None)
 
         # The rest should use access tokens...
         metadata = self.get_access_token()
