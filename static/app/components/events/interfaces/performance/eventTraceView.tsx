@@ -9,6 +9,8 @@ import {
   TRACE_WATERFALL_PREFERENCES_KEY,
 } from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
@@ -73,6 +75,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
     traceSlug: traceId,
     limit: 10000,
     targetEventId: event.id,
+    referrer: 'api.trace-view.issues.get-events',
   });
   const params = useTraceQueryParams({
     timestamp,
@@ -194,18 +197,20 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       }
     >
       <OneOtherIssueEvent event={event} />
-      {hasTracePreviewFeature && (
-        <TraceStateProvider
-          initialPreferences={preferences}
-          preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
-        >
-          <EventTraceViewInner
-            event={event}
-            organization={organization}
-            traceId={traceId}
-          />
-        </TraceStateProvider>
-      )}
+      <LazyRender observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}>
+        {hasTracePreviewFeature && (
+          <TraceStateProvider
+            initialPreferences={preferences}
+            preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
+          >
+            <EventTraceViewInner
+              event={event}
+              organization={organization}
+              traceId={traceId}
+            />
+          </TraceStateProvider>
+        )}
+      </LazyRender>
     </InterimSection>
   );
 }
