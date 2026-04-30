@@ -61,6 +61,7 @@ export function ExplorerDrawerContent({
     sessionData,
     isPolling,
     isError,
+    errorStatusCode,
     sendMessage,
     startNewSession,
     switchToRun,
@@ -322,12 +323,12 @@ export function ExplorerDrawerContent({
   return (
     <DrawerContentContainer data-seer-explorer-root="">
       <ExplorerDrawerHeader
+        disableNewChatButton={runId === null}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
         onChangeSession={switchToRun}
-        isEmptyState={isEmptyState}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
@@ -349,6 +350,7 @@ export function ExplorerDrawerContent({
           <EmptyState
             isLoading={isPolling}
             isError={isError}
+            errorStatusCode={errorStatusCode}
             runId={runId}
             onSuggestionClick={readOnly ? undefined : sendMessage}
           />
@@ -455,4 +457,7 @@ const DrawerContentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  contain: inline-size;
+  container-type: inline-size;
+  container-name: seer-explorer-root;
 `;

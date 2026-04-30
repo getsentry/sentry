@@ -1906,6 +1906,57 @@ class UnfurlTest(TestCase):
         assert args["query"].getlist("groupBy") == ["gen_ai.tool.name"]
         assert args["chart_type"] == 0
 
+    def test_unfurl_explore_drops_aggregate_sort_referencing_unknown_field(self) -> None:
+        # When aggregateSort references a function that isn't in the active
+        # yAxes (e.g. a stale sort left over from a different visualize), the
+        # frontend's validateAggregateSort discards it and falls back to
+        # `-yAxes[0]`. The unfurl must mirror that, otherwise events-timeseries
+        # gets sorted by an aggregate it never selected and returns no data.
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A0%7D"
+            "&aggregateSort=-count_unique(user.id)"
+            "&project=1&query=user.id%3A12345&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+        assert args["query"].getlist("groupBy") == ["gen_ai.tool.name"]
+        # The stale aggregateSort is dropped; unfurl_explore will then default
+        # to `-count(span.duration)` for the topEvents sort.
+        assert args["query"].getlist("sort") == []
+
+    def test_unfurl_explore_keeps_aggregate_sort_when_field_matches_yaxis(self) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D"
+            "&aggregateSort=-count(span.duration)"
+            "&project=1&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == ["-count(span.duration)"]
+
+    def test_unfurl_explore_keeps_aggregate_sort_when_field_matches_groupby(self) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D"
+            "&aggregateSort=gen_ai.tool.name"
+            "&project=1&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == ["gen_ai.tool.name"]
+
     def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
         # Two charts: count with chartType=2 (area, first) and avg (second).
         # The unfurl must render only the first chart and not merge avg's
