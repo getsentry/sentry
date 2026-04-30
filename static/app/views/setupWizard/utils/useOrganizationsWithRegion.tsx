@@ -30,7 +30,7 @@ export function useOrganizationsWithRegion() {
       return {
         data: results.flatMap(r => r.data ?? []),
         isError: results.some(r => r.isError),
-        isLoading: results.some(r => r.isPending),
+        isPending: results.some(r => r.isPending),
       };
     },
   });
