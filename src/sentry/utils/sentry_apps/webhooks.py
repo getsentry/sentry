@@ -126,6 +126,14 @@ def _notify_webhook_disabled(
     sentry_app: SentryApp | RpcSentryApp,
     owner_context: RpcUserOrganizationContext | None,
 ) -> None:
+    email = sentry_app.creator_label
+    if not email or "@" not in email:
+        return
+
+    if owner_context is None:
+        return
+    owner_org = owner_context.organization
+
     if not set_dedup_key(sentry_app, circuit_breaker):
         return
 
@@ -135,14 +143,6 @@ def _notify_webhook_disabled(
             extra={"slug": sentry_app.slug},
         )
         return
-
-    email = sentry_app.creator_label
-    if not email or "@" not in email:
-        return
-
-    if owner_context is None:
-        return
-    owner_org = owner_context.organization
 
     data = SentryAppWebhookDisabled(
         sentry_app_slug=sentry_app.slug,
