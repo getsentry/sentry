@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from jsonschema import ValidationError
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -106,6 +106,18 @@ class TestIssueCategoryCondition(ConditionTestCase):
         self.assert_does_not_pass(
             self.dc, WorkflowEventData(event=self.event, group=self.event.group)
         )
+
+    def test_category_v2(self) -> None:
+        perf_group, perf_event, perf_group_event = self.create_group_event(
+            group_type_id=PerformanceNPlusOneGroupType.type_id
+        )
+
+        # N+1 DB query issue should pass for 'PERFORMANCE' (deprecated) as well as 'DB_QUERY' (category_v2)
+        self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value})
+        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event, group=perf_group))
+
+        self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value})
+        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event, group=perf_group))
 
     def test_exclude(self) -> None:
         assert self.event.group is not None
