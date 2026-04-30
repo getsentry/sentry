@@ -18,7 +18,7 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
@@ -1172,7 +1172,7 @@ export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOpt
       ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
       ...(runId === null
         ? {}
-        : {['conversations_url']: getConversationsUrl('sentry', runId)}),
+        : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),
     },
   };
 }
