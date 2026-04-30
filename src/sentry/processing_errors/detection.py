@@ -138,7 +138,7 @@ def _detect_for_config(
         return
 
     matching_error_types = sorted(
-        e.get("type") for e in errors if e.get("type") in config.handler_cls.error_types
+        config.handler_cls.error_types.intersection(filter(None, (e.get("type") for e in errors)))
     )
     sentry_sdk.metrics.count(
         f"processing_errors.{config.slug}.event_with_errors",
