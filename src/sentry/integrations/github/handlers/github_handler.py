@@ -37,13 +37,8 @@ class GithubActionHandler(TicketingActionHandler):
                     "assignee": {
                         "type": ["string", "null"],
                     },
-                    "integration": {
-                        "type": [
-                            "string",
-                        ],
-                    },
                 },
-                "required": ["repo", "integration"],
+                "required": ["repo"],
             },
         },
         "required": ["additional_fields"],
