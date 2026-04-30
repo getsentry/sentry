@@ -28,6 +28,7 @@ function renderSnapshotMainContent(
     imageBaseUrl: '/api/0/projects/org-slug/project-slug/files/images/',
     isSoloView: true,
     listItems: [],
+    navButtonRefs: {next: {current: null}, prev: {current: null}},
     onDiffModeChange: jest.fn(),
     onNavigateSingleView: jest.fn(),
     onOverlayColorChange: jest.fn(),

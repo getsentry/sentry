@@ -471,6 +471,7 @@ export default function SnapshotsPage() {
     next: useRef<HTMLButtonElement>(null),
   };
 
+  const pressTimeoutRef = useRef<number>();
   // Ref so the keydown handler reads latest state without re-registering.
   const navRef = useRef({navigateSingleView, setViewMode, viewMode, navButtonRefs});
   navRef.current = {navigateSingleView, setViewMode, viewMode, navButtonRefs};
@@ -512,7 +513,11 @@ export default function SnapshotsPage() {
       if (btn && !btn.disabled) {
         btn.setAttribute('aria-pressed', 'true');
         btn.click();
-        setTimeout(() => btn.removeAttribute('aria-pressed'), 150);
+        clearTimeout(pressTimeoutRef.current);
+        pressTimeoutRef.current = window.setTimeout(
+          () => btn.removeAttribute('aria-pressed'),
+          150
+        );
       }
     }
 
