@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
 import type {RequestState} from 'sentry/types/core';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {TransactionResult} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import {useApi} from 'sentry/utils/useApi';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -60,8 +60,7 @@ export function useProfiles() {
   return context;
 }
 
-export const ProfileTransactionContext =
-  createContext<RequestState<EventTransaction | null> | null>(null);
+export const ProfileTransactionContext = createContext<TransactionResult | null>(null);
 
 export function useProfileTransaction() {
   const context = useContext(ProfileTransactionContext);
@@ -138,7 +137,7 @@ export function TransactionProfileProvider({
 
   useLayoutEffect(() => {
     if (!profileId || !projectSlug || !orgSlug) {
-      return undefined;
+      return;
     }
 
     setProfile({type: 'loading'});
@@ -202,13 +201,13 @@ export function ContinuousProfileProvider({
       Sentry.captureMessage(
         'Failed to fetch continuous profile - invalid chunk parameters.'
       );
-      return undefined;
+      return;
     }
 
     const project = projects.find(p => p.slug === projectSlug);
     if (!project) {
       Sentry.captureMessage('Failed to fetch continuous profile - project not found.');
-      return undefined;
+      return;
     }
 
     setProfile({type: 'loading'});

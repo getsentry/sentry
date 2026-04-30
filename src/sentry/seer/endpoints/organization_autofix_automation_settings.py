@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from itertools import chain
 from typing import Any
 
@@ -10,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -27,17 +26,13 @@ from sentry.models.project import Project
 from sentry.seer.autofix.utils import (
     SeerAutofixSettingsSerializer,
     bulk_read_preferences_from_sentry_db,
-    bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
     deduplicate_repositories,
     default_seer_project_preference,
-    resolve_repository_ids,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.seer.utils import filter_repo_by_provider
-
-logger = logging.getLogger(__name__)
 
 
 def merge_repositories(
@@ -353,8 +348,6 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 preferences_to_set.append(pref_update)
 
-        # Wrap DB writes and Seer API call in a transaction.
-        # If Seer API fails, DB changes are rolled back.
         with transaction.atomic(router.db_for_write(ProjectOption)):
             if autofix_automation_tuning:
                 for project in projects:
@@ -363,30 +356,10 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     )
 
             if preferences_to_set:
-                bulk_set_project_preferences(organization.id, preferences_to_set)
-
-        if preferences_to_set and features.has(
-            "organizations:seer-project-settings-dual-write", organization
-        ):
-            try:
                 validated_preferences = [
                     SeerProjectPreference.validate(pref) for pref in preferences_to_set
                 ]
-                # Seer API responses don't include repository_id.
-                # Resolve before dual-writing so repos aren't skipped.
-                # This will not be necessary once we start keying by repo ID.
-                resolved_preferences = resolve_repository_ids(
-                    organization.id, validated_preferences
-                )
-                bulk_write_preferences_to_sentry_db(projects, resolved_preferences)
-            except Exception:
-                logger.exception(
-                    "seer.write_preferences.failed",
-                    extra={
-                        "organization_id": organization.id,
-                        "project_ids": list(projects_by_id.keys()),
-                    },
-                )
+                bulk_write_preferences_to_sentry_db(projects, validated_preferences)
 
         self.create_audit_entry(
             request=request,

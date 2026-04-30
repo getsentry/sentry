@@ -36,9 +36,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
-  queryOptions:
-    | QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
-    | undefined;
+  queryOptions: QueryKeyEndpointOptions | undefined;
   replays: ReplayListRecord[];
   selectedIds: 'all' | string[];
 }
@@ -196,7 +194,7 @@ function ReplayPreviewTable({
         <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {selectedIds.map(id => {
-        const replay = replays.find(r => r.id === id) as ReplayListRecord;
+        const replay = replays.find(r => r.id === id)!;
         if (replay.is_archived) {
           return null;
         }

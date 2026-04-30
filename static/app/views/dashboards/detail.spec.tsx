@@ -597,7 +597,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
@@ -769,6 +768,8 @@ describe('Dashboards > Detail', () => {
       });
 
       await activateDashboardEditMode();
+      // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+      // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
       const widget = (await screen.findByText('First Widget')).closest(
         '.react-grid-item'
       ) as HTMLElement;
@@ -1861,7 +1862,6 @@ describe('Dashboards > Detail', () => {
           dashboard={DashboardFixture([], {
             prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
           })}
-          dashboards={[]}
           onDashboardUpdate={jest.fn()}
         />
       );
@@ -1907,7 +1907,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1926,7 +1925,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1945,7 +1943,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1964,7 +1961,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1994,7 +1990,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2042,7 +2037,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2096,7 +2090,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2154,7 +2147,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {

@@ -4,8 +4,8 @@ import {initializeLogsTest, LogFixture} from 'sentry-fixture/log';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiResult} from 'sentry/api';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   LOGS_AUTO_REFRESH_KEY,
@@ -278,19 +278,18 @@ describe('updateVirtualStreamingTimestamp', () => {
 });
 
 function createMockData(logFixtures: OurLogsResponseItem[]) {
-  const mockData: InfiniteData<ApiResult<EventsLogsResult>> = {
+  const mockData: InfiniteData<ApiResponse<EventsLogsResult>> = {
     pages: [
-      [
-        {
+      {
+        json: {
           data: logFixtures,
           meta: {
             fields: {},
             units: {},
           },
         },
-        '',
-        {} as any,
-      ],
+        headers: {},
+      },
     ],
     pageParams: [null],
   };

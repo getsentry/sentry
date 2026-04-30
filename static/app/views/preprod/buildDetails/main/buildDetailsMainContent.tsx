@@ -290,7 +290,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       return t('Missing proguard mapping. Dex will not have a detailed breakdown.');
     }
 
-    return undefined;
+    return;
   };
 
   const handleAlertClick = () => {

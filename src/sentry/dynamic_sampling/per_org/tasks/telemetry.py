@@ -7,7 +7,11 @@ from typing import TypeVar
 
 import sentry_sdk
 
-from sentry.dynamic_sampling.per_org.tasks.gate import metrics_sample_rate
+from sentry.dynamic_sampling.per_org.tasks.gate import (
+    is_killswitch_engaged,
+    is_rollout_enabled,
+    metrics_sample_rate,
+)
 from sentry.utils import metrics
 
 F = TypeVar("F", bound=Callable[..., object])
@@ -19,7 +23,6 @@ SCHEDULER_BUCKET_STATUS_METRIC = "dynamic_sampling.schedule_per_org_calculations
 SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
 )
-SCHEDULER_BUCKET_SIZE_METRIC = "dynamic_sampling.schedule_per_org_calculations_bucket.bucket_size"
 
 
 class TelemetryStatus(StrEnum):
@@ -59,19 +62,29 @@ def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = No
     )
 
 
-def instrumented(func: F) -> F:
+def track_dynamic_sampling(func: F) -> F:
     status_metric = f"{METRIC_PREFIX}.{func.__name__}.status"
     duration_metric = f"{METRIC_PREFIX}.{func.__name__}.duration"
 
     @functools.wraps(func)
     def wrapper(*args: object, **kwargs: object) -> object:
+        result: object
         with metrics.timer(duration_metric, sample_rate=metrics_sample_rate()):
             try:
-                result = func(*args, **kwargs)
+                if is_killswitch_engaged():
+                    result = TelemetryStatus.KILLSWITCHED
+                elif not is_rollout_enabled():
+                    result = TelemetryStatus.ROLLOUT_DISABLED
+                else:
+                    result = func(*args, **kwargs)
             except Exception as exc:
                 sentry_sdk.capture_exception(exc)
                 emit_status(status_metric, TelemetryStatus.FAILED)
                 raise
+
+        if isinstance(result, TelemetryStatus):
+            emit_status(status_metric, result)
+            return result
 
         emit_status(status_metric, TelemetryStatus.COMPLETED)
         return result

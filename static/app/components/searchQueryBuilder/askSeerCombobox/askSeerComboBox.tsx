@@ -514,8 +514,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </Stack>
           )}
-          <SeerFooter>
-            {openForm && (
+          {openForm && (
+            <SeerFooter>
               <Button
                 size="xs"
                 icon={<IconMegaphone />}
@@ -531,8 +531,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               >
                 {t('Give Feedback')}
               </Button>
-            )}
-          </SeerFooter>
+            </SeerFooter>
+          )}
         </AskSeerSearchPopover>
       ) : null}
     </Wrapper>
