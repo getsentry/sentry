@@ -118,7 +118,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
-  trace_item_metrics: <FeatureBadge type="beta" />,
+  trace_item_metrics: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
@@ -400,7 +400,7 @@ function datasetSupportedTags(
 function transactionSupportedTags(org: Organization) {
   if (shouldShowOnDemandMetricAlertUI(org)) {
     // on-demand metrics support all tags, except the ones defined in ommited tags
-    return undefined;
+    return;
   }
   return TRANSACTION_SUPPORTED_TAGS;
 }

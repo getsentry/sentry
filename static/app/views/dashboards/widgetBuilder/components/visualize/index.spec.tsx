@@ -118,12 +118,16 @@ describe('Visualize', () => {
     );
 
     expect(await screen.findByText('+ Add Series')).toBeInTheDocument();
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const p90FieldRow = (await screen.findByText('p90')).closest(
       '[data-testid="field-bar"]'
     ) as HTMLElement;
     expect(p90FieldRow).toBeInTheDocument();
     expect(within(p90FieldRow).getByText('transaction.duration')).toBeInTheDocument();
 
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const maxFieldRow = (await screen.findByText('max')).closest(
       '[data-testid="field-bar"]'
     ) as HTMLElement;

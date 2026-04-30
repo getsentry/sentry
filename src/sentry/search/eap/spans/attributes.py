@@ -556,7 +556,10 @@ def _update_attribute_definitions_with_deprecations(
                 # TODO: Introduce units to attribute schema.
                 if replacement not in attribute_definitions:
                     attribute_definitions[replacement] = replace(
-                        deprecated_attr, public_alias=replacement, internal_name=replacement
+                        deprecated_attr,
+                        public_alias=replacement,
+                        internal_name=replacement,
+                        secondary_alias=False,
                     )
             else:
                 attr_type = _normalize_convention_attribute_type(attribute.get("type", "string"))

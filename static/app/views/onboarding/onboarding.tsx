@@ -23,6 +23,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -79,14 +80,12 @@ const scmOnboardingSteps: StepDescriptor[] = [
     id: OnboardingStepId.SCM_CONNECT,
     title: t('Connect repository'),
     Component: ScmConnect,
-    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
-    title: t('Platform & features'),
+    title: t('Create your first project'),
     Component: ScmPlatformFeatures,
-    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
@@ -133,7 +132,7 @@ function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
 
   return (
     <OnboardingContainer
-      hasFooter={props.hasFooter || newWelcomeUIStep}
+      hasFooter={props.hasFooter}
       hasScmOnboarding={props.hasScmOnboarding}
     >
       {props.children}
@@ -183,6 +182,7 @@ export function OnboardingWithoutContext() {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
+    reportExposure: true,
   });
 
   // Only report exposure for users who are actually in SCM onboarding —
@@ -197,6 +197,12 @@ export function OnboardingWithoutContext() {
     : scmOnboardingSteps.filter(s => s.id !== OnboardingStepId.SCM_PROJECT_DETAILS);
 
   const onboardingSteps = hasScmOnboarding ? scmSteps : legacyOnboardingSteps;
+
+  useReplayForCriticalFlow({
+    flowName: 'scm_onboarding',
+    enabled: hasScmOnboarding,
+    sampleRate: 0.3,
+  });
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -510,7 +516,7 @@ const Header = styled(Grid)`
   align-items: center;
   top: 0;
   z-index: 100;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const LogoSvg = styled(LogoSentry)`

@@ -17,7 +17,6 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function StarSavedQueryButton() {
   const organization = useOrganization();
@@ -26,7 +25,6 @@ export function StarSavedQueryButton() {
   const {starQuery} = useStarQuery();
   const {data, isLoading, isFetched} = useGetSavedQuery(locationId);
   const [isStarred, setIsStarred] = useState(data?.starred);
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   useEffect(() => {
     if (isFetched) {
@@ -79,7 +77,7 @@ export function StarSavedQueryButton() {
 
   return (
     <Button
-      tooltipProps={hasPageFrameFeature ? {title: label} : undefined}
+      tooltipProps={{title: label}}
       aria-label={label}
       icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"

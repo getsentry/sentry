@@ -339,8 +339,7 @@ export function FormField(props: FormFieldProps) {
 
       const fieldProps = {...otherProps, ...resolvedObservedProps} as PassthroughProps;
 
-      const saveOnBlurFieldOverride =
-        typeof props.saveOnBlur !== 'undefined' && !props.saveOnBlur;
+      const saveOnBlurFieldOverride = props.saveOnBlur !== undefined && !props.saveOnBlur;
 
       return (
         <Fragment>

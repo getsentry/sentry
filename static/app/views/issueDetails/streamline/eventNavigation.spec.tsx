@@ -1,3 +1,4 @@
+import {useMatches} from 'react-router-dom';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -5,16 +6,18 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import {IssueEventNavigation} from './eventNavigation';
 
 jest.mock('sentry/views/issueDetails/streamline/context');
-jest.mock('sentry/utils/useRoutes');
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useMatches: jest.fn(),
+}));
 
-const mockUseRoutes = jest.mocked(useRoutes);
+const mockUseMatches = jest.mocked(useMatches);
 
 describe('EventNavigation', () => {
   const organization = OrganizationFixture({features: ['discover-basic']});
@@ -46,10 +49,22 @@ describe('EventNavigation', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockUseRoutes.mockImplementation(() => [
-      {path: '/'},
-      {path: '/organizations/:orgId/issues/:groupId/'},
-      {path: TabPaths[Tab.EVENTS]},
+    mockUseMatches.mockImplementation(() => [
+      {id: '0', pathname: '/', params: {}, data: null, handle: {path: '/'}},
+      {
+        id: '0-0',
+        pathname: '/organizations/org-slug/issues/group-id/',
+        params: {orgId: 'org-slug', groupId: 'group-id'},
+        data: null,
+        handle: {path: '/organizations/:orgId/issues/:groupId/'},
+      },
+      {
+        id: '0-0-0',
+        pathname: '/organizations/org-slug/issues/group-id/events/',
+        params: {orgId: 'org-slug', groupId: 'group-id'},
+        data: null,
+        handle: {path: TabPaths[Tab.EVENTS]},
+      },
     ]);
     jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {

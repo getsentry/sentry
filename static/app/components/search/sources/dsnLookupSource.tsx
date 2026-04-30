@@ -16,7 +16,6 @@ type Props = {
 
 export function DsnLookupSource({query, children}: Props) {
   const organization = useOrganization({allowNull: true});
-  const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
   const isDsn = DSN_PATTERN.test(query);
 
   const {data, isLoading} = useApiQuery<DsnLookupResponse>(
@@ -28,7 +27,7 @@ export function DsnLookupSource({query, children}: Props) {
     ],
     {
       staleTime: 30_000,
-      enabled: isDsn && !!organization && hasDsnLookup,
+      enabled: isDsn && !!organization,
     }
   );
 

@@ -12,7 +12,7 @@ function TestComponent({
   reportExposure,
 }: {
   feature: string;
-  reportExposure?: boolean;
+  reportExposure: boolean;
 }) {
   const {inExperiment, experimentAssignment} = useExperiment({
     feature,
@@ -86,7 +86,9 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="test-experiment" />, {organization: org});
+    render(<TestComponent feature="test-experiment" reportExposure />, {
+      organization: org,
+    });
 
     await waitFor(() => {
       expect(mockExposure).toHaveBeenCalledWith(
@@ -110,7 +112,9 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="onboarding-scm-experiment" />, {organization: org});
+    render(<TestComponent feature="onboarding-scm-experiment" reportExposure />, {
+      organization: org,
+    });
 
     await waitFor(() => expect(Amplitude.groupIdentify).toHaveBeenCalled());
 
@@ -160,7 +164,9 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="test-experiment" />, {organization: org});
+    render(<TestComponent feature="test-experiment" reportExposure />, {
+      organization: org,
+    });
 
     expect(Amplitude.groupIdentify).not.toHaveBeenCalled();
   });
@@ -180,7 +186,9 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="not-an-experiment" />, {organization: org});
+    render(<TestComponent feature="not-an-experiment" reportExposure />, {
+      organization: org,
+    });
 
     expect(Amplitude.groupIdentify).not.toHaveBeenCalled();
     expect(mockExposure).not.toHaveBeenCalled();
@@ -241,7 +249,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    const {unmount} = render(<TestComponent feature="test-experiment" />, {
+    const {unmount} = render(<TestComponent feature="test-experiment" reportExposure />, {
       organization: org,
     });
 
@@ -251,7 +259,9 @@ describe('useExperiment (gsApp)', () => {
 
     unmount();
 
-    render(<TestComponent feature="test-experiment" />, {organization: org});
+    render(<TestComponent feature="test-experiment" reportExposure />, {
+      organization: org,
+    });
 
     expect(mockExposure).toHaveBeenCalledTimes(1);
   });
@@ -266,7 +276,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    const {unmount} = render(<TestComponent feature="test-experiment" />, {
+    const {unmount} = render(<TestComponent feature="test-experiment" reportExposure />, {
       organization: org,
     });
 
@@ -279,7 +289,7 @@ describe('useExperiment (gsApp)', () => {
       experiments: {'test-experiment': 'active'},
     });
 
-    render(<TestComponent feature="test-experiment" />, {
+    render(<TestComponent feature="test-experiment" reportExposure />, {
       organization: updatedOrg,
     });
 
