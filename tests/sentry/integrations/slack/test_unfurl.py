@@ -2742,3 +2742,153 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert params["statsPeriod"] == "7d"
         assert "start" not in params
         assert "end" not in params
+
+    def test_dashboard_release_filter_appended_to_query(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"release": ["v1.0.0"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["query"] == 'release:"v1.0.0"'
+
+    def test_dashboard_release_multiple_values_use_list_syntax(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"release": ["v1.0.0", "v2.0.0"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["query"] == 'release:["v1.0.0","v2.0.0"]'
+
+    def test_dashboard_release_combined_with_widget_conditions(self) -> None:
+        widget = self._make_widget(
+            queries=[{"aggregates": ["avg(span.duration)"], "conditions": "span.op:http"}],
+        )
+        widget.dashboard.filters = {"release": ["v1.0.0"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        # Widget conditions are wrapped in parens, then global filters appended.
+        assert params["query"] == '(span.op:http) release:"v1.0.0"'
+
+    def test_url_release_overrides_dashboard_release(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"release": ["v1.0.0"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("release=v2.0.0"))[0]
+
+        assert params["query"] == 'release:"v2.0.0"'
+
+    def test_url_release_multiple_values(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict("release=v1.0.0&release=v2.0.0"))[
+            0
+        ]
+
+        assert params["query"] == 'release:["v1.0.0","v2.0.0"]'
+
+    def test_dashboard_global_filter_applied_when_dataset_matches(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
+        widget.dashboard.filters = {
+            "global_filter": [
+                {"dataset": "spans", "tag": {"key": "span.op"}, "value": "span.op:http"},
+            ],
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["query"] == "span.op:http"
+
+    def test_dashboard_global_filter_skipped_when_dataset_mismatches(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.LOGS)
+        widget.dashboard.filters = {
+            "global_filter": [
+                {"dataset": "spans", "tag": {"key": "span.op"}, "value": "span.op:http"},
+            ],
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert "query" not in params
+
+    def test_dashboard_global_filter_multiple_entries_joined_with_space(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
+        widget.dashboard.filters = {
+            "global_filter": [
+                {"dataset": "spans", "tag": {"key": "span.op"}, "value": "span.op:http"},
+                {"dataset": "spans", "tag": {"key": "env"}, "value": "env:prod"},
+                {"dataset": "logs", "tag": {"key": "level"}, "value": "level:error"},
+            ],
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["query"] == "span.op:http env:prod"
+
+    def test_release_and_global_filter_combined(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
+        widget.dashboard.filters = {
+            "release": ["v1.0.0"],
+            "global_filter": [
+                {"dataset": "spans", "tag": {"key": "span.op"}, "value": "span.op:http"},
+            ],
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["query"] == 'release:"v1.0.0" span.op:http'
+
+    def test_url_global_filter_overrides_dashboard_global_filter(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
+        widget.dashboard.filters = {
+            "global_filter": [
+                {"dataset": "spans", "tag": {"key": "span.op"}, "value": "span.op:http"},
+            ],
+        }
+        widget.dashboard.save()
+
+        url_filter = '{"dataset": "spans", "tag": {"key": "env"}, "value": "env:prod"}'
+        params = build_widget_timeseries_params(widget, QueryDict(f"globalFilter={url_filter}"))[0]
+
+        assert params["query"] == "env:prod"
+
+    def test_url_global_filter_invalid_json_is_skipped(self) -> None:
+        widget = self._make_widget(widget_type=DashboardWidgetTypes.SPANS)
+
+        url_filter = '{"dataset": "spans", "tag": {"key": "env"}, "value": "env:prod"}'
+        params = build_widget_timeseries_params(
+            widget, QueryDict(f"globalFilter=not-json&globalFilter={url_filter}")
+        )[0]
+
+        assert params["query"] == "env:prod"
+
+    def test_global_filter_for_error_events_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            queries=[{"aggregates": ["count()"]}],
+        )
+        widget.dashboard.filters = {
+            "global_filter": [
+                {"dataset": "error-events", "tag": {"key": "level"}, "value": "level:error"},
+            ],
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["query"] == "level:error"
+
+    def test_no_dashboard_filters_no_widget_conditions_omits_query(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert "query" not in params
