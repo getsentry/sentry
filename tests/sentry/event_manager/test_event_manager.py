@@ -2957,7 +2957,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
             group = event.group
             assert group is not None
-            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_category == GroupCategory.DB_QUERY
             assert group.issue_type == PerformanceNPlusOneGroupType
             group.data["metadata"] = {
                 "location": "hi",

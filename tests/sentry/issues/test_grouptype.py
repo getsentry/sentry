@@ -65,7 +65,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             description = "AngelGirl"
             category = GroupCategory.DB_QUERY.value
 
-        assert get_group_types_by_category(GroupCategory.PERFORMANCE.value) == {2, 3}
+        assert get_group_types_by_category(GroupCategory.DB_QUERY.value) == {2, 3}
         assert get_group_types_by_category(GroupCategory.ERROR.value) == {1}
 
     def test_get_group_type_by_slug(self) -> None:
@@ -196,14 +196,7 @@ class GroupRegistryTest(BaseGroupTypeTest):
         registry.add(PerformanceSlowDBQueryGroupType)
         registry.add(PerformanceNPlusOneGroupType)
 
-        # Works for old category mapping
         assert registry.get_by_category(GroupCategory.ERROR.value) == {ErrorGroupType.type_id}
-        assert registry.get_by_category(GroupCategory.PERFORMANCE.value) == {
-            PerformanceSlowDBQueryGroupType.type_id,
-            PerformanceNPlusOneGroupType.type_id,
-        }
-
-        # Works for new category mapping
         assert registry.get_by_category(GroupCategory.DB_QUERY.value) == {
             PerformanceSlowDBQueryGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
