@@ -10,10 +10,12 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {SeerRepoTable} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTable';
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
+import {useRepoDetailsDrawer} from 'getsentry/views/seerAutomation/hooks/useRepoDetailsDrawer';
 import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 
 export default function SeerAutomationRepos() {
   const organization = useOrganization();
+  useRepoDetailsDrawer();
 
   if (!orgHasCodeReviewFeature(organization)) {
     return (

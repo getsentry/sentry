@@ -25,6 +25,7 @@ import {
 } from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
@@ -44,6 +45,7 @@ export function SeerRepoTableRow({
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const location = useLocation();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
@@ -73,7 +75,7 @@ export function SeerRepoTableRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Stack gap="xs">
-          <Link to={`/settings/${organization.slug}/seer/repos/${repository.id}/`}>
+          <Link to={{...location, query: {...location.query, repoId: repository.id}}}>
             <Flex align="center">
               <strong>{repository.name}</strong>
               {repository.status !== RepositoryStatus.ACTIVE && (

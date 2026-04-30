@@ -89,7 +89,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
           )}
         </Alert>
       )}
-      <FieldGroup title={t('AI Code Review')}>
+      <FieldGroup>
         <AutoSaveForm
           name="enabledCodeReview"
           schema={schema}
