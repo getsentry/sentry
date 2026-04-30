@@ -493,7 +493,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                       xs: '1fr',
                       md: `repeat(${resolvedPlatforms.length}, minmax(200px, 1fr))`,
                     }}
-                    width={{xs: '100%', md: 'auto'}}
+                    width="100%"
                     justify="center"
                     gap="md"
                     role="radiogroup"
