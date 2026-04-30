@@ -1,8 +1,9 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FALLBACK_FEATURE_META,
@@ -93,15 +94,17 @@ function getFreeVolume(plan: Plan, category: DataCategory): number | undefined {
  */
 export function useScmFeatureMeta(): UseScmFeatureMetaResult {
   const organization = useOrganization();
-  const {data: billingConfig, isLoading} = useApiQuery<BillingConfig>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
+  const {data: billingConfig, isLoading} = useQuery({
+    ...apiOptions.as<BillingConfig>()(
+      '/customers/$organizationIdOrSlug/billing-config/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {tier: DEFAULT_TIER}},
-    ],
-    {staleTime: Infinity, retry: false}
-  );
+        query: {tier: DEFAULT_TIER},
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
 
   if (!billingConfig) {
     return {meta: FALLBACK_FEATURE_META, isLoading};
