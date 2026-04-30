@@ -34,6 +34,7 @@ interface InputSectionProps {
   canInterrupt: boolean;
   enabled: boolean;
   inputValue: string;
+  isTimedOut: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -59,6 +60,7 @@ export function InputSection({
   isMinimized = false,
   canInterrupt,
   waitingForInterrupt,
+  isTimedOut,
   isVisible = false,
   onCreatePR,
   onInputChange,
@@ -260,14 +262,18 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup>
+        <StyledInputGroup isWarning={isTimedOut}>
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={t('Ask Seer a question, or press / for commands.')}
+            placeholder={
+              isTimedOut
+                ? t('The response timed out. Try sending a new message.')
+                : t('Ask Seer a question, or press / for commands.')
+            }
             rows={1}
             maxRows={5}
             autosize
@@ -275,16 +281,26 @@ export function InputSection({
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>
-        {canInterrupt || waitingForInterrupt ? (
+        {canInterrupt ? (
           <Button
             icon={<IconPause />}
             onClick={onInterrupt}
             size="md"
             priority="primary"
-            disabled={waitingForInterrupt}
             aria-label={t('Interrupt button')}
             tooltipProps={{
-              title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
+              title: t('Interrupt'),
+            }}
+          />
+        ) : waitingForInterrupt ? (
+          <Button
+            icon={<IconPause />}
+            size="md"
+            priority="primary"
+            disabled
+            aria-label={t('Interrupt button')}
+            tooltipProps={{
+              title: t('Winding down...'),
             }}
           />
         ) : (
@@ -326,14 +342,14 @@ const InputRow = styled('div')`
   margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
-const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
+const StyledInputGroup = styled(InputGroup)<{isWarning?: boolean}>`
   flex: 1;
 
   textarea {
     resize: none;
 
     &::placeholder {
-      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
+      color: ${p => (p.isWarning ? p.theme.tokens.content.warning : undefined)};
     }
   }
 

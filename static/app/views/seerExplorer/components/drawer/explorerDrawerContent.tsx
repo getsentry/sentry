@@ -62,6 +62,7 @@ export function ExplorerDrawerContent({
     isPolling,
     isError,
     errorStatusCode,
+    isTimedOut,
     sendMessage,
     startNewSession,
     switchToRun,
@@ -233,8 +234,6 @@ export function ExplorerDrawerContent({
     userScrolledUpRef.current = false;
   }, [readOnly, inputValue, isPolling, sendMessage]);
 
-  const canInterrupt = sessionData?.status === 'processing';
-
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (readOnly || e.nativeEvent.isComposing) {
@@ -400,8 +399,9 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        canInterrupt={canInterrupt} // TODO: update when adding timeouts
+        canInterrupt={sessionData?.status === 'processing' && !isTimedOut}
         waitingForInterrupt={waitingForInterrupt}
+        isTimedOut={isTimedOut}
         isMinimized={false} // Drawer doesn't have a minimized state
         isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}

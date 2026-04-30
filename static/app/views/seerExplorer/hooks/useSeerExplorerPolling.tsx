@@ -8,6 +8,8 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
+const TIMEOUT_MS = 90_000;
+
 /** Checks if session is in a terminal state where the agent is done processing. */
 export const isSessionComplete = (
   sessionData: SeerExplorerResponse['session'] | undefined
@@ -18,6 +20,21 @@ export const isSessionComplete = (
   Object.values(sessionData?.repo_pr_states ?? {}).every(
     state => state.pr_creation_status !== 'creating'
   );
+
+/** Parses a datetime string as UTC regardless of whether a timezone suffix is present. */
+const parseUtcMs = (s: string) =>
+  /Z|[+-]\d{2}:?\d{2}$/.test(s) ? new Date(s).getTime() : new Date(`${s}Z`).getTime();
+
+/** Stop waiting for a session to complete if it hasn't updated in TIMEOUT_MS. */
+const isTimedOut = (sessionData: SeerExplorerResponse['session'] | undefined) => {
+  if (!sessionData?.updated_at) {
+    return false;
+  }
+  return (
+    !isSessionComplete(sessionData) &&
+    Date.now() - parseUtcMs(sessionData.updated_at) > TIMEOUT_MS
+  );
+};
 
 /** Checks if we should poll for state updates. */
 const isPolling = (
@@ -33,6 +50,9 @@ const isPolling = (
     return true;
   }
   if (!runId) {
+    return false;
+  }
+  if (isTimedOut(sessionData)) {
     return false;
   }
   return !isSessionComplete(sessionData);
@@ -82,5 +102,6 @@ export const useSeerExplorerPolling = ({
     isError,
     errorStatusCode: error?.status ?? null,
     isPolling: isPolling(runId, apiData?.session, isMutatePending, isError),
+    isTimedOut: isTimedOut(apiData?.session),
   };
 };

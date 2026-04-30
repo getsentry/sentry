@@ -321,10 +321,11 @@ export const useSeerExplorer = () => {
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {apiData, isPolling, isError, errorStatusCode} = useSeerExplorerPolling({
-    runId,
-    isMutatePending,
-  });
+  const {apiData, isPolling, isError, errorStatusCode, isTimedOut} =
+    useSeerExplorerPolling({
+      runId,
+      isMutatePending,
+    });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -586,6 +587,7 @@ export const useSeerExplorer = () => {
     isPolling,
     isError,
     errorStatusCode,
+    isTimedOut,
     sendMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */
