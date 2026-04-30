@@ -35,7 +35,7 @@ export function SlackPreview({
           to={previewLink}
           size="xs"
           icon={<PluginIcon pluginId="slack" size={24} />}
-          target="_blank"
+          external
         >
           BlockKit Builder
         </LinkButton>

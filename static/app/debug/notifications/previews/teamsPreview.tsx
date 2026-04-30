@@ -53,7 +53,7 @@ export function TeamsPreview({
             to={MSTEAMS_PREVIEW_URL}
             size="xs"
             icon={<PluginIcon pluginId="msteams" size={24} />}
-            target="_blank"
+            external
           >
             Designer
           </LinkButton>
