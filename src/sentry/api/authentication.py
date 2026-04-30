@@ -130,15 +130,7 @@ def is_static_relay(request):
     relay_id = get_header_relay_id(request)
     static_relays = options.get("relay.static_auth")
     relay_info = static_relays.get(relay_id)
-    if relay_info is not None:
-        metrics.incr(
-            "relay.is_internal_relay",
-            tags={"reason": "static_auth"},
-            sample_rate=1.0,
-        )
-        return True
-
-    return False
+    return relay_info is not None
 
 
 def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
