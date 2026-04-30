@@ -91,7 +91,6 @@ export function SnapshotMainContent({
   canNavigateNext,
 }: SnapshotMainContentProps) {
   const [isDark, setIsDark] = useState(false);
-  const [pressedDir, setPressedDir] = useState<'up' | 'down' | null>(null);
   const toggleDark = () => setIsDark(v => !v);
 
   const handleOpenSnapshot = useCallback(
@@ -101,39 +100,6 @@ export function SnapshotMainContent({
     },
     [onSelectSnapshot, onViewModeChange]
   );
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (viewMode !== 'single') {
-        return;
-      }
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-        return;
-      }
-      if (e.key === 'ArrowUp' && canNavigatePrev) {
-        setPressedDir('up');
-      } else if (e.key === 'ArrowDown' && canNavigateNext) {
-        setPressedDir('down');
-      }
-    },
-    [viewMode, canNavigatePrev, canNavigateNext]
-  );
-
-  const handleKeyUp = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      setPressedDir(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [handleKeyDown, handleKeyUp]);
 
   const toggle = (
     <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
@@ -369,7 +335,13 @@ function SingleViewLayout({
       width="100%"
       background="secondary"
     >
-      <Flex align="center" justify="between" gap="md" padding="md xl">
+      <Flex
+        align="center"
+        justify="between"
+        gap="md"
+        padding="md xl"
+        onClick={e => e.stopPropagation()}
+      >
         {toggle}
         <Flex align="center" gap="md">
           {rightControls}
@@ -391,7 +363,7 @@ function SingleViewLayout({
               )}
             </DarkAware>
           </Flex>
-          <NavGutter>
+          <NavGutter onClick={e => e.stopPropagation()}>
             <Tooltip title={t('Previous')} skipWrapper>
               <Button
                 size="sm"
@@ -581,6 +553,16 @@ function DiffModeToggle({
   );
 }
 
+const SingleViewGroup = styled(Stack)`
+  flex: 1 1 0;
+  min-height: 0;
+  padding: ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.md};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
 const SingleViewScroll = styled('div')`
   flex: 1 1 0;
   min-height: 0;
@@ -603,13 +585,6 @@ const NavGutter = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex-shrink: 0;
-`;
-
-const NavButton = styled(Button)`
-  transition: transform 80ms ease;
-  &[data-pressed='true'] {
-    transform: scale(0.85);
-  }
 `;
 
 const SingleViewCard = styled(Card)`

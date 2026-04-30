@@ -245,7 +245,10 @@ export const CardHeader = memo(function CardHeader({
   const {copy} = useCopyToClipboard();
   const handleRowKeyDown = onSelect
     ? (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === ' ' || e.key === 'Enter') {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onSelect();
+        } else if (e.key === ' ') {
           e.preventDefault();
         }
       }

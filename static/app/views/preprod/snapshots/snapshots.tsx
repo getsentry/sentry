@@ -634,11 +634,7 @@ export default function SnapshotsPage() {
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
       <Stack flex={1} onClick={handleDeselectSnapshot}>
-        <SnapshotHeaderContent
-          data={data}
-          isSoloView={isSoloView}
-          onToggleView={handleToggleView}
-        />
+        <SnapshotHeaderContent data={data} />
         <TopBar.Slot name="actions">
           <SnapshotHeaderActions
             data={data}
