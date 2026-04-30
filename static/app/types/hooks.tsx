@@ -2,7 +2,6 @@ import type {ButtonProps} from '@sentry/scraps/button';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type {InstallationInfo} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
@@ -19,7 +18,7 @@ import type {
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {AutofixContentProps} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
-import type {FeatureMeta} from 'sentry/views/onboarding/components/useScmFeatureMeta';
+import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -365,7 +364,7 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
-  'react-hook:use-scm-feature-meta': () => Record<ProductSolution, FeatureMeta>;
+  'react-hook:use-scm-feature-meta': () => UseScmFeatureMetaResult;
 };
 
 /**

@@ -21,7 +21,7 @@ export function ScmFeatureSelectionCards({
   disabledProducts,
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
-  const featureMeta = useScmFeatureMeta();
+  const {meta: featureMeta, isLoading: isVolumeLoading} = useScmFeatureMeta();
   return (
     <Stack gap="xl" width="100%" justify="center">
       <Flex justify="between" align="center">
@@ -51,6 +51,7 @@ export function ScmFeatureSelectionCards({
               onClick={() => onToggleFeature(feature)}
               volume={meta.volume}
               volumeTooltip={meta.volumeTooltip}
+              isVolumeLoading={isVolumeLoading}
             />
           );
         })}

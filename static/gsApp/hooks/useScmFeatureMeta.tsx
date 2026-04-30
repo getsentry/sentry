@@ -7,6 +7,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FALLBACK_FEATURE_META,
   type FeatureMeta,
+  type UseScmFeatureMetaResult,
 } from 'sentry/views/onboarding/components/useScmFeatureMeta';
 
 import {DEFAULT_TIER} from 'getsentry/constants';
@@ -15,63 +16,63 @@ import {formatReservedWithUnits} from 'getsentry/utils/billing';
 
 type DynamicCategoryFormat = {
   category: DataCategory;
-  formatTooltip: (formattedVolume: string) => string;
-  formatVolume: (events: number) => string;
+  formatQuantity: (events: number) => string;
+  formatTooltip: (quantity: string) => string;
+  formatVolume: (quantity: string) => string;
 };
 
-// Categories whose free-plan volume is sourced from billing-config. Profiling is
-// intentionally excluded — its free volume is 0 and the fallback "Usage-based" copy
-// is what we want to keep showing.
+// Categories whose free-plan volume is sourced from billing-config. PROFILING is
+// intentionally absent — its free-plan duration is 0 and the fallback "Usage-based"
+// copy is what we want to keep showing.
 const DYNAMIC_FORMATS: Partial<Record<ProductSolution, DynamicCategoryFormat>> = {
   [ProductSolution.ERROR_MONITORING]: {
     category: DataCategory.ERRORS,
-    formatVolume: events =>
-      t('%s errors / mo', formatReservedWithUnits(events, DataCategory.ERRORS)),
-    formatTooltip: volume =>
+    formatQuantity: events => formatReservedWithUnits(events, DataCategory.ERRORS),
+    formatVolume: quantity => t('%s errors / mo', quantity),
+    formatTooltip: quantity =>
       t(
-        'Free plan includes %s. Upgrade to Team or Business to send more.',
-        volume.replace(/ \/ mo$/, ' / month')
+        'Free plan includes %s errors / month. Upgrade to Team or Business to send more.',
+        quantity
       ),
   },
   [ProductSolution.PERFORMANCE_MONITORING]: {
     category: DataCategory.SPANS,
-    formatVolume: events =>
+    formatQuantity: events =>
+      formatReservedWithUnits(events, DataCategory.SPANS, {isAbbreviated: true}),
+    formatVolume: quantity => t('%s spans / mo', quantity),
+    formatTooltip: quantity =>
       t(
-        '%s spans / mo',
-        formatReservedWithUnits(events, DataCategory.SPANS, {isAbbreviated: true})
-      ),
-    formatTooltip: volume =>
-      t(
-        'Free plan includes %s. Upgrade to Team or Business to send more.',
-        volume.replace(/ \/ mo$/, ' / month')
+        'Free plan includes %s spans / month. Upgrade to Team or Business to send more.',
+        quantity
       ),
   },
   [ProductSolution.SESSION_REPLAY]: {
     category: DataCategory.REPLAYS,
-    formatVolume: events =>
-      t('%s replays / mo', formatReservedWithUnits(events, DataCategory.REPLAYS)),
-    formatTooltip: volume =>
+    formatQuantity: events => formatReservedWithUnits(events, DataCategory.REPLAYS),
+    formatVolume: quantity => t('%s replays / mo', quantity),
+    formatTooltip: quantity =>
       t(
-        'Free plan includes %s. Upgrade to Team or Business to send more.',
-        volume.replace(/ \/ mo$/, ' / month')
+        'Free plan includes %s replays / month. Upgrade to Team or Business to send more.',
+        quantity
       ),
   },
   [ProductSolution.LOGS]: {
     category: DataCategory.LOG_BYTE,
-    formatVolume: gigabytes =>
-      t('%s logs / mo', formatReservedWithUnits(gigabytes, DataCategory.LOG_BYTE)),
-    formatTooltip: volume =>
+    formatQuantity: gigabytes =>
+      formatReservedWithUnits(gigabytes, DataCategory.LOG_BYTE),
+    formatVolume: quantity => t('%s logs / mo', quantity),
+    formatTooltip: quantity =>
       t(
-        'Free plan includes %s. Upgrade to Team or Business to send more.',
-        volume.replace(/ \/ mo$/, ' / month')
+        'Free plan includes %s logs / month. Upgrade to Team or Business to send more.',
+        quantity
       ),
   },
   [ProductSolution.METRICS]: {
     category: DataCategory.TRACE_METRIC_BYTE,
-    formatVolume: gigabytes =>
-      t('%s / mo', formatReservedWithUnits(gigabytes, DataCategory.TRACE_METRIC_BYTE)),
-    formatTooltip: volume =>
-      t('Free plan includes %s metrics / month.', volume.replace(/ \/ mo$/, '')),
+    formatQuantity: gigabytes =>
+      formatReservedWithUnits(gigabytes, DataCategory.TRACE_METRIC_BYTE),
+    formatVolume: quantity => t('%s / mo', quantity),
+    formatTooltip: quantity => t('Free plan includes %s metrics / month.', quantity),
   },
 };
 
@@ -87,12 +88,12 @@ function getFreeVolume(plan: Plan, category: DataCategory): number | undefined {
 /**
  * gsApp implementation of `useScmFeatureMeta`. Sources free-plan volume strings
  * from the default-tier billing-config response so the SCM onboarding cards stay
- * aligned with the actual free-plan limits. Falls back to the OSS static copy
- * while the request is in flight or if it fails.
+ * aligned with the actual free-plan limits. Reports isLoading while the request
+ * is in flight, and falls back to the OSS static copy on error.
  */
-export function useScmFeatureMeta(): Record<ProductSolution, FeatureMeta> {
+export function useScmFeatureMeta(): UseScmFeatureMetaResult {
   const organization = useOrganization();
-  const {data: billingConfig} = useApiQuery<BillingConfig>(
+  const {data: billingConfig, isLoading} = useApiQuery<BillingConfig>(
     [
       getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
         path: {organizationIdOrSlug: organization.slug},
@@ -103,12 +104,12 @@ export function useScmFeatureMeta(): Record<ProductSolution, FeatureMeta> {
   );
 
   if (!billingConfig) {
-    return FALLBACK_FEATURE_META;
+    return {meta: FALLBACK_FEATURE_META, isLoading};
   }
 
   const freePlan = findFreePlan(billingConfig.planList, billingConfig.freePlan);
   if (!freePlan) {
-    return FALLBACK_FEATURE_META;
+    return {meta: FALLBACK_FEATURE_META, isLoading: false};
   }
 
   const meta: Record<ProductSolution, FeatureMeta> = {...FALLBACK_FEATURE_META};
@@ -121,13 +122,13 @@ export function useScmFeatureMeta(): Record<ProductSolution, FeatureMeta> {
     if (events === undefined || events <= 0) {
       continue;
     }
-    const volume = format.formatVolume(events);
+    const quantity = format.formatQuantity(events);
     meta[product] = {
       ...FALLBACK_FEATURE_META[product],
-      volume,
-      volumeTooltip: format.formatTooltip(volume),
+      volume: format.formatVolume(quantity),
+      volumeTooltip: format.formatTooltip(quantity),
     };
   }
 
-  return meta;
+  return {meta, isLoading: false};
 }

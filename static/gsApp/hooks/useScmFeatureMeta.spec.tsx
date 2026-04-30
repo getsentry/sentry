@@ -23,18 +23,24 @@ describe('useScmFeatureMeta (gsApp)', () => {
 
     const {result} = renderHookWithProviders(useScmFeatureMeta, {organization});
 
+    expect(result.current.isLoading).toBe(true);
+
     await waitFor(() => {
-      expect(result.current[ProductSolution.ERROR_MONITORING].volume).toBe(
+      expect(result.current.meta[ProductSolution.ERROR_MONITORING].volume).toBe(
         '50,000 errors / mo'
       );
     });
-    expect(result.current[ProductSolution.PERFORMANCE_MONITORING].volume).toBe(
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.meta[ProductSolution.PERFORMANCE_MONITORING].volume).toBe(
       '10M spans / mo'
     );
-    expect(result.current[ProductSolution.SESSION_REPLAY].volume).toBe('50 replays / mo');
-    expect(result.current[ProductSolution.LOGS].volume).toBe('5 GB logs / mo');
-    // Profile duration in the free plan is 0 → fallback "Usage-based" still wins.
-    expect(result.current[ProductSolution.PROFILING].volume).toBe('Usage-based');
+    expect(result.current.meta[ProductSolution.SESSION_REPLAY].volume).toBe(
+      '50 replays / mo'
+    );
+    expect(result.current.meta[ProductSolution.LOGS].volume).toBe('5 GB logs / mo');
+    // PROFILING is intentionally absent from DYNAMIC_FORMATS, so the static
+    // "Usage-based" fallback is preserved.
+    expect(result.current.meta[ProductSolution.PROFILING].volume).toBe('Usage-based');
   });
 
   it('falls back to static volumes when billing-config errors', async () => {
@@ -49,11 +55,12 @@ describe('useScmFeatureMeta (gsApp)', () => {
     const {result} = renderHookWithProviders(useScmFeatureMeta, {organization});
 
     await waitFor(() => {
-      expect(result.current[ProductSolution.ERROR_MONITORING].volume).toBe(
-        '5,000 errors / mo'
-      );
+      expect(result.current.isLoading).toBe(false);
     });
-    expect(result.current[ProductSolution.PERFORMANCE_MONITORING].volume).toBe(
+    expect(result.current.meta[ProductSolution.ERROR_MONITORING].volume).toBe(
+      '5,000 errors / mo'
+    );
+    expect(result.current.meta[ProductSolution.PERFORMANCE_MONITORING].volume).toBe(
       '5M spans / mo'
     );
   });

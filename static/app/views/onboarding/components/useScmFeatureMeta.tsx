@@ -22,6 +22,11 @@ export type FeatureMeta = {
   alwaysEnabled?: boolean;
 };
 
+export type UseScmFeatureMetaResult = {
+  isLoading: boolean;
+  meta: Record<ProductSolution, FeatureMeta>;
+};
+
 export const FALLBACK_FEATURE_META: Record<ProductSolution, FeatureMeta> = {
   [ProductSolution.ERROR_MONITORING]: {
     label: t('Error monitoring'),
@@ -82,19 +87,19 @@ export const FALLBACK_FEATURE_META: Record<ProductSolution, FeatureMeta> = {
   },
 };
 
-function useFallbackScmFeatureMeta(): Record<ProductSolution, FeatureMeta> {
-  return FALLBACK_FEATURE_META;
+function useFallbackScmFeatureMeta(): UseScmFeatureMetaResult {
+  return {meta: FALLBACK_FEATURE_META, isLoading: false};
 }
 
 /**
  * Returns the per-product metadata used to render SCM onboarding feature cards.
  *
- * The implementation lives in gsApp (it reads the active org's billing-config
- * to keep the volume strings aligned with the actual free-plan limits). When
- * no implementation is registered — self-hosted, or before gsApp's lazy init
- * has finished — the static FALLBACK_FEATURE_META is returned.
+ * The implementation lives in gsApp; it reads the active org's billing-config
+ * to keep the volume strings aligned with the actual free-plan limits. On
+ * self-hosted, where gsApp isn't bundled, the static FALLBACK_FEATURE_META is
+ * returned with isLoading=false.
  */
-export function useScmFeatureMeta(): Record<ProductSolution, FeatureMeta> {
+export function useScmFeatureMeta(): UseScmFeatureMetaResult {
   const hook =
     HookStore.get('react-hook:use-scm-feature-meta')[0] ?? useFallbackScmFeatureMeta;
   return hook();
