@@ -1043,7 +1043,6 @@ class TestWritePreferencesToSentryDb(TestCase):
             instructions="kept across writes",
         )
 
-        # New payload only includes the active repo (mirrors what reads now return).
         new_preference = SeerProjectPreference(
             organization_id=self.organization.id,
             project_id=self.project.id,
