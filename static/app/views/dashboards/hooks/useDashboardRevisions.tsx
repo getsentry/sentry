@@ -8,7 +8,7 @@ import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
 // Sparse user shape that both the API response (after normalization) and a full
 // User object satisfy, so callers can pass either without mapping.
-export type RevisionCreatedBy = Pick<
+type RevisionCreatedBy = Pick<
   AvatarUser,
   'id' | 'name' | 'email' | 'avatar' | 'avatarUrl'
 >;
