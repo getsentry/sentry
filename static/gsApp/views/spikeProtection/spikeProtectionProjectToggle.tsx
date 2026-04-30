@@ -24,7 +24,6 @@ interface SpikeProtectionProjectToggleProps {
   project: Project;
   subscription: Subscription;
   analyticsView?: SpendVisibilityBaseParams['view'];
-  className?: string;
   disabled?: boolean;
   help?: React.ReactNode;
   label?: React.ReactNode;
