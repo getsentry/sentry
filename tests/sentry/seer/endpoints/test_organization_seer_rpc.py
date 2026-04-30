@@ -64,6 +64,22 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert self.project.id in project_ids
 
     @with_feature("organizations:seer-public-rpc")
+    def test_org_level_method_get_dsn(self) -> None:
+        project = self.create_project(organization=self.organization, slug="wordcraft")
+        path = self._get_path("get_dsn")
+
+        response = self.client.post(
+            path, data={"args": {"project_slug": "wordcraft"}}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert response.data is not None
+        assert response.data["project_slug"] == "wordcraft"
+        assert response.data["platform"] == project.platform
+        assert response.data["dsn_public"].startswith("http")
+        assert response.data["dsn_public"].endswith(f"/{project.id}")
+
+    @with_feature("organizations:seer-public-rpc")
     def test_project_method_requires_project_id(self) -> None:
         """Test that project-level methods require project_id in args"""
         path = self._get_path("get_transactions_for_project")
