@@ -13,11 +13,9 @@ from snuba_sdk import (
     BooleanOp,
     Column,
     Condition,
-    CurriedFunction,
     Direction,
     Entity,
     Function,
-    Granularity,
     Limit,
     LimitBy,
     Op,
@@ -39,12 +37,9 @@ from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import SnubaParams
 from sentry.seer.breakpoints import BreakpointData
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.discover import zerofill
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors.algorithm import (
     DetectorAlgorithm,
@@ -740,103 +735,43 @@ def query_transactions(
     start = start.replace(minute=0, second=0, microsecond=0)
     end = start + timedelta(hours=1)
 
-    org_ids = list({p.organization_id for p in projects})
     project_ids = list({p.id for p in projects})
 
-    use_case_id = UseCaseID.TRANSACTIONS
-
-    # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
-    # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
-    #
-    # Because we filter on more than just `transaction`, we have to use DURATION here instead of
-    # DURATION_LIGHT.
-    duration_metric_id = indexer.resolve(
-        use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
-    )
-    transaction_name_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction",
-    )
-    transaction_op_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction.op",
-    )
-
-    # if our time range is more than an hour, use the hourly granularity
-    granularity = 3600 if int(end.timestamp()) - int(start.timestamp()) >= 3600 else 60
-
-    # This query returns the top `transactions_per_project` transaction names by count in the specified
-    # [start, end) time period along with the p95 of each transaction in that time period
-    # this is written in raw SnQL because the metrics layer does not support the limitby clause which is necessary for this operation to work
-
+    # This query returns the top `transactions_per_project` transaction names by count in the
+    # specified [start, end) time period along with the p95 of each transaction in that period.
+    # Written in raw SnQL because the discover layer does not support the LIMITBY clause needed here.
     query = Query(
-        match=Entity(EntityKey.GenericMetricsDistributions.value),
+        match=Entity(EntityKey.Transactions.value),
         select=[
             Column("project_id"),
-            Function(
-                "arrayElement",
-                (
-                    CurriedFunction(
-                        "quantilesIf",
-                        [0.95],
-                        (
-                            Column("value"),
-                            Function("equals", (Column("metric_id"), duration_metric_id)),
-                        ),
-                    ),
-                    1,
-                ),
-                "p95",
-            ),
-            Function(
-                "countIf",
-                (Column("value"), Function("equals", (Column("metric_id"), duration_metric_id))),
-                "count",
-            ),
-            Function(
-                "transform",
-                (
-                    Column(f"tags_raw[{transaction_name_metric_id}]"),
-                    Function("array", ("",)),
-                    Function("array", ("<< unparameterized >>",)),
-                ),
-                "transaction_name",
-            ),
+            Function("quantile(0.95)", [Column("duration")], "p95"),
+            Function("count", [], "count"),
+            Column("transaction_name"),
         ],
         groupby=[
             Column("project_id"),
             Column("transaction_name"),
         ],
         where=[
-            Condition(Column("org_id"), Op.IN, list(org_ids)),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
-            Condition(Column("metric_id"), Op.EQ, duration_metric_id),
-            Condition(
-                Column(f"tags_raw[{transaction_op_metric_id}]"),
-                Op.IN,
-                list(BACKEND_TRANSACTION_OPS),
-            ),
+            Condition(Column("finish_ts"), Op.GTE, start),
+            Condition(Column("finish_ts"), Op.LT, end),
+            Condition(Column("transaction_op"), Op.IN, list(BACKEND_TRANSACTION_OPS)),
         ],
         limitby=LimitBy([Column("project_id")], transactions_per_project),
         orderby=[
             OrderBy(Column("project_id"), Direction.DESC),
             OrderBy(Column("count"), Direction.DESC),
         ],
-        granularity=Granularity(granularity),
         limit=Limit(len(project_ids) * transactions_per_project),
     )
     request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
+        dataset=Dataset.Transactions.value,
         app_id="statistical_detectors",
         query=query,
         tenant_ids={
             "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
             "cross_org_query": 1,
-            "use_case_id": use_case_id.value,
         },
     )
     data = raw_snql_query(
@@ -863,23 +798,10 @@ def query_transactions_timeseries(
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
     start = end - timedelta(days=days_to_query)
-    use_case_id = UseCaseID.TRANSACTIONS
     interval = 3600  # 1 hour
 
     project_objects = {p for p, _ in transactions}
     project_ids = [project.id for project in project_objects]
-    org_ids = list({project.organization_id for project in project_objects})
-    # The only tag available on DURATION_LIGHT is `transaction`: as long as
-    # we don't filter on any other tags, DURATION_LIGHT's lower cardinality
-    # will be faster to query.
-    duration_metric_id = indexer.resolve(
-        use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
-    )
-    transaction_name_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction",
-    )
 
     transactions_condition = None
     if len(transactions) == 1:
@@ -888,7 +810,7 @@ def query_transactions_timeseries(
             BooleanOp.AND,
             [
                 Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(Column("transaction"), Op.EQ, transaction_name),
+                Condition(Column("transaction_name"), Op.EQ, transaction_name),
             ],
         )
     else:
@@ -899,7 +821,7 @@ def query_transactions_timeseries(
                     BooleanOp.AND,
                     [
                         Condition(Column("project_id"), Op.EQ, project.id),
-                        Condition(Column("transaction"), Op.EQ, transaction_name),
+                        Condition(Column("transaction_name"), Op.EQ, transaction_name),
                     ],
                 )
                 for project, transaction_name in transactions
@@ -907,74 +829,48 @@ def query_transactions_timeseries(
         )
 
     query = Query(
-        match=Entity(EntityKey.GenericMetricsDistributions.value),
+        match=Entity(EntityKey.Transactions.value),
         select=[
             Column("project_id"),
-            Function(
-                "arrayElement",
-                (
-                    CurriedFunction(
-                        "quantilesIf",
-                        [0.95],
-                        (
-                            Column("value"),
-                            Function("equals", (Column("metric_id"), duration_metric_id)),
-                        ),
-                    ),
-                    1,
-                ),
-                "p95_transaction_duration",
-            ),
-            Function(
-                "transform",
-                (
-                    Column(f"tags_raw[{transaction_name_metric_id}]"),
-                    Function("array", ("",)),
-                    Function("array", ("<< unparameterized >>",)),
-                ),
-                "transaction",
-            ),
+            Function("quantile(0.95)", [Column("duration")], "p95_transaction_duration"),
+            Column("transaction_name"),
         ],
         groupby=[
-            Column("transaction"),
+            Column("transaction_name"),
             Column("project_id"),
             Function(
                 "toStartOfInterval",
-                (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
+                (Column("finish_ts"), Function("toIntervalSecond", (3600,)), "Universal"),
                 "time",
             ),
         ],
         where=[
-            Condition(Column("org_id"), Op.IN, list(org_ids)),
             Condition(Column("project_id"), Op.IN, list(project_ids)),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
-            Condition(Column("metric_id"), Op.EQ, duration_metric_id),
+            Condition(Column("finish_ts"), Op.GTE, start),
+            Condition(Column("finish_ts"), Op.LT, end),
             transactions_condition,
         ],
         orderby=[
             OrderBy(Column("project_id"), Direction.ASC),
-            OrderBy(Column("transaction"), Direction.ASC),
+            OrderBy(Column("transaction_name"), Direction.ASC),
             OrderBy(
                 Function(
                     "toStartOfInterval",
-                    (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
+                    (Column("finish_ts"), Function("toIntervalSecond", (3600,)), "Universal"),
                     "time",
                 ),
                 Direction.ASC,
             ),
         ],
-        granularity=Granularity(interval),
         limit=Limit(10000),
     )
     request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
+        dataset=Dataset.Transactions.value,
         app_id="statistical_detectors",
         query=query,
         tenant_ids={
             "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value,
             "cross_org_query": 1,
-            "use_case_id": use_case_id.value,
         },
     )
     data = raw_snql_query(
@@ -983,7 +879,7 @@ def query_transactions_timeseries(
 
     results = {}
     for index, datapoint in enumerate(data or []):
-        key = (datapoint["project_id"], datapoint["transaction"])
+        key = (datapoint["project_id"], datapoint["transaction_name"])
         if key not in results:
             results[key] = {
                 "data": [datapoint],
