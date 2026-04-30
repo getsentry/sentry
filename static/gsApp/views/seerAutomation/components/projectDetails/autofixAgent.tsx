@@ -33,7 +33,7 @@ type NightShiftValue = 'on' | 'off' | 'default';
 const NIGHT_SHIFT_OPTIONS = [
   {value: 'on' as const, label: t('On')},
   {value: 'off' as const, label: t('Off')},
-  {value: 'default' as const, label: t('Default (Off)')},
+  {value: 'default' as const, label: t('Default (On)')},
 ];
 
 function getNightShiftValue(project: Project): NightShiftValue {
