@@ -10,9 +10,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 // eslint-disable-next-line no-restricted-imports
-import {darkTheme} from 'sentry/utils/theme/theme';
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {
   SnapshotDiffPair,
@@ -38,7 +39,10 @@ export function DarkAware({
   if (!isDark) {
     return <Fragment>{children}</Fragment>;
   }
-  return <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>;
+  const siteIsDark = ConfigStore.get('theme') === 'dark';
+  return (
+    <ThemeProvider theme={siteIsDark ? lightTheme : darkTheme}>{children}</ThemeProvider>
+  );
 }
 
 export const PairCard = memo(function PairCard({
@@ -53,6 +57,7 @@ export const PairCard = memo(function PairCard({
   diffImageBaseUrl,
   snapshotKey,
   onSelectSnapshot,
+  onOpenSnapshot,
 }: {
   cardType: 'changed' | 'renamed';
   copyUrl: string;
@@ -63,6 +68,7 @@ export const PairCard = memo(function PairCard({
   snapshotKey: string;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
+  onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
 }) {
@@ -76,6 +82,7 @@ export const PairCard = memo(function PairCard({
   const handleSelect = onSelectSnapshot
     ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
     : undefined;
+  const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
   let body: React.ReactNode;
   if (effectiveMode === 'split') {
@@ -114,7 +121,12 @@ export const PairCard = memo(function PairCard({
 
   return (
     <DarkAware isDark={isDark}>
-      <Card isDark={isDark} isSelected={isSelected} data-snapshot-key={snapshotKey}>
+      <Card
+        isDark={isDark}
+        isSelected={isSelected}
+        data-snapshot-key={snapshotKey}
+        onClick={e => e.stopPropagation()}
+      >
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
@@ -125,6 +137,7 @@ export const PairCard = memo(function PairCard({
           copyData={pair}
           copyUrl={copyUrl}
           onSelect={handleSelect}
+          onDoubleClick={handleOpen}
           isSelected={isSelected}
         />
         {body}
@@ -142,6 +155,7 @@ export const ImageCard = memo(function ImageCard({
   copyUrl,
   snapshotKey,
   onSelectSnapshot,
+  onOpenSnapshot,
 }: {
   cardType: 'added' | 'removed' | 'unchanged' | 'solo';
   copyUrl: string;
@@ -150,6 +164,7 @@ export const ImageCard = memo(function ImageCard({
   isSelected: boolean;
   snapshotKey: string;
   headBranch?: string | null;
+  onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
 }) {
   const [isDark, setIsDark] = useState(false);
@@ -165,14 +180,20 @@ export const ImageCard = memo(function ImageCard({
     status = DiffStatus.UNCHANGED;
   }
 
-  const label = cardType === 'removed' ? t('Base') : (headBranch ?? t('Head'));
+  const label = headBranch ? (cardType === 'removed' ? t('Base') : headBranch) : null;
   const handleSelect = onSelectSnapshot
     ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
     : undefined;
+  const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
   return (
     <DarkAware isDark={isDark}>
-      <Card isDark={isDark} isSelected={isSelected} data-snapshot-key={snapshotKey}>
+      <Card
+        isDark={isDark}
+        isSelected={isSelected}
+        data-snapshot-key={snapshotKey}
+        onClick={e => e.stopPropagation()}
+      >
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
@@ -182,6 +203,7 @@ export const ImageCard = memo(function ImageCard({
           copyData={image}
           copyUrl={copyUrl}
           onSelect={handleSelect}
+          onDoubleClick={handleOpen}
           isSelected={isSelected}
         />
         <ImageColumn
@@ -205,6 +227,7 @@ export const CardHeader = memo(function CardHeader({
   copyData,
   copyUrl,
   onSelect,
+  onDoubleClick,
   isSelected,
 }: {
   copyData: unknown;
@@ -215,11 +238,11 @@ export const CardHeader = memo(function CardHeader({
   diffPercent?: number | null;
   displayName?: string | null;
   isSelected?: boolean;
+  onDoubleClick?: () => void;
   onSelect?: () => void;
   status?: DiffStatus | null;
 }) {
   const {copy} = useCopyToClipboard();
-  // Enter toggles selection; Space is reserved for the list-view document-level handler that scrolls current selection to top
   const handleRowKeyDown = onSelect
     ? (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Enter') {
@@ -233,6 +256,7 @@ export const CardHeader = memo(function CardHeader({
   return (
     <CardHeaderRow
       onClick={onSelect}
+      onDoubleClick={onDoubleClick}
       onKeyDown={handleRowKeyDown}
       role={onSelect ? 'button' : undefined}
       tabIndex={onSelect ? 0 : undefined}
@@ -258,12 +282,14 @@ export const CardHeader = memo(function CardHeader({
       <Flex align="center" gap="sm" onClick={e => e.stopPropagation()}>
         {status && <StatusBadge status={status} diffPercent={diffPercent} />}
         <IconButton
-          aria-label={isDark ? t('Switch to light preview') : t('Switch to dark preview')}
+          aria-label={isDark ? t('Light preview') : t('Dark preview')}
+          tooltip={isDark ? t('Light preview') : t('Dark preview')}
           icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
           onClick={onToggleDark}
         />
         <IconButton
           aria-label={t('Copy link to this snapshot')}
+          tooltip={t('Copy link')}
           icon={<IconLink size="sm" />}
           onClick={() =>
             copy(copyUrl, {successMessage: t('Copied link to this snapshot')})
@@ -291,7 +317,7 @@ function MetadataInfoButton({copyData}: {copyData: unknown}) {
   const json = JSON.stringify(copyData, null, 2);
 
   return (
-    <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480}>
+    <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
       <InfoIconButton
         type="button"
         aria-label={t('Copy metadata as JSON')}
@@ -341,12 +367,14 @@ function IconButton({
   icon,
   'aria-label': ariaLabel,
   onClick,
+  tooltip,
 }: {
   'aria-label': string;
   icon: React.ReactNode;
   onClick?: () => void;
+  tooltip?: string;
 }) {
-  return (
+  const button = (
     <Button
       size="xs"
       priority="transparent"
@@ -354,6 +382,14 @@ function IconButton({
       aria-label={ariaLabel}
       onClick={onClick}
     />
+  );
+  if (!tooltip) {
+    return button;
+  }
+  return (
+    <Tooltip title={tooltip} skipWrapper>
+      {button}
+    </Tooltip>
   );
 }
 

@@ -8,7 +8,7 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {FormModel} from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
@@ -73,9 +73,9 @@ export function EditDetectorLayout<
   };
 
   return (
-    <EditLayout formProps={formProps}>
-      <EditLayout.Header maxWidth={maxWidth}>
-        <EditLayout.HeaderContent>
+    <EditLayoutDeprecated formProps={formProps}>
+      <EditLayoutDeprecated.Header maxWidth={maxWidth}>
+        <EditLayoutDeprecated.HeaderContent>
           {hasPageFrame ? (
             <TopBar.Slot name="title">
               <EditDetectorBreadcrumbs detector={detector} />
@@ -83,25 +83,27 @@ export function EditDetectorLayout<
           ) : (
             <EditDetectorBreadcrumbs detector={detector} />
           )}
-        </EditLayout.HeaderContent>
+        </EditLayoutDeprecated.HeaderContent>
 
         <div>
-          <EditLayout.Actions>
+          <EditLayoutDeprecated.Actions>
             <MonitorFeedbackButton />
-          </EditLayout.Actions>
+          </EditLayoutDeprecated.Actions>
         </div>
 
-        <EditLayout.HeaderFields>
+        <EditLayoutDeprecated.HeaderFields>
           <DetectorNameField />
           {previewChart ?? <div />}
-        </EditLayout.HeaderFields>
-      </EditLayout.Header>
+        </EditLayoutDeprecated.HeaderFields>
+      </EditLayoutDeprecated.Header>
 
-      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
+        {children}
+      </EditLayoutDeprecated.Body>
 
       <FormContext.Consumer>
         {({form}) => (
-          <EditLayout.Footer maxWidth={maxWidth}>
+          <EditLayoutDeprecated.Footer maxWidth={maxWidth}>
             <DisableDetectorAction detector={detector} />
             <DeleteDetectorAction detector={detector} />
             {extraFooterButton}
@@ -119,9 +121,9 @@ export function EditDetectorLayout<
                 </Button>
               )}
             </Observer>
-          </EditLayout.Footer>
+          </EditLayoutDeprecated.Footer>
         )}
       </FormContext.Consumer>
-    </EditLayout>
+    </EditLayoutDeprecated>
   );
 }

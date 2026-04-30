@@ -15,6 +15,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 interface EmptyStateProps {
+  errorStatusCode?: number | null;
   isError?: boolean;
   isLoading?: boolean;
   onSuggestionClick?: (question: string) => void;
@@ -24,23 +25,30 @@ interface EmptyStateProps {
 export function EmptyState({
   isLoading = false,
   isError = false,
+  errorStatusCode = null,
   runId,
   onSuggestionClick,
 }: EmptyStateProps) {
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
-      {isError ? (
-        <Fragment>
-          <IconSeer size="xl" />
-          <Text>
-            {tct('Error loading this session (ID=[runIdDisplay]).', {runIdDisplay})}
-          </Text>
-        </Fragment>
-      ) : isLoading ? (
+      {isLoading ? (
         <Fragment>
           <LoadingIndicator size={32} />
           <Text>{t('Ask Seer anything about your application.')}</Text>
+        </Fragment>
+      ) : isError ? (
+        <Fragment>
+          <IconSeer size="xl" />
+          <Text>
+            {errorStatusCode === 404
+              ? tct('Session not found (run_id=[runIdDisplay]).', {
+                  runIdDisplay,
+                })
+              : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
+                  runIdDisplay,
+                })}
+          </Text>
         </Fragment>
       ) : (
         <Fragment>

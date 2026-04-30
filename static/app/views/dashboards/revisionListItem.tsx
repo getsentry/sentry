@@ -23,7 +23,7 @@ import type {DashboardDetails} from './types';
 
 interface RevisionListItemProps {
   baseRevisionId: string | null;
-  createdBy: {email: string; id: string; name: string; avatarUrl?: string | null} | null;
+  createdBy: DashboardRevision['createdBy'];
   dashboardId: string;
   dateCreated: string | null;
   isSelected: boolean;
@@ -91,16 +91,7 @@ export function RevisionListItem({
   const isError = (!snapshotOverride && isSnapshotError) || isBaseError;
 
   const userForAvatar = createdBy
-    ? ({
-        id: createdBy.id,
-        name: createdBy.name,
-        email: createdBy.email,
-        ip_address: '',
-        username: createdBy.email,
-        avatar: createdBy.avatarUrl
-          ? {avatarType: 'upload', avatarUrl: createdBy.avatarUrl, avatarUuid: null}
-          : undefined,
-      } as User)
+    ? ({...createdBy, ip_address: '', username: createdBy.email} as User)
     : null;
 
   return (

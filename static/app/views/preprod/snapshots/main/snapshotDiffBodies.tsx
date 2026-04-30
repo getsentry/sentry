@@ -1,4 +1,4 @@
-import {memo, useEffect, useState} from 'react';
+import {memo, type ReactNode, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -6,12 +6,14 @@ import {Slider} from '@sentry/scraps/slider';
 import {Text} from '@sentry/scraps/text';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
+import {computeMaskSize} from './computeMaskSize';
 
 export const MAX_IMAGE_HEIGHT = 480;
 
@@ -38,11 +40,10 @@ export const SplitPairBody = memo(function SplitPairBody({
 }) {
   const [zoom1, zoom2] = useSyncedD3Zoom({wheelRequiresModifier: true});
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
-  const diffMaskUrl = useDiffMaskBlobUrl(
+  const diffMaskUrl =
     hasVisibleOverlay && diffImageKey && diffImageBaseUrl
       ? `${diffImageBaseUrl}${diffImageKey}/`
-      : null
-  );
+      : null;
   return (
     <Container position="relative">
       <Grid columns="1fr 1fr" gap="0">
@@ -54,16 +55,12 @@ export const SplitPairBody = memo(function SplitPairBody({
           </Container>
           <ZoomViewport ref={zoom1.containerRef}>
             <ZoomTransformLayer style={zoomTransformStyle(zoom1.transform)}>
-              <Container position="relative" display="inline-block" maxWidth="100%">
-                <ConstrainedImg
-                  src={baseUrl}
-                  alt={`${altPrefix} (base)`}
-                  loading="lazy"
-                  decoding="async"
-                  width={baseImage.width || undefined}
-                  height={baseImage.height || undefined}
-                />
-              </Container>
+              <LazyImage
+                src={baseUrl}
+                alt={`${altPrefix} (base)`}
+                width={baseImage.width || undefined}
+                height={baseImage.height || undefined}
+              />
             </ZoomTransformLayer>
           </ZoomViewport>
         </Stack>
@@ -75,19 +72,20 @@ export const SplitPairBody = memo(function SplitPairBody({
           </Container>
           <ZoomViewport ref={zoom2.containerRef}>
             <ZoomTransformLayer style={zoomTransformStyle(zoom2.transform)}>
-              <Container position="relative" display="inline-block" maxWidth="100%">
-                <ConstrainedImg
-                  src={headUrl}
-                  alt={`${altPrefix} (head)`}
-                  loading="lazy"
-                  decoding="async"
-                  width={headImage.width || undefined}
-                  height={headImage.height || undefined}
-                />
-                {hasVisibleOverlay && overlayColor && diffMaskUrl && (
-                  <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
+              <LazyImage
+                src={headUrl}
+                alt={`${altPrefix} (head)`}
+                width={headImage.width || undefined}
+                height={headImage.height || undefined}
+              >
+                {diffMaskUrl && (
+                  <DiffOverlay
+                    $overlayColor={overlayColor!}
+                    $maskUrl={diffMaskUrl}
+                    $maskSize={computeMaskSize(baseImage, headImage)}
+                  />
                 )}
-              </Container>
+              </LazyImage>
             </ZoomTransformLayer>
           </ZoomViewport>
         </Stack>
@@ -106,83 +104,51 @@ export const ImageColumn = memo(function ImageColumn({
   src,
   alt,
   image,
-  withLeftBorder,
   overlayColor,
   diffImageKey,
   diffImageBaseUrl,
 }: {
   alt: string;
   image: SnapshotImage;
-  label: string;
   src: string;
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
+  label?: string | null;
   overlayColor?: string;
-  withLeftBorder?: boolean;
 }) {
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
-  const diffMaskUrl = useDiffMaskBlobUrl(
+  const diffMaskUrl =
     hasVisibleOverlay && diffImageKey && diffImageBaseUrl
       ? `${diffImageBaseUrl}${diffImageKey}/`
-      : null
-  );
+      : null;
   return (
-    <Stack minWidth="0" borderLeft={withLeftBorder ? 'secondary' : undefined}>
-      <Container padding="sm xl" borderBottom="secondary">
-        <Text size="xs" variant="muted" ellipsis monospace>
-          {label}
-        </Text>
-      </Container>
-      <Flex justify="center" padding="xl">
-        <Container position="relative" display="inline-block" maxWidth="100%">
-          <ConstrainedImg
-            src={src}
-            alt={alt}
-            loading="lazy"
-            decoding="async"
-            width={image.width || undefined}
-            height={image.height || undefined}
-          />
-          {hasVisibleOverlay && overlayColor && diffMaskUrl && (
-            <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
-          )}
+    <Stack minWidth="0">
+      {label && (
+        <Container padding="sm xl" borderBottom="secondary">
+          <Text size="xs" variant="muted" ellipsis monospace>
+            {label}
+          </Text>
         </Container>
+      )}
+      <Flex justify="center" padding="xl">
+        <LazyImage
+          src={src}
+          alt={alt}
+          width={image.width || undefined}
+          height={image.height || undefined}
+        >
+          {diffMaskUrl && (
+            <DiffOverlay
+              $overlayColor={overlayColor!}
+              $maskUrl={diffMaskUrl}
+              $maskSize="100% 100%"
+            />
+          )}
+        </LazyImage>
       </Flex>
     </Stack>
   );
 });
-
-function useDiffMaskBlobUrl(diffImageUrl: string | null) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!diffImageUrl) {
-      setBlobUrl(null);
-      return undefined;
-    }
-    let cancelled = false;
-    let createdUrl: string | null = null;
-    fetch(diffImageUrl)
-      .then(r =>
-        r.ok ? r.blob() : Promise.reject(new Error(`diff fetch failed: ${r.status}`))
-      )
-      .then(blob => {
-        if (cancelled) {
-          return;
-        }
-        createdUrl = URL.createObjectURL(blob);
-        setBlobUrl(createdUrl);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-      if (createdUrl) {
-        URL.revokeObjectURL(createdUrl);
-      }
-      setBlobUrl(null);
-    };
-  }, [diffImageUrl]);
-  return blobUrl;
-}
 
 const WIPE_MIN_HEIGHT = 160;
 
@@ -305,8 +271,59 @@ export const OnionCardBody = memo(function OnionCardBody({
   );
 });
 
-// Named to avoid collision with the core <Image> component and the global Image constructor
-const ConstrainedImg = styled('img')`
+function LazyImage({
+  src,
+  alt,
+  width,
+  height,
+  children,
+}: {
+  alt: string;
+  src: string;
+  children?: ReactNode;
+  height?: number;
+  width?: number;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [src]);
+
+  const onLoad = useCallback(() => setLoaded(true), []);
+  const onError = useCallback(() => setLoaded(true), []);
+  const refCallback = useCallback((el: HTMLImageElement | null) => {
+    if (el?.complete && el.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
+  const displayHeight =
+    width && height ? `${Math.min(height, MAX_IMAGE_HEIGHT)}px` : `${MAX_IMAGE_HEIGHT}px`;
+  return (
+    <Container position="relative" display="inline-block" maxWidth="100%">
+      {!loaded && (
+        <Placeholder
+          width={width ? `${width}px` : '100%'}
+          height={displayHeight}
+          style={{maxWidth: '100%', maxHeight: `${MAX_IMAGE_HEIGHT}px`}}
+        />
+      )}
+      <HiddenUntilLoaded
+        ref={refCallback}
+        src={src}
+        alt={alt}
+        width={width || undefined}
+        height={height || undefined}
+        onLoad={onLoad}
+        onError={onError}
+        style={loaded ? undefined : {position: 'absolute', top: 0, left: 0, opacity: 0}}
+      />
+      {loaded && children}
+    </Container>
+  );
+}
+
+const HiddenUntilLoaded = styled('img')`
   display: block;
   width: auto;
   height: auto;
@@ -314,7 +331,11 @@ const ConstrainedImg = styled('img')`
   max-height: ${MAX_IMAGE_HEIGHT}px;
 `;
 
-const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
+const DiffOverlay = styled('span')<{
+  $maskSize: string;
+  $maskUrl: string;
+  $overlayColor: string;
+}>`
   position: absolute;
   top: 0;
   left: 0;
@@ -323,10 +344,12 @@ const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
   pointer-events: none;
   background-color: ${p => p.$overlayColor};
   mask-image: url(${p => p.$maskUrl});
-  mask-size: 100% 100%;
+  mask-size: ${p => p.$maskSize};
+  mask-position: top left;
   mask-mode: luminance;
   -webkit-mask-image: url(${p => p.$maskUrl});
-  -webkit-mask-size: 100% 100%;
+  -webkit-mask-size: ${p => p.$maskSize};
+  -webkit-mask-position: top left;
 `;
 
 const ZoomViewport = styled('div')`

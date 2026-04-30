@@ -5,7 +5,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {useExperiment} from 'sentry/utils/useExperiment';
 
 function TestComponent({feature}: {feature: string}) {
-  const {inExperiment, experimentAssignment} = useExperiment({feature});
+  const {inExperiment, experimentAssignment} = useExperiment({
+    feature,
+    reportExposure: false,
+  });
   return (
     <div>
       <span data-test-id="in-experiment">{String(inExperiment)}</span>

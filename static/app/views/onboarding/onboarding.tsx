@@ -23,6 +23,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -183,6 +184,7 @@ export function OnboardingWithoutContext() {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
+    reportExposure: true,
   });
 
   // Only report exposure for users who are actually in SCM onboarding —
@@ -197,6 +199,12 @@ export function OnboardingWithoutContext() {
     : scmOnboardingSteps.filter(s => s.id !== OnboardingStepId.SCM_PROJECT_DETAILS);
 
   const onboardingSteps = hasScmOnboarding ? scmSteps : legacyOnboardingSteps;
+
+  useReplayForCriticalFlow({
+    flowName: 'scm_onboarding',
+    enabled: hasScmOnboarding,
+    sampleRate: 0.3,
+  });
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
