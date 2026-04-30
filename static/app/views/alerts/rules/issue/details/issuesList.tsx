@@ -5,12 +5,12 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';

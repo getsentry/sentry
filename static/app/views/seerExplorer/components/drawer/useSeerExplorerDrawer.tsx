@@ -11,6 +11,11 @@ import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/
 
 export type OpenSeerExplorerDrawerOptions = {
   /**
+   * Optional query string to auto-submit once the drawer opens.
+   * Only takes effect on a fresh/empty session.
+   */
+  initialQuery?: string;
+  /**
    * Optional run ID to open. If provided, opens an existing session.
    * Cannot be used together with `startNewRun`.
    */
@@ -54,29 +59,37 @@ export const useSeerExplorerDrawer = () => {
 
   const openSeerExplorerDrawer = useCallback(
     (options?: OpenSeerExplorerDrawerOptions) => {
-      if (isDrawerOpenRef.current) {
-        // TODO: runId seeding doesn't work when the drawer is already open.
-        // A hack could be to navigate to the deep link with RUN_ID_QUERY_PARAM set.
+      const {runId: openRunId, startNewRun, initialQuery} = options ?? {};
+
+      if (initialQuery) {
+        // Always start a fresh session when a query is forwarded so it
+        // auto-submits into an empty conversation, even if the drawer is
+        // already open with an existing run.
+        setRunId(null);
+      } else if (isDrawerOpenRef.current) {
         return;
-      }
-
-      const {runId: openRunId, startNewRun} = options ?? {};
-
-      // Update runId store before opening drawer
-      if (openRunId !== undefined) {
+      } else if (openRunId !== undefined) {
         setRunId(openRunId);
       } else if (startNewRun) {
         setRunId(null);
       }
 
-      openDrawer(() => <ExplorerDrawerContent getPageReferrer={getPageReferrer} />, {
-        ariaLabel: t('Seer Explorer Drawer'),
-        drawerKey: 'seer-explorer-drawer',
-        drawerWidth: '30%',
-        resizable: true,
-        mode: 'passive',
-        onOpen,
-      });
+      openDrawer(
+        () => (
+          <ExplorerDrawerContent
+            getPageReferrer={getPageReferrer}
+            initialQuery={initialQuery}
+          />
+        ),
+        {
+          ariaLabel: t('Seer Explorer Drawer'),
+          drawerKey: 'seer-explorer-drawer',
+          drawerWidth: '30%',
+          resizable: true,
+          mode: 'passive',
+          onOpen,
+        }
+      );
     },
     [openDrawer, onOpen, setRunId, getPageReferrer]
   );

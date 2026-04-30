@@ -40,6 +40,10 @@ def has_explore_links(links: list[str]) -> bool:
     return any(match_link(link)[0] == LinkType.EXPLORE for link in links)
 
 
+def has_dashboard_links(links: list[str]) -> bool:
+    return any(match_link(link)[0] == LinkType.DASHBOARDS for link in links)
+
+
 def is_event_challenge(data: Mapping[str, Any]) -> bool:
     return data.get("type", "") == "url_verification"
 
@@ -378,7 +382,11 @@ class SlackEventRequest(SlackDMRequest):
 
         if (self.text in COMMANDS) or (
             self.type == "link_shared"
-            and (has_discover_links(self.links) or has_explore_links(self.links))
+            and (
+                has_discover_links(self.links)
+                or has_explore_links(self.links)
+                or has_dashboard_links(self.links)
+            )
         ):
             self._validate_identity()
 

@@ -128,8 +128,9 @@ function DashboardGrid({
     ];
 
     const disabledKeys = [];
-    if ((dashboards && dashboards.length <= 1) || disableDelete)
+    if (disableDelete) {
       disabledKeys.push('dashboard-delete');
+    }
     if (disableDuplicate) {
       disabledKeys.push('dashboard-duplicate');
     }

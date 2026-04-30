@@ -718,7 +718,6 @@ SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
 AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
-ENABLE_SEER_ENHANCED_ALERTS_DEFAULT = True
 ENABLE_SEER_CODING_DEFAULT = True
 # Seer Org level default for automated_run_stopping_point in project preferences
 AUTO_OPEN_PRS_DEFAULT = False

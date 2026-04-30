@@ -29,8 +29,6 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if group.organization.get_option("sentry:hide_ai_features"):
         return None
-    if not group.organization.get_option("sentry:enable_seer_enhanced_alerts", default=True):
-        return None
 
     from sentry import quotas
     from sentry.constants import DataCategory

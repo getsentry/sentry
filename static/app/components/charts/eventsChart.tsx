@@ -268,9 +268,7 @@ class Chart extends Component<ChartProps, State> {
     }
 
     if (previousSeriesTransformer) {
-      previousSeries = previousSeries?.map(
-        prev => previousSeriesTransformer(prev) as Series
-      );
+      previousSeries = previousSeries?.map(prev => previousSeriesTransformer(prev)!);
     }
     const chartColors = timeseriesData.length
       ? (colors?.slice(0, series.length) ??

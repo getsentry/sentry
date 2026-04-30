@@ -85,10 +85,8 @@ function WebVitalLabel({
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
     webVital === 'cls'
-      ? Math.round((projectData?.[0]?.['p75(measurements.cls)'] as number) * 100) / 100
-      : getFormattedDuration(
-          (projectData?.[0]?.[`p75(measurements.${webVital})`] as number) / 1000
-        );
+      ? Math.round(projectData?.[0]?.['p75(measurements.cls)']! * 100) / 100
+      : getFormattedDuration(projectData?.[0]?.[`p75(measurements.${webVital})`]! / 1000);
 
   const diffValue = differenceToPreviousPeriod?.[`${webVital}Score`];
 

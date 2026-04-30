@@ -215,7 +215,7 @@ function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
 
 function getContentForPlatform({
   params,
-  consolePlatform = ConsolePlatform.NINTENDO_SWITCH,
+  consolePlatform,
 }: {
   consolePlatform: ConsolePlatform;
   params: DocsParams;
