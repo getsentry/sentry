@@ -387,7 +387,7 @@ function AutofixPreviews({
       <LinkButton
         size="md"
         icon={<IconSeer />}
-        aria-label={t('Open Seer')}
+        aria-label={t('Open Autofix')}
         priority="primary"
         to={seerDrawerLink}
         onClick={openSeerDrawer}
@@ -407,7 +407,7 @@ function AutofixPreviews({
           referrer,
         }}
       >
-        {t('Open Seer')}
+        {t('Open Autofix')}
       </LinkButton>
     </Flex>
   );
