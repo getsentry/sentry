@@ -47,18 +47,11 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         self,
         organization_name: str,
         slug: str,
+        owner: RpcUser,
         create_default_team: bool,
         organization_id: int,
         is_test: bool = False,
-        owner: RpcUser | None = None,
-        # TODO(cells) Deprecated use owner instead
-        user_id: int | None = None,
-        # TODO(cells) Deprecated use owner instead
-        email: str | None = None,
     ) -> Organization:
-        assert (user_id is None and email) or (user_id and email is None), (
-            "Must set either user_id or email"
-        )
         truncated_name = organization_name[:ORGANIZATION_NAME_MAX_LENGTH]
         org = Organization.objects.create(
             id=organization_id, name=truncated_name, slug=slug, is_test=is_test
@@ -70,14 +63,8 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         # or a bug in the slugify implementation, so we reject the organization creation
         assert org.slug == slug, "Organization slug should not have been modified on save"
 
-        om = (
-            OrganizationMember.objects.create(
-                user_id=user_id, organization=org, role=roles.get_top_dog().id
-            )
-            if user_id
-            else OrganizationMember.objects.create(
-                email=email, organization=org, role=roles.get_top_dog().id
-            )
+        om = OrganizationMember.objects.create(
+            user_id=owner.id, organization=org, role=roles.get_top_dog().id
         )
 
         if create_default_team:
@@ -107,7 +94,7 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
             try:
                 provisioning_user_is_org_owner = (
                     matching_org.get_default_owner().id
-                    == provision_payload.provision_options.owning_user_id
+                    == provision_payload.provision_options.owner.id
                 )
             except IndexError:
                 # get_default_owner raises this when the org has no default owner

@@ -416,7 +416,6 @@ class OrganizationIndexEndpoint(Endpoint):
                 provision_options=OrganizationOptions(
                     name=result["name"],
                     slug=result.get("slug") or result["name"],
-                    owning_user_id=request.user.id,
                     owner=rpc_user,
                     create_default_team=create_default_team,
                     ip_address=request.META["REMOTE_ADDR"],

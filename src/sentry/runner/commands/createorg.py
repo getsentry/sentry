@@ -3,6 +3,7 @@ from __future__ import annotations
 import click
 
 from sentry.runner.decorators import configuration
+from sentry.users.models.user import User
 
 
 @click.command()
@@ -38,11 +39,13 @@ def createorg(
         organization_provisioning_service,
     )
 
+    owner = User.objects.get(email=owner_email)
+
     provision_args = OrganizationProvisioningOptions(
         provision_options=OrganizationOptions(
             name=name,
             slug=slug or name,
-            owning_email=owner_email,
+            owner=owner,
             create_default_team=not no_default_team,
         ),
         post_provision_options=PostProvisionOptions(),

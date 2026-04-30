@@ -25,6 +25,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 from sentry.types.cell import get_local_cell
+from sentry.users.models.user import User
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -32,7 +34,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
     def setUp(self) -> None:
         self.provision_user = self.create_user()
         self.provisioning_args = self.generate_provisioning_args(
-            name="sentry", slug="sentry", user_id=self.provision_user.id, default_team=True
+            name="sentry", slug="sentry", owner=self.provision_user, default_team=True
         )
 
         self.cell_name = (
@@ -44,16 +46,17 @@ class TestControlOrganizationProvisioningBase(TestCase):
         *,
         name: str,
         slug: str,
+        owner: User,
         default_team: bool,
-        user_id: int | None = None,
-        email: str | None = None,
     ) -> OrganizationProvisioningOptions:
+        rpc_owner = serialize_generic_user(owner)
+        assert rpc_owner, "owner/user is required"
+
         return OrganizationProvisioningOptions(
             provision_options=OrganizationOptions(
                 name=name,
                 slug=slug,
-                owning_user_id=user_id,
-                owning_email=email,
+                owner=rpc_owner,
                 create_default_team=default_team,
                 is_test=False,
             ),
@@ -103,17 +106,6 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         rpc_org_slug = self.provision_organization()
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=rpc_org_slug, user_id=self.provision_user.id
-        )
-
-    def test_organization_provisioning_before_user_provisioning(self) -> None:
-        provisioning_options = self.generate_provisioning_args(
-            name="sentry", slug="sentry", email="test-owner@sentry.io", default_team=True
-        )
-        slug = control_organization_provisioning_rpc_service.provision_organization(
-            cell_name="us", org_provision_args=provisioning_options
-        )
-        self.assert_slug_reservation_and_org_exist(
-            rpc_org_slug=slug,
         )
 
     def test_organization_already_provisioned_for_different_user(self) -> None:
@@ -207,9 +199,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
     def test_updates_inexact_slug_with_collision(self) -> None:
         test_org_slug_reservation = self.provision_organization()
 
-        new_user = self.create_user()
         conflicting_slug = "foobar"
-        self.provisioning_args.provision_options.owning_user_id = new_user.id
+        new_user = self.create_user()
+        new_user_rpc = serialize_generic_user(new_user)
+        assert new_user_rpc
+        self.provisioning_args.provision_options.owner = new_user_rpc
         self.provisioning_args.provision_options.slug = conflicting_slug
         org_slug_res_with_conflict = self.provision_organization()
 
@@ -243,8 +237,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         original_slug = test_org_slug_reservation.slug
 
         new_user = self.create_user()
+        new_user_rpc = serialize_generic_user(new_user)
+        assert new_user_rpc
         conflicting_slug = "foobar"
-        self.provisioning_args.provision_options.owning_user_id = new_user.id
+
+        self.provisioning_args.provision_options.owner = new_user_rpc
         self.provisioning_args.provision_options.slug = conflicting_slug
         org_with_conflicting_slug = self.provision_organization()
 
@@ -270,8 +267,10 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         original_slug = org_reservation.slug
 
         conflicting_owner = self.create_user()
+        conflicting_owner_rpc = serialize_generic_user(conflicting_owner)
+        assert conflicting_owner_rpc
         conflicting_slug = "conflicty"
-        self.provisioning_args.provision_options.owning_user_id = conflicting_owner.id
+        self.provisioning_args.provision_options.owner = conflicting_owner_rpc
         self.provisioning_args.provision_options.slug = conflicting_slug
         conflicting_slug_reservation = self.provision_organization(cell_name="de")
 
