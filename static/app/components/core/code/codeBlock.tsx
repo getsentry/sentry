@@ -271,6 +271,7 @@ const FileName = styled('span')`
 const TabsWrapper = styled('div')`
   padding: 0;
   display: flex;
+  overflow-x: auto;
 `;
 
 const Tab = styled('button')<{isSelected: boolean}>`
