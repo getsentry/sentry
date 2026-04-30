@@ -13,7 +13,10 @@ import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckbo
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {HydratedReplayRecord, ReplayListRecord} from 'sentry/views/replays/types';
+import type {
+  HydratedReplayRecord,
+  ReplayListRecord,
+} from 'sentry/views/explore/replays/types';
 
 interface Props {
   deselectAll: () => void;
@@ -60,6 +63,7 @@ export function ReplayBulkViewedActions({
 
     if (succeededIds.size) {
       if (queryKeyRef.current) {
+        // eslint-disable-next-line @sentry/no-query-data-type-parameters
         queryClient.setQueryData<ApiResponse<{data: HydratedReplayRecord[]}>>(
           queryKeyRef.current,
           old =>

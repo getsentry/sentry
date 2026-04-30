@@ -9,7 +9,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckboxState';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 jest.mock('sentry/utils/analytics');
 
