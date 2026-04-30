@@ -83,7 +83,7 @@ function getDashboardsOverviewLayout(): DashboardsLayout {
 
   return dashboardsLayout === GRID || dashboardsLayout === TABLE
     ? dashboardsLayout
-    : GRID;
+    : TABLE;
 }
 
 function getSortOptions({
