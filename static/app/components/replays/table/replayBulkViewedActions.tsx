@@ -49,7 +49,7 @@ export function ReplayBulkViewedActions({
       })
     );
 
-    const failed = results.filter(replay => replay.status === 'rejected');
+    const failed = results.filter(promise => promise.status === 'rejected');
     const succeededIds = new Set(
       results.filter(result => result.status === 'fulfilled').map(result => result.value)
     );
