@@ -40,7 +40,10 @@ export type DashboardRevision = {
 
 function normalizeRevision(raw: RawDashboardRevision): DashboardRevision {
   return {
-    ...raw,
+    id: raw.id,
+    dateCreated: raw.dateCreated,
+    source: raw.source,
+    title: raw.title,
     createdBy: raw.createdBy
       ? {
           id: raw.createdBy.id,
