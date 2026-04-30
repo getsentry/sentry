@@ -9,9 +9,8 @@ import {
   type FeatureMeta,
 } from 'sentry/views/onboarding/components/useScmFeatureMeta';
 
-import {UPSELL_TIER} from 'getsentry/constants';
-import {useSubscription} from 'getsentry/hooks/useSubscription';
-import {type BillingConfig, type Plan, PlanTier} from 'getsentry/types';
+import {DEFAULT_TIER} from 'getsentry/constants';
+import type {BillingConfig, Plan} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 
 type DynamicCategoryFormat = {
@@ -85,33 +84,25 @@ function getFreeVolume(plan: Plan, category: DataCategory): number | undefined {
   return buckets?.[0]?.events;
 }
 
-function getUpsellTier(planTier?: string, trialTier?: string | null) {
-  return planTier === PlanTier.AM3 || trialTier === PlanTier.AM3
-    ? PlanTier.AM3
-    : UPSELL_TIER;
-}
-
 /**
  * gsApp implementation of `useScmFeatureMeta`. Sources free-plan volume strings
- * from the active org's billing-config response so the SCM onboarding cards stay
+ * from the default-tier billing-config response so the SCM onboarding cards stay
  * aligned with the actual free-plan limits. Falls back to the OSS static copy
- * when the subscription store hasn't been hydrated or the request hasn't resolved.
+ * while the request is in flight or if it fails.
  */
 export function useScmFeatureMeta(): Record<ProductSolution, FeatureMeta> {
   const organization = useOrganization();
-  const subscription = useSubscription();
-  const upsellTier = getUpsellTier(subscription?.planTier, subscription?.trialTier);
   const {data: billingConfig} = useApiQuery<BillingConfig>(
     [
       getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {query: {tier: upsellTier}},
+      {query: {tier: DEFAULT_TIER}},
     ],
-    {staleTime: Infinity, enabled: !!subscription, retry: false}
+    {staleTime: Infinity, retry: false}
   );
 
-  if (!subscription || !billingConfig) {
+  if (!billingConfig) {
     return FALLBACK_FEATURE_META;
   }
 

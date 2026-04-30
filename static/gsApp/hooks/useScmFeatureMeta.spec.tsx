@@ -1,25 +1,20 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import {useScmFeatureMeta} from 'getsentry/hooks/useScmFeatureMeta';
-import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
 describe('useScmFeatureMeta (gsApp)', () => {
   beforeEach(() => {
-    SubscriptionStore.init();
     MockApiClient.clearMockResponses();
   });
 
   it('returns dynamic volumes from billing-config response', async () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({organization, planTier: PlanTier.AM3});
-    SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       query: {tier: 'am3'},
@@ -44,8 +39,6 @@ describe('useScmFeatureMeta (gsApp)', () => {
 
   it('falls back to static volumes when billing-config errors', async () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({organization, planTier: PlanTier.AM3});
-    SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       query: {tier: 'am3'},
@@ -60,18 +53,6 @@ describe('useScmFeatureMeta (gsApp)', () => {
         '5,000 errors / mo'
       );
     });
-    expect(result.current[ProductSolution.PERFORMANCE_MONITORING].volume).toBe(
-      '5M spans / mo'
-    );
-  });
-
-  it('returns fallback volumes when subscription store is empty', () => {
-    const organization = OrganizationFixture();
-    const {result} = renderHookWithProviders(useScmFeatureMeta, {organization});
-
-    expect(result.current[ProductSolution.ERROR_MONITORING].volume).toBe(
-      '5,000 errors / mo'
-    );
     expect(result.current[ProductSolution.PERFORMANCE_MONITORING].volume).toBe(
       '5M spans / mo'
     );
