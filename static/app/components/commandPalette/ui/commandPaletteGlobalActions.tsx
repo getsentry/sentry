@@ -150,14 +150,13 @@ function ResolvedIdentifierCommandPaletteAction() {
   const isEventId = EVENT_ID_PATTERN.test(query);
   const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
 
+  // `projects` is intentionally omitted from the queryKey:
+  // TanStack serializes the entire key for cache lookups, and
+  // including the full projects array would be too costly —
+  // some orgs have thousands of projects.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data} = useQuery<ResolvedIdentifier | null>({
-    queryKey: [
-      'command-palette-identifier-lookup',
-      organization.slug,
-      query,
-      isShortId,
-      projects,
-    ],
+    queryKey: ['command-palette-identifier-lookup', organization.slug, query, isShortId],
     queryFn: async () => {
       try {
         if (isShortId) {
