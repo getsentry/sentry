@@ -17,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
@@ -44,7 +45,7 @@ export function OurlogsSection({
       source="state"
       freeze={traceId ? {traceId} : undefined}
     >
-      <LogsPageDataProvider disabled={!traceId}>
+      <LogsPageDataProvider disabled={!traceId} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
         <OurlogsSectionContent event={event} group={group} project={project} />
       </LogsPageDataProvider>
     </LogsQueryParamsProvider>
@@ -113,7 +114,10 @@ function OurlogsSectionContent({
             source="state"
             freeze={traceId ? {traceId} : undefined}
           >
-            <LogsPageDataProvider disabled={!traceId}>
+            <LogsPageDataProvider
+              disabled={!traceId}
+              staleTime={EXPLORE_FIVE_MIN_STALE_TIME}
+            >
               <OurlogsDrawer
                 group={group}
                 event={event}
