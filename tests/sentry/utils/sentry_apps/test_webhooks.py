@@ -9,7 +9,7 @@ from requests.exceptions import Timeout
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
 from sentry.shared_integrations.exceptions import ApiHostError
-from sentry.testutils.asserts import assert_halt_metric
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -186,10 +186,8 @@ class WebhookCircuitBreakerTest(TestCase):
 @cell_silo_test
 class WebhookCircuitBreakerNotifyTest(TestCase):
     def setUp(self):
-        self.org_owner = self.create_user(email="org-owner@example.com")
-        self.organization = self.create_organization(owner=self.org_owner)
+        self.organization = self.create_organization()
         self.user = self.create_user(email="creator@example.com")
-        self.create_member(organization=self.organization, user=self.user, role="member")
         self.sentry_app = self.create_sentry_app(
             name="TestApp",
             organization=self.organization,
@@ -301,20 +299,19 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_creator_label_without_at_sign_falls_back_to_org_owner(
+    def test_creator_label_without_at_sign_skips_email(
         self, MockBreaker, mock_safe_urlopen, MockService
     ):
-        """If creator_label is a username (no @), we fall back to the org owner."""
+        """If creator_label is a username (no @), we shouldn't email."""
         self.sentry_app.creator_label = "no-email-username"
 
         self._configure_breaker(MockBreaker, is_open=True)
-        MockService.has_access.return_value = True
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
         with pytest.raises(WebhookTimeoutError):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
-        MockService.return_value.notify_async.assert_called_once()
+        MockService.return_value.notify_async.assert_not_called()
 
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
@@ -343,54 +340,14 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
 
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
-    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_non_member_creator_falls_back_to_org_owner(
-        self, MockBreaker, mock_safe_urlopen, MockService
-    ):
-        """When the app creator is no longer an org member, the notification
-        is sent to the org owner instead."""
-        org_owner = self.create_user(email="owner@example.com")
-        org = self.create_organization(owner=org_owner)
-        non_member_creator = self.create_user(email="ex-creator@example.com")
-        sentry_app = self.create_sentry_app(
-            name="FallbackApp",
-            organization=org,
-            user=non_member_creator,
-            webhook_url="https://example.com/webhook",
-            published=True,
-        )
-        install = self.create_sentry_app_installation(organization=org, slug=sentry_app.slug)
-
-        self._configure_breaker(MockBreaker, is_open=True)
-        MockService.has_access.return_value = True
-        mock_safe_urlopen.side_effect = WebhookTimeoutError()
-
-        event = AppPlatformEvent(
-            resource=SentryAppResourceType.ISSUE,
-            action=IssueActionType.CREATED,
-            install=install,
-            data={"test": "data"},
-        )
-
-        with pytest.raises(WebhookTimeoutError):
-            send_and_save_webhook_request(sentry_app, event)
-
-        MockService.return_value.notify_async.assert_called_once()
-        target = MockService.return_value.notify_async.call_args[1]["targets"][0]
-        assert target.resource_id == "owner@example.com"
-
-    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
-    @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_email_failure_records_halt_and_propagates(
+    def test_email_failure_records_failure_and_propagates(
         self, MockBreaker, mock_safe_urlopen, MockService, mock_record
     ):
-        """If the email notification fails, the error is recorded as a halt and propagated directly."""
+        """If the email notification fails, the error is recorded as a failure and propagated."""
         self._configure_breaker(MockBreaker, is_open=True)
         MockService.has_access.side_effect = RuntimeError("email boom")
         mock_safe_urlopen.side_effect = WebhookTimeoutError("hard timeout")
@@ -398,4 +355,4 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         with pytest.raises(RuntimeError, match="email boom"):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
-        assert_halt_metric(mock_record=mock_record, error_msg=RuntimeError("email boom"))
+        assert_failure_metric(mock_record=mock_record, error_msg=RuntimeError("email boom"))
