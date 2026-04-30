@@ -31,6 +31,7 @@ interface DiffImageDisplayProps {
   imageBaseUrl: string;
   overlayColor: string;
   pair: SnapshotDiffPair;
+  headLabel?: string;
 }
 
 export function DiffImageDisplay({
@@ -39,6 +40,7 @@ export function DiffImageDisplay({
   diffImageBaseUrl,
   overlayColor,
   diffMode,
+  headLabel = t('Head'),
 }: DiffImageDisplayProps) {
   const [onionOpacity, setOnionOpacity] = useState(50);
 
@@ -59,11 +61,16 @@ export function DiffImageDisplay({
           overlayColor={overlayColor}
           diffMaskUrl={diffMaskUrl}
           maskSize={maskSize}
+          headLabel={headLabel}
         />
       </HiddenWhenInactive>
 
       <HiddenWhenInactive active={diffMode === 'wipe'}>
-        <WipeView baseImageUrl={baseImageUrl} headImageUrl={headImageUrl} />
+        <WipeView
+          baseImageUrl={baseImageUrl}
+          headImageUrl={headImageUrl}
+          headLabel={headLabel}
+        />
       </HiddenWhenInactive>
 
       <HiddenWhenInactive active={diffMode === 'onion'}>
@@ -72,6 +79,7 @@ export function DiffImageDisplay({
           headImageUrl={headImageUrl}
           opacity={onionOpacity}
           onOpacityChange={setOnionOpacity}
+          headLabel={headLabel}
         />
       </HiddenWhenInactive>
     </Flex>
@@ -82,6 +90,7 @@ interface SplitViewProps {
   baseImageUrl: string;
   diffMaskUrl: string | null;
   headImageUrl: string;
+  headLabel: string;
   maskSize: string;
   overlayColor: string;
 }
@@ -89,6 +98,7 @@ interface SplitViewProps {
 function SplitView({
   baseImageUrl,
   headImageUrl,
+  headLabel,
   overlayColor,
   diffMaskUrl,
   maskSize,
@@ -127,7 +137,7 @@ function SplitView({
       </Flex>
 
       <Flex direction="column" gap="sm" minHeight="0">
-        <Heading as="h4">{t('Current Branch')}</Heading>
+        <Heading as="h4">{headLabel}</Heading>
         <ZoomableArea>
           <ZoomContainer ref={zoom2.containerRef}>
             <Flex
@@ -141,7 +151,7 @@ function SplitView({
                 <ImageWrapper>
                   <ZoomableImage
                     src={displayHeadUrl}
-                    alt={t('Current Branch')}
+                    alt={headLabel}
                     loading="eager"
                     decoding="async"
                   />
@@ -170,9 +180,11 @@ function SplitView({
 function WipeView({
   baseImageUrl,
   headImageUrl,
+  headLabel,
 }: {
   baseImageUrl: string;
   headImageUrl: string;
+  headLabel: string;
 }) {
   const [displayBaseUrl, displayHeadUrl] = useBufferedImageGroup([
     baseImageUrl,
@@ -196,7 +208,7 @@ function WipeView({
             <Flex justify="center" align="center" height="100%">
               <ConstrainedImage
                 src={displayHeadUrl}
-                alt={t('Current Branch')}
+                alt={headLabel}
                 loading="eager"
                 decoding="async"
               />
@@ -212,11 +224,13 @@ function WipeView({
 function OnionView({
   baseImageUrl,
   headImageUrl,
+  headLabel,
   opacity,
   onOpacityChange,
 }: {
   baseImageUrl: string;
   headImageUrl: string;
+  headLabel: string;
   onOpacityChange: (value: number) => void;
   opacity: number;
 }) {
@@ -251,7 +265,7 @@ function OnionView({
             <OnionOverlayLayer style={{opacity: opacity / 100}}>
               <ConstrainedImage
                 src={displayHeadUrl}
-                alt={t('Current Branch')}
+                alt={headLabel}
                 loading="eager"
                 decoding="async"
               />

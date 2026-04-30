@@ -228,6 +228,7 @@ export function SnapshotMainContent({
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
             diffMode={diffMode}
+            headLabel={headBranch ?? t('Head')}
           />
         }
       />
