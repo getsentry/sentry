@@ -19,7 +19,6 @@ import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSe
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface ExplorerDrawerHeaderProps {
-  isEmptyState: boolean;
   onChangeSession: (runId: number) => void;
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
@@ -30,10 +29,10 @@ interface ExplorerDrawerHeaderProps {
   showContextEngineToggle: boolean;
   showThinking: boolean;
   showThinkingToggle: boolean;
+  disableNewChatButton?: boolean;
 }
 
 export function ExplorerDrawerHeader({
-  isEmptyState,
   onNewChatClick,
   onChangeSession,
   onCopySessionClick,
@@ -44,6 +43,7 @@ export function ExplorerDrawerHeader({
   showThinking,
   showThinkingToggle,
   onShowThinkingToggle,
+  disableNewChatButton = false,
 }: ExplorerDrawerHeaderProps) {
   // Session history query
   const {
@@ -225,7 +225,7 @@ export function ExplorerDrawerHeader({
           <Button
             icon={<IconAdd />}
             onClick={onNewChatClick}
-            disabled={isEmptyState}
+            disabled={disableNewChatButton}
             priority="default"
             size="xs"
             aria-label={t('Start a new chat (/new)')}
@@ -236,7 +236,7 @@ export function ExplorerDrawerHeader({
           <Button
             icon={<IconAdd />}
             onClick={onNewChatClick}
-            disabled={isEmptyState}
+            disabled={disableNewChatButton}
             priority="default"
             size="xs"
             aria-label={t('Start a new chat (/new)')}
