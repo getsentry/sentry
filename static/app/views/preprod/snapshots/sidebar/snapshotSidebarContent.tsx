@@ -278,15 +278,10 @@ const SidebarItemRow = styled('div')<{isSelected: boolean}>`
   cursor: pointer;
   border-right: 3px solid
     ${p => (p.isSelected ? p.theme.tokens.border.accent.vibrant : 'transparent')};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   background: ${p =>
     p.isSelected ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
-  }
-
-  &:last-child {
-    border-bottom: none;
   }
 `;
