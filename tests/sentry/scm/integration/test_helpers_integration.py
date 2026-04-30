@@ -84,6 +84,37 @@ class TestFetchServiceProvider(TestCase):
 
         assert isinstance(provider, GitHubProvider)
 
+    def test_returns_github_provider_for_github_enterprise(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Test Org",
+            external_id="ghe.example.com:1",
+            metadata={
+                "domain_name": "ghe.example.com/test-org",
+                "installation_id": 1,
+                "installation": {
+                    "id": 1,
+                    "private_key": "key",
+                    "webhook_secret": "secret",
+                    "verify_ssl": True,
+                },
+            },
+        )
+
+        repository: Repository = {
+            "id": 1,
+            "integration_id": integration.id,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "is_active": True,
+            "external_id": None,
+            "provider_name": "github_enterprise",
+        }
+        provider = fetch_service_provider(self.organization.id, repository)
+
+        assert isinstance(provider, GitHubProvider)
+
     def test_returns_none_for_nonexistent_integration(self) -> None:
         repository: Repository = {
             "id": 1,
