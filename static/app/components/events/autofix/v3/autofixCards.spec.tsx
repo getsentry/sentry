@@ -434,6 +434,90 @@ describe('ArtifactCard', () => {
 
       expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
+
+    it('renders error state when all patches have no changes', () => {
+      const emptyPatch = {
+        repo_name: 'org/repo',
+        diff: '',
+        patch: {
+          path: 'src/app.py',
+          added: 0,
+          removed: 0,
+          hunks: [],
+          source_file: 'src/app.py',
+          target_file: 'src/app.py',
+          type: 'M',
+        },
+      } as ExplorerFilePatch;
+
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [[emptyPatch]])}
+        />
+      );
+
+      expect(
+        screen.getByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
+    });
+
+    it('calls startStep when re-run button is clicked in error state', async () => {
+      const startStepMock = jest.fn();
+      const autofixWithRunState = {
+        ...mockAutofix,
+        startStep: startStepMock,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed' as const,
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          autofix={autofixWithRunState}
+          section={makeSection('code_changes', 'completed', [])}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+      expect(startStepMock).toHaveBeenCalledWith(
+        'code_changes',
+        expect.objectContaining({runId: 123})
+      );
+    });
+
+    it('renders loading state when processing, not error', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'processing', [])}
+        />
+      );
+
+      expect(screen.getByText('Implementing changes…')).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not render file diff viewers in error state', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [])}
+        />
+      );
+
+      expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+    });
   });
 
   describe('PullRequestsCard', () => {
