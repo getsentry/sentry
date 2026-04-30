@@ -1,0 +1,44 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import {Text} from '@sentry/scraps/text';
+
+type HighlightTextProps = {
+  query: string;
+  text: string;
+};
+
+export function HighlightText({query, text}: HighlightTextProps) {
+  const trimmedQuery = query.trim();
+
+  if (!trimmedQuery) {
+    return <Fragment>{text}</Fragment>;
+  }
+
+  const matchIndex = text.toLowerCase().indexOf(trimmedQuery.toLowerCase());
+
+  if (matchIndex === -1) {
+    return <Fragment>{text}</Fragment>;
+  }
+
+  return (
+    <Text as="span" aria-label={text}>
+      <Text as="span" aria-hidden="true">
+        {text.slice(0, matchIndex)}
+        <HighlightedMatch
+          as="span"
+          data-test-id="search-query-builder-suggestion-highlight"
+        >
+          {text.slice(matchIndex, matchIndex + trimmedQuery.length)}
+        </HighlightedMatch>
+        {text.slice(matchIndex + trimmedQuery.length)}
+      </Text>
+    </Text>
+  );
+}
+
+const HighlightedMatch = styled(Text)`
+  background: ${p => p.theme.tokens.background.warning.vibrant};
+  border-radius: ${p => p.theme.radius.sm};
+  padding: 0 1px;
+`;
