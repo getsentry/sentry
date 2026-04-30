@@ -168,6 +168,60 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.disallowUnsupportedFilters).toBe(false);
   });
 
+  it('uses allowedFilterKeys as supported fallback keys', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.PREPROD,
+        allowedFilterKeys: {
+          git_head_sha: {
+            key: 'git_head_sha',
+            name: 'git_head_sha',
+          },
+          is_approved: {
+            key: 'is_approved',
+            name: 'is_approved',
+            kind: FieldKind.BOOLEAN,
+          },
+        },
+      },
+      organization,
+    });
+
+    expect(result.current.filterKeys.git_head_sha).toBeDefined();
+    expect(result.current.filterKeys.is_approved).toBeDefined();
+    expect(result.current.disallowUnsupportedFilters).toBe(true);
+    expect(result.current.getTagKeys).toEqual(expect.any(Function));
+  });
+
+  it('filters async getTagKeys results through allowedFilterKeys', async () => {
+    const traceItemAttributesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {attributeType: 'string', key: 'git_head_sha', name: 'git_head_sha'},
+        {attributeType: 'string', key: 'app_name', name: 'app_name'},
+      ],
+    });
+
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.PREPROD,
+        allowedFilterKeys: {
+          git_head_sha: {
+            key: 'git_head_sha',
+            name: 'git_head_sha',
+          },
+        },
+      },
+      organization,
+    });
+    const tags = await result.current.getTagKeys?.('git');
+
+    expect(traceItemAttributesMock).toHaveBeenCalled();
+    expect(tags?.map(tag => tag.key)).toEqual(['git_head_sha']);
+  });
+
   it.each([TraceItemDataset.SPANS, TraceItemDataset.LOGS, TraceItemDataset.TRACEMETRICS])(
     'disables recent searches when disableRecentSearches is true for item type %s',
     itemType => {

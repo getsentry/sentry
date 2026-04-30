@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -29,7 +29,7 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
-  allowedAttributeKeys?: string[];
+  allowedFilterKeys?: TagCollection;
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   disableRecentSearches?: boolean;
@@ -110,7 +110,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disableRecentSearches,
   attributeQuery,
   hiddenAttributeKeys,
-  allowedAttributeKeys,
+  allowedFilterKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
@@ -135,6 +135,34 @@ export function useTraceItemSearchQueryBuilderProps({
     booleanAttributes,
     disallowHas: disallowHas ?? false,
   });
+  const allowedFilterKeySet = useMemo(
+    () => (allowedFilterKeys ? new Set(Object.keys(allowedFilterKeys)) : undefined),
+    [allowedFilterKeys]
+  );
+  const effectiveFilterTags = useMemo(() => {
+    if (!allowedFilterKeys || !allowedFilterKeySet) {
+      return filterTags;
+    }
+
+    const tags = {...allowedFilterKeys};
+    for (const [key, tag] of Object.entries(filterTags)) {
+      if (allowedFilterKeySet.has(key)) {
+        tags[key] = tag;
+      }
+    }
+    return tags;
+  }, [allowedFilterKeySet, allowedFilterKeys, filterTags]);
+  const effectiveFilterKeySections = useMemo(() => {
+    if (!allowedFilterKeySet) {
+      return filterKeySections;
+    }
+    return filterKeySections
+      .map(section => ({
+        ...section,
+        children: section.children.filter(key => allowedFilterKeySet.has(key)),
+      }))
+      .filter(section => section.children.length);
+  }, [allowedFilterKeySet, filterKeySections]);
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: itemType,
@@ -148,35 +176,73 @@ export function useTraceItemSearchQueryBuilderProps({
     stringAttributes,
     booleanAttributes,
   });
+  const getAllowedSuggestedAttribute = useCallback(
+    (key: string) => {
+      const suggestedKey = getSuggestedAttribute(key);
+      if (!suggestedKey || !allowedFilterKeySet) {
+        return suggestedKey;
+      }
+      return allowedFilterKeySet.has(suggestedKey) ? suggestedKey : null;
+    },
+    [allowedFilterKeySet, getSuggestedAttribute]
+  );
 
-  const dynamicTagKeys = useGetTraceItemAttributeTagKeys({
+  const getTagKeys = useGetTraceItemAttributeTagKeys({
     itemType,
     projects,
     extraTags: functionTags,
     query: attributeQuery,
     hiddenKeys: hiddenAttributeKeys,
   });
-  // When an allowlist is in effect, the static filterKeys are already curated to
-  // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
-  // the allowlist (and unrecognized keys are auto-rejected).
-  const getTagKeys = allowedAttributeKeys ? undefined : dynamicTagKeys;
+  const getAllowedTagKeys = useCallback(
+    async (searchQuery: string) => {
+      const tags = await getTagKeys(searchQuery);
+      if (!allowedFilterKeySet) {
+        return tags;
+      }
+      return tags.filter(tag => allowedFilterKeySet.has(tag.key));
+    },
+    [allowedFilterKeySet, getTagKeys]
+  );
+
+  const filterKeyAliases = useMemo(() => {
+    const aliases = {
+      ...numberSecondaryAliases,
+      ...stringSecondaryAliases,
+      ...booleanSecondaryAliases,
+    };
+    if (!allowedFilterKeySet) {
+      return aliases;
+    }
+    return Object.fromEntries(
+      Object.entries(aliases).filter(([key]) => allowedFilterKeySet.has(key))
+    );
+  }, [
+    allowedFilterKeySet,
+    booleanSecondaryAliases,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+  ]);
 
   return useMemo(
     () => ({
       placeholder: placeholderText,
-      filterKeys: filterTags,
+      filterKeys: effectiveFilterTags,
       initialQuery,
-      fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
+      fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(
+        itemType,
+        effectiveFilterTags
+      ),
       onSearch,
       onChange,
       onBlur,
       getFilterTokenWarning,
       searchSource,
-      filterKeySections,
-      getSuggestedFilterKey: getSuggestedAttribute,
+      filterKeySections: effectiveFilterKeySections,
+      getSuggestedFilterKey: getAllowedSuggestedAttribute,
       getTagValues: getTraceItemAttributeValues,
-      getTagKeys,
-      disallowUnsupportedFilters: !getTagKeys,
+      getTagKeys: getAllowedTagKeys,
+      disallowUnsupportedFilters: !!allowedFilterKeys,
       disallowFreeText,
       disallowLogicalOperators,
       recentSearches: disableRecentSearches
@@ -187,33 +253,28 @@ export function useTraceItemSearchQueryBuilderProps({
       portalTarget,
       replaceRawSearchKeys,
       matchKeySuggestions,
-      filterKeyAliases: {
-        ...numberSecondaryAliases,
-        ...stringSecondaryAliases,
-        ...booleanSecondaryAliases,
-      },
+      filterKeyAliases,
       caseInsensitive,
       onCaseInsensitiveClick,
       invalidFilterKeys,
     }),
     [
-      booleanSecondaryAliases,
+      allowedFilterKeys,
       caseInsensitive,
       disallowFreeText,
       disallowLogicalOperators,
       disableRecentSearches,
-      filterKeySections,
-      filterTags,
+      effectiveFilterKeySections,
+      effectiveFilterTags,
       getFilterTokenWarning,
-      getSuggestedAttribute,
-      getTagKeys,
+      getAllowedSuggestedAttribute,
+      getAllowedTagKeys,
       getTraceItemAttributeValues,
       initialQuery,
       invalidFilterKeys,
       itemType,
       matchKeySuggestions,
       namespace,
-      numberSecondaryAliases,
       onBlur,
       onCaseInsensitiveClick,
       onChange,
@@ -222,7 +283,7 @@ export function useTraceItemSearchQueryBuilderProps({
       portalTarget,
       replaceRawSearchKeys,
       searchSource,
-      stringSecondaryAliases,
+      filterKeyAliases,
     ]
   );
 }
@@ -258,7 +319,7 @@ export function TraceItemSearchQueryBuilder({
   disableRecentSearches,
   attributeQuery,
   hiddenAttributeKeys,
-  allowedAttributeKeys,
+  allowedFilterKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -288,7 +349,7 @@ export function TraceItemSearchQueryBuilder({
     disableRecentSearches,
     attributeQuery,
     hiddenAttributeKeys,
-    allowedAttributeKeys,
+    allowedFilterKeys,
   });
 
   return (

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {usePreprodItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -34,6 +35,35 @@ interface PreprodSearchBarProps {
   searchSource?: string;
 }
 
+const PREPROD_FILTER_KEY_KINDS: Record<string, FieldKind> = {
+  app_id: FieldKind.TAG,
+  app_name: FieldKind.TAG,
+  build_configuration_name: FieldKind.TAG,
+  build_number: FieldKind.TAG,
+  build_version: FieldKind.TAG,
+  distribution_error_code: FieldKind.TAG,
+  download_count: FieldKind.MEASUREMENT,
+  download_size: FieldKind.MEASUREMENT,
+  git_base_ref: FieldKind.TAG,
+  git_base_sha: FieldKind.TAG,
+  git_head_ref: FieldKind.TAG,
+  git_head_repo_name: FieldKind.TAG,
+  git_head_sha: FieldKind.TAG,
+  git_pr_number: FieldKind.MEASUREMENT,
+  image_count: FieldKind.MEASUREMENT,
+  images_added: FieldKind.MEASUREMENT,
+  images_changed: FieldKind.MEASUREMENT,
+  images_removed: FieldKind.MEASUREMENT,
+  images_renamed: FieldKind.MEASUREMENT,
+  images_skipped: FieldKind.MEASUREMENT,
+  images_unchanged: FieldKind.MEASUREMENT,
+  install_size: FieldKind.MEASUREMENT,
+  installable: FieldKind.BOOLEAN,
+  is_approved: FieldKind.BOOLEAN,
+  platform_name: FieldKind.TAG,
+  size_state: FieldKind.TAG,
+};
+
 function filterToAllowedKeys(
   attributes: TagCollection,
   allowedKeys: string[]
@@ -46,6 +76,22 @@ function filterToAllowedKeys(
     }
   }
   return result;
+}
+
+function getAllowedFilterKeys(allowedKeys: string[]): TagCollection {
+  return Object.fromEntries(
+    allowedKeys.map(key => {
+      const kind = PREPROD_FILTER_KEY_KINDS[key];
+      return [
+        key,
+        {
+          key,
+          name: key,
+          ...(kind ? {kind} : {}),
+        },
+      ];
+    })
+  );
 }
 
 /**
@@ -70,6 +116,10 @@ export function PreprodSearchBar({
   // When using allowedKeys, we fetch all attributes then filter to the allowlist.
   // Otherwise, we use HIDDEN_PREPROD_ATTRIBUTES to hide internal fields.
   const hiddenKeys = allowedKeys ? undefined : HIDDEN_PREPROD_ATTRIBUTES;
+  const allowedFilterKeys = useMemo(
+    () => (allowedKeys ? getAllowedFilterKeys(allowedKeys) : undefined),
+    [allowedKeys]
+  );
 
   const {attributes: rawStringAttributes, secondaryAliases: rawStringSecondaryAliases} =
     usePreprodItemAttributes({}, 'string', hiddenKeys);
@@ -145,7 +195,7 @@ export function PreprodSearchBar({
       disallowHas={disallowHas}
       disallowLogicalOperators={disallowLogicalOperators}
       hiddenAttributeKeys={hiddenKeys}
-      allowedAttributeKeys={allowedKeys}
+      allowedFilterKeys={allowedFilterKeys}
     />
   );
 }
