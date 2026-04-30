@@ -892,13 +892,10 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
             == "unauthorized"
         )
 
-    def test_api_forbidden(self) -> None:
+    def test_api_forbidden_not_terminal(self) -> None:
         from sentry.shared_integrations.exceptions import ApiForbiddenError
 
-        assert (
-            self.installation.is_broken_integration_error(ApiForbiddenError("forbidden"))
-            == "forbidden"
-        )
+        assert self.installation.is_broken_integration_error(ApiForbiddenError("forbidden")) is None
 
     def test_api_host_error(self) -> None:
         from sentry.shared_integrations.exceptions import ApiHostError

@@ -36,7 +36,6 @@ from sentry.users.models.identity import Identity
 HaltReason = Literal[
     "configuration_error",
     "connection_reset",
-    "forbidden",
     "host_timeout",
     "host_unreachable",
     "identity_not_found",
@@ -214,8 +213,6 @@ class RepositoryIntegration(
                 return "rate_limited"
             if isinstance(exc, ApiUnauthorized):
                 return "unauthorized"
-            if isinstance(exc, ApiForbiddenError):
-                return "forbidden"
             if isinstance(exc, ApiHostError):
                 return "host_unreachable"
             if isinstance(exc, ApiTimeoutError):
