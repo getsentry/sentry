@@ -7,16 +7,21 @@ from rest_framework.response import Response
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.models.organization import Organization
-from sentry.seer.agent import client_models as agent_client_models
-from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
+from sentry.seer.agent.client_models import (
+    CodingAgentState,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixStoppingPoint,
     CodingAgentProviderType,
-    CodingAgentState,
     CodingAgentStatus,
 )
+from sentry.seer.autofix.utils import CodingAgentState as LegacyCodingAgentState
 from sentry.seer.entrypoints.operator import (
     AUTOFIX_FALLBACK_CAUSE_ID,
     SeerAutofixOperator,
@@ -111,7 +116,9 @@ class SeerOperatorTest(TestCase):
             ),
         )
 
-    def _build_autofix_state_with_agents(self, agents: dict[str, CodingAgentState]) -> AutofixState:
+    def _build_autofix_state_with_agents(
+        self, agents: dict[str, LegacyCodingAgentState]
+    ) -> AutofixState:
         return AutofixState(
             run_id=MOCK_RUN_ID,
             request={
@@ -327,7 +334,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_get_state.return_value = self._build_autofix_state_with_agents(
             {
-                "agent-1": CodingAgentState(
+                "agent-1": LegacyCodingAgentState(
                     id="agent-1",
                     status=CodingAgentStatus.RUNNING,
                     provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
@@ -352,7 +359,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_get_state.return_value = self._build_autofix_state_with_agents(
             {
-                "agent-1": CodingAgentState(
+                "agent-1": LegacyCodingAgentState(
                     id="agent-1",
                     status=CodingAgentStatus.COMPLETED,
                     provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
@@ -376,7 +383,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_get_state.return_value = self._build_autofix_state_with_agents(
             {
-                "agent-1": CodingAgentState(
+                "agent-1": LegacyCodingAgentState(
                     id="agent-1",
                     status=CodingAgentStatus.FAILED,
                     provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
@@ -441,7 +448,7 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.handoff_successes == []
 
     def _build_explorer_state_with_agents(
-        self, agents: dict[str, agent_client_models.CodingAgentState]
+        self, agents: dict[str, CodingAgentState]
     ) -> SeerRunState:
         return SeerRunState(
             run_id=MOCK_RUN_ID,
@@ -477,7 +484,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
-                "agent-1": agent_client_models.CodingAgentState(
+                "agent-1": CodingAgentState(
                     id="agent-1",
                     status="running",
                     provider="cursor_background_agent",
@@ -502,7 +509,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
-                "agent-1": agent_client_models.CodingAgentState(
+                "agent-1": CodingAgentState(
                     id="agent-1",
                     status="completed",
                     provider="cursor_background_agent",
@@ -527,7 +534,7 @@ class SeerOperatorTest(TestCase):
         mock_read_pref.return_value = self._build_preference_with_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
-                "agent-1": agent_client_models.CodingAgentState(
+                "agent-1": CodingAgentState(
                     id="agent-1",
                     status="failed",
                     provider="cursor_background_agent",
