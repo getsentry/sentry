@@ -136,22 +136,11 @@ class DatabaseBackedRepositoryService(RepositoryService):
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
-            repo_ids = list(
-                Repository.objects.filter(
-                    organization_id=organization_id,
-                    integration_id=integration_id,
-                    provider=provider,
-                ).values_list("id", flat=True)
-            )
-
-            if repo_ids:
-                Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
-
-                # Delete Seer preferences for this repository
-                SeerProjectRepository.objects.filter(
-                    repository_id__in=repo_ids,
-                    project__organization_id=organization_id,
-                ).delete()
+            Repository.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+            ).update(status=ObjectStatus.DISABLED)
 
     def find_recently_active_repo_external_ids(
         self,
@@ -233,12 +222,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
-
-                # Delete Seer preferences for this repository
-                SeerProjectRepository.objects.filter(
-                    repository_id__in=repo_ids,
-                    project__organization_id=organization_id,
-                ).delete()
 
     def disassociate_organization_integration(
         self,
