@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any, Generic, NotRequired, TypedDict, TypeVar
+from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
 from urllib.parse import quote as urlquote
 from urllib.parse import unquote, urlparse, urlunparse
 
@@ -32,6 +32,21 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.users.models.identity import Identity
+
+HaltReason = Literal[
+    "configuration_error",
+    "connection_reset",
+    "forbidden",
+    "host_timeout",
+    "host_unreachable",
+    "identity_not_found",
+    "identity_not_valid",
+    "installation_suspended",
+    "rate_limited",
+    "too_many_redirects",
+    "unauthorized",
+    "unsupported_response",
+]
 
 
 class RepositoryInfo(TypedDict):
@@ -177,7 +192,7 @@ class RepositoryIntegration(
         repo_info = self.find_repo_info(repositories, repo.name)
         return repo_info.get("default_branch") if repo_info else None
 
-    def is_broken_integration_error(self, exc: Exception) -> str | None:
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
         """Return a halt reason if this is a terminal integration error, else None.
 
         Terminal errors indicate a broken or misconfigured integration that

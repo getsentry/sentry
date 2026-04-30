@@ -29,7 +29,10 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    HaltReason,
+    RepositoryIntegration,
+)
 from sentry.integrations.utils.metrics import IntegrationEventLifecycle
 from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
@@ -106,7 +109,7 @@ def _halt_broken_integration(
     integration_id: int,
     organization_id: int,
     provider_key: str,
-    reason: str,
+    reason: HaltReason,
 ) -> None:
     """Record a known broken-integration failure without retrying or paging.
 
