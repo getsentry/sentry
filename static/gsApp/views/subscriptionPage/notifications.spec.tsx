@@ -116,6 +116,24 @@ describe('Subscription > Notifications', () => {
     expect(screen.queryByText('50%')).not.toBeInTheDocument();
   });
 
+  it('shows validation error when on-demand thresholds are cleared', async () => {
+    subscription.planDetails.allowOnDemand = true;
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<Notifications subscription={subscription} />, {organization});
+
+    expect(await screen.findByText('On-Demand consumption')).toBeInTheDocument();
+
+    const onDemandInput = screen.getByRole('textbox', {
+      name: 'On-Demand consumption',
+    });
+    await userEvent.click(onDemandInput);
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '80%'}));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
+
+    expect(screen.getByText('At least one threshold is required')).toBeInTheDocument();
+  });
+
   it('calls api with correct args', async () => {
     const postMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/spend-notifications/`,

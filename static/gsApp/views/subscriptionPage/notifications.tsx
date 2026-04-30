@@ -34,10 +34,14 @@ type ThresholdsType = {
   reservedPercent: number[];
 };
 
-const thresholdsSchema = z.object({
-  reservedPercent: z.array(z.number()).min(1, t('At least one threshold is required')),
-  perProductOndemandPercent: z.array(z.number()),
-});
+function getThresholdsSchema(onDemandEnabled: boolean) {
+  return z.object({
+    reservedPercent: z.array(z.number()).min(1, t('At least one threshold is required')),
+    perProductOndemandPercent: onDemandEnabled
+      ? z.array(z.number()).min(1, t('At least one threshold is required'))
+      : z.array(z.number()),
+  });
+}
 
 const THRESHOLD_OPTIONS = [90, 80, 70, 60, 50, 40, 30, 20, 10].map(value => ({
   label: `${value}%`,
@@ -126,7 +130,7 @@ function ThresholdsForm({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: backendThresholds,
-    validators: {onChange: thresholdsSchema},
+    validators: {onChange: getThresholdsSchema(onDemandEnabled)},
     onSubmit: async ({value}) => {
       try {
         await fetchMutation({
