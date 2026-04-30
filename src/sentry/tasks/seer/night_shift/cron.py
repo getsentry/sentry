@@ -81,7 +81,7 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
 @instrumented_task(
     name="sentry.tasks.seer.night_shift.schedule_night_shift",
     namespace=seer_tasks,
-    processing_deadline_duration=15 * 60,
+    processing_deadline_duration=30 * 60,
 )
 def schedule_night_shift(**kwargs: Any) -> None:
     """
