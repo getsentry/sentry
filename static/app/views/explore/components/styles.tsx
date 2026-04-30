@@ -6,7 +6,6 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
@@ -31,11 +30,10 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
 `;
 
 export function ExploreContentSection(props: FlexProps<'div'>) {
-  const hasPageFrame = useHasPageFrameFeature();
   return (
     <Flex
       {...props}
-      background={hasPageFrame ? 'primary' : 'secondary'}
+      background="primary"
       flex="1 1 auto"
       minHeight="0"
       minWidth="0"

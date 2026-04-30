@@ -352,6 +352,20 @@ class GitlabIntegration(
                     "Your organization does not have access to this feature"
                 )
 
+        # PR-comment toggle is self-serveable regardless of issue-sync
+        # entitlement, so it is appended after the gating loop.
+        config.append(
+            {
+                "name": "pr_comments",
+                "type": "boolean",
+                "label": _("Enable Comments on Suspect Pull Requests"),
+                "help": _(
+                    "Allow Sentry to comment on recent pull requests suspected of causing issues."
+                ),
+                "default": False,
+            }
+        )
+
         return config
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:

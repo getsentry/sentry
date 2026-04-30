@@ -286,6 +286,7 @@ def run_night_shift_execution(
         issues = _run_autofix_for_candidates(
             run=run,
             candidates=candidates,
+            options=resolved_options,
             log_extra=log_extra,
         )
         seer_run_id_by_group = {i.group_id: i.seer_run_id for i in issues}
@@ -416,6 +417,7 @@ def _get_eligible_projects(
 def _run_autofix_for_candidates(
     run: SeerNightShiftRun,
     candidates: Sequence[TriageResult],
+    options: SeerNightShiftRunOptions,
     log_extra: dict[str, object],
 ) -> list[SeerNightShiftRunIssue]:
     """
@@ -444,12 +446,21 @@ def _run_autofix_for_candidates(
             else AutofixStoppingPoint.OPEN_PR
         )
 
+        user_context = (
+            f"Night-shift triage already investigated this issue and concluded:\n{c.reason}"
+            if c.reason
+            else None
+        )
+
         try:
             seer_run_id = trigger_autofix_explorer(
                 group=c.group,
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
                 stopping_point=stopping_point,
+                intelligence_level=options["intelligence_level"],
+                reasoning_effort=options["reasoning_effort"],
+                user_context=user_context,
             )
         except Exception:
             logger.exception(

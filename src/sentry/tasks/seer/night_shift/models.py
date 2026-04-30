@@ -16,3 +16,4 @@ class TriageAction(enum.StrEnum):
 class TriageResult:
     group: Group
     action: TriageAction = TriageAction.AUTOFIX
+    reason: str = ""
