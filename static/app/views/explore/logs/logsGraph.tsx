@@ -172,8 +172,7 @@ function Graph({
   const Title = (
     <Widget.WidgetTitle
       summary={
-        !visualize.visible &&
-        plottables.length && (
+        !visualize.visible && plottables.length ? (
           <TimeSeriesWidgetVisualization
             plottables={plottables}
             notMerge={false}
@@ -181,7 +180,7 @@ function Graph({
             showXAxis="never"
             showYAxis="never"
           />
-        )
+        ) : null
       }
       title={prettifyAggregation(aggregate) ?? aggregate}
     />

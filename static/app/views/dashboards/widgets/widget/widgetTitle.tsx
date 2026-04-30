@@ -18,7 +18,7 @@ export function WidgetTitle(props: WidgetTitleProps) {
   );
 
   return props.summary ? (
-    <Grid data-josh columns="auto 1fr" gap="lg" height="100%" width="100%">
+    <Grid columns="auto 1fr" gap="lg" height="100%" width="100%">
       {title}
       <SummaryContainer>{props.summary}</SummaryContainer>
     </Grid>
