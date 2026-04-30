@@ -9,6 +9,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
@@ -93,7 +94,33 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
     staff_allowed_methods = {"GET"}
 
 
+def _check_sentry_app_disabled(
+    endpoint: IntegrationPlatformEndpoint,
+    request: Request,
+    sentry_app: SentryApp | RpcSentryApp,
+) -> None:
+    if not sentry_app.is_disabled:
+        return
+
+    if request.method in endpoint.allow_disabled_sentry_app_for_methods:
+        return
+
+    owner_context = organization_service.get_organization_by_id(
+        id=sentry_app.owner_id, user_id=None, include_projects=False, include_teams=False
+    )
+    if owner_context and features.has(
+        "organizations:sentry-app-disabled-enforcement",
+        owner_context.organization,
+    ):
+        raise SentryAppError(
+            message="This Sentry App has been disabled",
+            status_code=403,
+        )
+
+
 class IntegrationPlatformEndpoint(Endpoint):
+    allow_disabled_sentry_app_for_methods: set[str] = set()
+
     def respond_rpc_sentry_app_error(self, rpc_error: RpcSentryAppError) -> Response:
         """
         Surfaces errors from the cell-side Sentry App RPC to the client.
@@ -279,6 +306,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
             raise SentryAppError(message="Could not find the requested sentry app", status_code=404)
 
         self.check_object_permissions(request, sentry_app)
+        _check_sentry_app_disabled(self, request, sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
 
@@ -298,6 +326,7 @@ class CellSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
             raise SentryAppError(message="Could not find the requested sentry app", status_code=404)
 
         self.check_object_permissions(request, sentry_app)
+        _check_sentry_app_disabled(self, request, sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
 
@@ -424,6 +453,7 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
             )
 
         self.check_object_permissions(request, installation)
+        _check_sentry_app_disabled(self, request, installation.sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app_installation", installation.uuid)
 
