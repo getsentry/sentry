@@ -525,9 +525,9 @@ export function metricSavedDetectorToFormData(
   const anomalyCondition = getAnomalyCondition(detector);
 
   const aggregateFunction =
-    datasetConfig.supportsEquations && isEquation(snubaQuery?.aggregate)
+    datasetConfig.supportsEquations && isEquation(snubaQuery?.aggregate || '')
       ? snubaQuery?.aggregate
-      : datasetConfig.fromApiAggregate(snubaQuery?.aggregate) ||
+      : datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
         DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction;
 
   return {
