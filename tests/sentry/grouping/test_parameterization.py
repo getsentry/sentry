@@ -802,8 +802,8 @@ ip_false_positive_cases = [
     ("ip - single leading colon", "Script error. :0:0", False),
     ("ip - single trailing colon", "12::31:", False),
     ("ip - too few segments", "12:31:99", True),
-    ("ip - v4 leading zeros", "11.21.12.001", True),
-    ("ip - v4 segment > 255", "12.31.12.908", True),
+    ("ip - v4 leading zeros", "11.21.12.001", False),
+    ("ip - v4 segment > 255", "12.31.12.908", False),
     ("ip - v4 too many segments", "11.21.12.31.12", True),
     ("date - colon btwn date and time", "21/Nov/2012:12:31:12", True),
 ]
