@@ -448,6 +448,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 self.context["organization"],
                 actor=self.context["request"].user,
             )
+            and not data.get("id")
             and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
         ):
             raise serializers.ValidationError(

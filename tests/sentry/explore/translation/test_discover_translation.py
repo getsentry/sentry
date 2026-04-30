@@ -23,7 +23,7 @@ class DiscoverToExploreTranslationTest(TestCase):
             last_visited=before_now(minutes=5),
             dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
             explore_query=explore_query,
-            is_homepage=is_homepage if is_homepage is not None else None,
+            is_homepage=is_homepage,
         )
         discover_saved_query.set_projects([self.project1.id, self.project2.id])
 
