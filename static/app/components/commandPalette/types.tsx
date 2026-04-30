@@ -34,7 +34,7 @@ export type CMDKQueryOptions<TData = unknown> = BaseCMDKQueryOptions<TData> & {
 export function cmdkQueryOptions<TData = unknown>(
   options: BaseCMDKQueryOptions<TData>
 ): CMDKQueryOptions<TData> {
-  return {...options, meta: {cmdk: true}} as CMDKQueryOptions<TData>;
+  return {...options, meta: {cmdk: true}};
 }
 
 interface CommandPaletteActionLink extends Action {
