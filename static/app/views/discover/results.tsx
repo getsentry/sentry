@@ -1348,15 +1348,6 @@ function DiscoverPageFilters({
       </PageFilterBar>
       {hasPageFrameFeature && (
         <Flex gap="md" align="center">
-          <SaveQueryButton
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
-          />
           {!shouldHideCreateAlert && (
             <Feature organization={organization} features="incidents">
               {({hasFeature}) =>
@@ -1390,6 +1381,15 @@ function DiscoverPageFilters({
             yAxis={yAxis}
             isHomepage={isHomepage}
             setSavedQuery={setSavedQuery}
+          />
+          <SaveQueryButton
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            savedQuery={savedQuery}
+            yAxis={yAxis}
+            setSavedQuery={setSavedQuery}
+            errorCode={errorCode}
           />
         </Flex>
       )}

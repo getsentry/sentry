@@ -96,7 +96,7 @@ export function SaveAsDropdown({
       <Button
         {...triggerProps}
         size="sm"
-        icon={<IconStar />}
+        priority="primary"
         aria-label={t('Save as')}
         disabled={disabled}
       >
