@@ -281,18 +281,7 @@ export function InputSection({
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>
-        {canInterrupt ? (
-          <Button
-            icon={<IconPause />}
-            onClick={onInterrupt}
-            size="md"
-            priority="primary"
-            aria-label={t('Interrupt button')}
-            tooltipProps={{
-              title: t('Interrupt'),
-            }}
-          />
-        ) : waitingForInterrupt ? (
+        {waitingForInterrupt ? (
           <Button
             icon={<IconPause />}
             size="md"
@@ -301,6 +290,17 @@ export function InputSection({
             aria-label={t('Interrupt button')}
             tooltipProps={{
               title: t('Winding down...'),
+            }}
+          />
+        ) : canInterrupt ? (
+          <Button
+            icon={<IconPause />}
+            onClick={onInterrupt}
+            size="md"
+            priority="primary"
+            aria-label={t('Interrupt button')}
+            tooltipProps={{
+              title: t('Interrupt'),
             }}
           />
         ) : (
