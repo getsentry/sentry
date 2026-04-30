@@ -70,7 +70,7 @@ def _get_value_from_attribute(attribute_value: dict[str, Any]) -> tuple:
     for attribute_type_key, value in attribute_value.items():
         column_type = _VAL_TYPE_TO_COLUMN_TYPE.get(attribute_type_key)
         if column_type is None:
-            sentry_sdk.logger.warning(f"Unknown Type in Protobuf {attribute_value}, {column_type}")
+            sentry_sdk.logger.warning(f"Unknown Type in Protobuf {attribute_value}")
             continue
         if column_type == "array":
             element_types, elements = [], []
