@@ -8,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {
   useCommandPaletteState,
@@ -319,31 +318,23 @@ export function PrimaryNavigationFooterItems() {
       {hasPageFrame ? (
         <PrimaryNavigation.Button
           label={
-            organization.features.includes('cmd-k-supercharged') ? (
-              <Flex gap="xs" align="center">
-                {t('Open command palette')}
-                <Hotkey value="mod+k" variant="debossed" />
-              </Flex>
-            ) : (
-              t('Search support, docs and more')
-            )
+            <Flex gap="xs" align="center">
+              {t('Open command palette')}
+              <Hotkey value="mod+k" variant="debossed" />
+            </Flex>
           }
           analyticsKey="search"
           buttonProps={{
             icon: <IconSearch />,
             onClick: () => {
-              if (organization.features.includes('cmd-k-supercharged')) {
-                toggleCommandPalette(
-                  {},
-                  organization,
-                  state,
-                  dispatch,
-                  'button',
-                  isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
-                );
-              } else {
-                openHelpSearchModal({organization});
-              }
+              toggleCommandPalette(
+                {},
+                organization,
+                state,
+                dispatch,
+                'button',
+                isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+              );
             },
           }}
         />
