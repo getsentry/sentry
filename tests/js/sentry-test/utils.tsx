@@ -12,7 +12,7 @@ function findTextWithMarkup(contentNode: null | Element, textMatch: string | Reg
     return textMatch.test(node.textContent);
   };
 
-  const nodeHasText = hasText(contentNode as Element);
+  const nodeHasText = hasText(contentNode!);
   const childrenDontHaveText = Array.from(contentNode?.children || []).every(
     child => !hasText(child)
   );

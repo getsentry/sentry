@@ -379,7 +379,8 @@ export function SearchQueryBuilderCombobox<
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {disabled, portalTarget, enableAISearch, wrapperRef} = useSearchQueryBuilder();
+  const {clearSearchQuery, disabled, portalTarget, enableAISearch, wrapperRef} =
+    useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -617,7 +618,17 @@ export function SearchQueryBuilderCombobox<
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={disabled}
-        onKeyDownCapture={e => onKeyDownCapture?.(e, {state})}
+        onKeyDownCapture={e => {
+          if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
+            e.preventDefault();
+            e.stopPropagation();
+            state.close();
+            clearSearchQuery({reopenDropdown: true});
+            return;
+          }
+
+          onKeyDownCapture?.(e, {state});
+        }}
         data-test-id={dataTestId}
       />
       {description ? (

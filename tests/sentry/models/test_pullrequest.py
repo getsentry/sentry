@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
@@ -15,6 +16,7 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.types.activity import ActivityType
 
 
 class FindReferencedGroupsTest(TestCase):
@@ -43,6 +45,14 @@ class FindReferencedGroupsTest(TestCase):
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id,
         ).exists()
+        assert Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
+        ).exists()
+        assert not Activity.objects.filter(
+            group=group,
+            type=ActivityType.REFERENCED_IN_COMMIT.value,
+        ).exists()
         assert GroupHistory.objects.filter(
             group=group,
             status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
@@ -53,9 +63,9 @@ class FindReferencedGroupsTest(TestCase):
     @with_feature("organizations:defer-commit-resolution")
     def test_resolve_in_commit_deferred(self) -> None:
         """
-        With defer-commit-resolution ON: commits create GroupLinks but do NOT
-        immediately resolve issues. Resolution happens when a release is created
-        that includes these commits, via update_group_resolutions().
+        With defer-commit-resolution ON: commits create GroupLinks and referenced
+        activity but do NOT immediately resolve issues. Resolution happens when a
+        release is created that includes these commits, via update_group_resolutions().
         """
         group = self.create_group()
 
@@ -76,7 +86,16 @@ class FindReferencedGroupsTest(TestCase):
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id,
         ).exists()
-        assert GroupHistory.objects.filter(
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.REFERENCED_IN_COMMIT.value,
+        )
+        assert activity.data == {"commit": commit.id}
+        assert not Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
+        ).exists()
+        assert not GroupHistory.objects.filter(
             group=group,
             status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
         ).exists()

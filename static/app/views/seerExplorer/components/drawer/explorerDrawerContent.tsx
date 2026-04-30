@@ -71,7 +71,6 @@ export function ExplorerDrawerContent({
     waitingForInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
-    overrideCodeModeEnable,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
@@ -210,6 +209,9 @@ export function ExplorerDrawerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
+      onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
+        ? setOverrideCodeModeEnable
+        : undefined,
     },
     inputAnchorRef: textareaRef,
     prWidgetAnchorRef: prWidgetButtonRef,
@@ -336,11 +338,6 @@ export function ExplorerDrawerContent({
             'seer-explorer-context-engine-fe-override-ui-flag'
           )
         }
-        overrideCodeModeEnable={overrideCodeModeEnable}
-        onOverrideCodeModeEnableToggle={() => setOverrideCodeModeEnable(v => !v)}
-        showCodeModeToggle={
-          !!organization?.features.includes('seer-explorer-code-mode-tools')
-        }
         showThinking={showThinking}
         onShowThinkingToggle={() => setShowThinking(v => !v)}
         showThinkingToggle={
@@ -460,4 +457,7 @@ const DrawerContentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  contain: inline-size;
+  container-type: inline-size;
+  container-name: seer-explorer-root;
 `;
