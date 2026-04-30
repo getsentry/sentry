@@ -217,15 +217,8 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {
-    dispatch,
-    handleSearch,
-    disabled,
-    query,
-    setDisplayAskSeerFeedback,
-    caseInsensitive,
-    onCaseInsensitiveClick,
-  } = useSearchQueryBuilder();
+  const {clearSearchQuery, disabled, query, caseInsensitive, onCaseInsensitiveClick} =
+    useSearchQueryBuilder();
 
   if (disabled) {
     return null;
@@ -258,11 +251,7 @@ function ActionButtons({
           size="zero"
           icon={<IconClose />}
           priority="transparent"
-          onClick={() => {
-            setDisplayAskSeerFeedback(false);
-            dispatch({type: 'CLEAR'});
-            handleSearch('');
-          }}
+          onClick={() => clearSearchQuery()}
         />
       )}
     </ButtonsWrapper>

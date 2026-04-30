@@ -594,6 +594,8 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
+    API_TRACE_ISSUES_GET_EVENTS = "api.trace-view.issues.get-events"
+    API_TRACE_INSIGHTS_GET_EVENTS = "api.trace-view.insights.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
     API_TRACE_VIEW_SPAN_META = "api.trace-view.spans-meta"
     API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
@@ -634,6 +636,7 @@ class Referrer(StrEnum):
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
     )
+    DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
@@ -788,6 +791,7 @@ class Referrer(StrEnum):
     SEER_EXPLORER_INDEX = "seer.explorer_index"
     SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
+    SEER_AUTOFIX_GET_TRACE_EVENTS = "seer.autofix.trace.get-events"
     SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
         "supergroups_backfill_lightweight.get_latest_events"
     )

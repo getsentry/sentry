@@ -52,6 +52,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         self,
         snuba_params: SnubaParams,
         trace_id: str,
+        referrer: str | None,
         error_id: str | None = None,
         additional_attributes: list[str] | None = None,
         include_uptime: bool = False,
@@ -61,6 +62,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         return query_trace_data(
             snuba_params,
             trace_id,
+            referrer,
             error_id,
             additional_attributes,
             include_uptime,
@@ -75,6 +77,8 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
+
+        referrer = request.GET.get("referrer")
 
         additional_attributes = request.GET.getlist("additional_attributes", [])
         include_uptime = request.GET.get("include_uptime", "0") == "1"
@@ -91,6 +95,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
                 spans = self.query_trace_data(
                     snuba_params,
                     trace_id,
+                    referrer,
                     error_id,
                     additional_attributes,
                     include_uptime,
