@@ -73,7 +73,6 @@ import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDat
 import {useExperiment} from 'getsentry/hooks/useExperiment';
 import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
 import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
-import {useReplayForCriticalFlow} from 'getsentry/hooks/useReplayForCriticalFlow';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
 
@@ -259,7 +258,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
   'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
   'react-hook:use-experiment': useExperiment,
-  'react-hook:use-replay-for-critical-flow': useReplayForCriticalFlow,
   'react-hook:use-product-billing-access': useProductBillingAccess,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />

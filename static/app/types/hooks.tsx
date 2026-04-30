@@ -11,7 +11,6 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import type {
   useDefaultMaxPickableDays,
@@ -364,9 +363,6 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
-  'react-hook:use-replay-for-critical-flow': (
-    options: UseReplayForCriticalFlowOptions
-  ) => void;
 };
 
 /**
