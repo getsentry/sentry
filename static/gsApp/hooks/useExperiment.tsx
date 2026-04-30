@@ -48,7 +48,7 @@ export function _resetExposureTracking() {
 }
 
 export function useExperiment(options: UseExperimentOptions): UseExperimentResult {
-  const {feature, reportExposure = false} = options;
+  const {feature, reportExposure} = options;
   const organization = useOrganization();
 
   // Gate on organization.features so that SENTRY_FEATURES, self.feature(),

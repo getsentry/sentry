@@ -12,7 +12,7 @@ function TestComponent({
   reportExposure,
 }: {
   feature: string;
-  reportExposure?: boolean;
+  reportExposure: boolean;
 }) {
   const {inExperiment, experimentAssignment} = useExperiment({
     feature,
