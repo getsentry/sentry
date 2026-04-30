@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import NamedTuple
 
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
 from taskbroker_client.retry import Retry
@@ -21,7 +22,13 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentResponded,
 )
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackAgentEntrypoint
-from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
+from sentry.seer.entrypoints.slack.mention import (
+    SlackMessageLink,
+    build_linked_messages_context,
+    build_thread_context,
+    extract_prompt,
+    extract_slack_message_links,
+)
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
     ProcessMentionHaltReason,
@@ -138,6 +145,11 @@ def process_mention_for_slack(
 
         prompt = extract_prompt(text, bot_user_id)
 
+        linked_result = _resolve_linked_messages(
+            text=text,
+            entrypoint=entrypoint,
+        )
+
         # Only fetch thread context when actually in a thread.
         messages: list[dict] = []
         thread_context: str | None = None
@@ -147,12 +159,21 @@ def process_mention_for_slack(
             )
             thread_context = build_thread_context(messages) or None
 
+        on_page_context = _join_context(linked_result.block, thread_context)
+
+        if linked_result.unresolved_channel_ids:
+            _send_inaccessible_links_prompt(
+                entrypoint=entrypoint,
+                thread_ts=thread_ts or ts,
+                channel_ids=linked_result.unresolved_channel_ids,
+            )
+
         operator = SeerAgentOperator(entrypoint=entrypoint)
         run_id = operator.trigger_agent(
             organization=organization,
             user=user,
             prompt=prompt,
-            on_page_context=thread_context,
+            on_page_context=on_page_context,
             category_key="slack_thread",
             category_value=f"{channel_id}:{entrypoint.thread_ts}",
         )
@@ -320,3 +341,136 @@ def _send_not_org_member_message(
         renderable=renderable,
         thread_ts=thread_ts,
     )
+
+
+# Cap how many messages from a single linked thread we ship to Seer, to bound
+# token cost on large threads. The parent and the explicitly-linked message
+# are always preserved; remaining slots are filled with the most recent replies.
+_MAX_LINKED_THREAD_MESSAGES = 10
+
+
+def _cap_linked_thread(
+    messages: list[dict],
+    link: SlackMessageLink,
+    max_messages: int,
+) -> list[dict]:
+    """Trim a thread's messages to ``max_messages`` while keeping the parent
+    (``messages[0]``) and the message the permalink targets (``link.ts``).
+    Remaining slots are filled with the most recent replies. Order is preserved.
+    """
+    if len(messages) <= max_messages:
+        return messages
+
+    keep_ts: set[str] = {messages[0]["ts"]}
+    # keep the message specified in the link
+    keep_ts.update(m["ts"] for m in messages if m["ts"] == link.ts)
+
+    # Add the most recent messages until max_messages is reached
+    for msg in reversed(messages):
+        if len(keep_ts) >= max_messages:
+            break
+        keep_ts.add(msg["ts"])
+
+    return [m for m in messages if m["ts"] in keep_ts]
+
+
+class _LinkedMessagesResult(NamedTuple):
+    block: str
+    unresolved_channel_ids: list[str]
+
+
+def _resolve_linked_messages(
+    *,
+    text: str,
+    entrypoint: SlackAgentEntrypoint,
+) -> _LinkedMessagesResult:
+    """Fetch any Slack permalinks in ``text`` and render them as a Seer context block.
+
+    Returns the rendered block plus the deduped, sorted list of channel ids whose
+    fetch came back empty.
+    """
+    domain_name = entrypoint.integration.metadata.get("domain_name")
+    links = extract_slack_message_links(text, domain_name=domain_name)
+    if not links:
+        return _LinkedMessagesResult(block="", unresolved_channel_ids=[])
+
+    rendered: list[tuple[SlackMessageLink, list[dict]]] = []
+    total_messages = 0
+    unresolved: set[str] = set()
+    for link in links:
+        messages = entrypoint.install.get_thread_history(
+            channel_id=link.channel_id,
+            thread_ts=link.thread_ts or link.ts,
+        )
+        if not messages:
+            unresolved.add(link.channel_id)
+            continue
+        messages = _cap_linked_thread(messages, link, _MAX_LINKED_THREAD_MESSAGES)
+        rendered.append((link, messages))
+        total_messages += len(messages)
+
+    _logger.info(
+        "seer.slack.process_mention.linked_messages_resolved",
+        extra={
+            "requested": len(links),
+            "fetched": len(rendered),
+            "total_msgs": total_messages,
+        },
+    )
+
+    return _LinkedMessagesResult(
+        block=build_linked_messages_context(rendered),
+        unresolved_channel_ids=list(unresolved),
+    )
+
+
+def _join_context(linked_block: str, thread_context: str | None) -> str | None:
+    """Join the linked-message block and the in-thread context with blank-line separators."""
+    parts = [p for p in (linked_block, thread_context) if p]
+    if not parts:
+        return None
+    return "\n\n".join(parts)
+
+
+def _send_inaccessible_links_prompt(
+    *,
+    entrypoint: SlackAgentEntrypoint,
+    thread_ts: str,
+    channel_ids: list[str],
+) -> None:
+    """Tell the user we couldn't read the linked messages and how to fix it."""
+    renderable = _build_inaccessible_links_renderable(
+        team_id=entrypoint.integration.external_id,
+        channel_ids=channel_ids,
+    )
+    entrypoint.install.send_threaded_ephemeral_message(
+        slack_user_id=entrypoint.slack_user_id,
+        channel_id=entrypoint.channel_id,
+        renderable=renderable,
+        thread_ts=thread_ts,
+    )
+
+
+def _build_inaccessible_links_renderable(
+    *,
+    team_id: str,
+    channel_ids: list[str],
+) -> SlackRenderable:
+    """Build the ephemeral nudging the user to /invite the bot."""
+    plural = len(channel_ids) > 1
+    if not plural:
+        deep_link = f"<slack://channel?team={team_id}&id={channel_ids[0]}|Open the channel>"
+        message = (
+            "I couldn't read the Slack message you linked. "
+            f"{deep_link} and run `/invite @Sentry` so I can read messages there next time."
+        )
+    else:
+        bullets = "\n".join(
+            f"- <slack://channel?team={team_id}&id={cid}|Open channel>" for cid in channel_ids
+        )
+        message = (
+            "I couldn't read some of the Slack messages you linked. "
+            "Run `/invite @Sentry` in each channel so I can read messages there next time:\n"
+            f"{bullets}"
+        )
+    return SlackRenderable(blocks=[MarkdownBlock(text=message)], text=message)
