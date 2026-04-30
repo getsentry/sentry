@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 import logging
 import time
-from collections import Counter
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any, Literal, TypedDict
@@ -14,7 +13,7 @@ from sentry import features, options, quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
+from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     SeerAutomationSource,
@@ -265,14 +264,11 @@ def run_night_shift_execution(
         return None
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
-    action_counts = Counter(c.action for c in candidates)
-    for action, count in action_counts.items():
-        sentry_sdk.metrics.count("night_shift.triage_action", count, attributes={"action": action})
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
 
     seer_run_id_by_group: dict[int, str | None] = {}
     if not resolved_options["dry_run"]:
-        # Populate each candidate group's FK cache so trigger_autofix_explorer doesn't
+        # Populate each candidate group's FK cache so trigger_autofix_agent doesn't
         # re-fetch group.project on every call. Group.organization is a property that
         # delegates to self.project.organization, so caching the org on the project is
         # enough to avoid both lookups.
@@ -286,6 +282,7 @@ def run_night_shift_execution(
         issues = _run_autofix_for_candidates(
             run=run,
             candidates=candidates,
+            options=resolved_options,
             log_extra=log_extra,
         )
         seer_run_id_by_group = {i.group_id: i.seer_run_id for i in issues}
@@ -416,6 +413,7 @@ def _get_eligible_projects(
 def _run_autofix_for_candidates(
     run: SeerNightShiftRun,
     candidates: Sequence[TriageResult],
+    options: SeerNightShiftRunOptions,
     log_extra: dict[str, object],
 ) -> list[SeerNightShiftRunIssue]:
     """
@@ -451,11 +449,13 @@ def _run_autofix_for_candidates(
         )
 
         try:
-            seer_run_id = trigger_autofix_explorer(
+            seer_run_id = trigger_autofix_agent(
                 group=c.group,
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
                 stopping_point=stopping_point,
+                intelligence_level=options["intelligence_level"],
+                reasoning_effort=options["reasoning_effort"],
                 user_context=user_context,
             )
         except Exception:

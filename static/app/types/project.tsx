@@ -99,7 +99,9 @@ export type Project = {
   preprodSnapshotPrCommentsEnabled?: boolean;
   preprodSnapshotStatusChecksEnabled?: boolean;
   preprodSnapshotStatusChecksFailOnAdded?: boolean;
+  preprodSnapshotStatusChecksFailOnChanged?: boolean;
   preprodSnapshotStatusChecksFailOnRemoved?: boolean;
+  preprodSnapshotStatusChecksFailOnRenamed?: boolean;
   scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;

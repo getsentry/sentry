@@ -406,12 +406,7 @@ describe('useCopyIssueDetails', () => {
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
-          match: 'command+alt+c',
-          callback: expect.any(Function),
-          skipPreventDefault: expect.any(Boolean),
-        },
-        {
-          match: 'ctrl+alt+c',
+          match: 'mod+alt+c',
           callback: expect.any(Function),
           skipPreventDefault: expect.any(Boolean),
         },
@@ -428,7 +423,7 @@ describe('useCopyIssueDetails', () => {
 
       renderHook(() => useCopyIssueDetails(group, undefined));
 
-      await userEvent.keyboard('{Meta>}{Alt>}c{/Alt}{/Meta}');
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
@@ -449,7 +444,7 @@ describe('useCopyIssueDetails', () => {
 
       renderHook(() => useCopyIssueDetails(group, event));
 
-      await userEvent.keyboard('{Meta>}{Alt>}c{/Alt}{/Meta}');
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);

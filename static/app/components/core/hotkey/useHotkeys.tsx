@@ -53,6 +53,11 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
 
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
+      // Skip IME composition events — event.key may be undefined or 'Process'
+      // and hotkeys should never fire while the user is composing a character.
+      if (evt.isComposing) {
+        return;
+      }
       for (const hotkey of hotkeysRef.current) {
         if (hotkey.enabled === false) {
           continue;
@@ -61,7 +66,7 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
         const keysets = toArray(hotkey.match).map(keys => keys.toLowerCase());
 
         for (const keyset of keysets) {
-          const keys = keyset.split('+').map(canonicalize);
+          const keys = keyset.split('+').map(k => canonicalize(k));
           const unusedModifiers = MODIFIER_KEYS.filter(
             modifier => !keys.includes(modifier)
           );
