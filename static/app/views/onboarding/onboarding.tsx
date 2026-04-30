@@ -80,14 +80,12 @@ const scmOnboardingSteps: StepDescriptor[] = [
     id: OnboardingStepId.SCM_CONNECT,
     title: t('Connect repository'),
     Component: ScmConnect,
-    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Create your first project'),
     Component: ScmPlatformFeatures,
-    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
@@ -134,7 +132,7 @@ function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
 
   return (
     <OnboardingContainer
-      hasFooter={props.hasFooter || newWelcomeUIStep}
+      hasFooter={props.hasFooter}
       hasScmOnboarding={props.hasScmOnboarding}
     >
       {props.children}
