@@ -471,7 +471,7 @@ export default function SnapshotsPage() {
     next: useRef<HTMLButtonElement>(null),
   };
 
-  const pressTimeoutRef = useRef<number>();
+  const pressTimeoutRef = useRef<number>(undefined);
   // Ref so the keydown handler reads latest state without re-registering.
   const navRef = useRef({navigateSingleView, setViewMode, viewMode, navButtonRefs});
   navRef.current = {navigateSingleView, setViewMode, viewMode, navButtonRefs};
