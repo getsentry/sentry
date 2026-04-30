@@ -82,6 +82,11 @@ describe('EAPSidebarCharts', () => {
       ],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [{id: '1', title: 'Test Dashboard'}],
+    });
+
     render(<EAPSidebarCharts transactionName="test-txn" hasWebVitals />);
 
     // The wheel widget renders with the total score (0.87 * 100 = 87)
