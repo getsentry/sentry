@@ -236,8 +236,18 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (::[fF]{4}:)? # Optional prefix mapping the IPv4 address which follows to IPv6 format
             (
                 \b
-                (\d{1,3}\.){3} # Three sets of 1-3 digits, each followed by a literal dot
-                \d{1,3} # Final set of 1-3 digits
+                # Three numbers from 0-255, each followed by a literal dot, no leading zeros allowed
+                (
+                    (
+                        \d | # 0-9
+                        [1-9]\d | # 10-99
+                        1\d{2} | # 100-199
+                        2[0-4]\d | # 200-249
+                        25[0-5] # 250-255
+                    )\.
+                ){3}
+                # Final number from 0-255 (same pattern alternatives as above)
+                (\d | [1-9]\d | 1\d{2} | 2[0-4]\d | 25[0-5])
                 (/\d{1,2})? # Optional CIDR suffix
                 \b
             )
