@@ -376,6 +376,21 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         )
         assert issue_run_ids == {autofix_group.id: "42", root_cause_group.id: "99"}
 
+    def test_forwards_reasoning_effort_to_trigger(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        group = self._store_event_and_update_group(
+            project, "fixable", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with self._patched_night_shift([(group.id, "autofix")]) as (mock_trigger, _):
+            run_night_shift_for_org(org.id, options={"reasoning_effort": "low"})
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["reasoning_effort"] == "low"
+
     def test_dry_run_skips_autofix(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)

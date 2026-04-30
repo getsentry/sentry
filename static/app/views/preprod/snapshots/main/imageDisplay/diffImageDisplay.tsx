@@ -1,17 +1,16 @@
-import {useEffect, useRef, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Slider} from '@sentry/scraps/slider';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {IconInput, IconPause, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
+import {useBufferedImageUrl} from './useBufferedImageUrl';
 import {useSyncedD3Zoom} from './useD3Zoom';
 import {
   ZoomableArea,
@@ -29,7 +28,6 @@ interface DiffImageDisplayProps {
   diffImageBaseUrl: string;
   diffMode: DiffMode;
   imageBaseUrl: string;
-  onDiffModeChange: (mode: DiffMode) => void;
   overlayColor: string;
   pair: SnapshotDiffPair;
 }
@@ -40,103 +38,38 @@ export function DiffImageDisplay({
   diffImageBaseUrl,
   overlayColor,
   diffMode,
-  onDiffModeChange,
 }: DiffImageDisplayProps) {
-  const [diffMaskUrl, setDiffMaskUrl] = useState<string | null>(null);
   const [onionOpacity, setOnionOpacity] = useState(50);
-  const blobUrlRef = useRef<string | null>(null);
 
   const baseImageUrl = `${imageBaseUrl}${pair.base_image.key}/`;
   const headImageUrl = `${imageBaseUrl}${pair.head_image.key}/`;
-  const diffImageUrl = pair.diff_image_key
+  const diffMaskUrl = pair.diff_image_key
     ? `${diffImageBaseUrl}${pair.diff_image_key}/`
     : null;
 
-  useEffect(() => {
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
-    setDiffMaskUrl(null);
-
-    if (!diffImageUrl) {
-      return undefined;
-    }
-    let cancelled = false;
-    fetch(diffImageUrl)
-      .then(r => {
-        if (!r.ok) {
-          throw new Error(`Failed to fetch diff image: ${r.status}`);
-        }
-        return r.blob();
-      })
-      .then(blob => {
-        if (!cancelled) {
-          const url = URL.createObjectURL(blob);
-          blobUrlRef.current = url;
-          setDiffMaskUrl(url);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
-  }, [diffImageUrl]);
-
-  // >= 1% shows 1 decimal (e.g. "93.5%"), < 1% shows up to 4 without trailing zeros (e.g. "0.0227%")
-  const diffPct = pair.diff === null ? null : pair.diff * 100;
-  const diffPercent =
-    diffPct === null
-      ? null
-      : `${diffPct >= 1 ? diffPct.toFixed(1) : parseFloat(diffPct.toFixed(4))}%`;
-
   return (
     <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
-      {diffPercent && (
-        <Text variant="muted" size="sm">
-          {t('Diff: %s', diffPercent)}
-        </Text>
-      )}
-
-      {diffMode === 'split' && (
+      <HiddenWhenInactive active={diffMode === 'split'}>
         <SplitView
           baseImageUrl={baseImageUrl}
           headImageUrl={headImageUrl}
           overlayColor={overlayColor}
           diffMaskUrl={diffMaskUrl}
         />
-      )}
+      </HiddenWhenInactive>
 
-      {diffMode === 'wipe' && (
+      <HiddenWhenInactive active={diffMode === 'wipe'}>
         <WipeView baseImageUrl={baseImageUrl} headImageUrl={headImageUrl} />
-      )}
+      </HiddenWhenInactive>
 
-      {diffMode === 'onion' && (
+      <HiddenWhenInactive active={diffMode === 'onion'}>
         <OnionView
           baseImageUrl={baseImageUrl}
           headImageUrl={headImageUrl}
           opacity={onionOpacity}
           onOpacityChange={setOnionOpacity}
         />
-      )}
-
-      <Flex justify="center" flexShrink={0}>
-        <SegmentedControl value={diffMode} onChange={onDiffModeChange}>
-          <SegmentedControl.Item key="split" icon={<IconPause />}>
-            {t('Split')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="wipe" icon={<IconInput />}>
-            {t('Wipe')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="onion" icon={<IconStack />}>
-            {t('Onion')}
-          </SegmentedControl.Item>
-        </SegmentedControl>
-      </Flex>
+      </HiddenWhenInactive>
     </Flex>
   );
 }
@@ -155,6 +88,9 @@ function SplitView({
   diffMaskUrl,
 }: SplitViewProps) {
   const [zoom1, zoom2] = useSyncedD3Zoom();
+  const showOverlay = diffMaskUrl && overlayColor !== TRANSPARENT_COLOR;
+  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
+  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
   return (
     <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
       <Flex direction="column" gap="sm" minHeight="0">
@@ -168,7 +104,12 @@ function SplitView({
               height="100%"
               style={zoomTransformStyle(zoom1.transform)}
             >
-              <ZoomableImage src={baseImageUrl} alt={t('Base')} />
+              <ZoomableImage
+                src={displayBaseUrl}
+                alt={t('Base')}
+                loading="eager"
+                decoding="async"
+              />
             </Flex>
           </ZoomContainer>
         </ZoomableArea>
@@ -186,8 +127,13 @@ function SplitView({
               style={zoomTransformStyle(zoom2.transform)}
             >
               <ImageWrapper>
-                <ZoomableImage src={headImageUrl} alt={t('Current Branch')} />
-                {diffMaskUrl && overlayColor !== TRANSPARENT_COLOR && (
+                <ZoomableImage
+                  src={displayHeadUrl}
+                  alt={t('Current Branch')}
+                  loading="eager"
+                  decoding="async"
+                />
+                {showOverlay && (
                   <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
                 )}
               </ImageWrapper>
@@ -211,17 +157,29 @@ function WipeView({
   baseImageUrl: string;
   headImageUrl: string;
 }) {
+  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
+  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
   return (
     <Flex flex="1" minHeight="0">
       <ContentSliderDiff.Body
         before={
           <Flex justify="center" align="center" height="100%">
-            <ConstrainedImage src={baseImageUrl} alt={t('Base')} />
+            <ConstrainedImage
+              src={displayBaseUrl}
+              alt={t('Base')}
+              loading="eager"
+              decoding="async"
+            />
           </Flex>
         }
         after={
           <Flex justify="center" align="center" height="100%">
-            <ConstrainedImage src={headImageUrl} alt={t('Current Branch')} />
+            <ConstrainedImage
+              src={displayHeadUrl}
+              alt={t('Current Branch')}
+              loading="eager"
+              decoding="async"
+            />
           </Flex>
         }
         minHeight="200px"
@@ -241,6 +199,8 @@ function OnionView({
   onOpacityChange: (value: number) => void;
   opacity: number;
 }) {
+  const displayBaseUrl = useBufferedImageUrl(baseImageUrl);
+  const displayHeadUrl = useBufferedImageUrl(headImageUrl);
   return (
     <Flex
       direction="column"
@@ -258,9 +218,19 @@ function OnionView({
         background="secondary"
       >
         <OnionContainer>
-          <ConstrainedImage src={baseImageUrl} alt={t('Base')} />
+          <ConstrainedImage
+            src={displayBaseUrl}
+            alt={t('Base')}
+            loading="eager"
+            decoding="async"
+          />
           <OnionOverlayLayer style={{opacity: opacity / 100}}>
-            <ConstrainedImage src={headImageUrl} alt={t('Current Branch')} />
+            <ConstrainedImage
+              src={displayHeadUrl}
+              alt={t('Current Branch')}
+              loading="eager"
+              decoding="async"
+            />
           </OnionOverlayLayer>
         </OnionContainer>
       </Flex>
@@ -322,4 +292,8 @@ const OnionOverlayLayer = styled('div')`
   left: 0;
   width: 100%;
   height: 100%;
+`;
+
+const HiddenWhenInactive = styled('div')<{active: boolean}>`
+  display: ${p => (p.active ? 'contents' : 'none')};
 `;
