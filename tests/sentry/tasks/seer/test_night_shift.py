@@ -15,6 +15,7 @@ from sentry.tasks.seer.night_shift.cron import (
     run_night_shift_for_org,
     schedule_night_shift,
 )
+from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -691,3 +692,17 @@ class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
         assert result[0].times_seen == 5
         assert result[0].severity == 1.0
         assert result[1].group.id == low.id
+
+
+class TestTriageActionFromFixabilityScore:
+    def test_bucket_boundaries(self) -> None:
+        cases = [
+            (0.0, TriageAction.SKIP),
+            (0.39, TriageAction.SKIP),
+            (0.40, TriageAction.ROOT_CAUSE_ONLY),
+            (0.65, TriageAction.ROOT_CAUSE_ONLY),
+            (0.66, TriageAction.AUTOFIX),
+            (0.95, TriageAction.AUTOFIX),
+        ]
+        for score, expected in cases:
+            assert TriageAction.from_fixability_score(score) == expected
