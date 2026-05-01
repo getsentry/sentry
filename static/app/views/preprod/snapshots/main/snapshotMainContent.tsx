@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -439,9 +439,11 @@ function SingleViewLayout({
       navigate(isNext ? 'next' : 'prev');
 
       const btn = isNext ? navButtonRefs.next.current : navButtonRefs.prev.current;
+      const otherBtn = isNext ? navButtonRefs.prev.current : navButtonRefs.next.current;
       if (btn) {
-        btn.setAttribute('aria-pressed', 'true');
         clearTimeout(pressTimeoutRef.current);
+        otherBtn?.removeAttribute('aria-pressed');
+        btn.setAttribute('aria-pressed', 'true');
         pressTimeoutRef.current = window.setTimeout(
           () => btn.removeAttribute('aria-pressed'),
           150
@@ -733,20 +735,6 @@ const NavGutter = styled('div')`
       transform: translateY(0px);
     }
   }
-`;
-
-const SingleViewCard = styled(Card)`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-`;
-
-const SingleViewBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
 `;
 
 const ColorPickerWrapper = styled('div')`
