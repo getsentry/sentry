@@ -75,7 +75,12 @@ export function SeerRepoTableRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Stack gap="xs">
-          <Link to={{...location, query: {...location.query, repoId: repository.id}}}>
+          <Link
+            to={{
+              pathname: `/settings/${organization.slug}/seer/repos/${repository.id}/`,
+              query: location.query,
+            }}
+          >
             <Flex align="center">
               <strong>{repository.name}</strong>
               {repository.status !== RepositoryStatus.ACTIVE && (
