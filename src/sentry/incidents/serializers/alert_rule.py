@@ -210,18 +210,23 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 raise serializers.ValidationError(
                     f'Trigger {i + 1} must be labeled "{expected_label}"'
                 )
-        threshold_type = data["threshold_type"]
-        self._translate_thresholds(threshold_type, data.get("comparison_delta"), triggers, data)
-
-        critical = triggers[0]
-        self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
-
-        if len(triggers) == 2:
-            warning = triggers[1]
-            self._validate_trigger_thresholds(
-                threshold_type, warning, data.get("resolve_threshold")
+        threshold_type = data.get("threshold_type")
+        if threshold_type is not None:
+            self._translate_thresholds(
+                threshold_type, data.get("comparison_delta"), triggers, data
             )
-            self._validate_critical_warning_triggers(threshold_type, critical, warning)
+
+            critical = triggers[0]
+            self._validate_trigger_thresholds(
+                threshold_type, critical, data.get("resolve_threshold")
+            )
+
+            if len(triggers) == 2:
+                warning = triggers[1]
+                self._validate_trigger_thresholds(
+                    threshold_type, warning, data.get("resolve_threshold")
+                )
+                self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
         return data
 

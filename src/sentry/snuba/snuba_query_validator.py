@@ -236,28 +236,33 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         data["extrapolation_mode"] = self._validate_extrapolation_mode(data)
 
-        query_type = data["query_type"]
-        if query_type == SnubaQuery.Type.CRASH_RATE:
-            data["event_types"] = []
-        event_types = data.get("event_types")
+        query_type = data.get("query_type")
+        if query_type is not None:
+            if query_type == SnubaQuery.Type.CRASH_RATE:
+                data["event_types"] = []
+            event_types = data.get("event_types")
 
-        valid_event_types = QUERY_TYPE_VALID_EVENT_TYPES.get(query_type, set())
-        if event_types and set(event_types) - valid_event_types:
-            raise serializers.ValidationError(
-                "Invalid event types for this dataset. Valid event types are %s"
-                % sorted(et.name.lower() for et in valid_event_types)
-            )
+            valid_event_types = QUERY_TYPE_VALID_EVENT_TYPES.get(query_type, set())
+            if event_types and set(event_types) - valid_event_types:
+                raise serializers.ValidationError(
+                    "Invalid event types for this dataset. Valid event types are %s"
+                    % sorted(et.name.lower() for et in valid_event_types)
+                )
 
-        dataset = data.get("dataset")
-        if dataset == Dataset.EventsAnalyticsPlatform and event_types and len(event_types) > 1:
-            raise serializers.ValidationError(
-                "Multiple event types not allowed. Valid event types are %s"
-                % sorted(et.name.lower() for et in valid_event_types)
-            )
+            dataset = data.get("dataset")
+            if dataset == Dataset.EventsAnalyticsPlatform and event_types and len(event_types) > 1:
+                raise serializers.ValidationError(
+                    "Multiple event types not allowed. Valid event types are %s"
+                    % sorted(et.name.lower() for et in valid_event_types)
+                )
 
         return data
 
     def _validate_aggregate(self, data: dict[str, Any]) -> None:
+        # During partial updates (e.g. PUT with partial=True), aggregate may not be provided.
+        if "aggregate" not in data:
+            return
+
         dataset = data.setdefault("dataset", Dataset.Events)
         aggregate = data["aggregate"]
         event_types = data.get("event_types", [])
@@ -298,6 +303,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
     def _validate_query(self, data: dict[str, Any]) -> None:
+        # During partial updates, aggregate, query, or time_window may not be provided.
+        # These are all required to validate the query, so skip if any are missing.
+        if "aggregate" not in data or "query" not in data or "time_window" not in data:
+            return
+
         dataset = data.setdefault("dataset", Dataset.Events)
 
         if features.has(
