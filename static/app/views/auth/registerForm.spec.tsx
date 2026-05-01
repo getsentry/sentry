@@ -20,17 +20,19 @@ describe('Register', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
-    expect(apiRequest).toHaveBeenCalledWith(
-      '/auth/register/',
-      expect.objectContaining({
-        data: {
-          name: 'joe',
-          username: 'test@test.com',
-          password: '12345pass',
-          subscribe: true,
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        '/auth/register/',
+        expect.objectContaining({
+          data: {
+            name: 'joe',
+            username: 'test@test.com',
+            password: '12345pass',
+            subscribe: true,
+          },
+        })
+      );
+    });
   }
 
   it.isKnownFlake('handles errors', async () => {
