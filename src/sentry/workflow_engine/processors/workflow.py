@@ -496,10 +496,7 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    if features.has("organizations:workflow-engine-process-workflows-cache", organization):
-        workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
-    else:
-        workflows = _get_associated_workflows(event_detectors.detectors, environment)
+    workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
 
     if workflows:
         metrics_incr("process_workflows", len(workflows))
