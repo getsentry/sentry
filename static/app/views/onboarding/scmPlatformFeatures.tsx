@@ -481,7 +481,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                     {t('Auto-detected from your repository')}
                   </Text>
                 </Flex>
-                <Button size="xs" priority="link" onClick={handleChangePlatformClick}>
+                <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
                   {isDetecting
                     ? t('Skip detection and select manually')
                     : t("Doesn't look right? Change platform")}
@@ -537,7 +537,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                   </Text>
                 </Flex>
                 {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
-                  <Button size="xs" priority="link" onClick={handleBackToRecommended}>
+                  <Button size="xs" variant="link" onClick={handleBackToRecommended}>
                     {t('Back to recommended platforms')}
                   </Button>
                 )}
@@ -605,7 +605,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
             <Flex align="center">{genBackButton?.()}</Flex>
             <Flex align="center" gap="md">
               <Button
-                priority="primary"
+                variant="primary"
                 analyticsEventKey="onboarding.scm_platform_features_continue_clicked"
                 analyticsEventName="Onboarding: SCM Platform Features Continue Clicked"
                 analyticsParams={{
