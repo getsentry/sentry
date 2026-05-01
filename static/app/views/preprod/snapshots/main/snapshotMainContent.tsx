@@ -484,14 +484,9 @@ function SingleViewLayout({
       height="100%"
       width="100%"
       background="secondary"
+      onClick={e => e.stopPropagation()}
     >
-      <Flex
-        align="center"
-        justify="between"
-        gap="md"
-        padding="md xl md 0"
-        onClick={e => e.stopPropagation()}
-      >
+      <Flex align="center" justify="between" gap="md" padding="md xl md 0">
         <Flex align="center" gap="md">
           {toggle}
           {sortDropdown}

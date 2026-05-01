@@ -77,7 +77,10 @@ export const PairCard = memo(function PairCard({
   const headUrl = `${imageBaseUrl}${image.key}/`;
 
   const handleSelect = onSelectSnapshot
-    ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelectSnapshot(isSelected ? null : snapshotKey);
+      }
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
@@ -123,7 +126,7 @@ export const PairCard = memo(function PairCard({
       <SnapshotVariantFrame
         isSelected={isSelected}
         data-snapshot-key={snapshotKey}
-        onClick={e => e.stopPropagation()}
+        onClick={handleSelect}
       >
         <CardHeader
           displayName={image.display_name}
@@ -134,9 +137,7 @@ export const PairCard = memo(function PairCard({
           onToggleDark={() => setIsDark(v => !v)}
           copyData={pair}
           copyUrl={copyUrl}
-          onSelect={handleSelect}
           onDoubleClick={handleOpen}
-          isSelected={isSelected}
           showBottomBorder={false}
         />
         <Container padding="0 xl xl">{body}</Container>
@@ -182,7 +183,10 @@ export const ImageCard = memo(function ImageCard({
   }
 
   const handleSelect = onSelectSnapshot
-    ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelectSnapshot(isSelected ? null : snapshotKey);
+      }
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
@@ -191,7 +195,7 @@ export const ImageCard = memo(function ImageCard({
       <SnapshotVariantFrame
         isSelected={isSelected}
         data-snapshot-key={snapshotKey}
-        onClick={e => e.stopPropagation()}
+        onClick={handleSelect}
       >
         <CardHeader
           displayName={image.display_name}
@@ -201,9 +205,7 @@ export const ImageCard = memo(function ImageCard({
           onToggleDark={() => setIsDark(v => !v)}
           copyData={copyData ?? image}
           copyUrl={copyUrl}
-          onSelect={handleSelect}
           onDoubleClick={handleOpen}
-          isSelected={isSelected}
           showBottomBorder={false}
         />
         <Container padding="0 xl xl">
@@ -223,9 +225,7 @@ export const CardHeader = memo(function CardHeader({
   onToggleDark,
   copyData,
   copyUrl,
-  onSelect,
   onDoubleClick,
-  isSelected,
   showBottomBorder = true,
 }: {
   copyData: unknown;
@@ -235,34 +235,13 @@ export const CardHeader = memo(function CardHeader({
   onToggleDark: () => void;
   diffPercent?: number | null;
   displayName?: string | null;
-  isSelected?: boolean;
   onDoubleClick?: () => void;
-  onSelect?: () => void;
   showBottomBorder?: boolean;
   status?: DiffStatus | null;
 }) {
   const {copy} = useCopyToClipboard();
-  const handleRowKeyDown = onSelect
-    ? (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          onSelect();
-        } else if (e.key === ' ') {
-          e.preventDefault();
-        }
-      }
-    : undefined;
   return (
-    <CardHeaderRow
-      onClick={onSelect}
-      onDoubleClick={onDoubleClick}
-      onKeyDown={handleRowKeyDown}
-      role={onSelect ? 'button' : undefined}
-      tabIndex={onSelect ? 0 : undefined}
-      aria-pressed={onSelect ? isSelected : undefined}
-      isInteractive={!!onSelect}
-      $showBottomBorder={showBottomBorder}
-    >
+    <CardHeaderRow onDoubleClick={onDoubleClick} $showBottomBorder={showBottomBorder}>
       <Stack gap="xs" minWidth="0" flex="1">
         {displayName ? (
           <Fragment>
@@ -395,7 +374,6 @@ function IconButton({
 
 const CardHeaderRow = styled('div')<{
   $showBottomBorder?: boolean;
-  isInteractive?: boolean;
 }>`
   display: flex;
   align-items: flex-start;
@@ -404,20 +382,6 @@ const CardHeaderRow = styled('div')<{
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-bottom: ${p =>
     p.$showBottomBorder ? `1px solid ${p.theme.tokens.border.secondary}` : 0};
-  ${p =>
-    p.isInteractive &&
-    `
-      cursor: pointer;
-      user-select: none;
-
-      &:hover {
-        background: ${p.theme.tokens.background.secondary};
-      }
-
-      &:focus {
-        outline: none;
-      }
-    `}
 `;
 
 const InfoIconButton = styled('button')`
