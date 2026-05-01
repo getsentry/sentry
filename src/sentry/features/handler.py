@@ -44,6 +44,7 @@ class FeatureHandler:
         feature: Feature,
         actor: User | RpcUser | AnonymousUser | None,
         skip_entity: bool | None = False,
+        skip_experiment_exposure: bool = False,
     ) -> bool | None:
         raise NotImplementedError
 
@@ -62,6 +63,7 @@ class FeatureHandler:
         projects: Sequence[Project] | None = None,
         organization: Organization | RpcOrganization | None = None,
         batch: bool = True,
+        skip_experiment_exposure: bool = False,
     ) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError
 
@@ -108,6 +110,7 @@ class BatchFeatureHandler(FeatureHandler):
         feature: Feature,
         actor: User | RpcUser | AnonymousUser | None,
         skip_entity: bool | None = False,
+        skip_experiment_exposure: bool = False,
     ) -> bool | None:
         return self._check_for_batch(feature.name, feature.get_subject(), actor)
 

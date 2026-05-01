@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import type * as qs from 'query-string';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -23,6 +23,7 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
@@ -60,8 +61,9 @@ function ProfileFlamegraph(): React.ReactElement {
 export default function ProfileFlamegraphWrapper() {
   const organization = useOrganization();
   const profiles = useProfiles();
-  const profiledTransaction = useProfileTransaction();
+  const transactionResult = useProfileTransaction();
   const params = useParams();
+  const location = useLocation();
 
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
@@ -77,7 +79,7 @@ export default function ProfileFlamegraphWrapper() {
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
     const queryStringState = decodeFlamegraphStateFromQueryParams(
-      qs.parse(window.location.search)
+      location.query as qs.ParsedQuery
     );
 
     return {
@@ -113,7 +115,7 @@ export default function ProfileFlamegraphWrapper() {
             <FlamegraphStateQueryParamSync />
             <FlamegraphStateLocalStorageSync />
             <FlamegraphContainer>
-              {profiles.type === 'loading' || profiledTransaction.type === 'loading' ? (
+              {profiles.type === 'loading' || transactionResult.isLoading ? (
                 <Stack justify="center" width="100%" height="100%" position="absolute">
                   <LoadingIndicator />
                 </Stack>

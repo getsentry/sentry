@@ -16,7 +16,7 @@ import {
   type DiffLine,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -191,10 +191,10 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {

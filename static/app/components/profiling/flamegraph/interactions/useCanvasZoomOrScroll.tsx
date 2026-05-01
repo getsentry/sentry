@@ -20,7 +20,7 @@ export function useCanvasZoomOrScroll({
 }) {
   useEffect(() => {
     if (!canvas) {
-      return undefined;
+      return;
     }
 
     let wheelStopTimeoutId: {current: number | undefined} = {current: undefined};

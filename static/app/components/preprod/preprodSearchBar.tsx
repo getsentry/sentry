@@ -145,6 +145,7 @@ export function PreprodSearchBar({
       disallowHas={disallowHas}
       disallowLogicalOperators={disallowLogicalOperators}
       hiddenAttributeKeys={hiddenKeys}
+      allowedAttributeKeys={allowedKeys}
     />
   );
 }

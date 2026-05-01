@@ -101,9 +101,17 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 environment_id__in=environment_map.keys()
             )
 
-        monitor_environment_map = dict(
-            monitor_environment_query.values_list("id", "environment_id")
+        monitor_environment_rows = list(
+            monitor_environment_query.values_list("id", "monitor_id", "environment_id")
         )
+        monitor_environment_map = {
+            monitor_environment_id: environment_id
+            for monitor_environment_id, _monitor_id, environment_id in monitor_environment_rows
+        }
+        monitor_environment_to_monitor_id = {
+            monitor_environment_id: monitor_id
+            for monitor_environment_id, monitor_id, _environment_id in monitor_environment_rows
+        }
 
         # If the monitor_environment_map was fetched without the help of the environments
         # parameter, we need to populate the environment_map with all the environment_ids found
@@ -123,10 +131,15 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             date_added__lt=args["end"],
         )
 
+        group_by: tuple[str, ...]
         if monitor_environment_map:
             check_ins = check_ins.filter(monitor_environment_id__in=monitor_environment_map.keys())
+            # MonitorEnvironment already carries monitor_id, so keep monitor_id out of the
+            # aggregate and let the monitor_environment/date/status index cover the query.
+            group_by = ("bucket", "monitor_environment_id", "status")
         else:
             check_ins = check_ins.filter(monitor_id__in=monitor_map.keys())
+            group_by = ("monitor_id", "bucket", "monitor_environment_id", "status")
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(
@@ -144,20 +157,9 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         history = (
             check_ins.all()
             .annotate(bucket=bucket)
-            .values(
-                "bucket",
-                "monitor_id",
-                "monitor_environment_id",
-                "status",
-            )
+            .values(*group_by)
             .annotate(count=Count("*"))
-            .values_list(
-                "monitor_id",
-                "bucket",
-                "monitor_environment_id",
-                "status",
-                "count",
-            )
+            .values_list(*group_by, "count")
         )
 
         status_to_name = dict(CheckInStatus.as_choices())
@@ -185,9 +187,21 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         # We manually sort the response output by guid and bucket. This is fine because the set
         # of keys is known (they're provided as a query parameter) and there is no pagination.
-        for mid, ts, meid, status, count in sorted(
-            list(history), key=lambda k: (monitor_map[k[0]], k[1])
-        ):
+        def sort_history_key(row):
+            if monitor_environment_map:
+                ts, meid, _status, _count = row
+                return monitor_map[monitor_environment_to_monitor_id[meid]], ts
+
+            mid, ts, _meid, _status, _count = row
+            return monitor_map[mid], ts
+
+        for row in sorted(list(history), key=sort_history_key):
+            if monitor_environment_map:
+                ts, meid, status, count = row
+                mid = monitor_environment_to_monitor_id[meid]
+            else:
+                mid, ts, meid, status, count = row
+
             guid = monitor_map[mid]
 
             # Monitor environments can be null.  If we find a null monitor environment we

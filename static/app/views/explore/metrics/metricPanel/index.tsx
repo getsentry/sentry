@@ -84,7 +84,7 @@ export function MetricPanel({
     if (isVisualizeEquation(visualize)) {
       return unresolveExpression(visualize.expression.text, referenceMap);
     }
-    return undefined;
+    return;
   });
 
   const areQueriesEnabled = isVisualizeFunction(visualize)

@@ -212,6 +212,8 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 search_type="string",
             ),
             # Exception data
+            # TODO: some of these values are arrays, but EAP does not yet support array-aware operators for these
+            # For example, a query like `error.unhandled is False` returns no results from EAP when it should
             ResolvedAttribute(
                 public_alias="exception_count",
                 internal_name="exception_count",
@@ -221,16 +223,19 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 public_alias="error.type",
                 internal_name="stack_types",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="error.value",
                 internal_name="stack_values",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="error.mechanism",
                 internal_name="stack_mechanism_types",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="error.handled",
@@ -241,46 +246,55 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 public_alias="stack.abs_path",
                 internal_name="frame_abs_paths",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.filename",
                 internal_name="frame_filenames",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.function",
                 internal_name="frame_functions",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.module",
                 internal_name="frame_modules",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.package",
                 internal_name="frame_packages",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.in_app",
                 internal_name="frame_in_app",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.colno",
                 internal_name="frame_colnos",
-                search_type="string",
+                search_type="integer",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.lineno",
                 internal_name="frame_linenos",
-                search_type="string",
+                search_type="integer",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.stack_level",
                 internal_name="frame_stack_levels",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="issue",

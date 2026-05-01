@@ -353,14 +353,14 @@ export class Client {
       }
 
       if (!req?.alive) {
-        return undefined;
+        return;
       }
 
       // Check if API response is a 302 -- means project slug was renamed and user
       // needs to be redirected
       // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       if (hasProjectBeenRenamed(...args)) {
-        return undefined;
+        return;
       }
 
       // Call success callback

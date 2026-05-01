@@ -25,19 +25,13 @@ interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
-  hidden?: boolean;
   notMerge?: boolean;
 }
 
-export function ChartVisualization({
-  chartXRangeSelection,
-  chartInfo,
-  chartRef,
-  notMerge,
-}: ChartVisualizationProps) {
+export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
   const theme = useTheme();
 
-  const plottables = useMemo(() => {
+  return useMemo(() => {
     const DataPlottableConstructor =
       chartInfo.chartType === ChartType.LINE
         ? Line
@@ -63,7 +57,15 @@ export function ChartVisualization({
       });
     });
   }, [chartInfo, theme]);
+}
 
+export function ChartVisualization({
+  chartXRangeSelection,
+  chartInfo,
+  chartRef,
+  notMerge,
+}: ChartVisualizationProps) {
+  const plottables = useChartVisualizationPlottables(chartInfo);
   const previousPlottables = usePrevious(
     plottables,
     chartInfo.timeseriesResult.isPending

@@ -146,19 +146,13 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   });
 }
 
-export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/deprecatedCommandPalette');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
-
 export async function toggleCommandPalette(
   options: ModalOptions = {},
   organization: Organization,
   state: CommandPaletteState,
   dispatch: CommandPaletteDispatch,
-  source: 'button' | 'keyboard'
+  source: 'button' | 'keyboard',
+  openSeerExplorer?: (options?: {initialQuery?: string}) => void
 ) {
   const {CommandPalette: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/commandPalette');
@@ -173,10 +167,13 @@ export async function toggleCommandPalette(
   } else {
     trackAnalytics('command_palette.opened', {organization, source});
     dispatch({type: 'toggle modal'});
-    openModal(deps => <Modal {...deps} {...options} />, {
-      modalCss,
-      onClose: closeCommandPaletteModal,
-    });
+    openModal(
+      deps => <Modal {...deps} {...options} openSeerExplorer={openSeerExplorer} />,
+      {
+        modalCss,
+        onClose: closeCommandPaletteModal,
+      }
+    );
   }
 }
 type RecoveryModalOptions = {
@@ -200,18 +197,6 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
     await import('sentry/components/modals/teamAccessRequestModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
-}
-
-type HelpSearchModalOptions = {
-  organization?: Organization;
-  placeholder?: string;
-};
-
-export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/helpSearchModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 type DebugFileSourceModalOptions = {

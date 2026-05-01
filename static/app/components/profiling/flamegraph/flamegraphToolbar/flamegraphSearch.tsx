@@ -17,6 +17,7 @@ import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 import {fzf} from 'sentry/utils/search/fzf';
+import {SpanFields} from 'sentry/views/insights/types';
 
 function isFlamegraphFrame(
   frame: FlamegraphFrame | SpanChartNode
@@ -53,7 +54,7 @@ function searchSpanFzf(
     return match;
   }
 
-  matches.set(span.node.span.span_id, {
+  matches.set(span.node.span[SpanFields.SPAN_ID], {
     span,
     match: match.matches,
   });
@@ -105,7 +106,7 @@ function searchSpanRegExp(
     return match;
   }
 
-  matches.set(span.node.span.span_id, {
+  matches.set(span.node.span[SpanFields.SPAN_ID], {
     span,
     match: [match],
   });

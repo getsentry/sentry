@@ -20,7 +20,7 @@ import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExp
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
-type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
+export type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
@@ -124,7 +124,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       ? []
       : [
           {
-            match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
+            match: [
+              'mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
+              'mod+.', // macOS-friendly alternative
+              'mod+shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
+              'mod+shift+.', // AZERTY (French, Belgian): / === Shift+.
+              'mod+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
+            ],
             callback: () => {
               toggleSeerExplorerDrawer();
             },

@@ -84,4 +84,35 @@ describe('LinkButton', () => {
     expect(element).not.toHaveAttribute('href');
     expect(element).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it('renders external link with target="_blank" and security attributes', () => {
+    render(
+      <LinkButton href="https://example.com" external>
+        External
+      </LinkButton>
+    );
+
+    const element = screen.getByRole('button', {name: 'External'});
+    expect(element).toHaveAttribute('target', '_blank');
+    expect(element).toHaveAttribute('rel', 'noreferrer noopener');
+  });
+
+  it('renders internal link with target="_blank" when openInNewTab is set', () => {
+    render(
+      <LinkButton to="/some/route" openInNewTab>
+        Open in Tab
+      </LinkButton>
+    );
+
+    const element = screen.getByRole('button', {name: 'Open in Tab'});
+    expect(element).toHaveAttribute('target', '_blank');
+    expect(element).toHaveAttribute('rel', 'noreferrer noopener');
+  });
+
+  it('does not add target when openInNewTab is not set', () => {
+    render(<LinkButton to="/some/route">Normal Route</LinkButton>);
+
+    const element = screen.getByRole('button', {name: 'Normal Route'});
+    expect(element).not.toHaveAttribute('target');
+  });
 });

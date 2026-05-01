@@ -1,7 +1,6 @@
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const automationFeedbackOptions = {
   messagePlaceholder: t('How can we improve the alerts experience?'),
@@ -12,25 +11,15 @@ const automationFeedbackOptions = {
 };
 
 export function AutomationFeedbackButton() {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
-  if (hasPageFrameFeature) {
-    return (
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={automationFeedbackOptions}
-          aria-label={t('Feedback')}
-          tooltipProps={{title: t('Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
-    );
-  }
-
   return (
-    <FeedbackButton size="sm" feedbackOptions={automationFeedbackOptions}>
-      {t('Feedback')}
-    </FeedbackButton>
+    <TopBar.Slot name="feedback">
+      <FeedbackButton
+        feedbackOptions={automationFeedbackOptions}
+        aria-label={t('Feedback')}
+        tooltipProps={{title: t('Feedback')}}
+      >
+        {null}
+      </FeedbackButton>
+    </TopBar.Slot>
   );
 }
