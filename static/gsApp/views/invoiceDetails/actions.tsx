@@ -95,17 +95,13 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
           {invoice.isPaid && (
             <Fragment>
               <Input type="email" name="email" placeholder="you@example.com" />
-              <StyledButton type="submit" priority="primary">
+              <StyledButton type="submit" variant="primary">
                 {t('Email Receipt')}
               </StyledButton>
             </Fragment>
           )}
           {showPayNowButton && (
-            <StyledButton
-              priority="primary"
-              onClick={handlePayNow}
-              data-test-id="pay-now"
-            >
+            <StyledButton variant="primary" onClick={handlePayNow} data-test-id="pay-now">
               {t('Pay Now')}
             </StyledButton>
           )}

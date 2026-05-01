@@ -59,7 +59,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
         external
         size="sm"
         icon={<IconBusiness />}
-        priority="default"
+        variant="secondary"
       >
         {t('Upgrade Now')}
       </LinkButton>

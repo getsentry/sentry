@@ -132,7 +132,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
             hasBillingRole ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS
           }
           buttonProps={{
-            priority: 'default',
+            variant: 'secondary',
             size: 'xs',
             style: {marginBlock: '-2px'},
           }}
@@ -165,7 +165,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           </Button>
         ) : (
           <Button
-            priority="primary"
+            variant="primary"
             onClick={() => {
               navigate(normalizeUrl(`/checkout/${organization.slug}/`));
             }}
@@ -208,7 +208,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
         </Button>
       ) : (
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => {
             navigate(normalizeUrl(`/checkout/${organization.slug}/`));
           }}
@@ -234,7 +234,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           onDismiss?.();
         }}
         size="zero"
-        priority="transparent"
+        variant="transparent"
         tooltipProps={{title: t('Dismiss')}}
         aria-label={t('Dismiss trial notice')}
       />

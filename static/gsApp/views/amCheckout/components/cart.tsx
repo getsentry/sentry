@@ -736,7 +736,7 @@ function TotalSummary({
           {isMigratingPartner && (
             <StyledButton
               aria-label={t('Migrate Now')}
-              priority="danger"
+              variant="danger"
               onClick={() => onSubmit(true)}
               disabled={buttonDisabled || previewDataLoading}
               tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
@@ -747,7 +747,7 @@ function TotalSummary({
           )}
           <StyledButton
             aria-label={buttonText}
-            priority="primary"
+            variant="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
             tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
@@ -944,7 +944,7 @@ export function Cart({
             <Button
               aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
               onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-              priority="transparent"
+              variant="transparent"
               size="zero"
               icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
             />

@@ -380,7 +380,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               )}
               <Button
                 aria-label={t('New Allocation')}
-                priority="primary"
+                variant="primary"
                 size="sm"
                 data-test-id="new-allocation"
                 icon={<IconAdd size="xs" />}
@@ -514,7 +514,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           <Button
             aria-label={t('Disable Spend Allocations')}
             size="sm"
-            priority="danger"
+            variant="danger"
             data-test-id="disable"
             disabled={!orgEnabledFlag}
           >

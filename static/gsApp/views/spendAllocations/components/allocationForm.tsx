@@ -493,7 +493,7 @@ function AllocationForm({
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button
             data-test-id="spend-allocation-submit"
-            priority="primary"
+            variant="primary"
             onClick={onSubmit}
             disabled={overBudgetedEvents || !rootAllocation}
           >

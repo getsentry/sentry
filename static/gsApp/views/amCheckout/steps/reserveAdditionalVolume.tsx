@@ -98,7 +98,7 @@ export function ReserveAdditionalVolume({
         <Stack gap="sm" align="start">
           <Button
             size="sm"
-            priority="link"
+            variant="link"
             icon={showSliders ? <IconSubtract /> : <IconAdd />}
             aria-label={
               showSliders

@@ -751,7 +751,7 @@ function AMCheckout(props: Props) {
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
                   contact: hasZendesk() ? (
-                    <Button size="zero" priority="link" onClick={activateZendesk}>
+                    <Button size="zero" variant="link" onClick={activateZendesk}>
                       <Text variant="accent">{t('ask Support')}</Text>
                     </Button>
                   ) : (
@@ -819,7 +819,7 @@ function AMCheckout(props: Props) {
             to={`/settings/${organization.slug}/billing/`}
             icon={<IconChevron direction="left" />}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={() => {
               trackGetsentryAnalytics('checkout.exit', {
                 subscription,
