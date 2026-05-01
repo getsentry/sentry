@@ -27,9 +27,9 @@ import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItem
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
-import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottablesCanBeVisualized';
 
 import {formatXAxisValue} from './formatters/formatXAxisValue';
 import type {CategoricalPlottable} from './plottables/plottable';
