@@ -33,6 +33,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCard';
+import {useScmFeatureMeta} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import {ScmSearchControl} from './components/scmSearchControl';
@@ -95,6 +96,9 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProject = useCreateProject();
+  // Fetch feature meta at step entry so billing-config is in flight (or cached)
+  // before the user reaches the feature cards below.
+  const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
   // Exposure is reported upstream in onboarding.tsx when the user enters SCM
   // onboarding; skip it here to avoid double-counting on step mount.
   const {inExperiment: hasProjectDetailsStep} = useExperiment({
@@ -477,7 +481,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                     {t('Auto-detected from your repository')}
                   </Text>
                 </Flex>
-                <Button size="xs" priority="link" onClick={handleChangePlatformClick}>
+                <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
                   {isDetecting
                     ? t('Skip detection and select manually')
                     : t("Doesn't look right? Change platform")}
@@ -533,7 +537,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                   </Text>
                 </Flex>
                 {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
-                  <Button size="xs" priority="link" onClick={handleBackToRecommended}>
+                  <Button size="xs" variant="link" onClick={handleBackToRecommended}>
                     {t('Back to recommended platforms')}
                   </Button>
                 )}
@@ -585,6 +589,8 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                   selectedFeatures={currentFeatures}
                   disabledProducts={disabledProducts}
                   onToggleFeature={handleToggleFeature}
+                  featureMeta={featureMeta}
+                  isVolumeLoading={isFeatureMetaLoading}
                 />
               </Stack>
             )}
@@ -599,7 +605,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
             <Flex align="center">{genBackButton?.()}</Flex>
             <Flex align="center" gap="md">
               <Button
-                priority="primary"
+                variant="primary"
                 analyticsEventKey="onboarding.scm_platform_features_continue_clicked"
                 analyticsEventName="Onboarding: SCM Platform Features Continue Clicked"
                 analyticsParams={{

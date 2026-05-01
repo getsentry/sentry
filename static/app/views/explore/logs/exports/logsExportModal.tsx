@@ -11,7 +11,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
 import {
   generateLogExportRowCountOptions,
@@ -41,6 +43,7 @@ export function LogsExportModal({
   queryInfo,
   tableData,
 }: LogsExportModalProps) {
+  const organization = useOrganization();
   const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
   const payload = useMemo(
     () => ({
@@ -66,7 +69,18 @@ export function LogsExportModal({
       onDynamic: exportModalFormSchema,
     },
     onSubmit: async ({value}) => {
-      if (value.limit > ROW_COUNT_VALUE_SYNC_LIMIT) {
+      const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
+
+      trackAnalytics('explore.table_exported', {
+        organization,
+        traceItemDataset: TraceItemDataset.LOGS,
+        ...queryInfo,
+        export_row_limit: value.limit,
+        export_file_format: value.format,
+        export_type: passedSyncLimit ? 'export_download' : 'browser_sync',
+      });
+
+      if (passedSyncLimit) {
         await handleDataExport({
           format: value.format,
           queryInfo: {
@@ -134,7 +148,17 @@ export function LogsExportModal({
       </Body>
       <Footer>
         <Flex gap="xl" justify="end">
-          <Button priority="default" onClick={closeModal}>
+          <Button
+            priority="default"
+            onClick={() => {
+              trackAnalytics('logs.export_modal', {
+                organization,
+                action: 'cancel',
+                close_reason: 'cancel_button',
+              });
+              closeModal();
+            }}
+          >
             {t('Cancel')}
           </Button>
           <form.SubmitButton priority="primary">{t('Export')}</form.SubmitButton>
