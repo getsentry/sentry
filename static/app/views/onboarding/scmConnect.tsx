@@ -192,14 +192,14 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
                   has_integration: !!effectiveIntegration,
                 }}
                 onClick={() => onComplete()}
-                priority="transparent"
+                variant="transparent"
               >
                 {t('Continue without a repo')}
               </Button>
             )}
 
             <Button
-              priority="primary"
+              variant="primary"
               analyticsEventKey="onboarding.scm_connect_continue_clicked"
               analyticsEventName="Onboarding: SCM Connect Continue Clicked"
               analyticsParams={{

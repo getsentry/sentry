@@ -580,7 +580,7 @@ export function CreateProject() {
               >
                 <Button
                   data-test-id="create-project"
-                  priority="primary"
+                  variant="primary"
                   disabled={!(canUserCreateProject && formErrorCount === 0)}
                   busy={
                     createProjectAndRules.isPending ||

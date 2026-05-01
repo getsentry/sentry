@@ -253,7 +253,7 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
         <Flex align="center">{genBackButton?.()}</Flex>
         <Flex align="center" gap="md">
           <Button
-            priority="primary"
+            variant="primary"
             onClick={handleCreateProject}
             disabled={!canSubmit}
             busy={createProjectAndRules.isPending}

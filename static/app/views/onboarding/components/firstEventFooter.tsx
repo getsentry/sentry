@@ -132,7 +132,7 @@ export function FirstEventFooter({
             to={`/organizations/${organization.slug}/issues/${
               firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
             }?referrer=onboarding-first-event-footer`}
-            priority="primary"
+            variant="primary"
           >
             {t('Take me to my error')}
           </LinkButton>
