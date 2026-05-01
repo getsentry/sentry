@@ -389,7 +389,7 @@ def _resolve_linked_messages(
             continue
 
         conversation_info = entrypoint.install.get_conversations_info(channel_id=link.channel_id)
-        if not conversation_info.get("is_public"):
+        if conversation_info.get("is_private"):
             private_channels.add(link.channel_id)
             continue
 
