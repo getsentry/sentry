@@ -264,9 +264,9 @@ class OffsetPaginator(PaginatorLike):
         self,
         limit: int = 100,
         cursor: Any = None,
-        count_hits: Any = False,
-        known_hits: Any = None,
-        max_hits: Any = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
     ) -> CursorResult[Any]:
         # offset is page #
         # value is page limit
@@ -345,9 +345,9 @@ class MergingOffsetPaginator(OffsetPaginator):
         self,
         limit: int = 100,
         cursor: Any = None,
-        count_hits: Any = False,
-        known_hits: Any = None,
-        max_hits: Any = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
     ) -> CursorResult[Any]:
         if cursor is None:
             cursor = Cursor(0, 0, 0)
