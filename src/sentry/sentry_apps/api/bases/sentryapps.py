@@ -9,7 +9,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import options
 from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
@@ -105,13 +105,7 @@ def _check_sentry_app_disabled(
     if request.method in endpoint.allow_disabled_sentry_app_for_methods:
         return
 
-    owner_context = organization_service.get_organization_by_id(
-        id=sentry_app.owner_id, user_id=None, include_projects=False, include_teams=False
-    )
-    if owner_context and features.has(
-        "organizations:sentry-app-disabled-enforcement",
-        owner_context.organization,
-    ):
+    if options.get("sentry-apps.disabled-enforcement"):
         raise SentryAppError(
             message="This Sentry App has been disabled",
             status_code=403,
