@@ -342,6 +342,7 @@ function Chart({
 
 export const ChartWrapper = styled('div')`
   position: relative;
+  min-width: 0;
 `;
 
 export const ChartList = styled('div')`
