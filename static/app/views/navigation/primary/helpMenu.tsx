@@ -91,7 +91,7 @@ export function PrimaryNavigationHelpMenu() {
         {
           key: 'help-center',
           label: t('Help Center'),
-          externalHref: 'https://sentry.zendesk.com/hc/en-us',
+          externalHref: 'https://www.sentry.help/',
           leadingItems: (
             <MenuIcon>
               <IconQuestion />
