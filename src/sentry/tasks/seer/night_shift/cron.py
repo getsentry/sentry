@@ -257,7 +257,7 @@ def run_night_shift_execution(
         return None
 
     eligible_projects = [ep.project for ep in eligible]
-    agent_run_id = None
+    agent_run_id: int | None = None
     try:
         candidates, agent_run_id = agentic_triage_strategy(
             eligible_projects,
@@ -266,9 +266,9 @@ def run_night_shift_execution(
             intelligence_level=resolved_options["intelligence_level"],
             reasoning_effort=resolved_options["reasoning_effort"],
             extra_triage_instructions=resolved_options["extra_triage_instructions"],
+            run=run,
         )
         if agent_run_id is not None:
-            run.update(extras={**run.extras, "agent_run_id": agent_run_id})
             log_extra["agent_run_id"] = agent_run_id
     except Exception:
         sentry_sdk.metrics.count("night_shift.run_error", 1)

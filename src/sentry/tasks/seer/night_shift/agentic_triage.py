@@ -12,6 +12,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.models.night_shift import SeerNightShiftRun
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
@@ -51,6 +52,7 @@ def agentic_triage_strategy(
     intelligence_level: IntelligenceLevel = DEFAULT_INTELLIGENCE_LEVEL,
     reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
     extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
+    run: SeerNightShiftRun,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Select candidates via fixability scoring, then use the Seer Agent
@@ -69,6 +71,7 @@ def agentic_triage_strategy(
         intelligence_level=intelligence_level,
         reasoning_effort=reasoning_effort,
         extra_triage_instructions=extra_triage_instructions,
+        run=run,
     )
 
 
@@ -79,6 +82,7 @@ def _triage_candidates(
     intelligence_level: IntelligenceLevel,
     reasoning_effort: ReasoningEffort,
     extra_triage_instructions: str,
+    run: SeerNightShiftRun,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Start a Seer Agent run to investigate candidate issues and return
@@ -108,6 +112,8 @@ def _triage_candidates(
             artifact_key="triage_verdicts",
             artifact_schema=_TriageResponse,
         )
+
+        run.update(extras={**run.extras, "agent_run_id": agent_run_id})
 
         logger.info(
             "night_shift.explorer_run_started",
