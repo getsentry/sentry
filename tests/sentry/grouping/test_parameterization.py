@@ -379,6 +379,42 @@ incorrect_cases = [
         "<url>",
         "tcp://<hostname>:<int>",
     ),
+    (
+        "url - one-character path",
+        "http://d ogsaregreat",
+        "<url> ogsaregreat",
+        "<url>",
+    ),
+    (
+        "url - filepath",
+        "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg",
+        "<url>",
+        "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg",
+    ),
+    (
+        "url - postgres",
+        "postgresql:///dogdb",
+        "<url>",
+        "postgresql:///dogdb",
+    ),
+    (
+        "url - app-specific scheme",
+        "best-dogs-app://number-one-dog",
+        "<url>",
+        "best-dogs-app://number-one-dog",
+    ),
+    (
+        "url - with trailing comma",
+        "http://dogsaregreat.com, http://numberonedog.com",
+        "<url>, <url>",
+        "<url> <url>",
+    ),
+    (
+        "url - with trailing period",
+        "The URL is http://dogsaregreat.com.",
+        "The URL is <url>.",
+        "The URL is <url>",
+    ),
 ]
 
 
