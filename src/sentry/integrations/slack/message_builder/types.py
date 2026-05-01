@@ -57,7 +57,7 @@ CATEGORY_TO_EMOJI = {
         for category in PERFORMANCE_ISSUE_CATEGORIES
     },
     GroupCategory.FEEDBACK: [":large_blue_circle:", ":busts_in_silhouette:"],
-    GroupCategory.CRON: [":large_yellow_circle:", ":spiral_calendar_pad:"],
+    GroupCategory.OUTAGE: [":large_yellow_circle:", ":spiral_calendar_pad:"],
 }
 
 ACTIONED_CATEGORY_TO_EMOJI: dict[GroupCategory, list[str]] = {
@@ -66,5 +66,5 @@ ACTIONED_CATEGORY_TO_EMOJI: dict[GroupCategory, list[str]] = {
         for category in PERFORMANCE_ISSUE_CATEGORIES
     },
     GroupCategory.FEEDBACK: [ACTION_EMOJI[0], ":busts_in_silhouette:"],
-    GroupCategory.CRON: [ACTION_EMOJI[0], ":spiral_calendar_pad:"],
+    GroupCategory.OUTAGE: [ACTION_EMOJI[0], ":spiral_calendar_pad:"],
 }
