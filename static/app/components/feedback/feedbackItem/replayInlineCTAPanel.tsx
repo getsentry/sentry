@@ -19,7 +19,7 @@ export function ReplayInlineCTAPanel() {
         <Grid flow="column" align="center" gap="md">
           <Button
             type="button"
-            priority="primary"
+            variant="primary"
             analyticsEventName="Clicked Replay Onboarding CTA Button in User Feedback"
             analyticsEventKey="feedback.replay-onboarding-cta-button-clicked"
             onClick={() => activateSidebar()}

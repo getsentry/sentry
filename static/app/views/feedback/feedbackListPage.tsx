@@ -94,7 +94,7 @@ function PageContent({
                     <FeedbackSearch />
                   </SearchContainer>
                   {hasPageFrameFeature ? (
-                    <LinkButton {...createAlertAction} priority="primary">
+                    <LinkButton {...createAlertAction} variant="primary">
                       {t('Create Alert')}
                     </LinkButton>
                   ) : null}
