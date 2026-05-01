@@ -53,6 +53,11 @@ export type LogsAnalyticsEventParameters = {
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
+  'logs.export_modal': {
+    action: 'cancel' | 'open';
+    organization: Organization;
+    close_reason?: 'backdrop_click' | 'cancel_button' | 'close_button' | 'escape_key';
+  };
   'logs.issue_details.drawer_opened': {
     organization: Organization;
   };
@@ -105,6 +110,7 @@ type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
   'logs.auto_refresh.timeout': 'Log Auto-refresh Timeout',
   'logs.auto_refresh.toggled': 'Log Auto-refresh Toggled',
+  'logs.export_modal': 'Logs Export Modal',
   'logs.explorer.continue_searching_clicked': 'Log Explorer Continue Searching Clicked',
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
