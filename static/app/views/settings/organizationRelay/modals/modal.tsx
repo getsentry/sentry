@@ -39,7 +39,7 @@ export function Modal({
             }}
             disabled={disabled}
             type="submit"
-            priority="primary"
+            variant="primary"
             form="relay-form"
           >
             {btnSaveLabel}

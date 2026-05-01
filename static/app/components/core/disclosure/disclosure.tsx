@@ -99,7 +99,7 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
         icon={<IconChevron direction={state.isExpanded ? 'down' : 'right'} />}
         disabled={isDisabled}
         size={context.size}
-        priority="transparent"
+        variant="transparent"
         {...pressProps}
         {...rest}
       >

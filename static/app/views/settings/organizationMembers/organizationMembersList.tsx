@@ -461,7 +461,7 @@ function InviteMembersButton({
 }) {
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"
