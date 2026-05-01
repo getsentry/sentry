@@ -339,7 +339,9 @@ function SingleViewLayout({
         onToggleDark={onToggleDark}
         showBottomBorder={false}
       />
-      <SingleViewBody>{body}</SingleViewBody>
+      <Flex direction="column" flex="1" minHeight="0">
+        {body}
+      </Flex>
     </SnapshotVariantFrame>
   );
   return (
@@ -589,22 +591,6 @@ const NavGutter = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex-shrink: 0;
-
-  button[aria-pressed='true'] {
-    &::after {
-      transform: translateY(0px);
-    }
-    > span:last-child {
-      transform: translateY(0px);
-    }
-  }
-`;
-
-const SingleViewBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
 `;
 
 const ColorPickerWrapper = styled('div')`

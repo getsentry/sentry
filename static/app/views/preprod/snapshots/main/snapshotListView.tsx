@@ -44,7 +44,6 @@ export function buildSnapshotLink(snapshotKey: string): string {
 
 type GroupCard =
   | {
-      cardType: 'changed';
       estimatedHeight: number;
       id: string;
       pair: SnapshotDiffPair;
@@ -111,7 +110,6 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
           type: 'pair-card',
           id: `c:${item.key}:${pair.head_image.key}`,
           pair,
-          cardType: item.type,
           estimatedHeight: Math.max(
             estimateCardHeight(pair.head_image, true),
             estimateCardHeight(pair.base_image, true)

@@ -14,18 +14,18 @@ export function SnapshotCardFrame({
   groupName?: string | null;
 }) {
   return (
-    <SnapshotCardContainer
+    <Stack
       gap="0"
       width="100%"
       background="primary"
       border="primary"
       radius="md"
       overflow="hidden"
-      $fillHeight={fillHeight}
+      {...(fillHeight ? {flex: '1', minHeight: '0'} : {})}
     >
       {groupName ? <SnapshotGroupHeader name={groupName} /> : null}
       {children}
-    </SnapshotCardContainer>
+    </Stack>
   );
 }
 
@@ -79,17 +79,6 @@ export function SnapshotCanvasWrapper({children}: {children: React.ReactNode}) {
     </Container>
   );
 }
-
-const SnapshotCardContainer = styled(Stack, {
-  shouldForwardProp: prop => prop !== '$fillHeight',
-})<{$fillHeight: boolean}>`
-  ${p =>
-    p.$fillHeight &&
-    `
-      flex: 1 1 0;
-      min-height: 0;
-    `}
-`;
 
 const SnapshotVariantContainer = styled(Container, {
   shouldForwardProp: prop => prop !== '$fillHeight',

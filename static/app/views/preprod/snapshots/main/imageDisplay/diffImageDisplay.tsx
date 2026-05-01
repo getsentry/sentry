@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
 import {computeMaskSize} from 'sentry/views/preprod/snapshots/main/computeMaskSize';
+import {DiffOverlay} from 'sentry/views/preprod/snapshots/main/diffOverlay';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useBufferedImageGroup} from './useBufferedImageUrl';
@@ -161,7 +162,7 @@ function SplitView({
                     loading="eager"
                     decoding="async"
                   />
-                  {showOverlay && displayMaskUrl && (
+                  {showOverlay && (
                     <DiffOverlay
                       $overlayColor={overlayColor}
                       $maskUrl={displayMaskUrl}
@@ -315,27 +316,6 @@ const ImageWrapper = styled('div')`
   position: relative;
   display: inline-block;
   max-width: 100%;
-`;
-
-const DiffOverlay = styled('span')<{
-  $maskSize: string;
-  $maskUrl: string;
-  $overlayColor: string;
-}>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  background-color: ${p => p.$overlayColor};
-  mask-image: url(${p => p.$maskUrl});
-  mask-size: ${p => p.$maskSize};
-  mask-position: top left;
-  mask-mode: luminance;
-  -webkit-mask-image: url(${p => p.$maskUrl});
-  -webkit-mask-size: ${p => p.$maskSize};
-  -webkit-mask-position: top left;
 `;
 
 const OnionContainer = styled('div')`
