@@ -515,7 +515,7 @@ export const useSeerExplorer = () => {
       blockAtInsert?.message.role === 'user' &&
       blockAtInsert?.message.content === userQuery &&
       (getDateFromTimestampAssumeUtc(blockAtInsert?.timestamp)?.getTime() ?? 0) >=
-        lastSentTimestampMs;
+        Math.floor(lastSentTimestampMs / 1000) * 1000;
 
     const serverHasAssistantResponse =
       serverHasUserBlock &&
