@@ -3527,7 +3527,9 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 assert group_info is not None
 
             with self.feature(group_type.build_visible_feature_name()):
-                results = self.make_query(search_filter_query="issue.type:{PerformanceNPlusOneGroupType.slug} my_tag:3")
+                results = self.make_query(
+                    search_filter_query=f"issue.type:{PerformanceNPlusOneGroupType.slug} my_tag:3"
+                )
 
         assert list(results) == [group_info.group]
 
