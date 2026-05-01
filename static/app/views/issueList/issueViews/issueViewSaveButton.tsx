@@ -99,7 +99,7 @@ function SegmentedIssueViewSaveButton({
       {({hasFeature}) => (
         <ButtonBar>
           <PrimarySaveButton
-            priority={buttonPriority}
+            variant={buttonPriority}
             data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
             onClick={() => {
               if (canEdit) {
