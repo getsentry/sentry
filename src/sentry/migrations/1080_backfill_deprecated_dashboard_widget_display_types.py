@@ -62,27 +62,31 @@ def backfill_deprecated_display_types(
         ),
         BATCH_SIZE,
     ):
-        chunk_ids = []
+        # Partition the chunk into rows that need both columns updated
+        # (top_n with null limit) and rows that need only display_type.
+        # Each row appears in exactly one .update() so its changes commit
+        # together; CheckedMigration runs with atomic=False, so a row split
+        # across two .update() calls could be left half-migrated by a crash.
         top_n_null_limit_ids = []
+        display_only_ids = []
         for widget_id, display_type, limit in chunk:
-            chunk_ids.append(widget_id)
             if display_type == _STACKED_AREA_CHART:
                 stats["stacked_area"] += 1
+                display_only_ids.append(widget_id)
             else:
                 stats["top_n"] += 1
                 if limit is None:
                     top_n_null_limit_ids.append(widget_id)
                     stats["limit_populated"] += 1
+                else:
+                    display_only_ids.append(widget_id)
 
-        # Order matters: CheckedMigration runs with atomic=False, so each
-        # .update() auto-commits. Set limit before flipping display_type so
-        # that a crash between the two leaves rows still matching the
-        # display_type filter on re-run, keeping the migration resumable.
         if top_n_null_limit_ids:
             DashboardWidget.objects.filter(id__in=top_n_null_limit_ids).update(
-                limit=_TOP_N_DEFAULT_LIMIT
+                display_type=_AREA_CHART, limit=_TOP_N_DEFAULT_LIMIT
             )
-        DashboardWidget.objects.filter(id__in=chunk_ids).update(display_type=_AREA_CHART)
+        if display_only_ids:
+            DashboardWidget.objects.filter(id__in=display_only_ids).update(display_type=_AREA_CHART)
 
     logger.info("backfill_deprecated_display_types: complete, %s", stats)
 
