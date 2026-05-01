@@ -27,7 +27,6 @@ const STEP_LABELS: Record<AutofixExplorerStep, string> = {
   root_cause: t('Find Root Cause'),
   solution: t('Plan a Solution'),
   code_changes: t('Write a Code Fix'),
-  impact_assessment: t('Assess the Impact'),
   triage: t('Triage the Issue'),
 };
 
@@ -78,7 +77,6 @@ function getAvailableNextSteps(
 ): AutofixExplorerStep[] {
   const hasRootCause = 'root_cause' in artifacts;
   const hasSolution = 'solution' in artifacts;
-  const hasImpact = 'impact_assessment' in artifacts;
   const hasTriage = 'triage' in artifacts;
 
   if (!hasRootCause) {
@@ -97,10 +95,6 @@ function getAvailableNextSteps(
   // Only show code changes if they don't already exist and no coding agents are launched
   if (!hasCodeChanges && !hasCodingAgents) {
     available.push('code_changes');
-  }
-
-  if (!hasImpact) {
-    available.push('impact_assessment');
   }
 
   if (!hasTriage) {
