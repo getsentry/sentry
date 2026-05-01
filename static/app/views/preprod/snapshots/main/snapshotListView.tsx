@@ -73,6 +73,8 @@ const GROUP_PADDING = 0;
 const ROW_PADDING_BOTTOM = 16;
 const LIST_CONTENT_WIDTH_ASSUMPTION = 900;
 const STICKY_HEADER_DEBUG_PARAM = 'debugStickyHeader';
+const SNAPSHOT_FRAME_BORDER_WIDTH = 1;
+const STICKY_HEADER_BOTTOM_OVERLAP = SNAPSHOT_FRAME_BORDER_WIDTH * 2;
 
 function estimateCardHeight(image: SnapshotImage, splitColumns: boolean) {
   const columnWidth = splitColumns
@@ -356,9 +358,12 @@ export function SnapshotListView({
       ? 0
       : Math.min(
           Math.max(0, (activeGroupTop ?? 0) - stickyHeaderTop),
-          activeGroupBottom - (stickyHeaderTop + HEADER_HEIGHT) + 2
+          activeGroupBottom -
+            (stickyHeaderTop + HEADER_HEIGHT) +
+            STICKY_HEADER_BOTTOM_OVERLAP
         );
-  const stickyHeaderHasDetachedFrame = scrollTop < scrollContainerPaddingTop;
+  const stickyHeaderHasDetachedFrame =
+    scrollTop < scrollContainerPaddingTop || stickyHeaderTranslateY > 0;
   const stickyHeaderHasBottomFrame = stickyHeaderTranslateY < 0;
   const stickyHeaderStyle = {
     '--sticky-header-translate-y': `${stickyHeaderTranslateY}px`,
