@@ -36,6 +36,10 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
+import {
+  hasDisplayMetricUnit,
+  makeMetricSelectValue,
+} from 'sentry/views/explore/metrics/utils';
 
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
@@ -49,19 +53,6 @@ function nextFrameCallback(cb: () => void) {
       cb();
     }, 1);
   }
-}
-
-function hasDisplayMetricUnit(
-  hasMetricUnitsUI: boolean,
-  metricUnit?: string
-): metricUnit is string {
-  return (
-    hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
-  );
-}
-
-function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
 function MetricOptionTrailingItems({
@@ -113,7 +104,7 @@ export function MetricSelector({
     environments,
   });
 
-  const metricSelectValue = makeMetricSelectValue(
+  const traceMetricSelectValue = makeMetricSelectValue(
     hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
   );
 
@@ -123,7 +114,7 @@ export function MetricSelector({
   const optionFromTraceMetric: MetricSelectOption = useMemo(
     () => ({
       label: traceMetric.name,
-      value: metricSelectValue,
+      value: traceMetricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricUnit: hasMetricUnitsUI ? (traceMetric.unit ?? '-') : undefined,
       metricName: traceMetric.name,
@@ -136,7 +127,7 @@ export function MetricSelector({
       ),
     }),
     [
-      metricSelectValue,
+      traceMetricSelectValue,
       traceMetric.name,
       traceMetric.type,
       traceMetric.unit,
@@ -148,13 +139,7 @@ export function MetricSelector({
   // find when the dropdown is reopened. Filter it out of the API results to
   // avoid duplication.
   const metricOptions = useMemo((): MetricSelectOption[] => {
-    const selectedMetricValue = traceMetric.name
-      ? makeMetricSelectValue(
-          hasMetricUnitsUI
-            ? traceMetric
-            : {name: traceMetric.name, type: traceMetric.type}
-        )
-      : null;
+    const selectedMetricValue = traceMetric.name ? traceMetricSelectValue : null;
 
     const apiOptions =
       metricOptionsData?.data?.map(option => ({
@@ -197,7 +182,13 @@ export function MetricSelector({
       ...(selectedOption ? [selectedOption] : []),
       ...apiOptions.filter(o => o.value !== selectedMetricValue),
     ];
-  }, [metricOptionsData, optionFromTraceMetric, traceMetric, hasMetricUnitsUI]);
+  }, [
+    metricOptionsData,
+    optionFromTraceMetric,
+    traceMetric.name,
+    traceMetricSelectValue,
+    hasMetricUnitsUI,
+  ]);
 
   // Auto-select the first metric when no metric is currently selected.
   // This handles the initial load case where the URL has no metric param.
@@ -211,15 +202,11 @@ export function MetricSelector({
     }
   }, [metricOptions, onChange, traceMetric.name, hasMetricUnitsUI]);
 
-  const traceMetricSelectValue = makeMetricSelectValue(
-    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
-  );
-
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
-  const previousOptions = usePrevious(metricOptions ?? []);
+  const previousOptions = usePrevious(metricOptions);
   const displayedOptions = useMemo(
-    () => (isFetching ? previousOptions : (metricOptions ?? [])),
+    () => (isFetching ? previousOptions : metricOptions),
     [isFetching, previousOptions, metricOptions]
   );
 

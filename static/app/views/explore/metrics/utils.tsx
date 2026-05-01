@@ -95,6 +95,19 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
     : undefined;
 }
 
+export function hasDisplayMetricUnit(
+  hasMetricUnitsUI: boolean,
+  metricUnit?: string
+): metricUnit is string {
+  return (
+    hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
+  );
+}
+
+export function makeMetricSelectValue(metric: TraceMetric): string {
+  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
+}
+
 export function getMetricsUnit(
   meta: MetaType | EventsMetaType,
   field: string

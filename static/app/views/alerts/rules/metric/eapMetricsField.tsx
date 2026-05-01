@@ -20,7 +20,11 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import {
+  hasDisplayMetricUnit,
+  makeMetricSelectValue,
+  makeMetricsAggregate,
+} from 'sentry/views/explore/metrics/utils';
 
 interface Props {
   aggregate: string;
@@ -37,10 +41,6 @@ interface MetricSelectOption {
   trailingItems: ReactNode;
   value: string;
   metricUnit?: string;
-}
-
-function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
 export function EAPMetricsField({
@@ -81,12 +81,9 @@ export function EAPMetricsField({
       trailingItems: (
         <Fragment>
           <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
-          {hasMetricUnitsUI &&
-            traceMetric.unit &&
-            traceMetric.unit !== '-' &&
-            traceMetric.unit !== NONE_UNIT && (
-              <Tag variant="promotion">{traceMetric.unit}</Tag>
-            )}
+          {hasDisplayMetricUnit(hasMetricUnitsUI, traceMetric.unit) ? (
+            <Tag variant="promotion">{traceMetric.unit}</Tag>
+          ) : null}
         </Fragment>
       ),
     }),
@@ -124,13 +121,14 @@ export function EAPMetricsField({
         trailingItems: (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI &&
-              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
-              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
-                <Tag variant="promotion">
-                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-                </Tag>
-              )}
+            {hasDisplayMetricUnit(
+              hasMetricUnitsUI,
+              option[TraceMetricKnownFieldKey.METRIC_UNIT]
+            ) ? (
+              <Tag variant="promotion">
+                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+              </Tag>
+            ) : null}
           </Fragment>
         ),
       })) ?? []),
@@ -180,10 +178,7 @@ export function EAPMetricsField({
     onChange(newAggregate, {});
   };
 
-  const traceMetricSelectValue = makeMetricSelectValue(
-    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
-  );
-  const previousOptions = usePrevious(metricOptions ?? []);
+  const previousOptions = usePrevious(metricOptions);
 
   // Auto-select the first metric when API resolves and no metric is selected
   useEffect(() => {
@@ -212,8 +207,8 @@ export function EAPMetricsField({
       <FlexWrapper>
         <StyledSelectControl
           searchable
-          options={isFetching ? previousOptions : (metricOptions ?? [])}
-          value={traceMetricSelectValue}
+          options={isFetching ? previousOptions : metricOptions}
+          value={metricSelectValue}
           isLoading={isFetching}
           onInputChange={debouncedSetSearch}
           placeholder={t('Select an application metric')}

@@ -32,17 +32,17 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import {
+  hasDisplayMetricUnit,
+  makeMetricSelectValue,
+  makeMetricsAggregate,
+} from 'sentry/views/explore/metrics/utils';
 
 interface MetricSelectOption extends SelectOption<string> {
   metricName: string;
   metricType: TraceMetricTypeValue;
   trailingItems: ReactNode;
   metricUnit?: string;
-}
-
-function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
 /**
@@ -85,12 +85,9 @@ export function MetricsVisualize() {
       trailingItems: (
         <Fragment>
           <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
-          {hasMetricUnitsUI &&
-            traceMetric.unit &&
-            traceMetric.unit !== '-' &&
-            traceMetric.unit !== NONE_UNIT && (
-              <Tag variant="promotion">{traceMetric.unit}</Tag>
-            )}
+          {hasDisplayMetricUnit(hasMetricUnitsUI, traceMetric.unit) ? (
+            <Tag variant="promotion">{traceMetric.unit}</Tag>
+          ) : null}
         </Fragment>
       ),
     }),
@@ -128,13 +125,14 @@ export function MetricsVisualize() {
         trailingItems: (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI &&
-              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
-              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
-                <Tag variant="promotion">
-                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-                </Tag>
-              )}
+            {hasDisplayMetricUnit(
+              hasMetricUnitsUI,
+              option[TraceMetricKnownFieldKey.METRIC_UNIT]
+            ) ? (
+              <Tag variant="promotion">
+                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+              </Tag>
+            ) : null}
           </Fragment>
         ),
       })) ?? []),
@@ -213,10 +211,7 @@ export function MetricsVisualize() {
     }
   }, [metricOptions, updateFormAggregate, traceMetric.name, hasMetricUnitsUI]);
 
-  const traceMetricSelectValue = makeMetricSelectValue(
-    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
-  );
-  const previousOptions = usePrevious(metricOptions ?? []);
+  const previousOptions = usePrevious(metricOptions);
   const hasNoMetrics = isMetricOptionsEmpty && !search;
 
   return (
@@ -238,8 +233,8 @@ export function MetricsVisualize() {
             <div>
               <StyledSelect
                 search={{onChange: debouncedSetSearch, filter: false}}
-                options={isFetching ? previousOptions : (metricOptions ?? [])}
-                value={traceMetricSelectValue}
+                options={isFetching ? previousOptions : metricOptions}
+                value={metricSelectValue}
                 loading={isFetching}
                 menuTitle={t('Application Metrics')}
                 onChange={(option: SelectOption<SelectKey>) => {
