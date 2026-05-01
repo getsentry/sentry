@@ -18,7 +18,7 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
 interface WidgetTemplatesListProps {
@@ -37,7 +37,7 @@ export function WidgetTemplatesList({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const widgets = getTopNConvertedDefaultWidgets(organization);
+  const widgets = getDefaultWidgets(organization);
 
   const widgetTemplateId = decodeScalar(location.query?.widgetTemplateId);
   const initialSelectedIndex = widgetTemplateId
