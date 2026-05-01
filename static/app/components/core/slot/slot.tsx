@@ -10,6 +10,8 @@ import {
 import {createPortal} from 'react-dom';
 import * as Sentry from '@sentry/react';
 
+import {KNOWN_BRIDGED_CONTEXTS} from './knownContexts';
+
 const NOOP_REF_CALLBACK: React.RefCallback<HTMLElement | null> = () => {};
 const EMPTY_STATE: SlotReducerState<any> = {};
 const NOOP_DISPATCH: React.Dispatch<SlotReducerAction<any>> = () => {};
@@ -34,8 +36,6 @@ function reportMissingProvider(component: string, slotName: string): void {
     );
   });
 }
-
-import {KNOWN_BRIDGED_CONTEXTS} from './knownContexts';
 
 type Slot = string;
 type ContextBridge = {context: React.Context<any>; value: unknown};
@@ -222,9 +222,7 @@ function makeSlotConsumer<T extends Slot>(options: {
       );
     }
 
-    // Provide outletNameContext from the consumer so that portaled children
-    // (which don't descend through the outlet in the component tree) can still
-    // read which slot they belong to via useSlotOutletRef.
+    // Provide initial internal outlet context
     let content: React.ReactNode = (
       <outletNameContext.Provider value={name}>
         {props.children}
@@ -233,10 +231,14 @@ function makeSlotConsumer<T extends Slot>(options: {
 
     const bridges = state[name]?.contextBridges;
     if (bridges) {
-      for (const bridge of bridges.toReversed()) {
-        const bridge = bridges[i]!;
-        content = <bridge.context value={bridge.value}>{content}</bridge.context>;
-      }
+      content = bridges
+        .toReversed()
+        .reduce(
+          (children, bridge) => (
+            <bridge.context value={bridge.value}>{children}</bridge.context>
+          ),
+          content
+        );
     }
 
     return createPortal(content, element);
