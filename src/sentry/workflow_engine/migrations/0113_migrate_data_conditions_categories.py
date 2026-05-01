@@ -28,19 +28,35 @@ def migrate_data_condition_issue_category(
         if comparison.get("value") == 8:
             comparison["value"] = 11
 
+            data_condition.comparison = comparison
+            data_condition.save()
+            continue
+
         # handle GroupCategory.REPLAY (5) -> GroupCategory.FRONTEND (14)
         elif comparison.get("value") == 5:
             comparison["value"] = 14
+
+            data_condition.comparison = comparison
+            data_condition.save()
+            continue
 
         # handle GroupCategory.UPTIME (7) -> issue type Uptime Monitor Detected Downtime
         elif comparison.get("value") == 7:
             data_condition.type = "issue_type"
             comparison["value"] = "uptime_domain_failure"
 
+            data_condition.comparison = comparison
+            data_condition.save()
+            continue
+
         # handle GroupCategory.CRON (4) -> issue type Missed or Failed Cron Check-In
         elif comparison.get("value") == 4:
             data_condition.type = "issue_type"
             comparison["value"] = "monitor_check_in_failure"
+
+            data_condition.comparison = comparison
+            data_condition.save()
+            continue
 
         # handle GroupCategory.PERFORMANCE (2)
         elif comparison.get("value") == 2:
@@ -61,6 +77,9 @@ def migrate_data_condition_issue_category(
             if logic_type == "all":
                 comparison["value"] = 1
                 comparison["include"] = False  # Issue category is NOT errors
+                data_condition.comparison = comparison
+                data_condition.save()
+                continue
             else:  # logic type is any, any-short, or none (legacy for does not match all)
                 comparison["value"] = 12  # GroupCategory.DB_QUERY
                 metric_comparison: dict[str, object] = {"value": 11}
@@ -103,8 +122,8 @@ def migrate_data_condition_issue_category(
                     condition_group_id=data_condition.condition_group_id,
                 )
 
-        data_condition.comparison = comparison
-        data_condition.save()
+                data_condition.comparison = comparison
+                data_condition.save()
 
 
 class Migration(CheckedMigration):
