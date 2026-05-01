@@ -1,9 +1,10 @@
 import {createContext, Fragment, useContext, useLayoutEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {SerializedStyles} from '@emotion/react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
+
+import {usePortalContainer} from '@sentry/scraps/layer';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
@@ -48,8 +49,8 @@ export function Tooltip({
   maxWidth,
   ...hoverOverlayProps
 }: TooltipProps) {
-  const theme = useTheme();
   const {container} = useContext(TooltipContext);
+  const layerPortal = usePortalContainer();
   const {
     wrapTrigger,
     isOpen,
@@ -95,7 +96,7 @@ export function Tooltip({
         snapClosed ? null : (
           <AnimatePresence>
             {isOpen ? (
-              <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
+              <PositionWrapper {...overlayProps}>
                 <TooltipContent
                   animated
                   maxWidth={maxWidth}
@@ -111,7 +112,7 @@ export function Tooltip({
             ) : null}
           </AnimatePresence>
         ),
-        container ?? document.body
+        layerPortal ?? container ?? document.body
       )}
     </Fragment>
   );

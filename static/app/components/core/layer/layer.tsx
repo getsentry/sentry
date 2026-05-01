@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 type LayerVariant = 'content' | 'nav' | 'overlay';
 
-interface LayerContextValue {
+export interface LayerContextValue {
   depth: number;
   portalOutlet: HTMLElement | null;
   variant: LayerVariant | null;
 }
 
-const LayerContext = createContext<LayerContextValue>({
+export const LayerContext = createContext<LayerContextValue>({
   variant: null,
   depth: 0,
   portalOutlet: null,

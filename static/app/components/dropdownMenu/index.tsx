@@ -6,6 +6,8 @@ import {useMenuTrigger} from '@react-aria/menu';
 import {Item, Section} from '@react-stately/collections';
 import type {LocationDescriptor} from 'history';
 
+import {usePortalContainer} from '@sentry/scraps/layer';
+
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {DropdownButton} from 'sentry/components/dropdownButton';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -190,6 +192,7 @@ function DropdownMenu({
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
+  const layerPortal = usePortalContainer();
 
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const {
@@ -296,7 +299,7 @@ function DropdownMenu({
     );
 
     return usePortal
-      ? createPortal(menu, portalContainerRef?.current ?? document.body)
+      ? createPortal(menu, portalContainerRef?.current ?? layerPortal ?? document.body)
       : menu;
   }
 
