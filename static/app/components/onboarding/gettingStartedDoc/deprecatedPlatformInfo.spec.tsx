@@ -13,7 +13,6 @@ describe('DeprecatedPlatformInfo', () => {
       id: 'python-pymongo',
       name: 'PyMongo',
       type: 'library',
-      kind: 'library',
       language: 'python',
       link: 'https://docs.sentry.io/platforms/python/guides/pymongo/',
       deprecated: true,

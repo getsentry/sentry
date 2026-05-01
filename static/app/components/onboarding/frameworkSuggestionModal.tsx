@@ -280,12 +280,10 @@ export function FrameworkSuggestionModal({
     ...otherFrameworksSortedAlphabetically,
   ];
 
-  const parentPlatform = platforms.find(p => p.id === selectedPlatform.key);
   const listEntriesWithVanilla: PlatformIntegration[] = [
     {
       id: selectedPlatform.key,
       type: selectedPlatform.type,
-      kind: parentPlatform?.kind ?? 'language',
       name: t('Nope, Vanilla'),
       language: selectedPlatform.key,
       link: selectedPlatform.link,

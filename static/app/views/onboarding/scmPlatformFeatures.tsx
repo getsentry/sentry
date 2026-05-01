@@ -513,7 +513,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                         key={platform}
                         platform={platform}
                         name={info.name}
-                        kind={info.kind}
+                        type={info.type}
                         isSelected={currentPlatformKey === platform}
                         onClick={() => handleSelectDetectedPlatform(platform)}
                       />

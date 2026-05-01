@@ -343,7 +343,6 @@ export type PlatformKey =
 
 export type PlatformIntegration = {
   id: PlatformKey;
-  kind: 'language' | 'framework' | 'library' | 'platform';
   language: string;
   link: string | null;
   name: string;

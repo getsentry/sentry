@@ -3,21 +3,22 @@ import {PlatformIcon} from 'platformicons';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {getPlatformKind, type PlatformKind} from 'sentry/data/platformKinds';
 import {t} from 'sentry/locale';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/project';
 
 import {ScmCardButton} from './scmCardButton';
 import {ScmSelectableContainer} from './scmSelectableContainer';
 
 interface ScmPlatformCardProps {
   isSelected: boolean;
-  kind: PlatformIntegration['kind'];
   name: string;
   onClick: () => void;
   platform: PlatformKey;
+  type: string;
 }
 
-const KIND_LABELS: Record<PlatformIntegration['kind'], string> = {
+const KIND_LABELS: Record<PlatformKind, string> = {
   language: t('Language'),
   framework: t('Framework'),
   library: t('Library'),
@@ -27,7 +28,7 @@ const KIND_LABELS: Record<PlatformIntegration['kind'], string> = {
 export function ScmPlatformCard({
   platform,
   name,
-  kind,
+  type,
   isSelected,
   onClick,
 }: ScmPlatformCardProps) {
@@ -41,7 +42,7 @@ export function ScmPlatformCard({
               {name}
             </Text>
             <Text variant="muted" size="sm" textWrap="nowrap">
-              {KIND_LABELS[kind]}
+              {KIND_LABELS[getPlatformKind(platform, type)]}
             </Text>
           </Stack>
         </Grid>
