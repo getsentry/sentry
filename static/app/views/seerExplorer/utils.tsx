@@ -1196,3 +1196,14 @@ export function isSeerExplorerEnabled(organization: Organization): boolean {
     organization.features.includes('seer-explorer')
   );
 }
+
+/**
+ * Converts an ISO timestamp to a UTC milliseconds since epoch.
+ * The input is assumed to be UTC if timezone is not present, handling block timestamps before we added tz.
+ * Returns null if the input is invalid.
+ */
+export function parseUtcTimestampFromIso(input: string): number | null {
+  const withTz = /Z|[+-]\d{2}:\d{2}$|[+-]\d{4}$/.test(input) ? input : input + 'Z';
+  const ts = Date.parse(withTz);
+  return isNaN(ts) ? null : ts;
+}

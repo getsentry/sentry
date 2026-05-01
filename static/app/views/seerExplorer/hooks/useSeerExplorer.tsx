@@ -17,7 +17,11 @@ import {
 } from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
-import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
+import {
+  makeSeerExplorerQueryKey,
+  parseUtcTimestampFromIso,
+  usePageReferrer,
+} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -515,7 +519,7 @@ export const useSeerExplorer = () => {
     const blockAtInsert = serverBlocks[insertIndex];
     const serverHasUserBlock =
       rawSessionData &&
-      new Date(rawSessionData.updated_at).getTime() >= lastSentTimestampMs &&
+      (parseUtcTimestampFromIso(rawSessionData.updated_at) ?? 0) >= lastSentTimestampMs &&
       blockAtInsert?.message.role === 'user' &&
       blockAtInsert?.message.content === userQuery;
 
