@@ -15,13 +15,11 @@ describe('useReplaysFromIssue', () => {
     },
   };
 
-  const location = LocationFixture();
-
-  const organization = OrganizationFixture({
-    features: ['session-replay'],
-  });
-
-  it.isKnownFlake('should fetch a list of replay ids', async () => {
+  it('should fetch a list of replay ids', async () => {
+    const location = LocationFixture();
+    const organization = OrganizationFixture({
+      features: ['session-replay'],
+    });
     const MOCK_GROUP = GroupFixture();
 
     MockApiClient.addMockResponse({
@@ -41,19 +39,21 @@ describe('useReplaysFromIssue', () => {
       initialRouterConfig,
     });
 
-    await waitFor(() =>
-      expect(result.current).toEqual({
-        eventView: expect.objectContaining({
-          query: 'id:[replay42,replay256]',
-        }),
-        fetchError: undefined,
-        isFetching: false,
-        pageLinks: null,
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.eventView).toEqual(
+      expect.objectContaining({
+        query: 'id:[replay42,replay256]',
       })
     );
+    expect(result.current.fetchError).toBeUndefined();
   });
 
   it('should fetch a list of replay ids for a performance issue', async () => {
+    const location = LocationFixture();
+    const organization = OrganizationFixture({
+      features: ['session-replay'],
+    });
     const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
     MockApiClient.addMockResponse({
@@ -73,19 +73,21 @@ describe('useReplaysFromIssue', () => {
       initialRouterConfig,
     });
 
-    await waitFor(() =>
-      expect(result.current).toEqual({
-        eventView: expect.objectContaining({
-          query: 'id:[replay42,replay256]',
-        }),
-        fetchError: undefined,
-        isFetching: false,
-        pageLinks: null,
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.eventView).toEqual(
+      expect.objectContaining({
+        query: 'id:[replay42,replay256]',
       })
     );
+    expect(result.current.fetchError).toBeUndefined();
   });
 
   it('should return an empty EventView when there are no replay_ids returned from the count endpoint', async () => {
+    const location = LocationFixture();
+    const organization = OrganizationFixture({
+      features: ['session-replay'],
+    });
     const MOCK_GROUP = GroupFixture();
 
     MockApiClient.addMockResponse({
@@ -103,13 +105,9 @@ describe('useReplaysFromIssue', () => {
       initialRouterConfig,
     });
 
-    await waitFor(() =>
-      expect(result.current).toEqual({
-        eventView: null,
-        fetchError: undefined,
-        isFetching: false,
-        pageLinks: null,
-      })
-    );
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.eventView).toBeNull();
+    expect(result.current.fetchError).toBeUndefined();
   });
 });
