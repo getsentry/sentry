@@ -358,7 +358,7 @@ const TableRow = memo(function TableRow({
               tooltipProps={{title: t('Open Project Settings')}}
               aria-label={t('Open Project Settings')}
               size="xs"
-              priority="link"
+              variant="link"
               icon={<IconSettings />}
               to={`/settings/${organization.slug}/projects/${project.slug}/performance/`}
             />

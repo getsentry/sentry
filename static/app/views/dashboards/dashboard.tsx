@@ -26,6 +26,7 @@ import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -126,6 +127,11 @@ function DashboardInner({
   const api = useApi();
 
   const {selection} = usePageFilters();
+  const {projects} = useProjects();
+  const selectedProjectSlugs =
+    !selection.projects.length || selection.projects.includes(-1)
+      ? []
+      : projects.filter(p => selection.projects.includes(Number(p.id))).map(p => p.slug);
 
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -138,7 +144,7 @@ function DashboardInner({
     isEditingDashboard,
     dateRange: selection.datetime,
     environments: selection.environments,
-    projects: selection.projects,
+    projectSlugs: selectedProjectSlugs,
   });
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {

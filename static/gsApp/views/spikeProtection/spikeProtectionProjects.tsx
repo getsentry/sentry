@@ -207,7 +207,7 @@ function SpikeProtectionProjects({subscription}: Props) {
       >
         <Button
           disabled={!hasOrgWrite}
-          priority={isEnabling ? 'primary' : 'default'}
+          variant={isEnabling ? 'primary' : 'secondary'}
           data-test-id={`sp-${action.toLowerCase()}-all`}
           tooltipProps={{
             title: hasOrgWrite

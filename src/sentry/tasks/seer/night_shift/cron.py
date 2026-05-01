@@ -44,9 +44,13 @@ logger = logging.getLogger("sentry.tasks.seer.night_shift")
 NIGHT_SHIFT_DISPATCH_STEP_SECONDS = 37
 NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=4)
 
-FEATURE_NAMES = [
+BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
     "organizations:gen-ai-features",
+]
+PER_ORG_FEATURE_NAMES = [
+    # INTERNAL handlers aren't routed through batch_has_for_organizations,
+    # so this gets checked per-org on the survivors of the batch loop.
     "organizations:seat-based-seer-enabled",
 ]
 
@@ -83,15 +87,26 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
 )
-def schedule_night_shift(**kwargs: Any) -> None:
+def schedule_night_shift(
+    *,
+    run_options: SeerNightShiftRunOptionsPartial | None = None,
+    **kwargs: Any,
+) -> None:
     """
     Nightly scheduler: collects org ids that have a Seer-connected repo, then
     dispatches per-org worker tasks in batches with jitter. Feature flags
     still gate the dispatch — SeerProjectRepository rows can outlive a paid
     Seer subscription.
+
+    The real cron caller passes nothing (defaults). Manual admin triggers
+    forward `run_options` so every per-org task inherits the same overrides
+    (source="manual", dry_run, max_candidates, etc.).
     """
     if not options.get("seer.night_shift.enable"):
         return
+
+    logger.info("night_shift.schedule_start")
+    start_time = time.monotonic()
 
     seer_org_ids: set[int] = set()
     for spr in RangeQuerySetWrapper[SeerProjectRepository](
@@ -102,26 +117,49 @@ def schedule_night_shift(**kwargs: Any) -> None:
     ):
         seer_org_ids.add(spr.project.organization_id)
 
+    logger.info(
+        "night_shift.schedule_org_ids_collected",
+        extra={
+            "num_seer_org_ids": len(seer_org_ids),
+            "elapsed_seconds": time.monotonic() - start_time,
+        },
+    )
+
     spread_seconds = int(NIGHT_SHIFT_SPREAD_DURATION.total_seconds())
     batch_index = 0
+    task_kwargs: dict[str, Any] = {"options": dict(run_options)} if run_options else {}
 
-    for org_id_chunk in chunked(seer_org_ids, 100):
+    for chunk_index, org_id_chunk in enumerate(chunked(seer_org_ids, 100)):
         org_batch = list(
             Organization.objects.filter(
                 id__in=list(org_id_chunk),
                 status=OrganizationStatus.ACTIVE,
             )
         )
-        for org in _get_eligible_orgs_from_batch(org_batch):
+        eligible = _get_eligible_orgs_from_batch(org_batch)
+        for org in eligible:
             delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
-            run_night_shift_for_org.apply_async(args=[org.id], countdown=delay)
+            run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
             batch_index += 1
+
+        if chunk_index % 10 == 0:
+            logger.info(
+                "night_shift.schedule_chunk_processed",
+                extra={
+                    "chunk_index": chunk_index,
+                    "orgs_dispatched_so_far": batch_index,
+                    "elapsed_seconds": time.monotonic() - start_time,
+                },
+            )
 
     sentry_sdk.metrics.count("night_shift.orgs_dispatched", batch_index)
 
     logger.info(
         "night_shift.schedule_complete",
-        extra={"orgs_dispatched": batch_index},
+        extra={
+            "orgs_dispatched": batch_index,
+            "elapsed_seconds": time.monotonic() - start_time,
+        },
     )
 
 
@@ -248,7 +286,7 @@ def run_night_shift_execution(
         return None
 
     eligible_projects = [ep.project for ep in eligible]
-    agent_run_id = None
+    agent_run_id: int | None = None
     try:
         candidates, agent_run_id = agentic_triage_strategy(
             eligible_projects,
@@ -257,9 +295,9 @@ def run_night_shift_execution(
             intelligence_level=resolved_options["intelligence_level"],
             reasoning_effort=resolved_options["reasoning_effort"],
             extra_triage_instructions=resolved_options["extra_triage_instructions"],
+            run=run,
         )
         if agent_run_id is not None:
-            run.update(extras={**run.extras, "agent_run_id": agent_run_id})
             log_extra["agent_run_id"] = agent_run_id
     except Exception:
         sentry_sdk.metrics.count("night_shift.run_error", 1)
@@ -345,18 +383,23 @@ def _get_eligible_orgs_from_batch(
     orgs: Sequence[Organization],
 ) -> list[Organization]:
     """
-    Check feature flags for a batch of orgs using batch_has_for_organizations.
+    Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
     eligible = [org for org in orgs if not org.get_option("sentry:hide_ai_features")]
 
-    for feature_name in FEATURE_NAMES:
+    for feature_name in BATCH_FEATURE_NAMES:
         batch_result = features.batch_has_for_organizations(feature_name, eligible)
         if batch_result is None:
             raise RuntimeError(f"batch_has_for_organizations returned None for {feature_name}")
 
         eligible = [org for org in eligible if batch_result.get(f"organization:{org.id}", False)]
 
+        if not eligible:
+            return []
+
+    for feature_name in PER_ORG_FEATURE_NAMES:
+        eligible = [org for org in eligible if features.has(feature_name, org)]
         if not eligible:
             return []
 

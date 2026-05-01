@@ -4,6 +4,12 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework import serializers
 
+# Explicit imports so selective testing can detect when these handlers change.
+# They register via @action_handler_registry.register at import time (startup
+# side-effect), so without these the static scanner has no edge from handler
+# files to this test file.
+import sentry.integrations.github.handlers  # noqa: F401
+import sentry.integrations.github_enterprise.handlers  # noqa: F401
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.integrations.models import OrganizationIntegration

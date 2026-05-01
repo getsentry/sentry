@@ -13,34 +13,26 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
     AiAutofixCodeChangesStartedEvent,
-    AiAutofixImpactAssessmentCompletedEvent,
-    AiAutofixImpactAssessmentStartedEvent,
     AiAutofixPhaseEvent,
     AiAutofixPrCreatedStartedEvent,
     AiAutofixRootCauseCompletedEvent,
     AiAutofixRootCauseStartedEvent,
     AiAutofixSolutionCompletedEvent,
     AiAutofixSolutionStartedEvent,
-    AiAutofixTriageCompletedEvent,
-    AiAutofixTriageStartedEvent,
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import (
-    ImpactAssessmentArtifact,
     RootCauseArtifact,
     SolutionArtifact,
-    TriageArtifact,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
     code_changes_prompt,
-    impact_assessment_prompt,
     root_cause_prompt,
     solution_prompt,
-    triage_prompt,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -74,8 +66,6 @@ class AutofixStep(StrEnum):
     ROOT_CAUSE = "root_cause"
     SOLUTION = "solution"
     CODE_CHANGES = "code_changes"
-    IMPACT_ASSESSMENT = "impact_assessment"
-    TRIAGE = "triage"
 
     @staticmethod
     def from_autofix_stopping_point(
@@ -139,18 +129,6 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
         started_event=AiAutofixCodeChangesStartedEvent,
         completed_event=AiAutofixCodeChangesCompletedEvent,
     ),
-    AutofixStep.IMPACT_ASSESSMENT: StepConfig(
-        artifact_schema=ImpactAssessmentArtifact,
-        prompt_fn=impact_assessment_prompt,
-        started_event=AiAutofixImpactAssessmentStartedEvent,
-        completed_event=AiAutofixImpactAssessmentCompletedEvent,
-    ),
-    AutofixStep.TRIAGE: StepConfig(
-        artifact_schema=TriageArtifact,
-        prompt_fn=triage_prompt,
-        started_event=AiAutofixTriageStartedEvent,
-        completed_event=AiAutofixTriageCompletedEvent,
-    ),
 }
 
 
@@ -198,14 +176,6 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
         AutofixStep.CODE_CHANGES: {
             False: SeerActionType.CODING_STARTED,
             True: SeerActionType.CODING_COMPLETED,
-        },
-        AutofixStep.IMPACT_ASSESSMENT: {
-            False: SeerActionType.IMPACT_ASSESSMENT_STARTED,
-            True: SeerActionType.IMPACT_ASSESSMENT_COMPLETED,
-        },
-        AutofixStep.TRIAGE: {
-            False: SeerActionType.TRIAGE_STARTED,
-            True: SeerActionType.TRIAGE_COMPLETED,
         },
     }
     return step_to_action_type[step][is_completed]
