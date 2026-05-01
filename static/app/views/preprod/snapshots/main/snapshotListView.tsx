@@ -66,7 +66,8 @@ interface GroupRow {
   name: string;
 }
 
-const HEADER_HEIGHT = 44;
+// Keep in sync with SnapshotGroupHeader: lg vertical padding + md heading height.
+const SNAPSHOT_GROUP_HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
 const CARD_GAP = 0;
 const GROUP_PADDING = 0;
@@ -138,7 +139,9 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
       cards,
       isUngrouped: ungrouped,
       estimatedHeight:
-        (ungrouped ? cardsHeight : HEADER_HEIGHT + cardsHeight + GROUP_PADDING) +
+        (ungrouped
+          ? cardsHeight
+          : SNAPSHOT_GROUP_HEADER_HEIGHT + cardsHeight + GROUP_PADDING) +
         ROW_PADDING_BOTTOM,
     });
   }
@@ -357,7 +360,7 @@ export function SnapshotListView({
       : Math.min(
           Math.max(0, activeGroupBounds.top - stickyHeaderTop),
           activeGroupBounds.bottom -
-            (stickyHeaderTop + HEADER_HEIGHT) +
+            (stickyHeaderTop + SNAPSHOT_GROUP_HEADER_HEIGHT) +
             STICKY_HEADER_BOTTOM_OVERLAP
         );
   // detached frame is to detect when the top of the active group has not yet hit the control container and needs top border styling
