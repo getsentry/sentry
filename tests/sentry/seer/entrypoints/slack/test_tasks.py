@@ -372,20 +372,26 @@ class LinkedMessagesContextTest(TestCase):
 
     def setUp(self):
         super().setUp()
-        patches = {
-            "mock_resolve_user": patch("sentry.seer.entrypoints.slack.tasks._resolve_user"),
-            "mock_agent_cls": patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint"),
-            "mock_operator_cls": patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator"),
-            "mock_count": patch(
-                "sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0
-            ),
-            "mock_record": patch("sentry.analytics.record"),
-        }
-        for attr, p in patches.items():
-            setattr(self, attr, p.start())
-            self.addCleanup(p.stop)
+        self.mock_resolve_user = self._start_patch(
+            patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+        )
+        self.mock_agent_cls = self._start_patch(
+            patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+        )
+        self.mock_operator_cls = self._start_patch(
+            patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+        )
+        self.mock_count = self._start_patch(
+            patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
+        )
+        self.mock_record = self._start_patch(patch("sentry.analytics.record"))
 
         self._build_mocks()
+
+    def _start_patch(self, p):
+        mock = p.start()
+        self.addCleanup(p.stop)
+        return mock
 
     def _build_mocks(
         self,
