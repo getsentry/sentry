@@ -23,6 +23,7 @@ from sentry.seer.entrypoints.slack.mention import (
     extract_issue_links,
     extract_prompt,
     extract_slack_message_links,
+    find_message_in_attachments,
 )
 from sentry.testutils.cases import TestCase
 
@@ -485,6 +486,38 @@ class ExtractAttachmentTextTest(TestCase):
         }
         assert _extract_attachment_text(attachment) == "block content"
 
+    def test_message_unfurl_attachment_uses_message_blocks(self):
+        # Slack message-unfurl attachments embed the source message's blocks
+        # one level deeper, in ``message_blocks[0].message.blocks``.
+        attachment = {
+            "is_msg_unfurl": True,
+            "from_url": "https://acme.slack.com/archives/C0/p1700000000111111",
+            "channel_id": "C0",
+            "ts": "1700000000.111111",
+            "text": "flat fallback (should not be used)",
+            "message_blocks": [
+                {
+                    "team": "T1",
+                    "channel": "C0",
+                    "ts": "1700000000.111111",
+                    "message": {
+                        "blocks": [SectionBlock(text="rich body").to_dict()],
+                    },
+                }
+            ],
+        }
+        assert _extract_attachment_text(attachment) == "rich body"
+
+    def test_message_unfurl_falls_back_to_text_when_message_blocks_empty(self):
+        attachment = {
+            "is_msg_unfurl": True,
+            "channel_id": "C0",
+            "ts": "1700000000.111111",
+            "text": "flat fallback",
+            "message_blocks": [],
+        }
+        assert _extract_attachment_text(attachment) == "flat fallback"
+
     def test_attachment_falls_back_to_fallback_field(self):
         attachment = {"fallback": "Sentry alert: ValueError in backend"}
         assert _extract_attachment_text(attachment) == "Sentry alert: ValueError in backend"
@@ -616,31 +649,19 @@ class BuildLinkedMessagesContextTest(TestCase):
         result = build_linked_messages_context([(link, messages)])
         assert result == "User linked a Slack message in <#C0123456>:\n<@U123>: hello"
 
-    def test_thread_ts_renders_thread_header(self) -> None:
+    def test_thread_reply_link_still_uses_message_header(self) -> None:
+        # We only ship the single linked message now, so even when the link
+        # points at a thread reply we label it "message".
         link = SlackMessageLink(
             channel_id="C0123456",
             ts="1700000000.222222",
             thread_ts="1700000000.111111",
         )
         messages: list[Mapping[str, Any]] = [
-            {"user": "U123", "text": "parent", "ts": "1700000000.111111"},
             {"user": "U456", "text": "reply", "ts": "1700000000.222222"},
         ]
         result = build_linked_messages_context([(link, messages)])
-        assert (
-            result == "User linked a Slack thread in <#C0123456>:\n<@U123>: parent\n<@U456>: reply"
-        )
-
-    def test_multiple_messages_without_thread_ts_renders_thread_header(self) -> None:
-        # Top-level permalink whose target has replies — conversations.replies
-        # returns the parent + replies; we should label it a thread.
-        link = SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")
-        messages: list[Mapping[str, Any]] = [
-            {"user": "U123", "text": "parent", "ts": "1700000000.111111"},
-            {"user": "U456", "text": "reply", "ts": "1700000000.222222"},
-        ]
-        result = build_linked_messages_context([(link, messages)])
-        assert result.startswith("User linked a Slack thread in <#C0123456>:\n")
+        assert result == "User linked a Slack message in <#C0123456>:\n<@U456>: reply"
 
     def test_skips_blocks_with_empty_messages(self) -> None:
         link_a = SlackMessageLink(channel_id="C0AAA", ts="1700000000.111111")
@@ -668,3 +689,124 @@ class BuildLinkedMessagesContextTest(TestCase):
 
     def test_empty_input_returns_empty(self) -> None:
         assert build_linked_messages_context([]) == ""
+
+
+class FindMessageInAttachmentsTest(TestCase):
+    LINK = SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")
+
+    def test_returns_none_when_attachments_missing(self) -> None:
+        assert find_message_in_attachments(self.LINK, None) is None
+        assert find_message_in_attachments(self.LINK, []) is None
+
+    def test_matches_on_channel_id_and_ts(self) -> None:
+        attachments = [
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.111111",
+                "author_id": "U123",
+                "text": "hello",
+            }
+        ]
+        result = find_message_in_attachments(self.LINK, attachments)
+        assert result == {
+            "user": "U123",
+            "ts": "1700000000.111111",
+            "text": "hello",
+        }
+
+    def test_returns_none_when_no_attachment_matches(self) -> None:
+        attachments = [
+            {
+                "channel_id": "C9999OTHER",
+                "ts": "1700000000.111111",
+                "author_id": "U123",
+                "text": "different channel",
+            },
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.999999",
+                "author_id": "U456",
+                "text": "different ts",
+            },
+        ]
+        assert find_message_in_attachments(self.LINK, attachments) is None
+
+    def test_skips_non_dict_entries(self) -> None:
+        attachments: list[Any] = [
+            "not-a-dict",
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.111111",
+                "author_id": "U123",
+                "text": "ok",
+            },
+        ]
+        result = find_message_in_attachments(self.LINK, attachments)
+        assert result is not None
+        assert result["text"] == "ok"
+
+    def test_prefers_message_blocks_over_flat_text(self) -> None:
+        attachments = [
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.111111",
+                "author_id": "U123",
+                "text": "fallback",
+                "message_blocks": [
+                    {
+                        "team": "T1",
+                        "channel": "C0123456",
+                        "ts": "1700000000.111111",
+                        "message": {
+                            "blocks": [
+                                {
+                                    "type": "rich_text",
+                                    "elements": [
+                                        {
+                                            "type": "rich_text_section",
+                                            "elements": [{"type": "text", "text": "rich body"}],
+                                        }
+                                    ],
+                                }
+                            ]
+                        },
+                    }
+                ],
+            }
+        ]
+        result = find_message_in_attachments(self.LINK, attachments)
+        # Rich text from message_blocks wins over the flat fallback ``text``.
+        assert result == {
+            "user": "U123",
+            "ts": "1700000000.111111",
+            "text": "rich body",
+        }
+
+    def test_falls_back_to_text_when_message_blocks_empty(self) -> None:
+        attachments = [
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.111111",
+                "author_id": "U123",
+                "text": "flat",
+                "message_blocks": [],
+            }
+        ]
+        result = find_message_in_attachments(self.LINK, attachments)
+        assert result == {
+            "user": "U123",
+            "ts": "1700000000.111111",
+            "text": "flat",
+        }
+
+    def test_missing_author_id_defaults_to_empty_string(self) -> None:
+        attachments = [
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.111111",
+                "text": "no author",
+            }
+        ]
+        result = find_message_in_attachments(self.LINK, attachments)
+        assert result is not None
+        assert result["user"] == ""

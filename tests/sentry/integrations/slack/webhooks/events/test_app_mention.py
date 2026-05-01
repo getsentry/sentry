@@ -41,6 +41,28 @@ class AppMentionEventTest(BaseEventTest):
         assert kwargs["text"] == THREADED_APP_MENTION_EVENT["text"]
         assert kwargs["slack_user_id"] == THREADED_APP_MENTION_EVENT["user"]
         assert kwargs["bot_user_id"] == AUTHORIZATIONS_DATA["authorizations"][0]["user_id"]
+        assert kwargs["attachments"] is None
+
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_forwards_unfurl_attachments(self, mock_apply_async):
+        """When Slack auto-unfurls a permalink in the mention, the attachment
+        list rides along to the task so we can skip the API call."""
+        unfurl_attachment = {
+            "is_msg_unfurl": True,
+            "from_url": "https://acme.slack.com/archives/C9999LINKED/p1700000000222222",
+            "channel_id": "C9999LINKED",
+            "ts": "1700000000.222222",
+            "author_id": "ULINK",
+            "text": "linked body",
+        }
+        event_data = {**APP_MENTION_EVENT, "attachments": [unfurl_attachment]}
+
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(event_data=event_data, data=AUTHORIZATIONS_DATA)
+
+        assert resp.status_code == 200
+        kwargs = mock_apply_async.call_args[1]["kwargs"]
+        assert kwargs["attachments"] == [unfurl_attachment]
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_dispatches_task_no_authorizations(self, mock_apply_async):

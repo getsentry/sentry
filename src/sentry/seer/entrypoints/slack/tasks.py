@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import NamedTuple
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple
 
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
 from taskbroker_client.retry import Retry
@@ -28,6 +29,7 @@ from sentry.seer.entrypoints.slack.mention import (
     build_thread_context,
     extract_prompt,
     extract_slack_message_links,
+    find_message_in_attachments,
 )
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
@@ -58,6 +60,7 @@ def process_mention_for_slack(
     text: str,
     slack_user_id: str,
     bot_user_id: str,
+    attachments: Sequence[Mapping[str, Any]] | None = None,
     conversation_type: SlackSeerAgentConversation = SlackSeerAgentConversation.DIRECT_MESSAGE,
 ) -> None:
     """
@@ -148,6 +151,7 @@ def process_mention_for_slack(
         linked_result = _resolve_linked_messages(
             text=text,
             entrypoint=entrypoint,
+            attachments=attachments,
         )
 
         # Only fetch thread context when actually in a thread.
@@ -344,37 +348,6 @@ def _send_not_org_member_message(
     )
 
 
-# Cap how many messages from a single linked thread we ship to Seer, to bound
-# token cost on large threads. The parent and the explicitly-linked message
-# are always preserved; remaining slots are filled with the most recent replies.
-_MAX_LINKED_THREAD_MESSAGES = 10
-
-
-def _cap_linked_thread(
-    messages: list[dict],
-    link: SlackMessageLink,
-    max_messages: int,
-) -> list[dict]:
-    """Trim a thread's messages to ``max_messages`` while keeping the parent
-    (``messages[0]``) and the message the permalink targets (``link.ts``).
-    Remaining slots are filled with the most recent replies. Order is preserved.
-    """
-    if len(messages) <= max_messages:
-        return messages
-
-    keep_ts: set[str] = {messages[0]["ts"]}
-    # keep the message specified in the link
-    keep_ts.update(m["ts"] for m in messages if m["ts"] == link.ts)
-
-    # Add the most recent messages until max_messages is reached
-    for msg in reversed(messages):
-        if len(keep_ts) >= max_messages:
-            break
-        keep_ts.add(msg["ts"])
-
-    return [m for m in messages if m["ts"] in keep_ts]
-
-
 class _LinkedMessagesResult(NamedTuple):
     block: str
     unresolved_channel_ids: list[str]
@@ -385,22 +358,36 @@ def _resolve_linked_messages(
     *,
     text: str,
     entrypoint: SlackAgentEntrypoint,
+    attachments: Sequence[Mapping[str, Any]] | None = None,
 ) -> _LinkedMessagesResult:
-    """Fetch any Slack permalinks in ``text`` and render them as a Seer context block.
+    """Fetch the single linked message for any Slack permalinks in ``text`` and
+    render them as a Seer context block.
 
-    Returns the rendered block plus the deduped, sorted list of channel ids whose
-    fetch came back empty.
+    Resolution strategy per link:
+
+    1. If the inbound event already includes the message as an auto-unfurl
+       attachment, use that.
+    2. Otherwise, skip private channels and fetch only the single linked message
+    via ``conversations.history`` / ``conversations.replies`` for public channels.
+
+    Returns the rendered block plus the deduped lists of channel ids we
+    couldn't read (unresolved = bot not invited / scope missing) or
+    intentionally skipped (private).
     """
     domain_name = entrypoint.integration.metadata.get("domain_name")
     links = extract_slack_message_links(text, domain_name=domain_name)
     if not links:
         return _LinkedMessagesResult(block="", unresolved_channel_ids=[], private_channel_ids=[])
 
-    rendered: list[tuple[SlackMessageLink, list[dict]]] = []
-    total_messages = 0
+    msgs_to_include: list[tuple[SlackMessageLink, list[Mapping[str, Any]]]] = []
     unresolved: set[str] = set()
     private_channels: set[str] = set()
     for link in links:
+        attachment_message = find_message_in_attachments(link, attachments)
+        if attachment_message is not None:
+            msgs_to_include.append((link, [attachment_message]))
+            continue
+
         conversation_info = entrypoint.install.get_conversations_info(channel_id=link.channel_id)
         if not conversation_info.get("is_public"):
             private_channels.add(link.channel_id)
@@ -409,25 +396,28 @@ def _resolve_linked_messages(
         messages = entrypoint.install.get_thread_history(
             channel_id=link.channel_id,
             thread_ts=link.thread_ts or link.ts,
+            latest=link.ts,
+            oldest=link.ts,
+            inclusive=True,
+            limit=1,
         )
-        if not messages:
+
+        message = next((m for m in messages if m.get("ts") == link.ts), None)
+        if message is None:
             unresolved.add(link.channel_id)
             continue
-        messages = _cap_linked_thread(messages, link, _MAX_LINKED_THREAD_MESSAGES)
-        rendered.append((link, messages))
-        total_messages += len(messages)
+        msgs_to_include.append((link, [message]))
 
     _logger.info(
         "seer.slack.process_mention.linked_messages_resolved",
         extra={
             "requested": len(links),
-            "fetched": len(rendered),
-            "total_msgs": total_messages,
+            "fetched": len(msgs_to_include),
         },
     )
 
     return _LinkedMessagesResult(
-        block=build_linked_messages_context(rendered),
+        block=build_linked_messages_context(msgs_to_include),
         unresolved_channel_ids=list(unresolved),
         private_channel_ids=list(private_channels),
     )

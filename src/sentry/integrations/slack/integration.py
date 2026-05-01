@@ -275,12 +275,20 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         *,
         channel_id: str,
         thread_ts: str,
+        latest: str | None = None,
+        oldest: str | None = None,
+        inclusive: bool | None = None,
+        limit: int | None = None,
     ) -> list[dict[str, Any]]:
         return workspace.get_thread_history(
             integration_id=self.model.id,
             channel_id=channel_id,
             thread_ts=thread_ts,
             scopes=self.model.metadata.get("scopes"),
+            latest=latest,
+            oldest=oldest,
+            inclusive=inclusive,
+            limit=limit,
         )
 
     def set_thread_status(

@@ -5,14 +5,12 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentResponded,
 )
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError
-from sentry.seer.entrypoints.slack.mention import SlackMessageLink
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
     ProcessMentionHaltReason,
 )
 from sentry.seer.entrypoints.slack.tasks import (
     _build_inaccessible_links_renderable,
-    _cap_linked_thread,
     process_mention_for_slack,
 )
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
@@ -372,7 +370,12 @@ class LinkedMessagesContextTest(TestCase):
 
     LINKED_PERMALINK = "https://acme.slack.com/archives/C9999LINKED/p1700000000222222"
 
-    def _build_mocks(self, history_side_effect):
+    def _build_mocks(
+        self,
+        *,
+        thread_history_side_effect=None,
+        conversations_info_side_effect=None,
+    ):
         mock_user = MagicMock(id=self.user.id, username="alice")
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.123456"
@@ -380,7 +383,18 @@ class LinkedMessagesContextTest(TestCase):
         mock_entrypoint.slack_user_id = TASK_KWARGS["slack_user_id"]
         mock_entrypoint.integration.metadata = {"domain_name": "acme.slack.com"}
         mock_entrypoint.integration.external_id = "T0TEAM"
-        mock_entrypoint.install.get_thread_history.side_effect = history_side_effect
+
+        # Default: every channel is public unless the test overrides this.
+        mock_entrypoint.install.get_conversations_info.side_effect = (
+            conversations_info_side_effect
+            if conversations_info_side_effect is not None
+            else lambda **_: {"is_public": True}
+        )
+        # ``get_thread_history`` covers both the permalink-resolution path
+        # (with latest/oldest narrowing) and the in-thread context path.
+        mock_entrypoint.install.get_thread_history.side_effect = (
+            thread_history_side_effect if thread_history_side_effect is not None else lambda **_: []
+        )
 
         mock_operator = MagicMock()
         mock_operator.trigger_agent.return_value = 42
@@ -400,27 +414,32 @@ class LinkedMessagesContextTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_top_level_permalink_appends_single_message(
+    def test_top_level_permalink_fetches_single_message(
         self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
     ):
-        # In-thread fetch returns nothing; the linked permalink fetch returns a single message.
-        def history_side_effect(*, channel_id, thread_ts):
+        def history(*, channel_id, thread_ts, **kwargs):
             if channel_id == "C9999LINKED":
                 return [{"user": "ULINK", "text": "linked body", "ts": "1700000000.222222"}]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(history_side_effect)
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
+            thread_history_side_effect=history,
+        )
         mock_resolve_user.return_value = mock_user
         mock_agent_cls.has_access.return_value = True
         mock_agent_cls.return_value = mock_entrypoint
         mock_operator_cls.return_value = mock_operator
 
-        text = f"<@U0BOT> what about <{self.LINKED_PERMALINK}>"
-        self._run(text=text)
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>")
 
-        # The fetch was issued against the linked channel + ts (no thread_ts in URL → ts is used).
+        # The fetch is narrowed to a single ts (latest=oldest, limit=1).
         mock_entrypoint.install.get_thread_history.assert_any_call(
-            channel_id="C9999LINKED", thread_ts="1700000000.222222"
+            channel_id="C9999LINKED",
+            thread_ts="1700000000.222222",
+            latest="1700000000.222222",
+            oldest="1700000000.222222",
+            inclusive=True,
+            limit=1,
         )
 
         on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
@@ -433,18 +452,29 @@ class LinkedMessagesContextTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_threaded_permalink_appends_full_thread(
+    def test_threaded_permalink_fetches_only_the_linked_reply(
         self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
     ):
-        def history_side_effect(*, channel_id, thread_ts):
+        """A permalink into a thread reply must NOT pull the whole thread —
+        we only ship the single targeted reply to Seer.
+
+        ``conversations.replies`` always returns the parent even when narrowed,
+        so we filter client-side.
+        """
+
+        def history(*, channel_id, thread_ts, **kwargs):
             if channel_id == "C9999LINKED" and thread_ts == "1700000000.111111":
+                # Slack returned the parent + the requested reply — we should
+                # filter to the reply and drop the parent.
                 return [
                     {"user": "UPARENT", "text": "parent", "ts": "1700000000.111111"},
                     {"user": "UREPLY", "text": "reply", "ts": "1700000000.222222"},
                 ]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(history_side_effect)
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
+            thread_history_side_effect=history,
+        )
         mock_resolve_user.return_value = mock_user
         mock_agent_cls.has_access.return_value = True
         mock_agent_cls.return_value = mock_entrypoint
@@ -457,12 +487,198 @@ class LinkedMessagesContextTest(TestCase):
         self._run(text=f"<@U0BOT> see <{url}>")
 
         mock_entrypoint.install.get_thread_history.assert_any_call(
-            channel_id="C9999LINKED", thread_ts="1700000000.111111"
+            channel_id="C9999LINKED",
+            thread_ts="1700000000.111111",
+            latest="1700000000.222222",
+            oldest="1700000000.222222",
+            inclusive=True,
+            limit=1,
         )
         on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
-        assert "User linked a Slack thread in <#C9999LINKED>:" in on_page_context
-        assert "<@UPARENT>: parent" in on_page_context
+        assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@UREPLY>: reply" in on_page_context
+        # The thread parent must be filtered out client-side.
+        assert "UPARENT" not in on_page_context
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_unfurl_attachment_short_circuits_api_call(
+        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
+    ):
+        """If the inbound app_mention event already includes the unfurled
+        message as an attachment, we use it directly — no Slack API calls."""
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
+        mock_resolve_user.return_value = mock_user
+        mock_agent_cls.has_access.return_value = True
+        mock_agent_cls.return_value = mock_entrypoint
+        mock_operator_cls.return_value = mock_operator
+
+        attachments = [
+            {
+                "is_msg_unfurl": True,
+                "from_url": self.LINKED_PERMALINK,
+                "channel_id": "C9999LINKED",
+                "channel_name": "general",
+                "ts": "1700000000.222222",
+                "author_id": "ULINK",
+                "author_subname": "linker",
+                "text": "linked body",
+                "fallback": "[date] linker: linked body",
+            }
+        ]
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", attachments=attachments)
+
+        # We did NOT need to call out to Slack to read the linked channel.
+        mock_entrypoint.install.get_conversations_info.assert_not_called()
+        history_calls = mock_entrypoint.install.get_thread_history.call_args_list
+        assert all(call.kwargs["channel_id"] != "C9999LINKED" for call in history_calls)
+
+        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert on_page_context is not None
+        assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
+        assert "<@ULINK>: linked body" in on_page_context
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_unfurl_attachment_with_blocks_preserves_rich_text(
+        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
+    ):
+        """Rich-text blocks on the unfurl attachment are preferred over flat text."""
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
+        mock_resolve_user.return_value = mock_user
+        mock_agent_cls.has_access.return_value = True
+        mock_agent_cls.return_value = mock_entrypoint
+        mock_operator_cls.return_value = mock_operator
+
+        attachments = [
+            {
+                "is_msg_unfurl": True,
+                "from_url": self.LINKED_PERMALINK,
+                "channel_id": "C9999LINKED",
+                "ts": "1700000000.222222",
+                "author_id": "ULINK",
+                "text": "fallback flat text",
+                "message_blocks": [
+                    {
+                        "team": "T0TEAM",
+                        "channel": "C9999LINKED",
+                        "ts": "1700000000.222222",
+                        "message": {
+                            "blocks": [
+                                {
+                                    "type": "rich_text",
+                                    "elements": [
+                                        {
+                                            "type": "rich_text_section",
+                                            "elements": [
+                                                {"type": "text", "text": "rich body"},
+                                            ],
+                                        }
+                                    ],
+                                }
+                            ]
+                        },
+                    }
+                ],
+            }
+        ]
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", attachments=attachments)
+
+        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert on_page_context is not None
+        assert "<@ULINK>: rich body" in on_page_context
+        assert "fallback flat text" not in on_page_context
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_attachment_for_other_link_falls_through_to_api(
+        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
+    ):
+        """When the attachment's (channel_id, ts) doesn't match any link in
+        the message, we fall through to the API path."""
+
+        def history(*, channel_id, thread_ts, **kwargs):
+            if channel_id == "C9999LINKED":
+                return [{"user": "UFETCH", "text": "fetched body", "ts": "1700000000.222222"}]
+            return []
+
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
+            thread_history_side_effect=history,
+        )
+        mock_resolve_user.return_value = mock_user
+        mock_agent_cls.has_access.return_value = True
+        mock_agent_cls.return_value = mock_entrypoint
+        mock_operator_cls.return_value = mock_operator
+
+        # Attachment for a totally different message — must not be used.
+        attachments = [
+            {
+                "is_msg_unfurl": True,
+                "channel_id": "C0OTHER",
+                "ts": "1700000000.999999",
+                "author_id": "UOTHER",
+                "text": "irrelevant",
+            }
+        ]
+
+        self._run(
+            text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>",
+            attachments=attachments,
+        )
+
+        mock_entrypoint.install.get_thread_history.assert_any_call(
+            channel_id="C9999LINKED",
+            thread_ts="1700000000.222222",
+            latest="1700000000.222222",
+            oldest="1700000000.222222",
+            inclusive=True,
+            limit=1,
+        )
+        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert "<@UFETCH>: fetched body" in on_page_context
+        assert "irrelevant" not in on_page_context
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_private_channel_skipped_and_user_notified(
+        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
+    ):
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
+            conversations_info_side_effect=lambda **_: {"is_public": False},
+        )
+        mock_resolve_user.return_value = mock_user
+        mock_agent_cls.has_access.return_value = True
+        mock_agent_cls.return_value = mock_entrypoint
+        mock_operator_cls.return_value = mock_operator
+
+        self._run(
+            text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>",
+            thread_ts=None,
+        )
+
+        # We didn't try to fetch the message from a private channel.
+        mock_entrypoint.install.get_thread_history.assert_not_called()
+        assert mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
+
+        renderable_text = mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
+            "renderable"
+        ]["text"]
+        assert "private channels" in renderable_text
+        assert "<#C9999LINKED>" in renderable_text
 
     @patch("sentry.analytics.record")
     @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
@@ -472,8 +688,8 @@ class LinkedMessagesContextTest(TestCase):
     def test_unresolved_link_yields_no_block_and_sends_ephemeral(
         self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
     ):
-        # Empty list simulates has_history_scope returning False inside get_thread_history.
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(lambda **_: [])
+        # get_thread_history returns [] → simulates missing scope or deleted message.
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
         mock_resolve_user.return_value = mock_user
         mock_agent_cls.has_access.return_value = True
         mock_agent_cls.return_value = mock_entrypoint
@@ -481,16 +697,19 @@ class LinkedMessagesContextTest(TestCase):
 
         self._run(
             text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>",
-            thread_ts=None,  # no in-thread context either
+            thread_ts=None,
         )
 
-        # The fetch was attempted but returned empty → on_page_context stays None.
         mock_entrypoint.install.get_thread_history.assert_called_once_with(
-            channel_id="C9999LINKED", thread_ts="1700000000.222222"
+            channel_id="C9999LINKED",
+            thread_ts="1700000000.222222",
+            latest="1700000000.222222",
+            oldest="1700000000.222222",
+            inclusive=True,
+            limit=1,
         )
         assert mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
 
-        # The user is nudged to invite the bot to the inaccessible channel.
         mock_entrypoint.install.send_threaded_ephemeral_message.assert_called_once()
         call_kwargs = mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1]
         assert call_kwargs["channel_id"] == TASK_KWARGS["channel_id"]
@@ -507,13 +726,14 @@ class LinkedMessagesContextTest(TestCase):
     def test_partial_resolution_still_sends_ephemeral_for_unresolved(
         self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
     ):
-        # One link resolves, one doesn't.
-        def history_side_effect(*, channel_id, thread_ts):
+        def history(*, channel_id, thread_ts, **kwargs):
             if channel_id == "C0OK":
                 return [{"user": "UOK", "text": "ok", "ts": "1700000000.111111"}]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(history_side_effect)
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
+            thread_history_side_effect=history,
+        )
         mock_resolve_user.return_value = mock_user
         mock_agent_cls.has_access.return_value = True
         mock_agent_cls.return_value = mock_entrypoint
@@ -526,17 +746,15 @@ class LinkedMessagesContextTest(TestCase):
         )
         self._run(text=text, thread_ts=None)
 
-        # Resolved link still made it into the prompt context.
         on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert "<@UOK>: ok" in on_page_context
 
-        # And we still tell the user about the channel we couldn't read.
         mock_entrypoint.install.send_threaded_ephemeral_message.assert_called_once()
         renderable_text = mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
             "renderable"
         ]["text"]
         assert "C0BAD" in renderable_text
-        assert "C0OK" not in renderable_text  # the resolved channel is not mentioned
+        assert "C0OK" not in renderable_text
 
     @patch("sentry.analytics.record")
     @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
@@ -546,7 +764,7 @@ class LinkedMessagesContextTest(TestCase):
     def test_multiple_unresolved_channels_listed_in_ephemeral(
         self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
     ):
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(lambda **_: [])
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
         mock_resolve_user.return_value = mock_user
         mock_agent_cls.has_access.return_value = True
         mock_agent_cls.return_value = mock_entrypoint
@@ -573,15 +791,22 @@ class LinkedMessagesContextTest(TestCase):
     def test_linked_block_precedes_in_thread_context(
         self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
     ):
-        def history_side_effect(*, channel_id, thread_ts):
+        def history(*, channel_id, thread_ts, **kwargs):
+            # Permalink fetch (narrowed by latest/oldest)
             if channel_id == "C9999LINKED":
                 return [{"user": "ULINK", "text": "linked body", "ts": "1700000000.222222"}]
-            # In-thread context for the channel/thread the user is mentioning from.
-            if channel_id == "C1234567890" and thread_ts == "1234567890.123456":
+            # In-thread context fetch (no latest/oldest)
+            if (
+                channel_id == "C1234567890"
+                and thread_ts == "1234567890.123456"
+                and "latest" not in kwargs
+            ):
                 return [{"user": "UTHREAD", "text": "earlier in thread", "ts": "1234567890.000001"}]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(history_side_effect)
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
+            thread_history_side_effect=history,
+        )
         mock_resolve_user.return_value = mock_user
         mock_agent_cls.has_access.return_value = True
         mock_agent_cls.return_value = mock_entrypoint
@@ -605,7 +830,7 @@ class LinkedMessagesContextTest(TestCase):
     def test_other_workspace_link_is_skipped(
         self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
     ):
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(lambda **_: [])
+        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
         mock_resolve_user.return_value = mock_user
         mock_agent_cls.has_access.return_value = True
         mock_agent_cls.return_value = mock_entrypoint
@@ -615,8 +840,6 @@ class LinkedMessagesContextTest(TestCase):
         url = "https://other.slack.com/archives/C9999OTHER/p1700000000222222"
         self._run(text=f"<@U0BOT> ignore <{url}>", thread_ts=None)
 
-        # No fetch should be attempted for an out-of-workspace permalink, and we
-        # don't bug the user about a channel they couldn't have invited us to.
         mock_entrypoint.install.get_thread_history.assert_not_called()
         mock_entrypoint.install.send_threaded_ephemeral_message.assert_not_called()
         assert mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
@@ -669,61 +892,3 @@ class BuildInaccessibleLinksRenderableTest(TestCase):
         assert "/invite @Sentry" in renderable["text"]
         assert "private channels" in renderable["text"]
         assert "<#C0PRIV>" in renderable["text"]
-
-
-class CapLinkedThreadTest(TestCase):
-    """Direct tests for the policy that trims oversized linked threads."""
-
-    def _msgs(self, count: int) -> list[dict]:
-        return [
-            {"user": f"U{i}", "text": f"msg {i}", "ts": f"1700000000.{i:06d}"} for i in range(count)
-        ]
-
-    def test_below_cap_returns_unchanged(self) -> None:
-        link = SlackMessageLink(channel_id="C0", ts="1700000000.000003")
-        msgs = self._msgs(10)
-        assert _cap_linked_thread(msgs, link, 50) == msgs
-
-    def test_at_cap_returns_unchanged(self) -> None:
-        link = SlackMessageLink(channel_id="C0", ts="1700000000.000003")
-        msgs = self._msgs(50)
-        assert _cap_linked_thread(msgs, link, 50) == msgs
-
-    def test_drops_oldest_replies_keeping_parent_and_recent(self) -> None:
-        # Linked message coincides with the parent (index 0), so we keep the
-        # parent + the most recent (max_messages - 1) replies.
-        link = SlackMessageLink(channel_id="C0", ts="1700000000.000000")
-        msgs = self._msgs(100)
-        result = _cap_linked_thread(msgs, link, 5)
-        assert len(result) == 5
-        assert result[0] == msgs[0]
-        assert result[1:] == msgs[-4:]
-
-    def test_preserves_linked_message_in_the_middle(self) -> None:
-        # A user-pasted permalink can target a specific reply that's neither the
-        # parent nor in the most recent slice — it MUST still show up.
-        link = SlackMessageLink(channel_id="C0", ts="1700000000.000050")
-        msgs = self._msgs(200)
-        result = _cap_linked_thread(msgs, link, 10)
-        assert len(result) == 10
-        assert msgs[0] in result  # parent always included
-        assert msgs[50] in result  # explicitly linked message always included
-        # The remaining slots should be filled from the most recent end.
-        assert msgs[-1] in result
-
-    def test_preserves_chronological_order(self) -> None:
-        link = SlackMessageLink(channel_id="C0", ts="1700000000.000050")
-        msgs = self._msgs(200)
-        result = _cap_linked_thread(msgs, link, 10)
-        result_ts = [m["ts"] for m in result]
-        assert result_ts == sorted(result_ts)
-
-    def test_linked_ts_not_present_falls_back_to_recent(self) -> None:
-        # If conversations.replies returned messages but the exact linked ts
-        # isn't there (e.g., it was deleted), we still cap gracefully.
-        link = SlackMessageLink(channel_id="C0", ts="1700000000.999999")
-        msgs = self._msgs(100)
-        result = _cap_linked_thread(msgs, link, 5)
-        assert len(result) == 5
-        assert result[0] == msgs[0]
-        assert result[1:] == msgs[-4:]

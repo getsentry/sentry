@@ -91,6 +91,35 @@ def _parse_slack_permalink(url: str, expected_host: str | None) -> SlackMessageL
     )
 
 
+def find_message_in_attachments(
+    link: SlackMessageLink,
+    attachments: Sequence[Mapping[str, Any]] | None,
+) -> Mapping[str, Any] | None:
+    """Return a Slack-message-shaped dict if ``attachments`` contains the
+    auto-unfurl that Slack generates when a permalink is shared.
+
+    The shape mirrors what ``conversations.replies`` returns so callers can
+    feed it to ``build_thread_context``.
+    """
+    if not attachments:
+        return None
+
+    for attachment in attachments:
+        if not isinstance(attachment, dict):
+            continue
+        if attachment.get("channel_id") != link.channel_id:
+            continue
+        if attachment.get("ts") != link.ts:
+            continue
+        return {
+            "user": attachment.get("author_id", ""),
+            "ts": attachment.get("ts", ""),
+            "text": _extract_attachment_text(attachment),
+        }
+
+    return None
+
+
 def extract_slack_message_links(
     text: str,
     *,
@@ -198,7 +227,18 @@ def _extract_attachment_text(attachment: Mapping[str, Any]) -> str:
     array) or legacy (using fields like ``pretext``/``title``/``text``/
     ``fields``). See:
     https://docs.slack.dev/legacy/legacy-messaging/legacy-secondary-message-attachments/
+
+    Slack message-unfurl attachments embed the source message's Block Kit content in
+    ``message_blocks[0].message.blocks`` - we prefer that over the flat
+    ``text`` fallback so links/mentions/formatting are preserved.
     """
+    message_blocks = attachment.get("message_blocks") or []
+    if message_blocks and isinstance(message_blocks[0], dict):
+        inner = message_blocks[0].get("message", {})
+        if isinstance(inner, dict) and (inner_blocks := inner.get("blocks")):
+            if block_text := _extract_text_from_blocks(inner_blocks):
+                return block_text
+
     # Attachments may have blocks inside them, if so, it's not using the legacy attachments
     blocks = attachment.get("blocks")
     if blocks:
@@ -284,13 +324,6 @@ def build_linked_messages_context(
         User linked a Slack message in <#C123>:
         <@U456>: ...
 
-    or, when the link pointed into a thread:
-
-        User linked a Slack thread in <#C123>:
-        <@U456>: parent text
-        <@U789>: reply text
-        ...
-
     Empty message lists (fetch failed / scope missing) are skipped.
     """
     sections: list[str] = []
@@ -298,7 +331,5 @@ def build_linked_messages_context(
         body = build_thread_context(messages)
         if not body:
             continue
-        is_thread = link.thread_ts is not None or len(messages) > 1
-        kind = "thread" if is_thread else "message"
-        sections.append(f"User linked a Slack {kind} in <#{link.channel_id}>:\n{body}")
+        sections.append(f"User linked a Slack message in <#{link.channel_id}>:\n{body}")
     return "\n\n".join(sections)
