@@ -71,7 +71,6 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import type {TableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -99,7 +98,7 @@ import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAl
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
-  tableExpando: TableExpando;
+  tableExpando: boolean;
 };
 
 interface LogsSearchBarProps {
@@ -426,52 +425,45 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ViewportConstrainedPage
-        constrained={tableExpando.enabled}
-        hideFooter={tableExpando.expanded === true}
-      >
+      <ViewportConstrainedPage constrained={tableExpando} hideFooter={tableExpando}>
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
             {sidebarOpen ? <LogsToolbar /> : null}
           </LogsControlSection>
           <ExploreContentSection gap="md">
-            {!tableExpando.expanded && (
-              <OverChartButtonGroup>
-                <LogsSidebarCollapseButton
-                  sidebarOpen={sidebarOpen}
-                  aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                  size="xs"
-                  icon={
-                    <IconChevron
-                      isDouble
-                      direction={sidebarOpen ? 'left' : 'right'}
-                      size="xs"
-                    />
-                  }
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                >
-                  {sidebarOpen ? null : t('Advanced')}
-                </LogsSidebarCollapseButton>
-                <LogsExportSwitch
-                  isLoading={tableData.isPending}
-                  tableData={tableData.data}
-                  error={tableData.error}
-                />
-              </OverChartButtonGroup>
-            )}
+            <OverChartButtonGroup>
+              <LogsSidebarCollapseButton
+                sidebarOpen={sidebarOpen}
+                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                size="xs"
+                icon={
+                  <IconChevron
+                    isDouble
+                    direction={sidebarOpen ? 'left' : 'right'}
+                    size="xs"
+                  />
+                }
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? null : t('Advanced')}
+              </LogsSidebarCollapseButton>
+              <LogsExportSwitch
+                isLoading={tableData.isPending}
+                tableData={tableData.data}
+                error={tableData.error}
+              />
+            </OverChartButtonGroup>
             <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             <LogsDownSamplingAlert
               timeseriesResult={timeseriesResult}
               tableResult={infiniteLogsQueryResult}
             />
-            {!tableExpando.expanded && (
-              <LogsGraphContainer>
-                <LogsGraph
-                  rawLogCounts={rawLogCounts}
-                  timeseriesResult={timeseriesResult}
-                />
-              </LogsGraphContainer>
-            )}
+            <LogsGraphContainer>
+              <LogsGraph
+                rawLogCounts={rawLogCounts}
+                timeseriesResult={timeseriesResult}
+              />
+            </LogsGraphContainer>
             <LogsTableActionsContainer>
               <Tabs value={tableTab} onChange={setTableTab} size="sm">
                 <TabList variant="floating">
@@ -515,7 +507,6 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
                       </Button>
                     }
                   />
-                  {tableExpando.enabled && tableExpando.button}
                 </TableActionsContainer>
               )}
             </LogsTableActionsContainer>
@@ -523,7 +514,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  expanded={tableExpando.expanded}
+                  expanded={tableExpando}
                   booleanAttributes={booleanAttributes}
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
