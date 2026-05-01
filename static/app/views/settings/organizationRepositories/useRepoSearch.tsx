@@ -5,7 +5,7 @@ import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 import type {ScmRepoMatches} from './scmRepositoryTable';
 
-const FUSE_OPTIONS = {keys: ['name']};
+const FUSE_OPTIONS = {keys: ['name'], minMatchCharLength: 1};
 
 /**
  * Builds a fuzzy search index over the given repositories and returns a
