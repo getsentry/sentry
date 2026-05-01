@@ -3,8 +3,10 @@ import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -17,11 +19,7 @@ import {
 } from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
-import {
-  makeSeerExplorerQueryKey,
-  parseUtcTimestampFromIso,
-  usePageReferrer,
-} from 'sentry/views/seerExplorer/utils';
+import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -73,21 +71,21 @@ function supportsStructuredContext(
   );
 }
 
-const OPTIMISTIC_ASSISTANT_TEXTS = [
-  'Looking around...',
-  'One sec...',
-  'Following breadcrumbs...',
-  'Onboarding...',
-  'Hold tight...',
-  'Gathering threads...',
-  'Tracing the answer...',
-  'Stacking ideas...',
-  'Profiling your project...',
-  'Span by span...',
-  'Rolling logs...',
-  'Replaying prod...',
-  'Scanning the error-waves...',
-] as const;
+const getOptimisticAssistantTexts = () => [
+  t('Looking around...'),
+  t('One sec...'),
+  t('Following breadcrumbs...'),
+  t('Onboarding...'),
+  t('Hold tight...'),
+  t('Gathering threads...'),
+  t('Tracing the answer...'),
+  t('Stacking ideas...'),
+  t('Profiling your project...'),
+  t('Span by span...'),
+  t('Rolling logs...'),
+  t('Replaying prod...'),
+  t('Scanning the error-waves...'),
+];
 
 const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
   session: {
@@ -399,10 +397,8 @@ export const useSeerExplorer = () => {
       );
 
       // Pick a random placeholder for the next loading block, so it's deterministic per user message
-      const placeholderContent =
-        OPTIMISTIC_ASSISTANT_TEXTS[
-          Math.floor(Math.random() * OPTIMISTIC_ASSISTANT_TEXTS.length)
-        ] || 'Thinking...';
+      const texts = getOptimisticAssistantTexts();
+      const placeholderContent = texts[Math.floor(Math.random() * texts.length)]!;
 
       // Update lastSentMessage for UI
       setLastSentMessage({
@@ -521,7 +517,7 @@ export const useSeerExplorer = () => {
       rawSessionData &&
       blockAtInsert?.message.role === 'user' &&
       blockAtInsert?.message.content === userQuery &&
-      (parseUtcTimestampFromIso(blockAtInsert?.timestamp ?? '') ?? 0) >=
+      (getDateFromTimestampAssumeUtc(blockAtInsert?.timestamp)?.getTime() ?? 0) >=
         lastSentTimestampMs;
 
     const serverHasAssistantResponse =

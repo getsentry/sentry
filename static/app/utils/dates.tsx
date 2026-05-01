@@ -340,3 +340,16 @@ export function getDateFromTimestamp(value: unknown): Date | null {
 
   return dateObj;
 }
+
+/**
+ * Converts a string or timestamp in milliseconds to a Date, returning null if invalid.
+ * If the value is a timezone-naive ISO string, it is assumed to be UTC.
+ */
+export function getDateFromTimestampAssumeUtc(value: unknown): Date | null {
+  const withTz =
+    typeof value === 'string' && !/Z|[+-]\d{2}:\d{2}$|[+-]\d{4}$/.test(value)
+      ? value + 'Z'
+      : value;
+
+  return getDateFromTimestamp(withTz);
+}
