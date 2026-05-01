@@ -303,7 +303,7 @@ function NotificationButtons({
       </Button>
       <Button
         icon={<IconCheckmark />}
-        priority="primary"
+        variant="primary"
         disabled={
           !notificationThresholds ||
           !backendThresholds ||
