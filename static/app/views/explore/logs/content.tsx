@@ -29,7 +29,7 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
+import {useOurLogsTableExpando} from 'sentry/views/explore/logs/tables/useOurLogsTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -40,11 +40,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const tableExpando = useTableExpando();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const tableExpando = useOurLogsTableExpando();
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
@@ -68,8 +68,8 @@ export default function LogsContent() {
         <AnalyticsArea name="explore.logs">
           <LogsPageStack
             flex={1}
-            data-footer-constrained={tableExpando.enabled ? '' : undefined}
-            data-hide-footer={tableExpando.expanded === true ? '' : undefined}
+            data-footer-constrained={tableExpando ? '' : undefined}
+            data-hide-footer={tableExpando ? '' : undefined}
           >
             <LogsQueryParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
