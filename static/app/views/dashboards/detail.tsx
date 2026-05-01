@@ -78,7 +78,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -650,7 +650,7 @@ class DashboardDetail extends Component<Props, State> {
           pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
         }
 
-        const defaultLibraryWidget = getTopNConvertedDefaultWidgets(organization)[0];
+        const defaultLibraryWidget = getDefaultWidgets(organization)[0];
         navigate(
           normalizeUrl({
             // TODO: Replace with the old widget builder path when swapping over
