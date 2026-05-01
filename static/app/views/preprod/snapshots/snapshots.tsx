@@ -709,14 +709,30 @@ export default function SnapshotsPage() {
   );
 }
 
+const TOOLBAR_HEIGHT = '45px';
+
 const DragHandle = styled('div')`
+  position: relative;
   display: grid;
   place-items: center;
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;
   user-select: inherit;
-  background: ${p => p.theme.tokens.background.secondary};
+  background: linear-gradient(
+    to bottom,
+    ${p => p.theme.tokens.background.primary} ${TOOLBAR_HEIGHT},
+    ${p => p.theme.tokens.background.secondary} ${TOOLBAR_HEIGHT}
+  );
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: ${TOOLBAR_HEIGHT};
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
 
   &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
