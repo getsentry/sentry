@@ -1,4 +1,12 @@
-import {startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -302,14 +310,11 @@ export default function SnapshotsPage() {
   const filteredItems = useMemo(() => {
     const hasStatusFilter = activeStatuses.size > 0;
     const base = hasStatusFilter
-      ? searchFilteredItems.filter(item =>
-          activeStatuses.has(item.type as DiffStatus)
-        )
+      ? searchFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
       : searchFilteredItems;
 
     return [...base].sort((a, b) => {
-      const typeOrder =
-        (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
+      const typeOrder = (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
       if (typeOrder !== 0) {
         return typeOrder;
       }
@@ -340,7 +345,10 @@ export default function SnapshotsPage() {
       DiffStatus.RENAMED,
       DiffStatus.UNCHANGED,
     ];
-    const byType = new Map<DiffStatus, Array<{count: number; key: string; name: string}>>();
+    const byType = new Map<
+      DiffStatus,
+      Array<{count: number; key: string; name: string}>
+    >();
     for (const type of sectionOrder) {
       byType.set(type, []);
     }
