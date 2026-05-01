@@ -16,6 +16,7 @@ const HOVERCARD_CONTENT_DELAY = 400;
 
 export function useDelayedLoadingState() {
   const [shouldShowLoadingState, setShouldShowLoadingState] = useState(false);
+  const [isRequestFinished, setIsRequestFinished] = useState(false);
 
   const onTimeout = useCallback(() => {
     setShouldShowLoadingState(true);
@@ -26,15 +27,26 @@ export function useDelayedLoadingState() {
     onTimeout,
   });
 
+  const onRequestBegin = useCallback(() => {
+    setIsRequestFinished(false);
+    start();
+  }, [start]);
+
+  const onRequestEnd = useCallback(() => {
+    setIsRequestFinished(true);
+    end();
+  }, [end]);
+
   const reset = useCallback(() => {
     setShouldShowLoadingState(false);
+    setIsRequestFinished(false);
     cancel();
   }, [cancel]);
 
   return {
-    shouldShowLoadingState,
-    onRequestBegin: start,
-    onRequestEnd: end,
+    shouldShowLoadingState: shouldShowLoadingState || isRequestFinished,
+    onRequestBegin,
+    onRequestEnd,
     reset,
   };
 }
