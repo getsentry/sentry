@@ -129,7 +129,7 @@ function UpgradeOrTrialButton({
           source={source}
           onTrialStarted={handleSuccess}
           requestData={requestData}
-          priority={buttonPriority}
+          variant={buttonPriority}
           {...(props as LinkButtonProps)}
         >
           {childComponent || t('Start %s-Day Trial', getTrialLength(organization))}
