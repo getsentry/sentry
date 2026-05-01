@@ -233,7 +233,7 @@ function makeSlotConsumer<T extends Slot>(options: {
 
     const bridges = state[name]?.contextBridges;
     if (bridges) {
-      for (let i = bridges.length - 1; i >= 0; i--) {
+      for (const bridge of bridges.toReversed()) {
         const bridge = bridges[i]!;
         content = <bridge.context value={bridge.value}>{content}</bridge.context>;
       }
