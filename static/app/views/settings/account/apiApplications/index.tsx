@@ -99,7 +99,7 @@ export default function ApiApplications() {
 
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       onClick={handleCreateApplication}
       icon={<IconAdd />}
@@ -197,7 +197,7 @@ function CreateApplicationModal({
       <Footer>
         <Grid flow="column" align="center" gap="sm">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" type="submit">
+          <Button variant="primary" type="submit">
             {t('Create Application')}
           </Button>
         </Grid>

@@ -49,7 +49,7 @@ export function RequestIntegrationButton(props: Props) {
       data-test-id="request-integration-button"
       disabled={isOpen || isSent}
       onClick={openRequestModal}
-      priority="primary"
+      variant="primary"
       size="sm"
     >
       {buttonText}

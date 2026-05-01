@@ -182,7 +182,7 @@ export function CodeBlock({
           <CopyButton
             type="button"
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={handleCopy}
             tooltipProps={{position: 'left', title: tooltipTitle}}
             onMouseLeave={() => setTooltipState('copy')}

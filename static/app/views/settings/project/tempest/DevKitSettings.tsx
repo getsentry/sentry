@@ -209,7 +209,7 @@ export function DevKitSettings({organization, project}: Props) {
                     <GuidedSteps.StepButtons>
                       <Button
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                         onClick={() => {
                           navigate({
                             pathname: '/issues/',

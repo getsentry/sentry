@@ -99,7 +99,7 @@ function ApiTokens() {
 
   const action = (
     <LinkButton
-      priority="primary"
+      variant="primary"
       size={hasPageFrame ? 'md' : 'sm'}
       icon={<IconAdd />}
       to="/settings/account/api/auth-tokens/new-token/"

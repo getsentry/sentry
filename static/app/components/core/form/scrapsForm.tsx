@@ -77,7 +77,7 @@ function SubmitButton(props: ButtonProps) {
       {isSubmitting => (
         <Button
           {...props}
-          priority="primary"
+          variant="primary"
           type="submit"
           form={form.formId}
           busy={isSubmitting}

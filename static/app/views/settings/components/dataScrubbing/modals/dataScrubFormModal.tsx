@@ -413,7 +413,7 @@ export function DataScrubFormModal({
                         <Flex justify="end">
                           {displayEventId ? (
                             <Toggle
-                              priority="link"
+                              variant="link"
                               onClick={() => setDisplayEventId(false)}
                             >
                               {t('Hide event ID field')}
@@ -421,7 +421,7 @@ export function DataScrubFormModal({
                             </Toggle>
                           ) : (
                             <Toggle
-                              priority="link"
+                              variant="link"
                               onClick={() => setDisplayEventId(true)}
                             >
                               {t('Use event ID for auto-completion')}
@@ -498,12 +498,12 @@ export function DataScrubFormModal({
                 <Fragment>
                   <Flex justify="end">
                     {displayEventId ? (
-                      <Toggle priority="link" onClick={() => setDisplayEventId(false)}>
+                      <Toggle variant="link" onClick={() => setDisplayEventId(false)}>
                         {t('Hide event ID field')}
                         <IconChevron direction="up" size="xs" />
                       </Toggle>
                     ) : (
-                      <Toggle priority="link" onClick={() => setDisplayEventId(true)}>
+                      <Toggle variant="link" onClick={() => setDisplayEventId(true)}>
                         {t('Use event ID for auto-completion')}
                         <IconChevron direction="down" size="xs" />
                       </Toggle>

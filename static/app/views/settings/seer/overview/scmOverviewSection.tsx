@@ -176,7 +176,7 @@ function NoIntegrations({refetchIntegrations}: {refetchIntegrations: () => void}
   return (
     <Stack align="center" justifySelf="center" gap="lg" maxWidth="360px">
       <Button
-        priority="primary"
+        variant="primary"
         size="sm"
         icon={<IconAdd />}
         onClick={async () => {
@@ -358,7 +358,7 @@ function AddAllReposButton({
   return (
     <Flex align="center">
       <Button
-        priority="primary"
+        variant="primary"
         size="xs"
         icon={<IconAdd />}
         disabled={disabled}

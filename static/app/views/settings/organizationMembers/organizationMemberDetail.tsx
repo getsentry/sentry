@@ -276,7 +276,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
             <Button
               data-test-id="resend-invite"
               size="xs"
-              priority="primary"
+              variant="primary"
               icon={<IconRefresh />}
               tooltipProps={{
                 title: t('Generate a new invite link and send a new email.'),
@@ -336,7 +336,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
                   )}
                   onConfirm={() => reset2fa()}
                 >
-                  <Button priority="danger" busy={isResetting2fa}>
+                  <Button variant="danger" busy={isResetting2fa}>
                     {t('Reset two-factor authentication')}
                   </Button>
                 </Confirm>
@@ -380,7 +380,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
       <Flex justify="end">
         <Button
-          priority="primary"
+          variant="primary"
           busy={isSaving}
           onClick={() => updatedMember()}
           disabled={!canEdit || !hasFormChanged()}

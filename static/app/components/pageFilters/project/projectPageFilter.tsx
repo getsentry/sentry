@@ -169,7 +169,7 @@ export function ProjectPageFilter({
                 <Fragment>
                   <LinkButton
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     icon={<IconOpen variant="muted" />}
                     aria-label={t('Open Project Details')}
                     tooltipProps={{title: t('Open Project Details'), delay: 400}}
@@ -182,7 +182,7 @@ export function ProjectPageFilter({
                   />
                   <LinkButton
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     icon={<IconSettings variant="muted" />}
                     tooltipProps={{title: t('Open Project Settings'), delay: 400}}
                     aria-label={t('Open Project Settings')}

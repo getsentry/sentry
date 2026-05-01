@@ -202,7 +202,7 @@ export default function ProjectReleaseTracking() {
                   'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                 )}
               >
-                <Button priority="danger">{t('Regenerate Token')}</Button>
+                <Button variant="danger">{t('Regenerate Token')}</Button>
               </Confirm>
             </div>
           </FieldGroup>

@@ -169,7 +169,7 @@ export function ScmRepositoryTable({
           )}
           {onSync && (
             <Button
-              priority="transparent"
+              variant="transparent"
               size="zero"
               icon={<IconSync size="xs" />}
               onClick={onSync}
@@ -262,7 +262,7 @@ function InstallationRow({
                 }}
                 href={manageUrl}
                 external
-                priority="link"
+                variant="link"
                 size="xs"
                 icon={<IconOpen />}
               >
@@ -273,7 +273,7 @@ function InstallationRow({
               <Button
                 aria-label={t('Uninstall')}
                 size="xs"
-                priority="transparent"
+                variant="transparent"
                 icon={<IconDelete />}
                 onClick={onDelete}
               />
@@ -362,7 +362,7 @@ function RepoRows({repositories, repoMatches, manageUrl}: RepoRowsProps) {
               href={repo.url ?? ''}
               external
               size="xs"
-              priority="transparent"
+              variant="transparent"
               icon={<IconOpen variant="muted" />}
               aria-label={t('Open repository')}
             />
