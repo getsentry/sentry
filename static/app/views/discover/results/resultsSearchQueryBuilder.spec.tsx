@@ -8,7 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import TagStore from 'sentry/stores/tagStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
