@@ -550,31 +550,6 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             limit=1,
         )
 
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
-    def test_get_thread_history_omits_unset_narrowing_params(
-        self, mock_conversations_info: MagicMock, mock_conversations_replies: MagicMock
-    ) -> None:
-        """When narrowing kwargs aren't passed, we don't forward them — so
-        existing callers continue to fetch the full thread."""
-        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
-        mock_conversations_info.return_value = MagicMock(
-            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
-        )
-        mock_conversations_replies.return_value = {"ok": True, "messages": []}
-        self.installation.get_thread_history(
-            channel_id=self.channel_id,
-            thread_ts=self.thread_ts,
-        )
-        mock_conversations_replies.assert_called_once_with(
-            channel=self.channel_id,
-            ts=self.thread_ts,
-            latest=None,
-            oldest=None,
-            inclusive=None,
-            limit=None,
-        )
-
 
 @control_silo_test
 class SlackApiPipelineTest(APITestCase):

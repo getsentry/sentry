@@ -388,7 +388,7 @@ class LinkedMessagesContextTest(TestCase):
         mock_entrypoint.install.get_conversations_info.side_effect = (
             conversations_info_side_effect
             if conversations_info_side_effect is not None
-            else lambda **_: {"is_public": True}
+            else lambda **_: {"is_private": False}
         )
         # ``get_thread_history`` covers both the permalink-resolution path
         # (with latest/oldest narrowing) and the in-thread context path.
@@ -658,7 +658,7 @@ class LinkedMessagesContextTest(TestCase):
         self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
     ):
         mock_user, mock_entrypoint, mock_operator = self._build_mocks(
-            conversations_info_side_effect=lambda **_: {"is_public": False},
+            conversations_info_side_effect=lambda **_: {"is_private": True},
         )
         mock_resolve_user.return_value = mock_user
         mock_agent_cls.has_access.return_value = True
