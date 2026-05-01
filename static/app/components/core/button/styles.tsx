@@ -41,9 +41,9 @@ export function DO_NOT_USE_getButtonStyles(
   const buttonSizes = {
     ...p.theme.form,
     zero: {
-      height: '24px',
-      minHeight: '24px',
-      fontSize: '0.75rem',
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.95rem',
       lineHeight: '1rem',
     },
   } as const;
@@ -269,7 +269,7 @@ function getButtonTheme(variant: ButtonVariant, theme: Theme) {
       };
     case 'warning':
       return {
-        surface: theme.tokens.interactive.chonky.embossed.warning.background,
+        surface: theme.tokens.interactive.chonky.embossed.danger.background,
         background: theme.tokens.interactive.chonky.embossed.warning.chonk,
         color: theme.tokens.interactive.chonky.embossed.warning.content,
       };
