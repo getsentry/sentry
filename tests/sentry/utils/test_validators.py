@@ -61,3 +61,26 @@ def test_is_span_id() -> None:
     assert not is_span_id("202ab439bb9c4f31AAAAAAAAAA")
     assert not is_span_id(False)
     assert not is_span_id(None)
+
+
+def test_normalize_event_id_strict() -> None:
+    from sentry.utils.validators import normalize_event_id_strict
+
+    # Strips dashes from UUID
+    assert (
+        normalize_event_id_strict("b802415f-7531-431c-aa27-f5c0bf923302")
+        == "b802415f7531431caa27f5c0bf923302"
+    )
+    # Already-normalized hex passes through
+    assert (
+        normalize_event_id_strict("b802415f7531431caa27f5c0bf923302")
+        == "b802415f7531431caa27f5c0bf923302"
+    )
+    # Uppercase is lowered
+    assert (
+        normalize_event_id_strict("B802415F7531431CAA27F5C0BF923302")
+        == "b802415f7531431caa27f5c0bf923302"
+    )
+    # Invalid input is returned as-is (fallback)
+    assert normalize_event_id_strict("not-a-uuid") == "not-a-uuid"
+    assert normalize_event_id_strict(4711) == 4711
