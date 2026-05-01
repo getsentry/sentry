@@ -393,19 +393,6 @@ function IconButton({
   );
 }
 
-export const Card = styled(Container)<{isDark: boolean; isSelected: boolean}>`
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
-  border: 1px solid
-    ${p =>
-      p.isSelected
-        ? p.theme.tokens.border.accent.vibrant
-        : p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  overflow: hidden;
-  ${p => p.isDark && `color-scheme: dark;`}
-`;
-
 const CardHeaderRow = styled('div')<{
   $showBottomBorder?: boolean;
   isInteractive?: boolean;

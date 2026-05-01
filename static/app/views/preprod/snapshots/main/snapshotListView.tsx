@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {
@@ -492,16 +492,6 @@ const GroupContainer = memo(function GroupContainer({
     <SnapshotCardFrame groupName={group.isUngrouped ? null : group.name}>
       {cards}
     </SnapshotCardFrame>
-  );
-});
-
-export const GroupHeader = memo(function GroupHeader({name}: {name: string}) {
-  return (
-    <Container padding="0 xs">
-      <Heading as="h3" size="md">
-        {name}
-      </Heading>
-    </Container>
   );
 });
 
