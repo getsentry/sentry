@@ -1210,7 +1210,7 @@ describe('Threads', () => {
 
         MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
-          match: [MockApiClient.matchQuery({minified: 'false'})],
+          match: [MockApiClient.matchQuery({minified: 'false', thread_id: '0'})],
           body: '',
         });
 
@@ -1308,12 +1308,22 @@ describe('Threads', () => {
 
         MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
-          match: [MockApiClient.matchQuery({minified: 'false'})],
+          match: [
+            MockApiClient.matchQuery({
+              minified: 'false',
+              thread_id: String(activeThreadId),
+            }),
+          ],
           body: 'crash report content',
         });
         MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
-          match: [MockApiClient.matchQuery({minified: 'true'})],
+          match: [
+            MockApiClient.matchQuery({
+              minified: 'true',
+              thread_id: String(activeThreadId),
+            }),
+          ],
           body: 'crash report content (minified)',
         });
 
