@@ -74,11 +74,15 @@ def backfill_deprecated_display_types(
                     top_n_null_limit_ids.append(widget_id)
                     stats["limit_populated"] += 1
 
-        DashboardWidget.objects.filter(id__in=chunk_ids).update(display_type=_AREA_CHART)
+        # Order matters: CheckedMigration runs with atomic=False, so each
+        # .update() auto-commits. Set limit before flipping display_type so
+        # that a crash between the two leaves rows still matching the
+        # display_type filter on re-run, keeping the migration resumable.
         if top_n_null_limit_ids:
             DashboardWidget.objects.filter(id__in=top_n_null_limit_ids).update(
                 limit=_TOP_N_DEFAULT_LIMIT
             )
+        DashboardWidget.objects.filter(id__in=chunk_ids).update(display_type=_AREA_CHART)
 
     logger.info("backfill_deprecated_display_types: complete, %s", stats)
 
