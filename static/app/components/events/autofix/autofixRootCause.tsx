@@ -552,7 +552,7 @@ function AutofixRootCauseDisplay({
   );
   const hasCodingAgents = Boolean(codingAgents && Object.keys(codingAgents).length > 0);
   const primaryButtonPriority: React.ComponentProps<typeof Button>['variant'] =
-    isRootCauseAlreadySelected || hasCodingAgents ? 'default' : 'primary';
+    isRootCauseAlreadySelected || hasCodingAgents ? 'secondary' : 'primary';
   const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
   if (!cause) {

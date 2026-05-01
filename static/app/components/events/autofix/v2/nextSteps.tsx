@@ -120,7 +120,7 @@ function StepButton({
 }) {
   const organization = useOrganization();
   const enableSeerCoding = organization.enableSeerCoding !== false;
-  const priority = index === 0 ? 'primary' : 'default';
+  const priority = index === 0 ? 'primary' : 'secondary';
 
   // Only show dropdown for code_changes step when integrations are available
   if (step !== 'code_changes' || !codingAgentIntegrations?.length) {
