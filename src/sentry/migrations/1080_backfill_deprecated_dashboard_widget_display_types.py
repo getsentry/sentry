@@ -7,7 +7,8 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,8 @@ _DEPRECATED_DISPLAY_TYPES = (_STACKED_AREA_CHART, _TOP_N)
 # to be set on chart widgets that have group-by columns, so populate it
 # explicitly where it's missing.
 _TOP_N_DEFAULT_LIMIT = 5
+
+BATCH_SIZE = 1000
 
 
 def backfill_deprecated_display_types(
@@ -48,27 +51,36 @@ def backfill_deprecated_display_types(
     """
     DashboardWidget = apps.get_model("sentry", "DashboardWidget")
 
-    counts = {_STACKED_AREA_CHART: 0, _TOP_N: 0}
-    limit_set = 0
+    stats = {"stacked_area": 0, "top_n": 0, "limit_populated": 0}
 
-    for widget in RangeQuerySetWrapperWithProgressBar(
-        DashboardWidget.objects.filter(display_type__in=_DEPRECATED_DISPLAY_TYPES)
+    for chunk in chunked(
+        RangeQuerySetWrapperWithProgressBarApprox(
+            DashboardWidget.objects.filter(display_type__in=_DEPRECATED_DISPLAY_TYPES).values_list(
+                "id", "display_type", "limit"
+            ),
+            result_value_getter=lambda item: item[0],
+        ),
+        BATCH_SIZE,
     ):
-        counts[widget.display_type] += 1
-        update_fields = ["display_type"]
-        if widget.display_type == _TOP_N and widget.limit is None:
-            widget.limit = _TOP_N_DEFAULT_LIMIT
-            update_fields.append("limit")
-            limit_set += 1
-        widget.display_type = _AREA_CHART
-        widget.save(update_fields=update_fields)
+        chunk_ids = []
+        top_n_null_limit_ids = []
+        for widget_id, display_type, limit in chunk:
+            chunk_ids.append(widget_id)
+            if display_type == _STACKED_AREA_CHART:
+                stats["stacked_area"] += 1
+            else:
+                stats["top_n"] += 1
+                if limit is None:
+                    top_n_null_limit_ids.append(widget_id)
+                    stats["limit_populated"] += 1
 
-    logger.info(
-        "backfill_deprecated_display_types: complete, stacked_area=%d top_n=%d limit_populated=%d",
-        counts[_STACKED_AREA_CHART],
-        counts[_TOP_N],
-        limit_set,
-    )
+        DashboardWidget.objects.filter(id__in=chunk_ids).update(display_type=_AREA_CHART)
+        if top_n_null_limit_ids:
+            DashboardWidget.objects.filter(id__in=top_n_null_limit_ids).update(
+                limit=_TOP_N_DEFAULT_LIMIT
+            )
+
+    logger.info("backfill_deprecated_display_types: complete, %s", stats)
 
 
 class Migration(CheckedMigration):
