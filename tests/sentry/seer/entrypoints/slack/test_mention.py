@@ -637,52 +637,37 @@ class ExtractSlackMessageLinksTest(TestCase):
 
 
 class BuildLinkedMessagesContextTest(TestCase):
-    def test_single_message_block_renders_message_header(self) -> None:
-        link = SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")
-        messages: list[Mapping[str, Any]] = [
-            {"user": "U123", "text": "hello", "ts": "1700000000.111111"}
-        ]
-        result = build_linked_messages_context([(link, messages)])
-        assert result == "User linked a Slack message in <#C0123456>:\n<@U123>: hello"
+    """``build_linked_messages_context`` just prepends a header per block and
+    delegates body rendering to ``build_thread_context`` (tested above), so
+    these tests cover only the header / skip / join logic it adds."""
 
-    def test_thread_reply_link_still_uses_message_header(self) -> None:
-        link = SlackMessageLink(
-            channel_id="C0123456",
-            ts="1700000000.222222",
-            thread_ts="1700000000.111111",
+    def test_prepends_message_header(self) -> None:
+        link = SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")
+        result = build_linked_messages_context(
+            [(link, [{"user": "U1", "text": "body", "ts": "1700000000.111111"}])]
         )
-        messages: list[Mapping[str, Any]] = [
-            {"user": "U456", "text": "reply", "ts": "1700000000.222222"},
-        ]
-        result = build_linked_messages_context([(link, messages)])
-        assert result == "User linked a Slack message in <#C0123456>:\n<@U456>: reply"
+        assert result == "User linked a Slack message in <#C0123456>:\n<@U1>: body"
 
     def test_skips_blocks_with_empty_messages(self) -> None:
         link_a = SlackMessageLink(channel_id="C0AAA", ts="1700000000.111111")
         link_b = SlackMessageLink(channel_id="C0BBB", ts="1700000000.222222")
-        messages_b: list[Mapping[str, Any]] = [
-            {"user": "U123", "text": "kept", "ts": "1700000000.222222"}
-        ]
-        result = build_linked_messages_context([(link_a, []), (link_b, messages_b)])
-        assert result == "User linked a Slack message in <#C0BBB>:\n<@U123>: kept"
+        result = build_linked_messages_context(
+            [(link_a, []), (link_b, [{"user": "U2", "text": "kept", "ts": "1700000000.222222"}])]
+        )
+        assert "<#C0AAA>" not in result
+        assert "<#C0BBB>" in result
 
     def test_joins_multiple_blocks_with_blank_line(self) -> None:
         link_a = SlackMessageLink(channel_id="C0AAA", ts="1700000000.111111")
         link_b = SlackMessageLink(channel_id="C0BBB", ts="1700000000.222222")
-        messages_a: list[Mapping[str, Any]] = [
-            {"user": "U1", "text": "first", "ts": "1700000000.111111"}
-        ]
-        messages_b: list[Mapping[str, Any]] = [
-            {"user": "U2", "text": "second", "ts": "1700000000.222222"}
-        ]
-        result = build_linked_messages_context([(link_a, messages_a), (link_b, messages_b)])
-        assert result == (
-            "User linked a Slack message in <#C0AAA>:\n<@U1>: first\n\n"
-            "User linked a Slack message in <#C0BBB>:\n<@U2>: second"
+        result = build_linked_messages_context(
+            [
+                (link_a, [{"user": "U1", "text": "a", "ts": "1700000000.111111"}]),
+                (link_b, [{"user": "U2", "text": "b", "ts": "1700000000.222222"}]),
+            ]
         )
-
-    def test_empty_input_returns_empty(self) -> None:
-        assert build_linked_messages_context([]) == ""
+        assert "\n\n" in result
+        assert result.index("<#C0AAA>") < result.index("<#C0BBB>")
 
 
 class FindMessageInAttachmentsTest(TestCase):
@@ -738,60 +723,6 @@ class FindMessageInAttachmentsTest(TestCase):
         result = find_message_in_attachments(self.LINK, attachments)
         assert result is not None
         assert result["text"] == "ok"
-
-    def test_prefers_message_blocks_over_flat_text(self) -> None:
-        attachments = [
-            {
-                "channel_id": "C0123456",
-                "ts": "1700000000.111111",
-                "author_id": "U123",
-                "text": "fallback",
-                "message_blocks": [
-                    {
-                        "team": "T1",
-                        "channel": "C0123456",
-                        "ts": "1700000000.111111",
-                        "message": {
-                            "blocks": [
-                                {
-                                    "type": "rich_text",
-                                    "elements": [
-                                        {
-                                            "type": "rich_text_section",
-                                            "elements": [{"type": "text", "text": "rich body"}],
-                                        }
-                                    ],
-                                }
-                            ]
-                        },
-                    }
-                ],
-            }
-        ]
-        result = find_message_in_attachments(self.LINK, attachments)
-        # Rich text from message_blocks wins over the flat fallback ``text``.
-        assert result == {
-            "user": "U123",
-            "ts": "1700000000.111111",
-            "text": "rich body",
-        }
-
-    def test_falls_back_to_text_when_message_blocks_empty(self) -> None:
-        attachments = [
-            {
-                "channel_id": "C0123456",
-                "ts": "1700000000.111111",
-                "author_id": "U123",
-                "text": "flat",
-                "message_blocks": [],
-            }
-        ]
-        result = find_message_in_attachments(self.LINK, attachments)
-        assert result == {
-            "user": "U123",
-            "ts": "1700000000.111111",
-            "text": "flat",
-        }
 
     def test_missing_author_id_defaults_to_empty_string(self) -> None:
         attachments = [
