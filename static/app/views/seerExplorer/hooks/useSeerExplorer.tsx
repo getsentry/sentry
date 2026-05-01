@@ -519,9 +519,10 @@ export const useSeerExplorer = () => {
     const blockAtInsert = serverBlocks[insertIndex];
     const serverHasUserBlock =
       rawSessionData &&
-      (parseUtcTimestampFromIso(rawSessionData.updated_at) ?? 0) >= lastSentTimestampMs &&
       blockAtInsert?.message.role === 'user' &&
-      blockAtInsert?.message.content === userQuery;
+      blockAtInsert?.message.content === userQuery &&
+      (parseUtcTimestampFromIso(blockAtInsert?.timestamp ?? '') ?? 0) >=
+        lastSentTimestampMs;
 
     const serverHasAssistantResponse =
       serverHasUserBlock &&
