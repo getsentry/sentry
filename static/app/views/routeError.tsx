@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useContext, useEffect} from 'react';
 import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
 
 interface RouteErrorProps {
   /**
@@ -30,6 +31,7 @@ interface RouteErrorProps {
 export function RouteError({error, disableLogSentry, disableReport}: RouteErrorProps) {
   const matches = useMatches();
   const {organization} = useLegacyStore(OrganizationStore);
+  const project = useContext(ProjectRouteContext);
 
   useEffect(() => {
     if (disableLogSentry) {
@@ -44,6 +46,7 @@ export function RouteError({error, disableLogSentry, disableReport}: RouteErrorP
       scope.setExtra('route', route);
       scope.setExtra('orgFeatures', organization?.features ?? []);
       scope.setExtra('orgAccess', organization?.access ?? []);
+      scope.setExtra('projectFeatures', project?.features ?? []);
       return scope;
     };
 
