@@ -335,7 +335,9 @@ function WidgetCard(props: Props) {
         props.onDelete,
         props.onDuplicate,
         props.onEdit,
-        data?.timeseriesResults
+        data?.timeseriesResults,
+        currentDashboardId,
+        props.index
       )
     : [];
 
