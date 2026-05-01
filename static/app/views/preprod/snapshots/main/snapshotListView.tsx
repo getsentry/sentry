@@ -72,7 +72,6 @@ const CARD_GAP = 0;
 const GROUP_PADDING = 0;
 const ROW_PADDING_BOTTOM = 16;
 const LIST_CONTENT_WIDTH_ASSUMPTION = 900;
-const STICKY_HEADER_DEBUG_PARAM = 'debugStickyHeader';
 const SNAPSHOT_FRAME_BORDER_WIDTH = 1;
 const STICKY_HEADER_BOTTOM_OVERLAP = SNAPSHOT_FRAME_BORDER_WIDTH * 2;
 
@@ -160,7 +159,6 @@ export function SnapshotListView({
   const theme = useTheme();
   const groups = useMemo(() => buildGroups(items), [items]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const stickyHeaderRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     setScrollTop(event.currentTarget.scrollTop);
@@ -331,7 +329,6 @@ export function SnapshotListView({
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
-  const scrollOffset = virtualizer.scrollOffset ?? 0;
   const scrollContainerPaddingTop = Number.parseFloat(theme.space.xl);
   const activeGroupThreshold = scrollTop - scrollContainerPaddingTop;
   const activeVirtualItem = virtualItems.find(virtualItem => {
@@ -369,79 +366,6 @@ export function SnapshotListView({
     '--sticky-header-translate-y': `${stickyHeaderTranslateY}px`,
   } as React.CSSProperties;
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has(STICKY_HEADER_DEBUG_PARAM)) {
-      return;
-    }
-
-    const scrollElement = scrollRef.current;
-    const stickyElement = stickyHeaderRef.current;
-    const stickyHeaderElement = stickyElement?.firstElementChild;
-    const scrollRect = scrollElement?.getBoundingClientRect();
-    const stickyRect = stickyElement?.getBoundingClientRect();
-    const headerRect = stickyHeaderElement?.getBoundingClientRect();
-    const scrollStyles = scrollElement ? window.getComputedStyle(scrollElement) : null;
-    const stickyStyles = stickyElement ? window.getComputedStyle(stickyElement) : null;
-    const headerStyles = stickyHeaderElement
-      ? window.getComputedStyle(stickyHeaderElement)
-      : null;
-    const stickyTop = stickyStyles ? Number.parseFloat(stickyStyles.top) : null;
-    const stickyTopInScrollContainer =
-      stickyRect && scrollRect ? stickyRect.top - scrollRect.top : null;
-
-    // eslint-disable-next-line no-console
-    console.debug('[snapshot sticky header]', {
-      activeGroupName,
-      activeVirtualItem: activeVirtualItem
-        ? {
-            index: activeVirtualItem.index,
-            start: activeVirtualItem.start,
-            end: activeVirtualItem.end,
-            size: activeVirtualItem.size,
-          }
-        : null,
-      distanceIntoActiveRow: activeVirtualItem
-        ? scrollOffset - activeVirtualItem.start
-        : null,
-      distanceToActiveRowEnd: activeVirtualItem
-        ? activeVirtualItem.end - ROW_PADDING_BOTTOM - scrollOffset
-        : null,
-      activeGroupThreshold,
-      scrollOffset,
-      scrollTop,
-      activeGroupBottom,
-      activeGroupTop,
-      stickyHeaderHasBottomFrame,
-      stickyHeaderHasDetachedFrame,
-      stickyHeaderTop,
-      stickyHeaderTranslateY,
-      scrollPaddingTop: scrollStyles ? Number.parseFloat(scrollStyles.paddingTop) : null,
-      stickyTop,
-      stickyTopInScrollContainer,
-      stickyDistanceToClamp:
-        stickyTop !== null && stickyTopInScrollContainer !== null
-          ? stickyTopInScrollContainer - stickyTop
-          : null,
-      stickyHeaderBorderRadius: headerStyles?.borderTopLeftRadius ?? null,
-      stickyHeaderBorderTopWidth: headerStyles?.borderTopWidth ?? null,
-      stickyHeaderTopInScrollContainer:
-        headerRect && scrollRect ? headerRect.top - scrollRect.top : null,
-    });
-  }, [
-    activeGroupName,
-    activeVirtualItem,
-    activeGroupThreshold,
-    scrollOffset,
-    scrollTop,
-    activeGroupBottom,
-    activeGroupTop,
-    stickyHeaderHasBottomFrame,
-    stickyHeaderHasDetachedFrame,
-    stickyHeaderTop,
-    stickyHeaderTranslateY,
-  ]);
-
   if (items.length === 0) {
     return (
       <Flex align="center" justify="center" padding="3xl" width="100%">
@@ -454,7 +378,6 @@ export function SnapshotListView({
     <ScrollContainer ref={scrollRef} onScroll={handleScroll}>
       {activeGroupName ? (
         <StickyGroupHeader
-          ref={stickyHeaderRef}
           data-bottom-frame={stickyHeaderHasBottomFrame ? '' : undefined}
           data-detached-frame={stickyHeaderHasDetachedFrame ? '' : undefined}
           style={stickyHeaderStyle}
