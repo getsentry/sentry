@@ -22,6 +22,7 @@ export async function apiFetch<TQueryFnData = unknown>(
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
+    allowAuthError: options?.allowAuthError,
     host: options?.host,
     method: options?.method ?? 'GET',
     data: options?.data,
@@ -48,6 +49,7 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
+    allowAuthError: options?.allowAuthError,
     host: options?.host,
     method: options?.method ?? 'GET',
     data: options?.data,
