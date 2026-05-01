@@ -74,39 +74,43 @@ function DrawerPanel({
   return (
     <DrawerContainer mode={mode}>
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
-        <DrawerSlidePanel
-          mode={mode}
-          ariaLabel={ariaLabel}
-          position="right"
-          ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
-            setTooltipContainer(node)
+        <Layer variant="overlay">
+          {({className: layerClassName}) => (
+            <DrawerSlidePanel
+              mode={mode}
+              ariaLabel={ariaLabel}
+              position="right"
+              ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
+                setTooltipContainer(node)
+              )}
+              panelWidth="var(--drawer-width)" // Initial width only
+              className={`drawer-panel ${layerClassName}`}
+            >
+              {drawerKey && enabled && (
+                <ResizeHandle
+                  ref={resizeHandleRef}
+                  onMouseDown={handleResizeStart}
+                  data-at-min-width={(
+                    persistedWidthPercent <= MIN_WIDTH_PERCENT
+                  ).toString()}
+                  data-at-max-width={(
+                    Math.abs(persistedWidthPercent - MAX_WIDTH_PERCENT) < 1
+                  ).toString()}
+                />
+              )}
+              {/*
+                This provider allows data passed to openDrawer to be accessed by drawer components.
+                For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
+                when it's button is pressed.
+              */}
+              <TooltipContext value={{container: tooltipContainer}}>
+                <DrawerContentContext value={{onClose, ariaLabel}}>
+                  {children}
+                </DrawerContentContext>
+              </TooltipContext>
+            </DrawerSlidePanel>
           )}
-          panelWidth="var(--drawer-width)" // Initial width only
-          className="drawer-panel"
-        >
-          {drawerKey && enabled && (
-            <ResizeHandle
-              ref={resizeHandleRef}
-              onMouseDown={handleResizeStart}
-              data-at-min-width={(persistedWidthPercent <= MIN_WIDTH_PERCENT).toString()}
-              data-at-max-width={(
-                Math.abs(persistedWidthPercent - MAX_WIDTH_PERCENT) < 1
-              ).toString()}
-            />
-          )}
-          {/*
-            This provider allows data passed to openDrawer to be accessed by drawer components.
-            For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
-            when it's button is pressed.
-          */}
-          <Layer variant="overlay">
-            <TooltipContext value={{container: tooltipContainer}}>
-              <DrawerContentContext value={{onClose, ariaLabel}}>
-                {children}
-              </DrawerContentContext>
-            </TooltipContext>
-          </Layer>
-        </DrawerSlidePanel>
+        </Layer>
       </DrawerWidthContext.Provider>
     </DrawerContainer>
   );
