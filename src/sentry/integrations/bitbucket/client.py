@@ -43,7 +43,6 @@ class BitbucketAPIPath:
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
     repository_hooks = "/2.0/repositories/{repo}/hooks"
-    workspace = "/2.0/workspaces/{workspace_name}"
 
     source = "/2.0/repositories/{repo}/src/{sha}/{path}"
 
