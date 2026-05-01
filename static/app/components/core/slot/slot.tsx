@@ -216,7 +216,10 @@ function makeSlotConsumer<T extends Slot>(options: {
 
     const element = state[name]?.element;
     if (!element) {
-      return null;
+      throw new Error(
+        `<Slot.Consumer name="${name}"> could not find a registered <Slot.Outlet> element. ` +
+          `Ensure a <Slot.Outlet name="${name}"> is rendered inside the same <Slot.Provider>.`
+      );
     }
 
     // Provide outletNameContext from the consumer so that portaled children
