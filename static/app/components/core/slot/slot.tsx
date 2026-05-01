@@ -216,10 +216,7 @@ function makeSlotConsumer<T extends Slot>(options: {
 
     const element = state[name]?.element;
     if (!element) {
-      throw new Error(
-        `<Slot.Consumer name="${name}"> could not find a registered <Slot.Outlet> element. ` +
-          `Ensure a <Slot.Outlet name="${name}"> is rendered inside the same <Slot.Provider>.`
-      );
+      return null;
     }
 
     // Provide initial internal outlet context
