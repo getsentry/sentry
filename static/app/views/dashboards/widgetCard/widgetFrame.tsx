@@ -128,7 +128,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   triggerProps={{
                     'aria-label': t('Widget actions'),
                     size: 'xs',
-                    priority: 'transparent',
+                    variant: 'transparent',
                     showChevron: false,
                     icon: <IconEllipsis direction="down" size="sm" />,
                   }}
@@ -142,7 +142,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
-              priority="transparent"
+              variant="transparent"
               icon={<IconExpand />}
               onClick={() => {
                 props.onFullScreenViewClick?.();

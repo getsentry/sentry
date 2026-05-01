@@ -302,7 +302,7 @@ function WidgetBuilderSlideoutInner({
     >
       <Breadcrumbs crumbs={breadcrumbs} />
       <CloseButton
-        priority="link"
+        variant="link"
         size="zero"
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
@@ -346,7 +346,7 @@ function WidgetBuilderSlideoutInner({
                           setShowTransactionsDeprecationAlert(false);
                         }}
                         size="zero"
-                        priority="transparent"
+                        variant="transparent"
                       />
                     }
                   >
