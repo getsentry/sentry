@@ -356,9 +356,10 @@ export function SnapshotListView({
       ? 0
       : Math.min(
           Math.max(0, (activeGroupTop ?? 0) - stickyHeaderTop),
-          activeGroupBottom - (stickyHeaderTop + HEADER_HEIGHT)
+          activeGroupBottom - (stickyHeaderTop + HEADER_HEIGHT) + 2
         );
   const stickyHeaderHasDetachedFrame = scrollTop < scrollContainerPaddingTop;
+  const stickyHeaderHasBottomFrame = stickyHeaderTranslateY < 0;
   const stickyHeaderStyle = {
     '--sticky-header-translate-y': `${stickyHeaderTranslateY}px`,
   } as React.CSSProperties;
@@ -406,6 +407,7 @@ export function SnapshotListView({
       scrollTop,
       activeGroupBottom,
       activeGroupTop,
+      stickyHeaderHasBottomFrame,
       stickyHeaderHasDetachedFrame,
       stickyHeaderTop,
       stickyHeaderTranslateY,
@@ -429,6 +431,7 @@ export function SnapshotListView({
     scrollTop,
     activeGroupBottom,
     activeGroupTop,
+    stickyHeaderHasBottomFrame,
     stickyHeaderHasDetachedFrame,
     stickyHeaderTop,
     stickyHeaderTranslateY,
@@ -447,6 +450,7 @@ export function SnapshotListView({
       {activeGroupName ? (
         <StickyGroupHeader
           ref={stickyHeaderRef}
+          data-bottom-frame={stickyHeaderHasBottomFrame ? '' : undefined}
           data-detached-frame={stickyHeaderHasDetachedFrame ? '' : undefined}
           style={stickyHeaderStyle}
         >
@@ -587,6 +591,12 @@ const StickyGroupHeader = styled('div')`
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
     border-top-left-radius: ${p => p.theme.radius.md};
     border-top-right-radius: ${p => p.theme.radius.md};
+  }
+
+  &[data-bottom-frame] > * {
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
+    border-bottom: 0;
   }
 `;
 
