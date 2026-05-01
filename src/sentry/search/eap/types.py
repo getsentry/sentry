@@ -76,10 +76,15 @@ class AttributeSource(TypedDict):
     is_transformed_alias: NotRequired[bool]
 
 
+ScalarType = Literal["str", "int", "float", "bool"]
+ColumnType = Literal["string", "number", "boolean", "array"]
+ScalarValueType = float | bool | str
+
+
 class TraceItemAttribute(TypedDict):
     name: str
-    type: Literal["string", "number", "boolean"]
-    value: str | int | float | bool
+    type: ScalarType | Literal["array"]
+    value: str | int | float | bool | list[str | int | float | bool] | None
 
 
 class EAPResponse(EventsResponse):
