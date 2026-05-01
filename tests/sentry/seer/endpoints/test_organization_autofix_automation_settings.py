@@ -31,6 +31,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.data == [
             {
                 "projectId": project1.id,
+                "projectSlug": project1.slug,
                 "autofixAutomationTuning": AutofixAutomationTuningSettings.OFF.value,
                 "automatedRunStoppingPoint": AutofixStoppingPoint.CODE_CHANGES.value,
                 "automationHandoff": None,
@@ -38,6 +39,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             },
             {
                 "projectId": project2.id,
+                "projectSlug": project2.slug,
                 "autofixAutomationTuning": AutofixAutomationTuningSettings.OFF.value,
                 "automatedRunStoppingPoint": AutofixStoppingPoint.CODE_CHANGES.value,
                 "automationHandoff": None,
@@ -115,6 +117,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.data == [
             {
                 "projectId": project1.id,
+                "projectSlug": project1.slug,
                 "autofixAutomationTuning": AutofixAutomationTuningSettings.MEDIUM.value,
                 "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
                 "automationHandoff": None,
@@ -122,6 +125,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             },
             {
                 "projectId": project2.id,
+                "projectSlug": project2.slug,
                 "autofixAutomationTuning": AutofixAutomationTuningSettings.HIGH.value,
                 "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
                 "automationHandoff": None,

@@ -195,6 +195,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
             results.append(
                 {
                     "projectId": project.id,
+                    "projectSlug": project.slug,
                     "autofixAutomationTuning": (
                         preference.autofix_automation_tuning
                         if preference
