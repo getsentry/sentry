@@ -126,7 +126,23 @@ describe('SpansSearchBar', () => {
     await screen.findByLabelText('span.op:function');
   });
 
-  it.isKnownFlake('calls onSearch with the correct query', async () => {
+  it('calls onSearch with the correct query', async () => {
+    mockSpanTags({type: 'string', mockedTags: [{key: 'span.op', name: 'span.op'}]});
+    mockSpanTagValues({
+      type: 'string',
+      tagKey: 'span.op',
+      mockedValues: [
+        {
+          key: 'span.op',
+          value: 'function',
+          name: 'function',
+          count: 1,
+          firstSeen: '2024-01-01',
+          lastSeen: '2024-01-01',
+        },
+      ],
+    });
+
     const onSearch = jest.fn();
 
     renderWithProvider({
@@ -139,9 +155,7 @@ describe('SpansSearchBar', () => {
       name: 'Add a search term',
     });
     await userEvent.click(searchInput);
-    await userEvent.type(searchInput, 'span.op:', {delay: null});
-    await userEvent.keyboard('function', {delay: null});
-    await userEvent.keyboard('{enter}', {delay: null});
+    await userEvent.type(searchInput, 'span.op:function{enter}', {delay: null});
 
     await waitFor(() => {
       expect(onSearch).toHaveBeenCalledWith(
