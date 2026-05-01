@@ -21,13 +21,13 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {

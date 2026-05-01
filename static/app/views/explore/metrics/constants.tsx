@@ -14,6 +14,8 @@ import {
   type TraceMetricFieldKey,
 } from 'sentry/views/explore/metrics/types';
 
+export const NONE_UNIT = 'none';
+
 const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.ID,
   TraceMetricKnownFieldKey.ORGANIZATION_ID,

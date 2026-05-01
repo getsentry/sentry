@@ -23,11 +23,10 @@ import {
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
-import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {NONE_UNIT, OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   TraceMetricKnownFieldKey,
