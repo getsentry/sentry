@@ -65,7 +65,7 @@ export function FeedbackListHeader({
       {hasNewItems ? (
         <Flex justify="center" align="center" flexGrow={1} padding="xs">
           <Button
-            priority="primary"
+            variant="primary"
             size="xs"
             icon={<IconRefresh />}
             onClick={() => {
