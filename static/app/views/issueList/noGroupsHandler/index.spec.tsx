@@ -6,14 +6,14 @@ import {NoGroupsHandler} from 'sentry/views/issueList/noGroupsHandler';
 
 describe('NoGroupsHandler', () => {
   const defaultProps = {
-    api: new MockApiClient(),
     query: '',
     organization: OrganizationFixture(),
     groupIds: [],
+    selectedProjectIds: [],
   };
 
   it('displays default empty state when first event has been sent', async () => {
-    MockApiClient.addMockResponse({
+    const projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
@@ -25,6 +25,40 @@ describe('NoGroupsHandler', () => {
     render(<NoGroupsHandler {...defaultProps} />);
 
     expect(await screen.findByText('No issues match your search')).toBeInTheDocument();
+    expect(projectsMock).not.toHaveBeenCalled();
+  });
+
+  it('collapses latest deploys when looking up the selected project', async () => {
+    const projectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    const sentFirstEventMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: false},
+    });
+
+    render(<NoGroupsHandler {...defaultProps} selectedProjectIds={[1844558]} />);
+
+    expect(await screen.findByText(/Waiting for events/i)).toBeInTheDocument();
+    expect(sentFirstEventMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/sent-first-event/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [1844558],
+        }),
+      })
+    );
+    expect(projectsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/projects/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          collapse: ['latestDeploys', 'unusedFeatures'],
+          per_page: 1,
+          query: 'id:1844558',
+        }),
+      })
+    );
   });
 
   it('displays default empty state when an error occurs', async () => {
