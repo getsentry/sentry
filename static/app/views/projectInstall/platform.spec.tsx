@@ -103,6 +103,7 @@ describe('ProjectInstallPlatform', () => {
       name: 'Other',
       link: 'https://docs.sentry.io/platforms/',
       type: 'language',
+      kind: 'language',
       language: 'other',
     };
 
@@ -143,6 +144,7 @@ describe('ProjectInstallPlatform', () => {
       id: 'javascript',
       name: 'Browser JavaScript',
       type: 'language',
+      kind: 'language',
       language: 'javascript',
       link: 'https://docs.sentry.io/platforms/javascript/',
     };
