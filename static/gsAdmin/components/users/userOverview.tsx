@@ -70,7 +70,7 @@ export function UserOverview({
       <div>
         <DetailList>
           <DetailLabel title="Status">
-            {user.isActive ? 'Active' : 'Disabled'}
+            {user.isSuspended ? 'Suspended' : user.isActive ? 'Active' : 'Disabled'}
           </DetailLabel>
           <DetailLabel title="Email">
             <ExternalLink href={`mailto:${user.email}`}>{user.email}</ExternalLink>

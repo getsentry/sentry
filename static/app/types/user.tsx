@@ -44,6 +44,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
   isManaged: boolean;
   isStaff: boolean;
   isSuperuser: boolean;
+  isSuspended: boolean;
   lastActive: string;
   lastLogin: string;
   options: {
