@@ -37,7 +37,7 @@ export function RawContent({
 }: Props) {
   const organization = useOrganization();
 
-  const isNative = platform && appleCrashReportPlatforms.includes(platform);
+  const isNative = !!platform && appleCrashReportPlatforms.includes(platform);
 
   const {
     data: crashReport,
@@ -55,7 +55,7 @@ export function RawContent({
         },
         query: {
           minified: String(type === 'minified'),
-          ...(threadId !== undefined && {thread_id: String(threadId)}),
+          thread_id: threadId === undefined ? undefined : String(threadId),
         },
         headers: {Accept: '*/*; charset=utf-8'},
         staleTime: Infinity,
