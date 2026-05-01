@@ -330,7 +330,7 @@ export const getDimensionValue = (dimension?: number | string | null) => {
   }
 
   if (dimension === null) {
-    return undefined;
+    return;
   }
 
   return dimension;

@@ -363,6 +363,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/'
   | '/organizations/$organizationIdOrSlug/integrations/$integrationId/issues/'
   | '/organizations/$organizationIdOrSlug/integrations/$integrationId/migrate-opsgenie/'
+  | '/organizations/$organizationIdOrSlug/integrations/$integrationId/repo-sync/'
   | '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/'
   | '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/'
   | '/organizations/$organizationIdOrSlug/integrations/coding-agents/'

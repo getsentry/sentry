@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
+import {withFieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {FormContext} from 'sentry/components/forms/formContext';
@@ -11,24 +12,75 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import {ConnectedAlertsEmptyState} from 'sentry/views/detectors/components/connectedAutomationsEmptyState';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 
-export function AutomateSection({step}: {step?: number}) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const formContext = useContext(FormContext);
-  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+/**
+ * Section that lets the user connect, disconnect, and create automations
+ * for the detector being edited.
+ */
+export const AutomateSection = withFieldGroup({
+  defaultValues: {workflowIds: [] as string[]},
+  props: {} as {project: Project; step?: number},
+  render: ({group, step, project}) => (
+    <group.AppField name="workflowIds">
+      {field => (
+        <AutomateSectionInner
+          step={step}
+          project={project}
+          workflowIds={field.state.value}
+          setWorkflowIds={field.handleChange}
+        />
+      )}
+    </group.AppField>
+  ),
+});
 
+/**
+ * Legacy variant of {@link AutomateSection} for detector forms still using
+ * the legacy `FormModel` / `FormContext`. Reads and writes `workflowIds`
+ * via the surrounding form context.
+ *
+ * Remove once all detector forms have migrated to the new form system.
+ */
+export function AutomateSectionDeprecated({step}: {step?: number}) {
+  const formContext = useContext(FormContext);
   const project = useDetectorFormProject();
-  const workflowIds = useFormField('workflowIds')!;
+  const workflowIds = useFormField<string[]>('workflowIds') ?? [];
   const setWorkflowIds = useCallback(
-    (newWorkflowIds: string[]) =>
-      formContext.form?.setValue('workflowIds', newWorkflowIds),
+    (next: string[]) => formContext.form?.setValue('workflowIds', next),
     [formContext.form]
   );
+
+  return (
+    <AutomateSectionInner
+      step={step}
+      workflowIds={workflowIds}
+      setWorkflowIds={setWorkflowIds}
+      project={project}
+    />
+  );
+}
+
+interface AutomateSectionInnerProps {
+  project: Project;
+  setWorkflowIds: (workflowIds: string[]) => void;
+  workflowIds: string[];
+  step?: number;
+}
+
+function AutomateSectionInner({
+  step,
+  workflowIds,
+  setWorkflowIds,
+  project,
+}: AutomateSectionInnerProps) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {

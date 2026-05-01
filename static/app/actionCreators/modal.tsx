@@ -146,13 +146,6 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   });
 }
 
-export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/deprecatedCommandPalette');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
-
 export async function toggleCommandPalette(
   options: ModalOptions = {},
   organization: Organization,
@@ -204,18 +197,6 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
     await import('sentry/components/modals/teamAccessRequestModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
-}
-
-type HelpSearchModalOptions = {
-  organization?: Organization;
-  placeholder?: string;
-};
-
-export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/helpSearchModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 type DebugFileSourceModalOptions = {

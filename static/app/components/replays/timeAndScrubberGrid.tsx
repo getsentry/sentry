@@ -55,7 +55,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         size="xs"
         tooltipProps={{title: t('Zoom out')}}
         icon={<IconSubtract />}
-        priority="transparent"
+        variant="transparent"
         onClick={handleZoomOut}
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1 || isLoading}
@@ -68,7 +68,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         size="xs"
         tooltipProps={{title: t('Zoom in')}}
         icon={<IconAdd />}
-        priority="transparent"
+        variant="transparent"
         onClick={handleZoomIn}
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale || isLoading}

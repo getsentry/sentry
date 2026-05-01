@@ -17,6 +17,7 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
@@ -33,7 +34,6 @@ from sentry.seer.entrypoints.types import (
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
 )
-from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -516,7 +516,7 @@ class SlackAgentEntrypoint(
         subscription context, and will return False every time. For slim, CONTROL calls, use
         the `has_feature_flag` method instead.
         """
-        has_agent_access, _ = has_seer_explorer_access_with_detail(organization, None)
+        has_agent_access, _ = has_seer_agent_access_with_detail(organization, None)
         return SlackAgentEntrypoint.has_feature_flag(organization) and has_agent_access
 
     def on_trigger_agent_error(self, *, error: str) -> None:

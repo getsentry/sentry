@@ -147,14 +147,13 @@ function ResolvedIdentifierCommandPaletteAction() {
   const isEventId = EVENT_ID_PATTERN.test(query);
   const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
 
+  // `projects` is intentionally omitted from the queryKey:
+  // TanStack serializes the entire key for cache lookups, and
+  // including the full projects array would be too costly —
+  // some orgs have thousands of projects.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data} = useQuery<ResolvedIdentifier | null>({
-    queryKey: [
-      'command-palette-identifier-lookup',
-      organization.slug,
-      query,
-      isShortId,
-      projects,
-    ],
+    queryKey: ['command-palette-identifier-lookup', organization.slug, query, isShortId],
     queryFn: async () => {
       try {
         if (isShortId) {
@@ -280,7 +279,6 @@ export function GlobalCommandPaletteActions() {
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
 
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
@@ -756,43 +754,41 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
-        {hasDsnLookup && (
-          <CMDKAction
-            display={{
-              label: t('Reverse DSN lookup'),
-              details: t(
-                'Paste a DSN into the search bar to find the project it belongs to.'
+        <CMDKAction
+          display={{
+            label: t('Reverse DSN lookup'),
+            details: t(
+              'Paste a DSN into the search bar to find the project it belongs to.'
+            ),
+            icon: <IconSearch />,
+          }}
+          prompt={t('Paste a DSN...')}
+          resource={(query: string) => {
+            return cmdkQueryOptions({
+              ...apiOptions.as<DsnLookupResponse>()(
+                '/organizations/$organizationIdOrSlug/dsn-lookup/',
+                {
+                  path: {organizationIdOrSlug: organization.slug},
+                  query: {dsn: query},
+                  staleTime: 30_000,
+                }
               ),
-              icon: <IconSearch />,
-            }}
-            prompt={t('Paste a DSN...')}
-            resource={(query: string) => {
-              return cmdkQueryOptions({
-                ...apiOptions.as<DsnLookupResponse>()(
-                  '/organizations/$organizationIdOrSlug/dsn-lookup/',
-                  {
-                    path: {organizationIdOrSlug: organization.slug},
-                    query: {dsn: query},
-                    staleTime: 30_000,
-                  }
-                ),
-                enabled: DSN_PATTERN.test(query),
-                select: data =>
-                  getDsnNavTargets(data.json).map((target, i) => ({
-                    to: target.to,
-                    display: {
-                      label: target.label,
-                      details: target.description,
-                      icon: DSN_ICONS[i],
-                    },
-                    keywords: [query],
-                  })),
-              });
-            }}
-          >
-            {data => data.map((item, i) => renderAsyncResult(item, i))}
-          </CMDKAction>
-        )}
+              enabled: DSN_PATTERN.test(query),
+              select: data =>
+                getDsnNavTargets(data.json).map((target, i) => ({
+                  to: target.to,
+                  display: {
+                    label: target.label,
+                    details: target.description,
+                    icon: DSN_ICONS[i],
+                  },
+                  keywords: [query],
+                })),
+            });
+          }}
+        >
+          {data => data.map((item, i) => renderAsyncResult(item, i))}
+        </CMDKAction>
       </CMDKAction>
 
       <ResolvedIdentifierCommandPaletteAction />

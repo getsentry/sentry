@@ -26,7 +26,7 @@ function buildOptimisticRepo(
 ): Repository {
   return {
     id: '',
-    externalId: repo.identifier,
+    externalId: repo.externalId,
     name: repo.name,
     externalSlug: repo.identifier,
     url: '',
@@ -77,13 +77,11 @@ export function useScmRepoSelection({
         }
       );
       const matches = (await queryClient.fetchQuery(reposQueryOptions)).json;
-      // The query param above is an icontains filter to narrow results
-      // and avoid pagination. The exact match here uses Repository.name
-      // against IntegrationRepository.identifier — the same comparison the
-      // backend uses in organization_integration_repos.py:61,80 to determine
-      // isInstalled. Can't use externalSlug because it varies by provider
-      // (e.g. GitLab returns a numeric project ID).
-      const existing = matches?.find(r => r.name === repo.identifier);
+      // Match on externalId — the same field the backend uses to compute
+      // IntegrationRepository.isInstalled in organization_integration_repos.py.
+      // repo.name and repo.identifier diverge across providers (GitLab's
+      // identifier is a numeric project ID), but externalId is stable.
+      const existing = matches?.find(r => r.externalId === repo.externalId);
 
       if (existing) {
         onSelect({...optimistic, ...existing});
