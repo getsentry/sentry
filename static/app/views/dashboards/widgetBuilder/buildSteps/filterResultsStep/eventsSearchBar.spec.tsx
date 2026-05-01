@@ -41,7 +41,7 @@ describe('EventsSearchBar', () => {
     });
   });
 
-  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
+  it('does not show function tags in has: dropdown', async () => {
     render(
       <EventsSearchBar
         onClose={jest.fn()}
@@ -67,14 +67,15 @@ describe('EventsSearchBar', () => {
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.click(input, {delay: null});
-    await userEvent.paste('has:p', {delay: null});
+    await userEvent.paste('has:', {delay: null});
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Edit value for filter: has'})
     );
 
-    // Assert we actually have has: dropdown options before checking exclusions.
+    // Wait for the full tag list to render before checking exclusions.
     expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'transaction'})).toBeInTheDocument();
 
     // p50 is a function and should not be suggested as a has: tag.
     expect(screen.queryByRole('option', {name: 'p50'})).not.toBeInTheDocument();
