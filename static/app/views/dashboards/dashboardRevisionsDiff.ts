@@ -4,7 +4,9 @@ import {t} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 
 import type {DashboardDetails, Widget, WidgetQuery} from './types';
-import {DashboardFilterKeys} from './types';
+import {DashboardFilterKeys, DisplayType} from './types';
+
+const DESCRIPTION_PREVIEW_MAX_LENGTH = 150;
 
 type FieldChange = {after: string; before: string; field: string};
 
@@ -85,6 +87,12 @@ export function diffFilters(
   }
 
   return changes;
+}
+
+function truncateDescription(value: string): string {
+  if (!value) return t('(empty)');
+  if (value.length <= DESCRIPTION_PREVIEW_MAX_LENGTH) return value;
+  return value.slice(0, DESCRIPTION_PREVIEW_MAX_LENGTH) + '…';
 }
 
 export type WidgetChange =
@@ -199,6 +207,19 @@ export function diffWidgets(
         field: 'interval',
         before: match.interval,
         after: snapshotWidget.interval,
+      });
+    }
+
+    const baseDescription = match.description || '';
+    const snapshotDescription = snapshotWidget.description || '';
+    if (baseDescription !== snapshotDescription) {
+      const isTextWidget =
+        match.displayType === DisplayType.TEXT ||
+        snapshotWidget.displayType === DisplayType.TEXT;
+      fields.push({
+        field: isTextWidget ? t('content') : t('description'),
+        before: truncateDescription(baseDescription),
+        after: truncateDescription(snapshotDescription),
       });
     }
 
