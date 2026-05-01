@@ -113,21 +113,23 @@ function AppLayout({organization}: LayoutProps) {
             minWidth="0"
             background={hasPageFrame ? 'secondary' : undefined}
           >
-            <Layer variant="content">
-              <DemoHeader />
-              <AppBodyContent>
-                {organization && <OrganizationHeader organization={organization} />}
-                <OrganizationDetailsBody>
-                  <TopBar.Slot.Provider>
-                    <TopBar />
+            <DemoHeader />
+            <AppBodyContent>
+              {organization && <OrganizationHeader organization={organization} />}
+              <OrganizationDetailsBody>
+                <TopBar.Slot.Provider>
+                  <Layer variant="nav">
+                    {({className}) => <TopBar className={className} />}
+                  </Layer>
+                  <Layer variant="content">
                     <Layout.Page>
                       <Outlet />
                       <Footer />
                     </Layout.Page>
-                  </TopBar.Slot.Provider>
-                </OrganizationDetailsBody>
-              </AppBodyContent>
-            </Layer>
+                  </Layer>
+                </TopBar.Slot.Provider>
+              </OrganizationDetailsBody>
+            </AppBodyContent>
           </ContentStack>
         </Flex>
       </Stack>

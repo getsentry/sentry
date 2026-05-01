@@ -24,7 +24,7 @@ const Slot = slot(['title', 'actions', 'feedback'] as const, {
   providers: ({children}) => <SizeProvider size="sm">{children}</SizeProvider>,
 });
 
-function TopBarContent() {
+function TopBarContent({className}: {className?: string}) {
   const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
@@ -52,6 +52,7 @@ function TopBarContent() {
 
   return (
     <Flex
+      className={className}
       height={{
         sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
         md: `${PRIMARY_HEADER_HEIGHT}px`,
