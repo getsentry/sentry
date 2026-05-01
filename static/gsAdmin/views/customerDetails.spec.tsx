@@ -679,6 +679,10 @@ function setUpMocks(
     url: `/customers/${organization.slug}/integrations/`,
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: `/audit-logs/`,
+    body: {rows: [], filters: {}},
+  });
 }
 
 describe('Customer Details', () => {

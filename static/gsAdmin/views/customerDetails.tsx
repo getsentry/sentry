@@ -41,6 +41,7 @@ import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
 import {triggerGoogleDomainModal} from 'admin/components/changeGoogleDomainAction';
 import {triggerChangePlanAction} from 'admin/components/changePlanAction';
 import {CloseAccountInfo} from 'admin/components/closeAccountInfo';
+import {CustomerAuditLog} from 'admin/components/customers/customerAuditLog';
 import {CustomerCharges} from 'admin/components/customers/customerCharges';
 import {CustomerHistory} from 'admin/components/customers/customerHistory';
 import {CustomerIntegrationDebugDetails} from 'admin/components/customers/customerIntegrationDebugDetails';
@@ -973,6 +974,10 @@ export function CustomerDetails() {
                 View Contract Details
               </Link>
             ),
+          },
+          {
+            name: 'Admin Audit Log',
+            content: <CustomerAuditLog targetId={organization.id} orgSlug={orgId} />,
           },
         ]}
       />
