@@ -89,18 +89,17 @@ function SeerWorkflows() {
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <Container width={{md: '100%', lg: '50%'}}>
+          <Container width={{md: '100%', lg: '60%'}}>
             <RunsTable>
               <SimpleTable.Header>
+                <SimpleTable.HeaderCell />
                 <SimpleTable.HeaderCell />
                 <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell>{t('Workflow')}</SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell>{t('Max candidates')}</SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell>{t('Source')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell />
               </SimpleTable.Header>
 
               {data?.length === 0 ? (
@@ -108,7 +107,6 @@ function SeerWorkflows() {
               ) : (
                 (data ?? []).map(run => {
                   const isExpanded = expanded.has(run.id);
-                  const status = run.errorMessage ? t('Error') : t('Completed');
                   const explorerRunId = getExplorerRunId(run);
                   return (
                     <Fragment key={run.id}>
@@ -125,29 +123,6 @@ function SeerWorkflows() {
                           />
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
-                          <DateTime date={run.dateAdded} />
-                        </SimpleTable.RowCell>
-                        <SimpleTable.RowCell>{t('Night Shift')}</SimpleTable.RowCell>
-                        <SimpleTable.RowCell>{run.triageStrategy}</SimpleTable.RowCell>
-                        <SimpleTable.RowCell>
-                          {run.extras.options?.max_candidates ?? '-'}
-                        </SimpleTable.RowCell>
-                        <SimpleTable.RowCell>
-                          {run.extras.options?.source ?? '-'}
-                        </SimpleTable.RowCell>
-                        <SimpleTable.RowCell>
-                          <Text variant={run.errorMessage ? 'danger' : undefined}>
-                            {status}
-                          </Text>
-                        </SimpleTable.RowCell>
-                        <SimpleTable.RowCell>
-                          {run.extras.options?.dry_run ? (
-                            <Text variant="muted">{t('dry run')}</Text>
-                          ) : (
-                            run.issues.length
-                          )}
-                        </SimpleTable.RowCell>
-                        <SimpleTable.RowCell>
                           {explorerRunId === null ? null : (
                             <LinkButton
                               size="xs"
@@ -159,6 +134,28 @@ function SeerWorkflows() {
                             >
                               {t('Explorer')}
                             </LinkButton>
+                          )}
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
+                          <DateTime date={run.dateAdded} />
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>{t('Night Shift')}</SimpleTable.RowCell>
+                        <SimpleTable.RowCell>{run.triageStrategy}</SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
+                          {run.extras.options?.max_candidates ?? '-'}
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
+                          {run.extras.options?.source ?? '-'}
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
+                          {run.errorMessage ? (
+                            <Text variant="danger" size="sm">
+                              {run.errorMessage}
+                            </Text>
+                          ) : run.extras.options?.dry_run ? (
+                            <Text variant="muted">{t('dry run')}</Text>
+                          ) : (
+                            run.issues.length
                           )}
                         </SimpleTable.RowCell>
                       </SimpleTable.Row>
@@ -312,7 +309,7 @@ function RunDetail({
 }
 
 const RunsTable = styled(SimpleTable)`
-  grid-template-columns: min-content 1fr 1fr 1fr 1fr 1fr 1fr min-content min-content;
+  grid-template-columns: min-content min-content 1fr 1fr 1fr 1fr 1fr 1fr;
 `;
 
 function getExplorerRunId(run: SeerNightShiftRun): number | string | null {
