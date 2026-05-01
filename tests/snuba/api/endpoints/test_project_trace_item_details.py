@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.testutils.cases import (
     APITestCase,
+    OccurrenceTestCase,
     OurLogTestCase,
     SnubaTestCase,
     SpanTestCase,
@@ -15,7 +16,12 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectTraceItemDetailsEndpointTest(
-    APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase, TraceAttachmentTestCase
+    APITestCase,
+    SnubaTestCase,
+    OurLogTestCase,
+    SpanTestCase,
+    TraceAttachmentTestCase,
+    OccurrenceTestCase,
 ):
     def setUp(self) -> None:
         super().setUp()
@@ -160,6 +166,74 @@ class ProjectTraceItemDetailsEndpointTest(
             ).isoformat()
             + "Z",
         }
+
+    def test_details_exposes_arrays(self) -> None:
+        event_id = uuid.uuid4().hex
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            event_id=event_id,
+            group_id=group.id,
+            trace_id=self.trace_uuid,
+            project=self.project,
+            timestamp=self.one_min_ago,
+            attributes={
+                "fingerprint": ["trace-item-details-stack-arrays"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "bad value",
+                            "mechanism": {"type": "generic", "handled": True},
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/app/sentry/web/urls.py",
+                                        "filename": "sentry/web/urls.py",
+                                        "module": "sentry.web.urls",
+                                        "function": "dispatch",
+                                        "in_app": True,
+                                        "lineno": 45,
+                                        "colno": 12,
+                                    },
+                                    {
+                                        "abs_path": "/usr/lib/django/views/base.py",
+                                        "filename": "django/views/base.py",
+                                        "module": "django.views.base",
+                                        "function": "handler",
+                                        "in_app": False,
+                                        "lineno": 200,
+                                        "colno": 0,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+        )
+        self.store_eap_items([occ])
+        item_id = occ.item_id.hex()
+
+        response = self.do_request("occurrences", item_id)
+        assert response.status_code == 200, response.content
+        by_name = {a["name"]: a for a in response.data["attributes"]}
+        assert "stack.filename" not in by_name
+        assert "stack.lineno" not in by_name
+        assert "stack.in_app" not in by_name
+
+        response = self.do_request(
+            "occurrences",
+            item_id,
+            features={**self.features, "organizations:trace-item-details-array-fields": True},
+        )
+        assert response.status_code == 200, response.content
+        by_name = {a["name"]: a for a in response.data["attributes"]}
+        assert by_name["stack.filename"]["type"] == "array"
+        assert by_name["stack.filename"]["value"] == ["sentry/web/urls.py", "django/views/base.py"]
+        assert by_name["stack.lineno"]["type"] == "array"
+        assert by_name["stack.lineno"]["value"] == ["45", "200"]
+        assert by_name["stack.in_app"]["type"] == "array"
+        assert by_name["stack.in_app"]["value"] == [True, False]
 
     def test_simple_using_spans_item_type(self) -> None:
         previous_trace = uuid.uuid4().hex
