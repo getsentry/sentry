@@ -206,7 +206,7 @@ export function GlobalDrawer({children}: any) {
       >
         <AnimatePresence>
           {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
-            <Backdrop zIndex="drawer" key="backdrop" />
+            <Backdrop zIndex="drawer" key="backdrop" data-drawer-backdrop="" />
           ) : null}
           {isDrawerOpen && (
             <DrawerComponents.DrawerPanel
