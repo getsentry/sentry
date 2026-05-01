@@ -281,11 +281,9 @@ describe('SnapshotCards', () => {
     function snapshotPairCard({
       state,
       pair,
-      cardType,
       diffMode,
       isSelected,
     }: {
-      cardType: 'changed' | 'renamed';
       diffMode: 'split' | 'wipe' | 'onion';
       isSelected: boolean;
       pair: SnapshotDiffPair;
@@ -297,7 +295,6 @@ describe('SnapshotCards', () => {
           <Wrapper>
             <PairCard
               pair={pair}
-              cardType={cardType}
               imageBaseUrl={imageBaseUrl}
               headBranch="Current Branch"
               isSelected={isSelected}
@@ -318,35 +315,24 @@ describe('SnapshotCards', () => {
     snapshotPairCard({
       state: 'changed-split',
       pair: changedPair,
-      cardType: 'changed',
       diffMode: 'split',
       isSelected: false,
     });
     snapshotPairCard({
       state: 'changed-wipe',
       pair: changedPair,
-      cardType: 'changed',
       diffMode: 'wipe',
       isSelected: false,
     });
     snapshotPairCard({
       state: 'changed-onion',
       pair: changedPair,
-      cardType: 'changed',
       diffMode: 'onion',
-      isSelected: false,
-    });
-    snapshotPairCard({
-      state: 'renamed',
-      pair: renamedPair,
-      cardType: 'renamed',
-      diffMode: 'split',
       isSelected: false,
     });
     snapshotPairCard({
       state: 'selected-changed-split',
       pair: changedPair,
-      cardType: 'changed',
       diffMode: 'split',
       isSelected: true,
     });
@@ -387,6 +373,26 @@ describe('SnapshotCards', () => {
         </Wrapper>
       ),
       {theme: themeName, state: 'image-card-removed-unselected'}
+    );
+
+    it.snapshot(
+      'image-card-renamed-with-pair-metadata',
+      () => (
+        <Wrapper>
+          <ImageCard
+            image={renamedPair.head_image}
+            cardType="renamed"
+            copyData={renamedPair}
+            imageBaseUrl={imageBaseUrl}
+            isSelected={false}
+            copyUrl={copyUrl}
+            snapshotKey="button-light-renamed"
+            onSelectSnapshot={noop}
+            onOpenSnapshot={noop}
+          />
+        </Wrapper>
+      ),
+      {theme: themeName, state: 'image-card-renamed-with-pair-metadata'}
     );
 
     it.snapshot(

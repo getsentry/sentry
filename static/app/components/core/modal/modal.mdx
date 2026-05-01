@@ -1,0 +1,134 @@
+---
+title: GlobalModal
+description: Application-wide singleton modal dialog, controlled via the useModal() hook or openModal() action creator.
+category: overlays
+source: '@sentry/scraps/modal'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/modal/index.tsx
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {
+  BasicDemo,
+  CloseEventsDemo,
+  HookDemo,
+  SubComponentsDemo,
+} from './__stories__/demos';
+
+export const documentation = import('!!type-loader!@sentry/scraps/modal');
+
+`GlobalModal` is an application-wide singleton modal dialog. Only one modal can be open at a time. The modal is controlled via the `useModal()` hook or the imperative `openModal()` / `closeModal()` action creators.
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+
+```jsx
+import {useModal} from '@sentry/scraps/modal';
+
+function MyPage() {
+  const {openModal} = useModal();
+
+  return (
+    <button
+      onClick={() =>
+        openModal(({Header, Body, Footer, closeModal}) => (
+          <Fragment>
+            <Header closeButton>My Modal</Header>
+            <Body>Hello, world!</Body>
+            <Footer>
+              <Button priority="primary" onClick={closeModal}>
+                Done
+              </Button>
+            </Footer>
+          </Fragment>
+        ))
+      }
+    >
+      Open Modal
+    </button>
+  );
+}
+```
+
+## `useModal`
+
+`useModal()` returns helpers for opening and closing the global modal.
+
+| Field        | Type                           | Description                                                 |
+| ------------ | ------------------------------ | ----------------------------------------------------------- |
+| `openModal`  | `(renderer, options?) => void` | Opens the modal with a render function and optional config. |
+| `closeModal` | `() => void`                   | Closes the currently open modal.                            |
+| `isOpen`     | `boolean`                      | `true` when any modal is open.                              |
+
+<Storybook.Demo>
+  <HookDemo />
+</Storybook.Demo>
+
+### Renderer
+
+The `renderer` function receives a `ModalRenderProps` object with sub-components:
+
+| Prop                | Type                                | Description                                               |
+| ------------------- | ----------------------------------- | --------------------------------------------------------- |
+| `Header`            | `Component`                         | Modal header. Pass `closeButton` prop to show close icon. |
+| `Body`              | `Component`                         | Scrollable body container.                                |
+| `Footer`            | `Component`                         | Footer for action buttons.                                |
+| `CloseButton`       | `Component`                         | Standalone close button, pre-wired to close the modal.    |
+| `closeModal`        | `() => void`                        | Closes the modal from within the renderer.                |
+| `modalContainerRef` | `RefObject<HTMLDivElement \| null>` | Ref to the modal container element.                       |
+
+### Options
+
+| Option        | Type                                                  | Default | Description                                                                                          |
+| ------------- | ----------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| `backdrop`    | `boolean \| BackdropProps`                            | `true`  | Show a translucent backdrop. Set to `false` to disable.                                              |
+| `closeEvents` | `'all' \| 'none' \| 'backdrop-click' \| 'escape-key'` | `'all'` | Controls which user interactions dismiss the modal.                                                  |
+| `modalCss`    | `Interpolation<Theme>`                                | —       | Custom CSS applied to the `role="dialog"` element.                                                   |
+| `onClose`     | `(reason?) => void`                                   | —       | Callback when the modal closes. `reason` is `'close-button'`, `'backdrop-click'`, or `'escape-key'`. |
+
+## Close Events
+
+By default (`closeEvents: 'all'`), the modal closes on backdrop click or escape key. Override for specific use cases:
+
+<Storybook.Demo>
+  <CloseEventsDemo />
+</Storybook.Demo>
+
+```jsx
+// Only close on Escape — useful for modals with form inputs
+openModal(renderer, {closeEvents: 'escape-key'});
+
+// Only close via explicit action — use sparingly
+openModal(renderer, {closeEvents: 'none'});
+```
+
+## Action Creators
+
+For imperative usage outside hooks (e.g., event handlers, async functions):
+
+```jsx
+import {openModal, closeModal} from 'sentry/actionCreators/modal';
+
+openModal(({Header, Body}) => (
+  <Fragment>
+    <Header closeButton>Title</Header>
+    <Body>Content</Body>
+  </Fragment>
+));
+
+closeModal();
+```
+
+## Sub-Components
+
+`ModalBody` and `ModalFooter` can be imported directly for use in standalone modal content components:
+
+```jsx
+import {ModalBody, ModalFooter} from '@sentry/scraps/modal';
+```
+
+<Storybook.Demo>
+  <SubComponentsDemo />
+</Storybook.Demo>

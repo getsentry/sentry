@@ -14,6 +14,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {
   CMDKCollection,
   CommandPaletteProvider,
@@ -21,7 +23,6 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {MemberListStore} from 'sentry/stores/memberListStore';

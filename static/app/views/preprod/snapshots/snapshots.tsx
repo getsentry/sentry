@@ -32,6 +32,7 @@ import type {
 import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
+import type {SnapshotListViewHandle} from './main/snapshotListView';
 import {type NavButtonRefs, SnapshotMainContent} from './main/snapshotMainContent';
 import {
   DIFF_TYPE_ORDER,
@@ -136,11 +137,6 @@ export default function SnapshotsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const pushHistory = {history: 'push' as const};
-  const [selectedGroup, setSelectedGroup] = useQueryState(
-    'selectedGroup',
-    parseAsString.withOptions(pushHistory)
-  );
-  const [variantIndex, setVariantIndex] = useState(0);
   const palette = theme.chart.getColorPalette(10);
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
@@ -212,7 +208,7 @@ export default function SnapshotsPage() {
 
   const isSoloView = comparisonType === 'solo';
   const handleToggleView = useCallback(() => {
-    const {view: _view, selectedGroup: _sg, ...restQuery} = location.query;
+    const {view: _view, ...restQuery} = location.query;
     if (isSoloView) {
       navigate({...location, query: restQuery}, {replace: true});
     } else {
@@ -339,24 +335,8 @@ export default function SnapshotsPage() {
     return [...merged.values()];
   }, [filteredItems]);
 
-  const isAllSelected = selectedGroup === null;
-  const hasMatchingItems =
-    selectedGroup !== null && filteredItems.some(i => i.name === selectedGroup);
-  const currentItem = hasMatchingItems
-    ? (filteredItems.find(i => i.name === selectedGroup) ?? null)
-    : isAllSelected
-      ? (filteredItems[0] ?? null)
-      : null;
-
-  const listItems = useMemo(() => {
-    if (isAllSelected) {
-      return filteredItems;
-    }
-    if (!selectedGroup) {
-      return [];
-    }
-    return filteredItems.filter(i => i.name === selectedGroup);
-  }, [isAllSelected, filteredItems, selectedGroup]);
+  const currentItem = filteredItems[0] ?? null;
+  const listItems = filteredItems;
 
   const statusCounts = useMemo<Record<DiffStatus, number> | null>(() => {
     if (comparisonType !== 'diff') {
@@ -369,36 +349,35 @@ export default function SnapshotsPage() {
       [DiffStatus.RENAMED]: 0,
       [DiffStatus.UNCHANGED]: 0,
     };
-    const source = selectedGroup
-      ? searchFilteredItems.filter(i => i.name === selectedGroup)
-      : searchFilteredItems;
-    for (const item of source) {
+    for (const item of searchFilteredItems) {
       if (item.type in counts) {
         counts[item.type as DiffStatus] += itemVariantCount(item);
       }
     }
     return counts;
-  }, [searchFilteredItems, selectedGroup, comparisonType]);
+  }, [searchFilteredItems, comparisonType]);
 
-  // Clamp variantIndex when the selected item changes implicitly (e.g. search
-  // filtering selects a new item with fewer variants).
-  const variantCount = currentItem ? itemVariantCount(currentItem) : 0;
-  const safeVariantIndex =
-    variantCount > 0 ? Math.min(variantIndex, variantCount - 1) : 0;
+  const listViewRef = useRef<SnapshotListViewHandle>(null);
+  const [visibleGroupName, setVisibleGroupName] = useState<string | null>(null);
 
-  const handleSelectItem = (name: string) => {
-    setSelectedGroup(name);
-    setVariantIndex(0);
-  };
-
-  const handleSelectAll = () => {
-    setSelectedGroup(null);
-    setVariantIndex(0);
-  };
+  const handleSelectItem = useCallback(
+    (name: string) => {
+      const item = filteredItems.find(i => i.name === name);
+      if (!item) {
+        return;
+      }
+      const key = snapshotKeyAt(item, 0);
+      if (key) {
+        setSelectedSnapshotKey(key);
+      }
+      listViewRef.current?.scrollToGroup(name);
+    },
+    [filteredItems, setSelectedSnapshotKey]
+  );
 
   // Scoped to listItems (not sidebarItems) so up/down nav only walks the
-  // snapshots currently visible to the user. Falls back to currentItem +
-  // variantIndex when selectedSnapshotKey can't be resolved.
+  // snapshots currently visible to the user. Falls back to currentItem
+  // when selectedSnapshotKey can't be resolved.
   const singleViewPosition = useMemo(() => {
     if (selectedSnapshotKey) {
       const pos = findSnapshotPosition(listItems, selectedSnapshotKey);
@@ -413,8 +392,8 @@ export default function SnapshotsPage() {
     if (itemIdx === -1) {
       return null;
     }
-    return {itemIdx, variantIdx: safeVariantIndex};
-  }, [selectedSnapshotKey, listItems, currentItem, safeVariantIndex]);
+    return {itemIdx, variantIdx: 0};
+  }, [selectedSnapshotKey, listItems, currentItem]);
 
   const navigateSingleView = useCallback(
     (direction: 'prev' | 'next') => {
@@ -564,10 +543,10 @@ export default function SnapshotsPage() {
     viewMode === 'single' && singleViewPosition
       ? (listItems[singleViewPosition.itemIdx] ?? deferredItem)
       : deferredItem;
-  const singleViewVariantIndex =
-    viewMode === 'single' && singleViewPosition
-      ? singleViewPosition.variantIdx
-      : safeVariantIndex;
+  const singleViewVariantIndex = singleViewPosition?.variantIdx ?? 0;
+
+  const activeGroupName =
+    viewMode === 'list' ? visibleGroupName : (singleViewItem?.name ?? null);
 
   const isComparisonProcessing =
     !!comparisonRunInfo?.state &&
@@ -608,12 +587,10 @@ export default function SnapshotsPage() {
       >
         <SnapshotSidebarContent
           groups={sidebarGroups}
-          currentItemKey={selectedGroup}
-          isAllSelected={isAllSelected}
+          activeGroupName={activeGroupName}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSelectItem={handleSelectItem}
-          onSelectAll={handleSelectAll}
           statusCounts={statusCounts}
           activeStatuses={activeStatuses}
           onToggleStatus={handleToggleStatus}
@@ -631,6 +608,7 @@ export default function SnapshotsPage() {
           selectedItem={singleViewItem}
           variantIndex={singleViewVariantIndex}
           imageBaseUrl={imageBaseUrl}
+          listViewRef={listViewRef}
           diffImageBaseUrl={diffImageBaseUrl}
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
@@ -646,6 +624,7 @@ export default function SnapshotsPage() {
           headBranch={data?.vcs_info?.head_ref}
           selectedSnapshotKey={selectedSnapshotKey}
           onSelectSnapshot={setSelectedSnapshotKey}
+          onVisibleGroupChange={setVisibleGroupName}
           sortBy={sortBy}
           onSortByChange={setSortBy}
           onNavigateSingleView={navigateSingleView}
