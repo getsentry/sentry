@@ -1261,7 +1261,7 @@ describe('Customer Details', () => {
       permissions: new Set(['billing.admin']),
     });
 
-    it.isKnownFlake('renders disabled without billing.admin permissions', async () => {
+    it('renders disabled without billing.admin permissions', async () => {
       ConfigStore.set('user', mockUser);
 
       setUpMocks(organization, {isBillingAdmin: false});
@@ -1280,7 +1280,7 @@ describe('Customer Details', () => {
         screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
-      expect(screen.getByTestId('changeSoftCap')).toHaveAttribute(
+      expect(await screen.findByTestId('changeSoftCap')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
