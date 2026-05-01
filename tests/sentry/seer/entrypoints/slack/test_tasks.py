@@ -411,7 +411,7 @@ class LinkedMessagesContextTest(TestCase):
         self.mock_entrypoint.install.get_conversations_info.side_effect = (
             conversations_info_side_effect
             if conversations_info_side_effect is not None
-            else lambda **_: {"is_private": False}
+            else lambda **_: {"channel": {"is_private": False}}
         )
         # ``get_thread_history`` covers both the permalink-resolution path
         # (with latest/oldest narrowing) and the in-thread context path.
@@ -612,7 +612,9 @@ class LinkedMessagesContextTest(TestCase):
         assert "irrelevant" not in on_page_context
 
     def test_private_channel_skipped_and_user_notified(self):
-        self._build_mocks(conversations_info_side_effect=lambda **_: {"is_private": True})
+        self._build_mocks(
+            conversations_info_side_effect=lambda **_: {"channel": {"is_private": True}}
+        )
 
         self._run(
             text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>",
