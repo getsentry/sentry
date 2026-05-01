@@ -10,24 +10,15 @@ import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {
-  HiddenTraceMetricGroupByFields,
-  NONE_UNIT,
-} from 'sentry/views/explore/metrics/constants';
+import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import type {MetricSelectOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
-import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
+import {
+  createTraceMetricFilter,
+  hasDisplayMetricUnit,
+} from 'sentry/views/explore/metrics/utils';
 
 const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
-
-function hasDisplayMetricUnit(
-  hasMetricUnitsUI: boolean,
-  metricUnit?: string
-): metricUnit is string {
-  return (
-    hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
-  );
-}
 
 export function MetricDetailPanel({
   metric,
@@ -118,15 +109,16 @@ function MetricAttributesSection({
   const {attributes: booleanAttrs, isLoading: booleanLoading} =
     useTraceMetricItemAttributes(metricAttributeQuery, 'boolean');
 
-  const attributeKeys = useMemo(() => {
+  const attributeLabels = useMemo(() => {
     const keys = new Set([
       ...Object.keys(stringAttrs ?? {}),
       ...Object.keys(numberAttrs ?? {}),
       ...Object.keys(booleanAttrs ?? {}),
-    ]);
-    return [...keys]
-      .filter(key => !HiddenTraceMetricGroupByFields.includes(key))
-      .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
+    ]).difference(HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET);
+
+    return Array.from(keys)
+      .map(prettifyTagKey)
+      .toSorted((a, b) => a.localeCompare(b));
   }, [stringAttrs, numberAttrs, booleanAttrs]);
 
   if (isDebouncingAttributes || stringLoading || numberLoading || booleanLoading) {
@@ -140,7 +132,7 @@ function MetricAttributesSection({
     );
   }
 
-  if (attributeKeys.length === 0) {
+  if (attributeLabels.length === 0) {
     return (
       <Stack gap="xs">
         <Text size="md">{t('Attributes')}:</Text>
@@ -155,9 +147,9 @@ function MetricAttributesSection({
     <Stack gap="xs">
       <Text size="md">{t('Attributes')}:</Text>
       <Flex wrap="wrap" gap="xs">
-        {attributeKeys.map(key => (
-          <Tag key={key} variant="muted">
-            {prettifyTagKey(key)}
+        {attributeLabels.map(label => (
+          <Tag key={label} variant="muted">
+            {label}
           </Tag>
         ))}
       </Flex>

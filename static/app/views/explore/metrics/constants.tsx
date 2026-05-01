@@ -65,6 +65,10 @@ export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
+export const HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET = new Set(
+  HiddenTraceMetricGroupByFields
+);
+
 const TRACEMETRICS_FILTERS: FilterKeySection = {
   value: 'tracemetrics_filters',
   label: t('Application Metrics'),
