@@ -374,6 +374,26 @@ describe('SearchQueryBuilder', () => {
       }
     );
 
+    it('clears uncommitted free text repeatedly with Cmd+Delete', async () => {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+
+      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+
+      await userEvent.type(input, 'first');
+      await userEvent.keyboard('{Control>}{Delete}{/Control}');
+
+      await waitFor(() => {
+        expect(input).toHaveValue('');
+      });
+
+      await userEvent.type(input, 'second');
+      await userEvent.keyboard('{Control>}{Delete}{/Control}');
+
+      await waitFor(() => {
+        expect(input).toHaveValue('');
+      });
+    });
+
     it('is hidden at small sizes', async () => {
       Object.defineProperty(Element.prototype, 'clientWidth', {value: 100});
       const mockOnChange = jest.fn();
