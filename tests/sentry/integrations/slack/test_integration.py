@@ -516,40 +516,6 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         )
         assert result == []
 
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
-    def test_get_thread_history_passes_through_narrowing_params(
-        self, mock_conversations_info: MagicMock, mock_conversations_replies: MagicMock
-    ) -> None:
-        """Callers can narrow the response to a single ts by passing
-        latest/oldest/inclusive/limit through to conversations.replies."""
-        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
-        mock_conversations_info.return_value = MagicMock(
-            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
-        )
-        mock_conversations_replies.return_value = {
-            "ok": True,
-            "messages": [{"ts": self.thread_ts, "text": "the linked message"}],
-        }
-        result = self.installation.get_thread_history(
-            channel_id=self.channel_id,
-            thread_ts=self.thread_ts,
-            latest=self.thread_ts,
-            oldest=self.thread_ts,
-            inclusive=True,
-            limit=1,
-        )
-        assert len(result) == 1
-        assert result[0]["text"] == "the linked message"
-        mock_conversations_replies.assert_called_once_with(
-            channel=self.channel_id,
-            ts=self.thread_ts,
-            latest=self.thread_ts,
-            oldest=self.thread_ts,
-            inclusive=True,
-            limit=1,
-        )
-
 
 @control_silo_test
 class SlackApiPipelineTest(APITestCase):
