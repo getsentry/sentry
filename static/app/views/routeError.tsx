@@ -127,7 +127,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
               'Still stuck? Our [link:troubleshooting guide] has tips for common browser-related issues.',
               {
                 link: (
-                  <ExternalLink href="https://www.sentry.help/articles/22088541158555-Why-Sentry-io-is-not-loading" />
+                  <ExternalLink href="https://www.sentry.help/en/articles/13964425-why-sentry-io-is-not-loading" />
                 ),
               }
             )}

@@ -297,7 +297,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
             isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
-                <ExternalLink href="https://www.sentry.help/articles/23699186513947-Session-Replay-FAQ" />
+                <ExternalLink href="https://www.sentry.help/en/articles/13964404-session-replay-faq" />
               ),
             })}
           />
