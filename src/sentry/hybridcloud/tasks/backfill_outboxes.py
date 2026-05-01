@@ -185,6 +185,10 @@ def backfill_outboxes_for(
     # from an expected rate.
     remaining_to_backfill = max_batch_rate - scheduled_count
     backfilled = 0
+    logger.info(
+        "backfill_outboxes.start",
+        extra={"remaining": remaining_to_backfill, "scheduled": scheduled_count},
+    )
 
     if remaining_to_backfill > 0:
         for app, app_models in apps.all_models.items():

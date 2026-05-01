@@ -543,6 +543,7 @@ CSP_CONNECT_SRC = [
     "*.algolia.net",
     "*.algolianet.com",
     "*.algolia.io",
+    "browser.sentry-cdn.com",
 ]
 CSP_FRAME_ANCESTORS = [
     "'none'",

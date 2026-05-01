@@ -445,7 +445,7 @@ function DashboardInner({
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             icon={<IconResize />}
           />
         }

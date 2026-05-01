@@ -44,45 +44,58 @@ describe('SnapshotSidebarContent', () => {
     }
 
     it.snapshot(
-      'all-selected',
+      'default',
       () => (
         <Wrapper>
           <SnapshotSidebarContent
             groups={groups}
-            currentItemKey="Button/light"
-            isAllSelected
             searchQuery=""
             onSearchChange={noop}
             onSelectItem={noop}
-            onSelectAll={noop}
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'all-selected'}
+      {theme: themeName, state: 'default'}
     );
 
     it.snapshot(
-      'child-selected',
+      'active-group',
       () => (
         <Wrapper>
           <SnapshotSidebarContent
             groups={groups}
-            currentItemKey="Badge/light"
-            isAllSelected={false}
+            activeGroupName="Badge/light"
             searchQuery=""
             onSearchChange={noop}
             onSelectItem={noop}
-            onSelectAll={noop}
+            statusCounts={statusCounts}
+            activeStatuses={new Set()}
+            onToggleStatus={noop}
+          />
+        </Wrapper>
+      ),
+      {theme: themeName, state: 'active-group'}
+    );
+
+    it.snapshot(
+      'filtered',
+      () => (
+        <Wrapper>
+          <SnapshotSidebarContent
+            groups={groups}
+            searchQuery=""
+            onSearchChange={noop}
+            onSelectItem={noop}
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'child-selected'}
+      {theme: themeName, state: 'filtered'}
     );
 
     it.snapshot(
@@ -91,12 +104,9 @@ describe('SnapshotSidebarContent', () => {
         <Wrapper>
           <SnapshotSidebarContent
             groups={[]}
-            currentItemKey={null}
-            isAllSelected
             searchQuery="missing"
             onSearchChange={noop}
             onSelectItem={noop}
-            onSelectAll={noop}
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
             onToggleStatus={noop}

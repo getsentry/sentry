@@ -11,9 +11,9 @@ import {Surface} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import {ModalStore} from 'sentry/stores/modalStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getModalPortal} from 'sentry/utils/getModalPortal';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -98,6 +98,14 @@ export type ModalTypes = {
   renderProps: ModalRenderProps;
 };
 
+function useModalStore() {
+  const store = useLegacyStore(ModalStore);
+  return {
+    ...store,
+    visible: typeof store.renderer === 'function',
+  };
+}
+
 type Props = {
   /**
    * Note this is the callback for the main App container and NOT the calling
@@ -109,7 +117,7 @@ type Props = {
 };
 
 export function GlobalModal({onClose}: Props) {
-  const {renderer, options, visible, triggerElement} = useGlobalModal();
+  const {renderer, options, visible, triggerElement} = useModalStore();
   const hasPageFrame = useHasPageFrameFeature();
   const location = useLocation();
   const theme = useTheme();
@@ -231,7 +239,7 @@ export function GlobalModal({onClose}: Props) {
           />
         )}
       </AnimatePresence>
-      <Container
+      <ModalContainer
         data-test-id="modal-backdrop"
         ref={containerRef}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
@@ -246,7 +254,7 @@ export function GlobalModal({onClose}: Props) {
         >
           <AnimatePresence>
             {visible && (
-              <Modal
+              <ModalDialog
                 role="dialog"
                 aria-modal
                 css={options.modalCss}
@@ -269,20 +277,79 @@ export function GlobalModal({onClose}: Props) {
               >
                 <Surface variant="overlay" elevation="high">
                   {p => (
-                    <Content role="document" {...p}>
+                    <ModalContent role="document" {...p}>
                       {renderedChild}
-                    </Content>
+                    </ModalContent>
                   )}
                 </Surface>
-              </Modal>
+              </ModalDialog>
             )}
           </AnimatePresence>
         </TooltipContext>
-      </Container>
+      </ModalContainer>
     </Fragment>,
     portal
   );
 }
+
+/**
+ * Hook to open and close the global modal.
+ *
+ * ```tsx
+ * const {openModal, closeModal, isOpen} = useModal();
+ *
+ * openModal(({Header, Body, Footer, closeModal}) => (
+ *   <Fragment>
+ *     <Header closeButton>Title</Header>
+ *     <Body>Content</Body>
+ *     <Footer>
+ *       <Button onClick={closeModal}>Done</Button>
+ *     </Footer>
+ *   </Fragment>
+ * ));
+ * ```
+ */
+interface UseModalReturn {
+  closeModal: () => void;
+  isOpen: boolean;
+  openModal: (
+    renderer: (renderProps: ModalRenderProps) => React.ReactNode,
+    options?: ModalOptions
+  ) => void;
+  /** @deprecated Use `isOpen` instead. */
+  visible: boolean;
+  focusTrap?: FocusTrap;
+}
+
+export function useModal(): UseModalReturn {
+  const store = useLegacyStore(ModalStore);
+
+  const openModal = useCallback(
+    (
+      renderer: (renderProps: ModalRenderProps) => React.ReactNode,
+      options?: ModalOptions
+    ) => {
+      ModalStore.openModal(renderer, options ?? {});
+    },
+    []
+  );
+
+  const closeModalFn = useCallback(() => {
+    ModalStore.closeModal();
+  }, []);
+
+  const isOpen = typeof store.renderer === 'function';
+
+  return {
+    openModal,
+    closeModal: closeModalFn,
+    isOpen,
+    visible: isOpen,
+    focusTrap: store.focusTrap,
+  };
+}
+
+export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
 const fullPageCss = css`
   position: fixed;
@@ -292,7 +359,7 @@ const fullPageCss = css`
   left: 0;
 `;
 
-const Container = styled('div')`
+const ModalContainer = styled('div')`
   ${fullPageCss};
   right: var(--scrollbar-size, 0);
   z-index: ${p => p.theme.zIndex.modal};
@@ -302,7 +369,7 @@ const Container = styled('div')`
   overflow-y: auto;
 `;
 
-const Modal = styled(motion.div)`
+const ModalDialog = styled(motion.div)`
   max-width: 100%;
   width: 640px;
   pointer-events: auto;
@@ -315,7 +382,7 @@ const Modal = styled(motion.div)`
   }
 `;
 
-const Content = styled('div')`
+const ModalContent = styled('div')`
   position: relative;
   padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
 
