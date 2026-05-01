@@ -143,7 +143,6 @@ const _SlideOverPanel = styled(motion.div, {
   pointer-events: auto;
   overscroll-behavior: contain;
 
-  z-index: ${p => p.theme.zIndex.modal - 1};
   background: ${p => p.theme.tokens.background.overlay};
   box-shadow: ${p => p.theme.shadow.high};
   color: ${p => p.theme.tokens.content.primary};

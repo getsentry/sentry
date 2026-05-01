@@ -186,7 +186,7 @@ const Header = styled('header')<{
 }>`
   position: sticky;
   top: 0;
-  z-index: ${p => p.theme.zIndex.drawer + 1};
+  z-index: 1;
   background: ${p => p.theme.tokens.background.primary};
   justify-content: flex-start;
   display: flex;
@@ -218,7 +218,6 @@ export const DrawerBody = styled('aside')`
 const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
   position: fixed;
   inset: 0;
-  z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -292,7 +291,7 @@ const ResizeHandle = styled('div')`
   bottom: 0;
   width: 8px;
   cursor: ew-resize;
-  z-index: ${p => p.theme.zIndex.drawer + 2};
+  z-index: 2;
 
   &[data-at-min-width='true'] {
     cursor: w-resize;

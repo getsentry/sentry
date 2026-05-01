@@ -98,7 +98,6 @@ function UserOnlyNavigation() {
 }
 
 function NavigationLayout({children}: {children: React.ReactNode}) {
-  const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
@@ -112,7 +111,6 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
       bottom={layout === 'mobile' ? undefined : 0}
       height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
       style={{
-        zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
       }}
       {...hoverProps}
@@ -173,7 +171,7 @@ function SkipLink() {
 
 const SkipLinkContainer = styled(Container)`
   top: -100%;
-  z-index: ${p => p.theme.zIndex.toast};
+  z-index: 1;
 
   &:focus-within {
     top: ${p => p.theme.space.sm};

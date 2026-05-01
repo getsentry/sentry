@@ -26,7 +26,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -180,8 +180,6 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 }
 
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
-  const theme = useTheme();
-
   return (
     <Container
       background="secondary"
@@ -189,18 +187,13 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
       position="relative"
       height="100%"
     >
-      {p => (
-        <NavigationTourElement
-          {...mergeProps(p, props)}
-          style={{zIndex: theme.zIndex.sidebarPanel}}
-        />
-      )}
+      {p => <NavigationTourElement {...mergeProps(p, props)} />}
     </Container>
   );
 }
 
 const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
-  z-index: ${p => p.theme.zIndex.drawer + 2};
+  z-index: 2;
   cursor: ${p => (p.atMinWidth ? 'e-resize' : p.atMaxWidth ? 'w-resize' : 'ew-resize')};
 
   &:hover,

@@ -53,7 +53,6 @@ interface PrimaryNavigationSidebarProps {
 }
 
 function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
-  const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
 
   return (
@@ -66,7 +65,6 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       background="primary"
       direction="column"
       align="center"
-      style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}
     >
       {children}

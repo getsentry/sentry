@@ -304,7 +304,6 @@ const fullPageCss = css`
 const Container = styled('div')`
   ${fullPageCss};
   right: var(--scrollbar-size, 0);
-  z-index: ${p => p.theme.zIndex.modal};
   display: flex;
   justify-content: center;
   align-items: flex-start;
