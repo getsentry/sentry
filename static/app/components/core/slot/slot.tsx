@@ -16,24 +16,32 @@ const NOOP_REF_CALLBACK: React.RefCallback<HTMLElement | null> = () => {};
 const EMPTY_STATE: SlotReducerState<any> = {};
 const NOOP_DISPATCH: React.Dispatch<SlotReducerAction<any>> = () => {};
 
-const reportedMissingProvider = new Set<string>();
+const reportedSlotWarnings = new Set<string>();
 
-function reportMissingProvider(component: string, slotName: string): void {
-  const key = `${component}:${slotName}`;
-  if (reportedMissingProvider.has(key)) {
+function reportSlotWarning(
+  type: 'missing-provider' | 'missing-outlet',
+  component: string,
+  slotName: string,
+  message: string
+): void {
+  const key = `${type}:${component}:${slotName}`;
+  if (reportedSlotWarnings.has(key)) {
     return;
   }
-  reportedMissingProvider.add(key);
+  reportedSlotWarnings.add(key);
+
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.warn(message);
+    return;
+  }
+
   Sentry.withScope(scope => {
     scope.setLevel('warning');
     scope.setTag('slot.component', component);
     scope.setTag('slot.name', slotName);
-    scope.setFingerprint(['slot-missing-provider', component, slotName]);
-    Sentry.captureException(
-      new Error(
-        `<Slot.${component}> for slot "${slotName}" rendered without a <Slot.Provider>`
-      )
-    );
+    scope.setFingerprint([`slot-${type}`, component, slotName]);
+    Sentry.captureException(new Error(message));
   });
 }
 
@@ -210,12 +218,24 @@ function makeSlotConsumer<T extends Slot>(options: {
     }, [dispatch, name]);
 
     if (!ctx) {
-      reportMissingProvider('Consumer', name);
+      reportSlotWarning(
+        'missing-provider',
+        'Consumer',
+        name,
+        `<Slot.Consumer> for slot "${name}" rendered without a <Slot.Provider>`
+      );
       return null;
     }
 
     const element = state[name]?.element;
     if (!element) {
+      reportSlotWarning(
+        'missing-outlet',
+        'Consumer',
+        name,
+        `<Slot.Consumer name="${name}"> could not find a registered <Slot.Outlet> element. ` +
+          `Ensure a <Slot.Outlet name="${name}"> is rendered inside the same <Slot.Provider>.`
+      );
       return null;
     }
 
@@ -276,7 +296,12 @@ function makeSlotOutlet<T extends Slot>(
     );
 
     if (!ctx) {
-      reportMissingProvider('Outlet', name);
+      reportSlotWarning(
+        'missing-provider',
+        'Outlet',
+        name,
+        `<Slot.Outlet> for slot "${name}" rendered without a <Slot.Provider>`
+      );
       return props.children({ref: NOOP_REF_CALLBACK});
     }
 
@@ -300,7 +325,12 @@ function makeSlotFallback<T extends Slot>(
     const name = useContext(outletNameContext);
 
     if (!ctx) {
-      reportMissingProvider('Fallback', name ?? 'unknown');
+      reportSlotWarning(
+        'missing-provider',
+        'Fallback',
+        name ?? 'unknown',
+        `<Slot.Fallback> for slot "${name ?? 'unknown'}" rendered without a <Slot.Provider>`
+      );
       return null;
     }
 
