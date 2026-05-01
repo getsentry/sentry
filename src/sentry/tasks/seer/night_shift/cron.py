@@ -101,6 +101,9 @@ def schedule_night_shift(
     if not options.get("seer.night_shift.enable"):
         return
 
+    logger.info("night_shift.schedule_start")
+    start_time = time.monotonic()
+
     seer_org_ids: set[int] = set()
     for spr in RangeQuerySetWrapper[SeerProjectRepository](
         SeerProjectRepository.objects.filter(project__status=ObjectStatus.ACTIVE).select_related(
@@ -110,27 +113,49 @@ def schedule_night_shift(
     ):
         seer_org_ids.add(spr.project.organization_id)
 
+    logger.info(
+        "night_shift.schedule_org_ids_collected",
+        extra={
+            "num_seer_org_ids": len(seer_org_ids),
+            "elapsed_seconds": time.monotonic() - start_time,
+        },
+    )
+
     spread_seconds = int(NIGHT_SHIFT_SPREAD_DURATION.total_seconds())
     batch_index = 0
     task_kwargs: dict[str, Any] = {"options": dict(run_options)} if run_options else {}
 
-    for org_id_chunk in chunked(seer_org_ids, 100):
+    for chunk_index, org_id_chunk in enumerate(chunked(seer_org_ids, 100)):
         org_batch = list(
             Organization.objects.filter(
                 id__in=list(org_id_chunk),
                 status=OrganizationStatus.ACTIVE,
             )
         )
-        for org in _get_eligible_orgs_from_batch(org_batch):
+        eligible = _get_eligible_orgs_from_batch(org_batch)
+        for org in eligible:
             delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
             run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
             batch_index += 1
+
+        if chunk_index % 10 == 0:
+            logger.info(
+                "night_shift.schedule_chunk_processed",
+                extra={
+                    "chunk_index": chunk_index,
+                    "orgs_dispatched_so_far": batch_index,
+                    "elapsed_seconds": time.monotonic() - start_time,
+                },
+            )
 
     sentry_sdk.metrics.count("night_shift.orgs_dispatched", batch_index)
 
     logger.info(
         "night_shift.schedule_complete",
-        extra={"orgs_dispatched": batch_index},
+        extra={
+            "orgs_dispatched": batch_index,
+            "elapsed_seconds": time.monotonic() - start_time,
+        },
     )
 
 
