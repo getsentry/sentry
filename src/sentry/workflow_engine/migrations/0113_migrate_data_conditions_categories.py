@@ -18,6 +18,9 @@ def migrate_data_condition_issue_category(
     DataCondition = apps.get_model("workflow_engine", "DataCondition")
     DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
 
+    # Cache the original logic_type per group ID to avoid re-fetching a DCG
+    dcg_logic_type_cache: dict[int, str] = {}
+
     for data_condition in RangeQuerySetWrapper(DataCondition.objects.filter(type="issue_category")):
         comparison = dict(data_condition.comparison)
 
@@ -41,15 +44,19 @@ def migrate_data_condition_issue_category(
 
         # handle GroupCategory.PERFORMANCE (2)
         elif comparison.get("value") == 2:
-            dcg = DataConditionGroup.objects.filter(id=data_condition.condition_group_id).first()
-            if dcg is None:
-                logger.info(
-                    "No DataConditionGroup found for DataCondition, skipping",
-                    extra={"data_condition_id": data_condition.id},
-                )
-                continue
+            group_id = data_condition.condition_group_id
 
-            logic_type = dcg.logic_type
+            if group_id not in dcg_logic_type_cache:
+                dcg = DataConditionGroup.objects.filter(id=group_id).first()
+                if dcg is None:
+                    logger.info(
+                        "No DataConditionGroup found for DataCondition, skipping",
+                        extra={"data_condition_id": data_condition.id},
+                    )
+                    continue
+                dcg_logic_type_cache[group_id] = dcg.logic_type
+
+            logic_type = dcg_logic_type_cache[group_id]
 
             if logic_type == "all":
                 comparison["value"] = 1
@@ -62,9 +69,8 @@ def migrate_data_condition_issue_category(
                 mobile_comparison: dict[str, object] = {"value": 15}
 
                 if logic_type == "none":
-                    logic_type = "all"
-                    dcg.logic_type = logic_type
-                    dcg.save()
+                    DataConditionGroup.objects.filter(id=group_id).update(logic_type="all")
+                    dcg_logic_type_cache[group_id] = "all"
 
                     comparison["include"] = False
                     metric_comparison["include"] = False
