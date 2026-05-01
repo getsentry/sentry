@@ -571,8 +571,6 @@ from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreference
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
 from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
-from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
-from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
 from sentry.seer.endpoints.trace_explorer_ai_translate_agentic import SearchAgentTranslateEndpoint
 from sentry.seer.supergroups.endpoints.organization_supergroup_details import (
     OrganizationSupergroupDetailsEndpoint,
@@ -2414,16 +2412,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/sentry-apps/$",
         OrganizationSentryAppsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-apps",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/setup/$",
-        TraceExplorerAISetup.as_view(),
-        name="sentry-api-0-trace-explorer-ai-setup",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/query/$",
-        TraceExplorerAIQuery.as_view(),
-        name="sentry-api-0-trace-explorer-ai-query",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issue-view-title/generate/$",
