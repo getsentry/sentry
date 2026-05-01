@@ -79,10 +79,12 @@ export function MetricSelector({
   onChange,
   projectIds,
   environments,
+  inlineSidePanel,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   environments?: string[];
+  inlineSidePanel?: boolean;
   projectIds?: number[];
 }) {
   const triggerId = useId();
@@ -458,20 +460,34 @@ export function MetricSelector({
             <FocusScope contain>
               <Flex
                 minHeight="0"
-                direction={{
-                  xs: isOverlayAboveTrigger ? 'column-reverse' : 'column',
-                  md: 'row',
-                }}
+                direction={
+                  inlineSidePanel
+                    ? isOverlayAboveTrigger
+                      ? 'column-reverse'
+                      : 'column'
+                    : {
+                        xs: isOverlayAboveTrigger ? 'column-reverse' : 'column',
+                        md: 'row',
+                      }
+                }
               >
                 <Stack
                   minWidth="400px"
                   minHeight={`${METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT}px`}
                   maxHeight={`${METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT}px`}
                   borderBottom={
-                    isOverlayAboveTrigger ? undefined : {xs: 'primary', md: undefined}
+                    isOverlayAboveTrigger
+                      ? undefined
+                      : inlineSidePanel
+                        ? 'primary'
+                        : {xs: 'primary', md: undefined}
                   }
                   borderTop={
-                    isOverlayAboveTrigger ? {xs: 'primary', md: undefined} : undefined
+                    isOverlayAboveTrigger
+                      ? inlineSidePanel
+                        ? 'primary'
+                        : {xs: 'primary', md: undefined}
+                      : undefined
                   }
                 >
                   <Flex align="center" justify="between" padding="sm lg">
@@ -593,17 +609,20 @@ export function MetricSelector({
                 {hasSelectedMetric ? (
                   <SidePanel
                     ref={setSidePanelRef}
+                    $inline={inlineSidePanel}
                     top={
-                      isOverlayAboveTrigger
+                      inlineSidePanel || isOverlayAboveTrigger
                         ? undefined
                         : (sidePanelAnchorPosition ?? {md: 0})
                     }
                     bottom={
-                      isOverlayAboveTrigger
-                        ? (sidePanelAnchorPosition ?? {md: 0})
-                        : undefined
+                      inlineSidePanel
+                        ? undefined
+                        : isOverlayAboveTrigger
+                          ? (sidePanelAnchorPosition ?? {md: 0})
+                          : undefined
                     }
-                    width={{xs: '100%', md: '280px'}}
+                    width={inlineSidePanel ? '100%' : {xs: '100%', md: '280px'}}
                     padding="lg"
                     minHeight="0"
                   >
@@ -628,14 +647,19 @@ const MetricSelectorOverlay = styled(Overlay)`
   }
 `;
 
-const SidePanel = styled(Container)`
+const SidePanel = styled(Container)<{$inline?: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    position: absolute;
-    left: 100%;
-    max-height: calc(100vh - 32px);
-    overflow-y: auto;
-    background: ${p => p.theme.tokens.background.primary};
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-    border-radius: ${p => p.theme.radius.md};
+    ${p =>
+      p.$inline
+        ? ''
+        : `
+      position: absolute;
+      left: 100%;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      background: ${p.theme.tokens.background.primary};
+      border: 1px solid ${p.theme.tokens.border.primary};
+      border-radius: ${p.theme.radius.md};
+    `}
   }
 `;
