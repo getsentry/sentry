@@ -32,6 +32,7 @@ export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
         icon={icon}
         size="zero"
         to={rest.to}
+        openInNewTab
         tooltipProps={tooltip ? {title: tooltip} : undefined}
       >
         {label}
