@@ -494,7 +494,7 @@ export const useSeerExplorer = () => {
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
-    if (isResponseComplete || lastSentMessage === null) {
+    if (lastSentMessage === null) {
       return rawSessionData;
     }
 
@@ -507,8 +507,8 @@ export const useSeerExplorer = () => {
       loadingPlaceholderContent,
     } = lastSentMessage;
 
-    // Partially loaded state - don't inject optimistic blocks once
-    // server has persisted the user query and at least one assistant response.
+    // Hydrated state - don't inject optimistic blocks once the server has persisted
+    // the last user query and at least one assistant response.
     const blockAtInsert = serverBlocks[insertIndex];
     const serverHasUserBlock =
       rawSessionData &&
@@ -525,7 +525,7 @@ export const useSeerExplorer = () => {
       return rawSessionData;
     }
 
-    // Inject optimistic blocks
+    // Inject optimistic blocks + insertIndex truncation
     const optimisticUserBlock: Block = {
       id: `user-${insertIndex}-optimistic`,
       message: {role: 'user', content: userQuery},
@@ -559,7 +559,7 @@ export const useSeerExplorer = () => {
       ...baseSession,
       blocks: visibleBlocks,
     };
-  }, [rawSessionData, runId, isResponseComplete, lastSentMessage]);
+  }, [rawSessionData, runId, lastSentMessage]);
 
   return {
     sessionData: processedSessionData,
