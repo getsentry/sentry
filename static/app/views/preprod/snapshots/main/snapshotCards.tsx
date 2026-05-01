@@ -77,7 +77,10 @@ export const PairCard = memo(function PairCard({
   const headUrl = `${imageBaseUrl}${image.key}/`;
 
   const handleSelect = onSelectSnapshot
-    ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelectSnapshot(isSelected ? null : snapshotKey);
+      }
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
@@ -180,7 +183,10 @@ export const ImageCard = memo(function ImageCard({
   }
 
   const handleSelect = onSelectSnapshot
-    ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelectSnapshot(isSelected ? null : snapshotKey);
+      }
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
