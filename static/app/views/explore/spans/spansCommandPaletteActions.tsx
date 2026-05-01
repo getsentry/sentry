@@ -95,7 +95,7 @@ function FilterActions() {
       }),
   });
 
-  const makeStringSectionResource = (tags: Tag[], cacheKey: string) => (_q: string) =>
+  const makeStringSectionResource = (tags: Tag[], cacheKey: string) => () =>
     // Include tags.length so the section updates when attributes finish loading.
     // Include currentQuery so the item closures capture fresh filter state.
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
