@@ -341,14 +341,7 @@ class MergingOffsetPaginator(OffsetPaginator):
         self.data_count_func = data_count_func
         self.queryset_load_func = queryset_load_func
 
-    def get_result(
-        self,
-        limit: int = 100,
-        cursor: Any = None,
-        count_hits: bool = False,
-        known_hits: int | None = None,
-        max_hits: int | None = None,
-    ) -> CursorResult[Any]:
+    def get_result(self, limit: int = 100, cursor: Any = None) -> CursorResult[Any]:  # type: ignore[override]
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
