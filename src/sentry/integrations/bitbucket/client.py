@@ -264,5 +264,5 @@ class BitbucketInstallationClient(ApiClient):
         prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
         return prepared_request
 
-    def verify_shared_secret(self, shared_secret: str) -> None:
-        return self.get(BitbucketAPIPath.addons, params={"shared_secret": shared_secret})
+    def verify_shared_secret(self) -> None:
+        return self.get(BitbucketAPIPath.addons)
