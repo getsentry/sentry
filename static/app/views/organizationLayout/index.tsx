@@ -2,6 +2,7 @@ import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {Layer} from '@sentry/scraps/layer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
@@ -101,7 +102,9 @@ function AppLayout({organization}: LayoutProps) {
           direction={{sm: 'column', md: 'row'}}
           position="relative"
         >
-          <Navigation />
+          <Layer variant="nav">
+            <Navigation />
+          </Layer>
           {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
           <ContentStack
             id="main"
@@ -115,11 +118,15 @@ function AppLayout({organization}: LayoutProps) {
               {organization && <OrganizationHeader organization={organization} />}
               <OrganizationDetailsBody>
                 <TopBar.Slot.Provider>
-                  <TopBar />
-                  <Layout.Page>
-                    <Outlet />
-                    <Footer />
-                  </Layout.Page>
+                  <Layer variant="nav">
+                    {({className}) => <TopBar className={className} />}
+                  </Layer>
+                  <Layer variant="content">
+                    <Layout.Page>
+                      <Outlet />
+                      <Footer />
+                    </Layout.Page>
+                  </Layer>
                 </TopBar.Slot.Provider>
               </OrganizationDetailsBody>
             </AppBodyContent>
