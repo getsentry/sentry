@@ -3748,7 +3748,7 @@ register(
 # `resolve_column`'s DATASET_FIELDS shortcut treats user-typed bare column
 # names as column references and the badge disagrees with surfacing.
 register(
-    "issues.search.tag_aware_resolver_for_seen_stats",
+    "issues.search.fix_seen_stats_column_tag_collision",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

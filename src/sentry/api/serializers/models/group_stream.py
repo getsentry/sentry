@@ -604,7 +604,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         # that resolver correctly falls back to `tags[<name>]`. Gated for
         # safe rollout. (Discover doesn't hit the buggy branch and stays
         # on `resolve_column`.)
-        if options.get("issues.search.tag_aware_resolver_for_seen_stats"):
+        if options.get("issues.search.fix_seen_stats_column_tag_collision"):
             issue_conditions = resolve_conditions(
                 conditions,
                 functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform),
