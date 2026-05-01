@@ -1,28 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {withoutLoggingSupport} from 'sentry/data/platformCategories';
-import {platforms} from 'sentry/data/platforms';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -123,7 +116,6 @@ function LogsHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
-  const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -161,11 +153,6 @@ function LogsHeader() {
         )}
         {titleTooltip}
       </TopBar.Slot>
-      {defined(onboardingProject) && (
-        <TopBar.Slot name="actions">
-          <SetupLogsButton />
-        </TopBar.Slot>
-      )}
       <TopBar.Slot name="feedback">
         <FeedbackButton
           feedbackOptions={logsFeedbackOptions}
@@ -176,45 +163,5 @@ function LogsHeader() {
         </FeedbackButton>
       </TopBar.Slot>
     </Fragment>
-  );
-}
-
-function SetupLogsButton() {
-  const organization = useOrganization();
-  const projects = useProjects();
-  const pageFilters = usePageFilters();
-  let project = projects.projects?.[0];
-
-  const filtered = projects.projects?.filter(p =>
-    pageFilters.selection.projects.includes(parseInt(p.id, 10))
-  );
-  if (filtered && filtered.length > 0) {
-    project = filtered[0];
-  }
-
-  const currentPlatform = project?.platform
-    ? platforms.find(p => p.id === project.platform)
-    : undefined;
-
-  const doesNotSupportLogging = currentPlatform
-    ? withoutLoggingSupport.has(currentPlatform.id)
-    : false;
-
-  return (
-    <LinkButton
-      icon={<IconOpen />}
-      priority="primary"
-      href="https://docs.sentry.io/product/explore/logs/getting-started/"
-      external
-      onClick={() => {
-        trackAnalytics('logs.explorer.setup_button_clicked', {
-          organization,
-          platform: currentPlatform?.id ?? 'unknown',
-          supports_onboarding_checklist: !doesNotSupportLogging,
-        });
-      }}
-    >
-      {t('Set Up Logs')}
-    </LinkButton>
   );
 }
