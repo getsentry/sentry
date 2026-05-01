@@ -1,4 +1,4 @@
-import {Fragment, useEffect, type ReactNode} from 'react';
+import {Fragment, useEffect, useRef, type ReactNode} from 'react';
 
 import {Switch} from '@sentry/scraps/switch';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -75,21 +75,28 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
     isError,
   });
 
+  // Keep a stable ref to setAutorefresh so that the effects below are not
+  // re-triggered when the callback identity changes (e.g. after a navigate()).
+  const setAutorefreshRef = useRef(setAutorefresh);
+  useEffect(() => {
+    setAutorefreshRef.current = setAutorefresh;
+  });
+
   // Changing selection should disable autorefresh
   useEffect(() => {
     if (previousSelection !== selectionString) {
-      setAutorefresh('idle');
+      setAutorefreshRef.current('idle');
     }
-  }, [selectionString, previousSelection, setAutorefresh]);
+  }, [selectionString, previousSelection]);
 
   const sortBysAreTimeBasedDescending = checkSortIsTimeBasedDescending(sortBys);
 
   // Changing the sort should also disable autorefresh as there is only one sort (and direction) currently allowed.
   useEffect(() => {
     if (!sortBysAreTimeBasedDescending && autoRefresh !== 'idle') {
-      setAutorefresh('idle');
+      setAutorefreshRef.current('idle');
     }
-  }, [setAutorefresh, sortBysAreTimeBasedDescending, autoRefresh]);
+  }, [sortBysAreTimeBasedDescending, autoRefresh]);
 
   const hasAbsoluteDates = Boolean(selection.datetime.start && selection.datetime.end);
 

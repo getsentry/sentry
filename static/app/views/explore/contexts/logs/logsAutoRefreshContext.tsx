@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 
@@ -136,14 +136,36 @@ export function useSetLogsAutoRefresh() {
   const queryClient = useQueryClient();
   const {setPausedAt, pausedAt: currentPausedAt} = useLogsAutoRefresh();
 
+  // Use refs for location and navigate so that the returned callback has a stable
+  // identity. Without this, every navigate() call produces a new location object,
+  // which recreates the callback, which re-triggers useEffects in AutorefreshToggle
+  // that depend on setAutorefresh — causing an infinite navigate → render loop.
+  const locationRef = useRef(location);
+  const navigateRef = useRef(navigate);
+  const currentPausedAtRef = useRef(currentPausedAt);
+  const queryKeyRef = useRef(queryKey);
+
+  useEffect(() => {
+    locationRef.current = location;
+    navigateRef.current = navigate;
+    currentPausedAtRef.current = currentPausedAt;
+    queryKeyRef.current = queryKey;
+  });
+
   return useCallback(
     (autoRefresh: AutoRefreshState) => {
-      if (autoRefresh === 'enabled' && !withinPauseWindow(autoRefresh, currentPausedAt)) {
-        queryClient.removeQueries({queryKey});
+      if (
+        autoRefresh === 'enabled' &&
+        !withinPauseWindow(autoRefresh, currentPausedAtRef.current)
+      ) {
+        queryClient.removeQueries({queryKey: queryKeyRef.current});
       }
 
       const newPausedAt = autoRefresh === 'paused' ? Date.now() : undefined;
-      const target: Location = {...location, query: {...location.query}};
+      const target: Location = {
+        ...locationRef.current,
+        query: {...locationRef.current.query},
+      };
       if (autoRefresh === 'paused') {
         setPausedAt(newPausedAt);
       } else if (autoRefresh !== 'enabled') {
@@ -157,9 +179,13 @@ export function useSetLogsAutoRefresh() {
         target.query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
       }
 
-      navigate(target);
+      navigateRef.current(target);
     },
-    [navigate, location, queryClient, queryKey, setPausedAt, currentPausedAt]
+    // Intentionally omit location, navigate, currentPausedAt, and queryKey from deps.
+    // They are accessed via refs above so the callback identity stays stable across
+    // navigations, preventing feedback loops in consumers that depend on this callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, setPausedAt]
   );
 }
 
