@@ -377,7 +377,7 @@ function IconButton({
   const button = (
     <Button
       size="xs"
-      priority="transparent"
+      variant="transparent"
       icon={icon}
       aria-label={ariaLabel}
       onClick={onClick}
