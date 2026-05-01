@@ -183,7 +183,7 @@
     "less-loader": "^12.2.0",
     "lodash": "^4.17.23",
     "marked": "18.0.2",
-    "marked-highlight": "2.2.3",
+    "marked-highlight": "2.2.4",
     "mobx": "6.13.7",
     "mobx-react-lite": "4.1.0",
     "mockdate": "3.0.5",
