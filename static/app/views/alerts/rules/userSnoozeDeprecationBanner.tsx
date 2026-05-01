@@ -41,7 +41,7 @@ export function UserSnoozeDeprecationBanner({projectId}: Props) {
         'Individual user snoozing is no longer supported. Please read these [FAQLink:FAQs] for more information.',
         {
           FAQLink: (
-            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/41126598038043-Where-is-the-Mute-For-Me-button" />
+            <ExternalLink href="https://www.sentry.help/en/articles/13963998-where-is-the-mute-for-me-button" />
           ),
         }
       )}

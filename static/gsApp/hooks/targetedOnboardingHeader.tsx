@@ -45,7 +45,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       <div>{tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}</div>
     </ActiveTrialWrapper>
   ) : (
-    <NeedHelpLink href="https://sentry.zendesk.com/hc/en-us" onClick={trackClickNeedHelp}>
+    <NeedHelpLink href="https://www.sentry.help" onClick={trackClickNeedHelp}>
       {t('Need help?')}
     </NeedHelpLink>
   );
