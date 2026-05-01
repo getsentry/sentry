@@ -218,7 +218,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <Pagination pageLinks={monitorPageLinks ?? ''} onCursor={setCursor} />
       </Body>
       <Footer>
-        <Button priority="primary" onClick={closeModal} aria-label={t('Done')}>
+        <Button variant="primary" onClick={closeModal} aria-label={t('Done')}>
           {t('Done')}
         </Button>
       </Footer>

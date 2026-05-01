@@ -250,7 +250,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         actionButton: (
           <Button
             aria-label="Click me"
-            priority="transparent"
+            variant="transparent"
             size="zero"
             icon={<IconEdit size="xs" />}
           />

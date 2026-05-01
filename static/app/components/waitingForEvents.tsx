@@ -82,7 +82,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
           {project && (
             <LinkButton
               data-test-id="install-instructions"
-              priority="primary"
+              variant="primary"
               to={makeProjectsPathname({
                 path: `/${project.slug}/getting-started/`,
                 organization: org,

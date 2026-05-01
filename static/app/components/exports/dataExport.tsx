@@ -79,7 +79,7 @@ export function DataExport({
       {inProgress ? (
         <Button
           size={size}
-          priority="default"
+          variant="secondary"
           tooltipProps={{
             title: t(
               "You can get on with your life. We'll email you when your data's ready."
@@ -95,7 +95,7 @@ export function DataExport({
           onClick={handleClick}
           disabled={disabled || false}
           size={size}
-          priority="default"
+          variant="secondary"
           tooltipProps={{
             title: t(
               "Put your data to work. Start your export and we'll email you when it's finished."

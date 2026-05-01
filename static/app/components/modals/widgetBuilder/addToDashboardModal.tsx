@@ -560,7 +560,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('add-and-open-dashboard') && (
             <Button
-              priority={hasMultipleWidgets ? 'primary' : 'default'}
+              variant={hasMultipleWidgets ? 'primary' : 'secondary'}
               onClick={handleAddAndOpenDashboard}
               disabled={!canSubmit}
               tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
@@ -570,7 +570,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('open-in-widget-builder') && !hasMultipleWidgets && (
             <Button
-              priority="primary"
+              variant="primary"
               onClick={() => goToDashboard('builder')}
               disabled={!canSubmit}
               tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}

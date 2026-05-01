@@ -105,10 +105,10 @@ export function CustomIgnoreDurationModal(props: Props) {
       )}
       <Footer>
         <Grid flow="column" align="center" gap="md">
-          <Button priority="default" onClick={closeModal}>
+          <Button variant="secondary" onClick={closeModal}>
             {t('Cancel')}
           </Button>
-          <Button priority="primary" onClick={snoozeClicked}>
+          <Button variant="primary" onClick={snoozeClicked}>
             {t('Archive')}
           </Button>
         </Grid>

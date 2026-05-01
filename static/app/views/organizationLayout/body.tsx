@@ -129,7 +129,7 @@ function DeletionPending({organization}: OrganizationProps) {
 
           {organization.access.includes('org:admin') && (
             <Flex direction="column" gap="sm" paddingTop="xl">
-              <Button priority="primary" onClick={onRestore} disabled={isRestoring}>
+              <Button variant="primary" onClick={onRestore} disabled={isRestoring}>
                 {t('Restore Organization')}
               </Button>
             </Flex>

@@ -196,7 +196,7 @@ export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               size="xs"
               tooltipProps={{title: t('Clear password')}}
               aria-label={t('Clear password')}
-              priority="transparent"
+              variant="transparent"
             />
           )}
         </FieldGroup>
@@ -245,7 +245,7 @@ export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
       <Footer>
         <Button
           onClick={handleSubmit}
-          priority="primary"
+          variant="primary"
           disabled={isFormInvalid() || formUnchanged()}
         >
           {t('Save changes')}

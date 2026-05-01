@@ -84,7 +84,7 @@ export function Layout() {
             </Navigation>
             <div>
               <ThemeToggle
-                priority="transparent"
+                variant="transparent"
                 size="zero"
                 onClick={toggleTheme}
                 icon={

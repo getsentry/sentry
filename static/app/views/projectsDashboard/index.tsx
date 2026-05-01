@@ -258,7 +258,7 @@ function Dashboard() {
               {t('Join a Team')}
             </LinkButton>
             <LinkButton
-              priority="primary"
+              variant="primary"
               disabled={!canUserCreateProject}
               tooltipProps={{
                 title: canUserCreateProject
@@ -294,7 +294,7 @@ function Dashboard() {
               </LinkButton>
               <LinkButton
                 size="sm"
-                priority="primary"
+                variant="primary"
                 disabled={!canUserCreateProject}
                 tooltipProps={{
                   title: canUserCreateProject

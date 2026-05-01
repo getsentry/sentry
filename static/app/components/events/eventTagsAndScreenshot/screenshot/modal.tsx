@@ -162,7 +162,7 @@ export function ScreenshotModal({
               priority="danger"
               onConfirm={onDelete}
             >
-              <Button priority="danger">{t('Delete')}</Button>
+              <Button variant="danger">{t('Delete')}</Button>
             </Confirm>
           )}
           <LinkButton onClick={onDownload} href={downloadUrl}>

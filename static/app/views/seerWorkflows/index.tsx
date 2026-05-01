@@ -115,7 +115,7 @@ function SeerWorkflows() {
                           <Button
                             aria-label={isExpanded ? t('Collapse run') : t('Expand run')}
                             size="xs"
-                            priority="transparent"
+                            variant="transparent"
                             icon={
                               <IconChevron direction={isExpanded ? 'down' : 'right'} />
                             }

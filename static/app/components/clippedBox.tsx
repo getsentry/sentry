@@ -294,7 +294,7 @@ export function ClippedBox(props: ClippedBoxProps) {
   const showMoreButton = (
     <Button
       size="xs"
-      priority="primary"
+      variant="primary"
       onClick={handleReveal}
       aria-label={props.btnText ?? DEFAULT_BUTTON_TEXT}
       {...props.buttonProps}
@@ -306,7 +306,7 @@ export function ClippedBox(props: ClippedBoxProps) {
   const showLessButton = (
     <Button
       size="xs"
-      priority="default"
+      variant="secondary"
       onClick={handleCollapse}
       aria-label={props.collapseBtnText ?? DEFAULT_COLLAPSE_BUTTON_TEXT}
       {...props.buttonProps}

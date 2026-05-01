@@ -144,7 +144,7 @@ export function SeerAdminPage() {
                   <Text>Dry run (triage only, no autofix triggered)</Text>
                 </Flex>
                 <Button
-                  priority="primary"
+                  variant="primary"
                   type="submit"
                   disabled={!region || isNightShiftPending}
                 >
