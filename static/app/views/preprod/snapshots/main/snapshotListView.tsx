@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {
@@ -44,18 +44,18 @@ export function buildSnapshotLink(snapshotKey: string): string {
 
 type GroupCard =
   | {
-      cardType: 'changed' | 'renamed';
       estimatedHeight: number;
       id: string;
       pair: SnapshotDiffPair;
       type: 'pair-card';
     }
   | {
-      cardType: 'added' | 'removed' | 'unchanged' | 'solo';
+      cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
       estimatedHeight: number;
       id: string;
       image: SnapshotImage;
       type: 'image-card';
+      copyData?: unknown;
     };
 
 interface GroupRow {
@@ -104,17 +104,27 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {
     const cards: GroupCard[] = [];
-    if (item.type === 'changed' || item.type === 'renamed') {
+    if (item.type === 'changed') {
       for (const pair of item.pairs) {
         cards.push({
           type: 'pair-card',
           id: `c:${item.key}:${pair.head_image.key}`,
           pair,
-          cardType: item.type,
           estimatedHeight: Math.max(
             estimateCardHeight(pair.head_image, true),
             estimateCardHeight(pair.base_image, true)
           ),
+        });
+      }
+    } else if (item.type === 'renamed') {
+      for (const pair of item.pairs) {
+        cards.push({
+          type: 'image-card',
+          id: `c:${item.key}:${pair.head_image.key}`,
+          image: pair.head_image,
+          copyData: pair,
+          cardType: item.type,
+          estimatedHeight: estimateCardHeight(pair.head_image, false),
         });
       }
     } else {
@@ -449,9 +459,8 @@ const GroupContainer = memo(function GroupContainer({
       <PairCard
         key={card.id}
         pair={card.pair}
-        cardType={card.cardType}
         imageBaseUrl={imageBaseUrl}
-        headBranch={card.cardType === 'changed' ? headBranch : undefined}
+        headBranch={headBranch}
         isSelected={isSelected}
         copyUrl={copyUrl}
         diffMode={diffMode}
@@ -466,6 +475,7 @@ const GroupContainer = memo(function GroupContainer({
         key={card.id}
         image={card.image}
         cardType={card.cardType}
+        copyData={card.copyData}
         imageBaseUrl={imageBaseUrl}
         isSelected={isSelected}
         copyUrl={copyUrl}
@@ -480,16 +490,6 @@ const GroupContainer = memo(function GroupContainer({
     <SnapshotCardFrame groupName={group.isUngrouped ? null : group.name}>
       {cards}
     </SnapshotCardFrame>
-  );
-});
-
-export const GroupHeader = memo(function GroupHeader({name}: {name: string}) {
-  return (
-    <Container padding="0 xs">
-      <Heading as="h3" size="md">
-        {name}
-      </Heading>
-    </Container>
   );
 });
 

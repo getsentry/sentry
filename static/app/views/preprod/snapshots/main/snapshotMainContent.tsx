@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -30,13 +30,9 @@ import {
   TRANSPARENT_COLOR,
 } from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-import {Card, CardHeader, DarkAware} from './snapshotCards';
-import {
-  buildSnapshotLink,
-  GroupHeader,
-  isItemUngrouped,
-  SnapshotListView,
-} from './snapshotListView';
+import {CardHeader, DarkAware} from './snapshotCards';
+import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
+import {buildSnapshotLink, isItemUngrouped, SnapshotListView} from './snapshotListView';
 
 type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
@@ -232,6 +228,7 @@ export function SnapshotMainContent({
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
             diffMode={diffMode}
+            headLabel={headBranch ?? t('Head')}
           />
         }
       />
@@ -335,10 +332,17 @@ function SingleViewLayout({
   rightControls?: React.ReactNode;
 }) {
   const card = (
-    <SingleViewCard isDark={isDark} isSelected={false}>
-      <CardHeader {...headerProps} isDark={isDark} onToggleDark={onToggleDark} />
-      <SingleViewBody>{body}</SingleViewBody>
-    </SingleViewCard>
+    <SnapshotVariantFrame fillHeight>
+      <CardHeader
+        {...headerProps}
+        isDark={isDark}
+        onToggleDark={onToggleDark}
+        showBottomBorder={false}
+      />
+      <Flex direction="column" flex="1" minHeight="0">
+        {body}
+      </Flex>
+    </SnapshotVariantFrame>
   );
   return (
     <Flex
@@ -367,14 +371,9 @@ function SingleViewLayout({
         <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
           <Flex direction="column" flex="1" minWidth="0">
             <DarkAware isDark={isDark}>
-              {groupName ? (
-                <SingleViewGroup>
-                  <GroupHeader name={groupName} />
-                  {card}
-                </SingleViewGroup>
-              ) : (
-                card
-              )}
+              <SnapshotCardFrame groupName={groupName} fillHeight>
+                {card}
+              </SnapshotCardFrame>
             </DarkAware>
           </Flex>
           <NavGutter onClick={e => e.stopPropagation()}>
@@ -570,16 +569,6 @@ function DiffModeToggle({
   );
 }
 
-const SingleViewGroup = styled(Stack)`
-  flex: 1 1 0;
-  min-height: 0;
-  padding: ${p => p.theme.space.lg};
-  gap: ${p => p.theme.space.md};
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-`;
-
 const SingleViewScroll = styled('div')`
   flex: 1 1 0;
   min-height: 0;
@@ -602,29 +591,6 @@ const NavGutter = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex-shrink: 0;
-
-  button[aria-pressed='true'] {
-    &::after {
-      transform: translateY(0px);
-    }
-    > span:last-child {
-      transform: translateY(0px);
-    }
-  }
-`;
-
-const SingleViewCard = styled(Card)`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-`;
-
-const SingleViewBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
 `;
 
 const ColorPickerWrapper = styled('div')`

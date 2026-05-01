@@ -14,6 +14,7 @@ import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import {useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
 import {computeMaskSize} from './computeMaskSize';
+import {DiffOverlay} from './diffOverlay';
 
 export const MAX_IMAGE_HEIGHT = 480;
 
@@ -340,27 +341,6 @@ const HiddenUntilLoaded = styled('img')`
   height: auto;
   max-width: 100%;
   max-height: ${MAX_IMAGE_HEIGHT}px;
-`;
-
-const DiffOverlay = styled('span')<{
-  $maskSize: string;
-  $maskUrl: string;
-  $overlayColor: string;
-}>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  background-color: ${p => p.$overlayColor};
-  mask-image: url(${p => p.$maskUrl});
-  mask-size: ${p => p.$maskSize};
-  mask-position: top left;
-  mask-mode: luminance;
-  -webkit-mask-image: url(${p => p.$maskUrl});
-  -webkit-mask-size: ${p => p.$maskSize};
-  -webkit-mask-position: top left;
 `;
 
 const ZoomViewport = styled('div')`

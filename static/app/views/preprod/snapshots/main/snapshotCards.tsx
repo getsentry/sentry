@@ -48,7 +48,6 @@ export function DarkAware({
 
 export const PairCard = memo(function PairCard({
   pair,
-  cardType,
   imageBaseUrl,
   headBranch,
   isSelected,
@@ -60,7 +59,6 @@ export const PairCard = memo(function PairCard({
   onSelectSnapshot,
   onOpenSnapshot,
 }: {
-  cardType: 'changed' | 'renamed';
   copyUrl: string;
   diffMode: DiffMode;
   imageBaseUrl: string;
@@ -78,15 +76,13 @@ export const PairCard = memo(function PairCard({
   const baseUrl = `${imageBaseUrl}${pair.base_image.key}/`;
   const headUrl = `${imageBaseUrl}${image.key}/`;
 
-  // Renamed cards always show split — wipe/onion don't make sense for file renames
-  const effectiveMode = cardType === 'renamed' ? ('split' as const) : diffMode;
   const handleSelect = onSelectSnapshot
     ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
   let body: React.ReactNode;
-  if (effectiveMode === 'split') {
+  if (diffMode === 'split') {
     body = (
       <SnapshotCanvasWrapper>
         <SplitPairBody
@@ -96,13 +92,13 @@ export const PairCard = memo(function PairCard({
           headImage={image}
           headLabel={headBranch ?? t('Head')}
           altPrefix={getImageName(image)}
-          overlayColor={cardType === 'changed' ? overlayColor : undefined}
-          diffImageKey={cardType === 'changed' ? pair.diff_image_key : null}
+          overlayColor={overlayColor}
+          diffImageKey={pair.diff_image_key}
           diffImageBaseUrl={diffImageBaseUrl}
         />
       </SnapshotCanvasWrapper>
     );
-  } else if (effectiveMode === 'wipe') {
+  } else if (diffMode === 'wipe') {
     body = (
       <WipeCardBody
         baseUrl={baseUrl}
@@ -132,8 +128,8 @@ export const PairCard = memo(function PairCard({
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
-          status={cardType === 'changed' ? DiffStatus.CHANGED : DiffStatus.RENAMED}
-          diffPercent={cardType === 'changed' ? pair.diff : null}
+          status={DiffStatus.CHANGED}
+          diffPercent={pair.diff}
           isDark={isDark}
           onToggleDark={() => setIsDark(v => !v)}
           copyData={pair}
@@ -152,6 +148,7 @@ export const PairCard = memo(function PairCard({
 export const ImageCard = memo(function ImageCard({
   image,
   cardType,
+  copyData,
   imageBaseUrl,
   isSelected,
   copyUrl,
@@ -159,12 +156,13 @@ export const ImageCard = memo(function ImageCard({
   onSelectSnapshot,
   onOpenSnapshot,
 }: {
-  cardType: 'added' | 'removed' | 'unchanged' | 'solo';
+  cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
   copyUrl: string;
   image: SnapshotImage;
   imageBaseUrl: string;
   isSelected: boolean;
   snapshotKey: string;
+  copyData?: unknown;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
 }) {
@@ -177,6 +175,8 @@ export const ImageCard = memo(function ImageCard({
     status = DiffStatus.ADDED;
   } else if (cardType === 'removed') {
     status = DiffStatus.REMOVED;
+  } else if (cardType === 'renamed') {
+    status = DiffStatus.RENAMED;
   } else {
     status = DiffStatus.UNCHANGED;
   }
@@ -199,7 +199,7 @@ export const ImageCard = memo(function ImageCard({
           status={status}
           isDark={isDark}
           onToggleDark={() => setIsDark(v => !v)}
-          copyData={image}
+          copyData={copyData ?? image}
           copyUrl={copyUrl}
           onSelect={handleSelect}
           onDoubleClick={handleOpen}
@@ -392,19 +392,6 @@ function IconButton({
     </Tooltip>
   );
 }
-
-export const Card = styled(Container)<{isDark: boolean; isSelected: boolean}>`
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
-  border: 1px solid
-    ${p =>
-      p.isSelected
-        ? p.theme.tokens.border.accent.vibrant
-        : p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  overflow: hidden;
-  ${p => p.isDark && `color-scheme: dark;`}
-`;
 
 const CardHeaderRow = styled('div')<{
   $showBottomBorder?: boolean;
