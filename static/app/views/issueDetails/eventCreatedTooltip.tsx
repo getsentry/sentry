@@ -44,11 +44,9 @@ export function EventCreatedTooltip({event}: Props) {
       <dt>{t('Occurred')}</dt>
       <dd>
         {dateCreated ? (
-          <Fragment>
-            <AutoSelectText>
-              {dateCreated.format('ll')} {dateCreated.format(format)}
-            </AutoSelectText>
-          </Fragment>
+          <AutoSelectText>
+            {dateCreated.format('ll')} {dateCreated.format(format)}
+          </AutoSelectText>
         ) : (
           <NotApplicableText>{t('n/a')}</NotApplicableText>
         )}
