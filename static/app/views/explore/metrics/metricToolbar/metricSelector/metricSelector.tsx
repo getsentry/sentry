@@ -1,47 +1,49 @@
-import {Fragment, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
-import {useOption} from '@react-aria/listbox';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
-import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
-import type {Node} from '@react-types/shared';
+import {useComboBoxState} from '@react-stately/combobox';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
+import {MenuListItem} from '@sentry/scraps/menuListItem';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
-import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
+import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
+import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
+import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
-import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
+import {
+  hasDisplayMetricUnit,
+  makeMetricSelectValue,
+} from 'sentry/views/explore/metrics/utils';
 
-export const NONE_UNIT = 'none';
-const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
+const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
+const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
 
 function nextFrameCallback(cb: () => void) {
   if ('requestAnimationFrame' in window) {
@@ -51,15 +53,6 @@ function nextFrameCallback(cb: () => void) {
       cb();
     }, 1);
   }
-}
-
-function hasDisplayMetricUnit(
-  hasMetricUnitsUI: boolean,
-  metricUnit?: string
-): metricUnit is string {
-  return (
-    hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
-  );
 }
 
 function MetricOptionTrailingItems({
@@ -81,17 +74,6 @@ function MetricOptionTrailingItems({
   );
 }
 
-interface MetricSelectOption {
-  label: string;
-  metricName: string;
-  metricType: TraceMetricTypeValue;
-  value: string;
-  count?: number;
-  lastSeen?: number;
-  metricUnit?: string;
-  trailingItems?: MenuListItemProps['trailingItems'];
-}
-
 export function MetricSelector({
   traceMetric,
   onChange,
@@ -111,8 +93,10 @@ export function MetricSelector({
   const listElementRef = useRef<HTMLUListElement>(null);
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const sidePanelRef = useRef<HTMLDivElement>(null);
 
   const [searchInputValue, setSearchInputValue] = useState('');
+  const [sidePanelAnchorOffset, setSidePanelAnchorOffset] = useState<number | null>(null);
   const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
@@ -120,17 +104,17 @@ export function MetricSelector({
     environments,
   });
 
-  const metricSelectValue = makeMetricSelectValue(
+  const traceMetricSelectValue = makeMetricSelectValue(
     hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
   );
 
   // Build an option object from the currently selected trace metric so it
   // can be shown in the list even if the API response hasn't loaded yet or
   // doesn't include it (e.g. it was filtered out by search).
-  const optionFromTraceMetric: MetricSelectOption = useMemo(
+  const optionFromTraceMetric: MetricSelectorOption = useMemo(
     () => ({
       label: traceMetric.name,
-      value: metricSelectValue,
+      value: traceMetricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricUnit: hasMetricUnitsUI ? (traceMetric.unit ?? '-') : undefined,
       metricName: traceMetric.name,
@@ -143,7 +127,7 @@ export function MetricSelector({
       ),
     }),
     [
-      metricSelectValue,
+      traceMetricSelectValue,
       traceMetric.name,
       traceMetric.type,
       traceMetric.unit,
@@ -154,14 +138,8 @@ export function MetricSelector({
   // Always show the selected metric at the top of the list so it's easy to
   // find when the dropdown is reopened. Filter it out of the API results to
   // avoid duplication.
-  const metricOptions = useMemo((): MetricSelectOption[] => {
-    const selectedMetricValue = traceMetric.name
-      ? makeMetricSelectValue(
-          hasMetricUnitsUI
-            ? traceMetric
-            : {name: traceMetric.name, type: traceMetric.type}
-        )
-      : null;
+  const metricOptions = useMemo((): MetricSelectorOption[] => {
+    const selectedMetricValue = traceMetric.name ? traceMetricSelectValue : null;
 
     const apiOptions =
       metricOptionsData?.data?.map(option => ({
@@ -204,7 +182,13 @@ export function MetricSelector({
       ...(selectedOption ? [selectedOption] : []),
       ...apiOptions.filter(o => o.value !== selectedMetricValue),
     ];
-  }, [metricOptionsData, optionFromTraceMetric, traceMetric, hasMetricUnitsUI]);
+  }, [
+    metricOptionsData,
+    optionFromTraceMetric,
+    traceMetric.name,
+    traceMetricSelectValue,
+    hasMetricUnitsUI,
+  ]);
 
   // Auto-select the first metric when no metric is currently selected.
   // This handles the initial load case where the URL has no metric param.
@@ -218,30 +202,30 @@ export function MetricSelector({
     }
   }, [metricOptions, onChange, traceMetric.name, hasMetricUnitsUI]);
 
-  const traceMetricSelectValue = makeMetricSelectValue(
-    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
-  );
-
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
-  const previousOptions = usePrevious(metricOptions ?? []);
+  const previousOptions = usePrevious(metricOptions);
   const displayedOptions = useMemo(
-    () => (isFetching ? previousOptions : (metricOptions ?? [])),
+    () => (isFetching ? previousOptions : metricOptions),
     [isFetching, previousOptions, metricOptions]
   );
 
   // Find the option with the longest label to render as a hidden element.
   // This reserves enough width for the overlay so it doesn't resize as
   // the user scrolls through the virtualized list.
-  const longestOption = useMemo(
-    () =>
-      displayedOptions.reduce<MetricSelectOption | null>(
-        (longest, option) =>
-          !longest || option.label.length > longest.label.length ? option : longest,
-        null
-      ),
-    [displayedOptions]
-  );
+  const longestOption = useMemo(() => {
+    return displayedOptions.reduce<MetricSelectorOption | null>((longest, option) => {
+      if (typeof option.label !== 'string' || option.label.length === 0) {
+        return longest;
+      }
+
+      if (typeof longest?.label !== 'string') {
+        return option;
+      }
+
+      return option.label.length > longest?.label.length ? option : longest;
+    }, null);
+  }, [displayedOptions]);
 
   const displayedOptionsMap = useMemo(
     () => new Map(displayedOptions.map(option => [option.value, option])),
@@ -276,8 +260,8 @@ export function MetricSelector({
     });
   }
 
-  const comboBoxState = useComboBoxState<MetricSelectOption>({
-    children: (item: MetricSelectOption) => <Item key={item.value}>{item.label}</Item>,
+  const comboBoxState = useComboBoxState<MetricSelectorOption>({
+    children: (item: MetricSelectorOption) => <Item key={item.value}>{item.label}</Item>,
     items: displayedOptions,
     allowsEmptyCollection: true,
     shouldCloseOnBlur: false,
@@ -311,6 +295,7 @@ export function MetricSelector({
     state: overlayState,
     triggerProps,
     overlayProps,
+    arrowProps: overlayArrowProps,
     triggerRef,
     update: updateOverlay,
   } = useOverlay({
@@ -337,16 +322,17 @@ export function MetricSelector({
     },
   });
 
-  const {inputProps: comboBoxInputProps, listBoxProps} = useComboBox<MetricSelectOption>(
-    {
-      'aria-labelledby': triggerId,
-      listBoxRef: listElementRef,
-      inputRef: searchRef,
-      popoverRef,
-      shouldFocusWrap: true,
-    },
-    comboBoxState
-  );
+  const {inputProps: comboBoxInputProps, listBoxProps} =
+    useComboBox<MetricSelectorOption>(
+      {
+        'aria-labelledby': triggerId,
+        listBoxRef: listElementRef,
+        inputRef: searchRef,
+        popoverRef,
+        shouldFocusWrap: true,
+      },
+      comboBoxState
+    );
 
   const collectionItems = useMemo(
     () => [...comboBoxState.collection],
@@ -380,6 +366,55 @@ export function MetricSelector({
     id: triggerId,
   });
 
+  const isOverlayAboveTrigger = overlayArrowProps.placement?.startsWith('top') ?? false;
+  const activeOptionIndex = focusedKey
+    ? collectionItems.findIndex(item => item.key === focusedKey)
+    : -1;
+
+  const updateSidePanelAnchorOffset = useCallback(
+    (activeOptionElement?: HTMLElement | null) => {
+      if (!isOpen || (!activeOptionElement && activeOptionIndex < 0)) {
+        setSidePanelAnchorOffset(null);
+        return;
+      }
+
+      const optionElement =
+        activeOptionElement ??
+        listElementRef.current?.querySelector<HTMLElement>(
+          `[data-index="${activeOptionIndex}"]`
+        );
+      const popoverElement = popoverRef.current;
+
+      if (!optionElement || !popoverElement) {
+        setSidePanelAnchorOffset(null);
+        return;
+      }
+
+      const optionRect = optionElement.getBoundingClientRect();
+      const popoverRect = popoverElement.getBoundingClientRect();
+      const sidePanelRect = sidePanelRef.current?.getBoundingClientRect();
+      const optionCenter = optionRect.top + optionRect.height / 2;
+      const sidePanelHeight = sidePanelRect?.height ?? 0;
+      const offset = isOverlayAboveTrigger
+        ? popoverRect.bottom - optionCenter - sidePanelHeight / 2
+        : optionCenter - popoverRect.top - sidePanelHeight / 2;
+      const maxOffset = Math.max(0, popoverRect.height - sidePanelHeight);
+
+      setSidePanelAnchorOffset(Math.min(Math.max(0, offset), maxOffset));
+    },
+    [activeOptionIndex, isOpen, isOverlayAboveTrigger]
+  );
+
+  const setSidePanelRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      sidePanelRef.current = element;
+      if (element) {
+        updateSidePanelAnchorOffset();
+      }
+    },
+    [updateSidePanelAnchorOffset]
+  );
+
   const virtualItems = virtualizer.getVirtualItems();
 
   // Fall back to rendering all items when the virtualizer can't measure
@@ -395,6 +430,10 @@ export function MetricSelector({
           size: METRIC_SELECTOR_OPTION_HEIGHT,
           lane: 0,
         }));
+
+  const sidePanelAnchorPosition =
+    sidePanelAnchorOffset === null ? undefined : {md: `${sidePanelAnchorOffset}px`};
+  const hasSelectedMetric = Boolean(traceMetric.name);
 
   return (
     <Container width="100%" position="relative">
@@ -412,21 +451,28 @@ export function MetricSelector({
         style={{...overlayProps.style, display: isOpen ? 'block' : 'none'}}
       >
         {isOpen ? (
-          <Overlay
+          <MetricSelectorOverlay
             ref={popoverRef}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
+            style={{display: 'flex', flexDirection: 'column'}}
           >
             <FocusScope contain>
-              <Flex direction={{xs: 'column', sm: 'row'}}>
+              <Flex
+                minHeight="0"
+                direction={{
+                  xs: isOverlayAboveTrigger ? 'column-reverse' : 'column',
+                  md: 'row',
+                }}
+              >
                 <Stack
                   minWidth="400px"
-                  minHeight="0"
-                  borderRight={{sm: 'primary'}}
-                  borderBottom={{xs: 'primary', sm: undefined}}
+                  minHeight={`${METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT}px`}
+                  maxHeight={`${METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT}px`}
+                  borderBottom={
+                    isOverlayAboveTrigger ? undefined : {xs: 'primary', md: undefined}
+                  }
+                  borderTop={
+                    isOverlayAboveTrigger ? {xs: 'primary', md: undefined} : undefined
+                  }
                 >
                   <Flex align="center" justify="between" padding="sm lg">
                     <Text size="sm" bold wrap="nowrap">
@@ -463,8 +509,8 @@ export function MetricSelector({
                     overflowY="auto"
                     flex="1"
                     minHeight="0"
-                    maxHeight="400px"
                     padding="xs 0"
+                    onScroll={() => updateSidePanelAnchorOffset()}
                   >
                     {/* Hidden element that reserves width based on the longest option label */}
                     {longestOption ? (
@@ -532,6 +578,9 @@ export function MetricSelector({
                                   size="md"
                                   dataIndex={virtualRow.index}
                                   measureRef={virtualizer.measureElement}
+                                  updateSidePanelAnchorOffset={
+                                    updateSidePanelAnchorOffset
+                                  }
                                 />
                               );
                             })}
@@ -541,214 +590,52 @@ export function MetricSelector({
                     )}
                   </Container>
                 </Stack>
-                <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '260px'}}>
-                  <MetricDetailPanel
-                    metric={highlightedOption ?? optionFromTraceMetric}
-                    hasMetricUnitsUI={hasMetricUnitsUI}
-                  />
-                </Container>
+                {hasSelectedMetric ? (
+                  <SidePanel
+                    ref={setSidePanelRef}
+                    top={
+                      isOverlayAboveTrigger
+                        ? undefined
+                        : (sidePanelAnchorPosition ?? {md: 0})
+                    }
+                    bottom={
+                      isOverlayAboveTrigger
+                        ? (sidePanelAnchorPosition ?? {md: 0})
+                        : undefined
+                    }
+                    width={{xs: '100%', md: '280px'}}
+                    padding="lg"
+                    minHeight="0"
+                  >
+                    <MetricDetailPanel
+                      metric={highlightedOption ?? optionFromTraceMetric}
+                      hasMetricUnitsUI={hasMetricUnitsUI}
+                    />
+                  </SidePanel>
+                ) : null}
               </Flex>
             </FocusScope>
-          </Overlay>
+          </MetricSelectorOverlay>
         ) : null}
       </PositionWrapper>
     </Container>
   );
 }
 
-interface MetricListBoxOptionProps {
-  dataIndex: number;
-  item: Node<MetricSelectOption>;
-  listState: ComboBoxState<MetricSelectOption>;
-  size: MenuListItemProps['size'];
-  measureRef?: React.Ref<HTMLLIElement>;
-}
-
-function MetricListBoxOption({
-  item,
-  listState,
-  size,
-  dataIndex,
-  measureRef,
-}: MetricListBoxOptionProps) {
-  const ref = useRef<HTMLLIElement>(null);
-  const option = item.value!;
-  const {optionProps, isFocused, isSelected, isDisabled, isPressed} = useOption(
-    {
-      key: item.key,
-      'aria-label': option.label,
-      shouldUseVirtualFocus: true,
-      shouldSelectOnPressUp: true,
-    },
-    listState,
-    ref
-  );
-  const optionPropsMerged = mergeProps(optionProps, {
-    onMouseEnter: () => {
-      listState.selectionManager.setFocused(true);
-      listState.selectionManager.setFocusedKey(item.key);
-    },
-  });
-
-  return (
-    <MenuListItem
-      {...optionPropsMerged}
-      as="li"
-      data-index={dataIndex}
-      ref={mergeRefs(ref, measureRef)}
-      size={size}
-      label={option.label}
-      isFocused={isFocused}
-      isSelected={isSelected}
-      isPressed={isPressed}
-      disabled={isDisabled}
-      priority={isSelected ? 'primary' : 'default'}
-      leadingItems={
-        <LeadWrap aria-hidden="true">
-          {isSelected ? <IconCheckmark size="sm" /> : null}
-        </LeadWrap>
-      }
-      trailingItems={option.trailingItems}
-    />
-  );
-}
-
-function MetricDetailPanel({
-  metric,
-  hasMetricUnitsUI,
-}: {
-  hasMetricUnitsUI: boolean;
-  metric: MetricSelectOption | null;
-}) {
-  if (!metric) {
-    return (
-      <Flex align="center" justify="center" flex="1">
-        <Text variant="muted">{t('Select an application metric to see details')}</Text>
-      </Flex>
-    );
+const MetricSelectorOverlay = styled(Overlay)`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    overflow: visible;
   }
+`;
 
-  return (
-    <Stack gap="md">
-      <Text bold wordBreak="break-all">
-        {metric.metricName}
-      </Text>
-      <Flex gap="xs" align="center">
-        <Text variant="muted" size="md">
-          {t('Type')}
-        </Text>
-        <MetricTypeBadge metricType={metric.metricType} />
-      </Flex>
-      {hasDisplayMetricUnit(hasMetricUnitsUI, metric.metricUnit) ? (
-        <Flex gap="xs" align="center">
-          <Text variant="muted" size="md">
-            {t('Unit')}
-          </Text>
-          <Tag variant="promotion">{metric.metricUnit}</Tag>
-        </Flex>
-      ) : null}
-      {metric.lastSeen ? (
-        <Flex gap="xs" align="center">
-          <Text variant="muted" size="md">
-            {t('Last seen')}
-          </Text>
-          <DateTime date={metric.lastSeen} timeZone />
-        </Flex>
-      ) : null}
-      {metric.count === undefined ? null : (
-        <Flex gap="xs" align="center">
-          <Text variant="muted" size="md">
-            {t('Times seen')}
-          </Text>
-          <Text size="md">{metric.count.toLocaleString()}</Text>
-        </Flex>
-      )}
-      <MetricAttributesSection
-        metricName={metric.metricName}
-        metricType={metric.metricType}
-      />
-    </Stack>
-  );
-}
-
-function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
-}
-
-function MetricAttributesSection({
-  metricName,
-  metricType,
-}: {
-  metricName: string;
-  metricType: string;
-}) {
-  const traceMetricFilter = createTraceMetricFilter({
-    name: metricName,
-    type: metricType,
-  });
-
-  const debouncedTraceMetricFilter = useDebouncedValue(
-    traceMetricFilter,
-    METRIC_ATTRIBUTES_DEBOUNCE_DURATION
-  );
-
-  const isDebouncingAttributes = debouncedTraceMetricFilter !== traceMetricFilter;
-  const metricAttributeQuery = {
-    enabled: Boolean(debouncedTraceMetricFilter),
-    query: debouncedTraceMetricFilter,
-    staleTime: Infinity,
-  };
-
-  const {attributes: stringAttrs, isLoading: stringLoading} =
-    useTraceMetricItemAttributes(metricAttributeQuery, 'string');
-  const {attributes: numberAttrs, isLoading: numberLoading} =
-    useTraceMetricItemAttributes(metricAttributeQuery, 'number');
-  const {attributes: booleanAttrs, isLoading: booleanLoading} =
-    useTraceMetricItemAttributes(metricAttributeQuery, 'boolean');
-
-  const attributeKeys = useMemo(() => {
-    const keys = new Set([
-      ...Object.keys(stringAttrs ?? {}),
-      ...Object.keys(numberAttrs ?? {}),
-      ...Object.keys(booleanAttrs ?? {}),
-    ]);
-    return [...keys]
-      .filter(key => !HiddenTraceMetricGroupByFields.includes(key))
-      .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
-  }, [stringAttrs, numberAttrs, booleanAttrs]);
-
-  if (isDebouncingAttributes || stringLoading || numberLoading || booleanLoading) {
-    return (
-      <Stack gap="xs">
-        <Text size="md">{t('Attributes')}:</Text>
-        <Flex gap="xs">
-          <LoadingIndicator size={16} style={{margin: 0}} />
-        </Flex>
-      </Stack>
-    );
+const SidePanel = styled(Container)`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    position: absolute;
+    left: 100%;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: ${p => p.theme.tokens.background.primary};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: ${p => p.theme.radius.md};
   }
-
-  if (attributeKeys.length === 0) {
-    return (
-      <Stack gap="xs">
-        <Text size="md">{t('Attributes')}:</Text>
-        <Flex gap="xs">
-          <Text size="md">{t('No attributes found')}</Text>
-        </Flex>
-      </Stack>
-    );
-  }
-
-  return (
-    <Stack gap="xs">
-      <Text size="md">{t('Attributes')}:</Text>
-      <Flex wrap="wrap" gap="xs">
-        {attributeKeys.map(key => (
-          <Tag key={key} variant="muted">
-            {prettifyTagKey(key)}
-          </Tag>
-        ))}
-      </Flex>
-    </Stack>
-  );
-}
+`;

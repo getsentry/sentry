@@ -15,13 +15,15 @@ import {
   SAMPLING_MODE,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {AlwaysPresentTraceMetricFields} from 'sentry/views/explore/metrics/constants';
+import {
+  AlwaysPresentTraceMetricFields,
+  NONE_UNIT,
+} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
-import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
