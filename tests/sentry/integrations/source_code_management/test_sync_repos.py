@@ -1004,6 +1004,14 @@ class GitlabIsBrokenIntegrationErrorTestCase(TestCase):
         exc = ApiError("something")
         assert self.installation.is_broken_integration_error(exc) is None
 
+    def test_valueerror_html_response_returns_unsupported_response(self) -> None:
+        exc = ValueError("Not a valid response type: <html><head><title>gitlab.support</title>")
+        assert self.installation.is_broken_integration_error(exc) == "unsupported_response"
+
+    def test_valueerror_unrelated_not_terminal(self) -> None:
+        exc = ValueError("some other value error")
+        assert self.installation.is_broken_integration_error(exc) is None
+
     def test_base_class_cases_still_work(self) -> None:
         assert (
             self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))

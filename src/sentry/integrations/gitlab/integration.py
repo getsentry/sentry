@@ -174,6 +174,10 @@ class GitlabIntegration(
                 return "configuration_error"
             if exc.code == 403:
                 return "unauthorized"
+        # Self-hosted GitLab instances sometimes return HTML login/captcha
+        # pages instead of JSON. The response parser raises ValueError.
+        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
+            return "unsupported_response"
         return super().is_broken_integration_error(exc)
 
     # RepositoryIntegration methods
