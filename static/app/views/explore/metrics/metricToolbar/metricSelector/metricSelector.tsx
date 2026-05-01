@@ -43,7 +43,7 @@ import {
 
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
-const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 200;
+const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
 
 function nextFrameCallback(cb: () => void) {
   if ('requestAnimationFrame' in window) {
