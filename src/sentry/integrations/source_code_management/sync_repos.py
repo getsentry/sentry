@@ -17,7 +17,6 @@ from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import features
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -42,7 +41,6 @@ from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
     ApiPaginationTruncated,
-    ApiUnauthorized,
     IntegrationError,
 )
 from sentry.silo.base import SiloMode
@@ -238,15 +236,6 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                 return
             raise
         except IntegrationError as e:
-            # VSTS's get_repositories re-wraps ApiError/IdentityNotValid into
-            # an IntegrationError via message_from_error.
-            # TODO: Move into a VSTS-specific is_broken_integration_error override.
-            cause = e.__context__
-            if provider_key == "vsts" and isinstance(cause, (IdentityNotValid, ApiUnauthorized)):
-                _halt_broken_integration(
-                    lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
-                )
-                return
             halt_reason = installation.is_broken_integration_error(e)
             if halt_reason:
                 _halt_broken_integration(
