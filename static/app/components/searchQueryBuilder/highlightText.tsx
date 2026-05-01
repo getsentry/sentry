@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';
@@ -10,15 +9,13 @@ type HighlightTextProps = {
 
 export function HighlightText({query, text}: HighlightTextProps) {
   const trimmedQuery = query.trim();
-
-  if (!trimmedQuery) {
-    return <Fragment>{text}</Fragment>;
+  if (!trimmedQuery || !text) {
+    return text;
   }
 
   const matchIndex = text.toLowerCase().indexOf(trimmedQuery.toLowerCase());
-
   if (matchIndex === -1) {
-    return <Fragment>{text}</Fragment>;
+    return text;
   }
 
   return (
