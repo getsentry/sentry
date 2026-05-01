@@ -89,9 +89,10 @@ function SeerWorkflows() {
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <Container width="100%">
+          <Container width={{md: '100%', lg: '60%'}}>
             <RunsTable>
               <SimpleTable.Header>
+                <SimpleTable.HeaderCell />
                 <SimpleTable.HeaderCell />
                 <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell>{t('Workflow')}</SimpleTable.HeaderCell>
@@ -99,7 +100,6 @@ function SeerWorkflows() {
                 <SimpleTable.HeaderCell>{t('Max candidates')}</SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell>{t('Source')}</SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell />
               </SimpleTable.Header>
 
               {data?.length === 0 ? (
@@ -123,6 +123,20 @@ function SeerWorkflows() {
                           />
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
+                          {explorerRunId === null ? null : (
+                            <LinkButton
+                              size="xs"
+                              icon={<IconOpen />}
+                              to={{
+                                pathname: `/organizations/${organization.slug}/seer/workflows/`,
+                                query: {explorerRunId},
+                              }}
+                            >
+                              {t('Explorer')}
+                            </LinkButton>
+                          )}
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
                           <DateTime date={run.dateAdded} />
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>{t('Night Shift')}</SimpleTable.RowCell>
@@ -142,20 +156,6 @@ function SeerWorkflows() {
                             <Text variant="muted">{t('dry run')}</Text>
                           ) : (
                             run.issues.length
-                          )}
-                        </SimpleTable.RowCell>
-                        <SimpleTable.RowCell>
-                          {explorerRunId === null ? null : (
-                            <LinkButton
-                              size="xs"
-                              icon={<IconOpen />}
-                              to={{
-                                pathname: `/organizations/${organization.slug}/seer/workflows/`,
-                                query: {explorerRunId},
-                              }}
-                            >
-                              {t('Explorer')}
-                            </LinkButton>
                           )}
                         </SimpleTable.RowCell>
                       </SimpleTable.Row>
@@ -309,7 +309,7 @@ function RunDetail({
 }
 
 const RunsTable = styled(SimpleTable)`
-  grid-template-columns: min-content 1fr 1fr 1fr 1fr 1fr 1fr min-content;
+  grid-template-columns: min-content min-content 1fr 1fr 1fr 1fr 1fr 1fr;
 `;
 
 function getExplorerRunId(run: SeerNightShiftRun): number | string | null {
