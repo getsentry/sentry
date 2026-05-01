@@ -258,18 +258,26 @@ def run_night_shift_execution(
 
     eligible_projects = [ep.project for ep in eligible]
     agent_run_id = None
+
+    def _persist_agent_run_id(started_id: int) -> None:
+        # Persist as soon as the agent starts so the workflows UI can show
+        # the Explorer link immediately, instead of waiting for the full
+        # triage (and downstream autofix) to complete.
+        nonlocal agent_run_id
+        agent_run_id = started_id
+        run.update(extras={**run.extras, "agent_run_id": started_id})
+        log_extra["agent_run_id"] = started_id
+
     try:
-        candidates, agent_run_id = agentic_triage_strategy(
+        candidates, _ = agentic_triage_strategy(
             eligible_projects,
             organization,
             resolved_options["max_candidates"],
             intelligence_level=resolved_options["intelligence_level"],
             reasoning_effort=resolved_options["reasoning_effort"],
             extra_triage_instructions=resolved_options["extra_triage_instructions"],
+            on_agent_run_started=_persist_agent_run_id,
         )
-        if agent_run_id is not None:
-            run.update(extras={**run.extras, "agent_run_id": agent_run_id})
-            log_extra["agent_run_id"] = agent_run_id
     except Exception:
         sentry_sdk.metrics.count("night_shift.run_error", 1)
         _fail_run(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import textwrap
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import pydantic
 import sentry_sdk
@@ -51,12 +51,18 @@ def agentic_triage_strategy(
     intelligence_level: IntelligenceLevel = DEFAULT_INTELLIGENCE_LEVEL,
     reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
     extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
+    on_agent_run_started: Callable[[int], None] | None = None,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Select candidates via fixability scoring, then use the Seer Agent
     to investigate each candidate and decide the appropriate action.
 
     Returns a tuple of (triage_results, agent_run_id).
+
+    on_agent_run_started, if provided, is called with the agent run id as
+    soon as the Seer Agent run is started — before the agent has finished
+    polling. This lets callers surface the run id to users (e.g. an
+    Explorer link) without waiting for the full triage to complete.
     """
     # TODO: try a new way to get scored issues
     scored = fixability_score_strategy(projects, max_candidates)
@@ -69,6 +75,7 @@ def agentic_triage_strategy(
         intelligence_level=intelligence_level,
         reasoning_effort=reasoning_effort,
         extra_triage_instructions=extra_triage_instructions,
+        on_agent_run_started=on_agent_run_started,
     )
 
 
@@ -79,6 +86,7 @@ def _triage_candidates(
     intelligence_level: IntelligenceLevel,
     reasoning_effort: ReasoningEffort,
     extra_triage_instructions: str,
+    on_agent_run_started: Callable[[int], None] | None = None,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Start a Seer Agent run to investigate candidate issues and return
@@ -108,6 +116,9 @@ def _triage_candidates(
             artifact_key="triage_verdicts",
             artifact_schema=_TriageResponse,
         )
+
+        if on_agent_run_started is not None:
+            on_agent_run_started(agent_run_id)
 
         logger.info(
             "night_shift.explorer_run_started",
