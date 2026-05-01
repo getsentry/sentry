@@ -6,6 +6,8 @@ import type {State} from '@popperjs/core';
 import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence} from 'framer-motion';
 
+import {usePortalContainer} from '@sentry/scraps/layer';
+
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
@@ -92,11 +94,10 @@ function HovercardContent({
   header,
   hoverOverlayState: {arrowData, arrowProps, overlayProps, placement, update},
 }: HovercardContentProps) {
-  const theme = useTheme();
   const ref = useUpdateOverlayPositionOnContentChange({update});
 
   return (
-    <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
+    <PositionWrapper {...overlayProps}>
       <StyledHovercard
         animated={animated}
         arrowProps={{
@@ -125,10 +126,11 @@ function Hovercard({
   offset = 12,
   displayTimeout = 100,
   animated = true,
-  portalContainer = document.body,
+  portalContainer,
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
   const theme = useTheme();
+  const layerPortal = usePortalContainer();
   const {wrapTrigger, isOpen, snapClosed, ...hoverOverlayState} = useHoverOverlay({
     offset,
     displayTimeout,
@@ -181,7 +183,7 @@ function Hovercard({
   return (
     <HovercardContext.Provider value={contextValue}>
       {wrapTrigger(children)}
-      {createPortal(hovercard, portalContainer)}
+      {createPortal(hovercard, portalContainer ?? layerPortal ?? document.body)}
     </HovercardContext.Provider>
   );
 }
