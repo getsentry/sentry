@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -405,6 +405,64 @@ function SingleViewLayout({
   toggle: React.ReactNode;
   rightControls?: React.ReactNode;
 }) {
+  const wheelCooldownRef = useRef(false);
+  const pressTimeoutRef = useRef<number | undefined>(undefined);
+  const cooldownTimeoutRef = useRef<number | undefined>(undefined);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const navStateRef = useRef({onNavigateSingleView, canNavigateNext, canNavigatePrev});
+  navStateRef.current = {onNavigateSingleView, canNavigateNext, canNavigatePrev};
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const handler = (e: WheelEvent) => {
+      if (e.deltaY === 0) {
+        return;
+      }
+      e.preventDefault();
+      if (wheelCooldownRef.current) {
+        return;
+      }
+      const {
+        onNavigateSingleView: navigate,
+        canNavigateNext: canNext,
+        canNavigatePrev: canPrev,
+      } = navStateRef.current;
+      const isNext = e.deltaY > 0;
+      if (isNext ? !canNext : !canPrev) {
+        return;
+      }
+      wheelCooldownRef.current = true;
+      navigate(isNext ? 'next' : 'prev');
+
+      const btn = isNext ? navButtonRefs.next.current : navButtonRefs.prev.current;
+      const otherBtn = isNext ? navButtonRefs.prev.current : navButtonRefs.next.current;
+      if (btn) {
+        clearTimeout(pressTimeoutRef.current);
+        otherBtn?.removeAttribute('aria-pressed');
+        btn.setAttribute('aria-pressed', 'true');
+        pressTimeoutRef.current = window.setTimeout(
+          () => btn.removeAttribute('aria-pressed'),
+          150
+        );
+      }
+
+      clearTimeout(cooldownTimeoutRef.current);
+      cooldownTimeoutRef.current = window.setTimeout(() => {
+        wheelCooldownRef.current = false;
+      }, 120);
+    };
+    el.addEventListener('wheel', handler, {passive: false});
+    return () => {
+      el.removeEventListener('wheel', handler);
+      clearTimeout(pressTimeoutRef.current);
+      clearTimeout(cooldownTimeoutRef.current);
+    };
+  }, [navButtonRefs]);
+
   const card = (
     <SnapshotVariantFrame fillHeight>
       <CardHeader
@@ -445,7 +503,7 @@ function SingleViewLayout({
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />
-      <SingleViewScroll>
+      <SingleViewScroll ref={scrollRef}>
         <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
           <Flex direction="column" flex="1" minWidth="0">
             <DarkAware isDark={isDark}>
@@ -454,28 +512,30 @@ function SingleViewLayout({
               </SnapshotCardFrame>
             </DarkAware>
           </Flex>
-          <NavGutter onClick={e => e.stopPropagation()}>
-            <Tooltip title={t('Previous (↑)')} skipWrapper>
-              <Button
-                ref={navButtonRefs.prev}
-                size="sm"
-                icon={<IconArrow direction="up" />}
-                aria-label={t('Previous snapshot')}
-                disabled={!canNavigatePrev}
-                onClick={() => onNavigateSingleView('prev')}
-              />
-            </Tooltip>
-            <Tooltip title={t('Next (↓)')} skipWrapper>
-              <Button
-                ref={navButtonRefs.next}
-                size="sm"
-                icon={<IconArrow direction="down" />}
-                aria-label={t('Next snapshot')}
-                disabled={!canNavigateNext}
-                onClick={() => onNavigateSingleView('next')}
-              />
-            </Tooltip>
-          </NavGutter>
+          <Container flexShrink={0} onClick={e => e.stopPropagation()}>
+            <NavGutter>
+              <Tooltip title={t('Previous (↑)')} skipWrapper>
+                <Button
+                  ref={navButtonRefs.prev}
+                  size="sm"
+                  icon={<IconArrow direction="up" />}
+                  aria-label={t('Previous snapshot')}
+                  disabled={!canNavigatePrev}
+                  onClick={() => onNavigateSingleView('prev')}
+                />
+              </Tooltip>
+              <Tooltip title={t('Next (↓)')} skipWrapper>
+                <Button
+                  ref={navButtonRefs.next}
+                  size="sm"
+                  icon={<IconArrow direction="down" />}
+                  aria-label={t('Next snapshot')}
+                  disabled={!canNavigateNext}
+                  onClick={() => onNavigateSingleView('next')}
+                />
+              </Tooltip>
+            </NavGutter>
+          </Container>
         </Flex>
       </SingleViewScroll>
     </Flex>
@@ -658,17 +718,23 @@ const SingleViewScroll = styled('div')`
   flex-direction: column;
 `;
 
-// Sticky + vertically centered so the nav arrows sit at the viewport's
-// vertical center and stay reachable as the user scrolls tall images.
 const NavGutter = styled('div')`
   position: sticky;
   top: 50%;
   transform: translateY(-50%);
-  align-self: flex-start;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex-shrink: 0;
+
+  button[aria-pressed='true'] {
+    &::after {
+      transform: translateY(0px);
+    }
+    > span:last-child {
+      transform: translateY(0px);
+    }
+  }
 `;
 
 const ColorPickerWrapper = styled('div')`

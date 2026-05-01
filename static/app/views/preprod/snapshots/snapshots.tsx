@@ -445,10 +445,12 @@ export default function SnapshotsPage() {
     };
   }, [listItems, singleViewPosition]);
 
-  const navButtonRefs: NavButtonRefs = {
-    prev: useRef<HTMLButtonElement>(null),
-    next: useRef<HTMLButtonElement>(null),
-  };
+  const prevButtonRef = useRef<HTMLButtonElement>(null);
+  const nextButtonRef = useRef<HTMLButtonElement>(null);
+  const navButtonRefs = useMemo<NavButtonRefs>(
+    () => ({prev: prevButtonRef, next: nextButtonRef}),
+    []
+  );
 
   const pressTimeoutRef = useRef<number>(undefined);
   // Ref so the keydown handler reads latest state without re-registering.
