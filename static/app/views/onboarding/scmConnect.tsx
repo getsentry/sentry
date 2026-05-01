@@ -36,7 +36,7 @@ const SCM_INFO_SECTIONS = [
   {
     title: t('Never without your permission'),
     tooltip: t(
-      'If a feature needs more access to your code, we’ll always ask you first. No surprises.'
+      "If a feature needs more access to your code, we'll always ask you first. No surprises."
     ),
     icon: <IconClose size="xs" variant="danger" />,
     items: [
