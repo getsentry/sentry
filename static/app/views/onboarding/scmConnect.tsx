@@ -26,7 +26,6 @@ const SCM_INFO_SECTIONS = [
   {
     title: t('How we use access'),
     icon: <IconCheckmark size="xs" variant="success" />,
-    variant: 'success' as const,
     items: [
       t('Source code context: show code around errors'),
       t('Commit attribution: identify which commit introduced an issue'),
@@ -40,7 +39,6 @@ const SCM_INFO_SECTIONS = [
       'If a feature needs more access to your code, we’ll always ask you first. No surprises.'
     ),
     icon: <IconClose size="xs" variant="danger" />,
-    variant: 'danger' as const,
     items: [
       t('Train AI on your code'),
       t('Use your code for anything beyond debugging and support'),
