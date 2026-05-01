@@ -2,7 +2,7 @@ import {memo, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -15,6 +15,7 @@ import type {
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 import {ImageCard, PairCard} from './snapshotCards';
 import {MAX_IMAGE_HEIGHT} from './snapshotDiffBodies';
+import {SnapshotCardFrame} from './snapshotFrames';
 
 interface SnapshotListViewProps {
   imageBaseUrl: string;
@@ -66,8 +67,8 @@ interface GroupRow {
 
 const HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
-const CARD_GAP = 16;
-const GROUP_PADDING = 32;
+const CARD_GAP = 0;
+const GROUP_PADDING = 0;
 const ROW_PADDING_BOTTOM = 16;
 const LIST_CONTENT_WIDTH_ASSUMPTION = 900;
 
@@ -416,15 +417,10 @@ const GroupContainer = memo(function GroupContainer({
     );
   });
 
-  if (group.isUngrouped) {
-    return <Stack gap="md">{cards}</Stack>;
-  }
-
   return (
-    <Stack background="primary" border="primary" radius="md" padding="lg" gap="md">
-      <GroupHeader name={group.name} />
-      <Stack gap="md">{cards}</Stack>
-    </Stack>
+    <SnapshotCardFrame groupName={group.isUngrouped ? null : group.name}>
+      {cards}
+    </SnapshotCardFrame>
   );
 });
 

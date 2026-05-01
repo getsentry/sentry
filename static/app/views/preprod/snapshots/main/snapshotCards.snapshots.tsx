@@ -359,7 +359,6 @@ describe('SnapshotCards', () => {
             image={headImage}
             cardType="added"
             imageBaseUrl={imageBaseUrl}
-            headBranch="Current Branch"
             isSelected
             copyUrl={copyUrl}
             snapshotKey="button-light-added"
@@ -379,7 +378,6 @@ describe('SnapshotCards', () => {
             image={baseImage}
             cardType="removed"
             imageBaseUrl={imageBaseUrl}
-            headBranch="Current Branch"
             isSelected={false}
             copyUrl={copyUrl}
             snapshotKey="button-light-removed"

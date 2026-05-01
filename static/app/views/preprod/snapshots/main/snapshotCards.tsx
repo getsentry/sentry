@@ -28,6 +28,7 @@ import {
   SplitPairBody,
   WipeCardBody,
 } from './snapshotDiffBodies';
+import {SnapshotCanvasWrapper, SnapshotVariantFrame} from './snapshotFrames';
 
 export function DarkAware({
   isDark,
@@ -87,17 +88,19 @@ export const PairCard = memo(function PairCard({
   let body: React.ReactNode;
   if (effectiveMode === 'split') {
     body = (
-      <SplitPairBody
-        baseUrl={baseUrl}
-        headUrl={headUrl}
-        baseImage={pair.base_image}
-        headImage={image}
-        headLabel={headBranch ?? t('Head')}
-        altPrefix={getImageName(image)}
-        overlayColor={cardType === 'changed' ? overlayColor : undefined}
-        diffImageKey={cardType === 'changed' ? pair.diff_image_key : null}
-        diffImageBaseUrl={diffImageBaseUrl}
-      />
+      <SnapshotCanvasWrapper>
+        <SplitPairBody
+          baseUrl={baseUrl}
+          headUrl={headUrl}
+          baseImage={pair.base_image}
+          headImage={image}
+          headLabel={headBranch ?? t('Head')}
+          altPrefix={getImageName(image)}
+          overlayColor={cardType === 'changed' ? overlayColor : undefined}
+          diffImageKey={cardType === 'changed' ? pair.diff_image_key : null}
+          diffImageBaseUrl={diffImageBaseUrl}
+        />
+      </SnapshotCanvasWrapper>
     );
   } else if (effectiveMode === 'wipe') {
     body = (
@@ -121,8 +124,7 @@ export const PairCard = memo(function PairCard({
 
   return (
     <DarkAware isDark={isDark}>
-      <Card
-        isDark={isDark}
+      <SnapshotVariantFrame
         isSelected={isSelected}
         data-snapshot-key={snapshotKey}
         onClick={e => e.stopPropagation()}
@@ -139,9 +141,10 @@ export const PairCard = memo(function PairCard({
           onSelect={handleSelect}
           onDoubleClick={handleOpen}
           isSelected={isSelected}
+          showBottomBorder={false}
         />
-        {body}
-      </Card>
+        <Container padding="0 xl xl">{body}</Container>
+      </SnapshotVariantFrame>
     </DarkAware>
   );
 });
@@ -150,7 +153,6 @@ export const ImageCard = memo(function ImageCard({
   image,
   cardType,
   imageBaseUrl,
-  headBranch,
   isSelected,
   copyUrl,
   snapshotKey,
@@ -163,7 +165,6 @@ export const ImageCard = memo(function ImageCard({
   imageBaseUrl: string;
   isSelected: boolean;
   snapshotKey: string;
-  headBranch?: string | null;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
 }) {
@@ -180,7 +181,6 @@ export const ImageCard = memo(function ImageCard({
     status = DiffStatus.UNCHANGED;
   }
 
-  const label = headBranch ? (cardType === 'removed' ? t('Base') : headBranch) : null;
   const handleSelect = onSelectSnapshot
     ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
     : undefined;
@@ -188,8 +188,7 @@ export const ImageCard = memo(function ImageCard({
 
   return (
     <DarkAware isDark={isDark}>
-      <Card
-        isDark={isDark}
+      <SnapshotVariantFrame
         isSelected={isSelected}
         data-snapshot-key={snapshotKey}
         onClick={e => e.stopPropagation()}
@@ -205,14 +204,12 @@ export const ImageCard = memo(function ImageCard({
           onSelect={handleSelect}
           onDoubleClick={handleOpen}
           isSelected={isSelected}
+          showBottomBorder={false}
         />
-        <ImageColumn
-          label={label}
-          src={imageUrl}
-          alt={getImageName(image)}
-          image={image}
-        />
-      </Card>
+        <Container padding="0 xl xl">
+          <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
+        </Container>
+      </SnapshotVariantFrame>
     </DarkAware>
   );
 });
@@ -229,6 +226,7 @@ export const CardHeader = memo(function CardHeader({
   onSelect,
   onDoubleClick,
   isSelected,
+  showBottomBorder = true,
 }: {
   copyData: unknown;
   copyUrl: string;
@@ -240,6 +238,7 @@ export const CardHeader = memo(function CardHeader({
   isSelected?: boolean;
   onDoubleClick?: () => void;
   onSelect?: () => void;
+  showBottomBorder?: boolean;
   status?: DiffStatus | null;
 }) {
   const {copy} = useCopyToClipboard();
@@ -262,6 +261,7 @@ export const CardHeader = memo(function CardHeader({
       tabIndex={onSelect ? 0 : undefined}
       aria-pressed={onSelect ? isSelected : undefined}
       isInteractive={!!onSelect}
+      $showBottomBorder={showBottomBorder}
     >
       <Stack gap="xs" minWidth="0" flex="1">
         {displayName ? (
@@ -406,13 +406,17 @@ export const Card = styled(Container)<{isDark: boolean; isSelected: boolean}>`
   ${p => p.isDark && `color-scheme: dark;`}
 `;
 
-const CardHeaderRow = styled('div')<{isInteractive?: boolean}>`
+const CardHeaderRow = styled('div')<{
+  $showBottomBorder?: boolean;
+  isInteractive?: boolean;
+}>`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-bottom: ${p =>
+    p.$showBottomBorder ? `1px solid ${p.theme.tokens.border.secondary}` : 0};
   ${p =>
     p.isInteractive &&
     `

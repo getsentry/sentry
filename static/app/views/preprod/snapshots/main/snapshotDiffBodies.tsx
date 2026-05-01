@@ -48,7 +48,7 @@ export const SplitPairBody = memo(function SplitPairBody({
     <Container position="relative">
       <Grid columns="1fr 1fr" gap="0">
         <Stack minWidth="0">
-          <Container padding="sm xl" borderBottom="secondary">
+          <Container padding="sm xl">
             <Text size="xs" variant="muted" ellipsis monospace>
               {t('Base')}
             </Text>
@@ -65,7 +65,7 @@ export const SplitPairBody = memo(function SplitPairBody({
           </ZoomViewport>
         </Stack>
         <Stack minWidth="0" borderLeft="secondary">
-          <Container padding="sm xl" borderBottom="secondary">
+          <Container padding="sm xl">
             <Text size="xs" variant="muted" ellipsis monospace>
               {headLabel}
             </Text>
@@ -100,7 +100,6 @@ export const SplitPairBody = memo(function SplitPairBody({
 });
 
 export const ImageColumn = memo(function ImageColumn({
-  label,
   src,
   alt,
   image,
@@ -113,7 +112,6 @@ export const ImageColumn = memo(function ImageColumn({
   src: string;
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
-  label?: string | null;
   overlayColor?: string;
 }) {
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
@@ -123,14 +121,7 @@ export const ImageColumn = memo(function ImageColumn({
       : null;
   return (
     <Stack minWidth="0">
-      {label && (
-        <Container padding="sm xl" borderBottom="secondary">
-          <Text size="xs" variant="muted" ellipsis monospace>
-            {label}
-          </Text>
-        </Container>
-      )}
-      <Flex justify="center" padding="xl">
+      <Flex justify="center">
         <LazyImage
           src={src}
           alt={alt}
@@ -168,7 +159,7 @@ export const WipeCardBody = memo(function WipeCardBody({
     ? `${Math.min(Math.max(naturalHeight, WIPE_MIN_HEIGHT), MAX_IMAGE_HEIGHT)}px`
     : `${WIPE_MIN_HEIGHT}px`;
   return (
-    <Flex padding="xl">
+    <Flex>
       <ContentSliderDiff.Body
         before={
           <Flex justify="center" align="center" width="100%" height="100%">
@@ -226,7 +217,7 @@ export const OnionCardBody = memo(function OnionCardBody({
     height: maxH ? `${((headImage.height || 0) / maxH) * 100}%` : '100%',
   };
   return (
-    <Flex direction="column" gap="md" padding="lg" align="center">
+    <Flex direction="column" gap="md" align="center">
       <Container
         position="relative"
         width="100%"
