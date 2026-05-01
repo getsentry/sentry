@@ -102,7 +102,9 @@ function AppLayout({organization}: LayoutProps) {
           direction={{sm: 'column', md: 'row'}}
           position="relative"
         >
-          <Navigation />
+          <Layer variant="nav">
+            <Navigation />
+          </Layer>
           {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
           <ContentStack
             id="main"
