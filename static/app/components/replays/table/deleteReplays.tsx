@@ -114,7 +114,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
                   </ErrorBoundary>
                 ),
               renderConfirmButton: ({defaultOnClick}) => (
-                <Button onClick={defaultOnClick} priority="danger">
+                <Button onClick={defaultOnClick} variant="danger">
                   {t('Delete')}
                 </Button>
               ),
