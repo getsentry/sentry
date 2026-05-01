@@ -102,48 +102,46 @@ function DashboardRevisionsModal({
       <Header closeButton>
         <Heading as="h4">{t('Edit History')}</Heading>
       </Header>
-      <Body>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : isError ? (
+      <Body $noPadding>
+        {isPending && <LoadingIndicator />}
+        {isError && (
           <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
-        ) : (
-          <Flex direction="column" gap="md">
-            {isRestoreError && (
-              <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
-            )}
-            <Flex
-              direction="column"
-              style={{maxHeight: 'min(560px, calc(100vh - 350px))'}}
-              overflowY="auto"
-            >
+        )}
+        {isRestoreError && (
+          <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
+        )}
+        {!isPending && !isError && (
+          <Flex
+            direction="column"
+            maxHeight="min(560px, calc(100vh - 350px))"
+            overflowY="auto"
+          >
+            <RevisionListItem
+              isCurrentVersion
+              isSelected={isNewestVersionSelected}
+              onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
+              revisionSource={revisions?.[0]?.source ?? 'edit'}
+              createdBy={revisions?.[0]?.createdBy ?? dashboard.createdBy ?? null}
+              dateCreated={null}
+              dashboardId={dashboardId}
+              baseRevisionId={displayedRevisions[0]?.id ?? null}
+              snapshotOverride={dashboard}
+            />
+            {displayedRevisions.map((revision, index) => (
               <RevisionListItem
-                isCurrentVersion
-                isSelected={isNewestVersionSelected}
-                onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
-                revisionSource={revisions?.[0]?.source ?? 'edit'}
-                createdBy={revisions?.[0]?.createdBy ?? dashboard.createdBy ?? null}
-                dateCreated={null}
+                key={revision.id}
+                isSelected={revision.id === selectedRevisionId}
+                onSelect={() => setSelectedRevisionId(revision.id)}
+                // Each revision is saved before the operation that produces it,
+                // so the label and author for this entry come from the following revision.
+                revisionSource={revisions?.[index + 1]?.source ?? 'edit'}
+                createdBy={revisions?.[index + 1]?.createdBy ?? null}
+                dateCreated={revision.dateCreated}
                 dashboardId={dashboardId}
-                baseRevisionId={displayedRevisions[0]?.id ?? null}
-                snapshotOverride={dashboard}
+                revisionId={revision.id}
+                baseRevisionId={revisions?.[index + 1]?.id ?? null}
               />
-              {displayedRevisions.map((revision, index) => (
-                <RevisionListItem
-                  key={revision.id}
-                  isSelected={revision.id === selectedRevisionId}
-                  onSelect={() => setSelectedRevisionId(revision.id)}
-                  // Each revision is saved before the operation that produces it,
-                  // so the label and author for this entry come from the following revision.
-                  revisionSource={revisions?.[index + 1]?.source ?? 'edit'}
-                  createdBy={revisions?.[index + 1]?.createdBy ?? null}
-                  dateCreated={revision.dateCreated}
-                  dashboardId={dashboardId}
-                  revisionId={revision.id}
-                  baseRevisionId={revisions?.[index + 1]?.id ?? null}
-                />
-              ))}
-            </Flex>
+            ))}
           </Flex>
         )}
       </Body>

@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -48,8 +49,18 @@ function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
   );
 }
 
-const ModalBody = styled('section')`
+const ModalBody = styled('section')<{$noPadding?: boolean}>`
   font-size: ${p => p.theme.font.size.md};
+
+  ${p =>
+    p.$noPadding &&
+    css`
+      margin: 0 -${p.theme.space['2xl']};
+
+      @media (min-width: ${p.theme.breakpoints.md}) {
+        margin: 0 -${p.theme.space['3xl']};
+      }
+    `}
 
   p:last-child {
     margin-bottom: 0;

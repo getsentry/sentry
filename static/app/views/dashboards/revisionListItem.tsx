@@ -315,11 +315,12 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
 }
 
 const RevisionItem = styled('div')<{$isSelected: boolean}>`
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
+  margin: 0 ${p => p.theme.space['2xl']};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.md};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   cursor: pointer;
   transition: background 100ms ease;
   background: ${p =>
@@ -334,8 +335,17 @@ const RevisionItem = styled('div')<{$isSelected: boolean}>`
         : p.theme.tokens.background.secondary};
   }
 
-  &:last-child {
-    border-bottom: none;
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    margin: 0 ${p => p.theme.space['3xl']};
   }
 `;
 
