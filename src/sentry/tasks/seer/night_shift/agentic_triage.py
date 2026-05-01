@@ -52,13 +52,18 @@ def agentic_triage_strategy(
     intelligence_level: IntelligenceLevel = DEFAULT_INTELLIGENCE_LEVEL,
     reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
     extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
-    run: SeerNightShiftRun,
+    run: SeerNightShiftRun | None = None,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Select candidates via fixability scoring, then use the Seer Agent
     to investigate each candidate and decide the appropriate action.
 
     Returns a tuple of (triage_results, agent_run_id).
+
+    When `run` is provided, the agent run id is persisted onto
+    `run.extras` as soon as the Seer Agent run starts — before the agent
+    finishes polling — so the workflows UI can surface the Explorer link
+    without waiting for the full triage to complete.
     """
     # TODO: try a new way to get scored issues
     scored = fixability_score_strategy(projects, max_candidates)
@@ -82,7 +87,7 @@ def _triage_candidates(
     intelligence_level: IntelligenceLevel,
     reasoning_effort: ReasoningEffort,
     extra_triage_instructions: str,
-    run: SeerNightShiftRun,
+    run: SeerNightShiftRun | None = None,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Start a Seer Agent run to investigate candidate issues and return
@@ -113,7 +118,8 @@ def _triage_candidates(
             artifact_schema=_TriageResponse,
         )
 
-        run.update(extras={**run.extras, "agent_run_id": agent_run_id})
+        if run is not None:
+            run.update(extras={**run.extras, "agent_run_id": agent_run_id})
 
         logger.info(
             "night_shift.explorer_run_started",
