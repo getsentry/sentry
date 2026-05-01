@@ -1,12 +1,10 @@
 from sentry.incidents.grouptype import MetricIssue
-from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataSourceDetector
 from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestDataSourceDetectorCacheInvalidationSignals(BaseWorkflowTest):
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_data_source_detector_create(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -35,7 +33,6 @@ class TestDataSourceDetectorCacheInvalidationSignals(BaseWorkflowTest):
             assert len(result) == 2
             assert {d.id for d in result} == {detector.id, detector2.id}
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_data_source_detector_delete(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -58,7 +55,6 @@ class TestDataSourceDetectorCacheInvalidationSignals(BaseWorkflowTest):
             result = bulk_fetch_enabled_detectors("dsd_signal_test_2", "test")
             assert len(result) == 0
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_data_source_detectors_set(self) -> None:
         detector1 = self.create_detector(
             project=self.project, name="Detector 1", type=MetricIssue.slug

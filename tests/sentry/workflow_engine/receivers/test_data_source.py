@@ -1,11 +1,9 @@
 from sentry.incidents.grouptype import MetricIssue
-from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestDataSourceCacheInvalidationSignals(BaseWorkflowTest):
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_data_source_save(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug

@@ -6,7 +6,6 @@ from jsonschema import ValidationError
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -45,7 +44,6 @@ class DetectorSignalCacheInvalidationTests(TestCase):
 
 
 class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_detector_save(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -69,7 +67,6 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
             result = bulk_fetch_enabled_detectors("signal_test_1", "test")
             assert result[0].name == "Updated Detector Name"
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_detector_enabled_change(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -93,7 +90,6 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
             result = bulk_fetch_enabled_detectors("signal_test_2", "test")
             assert len(result) == 0
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_on_detector_delete(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -116,7 +112,6 @@ class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
             result = bulk_fetch_enabled_detectors("signal_test_3", "test")
             assert len(result) == 0
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_cache_invalidated_for_multiple_data_sources(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug

@@ -2,7 +2,6 @@ from unittest import mock
 from unittest.mock import patch
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.caches.detector import (
     CACHE_TTL,
     _DetectorCacheKey,
@@ -141,7 +140,6 @@ class TestProcessDataSources(BaseWorkflowTest):
 
 
 class TestGetDetectorsByDataSource(BaseWorkflowTest):
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_get_detectors_by_data_source__single_detector(self) -> None:
         detector = self.create_detector(project=self.project, name="Test Detector")
         data_source = self.create_data_source(source_id="12345", type="test")
@@ -155,7 +153,6 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             assert len(result) == 1
             assert result[0].id == detector.id
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_get_detectors_by_data_source__multiple_detectors(self) -> None:
         # Using MessageIssue detector type so that we're able to have multiple detectors on the same data source
         detector1 = self.create_detector(
@@ -188,7 +185,6 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         result = bulk_fetch_enabled_detectors("12345", "wrong_type")
         assert result == []
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_get_detectors_by_data_source__filters_disabled(self) -> None:
         detector1 = self.create_detector(
             project=self.project, name="Detector 1", type=MetricIssue.slug
@@ -204,7 +200,6 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         assert len(result) == 1
         assert result[0].id == detector1.id
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_get_detectors_by_data_source__cache_miss(self) -> None:
         detector1 = self.create_detector(
             project=self.project, name="Detector 1", type=MetricIssue.slug
@@ -236,7 +231,6 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             assert {d.id for d in cached_detectors} == {detector1.id, detector2.id}
             assert call_args[0][2] == CACHE_TTL
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_get_detectors_by_data_source__cache_hit(self) -> None:
         detector1 = self.create_detector(project=self.project, name="Detector 1")
         detector2 = self.create_detector(project=self.project, name="Detector 2")
@@ -253,7 +247,6 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             expected_cache_key = _detectors_by_data_source.key(_DetectorCacheKey("12345", "test"))
             mock_cache_get.assert_called_once_with(expected_cache_key)
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_get_detectors_by_data_source__eager_loading_cached(self) -> None:
         detector = self.create_detector(project=self.project, name="Test Detector")
         detector.workflow_condition_group = self.create_data_condition_group()
