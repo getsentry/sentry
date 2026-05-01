@@ -1330,7 +1330,7 @@ describe('SearchQueryBuilder', () => {
         name: 'browser.name',
       });
       expect(
-        within(browserNameOption).getByTestId('search-query-builder-suggestion-highlight')
+        within(browserNameOption).getByTestId('sqb-highlighted-match')
       ).toHaveTextContent('bro');
     });
 
@@ -1344,7 +1344,7 @@ describe('SearchQueryBuilder', () => {
         name: 'browser.name',
       });
       expect(
-        within(browserNameOption).getByTestId('search-query-builder-suggestion-highlight')
+        within(browserNameOption).getByTestId('sqb-highlighted-match')
       ).toHaveTextContent('bro');
     });
 
@@ -1358,9 +1358,7 @@ describe('SearchQueryBuilder', () => {
         name: 'browser.name',
       });
       expect(
-        within(browserNameOption).queryByTestId(
-          'search-query-builder-suggestion-highlight'
-        )
+        within(browserNameOption).queryByTestId('sqb-highlighted-match')
       ).not.toBeInTheDocument();
     });
 
@@ -3139,7 +3137,7 @@ describe('SearchQueryBuilder', () => {
 
         const firefoxOption = await screen.findByRole('option', {name: 'Firefox'});
         expect(
-          within(firefoxOption).getByTestId('search-query-builder-suggestion-highlight')
+          within(firefoxOption).getByTestId('sqb-highlighted-match')
         ).toHaveTextContent('Fir');
       });
 
@@ -3160,7 +3158,7 @@ describe('SearchQueryBuilder', () => {
 
         const safariOption = await screen.findByRole('option', {name: 'Safari'});
         expect(
-          within(safariOption).getByTestId('search-query-builder-suggestion-highlight')
+          within(safariOption).getByTestId('sqb-highlighted-match')
         ).toHaveTextContent('Sa');
       });
 

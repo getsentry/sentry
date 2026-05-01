@@ -25,7 +25,7 @@ export function HighlightText({query, text}: HighlightTextProps) {
         <HighlightedMatch
           as="span"
           variant="warning"
-          data-test-id="search-query-builder-suggestion-highlight"
+          data-test-id="sqb-highlighted-match"
         >
           {text.slice(matchIndex, matchIndex + trimmedQuery.length)}
         </HighlightedMatch>
