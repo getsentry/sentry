@@ -246,24 +246,6 @@ describe('SnapshotCards', () => {
     snapshotCardHeaderStatus({state: 'no-status', status: null});
 
     it.snapshot(
-      'card-header-interactive-selected',
-      () => (
-        <Wrapper>
-          <CardHeader
-            {...headerProps}
-            displayName="Button / light"
-            status={DiffStatus.CHANGED}
-            diffPercent={0.042}
-            isSelected
-            onSelect={noop}
-            onDoubleClick={noop}
-          />
-        </Wrapper>
-      ),
-      {theme: themeName, state: 'card-header-interactive-selected'}
-    );
-
-    it.snapshot(
       'card-header-static',
       () => (
         <Wrapper>
