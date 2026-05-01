@@ -652,7 +652,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -725,7 +725,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >

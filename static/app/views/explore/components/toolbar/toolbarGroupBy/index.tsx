@@ -118,7 +118,7 @@ export function ToolbarGroupByDropdown({
       {canDelete ? (
         <Button
           aria-label={t('Remove Column')}
-          priority="transparent"
+          variant="transparent"
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnDelete()}
@@ -126,7 +126,7 @@ export function ToolbarGroupByDropdown({
       ) : column.column ? (
         <Button
           aria-label={t('Clear Group By')}
-          priority="transparent"
+          variant="transparent"
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnChange('')}

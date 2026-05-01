@@ -92,7 +92,7 @@ export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
       <SidebarSection.Content>
         <Collapsible
           expandButton={({onExpand, numberOfHiddenItems}) => (
-            <Button priority="link" onClick={onExpand}>
+            <Button variant="link" onClick={onExpand}>
               {tn('Show %s other author', 'Show %s other authors', numberOfHiddenItems)}
             </Button>
           )}

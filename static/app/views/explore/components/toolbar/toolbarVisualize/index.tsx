@@ -116,7 +116,7 @@ export function ToolbarVisualizeDropdown({
       )}
       {onDelete ? (
         <Button
-          priority="transparent"
+          variant="transparent"
           icon={<IconDelete />}
           size="zero"
           onClick={onDelete}
