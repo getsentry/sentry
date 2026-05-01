@@ -187,7 +187,7 @@ export function InviteBanner({
           </Stack>
           <Grid flow="column" align="center" gap="md">
             <Button
-              priority="primary"
+              variant="primary"
               size="xs"
               onClick={openInviteModal}
               analyticsEventName="Github Invite Banner: View All"
@@ -288,7 +288,7 @@ function MemberCards({
         </Stack>
         <Button
           size="sm"
-          priority="primary"
+          variant="primary"
           onClick={openInviteModal}
           analyticsEventName="Github Invite Banner: View All"
           analyticsEventKey="github_invite_banner.view_all"
