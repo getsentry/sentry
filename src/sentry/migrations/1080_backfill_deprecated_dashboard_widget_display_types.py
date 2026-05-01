@@ -20,6 +20,12 @@ _TOP_N = 7
 
 _DEPRECATED_DISPLAY_TYPES = (_STACKED_AREA_CHART, _TOP_N)
 
+# top_n widgets had an implicit series limit of 5 (hardcoded TOP_N constant in
+# the frontend). Once coerced to area, the dashboard serializer requires limit
+# to be set on chart widgets that have group-by columns, so populate it
+# explicitly where it's missing.
+_TOP_N_DEFAULT_LIMIT = 5
+
 
 def backfill_deprecated_display_types(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
@@ -33,22 +39,35 @@ def backfill_deprecated_display_types(
 
     stacked_area has no frontend rendering path at all, so widgets stored
     with that value were already broken in the UI.
+
+    For top_n rows specifically, populate `limit` to 5 where it is missing.
+    The dashboard serializer rejects chart widgets with group-by columns and a
+    null limit, and every top_n widget by definition has group-by columns, so
+    coercing display_type alone would just swap one rejection for another on
+    the duplicate flow.
     """
     DashboardWidget = apps.get_model("sentry", "DashboardWidget")
 
     counts = {_STACKED_AREA_CHART: 0, _TOP_N: 0}
+    limit_set = 0
 
     for widget in RangeQuerySetWrapperWithProgressBar(
         DashboardWidget.objects.filter(display_type__in=_DEPRECATED_DISPLAY_TYPES)
     ):
         counts[widget.display_type] += 1
+        update_fields = ["display_type"]
+        if widget.display_type == _TOP_N and widget.limit is None:
+            widget.limit = _TOP_N_DEFAULT_LIMIT
+            update_fields.append("limit")
+            limit_set += 1
         widget.display_type = _AREA_CHART
-        widget.save(update_fields=["display_type"])
+        widget.save(update_fields=update_fields)
 
     logger.info(
-        "backfill_deprecated_display_types: complete, stacked_area=%d top_n=%d",
+        "backfill_deprecated_display_types: complete, stacked_area=%d top_n=%d limit_populated=%d",
         counts[_STACKED_AREA_CHART],
         counts[_TOP_N],
+        limit_set,
     )
 
 
