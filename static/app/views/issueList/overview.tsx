@@ -894,7 +894,7 @@ function IssueListOverviewInner({
     query,
     sort,
     issueCount: queryCount,
-    projects: selection.projects,
+    projectSlugs: [...new Set(groups.map(g => g.project.slug))],
     environments: selection.environments,
     dateRange: selection.datetime,
     displayedIssues: [
