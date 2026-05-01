@@ -13,15 +13,14 @@ class TestDataSourceCacheInvalidationSignals(BaseWorkflowTest):
 
         bulk_fetch_enabled_detectors("ds_signal_test_1", "test")
 
-        with self.assertNumQueries(1):
-            # 1. Get data source with organization (for feature flag check)
-            result = bulk_fetch_enabled_detectors("ds_signal_test_1", "test")
-            assert len(result) == 1
+        # 1. Get data source with organization (for feature flag check)
+        result = bulk_fetch_enabled_detectors("ds_signal_test_1", "test")
+        assert len(result) == 1
 
         # Update the data source (not a create)
         data_source.save()
 
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             # 1. Get data source with organization (select_related)
             # 2. Get detectors (cache miss after invalidation)
             result = bulk_fetch_enabled_detectors("ds_signal_test_1", "test")

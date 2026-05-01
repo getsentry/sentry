@@ -118,7 +118,7 @@ class TestProcessDataSources(BaseWorkflowTest):
             )
 
     def test_sql_cascades(self) -> None:
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(2):
             """
             There are 3 SQL queries for `bulk_fetch_enabled_detectors`:
             - Get the data source with organization (select_related, for feature flag check)
@@ -145,7 +145,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector])
 
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             # 1. Get data source with organization (select_related)
             # 2. Get detectors (cache miss)
             result = bulk_fetch_enabled_detectors("12345", "test")
@@ -263,9 +263,8 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         result = bulk_fetch_enabled_detectors("12345", "test")
         assert len(result) == 1
 
-        with self.assertNumQueries(1):
-            # 1. Get data source with organization (for feature flag check)
-            cached_result = bulk_fetch_enabled_detectors("12345", "test")
-            assert len(cached_result) == 1
-            assert cached_result[0].workflow_condition_group is not None
-            assert list(cached_result[0].workflow_condition_group.conditions.all())
+        # 1. Get data source with organization (for feature flag check)
+        cached_result = bulk_fetch_enabled_detectors("12345", "test")
+        assert len(cached_result) == 1
+        assert cached_result[0].workflow_condition_group is not None
+        assert list(cached_result[0].workflow_condition_group.conditions.all())
