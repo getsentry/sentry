@@ -138,8 +138,8 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
             condition_group=self.dcg_any,
             type="issue_category",
         ).exclude(id=self.dc_performance_any.id)
-        assert new_conditions.count() == 3
-        assert {c.comparison["value"] for c in new_conditions} == {13, 14, 15}
+        assert new_conditions.count() == 4
+        assert {c.comparison["value"] for c in new_conditions} == {11, 13, 14, 15}
         for condition in new_conditions:
             assert "include" not in condition.comparison
         dcg = DataConditionGroup.objects.get(id=self.dcg_any.id)
@@ -158,8 +158,8 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
             condition_group=self.dcg_any_short,
             type="issue_category",
         ).exclude(id=self.dc_performance_any_short.id)
-        assert new_conditions.count() == 3
-        assert {c.comparison["value"] for c in new_conditions} == {13, 14, 15}
+        assert new_conditions.count() == 4
+        assert {c.comparison["value"] for c in new_conditions} == {11, 13, 14, 15}
         dcg = DataConditionGroup.objects.get(id=self.dcg_any_short.id)
         assert dcg.logic_type == "any-short"
 
@@ -176,8 +176,8 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
             condition_group=self.dcg_none,
             type="issue_category",
         ).exclude(id=self.dc_performance_none.id)
-        assert new_conditions.count() == 3
-        assert {c.comparison["value"] for c in new_conditions} == {13, 14, 15}
+        assert new_conditions.count() == 4
+        assert {c.comparison["value"] for c in new_conditions} == {11, 13, 14, 15}
         for condition in new_conditions:
             assert condition.comparison.get("include") is False
         dcg = DataConditionGroup.objects.get(id=self.dcg_none.id)
