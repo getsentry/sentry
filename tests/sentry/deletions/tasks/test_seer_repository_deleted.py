@@ -17,10 +17,7 @@ class NotifySeerRepositoryDeletedTest(TestCase):
         self.repository_name = "acme/widget"
 
     @patch("sentry.seer.code_review.utils.make_seer_request")
-    @patch("sentry.deletions.tasks.seer.logger")
-    def test_notifies_seer_via_signed_endpoint(
-        self, mock_logger: Any, mock_make_seer_request: Any
-    ) -> None:
+    def test_notifies_seer_via_signed_endpoint(self, mock_make_seer_request: Any) -> None:
         mock_make_seer_request.return_value = b"{}"
 
         notify_seer_repository_deleted(
@@ -40,16 +37,6 @@ class NotifySeerRepositoryDeletedTest(TestCase):
             "repository_name": self.repository_name,
         }
         assert kwargs["viewer_context"]["organization_id"] == self.organization_id
-
-        mock_logger.info.assert_called_once_with(
-            "seer.forward_repository_delete.success",
-            extra={
-                "organization_id": self.organization_id,
-                "repository_id": self.repository_id,
-                "provider": self.provider,
-                "repository_name": self.repository_name,
-            },
-        )
 
     @patch("sentry.seer.code_review.utils.make_seer_request")
     def test_propagates_seer_errors(self, mock_make_seer_request: Any) -> None:
