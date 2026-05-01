@@ -32,7 +32,7 @@ export function MetricListBoxOption({
   const {optionProps, isFocused, isSelected, isDisabled, isPressed} = useOption(
     {
       key: item.key,
-      'aria-label': option.label,
+      'aria-label': option.metricName,
       shouldUseVirtualFocus: true,
       shouldSelectOnPressUp: true,
     },
