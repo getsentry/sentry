@@ -288,7 +288,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
           {t('No source code management integrations found.')}
         </Text>
         <LinkButton
-          priority="primary"
+          variant="primary"
           to={`/settings/${organization.slug}/integrations/?category=source+code+management`}
         >
           {t('Connect an Integration')}
