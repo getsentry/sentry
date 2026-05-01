@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.integrations.base import IntegrationFeatures
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -52,7 +53,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             workflow=self.workflow, action=action, group=self.group
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action}
@@ -85,7 +86,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action, action_3}
@@ -103,13 +104,13 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )  # shared action
         self.create_workflow_data_condition_group(workflow, action_group)
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        result = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # dedupes action if both workflows will fire it
-        assert set(triggered_actions) == {self.action}
+        assert set(result.actions) == {self.action}
         # Dedupes action so we have a single workflow_id -> environment to fire with
-        assert getattr(triggered_actions[0], "workflow_id") == self.workflow.id
+        assert getattr(result.actions[0], "workflow_id") == self.workflow.id
 
         assert WorkflowActionGroupStatus.objects.filter(action=self.action).count() == 2
 
@@ -127,7 +128,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status.update(date_updated=timezone.now() - timedelta(hours=1))
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # fires one action for the workflow that can fire it
@@ -280,7 +281,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
@@ -300,12 +301,107 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
         assert set(triggered_actions) == {self.action}
         assert getattr(triggered_actions[0], "workflow_id") == workflow.id
+
+    @with_feature("organizations:workflow-engine-deduplicate-actions")
+    def test_deduplicates_different_actions_with_same_dedup_key(self) -> None:
+        """
+        Two different Action objects with the same dedup_key (same type, config, data)
+        in different workflows should be deduplicated — only one action fires.
+        WAGS should be created for both workflows.
+        """
+        # Create a second workflow with a different action that has the same dedup_key
+        workflow_2 = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=self.detector, workflow=workflow_2)
+
+        # Create action_2 with identical config to self.action (same dedup_key)
+        action_2 = self.create_action(
+            type=self.action.type,
+            config=self.action.config,
+            data=self.action.data,
+            integration_id=self.action.integration_id,
+        )
+        assert action_2.get_dedup_key() == self.action.get_dedup_key()
+        assert action_2.id != self.action.id
+
+        action_group_2 = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group_2,
+            action=action_2,
+        )
+        self.create_workflow_data_condition_group(workflow_2, action_group_2)
+
+        result = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+
+        # Should deduplicate to a single action since both have the same dedup_key
+        assert len(result.actions) == 1
+
+        # workflow_ids should include both workflows for fire history tracking
+        assert result.workflow_ids == {self.workflow.id, workflow_2.id}
+
+        # WAGS should be created for both workflows
+        assert (
+            WorkflowActionGroupStatus.objects.filter(
+                action__in=[self.action, action_2], group=self.group
+            ).count()
+            == 2
+        )
+
+    @with_feature("organizations:workflow-engine-deduplicate-actions")
+    def test_deduplicates_different_actions_with_same_dedup_key__later_fire(self) -> None:
+        """
+        Same as above but with existing WAGS entries. Both workflows should be
+        marked as triggered even though only one action fires.
+        """
+        workflow_2 = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=self.detector, workflow=workflow_2)
+
+        action_2 = self.create_action(
+            type=self.action.type,
+            config=self.action.config,
+            data=self.action.data,
+            integration_id=self.action.integration_id,
+        )
+        assert action_2.get_dedup_key() == self.action.get_dedup_key()
+
+        action_group_2 = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group_2,
+            action=action_2,
+        )
+        self.create_workflow_data_condition_group(workflow_2, action_group_2)
+
+        # Both have old WAGS entries that should allow firing
+        status_1 = WorkflowActionGroupStatus.objects.create(
+            workflow=self.workflow, action=self.action, group=self.group
+        )
+        status_1.update(date_updated=timezone.now() - timedelta(days=1))
+        status_2 = WorkflowActionGroupStatus.objects.create(
+            workflow=workflow_2, action=action_2, group=self.group
+        )
+        status_2.update(date_updated=timezone.now() - timedelta(days=1))
+
+        result = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+
+        # Should deduplicate to a single action
+        assert len(result.actions) == 1
+
+        # workflow_ids should include both workflows
+        assert result.workflow_ids == {self.workflow.id, workflow_2.id}
+
+        # Both WAGS should be updated
+        for status in [status_1, status_2]:
+            status.refresh_from_db()
+            assert status.date_updated == timezone.now()
 
     def test_skips_action_with_no_workflow(self) -> None:
         orphan_group = self.create_data_condition_group(logic_type="any-short")
@@ -316,7 +412,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         # No WorkflowDataConditionGroup links orphan_group to any workflow
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             {self.action_group, orphan_group}, self.event_data
         )
 

@@ -13,6 +13,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow import workflow_status_update_handler
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.data_condition_group import TriggerResult
 from sentry.workflow_engine.processors.workflow import EvaluationStats
 from sentry.workflow_engine.tasks.utils import fetch_event
@@ -221,6 +222,7 @@ class TestProcessWorkflowActivity(TestCase):
     def test_process_workflow_activity(
         self, mock_logger: mock.MagicMock, mock_filter_actions: mock.MagicMock
     ) -> None:
+        mock_filter_actions.return_value = (Action.objects.none(), set())
         self.workflow = self.create_workflow(organization=self.organization)
 
         self.action_group = self.create_data_condition_group(logic_type="any-short")

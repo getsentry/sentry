@@ -569,17 +569,17 @@ def process_workflows(
 
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
 
-    actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
+    filtered = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
 
     workflow_evaluation_data.action_groups = actions_to_trigger
-    workflow_evaluation_data.triggered_actions = set(actions)
+    workflow_evaluation_data.triggered_actions = set(filtered.actions)
     workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
 
     sentry_sdk.set_tag(
         "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
     )
 
-    if not actions:
+    if not filtered.actions:
         return WorkflowEvaluation(
             tainted=True,
             msg="No actions to evaluate; filtered or not triggered",
@@ -587,10 +587,11 @@ def process_workflows(
         )
 
     fire_histories = create_workflow_fire_histories(
-        actions,
+        filtered.actions,
         event_data,
         is_delayed=False,
         start_timestamp=event_start_time,
+        workflow_ids=filtered.workflow_ids,
     )
 
     # Create mapping: workflow_id -> notification_uuid for propagation
@@ -600,6 +601,6 @@ def process_workflows(
             history.workflow_id: str(history.notification_uuid) for history in fire_histories
         }
 
-    fire_actions(actions, event_data, workflow_uuid_map=workflow_uuid_map)
+    fire_actions(filtered.actions, event_data, workflow_uuid_map=workflow_uuid_map)
 
     return WorkflowEvaluation(tainted=False, data=workflow_evaluation_data)
