@@ -12,7 +12,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import {KeyStats} from 'sentry/views/settings/project/projectKeys/details/keyStats';

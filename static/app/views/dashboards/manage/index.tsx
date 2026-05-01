@@ -54,7 +54,7 @@ import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
 import {

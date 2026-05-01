@@ -7,7 +7,6 @@ import type {Project} from 'sentry/types/project';
 import type {Config} from 'sentry/types/system';
 import {withConfig} from 'sentry/utils/withConfig';
 import {withOrganization} from 'sentry/utils/withOrganization';
-import {withProject} from 'sentry/utils/withProject';
 
 import {ComingSoon} from './comingSoon';
 
@@ -199,4 +198,4 @@ function Feature({
   return hasFeatureEnabled && children ? children : null;
 }
 
-export default withOrganization(withProject(withConfig(Feature)));
+export default withOrganization(withConfig(Feature));

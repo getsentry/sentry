@@ -16,7 +16,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import type {ProjectKey} from 'sentry/types/project';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
@@ -24,31 +24,33 @@ const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
 ];
 
-type RateLimitValue = {
+interface RateLimitValue {
   count: number;
   window: number;
-};
+}
 
-type Props = {
-  data: ProjectKey;
-  disabled: boolean;
-  organization: Organization;
-  updateData: (data: ProjectKey) => void;
-} & Pick<
+interface KeyRateLimitsFormProps extends Pick<
   RouteComponentProps<{
     keyId: string;
     projectId: string;
   }>,
   'params'
->;
+> {
+  data: ProjectKey;
+  disabled: boolean;
+  organization: Organization;
+  project: Project;
+  updateData: (data: ProjectKey) => void;
+}
 
 export function KeyRateLimitsForm({
   data,
   disabled,
   organization,
   params,
+  project,
   updateData,
-}: Props) {
+}: KeyRateLimitsFormProps) {
   const initialRateLimit = useMemo(() => data.rateLimit, [data.rateLimit]);
 
   const {keyId, projectId} = params;
@@ -101,12 +103,13 @@ export function KeyRateLimitsForm({
       <Feature
         features="projects:rate-limits"
         hookName="feature-disabled:rate-limits"
+        project={project}
         renderDisabled={({children, ...props}) =>
           typeof children === 'function' &&
           children({...props, renderDisabled: disabledAlert})
         }
       >
-        {({hasFeature, features, project, renderDisabled}) => (
+        {({hasFeature, features, renderDisabled}) => (
           <Panel>
             <PanelHeader>{t('Rate Limits')}</PanelHeader>
 

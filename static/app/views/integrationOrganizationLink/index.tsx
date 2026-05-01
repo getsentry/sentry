@@ -33,7 +33,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {

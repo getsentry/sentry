@@ -12,7 +12,7 @@ import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 
 import ProjectPluginRow from './projectPluginRow';
 

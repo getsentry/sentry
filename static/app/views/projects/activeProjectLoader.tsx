@@ -1,0 +1,162 @@
+import {useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
+
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {
+  addProjectFeaturesHandler,
+  buildSentryFeaturesHandler,
+} from 'sentry/utils/featureFlags';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+
+interface ChildFuncProps {
+  project: Project;
+}
+
+interface ActiveProjectLoaderProps {
+  children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
+  projectSlug: string;
+}
+
+function isNotFoundError(error: Error | null) {
+  return (error as RequestError | null)?.status === 404;
+}
+
+export function ActiveProjectLoader({children, projectSlug}: ActiveProjectLoaderProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {
+    initiallyLoaded: projectsInitiallyLoaded,
+    projects,
+    fetching: fetchingProjects,
+  } = useProjects({slugs: [projectSlug]});
+
+  const summaryProject = useMemo(
+    () => projects.find(({slug}) => slug === projectSlug) ?? null,
+    [projects, projectSlug]
+  );
+
+  const shouldFetchDetailedProject =
+    projectsInitiallyLoaded && !(summaryProject && !summaryProject.isMember);
+
+  const {
+    data: detailedProject,
+    error: detailedProjectError,
+    isFetching: isFetchingDetailedProject,
+    isPending: isDetailedProjectPending,
+    refetch,
+  } = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug},
+    {enabled: shouldFetchDetailedProject}
+  );
+
+  useEffect(() => {
+    if (!detailedProject) {
+      return;
+    }
+
+    if (detailedProject.slug !== projectSlug) {
+      redirectToProject(detailedProject.slug);
+      return;
+    }
+
+    addProjectFeaturesHandler({
+      project: detailedProject,
+      handler: buildSentryFeaturesHandler('feature.projects:'),
+    });
+  }, [detailedProject, projectSlug]);
+
+  useEffect(() => {
+    if (!summaryProject?.hasAccess) {
+      return;
+    }
+
+    fetchOrgMembers(api, organization.slug, [summaryProject.id]);
+  }, [api, organization.slug, summaryProject]);
+
+  const title = detailedProject?.slug ?? summaryProject?.slug ?? 'Sentry';
+
+  const loading =
+    fetchingProjects ||
+    !projectsInitiallyLoaded ||
+    (shouldFetchDetailedProject && isDetailedProjectPending);
+
+  if (loading) {
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        <div className="loading-full-layout">
+          <LoadingIndicator />
+        </div>
+      </SentryDocumentTitle>
+    );
+  }
+
+  if (summaryProject?.isMember === false) {
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        <ErrorWrapper>
+          <MissingProjectMembership
+            organization={organization}
+            project={summaryProject}
+          />
+        </ErrorWrapper>
+      </SentryDocumentTitle>
+    );
+  }
+
+  if (summaryProject?.slug && detailedProject?.slug === projectSlug) {
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        {typeof children === 'function' ? children({project: detailedProject}) : children}
+      </SentryDocumentTitle>
+    );
+  }
+
+  if (!summaryProject || isNotFoundError(detailedProjectError)) {
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        <Stack flex={1} padding="2xl 3xl">
+          <Alert.Container>
+            <Alert variant="warning" showIcon={false}>
+              {t('The project you were looking for was not found.')}
+            </Alert>
+          </Alert.Container>
+        </Stack>
+      </SentryDocumentTitle>
+    );
+  }
+
+  if (isFetchingDetailedProject) {
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        <div className="loading-full-layout">
+          <LoadingIndicator />
+        </div>
+      </SentryDocumentTitle>
+    );
+  }
+
+  return (
+    <SentryDocumentTitle noSuffix title={title}>
+      <LoadingError onRetry={() => refetch()} />
+    </SentryDocumentTitle>
+  );
+}
+
+const ErrorWrapper = styled('div')`
+  width: 100%;
+  margin: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
+`;

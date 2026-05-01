@@ -16,7 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import ProjectContext from 'sentry/views/projects/projectContext';
+import {ActiveProjectLoader} from 'sentry/views/projects/activeProjectLoader';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 
@@ -97,11 +97,11 @@ export default function ProjectSettingsLayout() {
 
   return (
     <AnalyticsArea name="project">
-      <ProjectContext projectSlug={params.projectId}>
+      <ActiveProjectLoader projectSlug={params.projectId}>
         {({project}) => (
           <InnerProjectSettingsLayout organization={organization} project={project} />
         )}
-      </ProjectContext>
+      </ActiveProjectLoader>
     </AnalyticsArea>
   );
 }

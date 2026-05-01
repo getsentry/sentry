@@ -13,11 +13,9 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Project} from 'sentry/types/project';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {withProject} from 'sentry/utils/withProject';
 
-type Props = {
+interface RouteErrorProps {
   /**
    * Disable logging to Sentry
    */
@@ -27,10 +25,9 @@ type Props = {
    */
   disableReport?: boolean;
   error?: Error;
-  project?: Project;
-};
+}
 
-function RouteError({error, disableLogSentry, disableReport, project}: Props) {
+export function RouteError({error, disableLogSentry, disableReport}: RouteErrorProps) {
   const matches = useMatches();
   const {organization} = useLegacyStore(OrganizationStore);
 
@@ -47,7 +44,6 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
       scope.setExtra('route', route);
       scope.setExtra('orgFeatures', organization?.features ?? []);
       scope.setExtra('orgAccess', organization?.access ?? []);
-      scope.setExtra('projectFeatures', project?.features ?? []);
       return scope;
     };
 
@@ -164,5 +160,3 @@ const Heading = styled('h1')`
   line-height: 1.4;
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-export default withProject(RouteError);
