@@ -96,6 +96,7 @@ PERFORMANCE_ISSUE_CATEGORIES = frozenset(
         GroupCategory.FRONTEND,
         GroupCategory.MOBILE,
         GroupCategory.HTTP_CLIENT,
+        GroupCategory.METRIC,
     }
 )
 

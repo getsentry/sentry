@@ -328,7 +328,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         )
 
         open_period_start: datetime | None = None
-        if event.group.issue_category == GroupCategory.UPTIME:
+        if event.group.issue_category == GroupCategory.OUTAGE:
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
 
@@ -414,7 +414,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         open_period_start: datetime | None = None
         if (
-            event.group.issue_category == GroupCategory.UPTIME
+            event.group.issue_category == GroupCategory.OUTAGE
             or event.group.issue_category == GroupCategory.METRIC_ALERT
         ):
             open_period_start = open_period_start_for_group(event.group)

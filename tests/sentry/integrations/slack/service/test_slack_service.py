@@ -269,7 +269,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             type(group),
             "issue_category",
             new_callable=mock.PropertyMock,
-            return_value=GroupCategory.UPTIME,
+            return_value=GroupCategory.OUTAGE,
         ):
             self.service.notify_all_threads_for_activity(activity=activity)
 
@@ -326,7 +326,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             type(group),
             "issue_category",
             new_callable=mock.PropertyMock,
-            return_value=GroupCategory.UPTIME,
+            return_value=GroupCategory.OUTAGE,
         ):
             self.service.notify_all_threads_for_activity(activity=activity)
 
@@ -380,7 +380,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             type(group),
             "issue_category",
             new_callable=mock.PropertyMock,
-            return_value=GroupCategory.UPTIME,
+            return_value=GroupCategory.OUTAGE,
         ):
             self.service.notify_all_threads_for_activity(activity=activity)
 
@@ -508,7 +508,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             type(group),
             "issue_category",
             new_callable=mock.PropertyMock,
-            return_value=GroupCategory.UPTIME,
+            return_value=GroupCategory.OUTAGE,
         ):
             self.service.notify_all_threads_for_activity(activity=activity)
 

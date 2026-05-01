@@ -1638,7 +1638,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         feedback_filter_decorator(process_workflow_engine_issue_alerts),
         feedback_filter_decorator(process_resource_change_bounds),
     ],
-    GroupCategory.METRIC_ALERT: [
+    GroupCategory.METRIC: [
         process_workflow_engine_metric_issues,
     ],
     GroupCategory.INSTRUMENTATION: [
