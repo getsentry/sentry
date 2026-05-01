@@ -58,11 +58,7 @@ def agentic_triage_strategy(
     Select candidates via fixability scoring, then use the Seer Agent
     to investigate each candidate and decide the appropriate action.
 
-    Returns a tuple of (triage_results, agent_run_id). The agent run id
-    is persisted onto `run.extras` as soon as the Seer Agent run starts
-    — before the agent finishes polling — so the workflows UI can
-    surface the Explorer link without waiting for the full triage to
-    complete.
+    Returns a tuple of (triage_results, agent_run_id).
     """
     # TODO: try a new way to get scored issues
     scored = fixability_score_strategy(projects, max_candidates)
