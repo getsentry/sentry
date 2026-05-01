@@ -494,7 +494,7 @@ export const useSeerExplorer = () => {
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
-    if (lastSentMessage === null) {
+    if (lastSentMessage === null || rawSessionData?.status === 'error') {
       return rawSessionData;
     }
 
