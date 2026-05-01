@@ -55,7 +55,7 @@ export function RawContent({
         },
         query: {
           minified: String(type === 'minified'),
-          thread_id: threadId === undefined ? undefined : String(threadId),
+          ...(threadId !== undefined && {thread_id: String(threadId)}),
         },
         headers: {Accept: '*/*; charset=utf-8'},
         staleTime: Infinity,
