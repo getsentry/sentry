@@ -8,10 +8,32 @@ import {
   useRef,
 } from 'react';
 import {createPortal} from 'react-dom';
+import * as Sentry from '@sentry/react';
 
 const NOOP_REF_CALLBACK: React.RefCallback<HTMLElement | null> = () => {};
 const EMPTY_STATE: SlotReducerState<any> = {};
 const NOOP_DISPATCH: React.Dispatch<SlotReducerAction<any>> = () => {};
+
+const reportedMissingProvider = new Set<string>();
+
+function reportMissingProvider(component: string, slotName: string): void {
+  const key = `${component}:${slotName}`;
+  if (reportedMissingProvider.has(key)) {
+    return;
+  }
+  reportedMissingProvider.add(key);
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('slot.component', component);
+    scope.setTag('slot.name', slotName);
+    scope.setFingerprint(['slot-missing-provider', component, slotName]);
+    Sentry.captureException(
+      new Error(
+        `<Slot.${component}> for slot "${slotName}" rendered without a <Slot.Provider>`
+      )
+    );
+  });
+}
 
 type Slot = string;
 type SlotValue = {counter: number; element: HTMLElement | null};
@@ -147,6 +169,7 @@ function makeSlotConsumer<T extends Slot>(options: {
     }, [dispatch, name]);
 
     if (!ctx) {
+      reportMissingProvider('Consumer', name);
       return null;
     }
 
@@ -200,6 +223,7 @@ function makeSlotOutlet<T extends Slot>(
     );
 
     if (!ctx) {
+      reportMissingProvider('Outlet', name);
       return props.children({ref: NOOP_REF_CALLBACK});
     }
 
@@ -223,6 +247,7 @@ function makeSlotFallback<T extends Slot>(
     const name = useContext(outletNameContext);
 
     if (!ctx) {
+      reportMissingProvider('Fallback', name ?? 'unknown');
       return null;
     }
 
