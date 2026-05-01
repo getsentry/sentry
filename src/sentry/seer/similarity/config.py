@@ -16,13 +16,7 @@ SEER_GROUPING_STABLE_VERSION = GroupingVersion.V1
 # - Rolled-out projects: Use this for ALL requests (both grouping and embeddings)
 # - Non-rolled-out projects: Never use this (use stable version for everything)
 # Set to None to disable rollout entirely
-SEER_GROUPING_NEW_VERSION: GroupingVersion | None = GroupingVersion.V2
-
-# Model version to migrate EA projects from new to next
 SEER_GROUPING_NEXT_VERSION: GroupingVersion | None = GroupingVersion.V2_1
-
-# Feature flag names
-SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE = "projects:similarity-grouping-model-upgrade"
 SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE = "projects:similarity-grouping-model-next"
 
 
@@ -31,19 +25,13 @@ def get_grouping_model_version(project: Project) -> GroupingVersion:
     Get the model version to use for grouping decisions for this project.
 
     Returns:
-        - Next version if rollout is enabled for this project (for migrating EA projects from new to next)
-        - New version if rollout is enabled for this project
+        - Next version if rollout is enabled for this project
         - Stable version otherwise
     """
     if SEER_GROUPING_NEXT_VERSION is not None and features.has(
         SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE, project
     ):
         return SEER_GROUPING_NEXT_VERSION
-
-    if SEER_GROUPING_NEW_VERSION is not None and features.has(
-        SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE, project
-    ):
-        return SEER_GROUPING_NEW_VERSION
 
     return SEER_GROUPING_STABLE_VERSION
 
@@ -61,10 +49,6 @@ def should_send_to_seer_for_training(
     2. The grouphash hasn't already been sent to that version
     """
     model_version = get_grouping_model_version(project)
-    if model_version == SEER_GROUPING_STABLE_VERSION:
-        return False
-
-    if grouphash_seer_latest_training_model == model_version.value:
-        return False
-
-    return True
+    is_stable = model_version == SEER_GROUPING_STABLE_VERSION
+    was_grouphash_already_sent = grouphash_seer_latest_training_model == model_version.value
+    return not (is_stable or was_grouphash_already_sent)
