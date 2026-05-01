@@ -204,7 +204,7 @@ export default function DataDownload() {
               'Make a new one with your latest data. Your old download will never see it coming.'
             )}
           </p>
-          <DownloadButton href={actionLink} priority="primary">
+          <DownloadButton href={actionLink} variant="primary">
             {t('Start a New Download')}
           </DownloadButton>
         </Body>
@@ -310,7 +310,7 @@ export default function DataDownload() {
       <Fragment>
         <p>{t('Need to make changes?')}</p>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() =>
             type === ExportQueryType.DISCOVER ? openInDiscover() : openInExplore()
           }
@@ -336,7 +336,7 @@ export default function DataDownload() {
         <Body>
           <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
           <LinkButton
-            priority="primary"
+            variant="primary"
             icon={<IconDownload />}
             href={`/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`}
           >

@@ -112,7 +112,7 @@ export function UserOverview({
                   <div>{identityLabel(identity)}</div>
                   <Button
                     icon={<IconNot />}
-                    priority="danger"
+                    variant="danger"
                     size="xs"
                     tooltipProps={{title: 'Disconnect Identity'}}
                     onClick={() => onIdentityDisconnect(identity)}
@@ -152,7 +152,7 @@ export function UserOverview({
                   <div>{auth.name}</div>
                   <Button
                     icon={<IconNot />}
-                    priority="danger"
+                    variant="danger"
                     size="xs"
                     tooltipProps={{title: 'Remove Authenticator'}}
                     onClick={() => onAuthenticatorRemove(auth)}

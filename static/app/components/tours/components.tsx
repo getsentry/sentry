@@ -453,7 +453,7 @@ export function TourGuide({
                             <div>{countText}</div>
                             {isDismissVisible && (
                               <Button
-                                priority="transparent"
+                                variant="transparent"
                                 onClick={handleDismiss}
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
@@ -533,10 +533,10 @@ const DescriptionRow = styled('div')`
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="primary" size="sm" />;
+  return <Button {...props} variant="primary" size="sm" />;
 }
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" size="sm" />;
+  return <Button {...props} variant="transparent" size="sm" />;
 }
 
 const BlurWindow = styled('div')`

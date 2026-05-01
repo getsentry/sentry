@@ -40,7 +40,7 @@ export function DocIntegrations() {
       <PageHeader title="Document Integrations">
         <Button
           onClick={() => openModal(deps => <DocIntegrationModal {...deps} />)}
-          priority="primary"
+          variant="primary"
           size="sm"
         >
           Create Doc Integration
