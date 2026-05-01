@@ -8,6 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
@@ -31,9 +32,15 @@ describe('ResultsSearchQueryBuilder', () => {
       url: '/organizations/org-slug/tags/',
       body: [{key: 'transaction', name: 'transaction', kind: FieldKind.FIELD}],
     });
+    // Pre-populate TagStore to eliminate race between async API response and user interaction
+    TagStore.loadTagsSuccess([
+      {key: 'transaction', name: 'transaction'},
+      {key: 'environment', name: 'environment'},
+      {key: 'user', name: 'user'},
+    ]);
   });
 
-  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
+  it('does not show function tags in has: dropdown', async () => {
     render(
       <ResultsSearchQueryBuilder
         query=""
@@ -70,7 +77,7 @@ describe('ResultsSearchQueryBuilder', () => {
     });
   });
 
-  it.isKnownFlake('shows normal tags, e.g. transaction, in the dropdown', async () => {
+  it('shows normal tags, e.g. transaction, in the dropdown', async () => {
     render(
       <ResultsSearchQueryBuilder
         query=""
