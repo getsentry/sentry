@@ -32,7 +32,7 @@ export function WelcomeSkipButton({
 
   if (asButton) {
     return (
-      <LinkButton priority="transparent" onClick={handleSkipOnboarding} to={to}>
+      <LinkButton variant="transparent" onClick={handleSkipOnboarding} to={to}>
         {children}
       </LinkButton>
     );

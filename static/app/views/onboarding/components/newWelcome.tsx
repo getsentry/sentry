@@ -210,7 +210,7 @@ export function NewWelcomeUI(props: StepProps) {
           {hasScmOnboarding ? (
             <MotionFlex {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%" justify="end">
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={handleComplete}
                 data-test-id="onboarding-welcome-start"
               >
@@ -238,7 +238,7 @@ export function NewWelcomeUI(props: StepProps) {
 
             <Flex align="center">
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={handleComplete}
                 data-test-id="onboarding-welcome-start"
               >
