@@ -572,6 +572,39 @@ class SyncReposForOrgGitLabTestCase(TestCase):
         assert len(repos) == 2
         assert repos[0].provider == "integrations:gitlab"
 
+    @responses.activate
+    def test_error_dict_response_raises_integration_error(self) -> None:
+        integration = self.create_provider_integration(
+            provider="gitlab",
+            name="Example Gitlab 2",
+            external_id="example2.gitlab.com:group-y",
+            metadata={
+                "instance": "example.gitlab.com",
+                "base_url": "https://example.gitlab.com",
+                "domain_name": "example.gitlab.com/group-y",
+                "verify_ssl": False,
+                "group_id": 1,
+                "webhook_secret": "secret123",
+            },
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="gitlab", config={}),
+            user=self.user,
+            external_id="gitlab456",
+            data={"access_token": "123456789"},
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/groups/1/projects?search=&simple=True&include_subgroups=False&page=1&per_page=100&order_by=last_activity_at",
+            json={"status": "error", "error": "group not accessible"},
+        )
+
+        with pytest.raises(IntegrationError, match="Expected list of projects"):
+            installation.get_repositories()
+
 
 @control_silo_test
 class SyncReposForOrgBitbucketTestCase(TestCase):
@@ -761,6 +794,21 @@ class SyncReposForOrgVstsTestCase(TestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
+
+    def test_vsts_message_from_error_handles_string_json(self) -> None:
+        integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts-account-id-2",
+            name="MyVSTSAccount",
+            metadata={"domain_name": "https://myvstsaccount.visualstudio.com/"},
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        exc = ApiForbiddenError("ADO OAuth tokens disabled")
+        exc.json = "ADO OAuth tokens disabled"
+        msg = installation.message_from_error(exc)
+        assert "unknown error" in msg
 
 
 @control_silo_test
