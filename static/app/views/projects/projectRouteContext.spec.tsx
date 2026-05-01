@@ -1,3 +1,4 @@
+import {useContext} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -5,14 +6,22 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {ActiveProjectLoader} from 'sentry/views/projects/activeProjectLoader';
+import {
+  ProjectRouteContext,
+  ProjectRouteProvider,
+} from 'sentry/views/projects/projectRouteContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/redirectToProject', () => ({
   redirectToProject: jest.fn(),
 }));
 
-describe('ActiveProjectLoader', () => {
+function ProjectSlug() {
+  const project = useContext(ProjectRouteContext);
+  return <div>{project?.slug}</div>;
+}
+
+describe('ProjectRouteProvider', () => {
   const project = ProjectFixture();
   const org = OrganizationFixture();
 
@@ -39,11 +48,11 @@ describe('ActiveProjectLoader', () => {
       statusCode: 404,
     });
 
-    const activeProject = (
-      <ActiveProjectLoader projectSlug={project.slug}>{null}</ActiveProjectLoader>
+    const projectRoute = (
+      <ProjectRouteProvider projectSlug={project.slug}>{null}</ProjectRouteProvider>
     );
 
-    render(activeProject, {organization: org});
+    render(projectRoute, {organization: org});
 
     const loading = screen.getByTestId('loading-indicator');
     const errorText = await screen.findByText(
@@ -63,16 +72,16 @@ describe('ActiveProjectLoader', () => {
       body: project,
     });
 
-    const activeProject = (
-      <ActiveProjectLoader projectSlug={project.slug}>{null}</ActiveProjectLoader>
+    const projectRoute = (
+      <ProjectRouteProvider projectSlug={project.slug}>{null}</ProjectRouteProvider>
     );
 
-    const {rerender} = render(activeProject, {organization: org});
+    const {rerender} = render(projectRoute, {organization: org});
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
     // Nothing should happen if we update and projectId is the same
-    rerender(activeProject);
+    rerender(projectRoute);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     const newProject = ProjectFixture({slug: 'new-slug'});
@@ -84,7 +93,7 @@ describe('ActiveProjectLoader', () => {
       body: newProject,
     });
 
-    rerender(<ActiveProjectLoader projectSlug="new-slug">{null}</ActiveProjectLoader>);
+    rerender(<ProjectRouteProvider projectSlug="new-slug">{null}</ProjectRouteProvider>);
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
   });
@@ -99,9 +108,9 @@ describe('ActiveProjectLoader', () => {
     });
 
     render(
-      <ActiveProjectLoader projectSlug={project.slug}>
-        {({project: activeProject}) => <div>{activeProject.slug}</div>}
-      </ActiveProjectLoader>,
+      <ProjectRouteProvider projectSlug={project.slug}>
+        <ProjectSlug />
+      </ProjectRouteProvider>,
       {organization: org}
     );
 
@@ -125,9 +134,12 @@ describe('ActiveProjectLoader', () => {
       body: ProjectFixture({slug: 'renamed-project'}),
     });
 
-    render(<ActiveProjectLoader projectSlug={project.slug}>{null}</ActiveProjectLoader>, {
-      organization: org,
-    });
+    render(
+      <ProjectRouteProvider projectSlug={project.slug}>{null}</ProjectRouteProvider>,
+      {
+        organization: org,
+      }
+    );
 
     await waitFor(() => {
       expect(redirectToProject).toHaveBeenCalledWith('renamed-project');

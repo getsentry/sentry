@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {createContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -22,12 +22,10 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-interface ChildFuncProps {
-  project: Project;
-}
+export const ProjectRouteContext = createContext<Project | null>(null);
 
-interface ActiveProjectLoaderProps {
-  children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
+interface ProjectRouteProviderProps {
+  children: React.ReactNode;
   projectSlug: string;
 }
 
@@ -35,7 +33,7 @@ function isNotFoundError(error: Error | null) {
   return (error as RequestError | null)?.status === 404;
 }
 
-export function ActiveProjectLoader({children, projectSlug}: ActiveProjectLoaderProps) {
+export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProviderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {
@@ -120,7 +118,7 @@ export function ActiveProjectLoader({children, projectSlug}: ActiveProjectLoader
   if (summaryProject?.slug && detailedProject?.slug === projectSlug) {
     return (
       <SentryDocumentTitle noSuffix title={title}>
-        {typeof children === 'function' ? children({project: detailedProject}) : children}
+        <ProjectRouteContext value={detailedProject}>{children}</ProjectRouteContext>
       </SentryDocumentTitle>
     );
   }
