@@ -27,6 +27,7 @@ export function HighlightText({query, text}: HighlightTextProps) {
         {text.slice(0, matchIndex)}
         <HighlightedMatch
           as="span"
+          variant="warning"
           data-test-id="search-query-builder-suggestion-highlight"
         >
           {text.slice(matchIndex, matchIndex + trimmedQuery.length)}
@@ -38,7 +39,7 @@ export function HighlightText({query, text}: HighlightTextProps) {
 }
 
 const HighlightedMatch = styled(Text)`
-  background: ${p => p.theme.tokens.background.warning.vibrant};
+  background: ${p => p.theme.tokens.background.transparent.warning.muted};
   border-radius: ${p => p.theme.radius.sm};
   padding: 0 1px;
 `;
