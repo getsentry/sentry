@@ -504,6 +504,11 @@ function IssueListOverviewInner({
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
+    total_issue_group_count: new Set(
+      Object.values(supergroupLookup)
+        .filter(sg => sg !== null)
+        .map(sg => sg.id)
+    ).size,
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
