@@ -9,8 +9,15 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 
+import {KNOWN_BRIDGED_CONTEXTS} from './knownContexts';
+
 type Slot = string;
-type SlotValue = {counter: number; element: HTMLElement | null};
+export type ContextBridge = {context: React.Context<any>; value: unknown};
+type SlotValue = {
+  contextBridges: ContextBridge[];
+  counter: number;
+  element: HTMLElement | null;
+};
 
 type SlotReducerState<T extends Slot> = Partial<Record<T, SlotValue>>;
 type SlotReducerAction<T extends Slot> =
@@ -30,6 +37,11 @@ type SlotReducerAction<T extends Slot> =
   | {
       name: T;
       type: 'unregister';
+    }
+  | {
+      contextBridges: ContextBridge[];
+      name: T;
+      type: 'set context bridges';
     };
 
 type SlotReducer<T extends Slot> = React.Reducer<
@@ -53,6 +65,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
         return {
           ...state,
           [action.name]: {
+            contextBridges: currentSlot?.contextBridges ?? [],
             element: currentSlot?.element ?? null,
             counter: (currentSlot?.counter ?? 0) + 1,
           },
@@ -75,6 +88,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
         return {
           ...state,
           [action.name]: {
+            contextBridges: state[action.name]?.contextBridges ?? [],
             counter: state[action.name]?.counter ?? 0,
             element: action.element,
           },
@@ -87,8 +101,20 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
         return {
           ...state,
           [action.name]: {
+            contextBridges: currentSlot?.contextBridges ?? [],
             counter: currentSlot?.counter ?? 0,
             element: null,
+          },
+        };
+      }
+      case 'set context bridges': {
+        const currentSlot = state[action.name];
+        return {
+          ...state,
+          [action.name]: {
+            contextBridges: action.contextBridges,
+            counter: currentSlot?.counter ?? 0,
+            element: currentSlot?.element ?? null,
           },
         };
       }
@@ -123,12 +149,27 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
   useSlotOutletRef: () => React.RefObject<HTMLElement | null>;
 };
 
+export function useContextBridges(contexts: Array<React.Context<any>>): ContextBridge[] {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- safe: contexts is a module constant with stable length
+  const values = contexts.map(ctx => useContext(ctx));
+  const prevRef = useRef<ContextBridge[]>([]);
+
+  const changed =
+    prevRef.current.length !== contexts.length ||
+    prevRef.current.some((bridge, i) => bridge.value !== values[i]);
+
+  if (changed) {
+    prevRef.current = contexts.map((ctx, i) => ({context: ctx, value: values[i]}));
+  }
+
+  return prevRef.current;
+}
+
 function makeSlotConsumer<T extends Slot>(options: {
   context: React.Context<SlotContextValue<T> | null>;
   outletNameContext: React.Context<T | null>;
-  providers?: React.ComponentType<{children: React.ReactNode}>;
 }) {
-  const {context, outletNameContext, providers: Providers} = options;
+  const {context, outletNameContext} = options;
 
   function SlotConsumer(props: SlotConsumerProps<T>): React.ReactNode {
     const ctx = useContext(context);
@@ -143,24 +184,23 @@ function makeSlotConsumer<T extends Slot>(options: {
       return () => dispatch({type: 'decrement counter', name});
     }, [dispatch, name]);
 
-    // Provide outletNameContext from the consumer so that portaled children
-    // (which don't descend through the outlet in the component tree) can still
-    // read which slot they belong to via useSlotOutletRef.
-    const wrappedChildren = (
+    const element = state[name]?.element;
+    if (!element) {
+      return null;
+    }
+
+    let content: React.ReactNode = (
       <outletNameContext.Provider value={name}>
         {props.children}
       </outletNameContext.Provider>
     );
 
-    const element = state[name]?.element;
-    const content = Providers ? (
-      <Providers>{wrappedChildren}</Providers>
-    ) : (
-      wrappedChildren
-    );
-
-    if (!element) {
-      return null;
+    const bridges = state[name]?.contextBridges;
+    if (bridges) {
+      for (let i = bridges.length - 1; i >= 0; i--) {
+        const bridge = bridges[i]!;
+        content = <bridge.context value={bridge.value}>{content}</bridge.context>;
+      }
     }
 
     return createPortal(content, element);
@@ -183,6 +223,14 @@ function makeSlotOutlet<T extends Slot>(
 
     const [, dispatch] = ctx;
     const {name} = props;
+
+    const contextBridges = useContextBridges(KNOWN_BRIDGED_CONTEXTS);
+
+    useLayoutEffect(() => {
+      dispatch({type: 'set context bridges', name, contextBridges});
+      return () => dispatch({type: 'set context bridges', name, contextBridges: []});
+    }, [dispatch, name, contextBridges]);
+
     const ref = useCallback(
       (element: HTMLElement | null) => {
         if (!element) {
@@ -268,10 +316,7 @@ function makeUseSlotOutletRef<T extends Slot>(
   };
 }
 
-export function slot<T extends readonly Slot[]>(
-  names: T,
-  options?: {providers?: React.ComponentType<{children: React.ReactNode}>}
-): SlotModule<T[number]> {
+export function slot<T extends readonly Slot[]>(names: T): SlotModule<T[number]> {
   type SlotName = T[number];
 
   const SlotContext = createContext<SlotContextValue<SlotName> | null>(null);
@@ -280,7 +325,6 @@ export function slot<T extends readonly Slot[]>(
   const Slot = makeSlotConsumer<SlotName>({
     context: SlotContext,
     outletNameContext: OutletNameContext,
-    providers: options?.providers,
   }) as SlotModule<SlotName>;
   Slot.Provider = makeSlotProvider<SlotName>(SlotContext);
   Slot.Outlet = makeSlotOutlet<SlotName>(SlotContext, OutletNameContext);
