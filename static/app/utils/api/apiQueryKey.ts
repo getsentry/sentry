@@ -6,16 +6,12 @@ export type RequestMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
 
 type ApiUrl = ReturnType<typeof getApiUrl>;
 
-export type QueryKeyEndpointOptions<
-  Headers = Record<string, string>,
-  Query = Record<string, any>,
-  Data = Record<string, any>,
-> = {
-  data?: Data;
-  headers?: Headers;
+export type QueryKeyEndpointOptions = {
+  data?: Record<string, unknown>;
+  headers?: Record<string, string>;
   host?: string;
   method?: RequestMethod;
-  query?: Query;
+  query?: Record<string, unknown>;
 };
 
 const apiUrlSchema = z.custom<ApiUrl>(val => typeof val === 'string');
@@ -107,8 +103,16 @@ export function parseQueryKey(
   return queryKeySchema.parse(queryKey);
 }
 
+const safeParseCache = new WeakMap<readonly unknown[], ParsedQueryKey | undefined>();
+
 export function safeParseQueryKey(
   queryKey: readonly unknown[]
 ): ParsedQueryKey | undefined {
-  return queryKeySchema.safeParse(queryKey).data;
+  if (safeParseCache.has(queryKey)) {
+    return safeParseCache.get(queryKey);
+  }
+
+  const result = queryKeySchema.safeParse(queryKey).data;
+  safeParseCache.set(queryKey, result);
+  return result;
 }

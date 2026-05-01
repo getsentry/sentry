@@ -219,18 +219,21 @@ def create_preprod_snapshot_status_check_task(
             title, subtitle, summary = format_first_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
+                project=preprod_artifact.project,
             )
         elif commit_comparison.base_sha:
             status = StatusCheckStatus.FAILURE
             title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
+                project=preprod_artifact.project,
             )
         else:
             status = StatusCheckStatus.SUCCESS
             title, subtitle, summary = format_generated_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
+                project=preprod_artifact.project,
             )
     else:
         status = _compute_snapshot_status(
@@ -248,6 +251,7 @@ def create_preprod_snapshot_status_check_task(
             status,
             base_artifact_map,
             changes_map,
+            project=preprod_artifact.project,
             approvals_map=approvals_map,
         )
         has_unapproved_changes = any(

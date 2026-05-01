@@ -157,7 +157,7 @@ export function WidgetQueries({
     );
 
     const resultValues = Object.values(rawResults);
-    let splitDecision: WidgetType | undefined = undefined;
+    let splitDecision: WidgetType | undefined;
     if (rawResults.meta) {
       splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
     } else if (Object.values(rawResults).length > 0) {

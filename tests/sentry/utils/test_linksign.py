@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.cell import get_local_locality
 from sentry.utils import linksign
 
@@ -77,6 +78,17 @@ class LinkSignTestCase(TestCase):
         req = rf.get(f"{api_path}?{parsed.query}")
         signed_user = linksign.process_signature(req)
         assert signed_user
+
+    def test_process_signature_suspended_user(self) -> None:
+        rf = RequestFactory()
+        url = linksign.generate_signed_link(self.user.id, "sentry")
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.update(is_suspended=True)
+
+        req = rf.get("/" + url.split("/", 3)[-1])
+        signed_user = linksign.process_signature(req)
+        assert signed_user is None
 
     def test_generate_signed_unsubscribe_link_domain_based(self) -> None:
         rf = RequestFactory()

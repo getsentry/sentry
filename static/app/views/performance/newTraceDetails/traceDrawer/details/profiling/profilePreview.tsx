@@ -123,7 +123,7 @@ export function ProfilePreview({
       }
     }
 
-    return undefined;
+    return;
   }, [
     canvasView,
     event,

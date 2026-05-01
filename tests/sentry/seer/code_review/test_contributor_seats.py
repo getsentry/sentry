@@ -61,6 +61,13 @@ class IsAutofixEnabledForRepoTest(TestCase):
 
         assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
 
+    def test_repo_is_inactive(self) -> None:
+        SeerProjectRepository.objects.create(project=self.project, repository=self.repo)
+        self.repo.status = ObjectStatus.DISABLED
+        self.repo.save()
+
+        assert _is_autofix_enabled_for_repo(self.organization, self.repo.id) is False
+
 
 class ShouldIncrementContributorSeatTest(TestCase):
     def setUp(self) -> None:

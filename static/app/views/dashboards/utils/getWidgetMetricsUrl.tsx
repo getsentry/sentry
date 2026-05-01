@@ -52,7 +52,7 @@ export function getWidgetMetricsUrl(
 
         const traceMetric = extractTraceMetricFromColumn(explodeFieldString(aggregate));
         if (!traceMetric) {
-          return undefined;
+          return;
         }
 
         return {

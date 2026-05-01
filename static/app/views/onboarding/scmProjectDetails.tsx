@@ -156,7 +156,7 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
         platform: selectedPlatform,
         team: teamSlugResolved,
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-        createNotificationAction: () => undefined,
+        createNotificationAction: () => {},
       });
 
       // Store the project slug separately so onboarding.tsx can find
@@ -253,7 +253,7 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
         <Flex align="center">{genBackButton?.()}</Flex>
         <Flex align="center" gap="md">
           <Button
-            priority="primary"
+            variant="primary"
             onClick={handleCreateProject}
             disabled={!canSubmit}
             busy={createProjectAndRules.isPending}

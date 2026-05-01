@@ -228,6 +228,34 @@ class PreprodExamples:
         "currentArtifact": EXAMPLE_BUILD_SUMMARY,
     }
 
+    EXAMPLE_SIZE_STATUS_CHECK_RULES = {
+        "enabled": True,
+        "rules": [
+            {
+                "id": "rule-1",
+                "metric": "install_size",
+                "measurement": "absolute_diff",
+                "value": "5000000",
+                "filterQuery": "app_id:com.example.app platform_name:apple build_configuration_name:Release",
+                "filters": [
+                    {
+                        "key": "app_id",
+                        "conditions": [{"operator": "equals", "values": ["com.example.app"]}],
+                    },
+                    {
+                        "key": "platform_name",
+                        "conditions": [{"operator": "equals", "values": ["apple"]}],
+                    },
+                    {
+                        "key": "build_configuration_name",
+                        "conditions": [{"operator": "equals", "values": ["Release"]}],
+                    },
+                ],
+                "artifactType": "main_artifact",
+            }
+        ],
+    }
+
     GET_LATEST_BUILD = [
         OpenApiExample(
             "Latest Build Only",
@@ -271,6 +299,15 @@ class PreprodExamples:
         OpenApiExample(
             "Completed Analysis with Comparison",
             value=EXAMPLE_SIZE_ANALYSIS_COMPLETED_WITH_COMPARISON,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    GET_SIZE_STATUS_CHECK_RULES = [
+        OpenApiExample(
+            "Configured Size Analysis Status Check Rules",
+            value=EXAMPLE_SIZE_STATUS_CHECK_RULES,
             status_codes=["200"],
             response_only=True,
         ),

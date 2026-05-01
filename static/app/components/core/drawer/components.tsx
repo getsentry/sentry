@@ -211,10 +211,7 @@ export const DrawerBody = styled('aside')`
 const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
   position: fixed;
   inset: 0;
-  /* Passive drawers have no backdrop, so elevate above tooltip to keep
-     behind-page tooltips from rendering over the drawer. */
-  z-index: ${p =>
-    p.mode === 'passive' ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.drawer};
+  z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {

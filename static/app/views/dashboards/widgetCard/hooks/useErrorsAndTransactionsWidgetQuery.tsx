@@ -245,7 +245,7 @@ export function useErrorsAndTransactionsSeriesQuery(
 
     const errorMessage = (() => {
       if (!error) {
-        return undefined;
+        return;
       }
 
       if (error.responseJSON?.detail) {
@@ -454,7 +454,7 @@ export function useErrorsAndTransactionsTableQuery(
 
     const errorMessage = (() => {
       if (!error) {
-        return undefined;
+        return;
       }
 
       if (error.responseJSON?.detail) {
