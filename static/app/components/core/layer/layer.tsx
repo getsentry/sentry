@@ -56,7 +56,6 @@ export const Layer = styled(
   }
 )<LayerProps>`
   isolation: isolate;
-  position: relative;
 `;
 
 export function useLayerContext(): LayerContextValue {
