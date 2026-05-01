@@ -150,14 +150,28 @@ describe('RuleNode', () => {
   it('renders choice string choice fields correctly', async () => {
     const fieldName = 'exampleStringChoiceField';
     const label = `Here is a string choice field {${fieldName}}`;
-    renderRuleNode(formNode(label));
+    renderRuleNode({
+      label,
+      id: 'sentry.rules.form_mock',
+      enabled: true,
+      formFields: {
+        exampleStringChoiceField: {
+          type: 'choice',
+          choices: [
+            ['value1', 'label1'],
+            ['value2', 'label2'],
+            ['value3', 'label3'],
+          ],
+        },
+      },
+    });
 
     // Should render the first option if no initial is provided
     expect(
       screen.getByText('Here is a string choice field').parentElement
     ).toHaveTextContent(labelReplacer(label, {[`{${fieldName}}`]: 'label1'}));
 
-    await selectEvent.select(screen.getByText('label1'), 'label3');
+    await selectEvent.select(await screen.findByText('label1'), 'label3');
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, 'value3');
   });
 
