@@ -360,8 +360,10 @@ export function SnapshotListView({
             (stickyHeaderTop + HEADER_HEIGHT) +
             STICKY_HEADER_BOTTOM_OVERLAP
         );
+  // detached frame is to detect when the top of the active group has not yet hit the control container and needs top border styling
   const stickyHeaderHasDetachedFrame =
     scrollTop < scrollContainerPaddingTop || stickyHeaderTranslateY > 0;
+  // bottom frame is to detect when the sticky header is near the bottom of the group container
   const stickyHeaderHasBottomFrame = stickyHeaderTranslateY < 0;
   const stickyHeaderStyle = {
     '--sticky-header-translate-y': `${stickyHeaderTranslateY}px`,
