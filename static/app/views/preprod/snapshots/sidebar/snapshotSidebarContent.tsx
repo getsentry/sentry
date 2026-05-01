@@ -1,11 +1,12 @@
 import {memo, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconChevron, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
@@ -38,8 +39,8 @@ const STATUS_PILLS: ReadonlyArray<{
   status: DiffStatus;
 }> = [
   {status: DiffStatus.CHANGED, color: 'accent', label: t('modified')},
-  {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.REMOVED, color: 'danger', label: t('removed')},
+  {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
   {status: DiffStatus.UNCHANGED, color: 'muted', label: t('unchanged')},
 ];
@@ -99,10 +100,10 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   }, [activeItemKey]);
 
   const [collapsed, setCollapsed] = useState<Set<DiffStatus>>(() => new Set());
-  const toggleCollapsed = (type: DiffStatus) => {
+  const toggleSection = (type: DiffStatus, expanded: boolean) => {
     setCollapsed(prev => {
       const next = new Set(prev);
-      if (next.has(type)) {
+      if (expanded) {
         next.delete(type);
       } else {
         next.add(type);
@@ -162,53 +163,58 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           const meta = sectionType ? STATUS_META[sectionType] : null;
           const isCollapsed = !!sectionType && collapsed.has(sectionType);
           const showHeader = !!meta && !!sectionType && sections.length > 1;
+          const items = section.groups.map(group => {
+            const isActive = group.key === activeItemKey;
+            return (
+              <SidebarItemRow
+                key={group.key}
+                data-item-key={group.key}
+                isSelected={isActive}
+                indented={showHeader}
+                onClick={e => {
+                  e.stopPropagation();
+                  onSelectItem(group.key);
+                }}
+              >
+                <Flex align="center" gap="sm" flex="1" minWidth="0">
+                  <Text
+                    size="md"
+                    variant={isActive ? 'accent' : 'muted'}
+                    bold={isActive}
+                    ellipsis
+                    onPointerEnter={setTitleOnOverflow}
+                  >
+                    {group.name}
+                  </Text>
+                </Flex>
+                <CountBadge>
+                  <Text variant="muted" size="xs">
+                    {group.count}
+                  </Text>
+                </CountBadge>
+              </SidebarItemRow>
+            );
+          });
+          if (!showHeader) {
+            return <Stack key={sectionType ?? 'solo'}>{items}</Stack>;
+          }
           return (
-            <Stack key={sectionType ?? 'solo'}>
-              {showHeader && meta && sectionType && (
-                <SectionHeader onClick={() => toggleCollapsed(sectionType)}>
-                  <ChevronWrapper isCollapsed={isCollapsed}>
-                    <IconChevron size="xs" direction="down" />
-                  </ChevronWrapper>
+            <SectionDisclosure
+              key={sectionType}
+              size="xs"
+              expanded={!isCollapsed}
+              onExpandedChange={expanded => toggleSection(sectionType, expanded)}
+            >
+              <Disclosure.Title>
+                <Flex align="center" gap="sm">
                   <Dot pillColor={meta.color} active />
                   <Text size="sm" bold>
                     {meta.label}
                   </Text>
-                </SectionHeader>
-              )}
-              {!isCollapsed &&
-                section.groups.map(group => {
-                  const isActive = group.key === activeItemKey;
-                  return (
-                    <SidebarItemRow
-                      key={group.key}
-                      data-item-key={group.key}
-                      isSelected={isActive}
-                      indented={showHeader}
-                      onClick={e => {
-                        e.stopPropagation();
-                        onSelectItem(group.key);
-                      }}
-                    >
-                      <Flex align="center" gap="sm" flex="1" minWidth="0">
-                        <Text
-                          size="md"
-                          variant={isActive ? 'accent' : 'muted'}
-                          bold={isActive}
-                          ellipsis
-                          onPointerEnter={setTitleOnOverflow}
-                        >
-                          {group.name}
-                        </Text>
-                      </Flex>
-                      <CountBadge>
-                        <Text variant="muted" size="xs">
-                          {group.count}
-                        </Text>
-                      </CountBadge>
-                    </SidebarItemRow>
-                  );
-                })}
-            </Stack>
+                </Flex>
+              </Disclosure.Title>
+              {!isCollapsed && items}
+            </SectionDisclosure>
           );
         })}
         {!hasGroups && (
@@ -301,27 +307,18 @@ const CountBadge = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
 `;
 
-const SectionHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  cursor: pointer;
-  user-select: none;
+const SectionDisclosure = styled(Disclosure)`
+  width: 100%;
+  align-items: stretch;
 
-  &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
   }
-`;
-
-const ChevronWrapper = styled('span')<{isCollapsed: boolean}>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 8px;
-  overflow: hidden;
-  transition: transform 100ms ease;
-  transform: rotate(${p => (p.isCollapsed ? '-90deg' : '0deg')});
 `;
 
 const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
