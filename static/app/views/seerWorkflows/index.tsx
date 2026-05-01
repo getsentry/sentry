@@ -89,7 +89,7 @@ function SeerWorkflows() {
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <Container width={{md: '100%', lg: '50%'}}>
+          <Container width="100%">
             <RunsTable>
               <SimpleTable.Header>
                 <SimpleTable.HeaderCell />
