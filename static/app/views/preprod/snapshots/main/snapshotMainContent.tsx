@@ -41,15 +41,22 @@ import {
 type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
 
+export interface NavButtonRefs {
+  next: React.RefObject<HTMLButtonElement | null>;
+  prev: React.RefObject<HTMLButtonElement | null>;
+}
+
 interface SnapshotMainContentProps {
   canNavigateNext: boolean;
   canNavigatePrev: boolean;
   comparisonType: 'diff' | 'solo' | undefined;
   diffImageBaseUrl: string;
   diffMode: DiffMode;
+  hasDiffComparison: boolean;
   imageBaseUrl: string;
   isSoloView: boolean;
   listItems: SidebarItem[];
+  navButtonRefs: NavButtonRefs;
   onDiffModeChange: (mode: DiffMode) => void;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onOverlayColorChange: (color: string) => void;
@@ -78,6 +85,7 @@ export function SnapshotMainContent({
   viewMode,
   onViewModeChange,
   listItems,
+  hasDiffComparison,
   isSoloView,
   onToggleSoloView,
   comparisonType,
@@ -89,6 +97,7 @@ export function SnapshotMainContent({
   onNavigateSingleView,
   canNavigatePrev,
   canNavigateNext,
+  navButtonRefs,
 }: SnapshotMainContentProps) {
   const [isDark, setIsDark] = useState(false);
   const toggleDark = () => setIsDark(v => !v);
@@ -119,7 +128,7 @@ export function SnapshotMainContent({
       </Flex>
     ) : null;
   let soloDiffToggle: React.ReactNode = null;
-  if (comparisonType === 'diff') {
+  if (hasDiffComparison) {
     soloDiffToggle = (
       <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
     );
@@ -137,7 +146,7 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <Flex align="center" justify="between" gap="md" padding="md 2xl md 0">
+        <Flex align="center" justify="between" gap="md" padding="md xl md 0">
           <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
             {toggle}
             {sortDropdown}
@@ -166,7 +175,7 @@ export function SnapshotMainContent({
   if (!selectedItem) {
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <Flex align="center" justify="between" gap="md" padding="md xl">
+        <Flex align="center" justify="between" gap="md" padding="md xl md 0">
           <Flex align="center" gap="md">
             {toggle}
             {sortDropdown}
@@ -199,6 +208,7 @@ export function SnapshotMainContent({
         canNavigatePrev={canNavigatePrev}
         canNavigateNext={canNavigateNext}
         onNavigateSingleView={onNavigateSingleView}
+        navButtonRefs={navButtonRefs}
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
@@ -245,6 +255,7 @@ export function SnapshotMainContent({
         canNavigatePrev={canNavigatePrev}
         canNavigateNext={canNavigateNext}
         onNavigateSingleView={onNavigateSingleView}
+        navButtonRefs={navButtonRefs}
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
@@ -283,6 +294,7 @@ export function SnapshotMainContent({
       canNavigatePrev={canNavigatePrev}
       canNavigateNext={canNavigateNext}
       onNavigateSingleView={onNavigateSingleView}
+      navButtonRefs={navButtonRefs}
       headerProps={{
         displayName: currentImage.display_name,
         fileName: currentImage.image_file_name,
@@ -304,6 +316,7 @@ function SingleViewLayout({
   canNavigatePrev,
   canNavigateNext,
   onNavigateSingleView,
+  navButtonRefs,
   headerProps,
   body,
   rightControls,
@@ -314,6 +327,7 @@ function SingleViewLayout({
   groupName: string | null;
   headerProps: Omit<React.ComponentProps<typeof CardHeader>, 'isDark' | 'onToggleDark'>;
   isDark: boolean;
+  navButtonRefs: NavButtonRefs;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onToggleDark: () => void;
   soloDiffToggle: React.ReactNode;
@@ -339,7 +353,7 @@ function SingleViewLayout({
         align="center"
         justify="between"
         gap="md"
-        padding="md xl"
+        padding="md xl md 0"
         onClick={e => e.stopPropagation()}
       >
         {toggle}
@@ -364,8 +378,9 @@ function SingleViewLayout({
             </DarkAware>
           </Flex>
           <NavGutter onClick={e => e.stopPropagation()}>
-            <Tooltip title={t('Previous')} skipWrapper>
+            <Tooltip title={t('Previous (↑)')} skipWrapper>
               <Button
+                ref={navButtonRefs.prev}
                 size="sm"
                 icon={<IconArrow direction="up" />}
                 aria-label={t('Previous snapshot')}
@@ -373,8 +388,9 @@ function SingleViewLayout({
                 onClick={() => onNavigateSingleView('prev')}
               />
             </Tooltip>
-            <Tooltip title={t('Next')} skipWrapper>
+            <Tooltip title={t('Next (↓)')} skipWrapper>
               <Button
+                ref={navButtonRefs.next}
                 size="sm"
                 icon={<IconArrow direction="down" />}
                 aria-label={t('Next snapshot')}
@@ -400,6 +416,7 @@ function SoloDiffToggle({
     <SegmentedControl
       size="xs"
       value={isSoloView ? 'head' : 'diff'}
+      aria-label={t('Comparison view')}
       onChange={value => {
         if ((value === 'head') !== isSoloView) {
           onToggleSoloView();
@@ -434,13 +451,13 @@ function ViewModeToggle({
         key="list"
         icon={<IconList />}
         aria-label={t('List view')}
-        tooltip={t('List view')}
+        tooltip={t('List view (←)')}
       />
       <SegmentedControl.Item
         key="single"
         icon={<IconExpand />}
         aria-label={t('Single image view')}
-        tooltip={t('Single image view')}
+        tooltip={t('Single image view (→)')}
       />
     </SegmentedControl>
   );
@@ -480,7 +497,7 @@ function ColorPickerButton({
 
   useEffect(() => {
     if (!isOpen) {
-      return undefined;
+      return;
     }
     function handleMouseDown(e: MouseEvent) {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
@@ -585,6 +602,15 @@ const NavGutter = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex-shrink: 0;
+
+  button[aria-pressed='true'] {
+    &::after {
+      transform: translateY(0px);
+    }
+    > span:last-child {
+      transform: translateY(0px);
+    }
+  }
 `;
 
 const SingleViewCard = styled(Card)`

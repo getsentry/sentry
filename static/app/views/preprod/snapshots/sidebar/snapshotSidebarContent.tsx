@@ -101,6 +101,7 @@ export function SnapshotSidebarContent({
             variant={isSelected ? 'accent' : 'muted'}
             bold={isSelected}
             ellipsis
+            onPointerEnter={setTitleOnOverflow}
           >
             {group.name}
           </Text>
@@ -220,6 +221,11 @@ function StatusPill({
   );
 }
 
+function setTitleOnOverflow(e: React.PointerEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  el.title = el.scrollWidth > el.clientWidth ? (el.textContent ?? '') : '';
+}
+
 const PillButton = styled('button')<{active: boolean}>`
   display: inline-flex;
   align-items: center;
@@ -278,15 +284,10 @@ const SidebarItemRow = styled('div')<{isSelected: boolean}>`
   cursor: pointer;
   border-right: 3px solid
     ${p => (p.isSelected ? p.theme.tokens.border.accent.vibrant : 'transparent')};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   background: ${p =>
     p.isSelected ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
-  }
-
-  &:last-child {
-    border-bottom: none;
   }
 `;

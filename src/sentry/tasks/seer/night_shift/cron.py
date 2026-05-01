@@ -13,7 +13,7 @@ from sentry import features, options, quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
+from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     SeerAutomationSource,
@@ -21,6 +21,7 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
@@ -80,33 +81,49 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
 @instrumented_task(
     name="sentry.tasks.seer.night_shift.schedule_night_shift",
     namespace=seer_tasks,
-    processing_deadline_duration=15 * 60,
+    processing_deadline_duration=30 * 60,
 )
-def schedule_night_shift(**kwargs: Any) -> None:
+def schedule_night_shift(
+    *,
+    run_options: SeerNightShiftRunOptionsPartial | None = None,
+    **kwargs: Any,
+) -> None:
     """
-    Nightly scheduler: iterates active orgs in batches, checks feature flags
-    in bulk, and dispatches per-org worker tasks with jitter.
+    Nightly scheduler: collects org ids that have a Seer-connected repo, then
+    dispatches per-org worker tasks in batches with jitter. Feature flags
+    still gate the dispatch — SeerProjectRepository rows can outlive a paid
+    Seer subscription.
+
+    The real cron caller passes nothing (defaults). Manual admin triggers
+    forward `run_options` so every per-org task inherits the same overrides
+    (source="manual", dry_run, max_candidates, etc.).
     """
     if not options.get("seer.night_shift.enable"):
         return
 
+    seer_org_ids: set[int] = set()
+    for spr in RangeQuerySetWrapper[SeerProjectRepository](
+        SeerProjectRepository.objects.filter(project__status=ObjectStatus.ACTIVE).select_related(
+            "project"
+        ),
+        step=1000,
+    ):
+        seer_org_ids.add(spr.project.organization_id)
+
     spread_seconds = int(NIGHT_SHIFT_SPREAD_DURATION.total_seconds())
     batch_index = 0
+    task_kwargs: dict[str, Any] = {"options": dict(run_options)} if run_options else {}
 
-    for org_batch in chunked(
-        RangeQuerySetWrapper[Organization](
-            Organization.objects.filter(status=OrganizationStatus.ACTIVE),
-            step=1000,
-        ),
-        100,
-    ):
+    for org_id_chunk in chunked(seer_org_ids, 100):
+        org_batch = list(
+            Organization.objects.filter(
+                id__in=list(org_id_chunk),
+                status=OrganizationStatus.ACTIVE,
+            )
+        )
         for org in _get_eligible_orgs_from_batch(org_batch):
             delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
-
-            run_night_shift_for_org.apply_async(
-                args=[org.id],
-                countdown=delay,
-            )
+            run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
             batch_index += 1
 
     sentry_sdk.metrics.count("night_shift.orgs_dispatched", batch_index)
@@ -240,7 +257,7 @@ def run_night_shift_execution(
         return None
 
     eligible_projects = [ep.project for ep in eligible]
-    agent_run_id = None
+    agent_run_id: int | None = None
     try:
         candidates, agent_run_id = agentic_triage_strategy(
             eligible_projects,
@@ -249,9 +266,9 @@ def run_night_shift_execution(
             intelligence_level=resolved_options["intelligence_level"],
             reasoning_effort=resolved_options["reasoning_effort"],
             extra_triage_instructions=resolved_options["extra_triage_instructions"],
+            run=run,
         )
         if agent_run_id is not None:
-            run.update(extras={**run.extras, "agent_run_id": agent_run_id})
             log_extra["agent_run_id"] = agent_run_id
     except Exception:
         sentry_sdk.metrics.count("night_shift.run_error", 1)
@@ -268,7 +285,7 @@ def run_night_shift_execution(
 
     seer_run_id_by_group: dict[int, str | None] = {}
     if not resolved_options["dry_run"]:
-        # Populate each candidate group's FK cache so trigger_autofix_explorer doesn't
+        # Populate each candidate group's FK cache so trigger_autofix_agent doesn't
         # re-fetch group.project on every call. Group.organization is a property that
         # delegates to self.project.organization, so caching the org on the project is
         # enough to avoid both lookups.
@@ -449,7 +466,7 @@ def _run_autofix_for_candidates(
         )
 
         try:
-            seer_run_id = trigger_autofix_explorer(
+            seer_run_id = trigger_autofix_agent(
                 group=c.group,
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,

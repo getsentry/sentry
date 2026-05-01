@@ -10,10 +10,13 @@ from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEv
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.agent.client_models import Artifact
+from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
-    trigger_autofix_explorer,
+    trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
@@ -25,9 +28,6 @@ from sentry.seer.autofix.utils import (
     read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.client_models import Artifact
-from sentry.seer.explorer.client_utils import fetch_run_status
-from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
 )
@@ -38,7 +38,7 @@ from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.seer.explorer.client_models import SeerRunState
+    from sentry.seer.agent.client_models import SeerRunState
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +57,9 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
 }
 
 
-class AutofixOnCompletionHook(ExplorerOnCompletionHook):
+class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
-    Hook called when an Explorer-based autofix run completes.
+    Hook called when an agent-based autofix run completes.
 
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
@@ -69,7 +69,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
         """
-        Execute the hook when the Explorer agent completes a step.
+        Execute the hook when the agent completes a step.
 
         Args:
             organization: The organization context
@@ -413,7 +413,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "stopping_point": stopping_point,
             },
         )
-        trigger_autofix_explorer(
+        trigger_autofix_agent(
             group=group,
             step=next_step,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,

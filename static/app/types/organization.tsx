@@ -24,9 +24,6 @@ export interface OrganizationSummary {
   codecovAccess: boolean;
   dateCreated: string;
   features: string[];
-  githubNudgeInvite: boolean;
-  githubPRBot: boolean;
-  gitlabPRBot: boolean;
   hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;

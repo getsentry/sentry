@@ -71,6 +71,50 @@ class TestCategorizeImageDiff:
         assert rename_dict["new_a.png"] == "old_a.png"
         assert rename_dict["new_b.png"] == "old_b.png"
 
+    def test_duplicate_hash_renames_matched_by_name_similarity(self) -> None:
+        head = SnapshotManifest(
+            images={
+                "badge-dark-beta.png": _meta("hash_same"),
+                "badge-light-beta.png": _meta("hash_same"),
+            }
+        )
+        base = SnapshotManifest(
+            images={
+                "old/badge-dark-beta.png": _meta("hash_same"),
+                "old/badge-light-beta.png": _meta("hash_same"),
+            }
+        )
+
+        result = categorize_image_diff(head, base)
+
+        assert len(result.renamed_pairs) == 2
+        rename_dict = dict(result.renamed_pairs)
+        assert rename_dict["badge-dark-beta.png"] == "old/badge-dark-beta.png"
+        assert rename_dict["badge-light-beta.png"] == "old/badge-light-beta.png"
+        assert result.added == set()
+        assert result.removed == set()
+
+    def test_asymmetric_duplicate_hash_partial_rename(self) -> None:
+        head = SnapshotManifest(
+            images={
+                "new-a.png": _meta("hash_dup"),
+                "new-b.png": _meta("hash_dup"),
+                "new-c.png": _meta("hash_dup"),
+            }
+        )
+        base = SnapshotManifest(
+            images={
+                "old-a.png": _meta("hash_dup"),
+                "old-b.png": _meta("hash_dup"),
+            }
+        )
+
+        result = categorize_image_diff(head, base)
+
+        assert len(result.renamed_pairs) == 2
+        assert result.removed == set()
+        assert len(result.added) == 1
+
 
 class TestCategorizeImageDiffSelective:
     def test_selective_all_categories(self) -> None:
@@ -149,6 +193,31 @@ class TestCategorizeImageDiffSelective:
         assert result.skipped == {"in_list.png"}
         assert result.added == set()
         assert result.removed == set()
+
+    def test_selective_duplicate_hash_skipped_rename(self) -> None:
+        head = SnapshotManifest(
+            images={
+                "new-dark.png": _meta("hash_dup"),
+                "new-light.png": _meta("hash_dup"),
+                "new-extra.png": _meta("hash_dup"),
+            },
+            selective=True,
+            all_image_file_names=["new-dark.png", "new-light.png", "new-extra.png", "skip.png"],
+        )
+        base = SnapshotManifest(
+            images={
+                "old-dark.png": _meta("hash_dup"),
+                "old-light.png": _meta("hash_dup"),
+                "skip.png": _meta("hash_dup"),
+            }
+        )
+
+        result = categorize_image_diff(head, base)
+
+        assert len(result.renamed_pairs) == 3
+        assert result.added == set()
+        assert result.removed == set()
+        assert result.skipped == set()
 
     def test_selective_empty_subset(self) -> None:
         head = SnapshotManifest(images={}, selective=True, all_image_file_names=["a.png", "b.png"])

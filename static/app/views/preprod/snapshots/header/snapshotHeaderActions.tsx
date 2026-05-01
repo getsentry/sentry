@@ -19,6 +19,7 @@ import {
   IconEllipsis,
   IconInfo,
   IconOpen,
+  IconReceipt,
   IconRefresh,
   IconThumb,
   IconTimer,
@@ -27,6 +28,7 @@ import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {openBuildDebugInfoModal} from 'sentry/views/preprod/snapshots/header/buildDebugInfoModal';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
@@ -229,6 +231,17 @@ export function SnapshotHeaderActions({
               ),
               onAction: handleRerunStatusChecks,
               textValue: t('Rerun Status Checks'),
+            },
+            {
+              key: 'build-debug-info',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconReceipt size="sm" />
+                  {t('Build Metadata')}
+                </Flex>
+              ),
+              onAction: () => openBuildDebugInfoModal(data),
+              textValue: t('Build Metadata'),
             },
             {
               key: 'delete',
