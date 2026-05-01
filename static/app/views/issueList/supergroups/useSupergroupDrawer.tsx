@@ -112,14 +112,6 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
       {
         ariaLabel: t('Issue group details'),
         drawerKey: 'supergroup-drawer',
-        shouldCloseOnInteractOutside: el => {
-          if (document.getElementById('modal-portal')?.contains(el)) {
-            return false;
-          }
-
-          const overlay = el.closest('[data-overlay]');
-          return !overlay || overlay.hasAttribute('data-drawer-backdrop');
-        },
         shouldCloseOnLocationChange: nextLocation =>
           !nextLocation.query[SUPERGROUP_DRAWER_QUERY_PARAM],
         onClose: () => stripDrawerParam(),

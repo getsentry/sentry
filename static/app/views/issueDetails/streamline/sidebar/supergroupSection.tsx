@@ -38,14 +38,6 @@ export function SupergroupSection({group}: SupergroupSectionProps) {
     openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
       ariaLabel: t('Issue group details'),
       drawerKey: 'supergroup-drawer',
-      shouldCloseOnInteractOutside: el => {
-        if (document.getElementById('modal-portal')?.contains(el)) {
-          return false;
-        }
-
-        const overlay = el.closest('[data-overlay]');
-        return !overlay || overlay.hasAttribute('data-drawer-backdrop');
-      },
     });
   };
 
