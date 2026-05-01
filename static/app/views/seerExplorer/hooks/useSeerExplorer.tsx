@@ -13,10 +13,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
-import {
-  isSessionComplete,
-  useSeerExplorerPolling,
-} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
@@ -317,10 +314,11 @@ export const useSeerExplorer = () => {
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {apiData, isPolling, isError, errorStatusCode} = useSeerExplorerPolling({
-    runId,
-    isMutatePending,
-  });
+  const {apiData, isPolling, isError, errorStatusCode, isResponseComplete} =
+    useSeerExplorerPolling({
+      runId,
+      isMutatePending,
+    });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -463,14 +461,6 @@ export const useSeerExplorer = () => {
     [orgSlug, runId, createPRMutate]
   );
 
-  // Clear interrupt button loading spinner on any completed state
-  const isComplete = isSessionComplete(apiData?.session);
-  useEffect(() => {
-    if (isComplete) {
-      setWaitingForInterrupt(false);
-    }
-  }, [isComplete]);
-
   // Detect PR creation errors and show error messages
   useEffect(() => {
     const currentPRStates = apiData?.session?.repo_pr_states ?? {};
@@ -493,11 +483,18 @@ export const useSeerExplorer = () => {
     previousPRStatesRef.current = currentPRStates;
   }, [apiData?.session?.repo_pr_states]);
 
+  // Clear interrupt button loading spinner on any completed state
+  useEffect(() => {
+    if (isResponseComplete) {
+      setWaitingForInterrupt(false);
+    }
+  }, [isResponseComplete]);
+
   const rawSessionData = apiData?.session ?? null;
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
-    if (!isPolling || lastSentMessage === null) {
+    if (isResponseComplete || lastSentMessage === null) {
       return rawSessionData;
     }
 
@@ -562,7 +559,7 @@ export const useSeerExplorer = () => {
       ...baseSession,
       blocks: visibleBlocks,
     };
-  }, [rawSessionData, runId, isPolling, lastSentMessage]);
+  }, [rawSessionData, runId, isResponseComplete, lastSentMessage]);
 
   return {
     sessionData: processedSessionData,
