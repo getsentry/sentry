@@ -554,14 +554,14 @@ class ExtractTextFromAttachmentsTest(TestCase):
 class ExtractSlackMessageLinksTest(TestCase):
     def test_top_level_permalink(self) -> None:
         text = "<https://acme.slack.com/archives/C0123456/p1700000000123456>"
-        result = extract_slack_message_links(text)
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
         assert result == [
             SlackMessageLink(channel_id="C0123456", ts="1700000000.123456", thread_ts=None)
         ]
 
     def test_top_level_permalink_with_label(self) -> None:
         text = "see <https://acme.slack.com/archives/C0123456/p1700000000123456|earlier discussion>"
-        result = extract_slack_message_links(text)
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
         assert result == [
             SlackMessageLink(channel_id="C0123456", ts="1700000000.123456", thread_ts=None)
         ]
@@ -571,7 +571,7 @@ class ExtractSlackMessageLinksTest(TestCase):
             "<https://acme.slack.com/archives/C0123456/p1700000000999999"
             "?thread_ts=1700000000.123456&cid=C0123456>"
         )
-        result = extract_slack_message_links(text)
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
         assert result == [
             SlackMessageLink(
                 channel_id="C0123456",
@@ -585,7 +585,7 @@ class ExtractSlackMessageLinksTest(TestCase):
             "compare <https://acme.slack.com/archives/C0123456/p1700000000111111> "
             "and <https://acme.slack.com/archives/C0123456/p1700000000222222|second>"
         )
-        result = extract_slack_message_links(text)
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
         assert result == [
             SlackMessageLink(channel_id="C0123456", ts="1700000000.111111"),
             SlackMessageLink(channel_id="C0123456", ts="1700000000.222222"),
@@ -596,7 +596,7 @@ class ExtractSlackMessageLinksTest(TestCase):
             "<https://acme.slack.com/archives/C0123456/p1700000000111111|one> "
             "<https://acme.slack.com/archives/C0123456/p1700000000111111|same>"
         )
-        result = extract_slack_message_links(text)
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
         assert result == [SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")]
 
     def test_filters_other_workspace_when_domain_provided(self) -> None:
@@ -607,37 +607,33 @@ class ExtractSlackMessageLinksTest(TestCase):
         result = extract_slack_message_links(text, domain_name="acme.slack.com")
         assert result == [SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")]
 
-    def test_accepts_any_workspace_when_domain_missing(self) -> None:
+    def test_doesnt_accept_any_workspace_when_domain_missing(self) -> None:
         text = (
             "<https://acme.slack.com/archives/C0123456/p1700000000111111> "
             "<https://other.slack.com/archives/C0123456/p1700000000222222>"
         )
         result = extract_slack_message_links(text)
-        assert len(result) == 2
-
-    def test_caps_at_five_links(self) -> None:
-        urls = " ".join(
-            f"<https://acme.slack.com/archives/C0123456/p17000000001{i:05d}>" for i in range(10)
-        )
-        result = extract_slack_message_links(urls)
-        assert len(result) == 5
+        assert len(result) == 0
 
     def test_ignores_non_slack_urls(self) -> None:
         text = "<https://sentry.io> <https://acme.slack.com/archives/C0123456/p1700000000111111>"
-        result = extract_slack_message_links(text)
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
         assert result == [SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")]
 
     def test_ignores_non_message_slack_urls(self) -> None:
         # Slack channel link without a /pXXXX message component should not match.
         text = "<https://acme.slack.com/archives/C0123456>"
-        assert extract_slack_message_links(text) == []
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == []
 
     def test_ignores_malformed_p_ts(self) -> None:
         text = "<https://acme.slack.com/archives/C0123456/p123>"
-        assert extract_slack_message_links(text) == []
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == []
 
     def test_no_links(self) -> None:
-        assert extract_slack_message_links("just talking, no links") == []
+        result = extract_slack_message_links("just texting", domain_name="acme.slack.com")
+        assert result == []
 
 
 class BuildLinkedMessagesContextTest(TestCase):
@@ -650,8 +646,6 @@ class BuildLinkedMessagesContextTest(TestCase):
         assert result == "User linked a Slack message in <#C0123456>:\n<@U123>: hello"
 
     def test_thread_reply_link_still_uses_message_header(self) -> None:
-        # We only ship the single linked message now, so even when the link
-        # points at a thread reply we label it "message".
         link = SlackMessageLink(
             channel_id="C0123456",
             ts="1700000000.222222",

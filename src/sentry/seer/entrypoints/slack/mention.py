@@ -131,9 +131,14 @@ def extract_slack_message_links(
     ``"acme.slack.com"``).  When provided, links pointing at any other
     workspace are skipped as the bot's token can't read them.
 
+    if ``domain_name`` is not proivded, we return an empty list.
+
     Results are deduped by ``(channel_id, ts)`` and capped at
     ``_MAX_LINKED_MESSAGES`` to bound API and token cost.
     """
+    if domain_name is None:
+        return []
+
     results: list[SlackMessageLink] = []
     seen: set[tuple[str, str]] = set()
 
