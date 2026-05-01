@@ -41,25 +41,21 @@ const STATUS_PILLS: ReadonlyArray<{
 
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
-  currentItemKey: string | null;
   groups: SidebarGroup[];
-  isAllSelected: boolean;
   onSearchChange: (query: string) => void;
-  onSelectAll: () => void;
   onSelectItem: (key: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
   searchQuery: string;
+  activeGroupName?: string | null;
   statusCounts?: StatusCounts | null;
 }
 
 export function SnapshotSidebarContent({
   groups,
-  currentItemKey,
-  isAllSelected,
+  activeGroupName,
   searchQuery,
   onSearchChange,
   onSelectItem,
-  onSelectAll,
   statusCounts,
   activeStatuses,
   onToggleStatus,
@@ -70,36 +66,42 @@ export function SnapshotSidebarContent({
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!listRef.current || !currentItemKey || isAllSelected) {
+    const container = listRef.current;
+    if (!container || !activeGroupName) {
       return;
     }
-    const el = listRef.current.querySelector(
-      `[data-item-name="${CSS.escape(currentItemKey)}"]`
+    const el = container.querySelector<HTMLElement>(
+      `[data-item-name="${CSS.escape(activeGroupName)}"]`
     );
-    el?.scrollIntoView({block: 'nearest'});
-  }, [currentItemKey, groups, isAllSelected]);
+    if (!el) {
+      return;
+    }
+    const cRect = container.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    if (eRect.top < cRect.top) {
+      container.scrollTop -= cRect.top - eRect.top;
+    } else if (eRect.bottom > cRect.bottom) {
+      container.scrollTop += eRect.bottom - cRect.bottom;
+    }
+  }, [activeGroupName]);
 
   const renderGroup = (group: SidebarGroup) => {
-    const isSelected = !isAllSelected && group.key === currentItemKey;
+    const isActive = group.key === activeGroupName;
     return (
       <SidebarItemRow
         key={group.key}
         data-item-name={group.key}
-        isSelected={isSelected}
+        isSelected={isActive}
         onClick={e => {
           e.stopPropagation();
-          if (isSelected) {
-            onSelectAll();
-          } else {
-            onSelectItem(group.key);
-          }
+          onSelectItem(group.key);
         }}
       >
         <Flex align="center" gap="sm" flex="1" minWidth="0">
           <Text
             size="md"
-            variant={isSelected ? 'accent' : 'muted'}
-            bold={isSelected}
+            variant={isActive ? 'accent' : 'muted'}
+            bold={isActive}
             ellipsis
             onPointerEnter={setTitleOnOverflow}
           >
@@ -129,18 +131,7 @@ export function SnapshotSidebarContent({
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={
-              currentItemKey
-                ? t(
-                    'Search %s %s components...',
-                    groups.find(g => g.key === currentItemKey)?.count ?? '',
-                    currentItemKey
-                  )
-                : t(
-                    'Search %s components...',
-                    groups.reduce((sum, g) => sum + g.count, 0)
-                  )
-            }
+            placeholder={t('Search components...')}
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />
@@ -167,24 +158,6 @@ export function SnapshotSidebarContent({
         )}
       </Stack>
       <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        <SidebarItemRow
-          isSelected={isAllSelected}
-          onClick={e => {
-            e.stopPropagation();
-            onSelectAll();
-          }}
-        >
-          <Flex align="center" gap="sm" flex="1" minWidth="0">
-            <Text
-              size="md"
-              variant={isAllSelected ? 'accent' : 'primary'}
-              bold={isAllSelected}
-              ellipsis
-            >
-              {t('All')}
-            </Text>
-          </Flex>
-        </SidebarItemRow>
         {groups.map(renderGroup)}
         {groups.length === 0 && (
           <Flex align="center" justify="center" padding="lg">
