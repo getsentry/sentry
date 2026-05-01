@@ -428,6 +428,7 @@ export function MetricSelector({
 
   const sidePanelAnchorPosition =
     sidePanelAnchorOffset === null ? undefined : {md: `${sidePanelAnchorOffset}px`};
+  const hasSelectedMetric = Boolean(traceMetric.name);
 
   return (
     <Container width="100%" position="relative">
@@ -584,27 +585,29 @@ export function MetricSelector({
                     )}
                   </Container>
                 </Stack>
-                <SidePanel
-                  ref={setSidePanelRef}
-                  top={
-                    isOverlayAboveTrigger
-                      ? undefined
-                      : (sidePanelAnchorPosition ?? {md: 0})
-                  }
-                  bottom={
-                    isOverlayAboveTrigger
-                      ? (sidePanelAnchorPosition ?? {md: 0})
-                      : undefined
-                  }
-                  width={{xs: '100%', md: '280px'}}
-                  padding="lg"
-                  minHeight="0"
-                >
-                  <MetricDetailPanel
-                    metric={highlightedOption ?? optionFromTraceMetric}
-                    hasMetricUnitsUI={hasMetricUnitsUI}
-                  />
-                </SidePanel>
+                {hasSelectedMetric ? (
+                  <SidePanel
+                    ref={setSidePanelRef}
+                    top={
+                      isOverlayAboveTrigger
+                        ? undefined
+                        : (sidePanelAnchorPosition ?? {md: 0})
+                    }
+                    bottom={
+                      isOverlayAboveTrigger
+                        ? (sidePanelAnchorPosition ?? {md: 0})
+                        : undefined
+                    }
+                    width={{xs: '100%', md: '280px'}}
+                    padding="lg"
+                    minHeight="0"
+                  >
+                    <MetricDetailPanel
+                      metric={highlightedOption ?? optionFromTraceMetric}
+                      hasMetricUnitsUI={hasMetricUnitsUI}
+                    />
+                  </SidePanel>
+                ) : null}
               </Flex>
             </FocusScope>
           </MetricSelectorOverlay>

@@ -516,6 +516,19 @@ describe('MetricSelector', () => {
       expect((await screen.findAllByText('bar')).length).toBeGreaterThan(0);
     });
 
+    it('does not render side panel when no metric is selected', async () => {
+      render(<MetricSelector traceMetric={{name: '', type: ''}} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'None'}));
+      await userEvent.hover(await screen.findByRole('option', {name: 'bar'}));
+
+      expect(screen.queryByText('Type')).not.toBeInTheDocument();
+      expect(screen.queryByText('Last seen')).not.toBeInTheDocument();
+      expect(screen.queryByText('Times seen')).not.toBeInTheDocument();
+    });
+
     it('shows attributes section in side panel', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
