@@ -28,6 +28,7 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
@@ -172,7 +173,7 @@ function Graph({
   const Title = (
     <Widget.WidgetTitle
       summary={
-        !visualize.visible && plottables.length ? (
+        !visualize.visible && plottablesCanBeVisualized(plottables) ? (
           <TimeSeriesWidgetVisualization
             plottables={plottables}
             notMerge={false}

@@ -29,6 +29,7 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottablesCanBeVisualized';
 
 import {formatXAxisValue} from './formatters/formatXAxisValue';
 import type {CategoricalPlottable} from './plottables/plottable';
@@ -76,7 +77,7 @@ interface CategoricalSeriesWidgetVisualizationProps {
 export function CategoricalSeriesWidgetVisualization(
   props: CategoricalSeriesWidgetVisualizationProps
 ) {
-  if (props.plottables.every(plottable => plottable.isEmpty)) {
+  if (!plottablesCanBeVisualized(props.plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
 
