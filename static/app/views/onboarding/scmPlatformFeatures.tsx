@@ -48,6 +48,15 @@ interface ResolvedPlatform extends DetectedPlatform {
   info: PlatformIntegration;
 }
 
+const FEATURE_DISPLAY_ORDER: ProductSolution[] = [
+  ProductSolution.ERROR_MONITORING,
+  ProductSolution.LOGS,
+  ProductSolution.SESSION_REPLAY,
+  ProductSolution.PERFORMANCE_MONITORING,
+  ProductSolution.PROFILING,
+  ProductSolution.METRICS,
+];
+
 const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
@@ -172,18 +181,16 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     });
   }, [detectedPlatformKey, selectedPlatform?.key, organization]);
 
-  const availableFeatures = useMemo(
-    () =>
-      currentPlatformKey
-        ? [
-            ...new Set([
-              ProductSolution.ERROR_MONITORING,
-              ...(platformProductAvailability[currentPlatformKey] ?? []),
-            ]),
-          ]
-        : [],
-    [currentPlatformKey]
-  );
+  const availableFeatures = useMemo(() => {
+    if (!currentPlatformKey) {
+      return [];
+    }
+    const features = new Set([
+      ProductSolution.ERROR_MONITORING,
+      ...(platformProductAvailability[currentPlatformKey] ?? []),
+    ]);
+    return FEATURE_DISPLAY_ORDER.filter(f => features.has(f));
+  }, [currentPlatformKey]);
 
   const disabledProducts = useMemo(
     () => getDisabledProducts(organization),
