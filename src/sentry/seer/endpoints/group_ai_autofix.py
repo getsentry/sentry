@@ -90,8 +90,6 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "solution",
             "code_changes",
             "open_pr",
-            "impact_assessment",
-            "triage",
             "coding_agent_handoff",
         ],
         default="root_cause",

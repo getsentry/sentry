@@ -190,10 +190,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     ]
                     for repo, patches in diffs_by_repo.items()
                 }
-        elif current_step == AutofixStep.IMPACT_ASSESSMENT:
-            webhook_action_type = SeerActionType.IMPACT_ASSESSMENT_COMPLETED
-        elif current_step == AutofixStep.TRIAGE:
-            webhook_action_type = SeerActionType.TRIAGE_COMPLETED
 
         if not webhook_action_type:
             return

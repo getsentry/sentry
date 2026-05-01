@@ -98,50 +98,6 @@ def code_changes_memory_block(referrer: str | None = None) -> MemoryBlock:
     )
 
 
-def triage_memory_block(referrer: str | None = None) -> MemoryBlock:
-    metadata: dict[str, str] = {"step": "triage"}
-    if referrer is not None:
-        metadata["referrer"] = referrer
-    return MemoryBlock(
-        id="block-triage",
-        message=Message(
-            role="assistant",
-            content="message triage",
-            metadata=metadata,
-        ),
-        timestamp="2026-02-10T00:00:00Z",
-        artifacts=[
-            Artifact(
-                key="triage",
-                data={},  # TODO
-                reason="explorer",
-            )
-        ],
-    )
-
-
-def impact_assessment_memory_block(referrer: str | None = None) -> MemoryBlock:
-    metadata: dict[str, str] = {"step": "impact_assessment"}
-    if referrer is not None:
-        metadata["referrer"] = referrer
-    return MemoryBlock(
-        id="block-impact-assessment",
-        message=Message(
-            role="assistant",
-            content="message impact assessment",
-            metadata=metadata,
-        ),
-        timestamp="2026-02-10T00:00:00Z",
-        artifacts=[
-            Artifact(
-                key="impact_assessment",
-                data={},  # TODO
-                reason="explorer",
-            )
-        ],
-    )
-
-
 class TestAutofixOnCompletionHookHelpers(TestCase):
     """Tests for helper methods in AutofixOnCompletionHook."""
 
@@ -220,11 +176,6 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
     def test_get_next_step_code_changes_is_last(self) -> None:
         """Returns None after CODE_CHANGES (last step)."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.CODE_CHANGES)
-        assert result is None
-
-    def test_get_next_step_unknown_step(self) -> None:
-        """Returns None for steps not in pipeline."""
-        result = AutofixOnCompletionHook._get_next_step(AutofixStep.TRIAGE)
         assert result is None
 
 
@@ -352,16 +303,6 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 "block": solution_memory_block(),
                 "expected_event": SeerActionType.SOLUTION_COMPLETED,
                 "expected_payload_key": "solution",
-            },
-            {
-                "block": triage_memory_block(),
-                "expected_event": SeerActionType.TRIAGE_COMPLETED,
-                "expected_payload_key": "triage",
-            },
-            {
-                "block": impact_assessment_memory_block(),
-                "expected_event": SeerActionType.IMPACT_ASSESSMENT_COMPLETED,
-                "expected_payload_key": "impact_assessment",
             },
         ]
 
