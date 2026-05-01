@@ -147,7 +147,7 @@ export function ToolbarGroupByAddGroupBy({add, disabled}: ToolbarVisualizeAddPro
       size="zero"
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      variant="link"
       aria-label={t('Add Group')}
       disabled={disabled}
     >
