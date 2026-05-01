@@ -242,7 +242,7 @@ export function AssertionOpGroup({
         {onRemove && (
           <Button
             size="sm"
-            priority="transparent"
+            variant="transparent"
             icon={<IconDelete />}
             aria-label={t('Remove Group')}
             onClick={onRemove}
@@ -267,7 +267,7 @@ export function AssertionOpGroup({
           <AddOpButton
             size="xs"
             triggerProps={{
-              priority: 'transparent',
+              variant: 'transparent',
               size: 'zero',
               icon: <IconAdd size="xs" />,
               tooltipProps: {title: t('Add assertion to group')},

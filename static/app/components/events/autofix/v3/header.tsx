@@ -6,7 +6,6 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AutofixFeedback} from 'sentry/components/events/autofix/autofixFeedback';
 import {getReferrerConfig} from 'sentry/components/events/autofix/autofixReferrer';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -29,20 +28,13 @@ export function SeerDrawerHeader({
   }, [referrer]);
 
   return (
-    <DrawerHeader>
+    <DrawerHeader hideBar hideCloseButtonText>
       <Flex justify="between" width="100%">
         <Flex align="center" gap="xs">
           <Text>{t('Seer Autofix')}</Text>
           {tooltip && <InfoTip title={tooltip} size="xs" />}
-          <Button
-            size="xs"
-            icon={<IconCopy />}
-            onClick={onCopyMarkdown}
-            disabled={!onCopyMarkdown}
-            tooltipProps={{title: t('Copy analysis as Markdown')}}
-            aria-label={t('Copy analysis as Markdown')}
-            priority="transparent"
-          />
+        </Flex>
+        <Flex align="center" gap="xs">
           <Button
             size="xs"
             icon={<IconRefresh />}
@@ -52,8 +44,16 @@ export function SeerDrawerHeader({
             aria-label={t('Start a new analysis from scratch')}
             priority="transparent"
           />
+          <Button
+            size="xs"
+            icon={<IconCopy />}
+            onClick={onCopyMarkdown}
+            disabled={!onCopyMarkdown}
+            tooltipProps={{title: t('Copy analysis as Markdown')}}
+            aria-label={t('Copy analysis as Markdown')}
+            priority="transparent"
+          />
         </Flex>
-        <AutofixFeedback iconOnly priority="transparent" />
       </Flex>
     </DrawerHeader>
   );

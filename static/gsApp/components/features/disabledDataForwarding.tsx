@@ -30,7 +30,7 @@ export function DisabledDataForwarding({organization, features}: Props) {
             action={
               <ButtonGroup>
                 <Button
-                  priority="primary"
+                  variant="primary"
                   icon={<IconBusiness />}
                   onClick={() =>
                     openUpsellModal({organization, source: 'feature.data_forwarding'})

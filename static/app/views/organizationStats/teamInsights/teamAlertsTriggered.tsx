@@ -160,7 +160,7 @@ export function TeamAlertsTriggered({
         emptyAction={
           <ButtonsContainer>
             <LinkButton
-              priority="primary"
+              variant="primary"
               size="sm"
               to={makeAlertsPathname({
                 path: '/rules/',

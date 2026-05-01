@@ -74,7 +74,7 @@ export default function DocIntegrationDetailsView() {
       >
         <LearnMoreButton
           size="sm"
-          priority="primary"
+          variant="primary"
           style={{marginLeft: theme.space.md}}
           icon={<StyledIconOpen />}
         >

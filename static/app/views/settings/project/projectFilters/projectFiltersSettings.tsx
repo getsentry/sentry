@@ -251,14 +251,14 @@ function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
           <FieldLabel disabled={disabled}>{t('Filter out legacy browsers')}:</FieldLabel>
           <Grid flow="column" align="center" gap="md">
             <Button
-              priority="link"
+              variant="link"
               onClick={createHandleToggleSubfilters(true)}
               disabled={disabled}
             >
               {t('All')}
             </Button>
             <Button
-              priority="link"
+              variant="link"
               onClick={createHandleToggleSubfilters(false)}
               disabled={disabled}
             >

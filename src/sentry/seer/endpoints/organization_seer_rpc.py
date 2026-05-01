@@ -32,6 +32,7 @@ from sentry.seer.agent.tools import (
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_dsn,
     get_event_details,
     get_issue_and_event_details_v2,
     get_issue_details,
@@ -122,6 +123,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_issues_stats": map_org_id_param(get_issues_stats),
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
+    "get_dsn": get_dsn,
     #
     # Agent eval tooling
     "export_explorer_indexes": map_org_id_param(export_agent_indexes),
