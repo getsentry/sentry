@@ -28,6 +28,7 @@ from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmapping import OrganizationMapping
@@ -665,6 +666,16 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
+
+    def find_organization_id_by_option_value(
+        self, *, cell_name: str, key: str, value: str
+    ) -> int | None:
+        return (
+            OrganizationOption.objects.filter(key=key, value=value)
+            .order_by("organization_id")
+            .values_list("organization_id", flat=True)
+            .first()
+        )
 
     def send_sso_link_emails(
         self, *, organization_id: int, sending_user_email: str, provider_key: str

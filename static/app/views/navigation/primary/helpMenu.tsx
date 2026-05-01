@@ -2,7 +2,6 @@ import {useEffect} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
   IconBuilding,
@@ -33,7 +32,6 @@ import {
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function getContactSupportItem(organization: Organization): MenuItemProps | null {
   const supportEmail = ConfigStore.get('supportEmail');
@@ -93,7 +91,6 @@ export function PrimaryNavigationHelpMenu() {
   const openForm = useFeedbackForm();
   const {startTour} = useNavigationTour();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const hasPageFrame = useHasPageFrameFeature();
   const hasIntercom = organization.features.includes('intercom-support');
 
   useEffect(() => {
@@ -102,28 +99,12 @@ export function PrimaryNavigationHelpMenu() {
     }
   }, [hasIntercom, organization]);
 
-  const items = hasPageFrame
-    ? getPageFrameItems({contactSupportItem, privacyUrl, termsUrl})
-    : getLegacyItems({contactSupportItem});
+  const items = getPageFrameItems({contactSupportItem, privacyUrl, termsUrl});
 
   return (
     <PrimaryNavigation.Menu
       triggerWrap={NavigationTourReminder}
       items={[
-        ...(hasPageFrame
-          ? // When page frame feature flag is enabled, the search menu is
-            // rendered as part of the footer items and is always visible
-            // to the user.
-            []
-          : [
-              {
-                key: 'search',
-                label: t('Search support, docs and more'),
-                onAction() {
-                  openHelpSearchModal({organization});
-                },
-              },
-            ]),
         ...items,
         {
           key: 'actions',
@@ -131,11 +112,11 @@ export function PrimaryNavigationHelpMenu() {
             {
               key: 'give-feedback',
               label: t('Give feedback'),
-              leadingItems: hasPageFrame ? (
+              leadingItems: (
                 <MenuIcon>
                   <IconMegaphone />
                 </MenuIcon>
-              ) : undefined,
+              ),
               onAction() {
                 openForm?.({
                   tags: {
@@ -148,11 +129,11 @@ export function PrimaryNavigationHelpMenu() {
             {
               key: 'tour',
               label: t('Tour the new navigation'),
-              leadingItems: hasPageFrame ? (
+              leadingItems: (
                 <MenuIcon>
                   <IconGlobe />
                 </MenuIcon>
-              ) : undefined,
+              ),
               onAction() {
                 startTour();
               },
@@ -327,47 +308,5 @@ function getPageFrameItems({
           },
         ]
       : []),
-  ];
-}
-
-function getLegacyItems({
-  contactSupportItem,
-}: {
-  contactSupportItem: MenuItemProps | null;
-}): MenuItemProps[] {
-  return [
-    {
-      key: 'resources',
-      label: t('Resources'),
-      children: [
-        {
-          key: 'help-center',
-          label: t('Help Center'),
-          externalHref: 'https://sentry.zendesk.com/hc/en-us',
-        },
-        {
-          key: 'docs',
-          label: t('Documentation'),
-          externalHref: 'https://docs.sentry.io',
-        },
-      ],
-    },
-    {
-      key: 'help',
-      label: t('Get Help'),
-      children: [
-        ...(contactSupportItem ? [contactSupportItem] : []),
-        {
-          key: 'github',
-          label: t('Sentry on GitHub'),
-          externalHref: 'https://github.com/getsentry/sentry/issues',
-        },
-        {
-          key: 'discord',
-          label: t('Join our Discord'),
-          externalHref: 'https://discord.com/invite/sentry',
-        },
-      ],
-    },
   ];
 }

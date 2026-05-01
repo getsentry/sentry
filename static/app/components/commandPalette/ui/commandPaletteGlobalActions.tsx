@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
 import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
@@ -51,6 +51,9 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {EventIdResponse} from 'sentry/types/event';
+import type {ShortIdResponse} from 'sentry/types/group';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -91,6 +94,7 @@ import type {NavigationGroupProps} from 'sentry/views/settings/types';
 import {CMDKAction} from './cmdk';
 import type {CMDKResourceContext} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
+import {useCommandPaletteState} from './commandPaletteStateContext';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -112,7 +116,10 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
-const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
+const helpSearch = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop']);
+const EVENT_ID_PATTERN =
+  /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
+const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
@@ -122,6 +129,103 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
     return <CMDKAction key={index} {...item} />;
   }
   return null;
+}
+
+type ResolvedIdentifier =
+  | (ShortIdResponse & {
+      kind: 'issue';
+      project: AvatarProject;
+      details?: string;
+    })
+  | (EventIdResponse & {
+      kind: 'event';
+      project: AvatarProject;
+      details?: string;
+    });
+
+function ResolvedIdentifierCommandPaletteAction() {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {query} = useCommandPaletteState();
+  const isEventId = EVENT_ID_PATTERN.test(query);
+  const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
+
+  // `projects` is intentionally omitted from the queryKey:
+  // TanStack serializes the entire key for cache lookups, and
+  // including the full projects array would be too costly —
+  // some orgs have thousands of projects.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const {data} = useQuery<ResolvedIdentifier | null>({
+    queryKey: ['command-palette-identifier-lookup', organization.slug, query, isShortId],
+    queryFn: async () => {
+      try {
+        if (isShortId) {
+          const shortIdLookup: ShortIdResponse = await QUERY_API_CLIENT.requestPromise(
+            getApiUrl('/organizations/$organizationIdOrSlug/shortids/$issueId/', {
+              path: {organizationIdOrSlug: organization.slug, issueId: query},
+            })
+          );
+          const project =
+            projects.find(p => p.slug === shortIdLookup.projectSlug) ??
+            shortIdLookup.group.project;
+          return {
+            details: shortIdLookup.group.metadata?.value,
+            kind: 'issue' as const,
+            project,
+            ...shortIdLookup,
+          };
+        }
+
+        const eventIdLookup: EventIdResponse = await QUERY_API_CLIENT.requestPromise(
+          getApiUrl('/organizations/$organizationIdOrSlug/eventids/$eventId/', {
+            path: {organizationIdOrSlug: organization.slug, eventId: query},
+          })
+        );
+        const project =
+          projects.find(p => p.slug === eventIdLookup.projectSlug) ??
+          ({slug: eventIdLookup.projectSlug} as Project);
+        return {
+          details: eventIdLookup.event.metadata?.value,
+          kind: 'event' as const,
+          project,
+          ...eventIdLookup,
+        };
+      } catch {
+        return null;
+      }
+    },
+    enabled: isShortId || isEventId,
+    staleTime: 30_000,
+    meta: {cmdk: true},
+  });
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <CMDKAction
+      display={{
+        label:
+          data.kind === 'event'
+            ? t('Event %s', data.eventId)
+            : t('Issue %s', data.shortId),
+        details: data.details,
+        icon: <ProjectAvatar project={data.project} size={16} />,
+      }}
+    >
+      {data.kind === 'event' && (
+        <CMDKAction
+          display={{label: t('Go to event')}}
+          to={`/organizations/${organization.slug}/issues/${data.groupId}/events/${data.eventId}/`}
+        />
+      )}
+      <CMDKAction
+        display={{label: t('Go to issue')}}
+        to={`/organizations/${organization.slug}/issues/${data.groupId}/`}
+      />
+    </CMDKAction>
+  );
 }
 
 /**
@@ -178,7 +282,6 @@ export function GlobalCommandPaletteActions() {
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
 
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
@@ -222,7 +325,7 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-          {organization.features.includes('seer-issue-view') && (
+          {organization.features.includes('autofix-on-explorer') && (
             <CMDKAction display={{label: t('Autofix')}}>
               <CMDKAction
                 display={{label: t('Recently Run')}}
@@ -414,6 +517,7 @@ export function GlobalCommandPaletteActions() {
               <CMDKAction
                 key={item.path}
                 display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+                keywords={item.keywords}
                 to={item.path}
               />
             ))}
@@ -494,6 +598,18 @@ export function GlobalCommandPaletteActions() {
           display={{label: t('Project Settings'), icon: <IconSettings />}}
           limit={4}
         >
+          {currentProjects.map(project => (
+            <CMDKAction
+              key={`current-dsn-${project.slug}`}
+              display={{
+                label: t('Client Keys (DSN) - %s', project.slug),
+                icon: <ProjectAvatar project={project} size={16} />,
+                trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
+              }}
+              keywords={[t('dsn'), t('client keys'), project.slug]}
+              to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
+            />
+          ))}
           {visibleProjectSettingsNavItems.map(navItem => {
             const suffix = navItem.path.replace(
               '/settings/:orgId/projects/:projectId/',
@@ -644,48 +760,49 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
-        {hasDsnLookup && (
-          <CMDKAction
-            display={{
-              label: t('Reverse DSN lookup'),
-              details: t(
-                'Paste a DSN into the search bar to find the project it belongs to.'
+        <CMDKAction
+          display={{
+            label: t('Reverse DSN lookup'),
+            details: t(
+              'Paste a DSN into the search bar to find the project it belongs to.'
+            ),
+            icon: <IconSearch />,
+          }}
+          prompt={t('Paste a DSN...')}
+          resource={(query: string): CMDKQueryOptions => {
+            return cmdkQueryOptions({
+              ...apiOptions.as<DsnLookupResponse>()(
+                '/organizations/$organizationIdOrSlug/dsn-lookup/',
+                {
+                  path: {organizationIdOrSlug: organization.slug},
+                  query: {dsn: query},
+                  staleTime: 30_000,
+                }
               ),
-              icon: <IconSearch />,
-            }}
-            prompt={t('Paste a DSN...')}
-            resource={(query: string): CMDKQueryOptions => {
-              return cmdkQueryOptions({
-                ...apiOptions.as<DsnLookupResponse>()(
-                  '/organizations/$organizationIdOrSlug/dsn-lookup/',
-                  {
-                    path: {organizationIdOrSlug: organization.slug},
-                    query: {dsn: query},
-                    staleTime: 30_000,
-                  }
-                ),
-                enabled: DSN_PATTERN.test(query),
-                select: data =>
-                  getDsnNavTargets(data.json).map((target, i) => ({
-                    to: target.to,
-                    display: {
-                      label: target.label,
-                      details: target.description,
-                      icon: DSN_ICONS[i],
-                    },
-                    keywords: [query],
-                  })),
-              });
-            }}
-          >
-            {data => data.map((item, i) => renderAsyncResult(item, i))}
-          </CMDKAction>
-        )}
+              enabled: DSN_PATTERN.test(query),
+              select: data =>
+                getDsnNavTargets(data.json).map((target, i) => ({
+                  to: target.to,
+                  display: {
+                    label: target.label,
+                    details: target.description,
+                    icon: DSN_ICONS[i],
+                  },
+                  keywords: [query],
+                })),
+            });
+          }}
+        >
+          {data => data.map((item, i) => renderAsyncResult(item, i))}
+        </CMDKAction>
       </CMDKAction>
+
+      <ResolvedIdentifierCommandPaletteAction />
 
       <CMDKAction
         id="cmdk:supplementary:help"
         display={{label: t('Help')}}
+        limit={4}
         resource={(query: string): CMDKQueryOptions => {
           return cmdkQueryOptions({
             queryKey: ['command-palette-help-search', query, helpSearch],
@@ -698,7 +815,7 @@ export function GlobalCommandPaletteActions() {
             select: data => {
               const results = [];
               for (const index of data) {
-                for (const hit of index.hits.slice(0, 3)) {
+                for (const hit of index.hits) {
                   results.push({
                     display: {
                       label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),

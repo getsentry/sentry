@@ -30,7 +30,7 @@ function OriginalReplayPlayPauseButton(
       icon={<IconRefresh />}
       onClick={restart}
       aria-label={t('Restart Replay')}
-      priority="primary"
+      variant="primary"
       {...props}
     />
   ) : (
@@ -39,7 +39,7 @@ function OriginalReplayPlayPauseButton(
       icon={isPlaying ? <IconPause /> : <IconPlay />}
       onClick={() => togglePlayPause(!isPlaying)}
       aria-label={isPlaying ? t('Pause') : t('Play')}
-      priority="primary"
+      variant="primary"
       disabled={props.isLoading}
       {...props}
     />

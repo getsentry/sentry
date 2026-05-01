@@ -1,6 +1,5 @@
-import {useCallback, Fragment, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
@@ -9,7 +8,6 @@ import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -18,7 +16,7 @@ import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
+import {FullHeightFormDeprecated} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
@@ -49,7 +47,6 @@ import {
 } from 'sentry/views/automations/pathnames';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -59,9 +56,7 @@ function AutomationDocumentTitle() {
 }
 
 function AutomationBreadcrumbs() {
-  const title = useFormField('name');
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -69,7 +64,7 @@ function AutomationBreadcrumbs() {
           label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug),
         },
-        {label: hasPageFrameFeature ? t('New Alert') : title || t('New Alert')},
+        {label: <EditableAutomationName />},
       ]}
     />
   );
@@ -137,7 +132,6 @@ export default function AutomationNewSettings() {
   const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const initialData = useInitialFormData();
 
   const {
@@ -228,7 +222,7 @@ export default function AutomationNewSettings() {
   );
 
   return (
-    <FullHeightForm
+    <FullHeightFormDeprecated
       hideFooter
       initialData={initialData}
       onSubmit={handleSubmit}
@@ -237,37 +231,11 @@ export default function AutomationNewSettings() {
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <Layout.Header {...(hasPageFrameFeature ? {} : {background: 'primary'})}>
-            <HeaderInner maxWidth={maxWidth}>
-              <Layout.HeaderContent>
-                {hasPageFrameFeature ? (
-                  <Fragment>
-                    <TopBar.Slot name="title">
-                      <AutomationBreadcrumbs />
-                    </TopBar.Slot>
-                    <Heading as="h1" ellipsis>
-                      <EditableAutomationName />
-                    </Heading>
-                  </Fragment>
-                ) : (
-                  <Fragment>
-                    <AutomationBreadcrumbs />
-                    <Layout.Title>
-                      <EditableAutomationName />
-                    </Layout.Title>
-                  </Fragment>
-                )}
-              </Layout.HeaderContent>
-              <div>
-                <AutomationFeedbackButton />
-              </div>
-            </HeaderInner>
-          </Layout.Header>
-          <Layout.Body
-            maxWidth={maxWidth}
-            margin={hasPageFrameFeature ? '0' : {sm: 'xl', md: '2xl 3xl'}}
-            {...(hasPageFrameFeature ? {} : {padding: '0'})}
-          >
+          <TopBar.Slot name="title">
+            <AutomationBreadcrumbs />
+          </TopBar.Slot>
+          <AutomationFeedbackButton />
+          <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
               <AutomationBuilderErrorContext.Provider
                 value={{
@@ -293,13 +261,7 @@ export default function AutomationNewSettings() {
         <StickyFooter>
           <Flex
             width="100%"
-            maxWidth={
-              // Layout.Body uses `lg xl` page-frame padding, so subtract the left/right `xl`
-              // gutters to align the footer actions with the inner content column.
-              hasPageFrameFeature
-                ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
-                : maxWidth
-            }
+            maxWidth={`calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`}
             align="center"
             gap="md"
             justify="end"
@@ -314,17 +276,6 @@ export default function AutomationNewSettings() {
           </Flex>
         </StickyFooter>
       </AutomationFormProvider>
-    </FullHeightForm>
+    </FullHeightFormDeprecated>
   );
 }
-
-const HeaderInner = styled('div')<{maxWidth?: string}>`
-  display: contents;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    max-width: ${p => p.maxWidth};
-    width: 100%;
-  }
-`;

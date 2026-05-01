@@ -37,7 +37,7 @@ export function useMobileAppSizeSeriesQuery(
     widget,
     organization,
     pageFilters,
-    enabled = true,
+    enabled,
     dashboardFilters,
     skipDashboardFilterParens,
     samplingMode,

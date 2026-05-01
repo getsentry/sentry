@@ -27,7 +27,7 @@ export function MailboxPicker({onChange, value}: Props) {
 
   const getSpamTooltip = () => {
     if (!hasSpamFeature || isSelfHosted) {
-      return undefined;
+      return;
     }
 
     if (!areAiFeaturesAllowed) {
@@ -46,7 +46,7 @@ export function MailboxPicker({onChange, value}: Props) {
       );
     }
 
-    return undefined;
+    return;
   };
 
   const MAILBOXES = [
