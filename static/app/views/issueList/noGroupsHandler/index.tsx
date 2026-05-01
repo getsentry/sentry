@@ -3,6 +3,7 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -28,18 +29,10 @@ interface SentFirstEventResponse {
   sentFirstEvent: boolean;
 }
 
-interface AwaitingEventsProps {
-  groupIds: string[];
-  organization: Organization;
-  projects?: Project[];
-}
-
 interface EmptyResultProps {
   query: string;
   emptyMessage?: React.ReactNode;
 }
-
-const PROJECT_QUERY_COLLAPSE = ['latestDeploys', 'unusedFeatures'];
 
 const UPDATED_EMPTY_STATE_PLATFORMS = new Set([
   'python-django',
@@ -87,7 +80,7 @@ export function NoGroupsHandler({
   // member of and make sure there are no first events for all of the projects.
   // Set project to -1 for all projects. Do not pass a project id for "my projects".
   const explicitSelectedProjectIds =
-    selectedProjectIds.length && !selectedProjectIds.includes(-1)
+    selectedProjectIds.length && !selectedProjectIds.includes(ALL_ACCESS_PROJECTS)
       ? selectedProjectIds
       : undefined;
   const selectedProjectQuery = explicitSelectedProjectIds
@@ -112,7 +105,7 @@ export function NoGroupsHandler({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: shouldFetchProject ? {organizationIdOrSlug: organization.slug} : skipToken,
       query: {
-        collapse: PROJECT_QUERY_COLLAPSE,
+        collapse: ['latestDeploys', 'unusedFeatures'],
         per_page: 1,
         query: selectedProjectQuery,
       },
@@ -129,7 +122,7 @@ export function NoGroupsHandler({
     return <EmptyResult emptyMessage={emptyMessage} query={query} />;
   }
 
-  if (!sentFirstEventQuery.data?.sentFirstEvent) {
+  if (!sentFirstEventQuery.data?.sentFirstEvent && projectsQuery.data?.length) {
     return (
       <AwaitingEvents
         groupIds={groupIds}
@@ -140,6 +133,12 @@ export function NoGroupsHandler({
   }
 
   return <EmptyResult emptyMessage={emptyMessage} query={query} />;
+}
+
+interface AwaitingEventsProps {
+  groupIds: string[];
+  organization: Organization;
+  projects: Project[];
 }
 
 function AwaitingEvents({groupIds, organization, projects}: AwaitingEventsProps) {
