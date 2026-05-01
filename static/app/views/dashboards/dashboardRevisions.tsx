@@ -13,7 +13,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
-import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -38,21 +37,12 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
   }
 
   const handleClick = () => {
-    openModal(
-      props => (
-        <DashboardRevisionsModal
-          {...props}
-          dashboard={dashboard}
-          dashboardCreatedBy={dashboard.createdBy}
-        />
-      ),
-      {
-        modalCss: css`
-          max-width: 720px;
-          width: 90vw;
-        `,
-      }
-    );
+    openModal(props => <DashboardRevisionsModal {...props} dashboard={dashboard} />, {
+      modalCss: css`
+        max-width: 720px;
+        width: 90vw;
+      `,
+    });
   };
 
   return (
@@ -73,10 +63,8 @@ function DashboardRevisionsModal({
   Footer,
   closeModal,
   dashboard,
-  dashboardCreatedBy,
 }: ModalRenderProps & {
   dashboard: DashboardDetails;
-  dashboardCreatedBy: User | undefined;
 }) {
   const dashboardId = dashboard.id;
   const [selectedRevisionId, setSelectedRevisionId] = useState<string>(NEWEST_VERSION_ID);
@@ -134,7 +122,7 @@ function DashboardRevisionsModal({
                 isSelected={isNewestVersionSelected}
                 onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
                 revisionSource={revisions?.[0]?.source ?? 'edit'}
-                createdBy={dashboardCreatedBy ?? null}
+                createdBy={revisions?.[0]?.createdBy ?? null}
                 dateCreated={null}
                 dashboardId={dashboardId}
                 baseRevisionId={displayedRevisions[0]?.id ?? null}
@@ -146,9 +134,9 @@ function DashboardRevisionsModal({
                   isSelected={revision.id === selectedRevisionId}
                   onSelect={() => setSelectedRevisionId(revision.id)}
                   // Each revision is saved before the operation that produces it,
-                  // so the label for this entry comes from the following revision's source.
+                  // so the label and author for this entry come from the following revision.
                   revisionSource={revisions?.[index + 1]?.source ?? 'edit'}
-                  createdBy={revision.createdBy}
+                  createdBy={revisions?.[index + 1]?.createdBy ?? null}
                   dateCreated={revision.dateCreated}
                   dashboardId={dashboardId}
                   revisionId={revision.id}

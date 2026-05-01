@@ -15,7 +15,7 @@ type Props = {
 export function ChangeARRAction(props: Props) {
   return (
     <Button
-      priority="link"
+      variant="link"
       size="zero"
       onClick={() =>
         openModal(renderProps => <ChangeARRModal {...props} {...renderProps} />)
@@ -75,11 +75,7 @@ class ChangeARRModal extends Component<ModalProps, ModalState> {
         <Footer>
           <ButtonBar>
             <Button onClick={closeModal}>Cancel</Button>
-            <Button
-              priority="primary"
-              onClick={this.onAction}
-              disabled={this.state.error}
-            >
+            <Button variant="primary" onClick={this.onAction} disabled={this.state.error}>
               Submit
             </Button>
           </ButtonBar>

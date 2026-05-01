@@ -542,7 +542,7 @@ export default function SentryApplicationDetails() {
                             )}
                             errorMessage={t('Error rotating secret')}
                           >
-                            <Button priority="danger">Rotate client secret</Button>
+                            <Button variant="danger">Rotate client secret</Button>
                           </Confirm>
                         ) : undefined}
                       </ClientSecret>

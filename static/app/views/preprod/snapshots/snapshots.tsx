@@ -374,7 +374,7 @@ export default function SnapshotsPage() {
       : searchFilteredItems;
     for (const item of source) {
       if (item.type in counts) {
-        counts[item.type as DiffStatus]++;
+        counts[item.type as DiffStatus] += itemVariantCount(item);
       }
     }
     return counts;

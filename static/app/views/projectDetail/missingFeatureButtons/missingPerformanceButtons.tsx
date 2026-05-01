@@ -57,7 +57,7 @@ export function MissingPerformanceButtons({organization}: Props) {
       <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"
-          priority="primary"
+          variant="primary"
           analyticsEventKey="project_detail.performance_setup_clicked"
           analyticsEventName="Project Detail: Performance Start Setup Clicked"
           onClick={event => {

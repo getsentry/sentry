@@ -1,9 +1,10 @@
-import {memo, useEffect, useMemo, useRef} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {
@@ -15,6 +16,7 @@ import type {
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 import {ImageCard, PairCard} from './snapshotCards';
 import {MAX_IMAGE_HEIGHT} from './snapshotDiffBodies';
+import {SnapshotCardFrame, SnapshotGroupHeader} from './snapshotFrames';
 
 interface SnapshotListViewProps {
   imageBaseUrl: string;
@@ -42,18 +44,18 @@ export function buildSnapshotLink(snapshotKey: string): string {
 
 type GroupCard =
   | {
-      cardType: 'changed' | 'renamed';
       estimatedHeight: number;
       id: string;
       pair: SnapshotDiffPair;
       type: 'pair-card';
     }
   | {
-      cardType: 'added' | 'removed' | 'unchanged' | 'solo';
+      cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
       estimatedHeight: number;
       id: string;
       image: SnapshotImage;
       type: 'image-card';
+      copyData?: unknown;
     };
 
 interface GroupRow {
@@ -64,12 +66,15 @@ interface GroupRow {
   name: string;
 }
 
-const HEADER_HEIGHT = 44;
+// Keep in sync with SnapshotGroupHeader: lg vertical padding + md heading height.
+const SNAPSHOT_GROUP_HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
-const CARD_GAP = 16;
-const GROUP_PADDING = 32;
+const CARD_GAP = 0;
+const GROUP_PADDING = 0;
 const ROW_PADDING_BOTTOM = 16;
 const LIST_CONTENT_WIDTH_ASSUMPTION = 900;
+const SNAPSHOT_FRAME_BORDER_WIDTH = 1;
+const STICKY_HEADER_BOTTOM_OVERLAP = SNAPSHOT_FRAME_BORDER_WIDTH * 2;
 
 function estimateCardHeight(image: SnapshotImage, splitColumns: boolean) {
   const columnWidth = splitColumns
@@ -99,17 +104,27 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {
     const cards: GroupCard[] = [];
-    if (item.type === 'changed' || item.type === 'renamed') {
+    if (item.type === 'changed') {
       for (const pair of item.pairs) {
         cards.push({
           type: 'pair-card',
           id: `c:${item.key}:${pair.head_image.key}`,
           pair,
-          cardType: item.type,
           estimatedHeight: Math.max(
             estimateCardHeight(pair.head_image, true),
             estimateCardHeight(pair.base_image, true)
           ),
+        });
+      }
+    } else if (item.type === 'renamed') {
+      for (const pair of item.pairs) {
+        cards.push({
+          type: 'image-card',
+          id: `c:${item.key}:${pair.head_image.key}`,
+          image: pair.head_image,
+          copyData: pair,
+          cardType: item.type,
+          estimatedHeight: estimateCardHeight(pair.head_image, false),
         });
       }
     } else {
@@ -134,7 +149,9 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
       cards,
       isUngrouped: ungrouped,
       estimatedHeight:
-        (ungrouped ? cardsHeight : HEADER_HEIGHT + cardsHeight + GROUP_PADDING) +
+        (ungrouped
+          ? cardsHeight
+          : SNAPSHOT_GROUP_HEADER_HEIGHT + cardsHeight + GROUP_PADDING) +
         ROW_PADDING_BOTTOM,
     });
   }
@@ -152,8 +169,13 @@ export function SnapshotListView({
   overlayColor,
   diffImageBaseUrl,
 }: SnapshotListViewProps) {
+  const theme = useTheme();
   const groups = useMemo(() => buildGroups(items), [items]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(event.currentTarget.scrollTop);
+  }, []);
 
   const virtualizer = useVirtualizer({
     count: groups.length,
@@ -318,6 +340,48 @@ export function SnapshotListView({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+  const scrollContainerPaddingTop = Number.parseFloat(theme.space.xl);
+  const activeGroupThreshold = scrollTop - scrollContainerPaddingTop;
+  const activeVirtualItem = virtualItems.find(virtualItem => {
+    return scrollTop > 0 && activeGroupThreshold < virtualItem.end - ROW_PADDING_BOTTOM;
+  });
+  const activeGroupBounds =
+    activeVirtualItem === undefined
+      ? null
+      : {
+          bottom:
+            scrollContainerPaddingTop +
+            activeVirtualItem.end -
+            ROW_PADDING_BOTTOM -
+            scrollTop,
+          group: groups[activeVirtualItem.index]!,
+          top: scrollContainerPaddingTop + activeVirtualItem.start - scrollTop,
+        };
+  const activeGroupName =
+    activeGroupBounds && !activeGroupBounds.group.isUngrouped
+      ? activeGroupBounds.group.name
+      : null;
+  const stickyHeaderTop = Math.max(scrollContainerPaddingTop - scrollTop, 0);
+  const stickyHeaderTranslateY =
+    activeGroupBounds === null
+      ? 0
+      : Math.min(
+          Math.max(0, activeGroupBounds.top - stickyHeaderTop),
+          activeGroupBounds.bottom -
+            (stickyHeaderTop + SNAPSHOT_GROUP_HEADER_HEIGHT) +
+            STICKY_HEADER_BOTTOM_OVERLAP
+        );
+  // detached frame is to detect when the top of the active group has not yet hit the control container and needs top border styling
+  const stickyHeaderHasDetachedFrame =
+    scrollTop < scrollContainerPaddingTop || stickyHeaderTranslateY > 0;
+  // bottom frame is to detect when the sticky header is near the bottom of the group container
+  const stickyHeaderHasBottomFrame = stickyHeaderTranslateY < 0;
+  const stickyHeaderStyle = {
+    '--sticky-header-translate-y': `${stickyHeaderTranslateY}px`,
+  } as React.CSSProperties;
+
   if (items.length === 0) {
     return (
       <Flex align="center" justify="center" padding="3xl" width="100%">
@@ -326,11 +390,17 @@ export function SnapshotListView({
     );
   }
 
-  const virtualItems = virtualizer.getVirtualItems();
-  const totalSize = virtualizer.getTotalSize();
-
   return (
-    <ScrollContainer ref={scrollRef}>
+    <ScrollContainer ref={scrollRef} onScroll={handleScroll}>
+      {activeGroupName ? (
+        <StickyGroupHeader
+          data-bottom-frame={stickyHeaderHasBottomFrame ? '' : undefined}
+          data-detached-frame={stickyHeaderHasDetachedFrame ? '' : undefined}
+          style={stickyHeaderStyle}
+        >
+          <SnapshotGroupHeader name={activeGroupName} />
+        </StickyGroupHeader>
+      ) : null}
       <Container position="relative" width="100%" style={{height: totalSize}}>
         {virtualItems.map(vi => {
           const group = groups[vi.index]!;
@@ -389,9 +459,8 @@ const GroupContainer = memo(function GroupContainer({
       <PairCard
         key={card.id}
         pair={card.pair}
-        cardType={card.cardType}
         imageBaseUrl={imageBaseUrl}
-        headBranch={card.cardType === 'changed' ? headBranch : undefined}
+        headBranch={headBranch}
         isSelected={isSelected}
         copyUrl={copyUrl}
         diffMode={diffMode}
@@ -406,6 +475,7 @@ const GroupContainer = memo(function GroupContainer({
         key={card.id}
         image={card.image}
         cardType={card.cardType}
+        copyData={card.copyData}
         imageBaseUrl={imageBaseUrl}
         isSelected={isSelected}
         copyUrl={copyUrl}
@@ -416,29 +486,15 @@ const GroupContainer = memo(function GroupContainer({
     );
   });
 
-  if (group.isUngrouped) {
-    return <Stack gap="md">{cards}</Stack>;
-  }
-
   return (
-    <Stack background="primary" border="primary" radius="md" padding="lg" gap="md">
-      <GroupHeader name={group.name} />
-      <Stack gap="md">{cards}</Stack>
-    </Stack>
-  );
-});
-
-export const GroupHeader = memo(function GroupHeader({name}: {name: string}) {
-  return (
-    <Container padding="0 xs">
-      <Heading as="h3" size="md">
-        {name}
-      </Heading>
-    </Container>
+    <SnapshotCardFrame groupName={group.isUngrouped ? null : group.name}>
+      {cards}
+    </SnapshotCardFrame>
   );
 });
 
 const ScrollContainer = styled('div')`
+  position: relative;
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
@@ -450,6 +506,32 @@ const ScrollContainer = styled('div')`
   overscroll-behavior: contain;
   scroll-padding-top: ${p => p.theme.space.md};
   scroll-padding-bottom: ${p => p.theme.space.md};
+`;
+
+const StickyGroupHeader = styled('div')`
+  position: sticky;
+  top: -${p => p.theme.space.xl};
+  z-index: 1;
+  height: 0;
+  pointer-events: none;
+
+  > * {
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
+    transform: translateY(var(--sticky-header-translate-y, 0px));
+  }
+
+  &[data-detached-frame] > * {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
+  }
+
+  &[data-bottom-frame] > * {
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
+    border-bottom: 0;
+  }
 `;
 
 const RowPositioner = styled('div')`
