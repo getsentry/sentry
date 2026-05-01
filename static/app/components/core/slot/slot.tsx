@@ -38,7 +38,7 @@ function reportMissingProvider(component: string, slotName: string): void {
 import {KNOWN_BRIDGED_CONTEXTS} from './knownContexts';
 
 type Slot = string;
-export type ContextBridge = {context: React.Context<any>; value: unknown};
+type ContextBridge = {context: React.Context<any>; value: unknown};
 type SlotValue = {
   contextBridges: ContextBridge[];
   counter: number;
@@ -175,7 +175,7 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
   useSlotOutletRef: () => React.RefObject<HTMLElement | null>;
 };
 
-export function useContextBridges(contexts: Array<React.Context<any>>): ContextBridge[] {
+function useContextBridges(contexts: Array<React.Context<any>>): ContextBridge[] {
   // eslint-disable-next-line react-hooks/rules-of-hooks -- safe: contexts is a module constant with stable length
   const values = contexts.map(ctx => useContext(ctx));
   const prevRef = useRef<ContextBridge[]>([]);
