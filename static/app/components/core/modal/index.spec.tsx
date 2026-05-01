@@ -2,12 +2,14 @@ import {
   act,
   render,
   renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
@@ -295,5 +297,29 @@ describe('GlobalModal', () => {
     await userEvent.click(await screen.findByText('Click me'));
 
     expect(buttonClick).toHaveBeenCalled();
+  });
+});
+
+describe('useModal', () => {
+  it('opens and closes modal via hook', async () => {
+    renderGlobalModal();
+
+    const {result} = renderHookWithProviders(() => useModal());
+
+    expect(result.current.isOpen).toBe(false);
+
+    act(() => {
+      result.current.openModal(() => <div data-test-id="hook-modal">Hello</div>);
+    });
+
+    expect(screen.getByTestId('hook-modal')).toBeInTheDocument();
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => {
+      result.current.closeModal();
+    });
+
+    await waitForElementToBeRemoved(screen.queryByTestId('hook-modal'));
+    expect(result.current.isOpen).toBe(false);
   });
 });
