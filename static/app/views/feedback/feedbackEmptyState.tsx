@@ -106,7 +106,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       </p>
       <ButtonList>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={activateSidebarIssueDetails}
           analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
           analyticsEventKey="feedback.issue-details-click-onboarding-setup"
