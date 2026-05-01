@@ -370,35 +370,56 @@ class LinkedMessagesContextTest(TestCase):
 
     LINKED_PERMALINK = "https://acme.slack.com/archives/C9999LINKED/p1700000000222222"
 
+    def setUp(self):
+        super().setUp()
+        patches = {
+            "mock_resolve_user": patch("sentry.seer.entrypoints.slack.tasks._resolve_user"),
+            "mock_agent_cls": patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint"),
+            "mock_operator_cls": patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator"),
+            "mock_count": patch(
+                "sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0
+            ),
+            "mock_record": patch("sentry.analytics.record"),
+        }
+        for attr, p in patches.items():
+            setattr(self, attr, p.start())
+            self.addCleanup(p.stop)
+
+        self._build_mocks()
+
     def _build_mocks(
         self,
         *,
         thread_history_side_effect=None,
         conversations_info_side_effect=None,
     ):
-        mock_user = MagicMock(id=self.user.id, username="alice")
-        mock_entrypoint = MagicMock()
-        mock_entrypoint.thread_ts = "1234567890.123456"
-        mock_entrypoint.channel_id = TASK_KWARGS["channel_id"]
-        mock_entrypoint.slack_user_id = TASK_KWARGS["slack_user_id"]
-        mock_entrypoint.integration.metadata = {"domain_name": "acme.slack.com"}
-        mock_entrypoint.integration.external_id = "T0TEAM"
+        self.mock_user = MagicMock(id=self.user.id, username="alice")
+        self.mock_entrypoint = MagicMock()
+        self.mock_entrypoint.thread_ts = "1234567890.123456"
+        self.mock_entrypoint.channel_id = TASK_KWARGS["channel_id"]
+        self.mock_entrypoint.slack_user_id = TASK_KWARGS["slack_user_id"]
+        self.mock_entrypoint.integration.metadata = {"domain_name": "acme.slack.com"}
+        self.mock_entrypoint.integration.external_id = "T0TEAM"
 
         # Default: every channel is public unless the test overrides this.
-        mock_entrypoint.install.get_conversations_info.side_effect = (
+        self.mock_entrypoint.install.get_conversations_info.side_effect = (
             conversations_info_side_effect
             if conversations_info_side_effect is not None
             else lambda **_: {"is_private": False}
         )
         # ``get_thread_history`` covers both the permalink-resolution path
         # (with latest/oldest narrowing) and the in-thread context path.
-        mock_entrypoint.install.get_thread_history.side_effect = (
+        self.mock_entrypoint.install.get_thread_history.side_effect = (
             thread_history_side_effect if thread_history_side_effect is not None else lambda **_: []
         )
 
-        mock_operator = MagicMock()
-        mock_operator.trigger_agent.return_value = 42
-        return mock_user, mock_entrypoint, mock_operator
+        self.mock_operator = MagicMock()
+        self.mock_operator.trigger_agent.return_value = 42
+
+        self.mock_resolve_user.return_value = self.mock_user
+        self.mock_agent_cls.has_access.return_value = True
+        self.mock_agent_cls.return_value = self.mock_entrypoint
+        self.mock_operator_cls.return_value = self.mock_operator
 
     def _run(self, *, text, **overrides):
         kwargs = {
@@ -409,31 +430,18 @@ class LinkedMessagesContextTest(TestCase):
         }
         process_mention_for_slack(**kwargs)
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_top_level_permalink_fetches_single_message(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
+    def test_top_level_permalink_fetches_single_message(self):
         def history(*, channel_id, thread_ts, **kwargs):
             if channel_id == "C9999LINKED":
                 return [{"user": "ULINK", "text": "linked body", "ts": "1700000000.222222"}]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
-            thread_history_side_effect=history,
-        )
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
+        self._build_mocks(thread_history_side_effect=history)
 
         self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>")
 
         # The fetch is narrowed to a single ts (latest=oldest, limit=1).
-        mock_entrypoint.install.get_thread_history.assert_any_call(
+        self.mock_entrypoint.install.get_thread_history.assert_any_call(
             channel_id="C9999LINKED",
             thread_ts="1700000000.222222",
             latest="1700000000.222222",
@@ -442,19 +450,12 @@ class LinkedMessagesContextTest(TestCase):
             limit=1,
         )
 
-        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert on_page_context is not None
         assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@ULINK>: linked body" in on_page_context
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_threaded_permalink_fetches_only_the_linked_reply(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
+    def test_threaded_permalink_fetches_only_the_linked_reply(self):
         """A permalink into a thread reply must NOT pull the whole thread —
         we only ship the single targeted reply to Seer.
 
@@ -472,13 +473,7 @@ class LinkedMessagesContextTest(TestCase):
                 ]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
-            thread_history_side_effect=history,
-        )
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
+        self._build_mocks(thread_history_side_effect=history)
 
         url = (
             "https://acme.slack.com/archives/C9999LINKED/p1700000000222222"
@@ -486,7 +481,7 @@ class LinkedMessagesContextTest(TestCase):
         )
         self._run(text=f"<@U0BOT> see <{url}>")
 
-        mock_entrypoint.install.get_thread_history.assert_any_call(
+        self.mock_entrypoint.install.get_thread_history.assert_any_call(
             channel_id="C9999LINKED",
             thread_ts="1700000000.111111",
             latest="1700000000.222222",
@@ -494,28 +489,15 @@ class LinkedMessagesContextTest(TestCase):
             inclusive=True,
             limit=1,
         )
-        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@UREPLY>: reply" in on_page_context
         # The thread parent must be filtered out client-side.
         assert "UPARENT" not in on_page_context
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_unfurl_attachment_short_circuits_api_call(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
+    def test_unfurl_attachment_short_circuits_api_call(self):
         """If the inbound app_mention event already includes the unfurled
         message as an attachment, we use it directly — no Slack API calls."""
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
-
         attachments = [
             {
                 "is_msg_unfurl": True,
@@ -533,30 +515,17 @@ class LinkedMessagesContextTest(TestCase):
         self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", attachments=attachments)
 
         # We did NOT need to call out to Slack to read the linked channel.
-        mock_entrypoint.install.get_conversations_info.assert_not_called()
-        history_calls = mock_entrypoint.install.get_thread_history.call_args_list
+        self.mock_entrypoint.install.get_conversations_info.assert_not_called()
+        history_calls = self.mock_entrypoint.install.get_thread_history.call_args_list
         assert all(call.kwargs["channel_id"] != "C9999LINKED" for call in history_calls)
 
-        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert on_page_context is not None
         assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@ULINK>: linked body" in on_page_context
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_unfurl_attachment_with_blocks_preserves_rich_text(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
+    def test_unfurl_attachment_with_blocks_preserves_rich_text(self):
         """Rich-text blocks on the unfurl attachment are preferred over flat text."""
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
-
         attachments = [
             {
                 "is_msg_unfurl": True,
@@ -592,19 +561,12 @@ class LinkedMessagesContextTest(TestCase):
 
         self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", attachments=attachments)
 
-        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert on_page_context is not None
         assert "<@ULINK>: rich body" in on_page_context
         assert "fallback flat text" not in on_page_context
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_attachment_for_other_link_falls_through_to_api(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
+    def test_attachment_for_other_link_falls_through_to_api(self):
         """When the attachment's (channel_id, ts) doesn't match any link in
         the message, we fall through to the API path."""
 
@@ -613,13 +575,7 @@ class LinkedMessagesContextTest(TestCase):
                 return [{"user": "UFETCH", "text": "fetched body", "ts": "1700000000.222222"}]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
-            thread_history_side_effect=history,
-        )
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
+        self._build_mocks(thread_history_side_effect=history)
 
         # Attachment for a totally different message — must not be used.
         attachments = [
@@ -637,7 +593,7 @@ class LinkedMessagesContextTest(TestCase):
             attachments=attachments,
         )
 
-        mock_entrypoint.install.get_thread_history.assert_any_call(
+        self.mock_entrypoint.install.get_thread_history.assert_any_call(
             channel_id="C9999LINKED",
             thread_ts="1700000000.222222",
             latest="1700000000.222222",
@@ -645,25 +601,12 @@ class LinkedMessagesContextTest(TestCase):
             inclusive=True,
             limit=1,
         )
-        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert "<@UFETCH>: fetched body" in on_page_context
         assert "irrelevant" not in on_page_context
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_private_channel_skipped_and_user_notified(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
-            conversations_info_side_effect=lambda **_: {"is_private": True},
-        )
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
+    def test_private_channel_skipped_and_user_notified(self):
+        self._build_mocks(conversations_info_side_effect=lambda **_: {"is_private": True})
 
         self._run(
             text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>",
@@ -671,36 +614,23 @@ class LinkedMessagesContextTest(TestCase):
         )
 
         # We didn't try to fetch the message from a private channel.
-        mock_entrypoint.install.get_thread_history.assert_not_called()
-        assert mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
+        self.mock_entrypoint.install.get_thread_history.assert_not_called()
+        assert self.mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
 
-        renderable_text = mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
+        renderable_text = self.mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
             "renderable"
         ]["text"]
         assert "private channels" in renderable_text
         assert "<#C9999LINKED>" in renderable_text
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_unresolved_link_yields_no_block_and_sends_ephemeral(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
+    def test_unresolved_link_yields_no_block_and_sends_ephemeral(self):
         # get_thread_history returns [] → simulates missing scope or deleted message.
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
-
         self._run(
             text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>",
             thread_ts=None,
         )
 
-        mock_entrypoint.install.get_thread_history.assert_called_once_with(
+        self.mock_entrypoint.install.get_thread_history.assert_called_once_with(
             channel_id="C9999LINKED",
             thread_ts="1700000000.222222",
             latest="1700000000.222222",
@@ -708,36 +638,23 @@ class LinkedMessagesContextTest(TestCase):
             inclusive=True,
             limit=1,
         )
-        assert mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
+        assert self.mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
 
-        mock_entrypoint.install.send_threaded_ephemeral_message.assert_called_once()
-        call_kwargs = mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1]
+        self.mock_entrypoint.install.send_threaded_ephemeral_message.assert_called_once()
+        call_kwargs = self.mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1]
         assert call_kwargs["channel_id"] == TASK_KWARGS["channel_id"]
         assert call_kwargs["slack_user_id"] == TASK_KWARGS["slack_user_id"]
         renderable_text = call_kwargs["renderable"]["text"]
         assert "<#C9999LINKED>" in renderable_text
         assert "/invite @Sentry" in renderable_text
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_partial_resolution_still_sends_ephemeral_for_unresolved(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
+    def test_partial_resolution_still_sends_ephemeral_for_unresolved(self):
         def history(*, channel_id, thread_ts, **kwargs):
             if channel_id == "C0OK":
                 return [{"user": "UOK", "text": "ok", "ts": "1700000000.111111"}]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
-            thread_history_side_effect=history,
-        )
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
+        self._build_mocks(thread_history_side_effect=history)
 
         text = (
             "<@U0BOT> "
@@ -746,30 +663,17 @@ class LinkedMessagesContextTest(TestCase):
         )
         self._run(text=text, thread_ts=None)
 
-        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert "<@UOK>: ok" in on_page_context
 
-        mock_entrypoint.install.send_threaded_ephemeral_message.assert_called_once()
-        renderable_text = mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
+        self.mock_entrypoint.install.send_threaded_ephemeral_message.assert_called_once()
+        renderable_text = self.mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
             "renderable"
         ]["text"]
         assert "C0BAD" in renderable_text
         assert "C0OK" not in renderable_text
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_multiple_unresolved_channels_listed_in_ephemeral(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
-
+    def test_multiple_unresolved_channels_listed_in_ephemeral(self):
         text = (
             "<@U0BOT> "
             "<https://acme.slack.com/archives/C0AAA/p1700000000111111> and "
@@ -777,20 +681,13 @@ class LinkedMessagesContextTest(TestCase):
         )
         self._run(text=text, thread_ts=None)
 
-        renderable_text = mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
+        renderable_text = self.mock_entrypoint.install.send_threaded_ephemeral_message.call_args[1][
             "renderable"
         ]["text"]
         assert "C0AAA" in renderable_text
         assert "C0BBB" in renderable_text
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_linked_block_precedes_in_thread_context(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
+    def test_linked_block_precedes_in_thread_context(self):
         def history(*, channel_id, thread_ts, **kwargs):
             # Permalink fetch (narrowed by latest/oldest)
             if channel_id == "C9999LINKED":
@@ -804,17 +701,11 @@ class LinkedMessagesContextTest(TestCase):
                 return [{"user": "UTHREAD", "text": "earlier in thread", "ts": "1234567890.000001"}]
             return []
 
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks(
-            thread_history_side_effect=history,
-        )
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
+        self._build_mocks(thread_history_side_effect=history)
 
         self._run(text=f"<@U0BOT> see <{self.LINKED_PERMALINK}>")
 
-        on_page_context = mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert on_page_context is not None
         linked_idx = on_page_context.index("User linked a Slack message")
         thread_idx = on_page_context.index("<@UTHREAD>")
@@ -822,27 +713,14 @@ class LinkedMessagesContextTest(TestCase):
         assert "<@ULINK>: linked body" in on_page_context
         assert "<@UTHREAD>: earlier in thread" in on_page_context
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
-    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
-    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
-    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_other_workspace_link_is_skipped(
-        self, mock_resolve_user, mock_agent_cls, mock_operator_cls, _mock_count, _mock_record
-    ):
-        mock_user, mock_entrypoint, mock_operator = self._build_mocks()
-        mock_resolve_user.return_value = mock_user
-        mock_agent_cls.has_access.return_value = True
-        mock_agent_cls.return_value = mock_entrypoint
-        mock_operator_cls.return_value = mock_operator
-
+    def test_other_workspace_link_is_skipped(self):
         # domain_name is "acme.slack.com"; this link targets "other.slack.com".
         url = "https://other.slack.com/archives/C9999OTHER/p1700000000222222"
         self._run(text=f"<@U0BOT> ignore <{url}>", thread_ts=None)
 
-        mock_entrypoint.install.get_thread_history.assert_not_called()
-        mock_entrypoint.install.send_threaded_ephemeral_message.assert_not_called()
-        assert mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
+        self.mock_entrypoint.install.get_thread_history.assert_not_called()
+        self.mock_entrypoint.install.send_threaded_ephemeral_message.assert_not_called()
+        assert self.mock_operator.trigger_agent.call_args[1]["on_page_context"] is None
 
 
 class BuildInaccessibleLinksRenderableTest(TestCase):
