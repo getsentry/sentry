@@ -213,6 +213,7 @@ export function GlobalDrawer({children}: any) {
 
   return (
     <DrawerContext value={{closeDrawer, activeDrawerId, openDrawer, panelRef}}>
+      {children}
       <ErrorBoundary
         mini
         allowDismiss
@@ -238,7 +239,6 @@ export function GlobalDrawer({children}: any) {
           )}
         </AnimatePresence>
       </ErrorBoundary>
-      {children}
     </DrawerContext>
   );
 }
