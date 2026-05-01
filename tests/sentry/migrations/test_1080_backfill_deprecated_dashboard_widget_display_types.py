@@ -12,7 +12,6 @@ class BackfillDeprecatedDashboardWidgetDisplayTypesTest(TestMigrations):
 
         dashboard = Dashboard.objects.create(title="test", organization_id=self.organization.id)
 
-        # top_n with null limit -> should become area + limit=5
         self.top_n_null_limit = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="top_n null limit",
@@ -20,7 +19,6 @@ class BackfillDeprecatedDashboardWidgetDisplayTypesTest(TestMigrations):
             order=0,
             limit=None,
         )
-        # top_n with explicit limit -> should become area, limit preserved
         self.top_n_explicit_limit = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="top_n explicit limit",
@@ -28,7 +26,6 @@ class BackfillDeprecatedDashboardWidgetDisplayTypesTest(TestMigrations):
             order=1,
             limit=3,
         )
-        # stacked_area with null limit -> should become area, limit stays null
         self.stacked_area_null_limit = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="stacked_area null limit",
@@ -36,7 +33,6 @@ class BackfillDeprecatedDashboardWidgetDisplayTypesTest(TestMigrations):
             order=2,
             limit=None,
         )
-        # stacked_area with explicit limit -> should become area, limit preserved
         self.stacked_area_explicit_limit = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="stacked_area explicit limit",
@@ -44,7 +40,6 @@ class BackfillDeprecatedDashboardWidgetDisplayTypesTest(TestMigrations):
             order=3,
             limit=8,
         )
-        # non-deprecated row -> untouched
         self.table_widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             title="table",
