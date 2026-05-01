@@ -74,6 +74,7 @@ interface GroupRow {
   estimatedHeight: number;
   id: string;
   isUngrouped: boolean;
+  itemKey: string;
   name: string;
 }
 
@@ -157,6 +158,7 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
     groups.push({
       id: `g:${item.key}`,
       name: item.name,
+      itemKey: item.key,
       cards,
       isUngrouped: ungrouped,
       estimatedHeight:
@@ -170,7 +172,7 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
 }
 
 export interface SnapshotListViewHandle {
-  scrollToGroup: (name: string) => void;
+  scrollToGroup: (itemKey: string) => void;
 }
 
 export const SnapshotListView = memo(function SnapshotListView({
@@ -222,8 +224,8 @@ export const SnapshotListView = memo(function SnapshotListView({
   useImperativeHandle(
     ref,
     () => ({
-      scrollToGroup(name: string) {
-        const groupIdx = groups.findIndex(g => g.name === name);
+      scrollToGroup(itemKey: string) {
+        const groupIdx = groups.findIndex(g => g.itemKey === itemKey);
         if (groupIdx === -1) {
           return;
         }
@@ -254,7 +256,7 @@ export const SnapshotListView = memo(function SnapshotListView({
 
       const rows = el.querySelectorAll<HTMLElement>('[data-index]');
       const ROW_THRESHOLD = 100;
-      let visibleGroupName = groupsRef.current[0]?.name ?? null;
+      let visibleItemKey = groupsRef.current[0]?.itemKey ?? null;
       for (const row of rows) {
         const idx = parseInt(row.dataset.index ?? '', 10);
         if (isNaN(idx)) {
@@ -262,10 +264,10 @@ export const SnapshotListView = memo(function SnapshotListView({
         }
         const rowTop = row.getBoundingClientRect().top - containerTop;
         if (rowTop <= ROW_THRESHOLD) {
-          visibleGroupName = groupsRef.current[idx]?.name ?? null;
+          visibleItemKey = groupsRef.current[idx]?.itemKey ?? null;
         }
       }
-      onVisibleGroupChangeRef.current?.(visibleGroupName);
+      onVisibleGroupChangeRef.current?.(visibleItemKey);
 
       if (onScrollProgressRef.current) {
         const maxScroll = el.scrollHeight - el.clientHeight;

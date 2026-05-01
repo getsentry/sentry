@@ -1,24 +1,29 @@
-import {useEffect, useRef} from 'react';
+import {memo, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconSearch} from 'sentry/icons';
+import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
-export interface SidebarGroup {
+interface SidebarGroup {
   count: number;
   key: string;
   name: string;
 }
 
+export interface SidebarSection {
+  groups: SidebarGroup[];
+  type?: DiffStatus;
+}
+
 export const DIFF_TYPE_ORDER: Record<string, number> = {
   [DiffStatus.CHANGED]: 0,
-  [DiffStatus.ADDED]: 1,
-  [DiffStatus.REMOVED]: 2,
+  [DiffStatus.REMOVED]: 1,
+  [DiffStatus.ADDED]: 2,
   [DiffStatus.RENAMED]: 3,
   [DiffStatus.UNCHANGED]: 4,
 };
@@ -39,20 +44,28 @@ const STATUS_PILLS: ReadonlyArray<{
   {status: DiffStatus.UNCHANGED, color: 'muted', label: t('unchanged')},
 ];
 
+const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
+  [DiffStatus.CHANGED]: {color: 'accent', label: t('Modified')},
+  [DiffStatus.ADDED]: {color: 'success', label: t('Added')},
+  [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
+  [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
+  [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
+};
+
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
-  groups: SidebarGroup[];
   onSearchChange: (query: string) => void;
-  onSelectItem: (key: string) => void;
+  onSelectItem: (itemKey: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
   searchQuery: string;
-  activeGroupName?: string | null;
+  sections: SidebarSection[];
+  activeItemKey?: string | null;
   statusCounts?: StatusCounts | null;
 }
 
-export function SnapshotSidebarContent({
-  groups,
-  activeGroupName,
+export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
+  sections,
+  activeItemKey,
   searchQuery,
   onSearchChange,
   onSelectItem,
@@ -67,11 +80,11 @@ export function SnapshotSidebarContent({
 
   useEffect(() => {
     const container = listRef.current;
-    if (!container || !activeGroupName) {
+    if (!container || !activeItemKey) {
       return;
     }
     const el = container.querySelector<HTMLElement>(
-      `[data-item-name="${CSS.escape(activeGroupName)}"]`
+      `[data-item-key="${CSS.escape(activeItemKey)}"]`
     );
     if (!el) {
       return;
@@ -83,39 +96,22 @@ export function SnapshotSidebarContent({
     } else if (eRect.bottom > cRect.bottom) {
       container.scrollTop += eRect.bottom - cRect.bottom;
     }
-  }, [activeGroupName]);
+  }, [activeItemKey]);
 
-  const renderGroup = (group: SidebarGroup) => {
-    const isActive = group.key === activeGroupName;
-    return (
-      <SidebarItemRow
-        key={group.key}
-        data-item-name={group.key}
-        isSelected={isActive}
-        onClick={e => {
-          e.stopPropagation();
-          onSelectItem(group.key);
-        }}
-      >
-        <Flex align="center" gap="sm" flex="1" minWidth="0">
-          <Text
-            size="md"
-            variant={isActive ? 'accent' : 'muted'}
-            bold={isActive}
-            ellipsis
-            onPointerEnter={setTitleOnOverflow}
-          >
-            {group.name}
-          </Text>
-        </Flex>
-        <CountBadge>
-          <Text variant="muted" size="xs">
-            {group.count}
-          </Text>
-        </CountBadge>
-      </SidebarItemRow>
-    );
+  const [collapsed, setCollapsed] = useState<Set<DiffStatus>>(() => new Set());
+  const toggleCollapsed = (type: DiffStatus) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
   };
+
+  const hasGroups = sections.some(s => s.groups.length > 0);
 
   return (
     <Stack height="100%" width="100%">
@@ -158,8 +154,64 @@ export function SnapshotSidebarContent({
         )}
       </Stack>
       <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        {groups.map(renderGroup)}
-        {groups.length === 0 && (
+        {sections.map(section => {
+          if (section.groups.length === 0) {
+            return null;
+          }
+          const sectionType = section.type;
+          const meta = sectionType ? STATUS_META[sectionType] : null;
+          const isCollapsed = !!sectionType && collapsed.has(sectionType);
+          const showHeader = !!meta && !!sectionType && sections.length > 1;
+          return (
+            <Stack key={sectionType ?? 'solo'}>
+              {showHeader && meta && sectionType && (
+                <SectionHeader onClick={() => toggleCollapsed(sectionType)}>
+                  <ChevronWrapper isCollapsed={isCollapsed}>
+                    <IconChevron size="xs" direction="down" />
+                  </ChevronWrapper>
+                  <Dot pillColor={meta.color} active />
+                  <Text size="sm" bold>
+                    {meta.label}
+                  </Text>
+                </SectionHeader>
+              )}
+              {!isCollapsed &&
+                section.groups.map(group => {
+                  const isActive = group.key === activeItemKey;
+                  return (
+                    <SidebarItemRow
+                      key={group.key}
+                      data-item-key={group.key}
+                      isSelected={isActive}
+                      indented={showHeader}
+                      onClick={e => {
+                        e.stopPropagation();
+                        onSelectItem(group.key);
+                      }}
+                    >
+                      <Flex align="center" gap="sm" flex="1" minWidth="0">
+                        <Text
+                          size="md"
+                          variant={isActive ? 'accent' : 'muted'}
+                          bold={isActive}
+                          ellipsis
+                          onPointerEnter={setTitleOnOverflow}
+                        >
+                          {group.name}
+                        </Text>
+                      </Flex>
+                      <CountBadge>
+                        <Text variant="muted" size="xs">
+                          {group.count}
+                        </Text>
+                      </CountBadge>
+                    </SidebarItemRow>
+                  );
+                })}
+            </Stack>
+          );
+        })}
+        {!hasGroups && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No components found.')}
@@ -169,7 +221,7 @@ export function SnapshotSidebarContent({
       </Stack>
     </Stack>
   );
-}
+});
 
 function StatusPill({
   color,
@@ -214,10 +266,10 @@ const PillButton = styled('button')<{active: boolean}>`
   }
 `;
 
-const Dot = styled('span')<{active: boolean; pillColor: PillColor}>`
+const Dot = styled('span')<{active: boolean; pillColor: PillColor; dotSize?: number}>`
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: ${p => p.dotSize ?? 6}px;
+  height: ${p => p.dotSize ?? 6}px;
   border-radius: 50%;
   background: ${p => {
     if (!p.active) {
@@ -249,10 +301,37 @@ const CountBadge = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
 `;
 
-const SidebarItemRow = styled('div')<{isSelected: boolean}>`
+const SectionHeader = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+`;
+
+const ChevronWrapper = styled('span')<{isCollapsed: boolean}>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 8px;
+  overflow: hidden;
+  transition: transform 100ms ease;
+  transform: rotate(${p => (p.isCollapsed ? '-90deg' : '0deg')});
+`;
+
+const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
+  display: flex;
+  align-items: center;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  padding-left: ${p =>
+    p.indented
+      ? `calc(${p.theme.space.xl} + 8px + ${p.theme.space.sm})`
+      : p.theme.space.xl};
   gap: ${p => p.theme.space.sm};
   cursor: pointer;
   border-right: 3px solid
