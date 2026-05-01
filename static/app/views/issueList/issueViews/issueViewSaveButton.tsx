@@ -141,7 +141,7 @@ function SegmentedIssueViewSaveButton({
                   />
                 }
                 aria-label={t('More save options')}
-                priority={buttonPriority}
+                variant={buttonPriority}
               />
             )}
             position="bottom-end"
@@ -197,7 +197,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
       >
         {({hasFeature}) => (
           <Button
-            priority="primary"
+            variant="primary"
             onClick={openCreateIssueViewModal}
             disabled={!hasFeature}
           >

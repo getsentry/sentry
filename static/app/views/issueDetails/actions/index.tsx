@@ -357,7 +357,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               <Button
                 style={{marginLeft: theme.space.md}}
-                priority="primary"
+                variant="primary"
                 onClick={onDiscard}
                 disabled={!hasFeature}
               >

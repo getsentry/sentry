@@ -743,7 +743,7 @@ function StoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Copy file path')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy file path')}
             icon={<IconCopy size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -752,7 +752,7 @@ function StoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Open this line in GitHub')}
             icon={<IconGithub size="xs" />}
             onClick={e => e.stopPropagation()}
