@@ -143,8 +143,6 @@ const OverlayInner = styled(motion.div)<{
   box-shadow: 0 2px 0 ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.font.size.md};
 
-  /* Override z-index from useOverlayPosition */
-  z-index: ${p => p.theme.zIndex.dropdown} !important;
   will-change: transform, opacity;
 
   /* Specificity hack to allow override styles to have higher specificity than
@@ -155,11 +153,12 @@ const OverlayInner = styled(motion.div)<{
 `;
 
 interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
-  /**
-   * Determines the zindex over the position wrapper
-   */
-  zIndex: number;
   ref?: React.Ref<HTMLDivElement>;
+  /**
+   * @deprecated Stacking is handled by Layer portal outlets. Only pass
+   * this when rendering outside a Layer.
+   */
+  zIndex?: number;
 }
 
 /**
