@@ -241,9 +241,9 @@ export function App() {
                   <MainContainer tabIndex={-1}>
                     <DemoToursProvider>
                       <LLMContextProvider>
+                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
                         <GlobalModal />
                         <Indicators className="indicators-container" />
-                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
                       </LLMContextProvider>
                     </DemoToursProvider>
                   </MainContainer>

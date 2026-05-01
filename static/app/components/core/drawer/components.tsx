@@ -4,6 +4,7 @@ import {mergeRefs} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import type {DrawerOptions} from '@sentry/scraps/drawer';
+import {Layer} from '@sentry/scraps/layer';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
@@ -98,11 +99,13 @@ function DrawerPanel({
             For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
             when it's button is pressed.
           */}
-          <TooltipContext value={{container: tooltipContainer}}>
-            <DrawerContentContext value={{onClose, ariaLabel}}>
-              {children}
-            </DrawerContentContext>
-          </TooltipContext>
+          <Layer variant="overlay">
+            <TooltipContext value={{container: tooltipContainer}}>
+              <DrawerContentContext value={{onClose, ariaLabel}}>
+                {children}
+              </DrawerContentContext>
+            </TooltipContext>
+          </Layer>
         </DrawerSlidePanel>
       </DrawerWidthContext.Provider>
     </DrawerContainer>

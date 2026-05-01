@@ -2,6 +2,7 @@ import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {Layer} from '@sentry/scraps/layer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
@@ -110,19 +111,21 @@ function AppLayout({organization}: LayoutProps) {
             minWidth="0"
             background={hasPageFrame ? 'secondary' : undefined}
           >
-            <DemoHeader />
-            <AppBodyContent>
-              {organization && <OrganizationHeader organization={organization} />}
-              <OrganizationDetailsBody>
-                <TopBar.Slot.Provider>
-                  <TopBar />
-                  <Layout.Page>
-                    <Outlet />
-                    <Footer />
-                  </Layout.Page>
-                </TopBar.Slot.Provider>
-              </OrganizationDetailsBody>
-            </AppBodyContent>
+            <Layer variant="content">
+              <DemoHeader />
+              <AppBodyContent>
+                {organization && <OrganizationHeader organization={organization} />}
+                <OrganizationDetailsBody>
+                  <TopBar.Slot.Provider>
+                    <TopBar />
+                    <Layout.Page>
+                      <Outlet />
+                      <Footer />
+                    </Layout.Page>
+                  </TopBar.Slot.Provider>
+                </OrganizationDetailsBody>
+              </AppBodyContent>
+            </Layer>
           </ContentStack>
         </Flex>
       </Stack>

@@ -7,6 +7,7 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
+import {Layer} from '@sentry/scraps/layer';
 import {Surface} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
@@ -237,47 +238,55 @@ export function GlobalModal({onClose}: Props) {
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
       >
-        <TooltipContext
-          value={{
-            // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
-            // they need to be rendered inside the modal's DOM node.
-            container: portal,
-          }}
-        >
-          <AnimatePresence>
-            {visible && (
-              <Modal
-                role="dialog"
-                aria-modal
-                css={options.modalCss}
-                initial={hasPageFrame ? {opacity: 0, scale: 0.98} : {opacity: 0, y: -10}}
-                animate={hasPageFrame ? {opacity: 1, scale: 1} : {opacity: 1, y: 0}}
-                exit={
-                  hasPageFrame
-                    ? {opacity: 0, scale: 0.99, transition: theme.motion.framer.exit.fast}
-                    : {opacity: 0, y: 15}
-                }
-                transition={
-                  hasPageFrame
-                    ? theme.motion.framer.enter.moderate
-                    : {
-                        type: 'spring',
-                        stiffness: 450,
-                        damping: 25,
-                      }
-                }
-              >
-                <Surface variant="overlay" elevation="high">
-                  {p => (
-                    <Content role="document" {...p}>
-                      {renderedChild}
-                    </Content>
-                  )}
-                </Surface>
-              </Modal>
-            )}
-          </AnimatePresence>
-        </TooltipContext>
+        <Layer variant="overlay">
+          <TooltipContext
+            value={{
+              // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
+              // they need to be rendered inside the modal's DOM node.
+              container: portal,
+            }}
+          >
+            <AnimatePresence>
+              {visible && (
+                <Modal
+                  role="dialog"
+                  aria-modal
+                  css={options.modalCss}
+                  initial={
+                    hasPageFrame ? {opacity: 0, scale: 0.98} : {opacity: 0, y: -10}
+                  }
+                  animate={hasPageFrame ? {opacity: 1, scale: 1} : {opacity: 1, y: 0}}
+                  exit={
+                    hasPageFrame
+                      ? {
+                          opacity: 0,
+                          scale: 0.99,
+                          transition: theme.motion.framer.exit.fast,
+                        }
+                      : {opacity: 0, y: 15}
+                  }
+                  transition={
+                    hasPageFrame
+                      ? theme.motion.framer.enter.moderate
+                      : {
+                          type: 'spring',
+                          stiffness: 450,
+                          damping: 25,
+                        }
+                  }
+                >
+                  <Surface variant="overlay" elevation="high">
+                    {p => (
+                      <Content role="document" {...p}>
+                        {renderedChild}
+                      </Content>
+                    )}
+                  </Surface>
+                </Modal>
+              )}
+            </AnimatePresence>
+          </TooltipContext>
+        </Layer>
       </Container>
     </Fragment>,
     portal
