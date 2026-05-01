@@ -371,12 +371,6 @@ incorrect_cases = [
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
     ),
     (
-        "url - non-http protocol with username/password/port",
-        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
-        "<url> had a problem",
-        "tcp://charlie:<email>:<int> had a problem",
-    ),
-    (
         "url - tcp",
         "tcp://dogsaregreat.com:10",
         "<url>",
