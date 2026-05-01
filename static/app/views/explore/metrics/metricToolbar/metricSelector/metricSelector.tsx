@@ -31,7 +31,7 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
 import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
-import type {MetricSelectOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
@@ -111,7 +111,7 @@ export function MetricSelector({
   // Build an option object from the currently selected trace metric so it
   // can be shown in the list even if the API response hasn't loaded yet or
   // doesn't include it (e.g. it was filtered out by search).
-  const optionFromTraceMetric: MetricSelectOption = useMemo(
+  const optionFromTraceMetric: MetricSelectorOption = useMemo(
     () => ({
       label: traceMetric.name,
       value: traceMetricSelectValue,
@@ -138,7 +138,7 @@ export function MetricSelector({
   // Always show the selected metric at the top of the list so it's easy to
   // find when the dropdown is reopened. Filter it out of the API results to
   // avoid duplication.
-  const metricOptions = useMemo((): MetricSelectOption[] => {
+  const metricOptions = useMemo((): MetricSelectorOption[] => {
     const selectedMetricValue = traceMetric.name ? traceMetricSelectValue : null;
 
     const apiOptions =
@@ -213,15 +213,19 @@ export function MetricSelector({
   // Find the option with the longest label to render as a hidden element.
   // This reserves enough width for the overlay so it doesn't resize as
   // the user scrolls through the virtualized list.
-  const longestOption = useMemo(
-    () =>
-      displayedOptions.reduce<MetricSelectOption | null>(
-        (longest, option) =>
-          !longest || option.label.length > longest.label.length ? option : longest,
-        null
-      ),
-    [displayedOptions]
-  );
+  const longestOption = useMemo(() => {
+    return displayedOptions.reduce<MetricSelectorOption | null>((longest, option) => {
+      if (typeof option.label !== 'string' || option.label.length === 0) {
+        return longest;
+      }
+
+      if (typeof longest?.label !== 'string') {
+        return option;
+      }
+
+      return option.label.length > longest?.label.length ? option : longest;
+    }, null);
+  }, [displayedOptions]);
 
   const displayedOptionsMap = useMemo(
     () => new Map(displayedOptions.map(option => [option.value, option])),
@@ -256,8 +260,8 @@ export function MetricSelector({
     });
   }
 
-  const comboBoxState = useComboBoxState<MetricSelectOption>({
-    children: (item: MetricSelectOption) => <Item key={item.value}>{item.label}</Item>,
+  const comboBoxState = useComboBoxState<MetricSelectorOption>({
+    children: (item: MetricSelectorOption) => <Item key={item.value}>{item.label}</Item>,
     items: displayedOptions,
     allowsEmptyCollection: true,
     shouldCloseOnBlur: false,
@@ -318,16 +322,17 @@ export function MetricSelector({
     },
   });
 
-  const {inputProps: comboBoxInputProps, listBoxProps} = useComboBox<MetricSelectOption>(
-    {
-      'aria-labelledby': triggerId,
-      listBoxRef: listElementRef,
-      inputRef: searchRef,
-      popoverRef,
-      shouldFocusWrap: true,
-    },
-    comboBoxState
-  );
+  const {inputProps: comboBoxInputProps, listBoxProps} =
+    useComboBox<MetricSelectorOption>(
+      {
+        'aria-labelledby': triggerId,
+        listBoxRef: listElementRef,
+        inputRef: searchRef,
+        popoverRef,
+        shouldFocusWrap: true,
+      },
+      comboBoxState
+    );
 
   const collectionItems = useMemo(
     () => [...comboBoxState.collection],

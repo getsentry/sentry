@@ -8,12 +8,12 @@ import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 
 import {IconCheckmark} from 'sentry/icons';
-import type {MetricSelectOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 
 interface MetricListBoxOptionProps {
   dataIndex: number;
-  item: Node<MetricSelectOption>;
-  listState: ComboBoxState<MetricSelectOption>;
+  item: Node<MetricSelectorOption>;
+  listState: ComboBoxState<MetricSelectorOption>;
   size: MenuListItemProps['size'];
   measureRef?: React.Ref<HTMLLIElement>;
   updateSidePanelAnchorOffset?: (activeOptionElement?: HTMLElement | null) => void;

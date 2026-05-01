@@ -12,7 +12,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import type {MetricSelectOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   createTraceMetricFilter,
   hasDisplayMetricUnit,
@@ -25,7 +25,7 @@ export function MetricDetailPanel({
   hasMetricUnitsUI,
 }: {
   hasMetricUnitsUI: boolean;
-  metric: MetricSelectOption | null;
+  metric: MetricSelectorOption | null;
 }) {
   if (!metric) {
     return (
