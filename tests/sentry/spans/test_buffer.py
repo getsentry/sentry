@@ -1670,7 +1670,7 @@ def test_flush_lock_mixed_contention(
 
 
 @mock.patch("sentry.spans.buffer.Project")
-def test_flush_lock_detaches_concurrent_writes(mock_project_model, buffer: SpansBuffer) -> None:
+def test_flush_lock_detaches_subsegment(mock_project_model, buffer: SpansBuffer) -> None:
     """
     Tests that a span that arrives while a segment is being flushed detaches
     under the salt rather than merge into the locked segment. If we keep writing
@@ -1701,7 +1701,7 @@ def test_flush_lock_detaches_concurrent_writes(mock_project_model, buffer: Spans
         project_id=1,
     )
 
-    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    normal_key = _segment_id(1, "a" * 32, "b" * 16)
 
     with override_options(
         {
@@ -1715,9 +1715,10 @@ def test_flush_lock_detaches_concurrent_writes(mock_project_model, buffer: Spans
         buffer.done_flush_segments(rv)
         rv2 = buffer.flush_segments(now=120)
 
-    assert len(rv2) == 1
-    [(detached_key, detached_segment)] = next(iter(rv2.items()))
-    assert detached_key != segment_key
+    detached_keys = [k for k in rv2 if k != normal_key]
+    assert len(detached_keys) == 1
+    detached_segment = rv2[detached_keys[0]]
+    assert len(detached_segment.spans) == 1
     assert detached_segment.spans[0].payload["span_id"] == "c" * 16
 
     buffer.done_flush_segments(rv2)
