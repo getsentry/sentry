@@ -1,4 +1,4 @@
-import {createContext, useContext, useMemo, useState} from 'react';
+import {createContext, Fragment, useContext, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 type LayerVariant = 'content' | 'nav' | 'overlay';
@@ -16,30 +16,48 @@ const LayerContext = createContext<LayerContextValue>({
 });
 
 interface LayerProps {
-  children: React.ReactNode;
+  children: React.ReactNode | ((props: {className: string}) => React.ReactNode);
   variant: LayerVariant;
 }
 
-export function Layer({variant, children}: LayerProps) {
-  const parentContext = useContext(LayerContext);
-  const [portalOutlet, setPortalOutlet] = useState<HTMLElement | null>(null);
+export const Layer = styled(
+  ({variant, children, ...props}: LayerProps & {className?: string}) => {
+    const parentContext = useContext(LayerContext);
+    const [portalOutlet, setPortalOutlet] = useState<HTMLElement | null>(null);
 
-  const depth = parentContext.variant === variant ? parentContext.depth + 1 : 0;
+    const depth = parentContext.variant === variant ? parentContext.depth + 1 : 0;
 
-  const contextValue = useMemo<LayerContextValue>(
-    () => ({variant, depth, portalOutlet}),
-    [variant, depth, portalOutlet]
-  );
+    const contextValue = useMemo<LayerContextValue>(
+      () => ({variant, depth, portalOutlet}),
+      [variant, depth, portalOutlet]
+    );
 
-  return (
-    <LayerContext value={contextValue}>
-      <StyledLayer>
-        {children}
-        <PortalOutlet ref={setPortalOutlet} />
-      </StyledLayer>
-    </LayerContext>
-  );
-}
+    const className = props.className ?? '';
+
+    if (typeof children === 'function') {
+      return (
+        <LayerContext value={contextValue}>
+          <Fragment>
+            {children({className})}
+            <PortalOutlet ref={setPortalOutlet} />
+          </Fragment>
+        </LayerContext>
+      );
+    }
+
+    return (
+      <LayerContext value={contextValue}>
+        <div className={className}>
+          {children}
+          <PortalOutlet ref={setPortalOutlet} />
+        </div>
+      </LayerContext>
+    );
+  }
+)<LayerProps>`
+  isolation: isolate;
+  position: relative;
+`;
 
 export function useLayerContext(): LayerContextValue {
   return useContext(LayerContext);
@@ -50,13 +68,9 @@ export function usePortalContainer(): HTMLElement | null {
   return portalOutlet;
 }
 
-const StyledLayer = styled('div')`
-  isolation: isolate;
-  position: relative;
-`;
-
 const PortalOutlet = styled('div')`
   position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 2147483647;
 `;

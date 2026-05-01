@@ -139,4 +139,32 @@ describe('Layer', () => {
     render(<LayerInfo testId="outside" />);
     expect(screen.getByTestId('outside')).toHaveTextContent('none:0');
   });
+
+  it('supports render child pattern', () => {
+    render(
+      <Layer variant="overlay">
+        {({className}) => (
+          <section className={className} data-test-id="custom-element">
+            <LayerInfo testId="info" />
+          </section>
+        )}
+      </Layer>
+    );
+    const section = screen.getByTestId('custom-element');
+    expect(section.tagName).toBe('SECTION');
+    expect(screen.getByTestId('info')).toHaveTextContent('overlay:0');
+  });
+
+  it('provides portal outlet with render child pattern', () => {
+    render(
+      <Layer variant="content">
+        {({className}) => (
+          <div className={className}>
+            <PortaledContent>render-child portaled</PortaledContent>
+          </div>
+        )}
+      </Layer>
+    );
+    expect(screen.getByText('render-child portaled')).toBeInTheDocument();
+  });
 });
