@@ -104,6 +104,9 @@ def process_signature(request: HttpRequest, max_age: int = 60 * 60 * 24 * 10) ->
         return None
 
     try:
-        return user_service.get_user(user_id=base36_decode(user_id))
+        user = user_service.get_user(user_id=base36_decode(user_id))
     except ValueError:
         return None
+    if user is not None and getattr(user, "is_suspended", False):
+        return None
+    return user

@@ -657,6 +657,73 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
 
 @control_silo_test
+class UserDetailsSuspensionTest(UserDetailsTest):
+    method = "put"
+
+    def test_superuser_can_suspend_user(self) -> None:
+        self.login_as(user=self.superuser, superuser=True)
+        resp = self.get_success_response(self.user.id, isSuspended="true")
+        assert resp.data["isSuspended"] is True
+        user = User.objects.get(id=self.user.id)
+        assert user.is_suspended is True
+
+    def test_superuser_can_unsuspend_user(self) -> None:
+        self.user.update(is_suspended=True)
+        self.login_as(user=self.superuser, superuser=True)
+        resp = self.get_success_response(self.user.id, isSuspended="false")
+        assert resp.data["isSuspended"] is False
+        user = User.objects.get(id=self.user.id)
+        assert user.is_suspended is False
+
+    def test_suspend_invalidates_sessions(self) -> None:
+        old_nonce = self.user.session_nonce
+        self.login_as(user=self.superuser, superuser=True)
+        self.get_success_response(self.user.id, isSuspended="true")
+        user = User.objects.get(id=self.user.id)
+        assert user.session_nonce != old_nonce
+
+    def test_unsuspend_does_not_invalidate_sessions(self) -> None:
+        self.user.update(is_suspended=True)
+        old_nonce = self.user.session_nonce
+        self.login_as(user=self.superuser, superuser=True)
+        self.get_success_response(self.user.id, isSuspended="false")
+        user = User.objects.get(id=self.user.id)
+        assert user.session_nonce == old_nonce
+
+    def test_suspend_already_suspended_does_not_invalidate_sessions(self) -> None:
+        self.user.update(is_suspended=True)
+        old_nonce = self.user.session_nonce
+        self.login_as(user=self.superuser, superuser=True)
+        self.get_success_response(self.user.id, isSuspended="true")
+        user = User.objects.get(id=self.user.id)
+        assert user.session_nonce == old_nonce
+
+    def test_regular_user_cannot_suspend(self) -> None:
+        user2 = self.create_user(email="target@example.com")
+        self.login_as(user=self.user)
+        self.get_error_response(user2.id, isSuspended="true", status_code=403)
+
+    def test_superuser_cannot_suspend_self(self) -> None:
+        self.login_as(user=self.superuser, superuser=True)
+        resp = self.get_error_response(self.superuser.id, isSuspended="true", status_code=400)
+        assert "suspend your own account" in str(resp.data).lower()
+
+    def test_superuser_cannot_suspend_sentry_app_user(self) -> None:
+        sentry_app = self.create_sentry_app(name="test-app", organization=self.organization)
+        self.login_as(user=self.superuser, superuser=True)
+        resp = self.get_error_response(
+            sentry_app.proxy_user.id, isSuspended="true", status_code=400
+        )
+        assert "sentry app" in str(resp.data).lower()
+
+    def test_get_includes_is_suspended(self) -> None:
+        self.login_as(user=self.superuser, superuser=True)
+        resp = self.get_success_response(self.user.id, method="get")
+        assert "isSuspended" in resp.data
+        assert resp.data["isSuspended"] is False
+
+
+@control_silo_test
 @override_options({"staff.ga-rollout": True})
 class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"

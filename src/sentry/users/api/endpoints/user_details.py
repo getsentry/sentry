@@ -203,23 +203,36 @@ class UserSerializer(BaseUserSerializer):
 
 class SuperuserUserSerializer(BaseUserSerializer):
     is_active = serializers.BooleanField()
+    is_suspended = serializers.BooleanField(required=False)
 
     class Meta:
         model = User
-        fields = ("name", "username", "is_active")
+        fields = ("name", "username", "is_active", "is_suspended")
+
+    def validate_is_suspended(self, value: bool) -> bool:
+        if value and self.instance:
+            request = self.context.get("request")
+            if request and request.user.id == self.instance.id:
+                raise serializers.ValidationError("You cannot suspend your own account.")
+            if self.instance.is_sentry_app:
+                raise serializers.ValidationError("Cannot suspend Sentry App proxy users.")
+        return value
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         request = self.context.get("request")
         should_audit = False
 
         if request:
-            privileged_fields = {"is_active", "is_staff", "is_superuser"}
+            privileged_fields = {"is_active", "is_staff", "is_superuser", "is_suspended"}
             changed_fields = {
                 field
                 for field in privileged_fields
                 if field in validated_data and getattr(instance, field) != validated_data[field]
             }
             should_audit = bool(changed_fields)
+
+        if validated_data.get("is_suspended") and not instance.is_suspended:
+            instance.refresh_session_nonce()
 
         user = super().update(instance, validated_data)
 
@@ -243,7 +256,7 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
 
     class Meta:
         model = User
-        fields = ("name", "username", "is_active", "is_staff", "is_superuser")
+        fields = ("name", "username", "is_active", "is_suspended", "is_staff", "is_superuser")
 
 
 class DeleteUserSerializer(serializers.Serializer[User]):

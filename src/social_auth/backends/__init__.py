@@ -190,7 +190,7 @@ class SocialAuthBackend:
         This is called by django.contrib.auth.middleware.
         """
         user = user_service.get_user(user_id=user_id)
-        if user and user.is_active:
+        if user and user.is_active and not user.is_suspended:
             return user
         return None
 
