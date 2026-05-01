@@ -1047,6 +1047,7 @@ class SearchResolver:
                 internal_type=internal_match.internal_type,
                 validator=internal_match.validator,
                 normalizer=internal_match.normalizer,
+                processor=internal_match.processor,
             )
         else:
             if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
