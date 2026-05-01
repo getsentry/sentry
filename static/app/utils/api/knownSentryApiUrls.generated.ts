@@ -682,6 +682,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/$pluginId/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprod/size-analysis/status-check-rules/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/build-distribution/latest/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/check-for-updates/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/'
