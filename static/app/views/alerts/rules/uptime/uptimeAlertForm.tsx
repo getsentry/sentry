@@ -245,7 +245,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
               confirmText={t('Delete Rule')}
               onConfirm={handleDelete}
             >
-              <Button priority="danger">{t('Delete Rule')}</Button>
+              <Button variant="danger">{t('Delete Rule')}</Button>
             </Confirm>
           )}
           {hasRuntimeAssertions && (
