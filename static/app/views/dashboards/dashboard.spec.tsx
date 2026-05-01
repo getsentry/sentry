@@ -419,7 +419,7 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Interval selection', () => {
     // Use a SPANS widget with LINE display: both are required by
-    // widgetCanUseTimeSeriesVisualization, which gates widgetInterval propagation.
+    // widgetUsesTimeSeriesVisualization, which gates widgetInterval propagation.
     const org = OrganizationFixture();
     const spansWidget: Widget = {
       id: '3',

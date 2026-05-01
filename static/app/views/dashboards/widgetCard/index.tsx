@@ -47,7 +47,7 @@ import {
   OnDemandExtractionState,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
+import {widgetUsesTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetUsesTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {
@@ -357,8 +357,8 @@ function WidgetCard(props: Props) {
     );
   };
 
-  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
-  if (canUseTimeseriesVisualization) {
+  const usesTimeseriesVisualization = widgetUsesTimeSeriesVisualization(widget);
+  if (usesTimeseriesVisualization) {
     // Legend state requires a stable widget ID to persist to the URL.
     // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
     const legendSelectionForWidget = widget.id
@@ -390,7 +390,7 @@ function WidgetCard(props: Props) {
             error={widgetQueryError}
             actionsMessage={actionsMessage}
             actions={actions}
-            noVisualizationPadding={canUseTimeseriesVisualization}
+            noVisualizationPadding={usesTimeseriesVisualization}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}

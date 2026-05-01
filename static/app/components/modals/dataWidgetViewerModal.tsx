@@ -94,7 +94,7 @@ import {
   widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
-import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
+import {widgetUsesTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetUsesTimeSeriesVisualization';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -283,12 +283,16 @@ function DataWidgetViewerModal(props: Props) {
     selectedQueryIndex = 0;
   }
 
-  // Top N widget charts (including widgets with limits) results rely on the sorting of the query
-  // Set the orderby of the widget chart to match the location query params
-  const primaryWidget =
-    widget.displayType === DisplayType.TOP_N || defined(widget.limit)
-      ? {...widget, queries: sortedQueries}
+  const resolvedWidget =
+    widget.displayType === DisplayType.TOP_N
+      ? {...widget, displayType: DisplayType.AREA}
       : widget;
+
+  // Widgets with limits rely on the sorting of the query
+  // Set the orderby of the widget chart to match the location query params
+  const primaryWidget = defined(resolvedWidget.limit)
+    ? {...resolvedWidget, queries: sortedQueries}
+    : resolvedWidget;
   const api = useApi();
 
   // Create Table widget
@@ -651,7 +655,7 @@ function DataWidgetViewerModal(props: Props) {
                 : HALF_CONTAINER_HEIGHT
             }
           >
-            {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
+            {widgetUsesTimeSeriesVisualization(primaryWidget) ? (
               <VisualizationWidget
                 selection={modalSelection}
                 dashboardFilters={dashboardFilters}
