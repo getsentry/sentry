@@ -49,7 +49,7 @@ export function TraceViewMetricsProviderWrapper({
         period: queryParams.statsPeriod,
       };
     }
-    return undefined;
+    return;
   }, [
     queryParams.timestamp,
     queryParams.start,

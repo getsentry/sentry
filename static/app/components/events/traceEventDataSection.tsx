@@ -414,7 +414,9 @@ export function TraceEventDataSection({
   const minified = displayOptions.includes('minified');
 
   // Apple crash report endpoint
-  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
+  const threadIdQuery =
+    activeThreadId === undefined ? '' : `&thread_id=${activeThreadId}`;
+  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}${threadIdQuery}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
   const sortByTooltip = hasNewestFirst

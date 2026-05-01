@@ -51,7 +51,7 @@ export function ScreenshotSection({event, organization, projectSlug}: Props) {
           />
           <Button
             icon={<IconDelete />}
-            priority="transparent"
+            variant="transparent"
             size="xs"
             onClick={() => {
               openConfirmModal({

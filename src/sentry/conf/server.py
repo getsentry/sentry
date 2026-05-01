@@ -976,7 +976,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scim.privilege_sync",
-    "sentry.tasks.seer.cleanup",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
     "sentry.tasks.summaries.weekly_reports",
@@ -1210,10 +1209,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-metadata": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
-    },
-    "llm-issue-detection": {
-        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": timedelta(minutes=5),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",

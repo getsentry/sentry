@@ -189,7 +189,7 @@ describe('LogsToolbar', () => {
 
   describe('group by section', () => {
     it('can switch group bys', async () => {
-      let mode: Mode | undefined = undefined;
+      let mode: Mode | undefined;
 
       function Component() {
         mode = useQueryParamsMode();
@@ -247,7 +247,7 @@ describe('LogsToolbar', () => {
     });
 
     it('can clear the last selected group by', async () => {
-      let mode: Mode | undefined = undefined;
+      let mode: Mode | undefined;
 
       function Component() {
         mode = useQueryParamsMode();

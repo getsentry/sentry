@@ -101,12 +101,11 @@ export function StacktraceContext({
   defaultIsNewestFramesFirst = true,
 }: StackTraceContextOptions) {
   const organization = useOrganization();
-  const hasScmFeature = organization.features.includes('scm-source-context');
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
-    {enabled: hasScmFeature && defined(projectSlug)}
+    {enabled: defined(projectSlug)}
   );
-  const hasScmSourceContext = hasScmFeature && !!detailedProject?.scmSourceContextEnabled;
+  const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
 
   const [isFullStackTrace, setIsFullStackTrace] = useState(false);
   const [isNewestFramesFirst, setIsNewestFramesFirst] = useState(

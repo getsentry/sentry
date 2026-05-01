@@ -129,7 +129,7 @@ export const useVirtualizedList = (
 
   useLayoutEffect(() => {
     if (!list.current || !props.container) {
-      return undefined;
+      return;
     }
 
     if (props.container && !scrollContainerRef.current) {

@@ -99,7 +99,7 @@ export function OpContainer({
             <Flex align="center" gap="sm">
               <Button
                 size="sm"
-                priority="transparent"
+                variant="transparent"
                 icon={<IconDelete />}
                 aria-label={t('Remove assertion')}
                 onClick={onRemove}

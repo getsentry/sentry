@@ -41,8 +41,8 @@ export function GroupMergedView(props: Props) {
       if (items) {
         setMergedItems(items);
         setMergedLinks(links);
-        setIsLoading(typeof l === 'undefined' ? false : l);
-        setError(typeof e === 'undefined' ? false : e);
+        setIsLoading(l === undefined ? false : l);
+        setError(e === undefined ? false : e);
       }
     },
     []

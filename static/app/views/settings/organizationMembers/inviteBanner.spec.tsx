@@ -10,11 +10,19 @@ import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBann
 
 const missingMembers = {
   integration: 'github',
+  enabled: true,
   users: MissingMembersFixture(),
 };
 
 const noMissingMembers = {
   integration: 'github',
+  enabled: true,
+  users: [],
+};
+
+const nudgeDisabled = {
+  integration: 'github',
+  enabled: false,
   users: [],
 };
 
@@ -37,9 +45,7 @@ describe('inviteBanner', () => {
   });
 
   it('render banners', async () => {
-    const org = OrganizationFixture({
-      githubNudgeInvite: true,
-    });
+    const org = OrganizationFixture();
 
     render(
       <InviteBanner
@@ -59,8 +65,14 @@ describe('inviteBanner', () => {
     expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
   });
 
-  it('does not render banner if no option', () => {
+  it('does not render banner if nudge_invite is disabled', async () => {
     const org = OrganizationFixture();
+
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [nudgeDisabled],
+    });
 
     const {container} = render(
       <InviteBanner
@@ -71,13 +83,12 @@ describe('inviteBanner', () => {
       />
     );
 
+    await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
     expect(container).toBeEmptyDOMElement();
   });
 
   it('does not render banner if no missing members', async () => {
-    const org = OrganizationFixture({
-      githubNudgeInvite: true,
-    });
+    const org = OrganizationFixture();
 
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/missing-members/',
@@ -99,9 +110,7 @@ describe('inviteBanner', () => {
   });
 
   it('does not render banner if no integration', async () => {
-    const org = OrganizationFixture({
-      githubNudgeInvite: true,
-    });
+    const org = OrganizationFixture();
 
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/missing-members/',
@@ -123,10 +132,7 @@ describe('inviteBanner', () => {
   });
 
   it('does not render banner if lacking org:write', () => {
-    const org = OrganizationFixture({
-      access: [],
-      githubNudgeInvite: true,
-    });
+    const org = OrganizationFixture({access: []});
 
     const {container} = render(
       <InviteBanner
@@ -141,9 +147,7 @@ describe('inviteBanner', () => {
   });
 
   it('renders banner if snoozed_ts days is longer than threshold', async () => {
-    const org = OrganizationFixture({
-      githubNudgeInvite: true,
-    });
+    const org = OrganizationFixture();
     const promptResponse = {
       dismissed_ts: undefined,
       snoozed_ts: moment
@@ -174,9 +178,7 @@ describe('inviteBanner', () => {
   });
 
   it('does not render banner if snoozed_ts days is shorter than threshold', async () => {
-    const org = OrganizationFixture({
-      githubNudgeInvite: true,
-    });
+    const org = OrganizationFixture();
     const promptResponse = {
       dismissed_ts: undefined,
       snoozed_ts: moment
@@ -225,6 +227,7 @@ describe('inviteBanner', () => {
       body: [
         {
           integration: 'github',
+          enabled: true,
           users: MissingMembersFixture().slice(0, 5),
         },
       ],
@@ -236,9 +239,7 @@ describe('inviteBanner', () => {
       body: newMember,
     });
 
-    const org = OrganizationFixture({
-      githubNudgeInvite: true,
-    });
+    const org = OrganizationFixture();
 
     render(
       <InviteBanner

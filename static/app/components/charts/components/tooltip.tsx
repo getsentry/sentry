@@ -76,7 +76,7 @@ function defaultMarkerFormatter(value: string) {
 
 function getSeriesValue(series: any, offset: number) {
   if (!series.data) {
-    return undefined;
+    return;
   }
   if (Array.isArray(series.data)) {
     return series.data[offset];
@@ -85,7 +85,7 @@ function getSeriesValue(series: any, offset: number) {
     return series.data.value[offset];
   }
 
-  return undefined;
+  return;
 }
 
 type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc' | 'bucketSize';

@@ -109,7 +109,7 @@ function FilterActions() {
 
   const makeStringSectionResource =
     (tags: Tag[], cacheKey: string) =>
-    (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+    (_q: string): CMDKQueryOptions =>
       // Include tags.length so the section updates when attributes finish loading.
       // Include currentQuery so the item closures capture fresh filter state.
       // eslint-disable-next-line @tanstack/query/exhaustive-deps
@@ -122,7 +122,6 @@ function FilterActions() {
           tags.length,
         ],
         queryFn: () => tags.map(makeStringFilterItem),
-        enabled: ctx.state === 'selected',
         staleTime: Infinity,
       });
 
@@ -142,22 +141,30 @@ function FilterActions() {
           )}
         />
       )}
-      {sortedBooleanAttributes.map(tag => (
+      {sortedBooleanAttributes.length > 0 && (
         <CMDKAction
-          key={tag.key}
-          display={{label: capitalizeLabel(tag.name ?? tag.key)}}
-          keywords={[tag.key]}
+          display={{label: t('Boolean Attributes')}}
+          prompt={t('Select a filter...')}
+          limit={4}
         >
-          <CMDKAction
-            display={{label: t('true')}}
-            onAction={() => addSearchFilter({key: tag.key, value: 'true'})}
-          />
-          <CMDKAction
-            display={{label: t('false')}}
-            onAction={() => addSearchFilter({key: tag.key, value: 'false'})}
-          />
+          {sortedBooleanAttributes.map(tag => (
+            <CMDKAction
+              key={tag.key}
+              display={{label: capitalizeLabel(tag.name ?? tag.key)}}
+              keywords={[tag.key]}
+            >
+              <CMDKAction
+                display={{label: t('true')}}
+                onAction={() => addSearchFilter({key: tag.key, value: 'true'})}
+              />
+              <CMDKAction
+                display={{label: t('false')}}
+                onAction={() => addSearchFilter({key: tag.key, value: 'false'})}
+              />
+            </CMDKAction>
+          ))}
         </CMDKAction>
-      ))}
+      )}
     </CMDKAction>
   );
 }

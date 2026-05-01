@@ -5,7 +5,7 @@ description: Guide for adding new actions to Sentry's Command+K palette. Use whe
 
 # Adding Actions to the Command Palette (cmdk)
 
-Sentry's Command+K palette (enabled behind `organizations:cmd-k-supercharged`) is built on a tree-collection system where `CMDKAction` components register themselves via React context. Actions render wherever in the component tree they live — no central registry to update.
+Sentry's Command+K palette is built on a tree-collection system where `CMDKAction` components register themselves via React context. Actions render wherever in the component tree they live — no central registry to update.
 
 ## Core files
 
@@ -509,8 +509,6 @@ function MyFeaturePage() {
 ---
 
 ## Feature Flag and Permission Gates
-
-The new palette only activates when the org has the `cmd-k-supercharged` flag. Actions registered via `CMDKAction` are always safe to render — they simply won't be visible to users without the flag.
 
 Gate on additional flags or permissions inline:
 

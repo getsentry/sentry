@@ -53,7 +53,7 @@ function getProfileIdEntry(
 ) {
   const profileId = data.profile_id || '';
   if (!profileId) {
-    return undefined;
+    return;
   }
   const link = project?.slug
     ? generateProfileFlamechartRoute({
@@ -78,7 +78,7 @@ function getProfilerIdEntry(
 ) {
   const profilerId = data.profiler_id || '';
   if (!profilerId) {
-    return undefined;
+    return;
   }
   const [start, end] = getStartEnd(event);
   const link =

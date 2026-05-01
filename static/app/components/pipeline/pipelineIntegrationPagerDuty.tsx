@@ -61,7 +61,7 @@ function PagerDutyInstallStep({
       ) : (
         <Button
           size="sm"
-          priority="primary"
+          variant="primary"
           onClick={openPopup}
           disabled={!stepData?.installUrl}
         >

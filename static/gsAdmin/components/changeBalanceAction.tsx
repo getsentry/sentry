@@ -19,7 +19,7 @@ import {formatBalance} from 'getsentry/utils/billing';
 
 function coerceValue(value: number) {
   if (isNaN(value)) {
-    return undefined;
+    return;
   }
   return value * 100;
 }

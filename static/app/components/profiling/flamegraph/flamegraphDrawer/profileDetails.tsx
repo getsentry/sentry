@@ -10,13 +10,12 @@ import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
-import {DeviceContextKey} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import type {TransactionSpan} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,6 +27,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {SpanFields} from 'sentry/views/insights/types';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
@@ -53,7 +53,7 @@ function renderValue(
 interface ProfileDetailsProps {
   profileGroup: ProfileGroup;
   projectId: string;
-  transaction: EventTransaction | null;
+  transactionSpan: TransactionSpan | null;
 }
 
 export function ProfileDetails(props: ProfileDetailsProps) {
@@ -153,29 +153,29 @@ export function ProfileDetails(props: ProfileDetailsProps) {
         />
       </ProfilingDetailsFrameTabs>
 
-      {!props.transaction && detailsTab === 'environment' && (
+      {!props.transactionSpan && detailsTab === 'environment' && (
         <ProfileEnvironmentDetails profileGroup={props.profileGroup} />
       )}
-      {!props.transaction && detailsTab === 'transaction' && (
+      {!props.transactionSpan && detailsTab === 'transaction' && (
         <ProfileEventDetails
           organization={organization}
           profileGroup={props.profileGroup}
           project={project}
-          transaction={props.transaction}
+          transactionSpan={props.transactionSpan}
         />
       )}
-      {props.transaction && detailsTab === 'environment' && (
+      {props.transactionSpan && detailsTab === 'environment' && (
         <TransactionDeviceDetails
-          transaction={props.transaction}
+          transactionSpan={props.transactionSpan}
           profileGroup={props.profileGroup}
         />
       )}
-      {props.transaction && detailsTab === 'transaction' && (
+      {props.transactionSpan && detailsTab === 'transaction' && (
         <TransactionEventDetails
           organization={organization}
           profileGroup={props.profileGroup}
           project={project}
-          transaction={props.transaction}
+          transactionSpan={props.transactionSpan}
         />
       )}
     </ProfileDetailsBar>
@@ -184,15 +184,13 @@ export function ProfileDetails(props: ProfileDetailsProps) {
 
 function TransactionDeviceDetails({
   profileGroup,
-  transaction,
+  transactionSpan,
 }: {
   profileGroup: ProfileGroup;
-  transaction: EventTransaction;
+  transactionSpan: TransactionSpan;
 }) {
   const deviceDetails = useMemo(() => {
     const profileMetadata = profileGroup.metadata;
-    const deviceContext = transaction.contexts.device;
-    const osContext = transaction.contexts.os;
 
     const details: Array<{
       key: string;
@@ -202,13 +200,13 @@ function TransactionDeviceDetails({
       {
         key: 'model',
         label: t('Model'),
-        value: deviceContext?.[DeviceContextKey.MODEL] ?? profileMetadata.deviceModel,
+        value: transactionSpan[SpanFields.DEVICE_MODEL] || profileMetadata.deviceModel,
       },
       {
         key: 'manufacturer',
         label: t('Manufacturer'),
         value:
-          deviceContext?.[DeviceContextKey.MANUFACTURER] ??
+          transactionSpan[SpanFields.DEVICE_MANUFACTURER] ||
           profileMetadata.deviceManufacturer,
       },
       {
@@ -219,12 +217,12 @@ function TransactionDeviceDetails({
       {
         key: 'name',
         label: t('OS'),
-        value: osContext?.name ?? profileMetadata.deviceOSName,
+        value: transactionSpan[SpanFields.OS_NAME] || profileMetadata.deviceOSName,
       },
       {
         key: 'version',
         label: t('OS Version'),
-        value: osContext?.version ?? profileMetadata.deviceOSVersion,
+        value: transactionSpan[SpanFields.OS_VERSION] || profileMetadata.deviceOSVersion,
       },
       {
         key: 'locale',
@@ -234,7 +232,7 @@ function TransactionDeviceDetails({
     ];
 
     return details;
-  }, [profileGroup, transaction]);
+  }, [profileGroup, transactionSpan]);
 
   return (
     <DetailsContainer>
@@ -252,24 +250,25 @@ function TransactionEventDetails({
   organization,
   profileGroup,
   project,
-  transaction,
+  transactionSpan: transaction,
 }: {
   organization: Organization;
   profileGroup: ProfileGroup;
   project: Project | undefined;
-  transaction: EventTransaction;
+  transactionSpan: TransactionSpan;
 }) {
   const location = useLocation();
   const transactionDetails = useMemo(() => {
     const profileMetadata = profileGroup.metadata;
 
-    const traceSlug = transaction.contexts?.trace?.trace_id ?? '';
+    const traceSlug = transaction[SpanFields.TRACE] ?? '';
+    const eventId = transaction[SpanFields.TRANSACTION_EVENT_ID];
     const transactionTarget =
-      transaction.id && project && organization
+      eventId && project && organization
         ? generateLinkToEventInTraceView({
-            eventId: transaction.id,
+            eventId,
             traceSlug,
-            timestamp: transaction.endTimestamp,
+            timestamp: transaction[SpanFields.PRECISE_FINISH_TS],
             location,
             organization,
           })
@@ -284,15 +283,15 @@ function TransactionEventDetails({
         key: 'transaction',
         label: t('Transaction'),
         value: transactionTarget ? (
-          <Link to={transactionTarget}>{transaction.title}</Link>
+          <Link to={transactionTarget}>{transaction[SpanFields.SPAN_DESCRIPTION]}</Link>
         ) : (
-          transaction.title
+          transaction[SpanFields.SPAN_DESCRIPTION]
         ),
       },
       {
         key: 'timestamp',
         label: t('Timestamp'),
-        value: <DateTime date={transaction.startTimestamp * 1000} />,
+        value: <DateTime date={transaction[SpanFields.PRECISE_START_TS] * 1000} />,
       },
       {
         key: 'project',
@@ -302,28 +301,28 @@ function TransactionEventDetails({
       {
         key: 'release',
         label: t('Release'),
-        value: transaction.release && (
+        value: transaction[SpanFields.RELEASE] && (
           <QuickContextHoverWrapper
-            dataRow={{release: transaction.release.version}}
+            dataRow={{release: transaction[SpanFields.RELEASE]}}
             contextType={ContextType.RELEASE}
             organization={organization}
           >
-            <Version version={transaction.release.version} truncate />
+            <Version version={transaction[SpanFields.RELEASE]} truncate />
           </QuickContextHoverWrapper>
         ),
       },
       {
         key: 'environment',
         label: t('Environment'),
-        value:
-          transaction.tags.find(({key}) => key === 'environment')?.value ??
-          profileMetadata.environment,
+        value: transaction[SpanFields.ENVIRONMENT] || profileMetadata.environment,
       },
       {
         key: 'duration',
         label: t('Duration'),
         value: msFormatter(
-          (transaction.endTimestamp - transaction.startTimestamp) * 1000
+          (transaction[SpanFields.PRECISE_FINISH_TS] -
+            transaction[SpanFields.PRECISE_START_TS]) *
+            1000
         ),
       },
       {
@@ -369,15 +368,15 @@ function ProfileEventDetails({
   organization,
   profileGroup,
   project,
-  transaction,
+  transactionSpan,
 }: {
   organization: Organization;
   profileGroup: ProfileGroup;
   project: Project | undefined;
-  transaction: EventTransaction | null;
+  transactionSpan: TransactionSpan | null;
 }) {
   const location = useLocation();
-  const traceSlug = transaction?.contexts?.trace?.trace_id ?? '';
+  const traceSlug = transactionSpan?.[SpanFields.TRACE] ?? '';
   return (
     <DetailsContainer>
       {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
@@ -400,12 +399,13 @@ function ProfileEventDetails({
           }
         }
         if (key === 'transactionName') {
+          const eventId = transactionSpan?.[SpanFields.TRANSACTION_EVENT_ID];
           const transactionTarget =
-            project?.slug && transaction?.id && organization
+            project?.slug && eventId && organization
               ? generateLinkToEventInTraceView({
                   traceSlug,
-                  eventId: transaction.id,
-                  timestamp: transaction.endTimestamp,
+                  eventId,
+                  timestamp: transactionSpan[SpanFields.PRECISE_FINISH_TS],
                   location,
                   organization,
                 })

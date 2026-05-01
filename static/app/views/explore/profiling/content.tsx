@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import Feature from 'sentry/components/acl/feature';
@@ -18,7 +19,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {Pagination} from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
   ContinuousProfilingBetaAlertBanner,
@@ -51,7 +51,6 @@ import {
 import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
 import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
@@ -386,8 +385,6 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 }
 
 function ProfilingContentPageHeader() {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const titleTooltip = (
     <PageHeadingQuestionTooltip
       docsUrl="https://docs.sentry.io/product/profiling/"
@@ -397,37 +394,21 @@ function ProfilingContentPageHeader() {
     />
   );
 
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        <TopBar.Slot name="title">
-          {t('Profiling')}
-          {titleTooltip}
-        </TopBar.Slot>
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-      </Fragment>
-    );
-  }
-
   return (
-    <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        <Layout.Title>
-          {t('Profiling')}
-          {titleTooltip}
-        </Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <FeedbackButton />
-      </Layout.HeaderActions>
-    </Layout.Header>
+    <Fragment>
+      <TopBar.Slot name="title">
+        {t('Profiling')}
+        {titleTooltip}
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 

@@ -29,7 +29,13 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
         return instance.status in {ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS}
 
     def get_child_relations(self, instance: Repository) -> list[BaseRelation]:
-        return _get_repository_child_relations(instance)
+        from sentry.seer.models.project_repository import SeerProjectRepository
+
+        return _get_repository_child_relations(instance) + [
+            # We only delete SeerProjectRepository when the repo is actually deleted,
+            # but not when it's hidden/disabled (repository_cascade_delete_on_hide).
+            ModelRelation(SeerProjectRepository, {"repository_id": instance.id}),
+        ]
 
     def delete_instance(self, instance: Repository) -> None:
         # TODO: child_relations should also send pending_delete so we

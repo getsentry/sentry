@@ -186,12 +186,14 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Crash Report Notifications'),
+    hintText: '',
   },
   'project-user-feedback.sentry:feedback_ai_spam_detection': {
     name: 'sentry:feedback_ai_spam_detection',
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Spam Detection'),
+    hintText: '',
   },
   'project-toolbar.sentry:toolbar_allowed_origins': {
     name: 'sentry:toolbar_allowed_origins',

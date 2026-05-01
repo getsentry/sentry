@@ -117,7 +117,7 @@ export function getGroupActivityItem(
 
   function getAssignedMessage(assignedActivity: GroupActivityAssigned) {
     const {data} = assignedActivity;
-    let assignee: string | User | undefined = undefined;
+    let assignee: string | User | undefined;
 
     if (data.assigneeType === 'team') {
       const team = teams.find(({id}) => id === data.assignee);
@@ -424,6 +424,27 @@ export function getGroupActivityItem(
         }
         return {
           title: t('Resolved'),
+          message: tct('by [author] in a commit', {author}),
+        };
+      }
+      case GroupActivityType.REFERENCED_IN_COMMIT: {
+        if (activity.data.commit) {
+          return {
+            title: t('Referenced in Commit'),
+            message: tct('by [author] in [commit]', {
+              author,
+              commit: (
+                <CommitLink
+                  inline
+                  commitId={activity.data.commit.id}
+                  repository={activity.data.commit.repository}
+                />
+              ),
+            }),
+          };
+        }
+        return {
+          title: t('Referenced in Commit'),
           message: tct('by [author] in a commit', {author}),
         };
       }

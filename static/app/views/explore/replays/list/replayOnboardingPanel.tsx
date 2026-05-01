@@ -117,10 +117,7 @@ interface SetupReplaysCTAProps {
   disabled?: boolean;
 }
 
-export function SetupReplaysCTA({
-  disabled,
-  primaryAction = 'setup',
-}: SetupReplaysCTAProps) {
+export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
   const {allMobileProj} = useAllMobileProj({});
@@ -238,7 +235,7 @@ export function SetupReplaysCTA({
             data-test-id="setup-replays-btn"
             type="button"
             onClick={() => activateSidebar()}
-            priority="primary"
+            variant="primary"
             disabled={disabled}
           >
             {t('Set Up Replays')}
@@ -262,7 +259,7 @@ export function SetupReplaysCTA({
             path: '/new/',
             organization,
           })}
-          priority="primary"
+          variant="primary"
           disabled={disabled}
         >
           {t('Create Project')}
