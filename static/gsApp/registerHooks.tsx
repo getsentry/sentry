@@ -4,6 +4,7 @@ import {LazyLoad} from 'sentry/components/lazyLoad';
 import {IconBusiness} from 'sentry/icons';
 import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupConfiguration} from 'getsentry/components/ai/aiSetupConfiguration';
@@ -64,7 +65,6 @@ import {OrgStatsProfilingBanner} from 'getsentry/hooks/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/hooks/rootRoutes';
 import {ScmGithubMultiOrgInstall} from 'getsentry/hooks/scmGithubMultiOrgInstall';
 import {seerSettingsRoutes} from 'getsentry/hooks/seerSettingsRoutes';
-import {ComponentWrapper as EnhancedOrganizationStats} from 'getsentry/hooks/spendVisibility/enhancedIndex';
 import {SpikeProtectionProjectSettings} from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import {subscriptionSettingsRoutes} from 'getsentry/hooks/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/hooks/superuserAccessCategory';
@@ -107,6 +107,16 @@ const DisabledAlertsPage = lazy(() => import('./components/features/disabledAler
 const DisabledDashboardPage = lazy(
   () => import('./components/features/disabledDashboardPage')
 );
+
+const EnhancedOrganizationStats = lazy(() =>
+  import('getsentry/hooks/spendVisibility/enhancedIndex').then(module => ({
+    default: module.EnhancedOrganizationStats,
+  }))
+);
+
+function LazyEnhancedOrganizationStats(props: OrganizationStatsProps) {
+  return <LazyLoad LazyComponent={EnhancedOrganizationStats} {...props} />;
+}
 
 const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
@@ -236,7 +246,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:dashboards-header': () => DashboardBanner,
   'component:org-stats-banner': () => OrgStatsBanner,
   'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
-  'component:enhanced-org-stats': () => EnhancedOrganizationStats,
+  'component:enhanced-org-stats': () => LazyEnhancedOrganizationStats,
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
