@@ -1,6 +1,7 @@
-import {useEffect, useRef} from 'react';
+import {memo, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -9,16 +10,21 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
-export interface SidebarGroup {
+interface SidebarGroup {
   count: number;
   key: string;
   name: string;
 }
 
+export interface SidebarSection {
+  groups: SidebarGroup[];
+  type?: DiffStatus;
+}
+
 export const DIFF_TYPE_ORDER: Record<string, number> = {
   [DiffStatus.CHANGED]: 0,
-  [DiffStatus.ADDED]: 1,
-  [DiffStatus.REMOVED]: 2,
+  [DiffStatus.REMOVED]: 1,
+  [DiffStatus.ADDED]: 2,
   [DiffStatus.RENAMED]: 3,
   [DiffStatus.UNCHANGED]: 4,
 };
@@ -33,26 +39,34 @@ const STATUS_PILLS: ReadonlyArray<{
   status: DiffStatus;
 }> = [
   {status: DiffStatus.CHANGED, color: 'accent', label: t('modified')},
-  {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.REMOVED, color: 'danger', label: t('removed')},
+  {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
   {status: DiffStatus.UNCHANGED, color: 'muted', label: t('unchanged')},
 ];
 
+const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
+  [DiffStatus.CHANGED]: {color: 'accent', label: t('Modified')},
+  [DiffStatus.ADDED]: {color: 'success', label: t('Added')},
+  [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
+  [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
+  [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
+};
+
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
-  groups: SidebarGroup[];
   onSearchChange: (query: string) => void;
-  onSelectItem: (key: string) => void;
+  onSelectItem: (itemKey: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
   searchQuery: string;
-  activeGroupName?: string | null;
+  sections: SidebarSection[];
+  activeItemKey?: string | null;
   statusCounts?: StatusCounts | null;
 }
 
-export function SnapshotSidebarContent({
-  groups,
-  activeGroupName,
+export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
+  sections,
+  activeItemKey,
   searchQuery,
   onSearchChange,
   onSelectItem,
@@ -67,11 +81,11 @@ export function SnapshotSidebarContent({
 
   useEffect(() => {
     const container = listRef.current;
-    if (!container || !activeGroupName) {
+    if (!container || !activeItemKey) {
       return;
     }
     const el = container.querySelector<HTMLElement>(
-      `[data-item-name="${CSS.escape(activeGroupName)}"]`
+      `[data-item-key="${CSS.escape(activeItemKey)}"]`
     );
     if (!el) {
       return;
@@ -83,39 +97,22 @@ export function SnapshotSidebarContent({
     } else if (eRect.bottom > cRect.bottom) {
       container.scrollTop += eRect.bottom - cRect.bottom;
     }
-  }, [activeGroupName]);
+  }, [activeItemKey]);
 
-  const renderGroup = (group: SidebarGroup) => {
-    const isActive = group.key === activeGroupName;
-    return (
-      <SidebarItemRow
-        key={group.key}
-        data-item-name={group.key}
-        isSelected={isActive}
-        onClick={e => {
-          e.stopPropagation();
-          onSelectItem(group.key);
-        }}
-      >
-        <Flex align="center" gap="sm" flex="1" minWidth="0">
-          <Text
-            size="md"
-            variant={isActive ? 'accent' : 'muted'}
-            bold={isActive}
-            ellipsis
-            onPointerEnter={setTitleOnOverflow}
-          >
-            {group.name}
-          </Text>
-        </Flex>
-        <CountBadge>
-          <Text variant="muted" size="xs">
-            {group.count}
-          </Text>
-        </CountBadge>
-      </SidebarItemRow>
-    );
+  const [collapsed, setCollapsed] = useState<Set<DiffStatus>>(() => new Set());
+  const toggleSection = (type: DiffStatus, expanded: boolean) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (expanded) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
   };
+
+  const hasGroups = sections.some(s => s.groups.length > 0);
 
   return (
     <Stack height="100%" width="100%">
@@ -158,8 +155,69 @@ export function SnapshotSidebarContent({
         )}
       </Stack>
       <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        {groups.map(renderGroup)}
-        {groups.length === 0 && (
+        {sections.map(section => {
+          if (section.groups.length === 0) {
+            return null;
+          }
+          const sectionType = section.type;
+          const meta = sectionType ? STATUS_META[sectionType] : null;
+          const isCollapsed = !!sectionType && collapsed.has(sectionType);
+          const showHeader = !!meta && !!sectionType && sections.length > 1;
+          const items = section.groups.map(group => {
+            const isActive = group.key === activeItemKey;
+            return (
+              <SidebarItemRow
+                key={group.key}
+                data-item-key={group.key}
+                isSelected={isActive}
+                indented={showHeader}
+                onClick={e => {
+                  e.stopPropagation();
+                  onSelectItem(group.key);
+                }}
+              >
+                <Flex align="center" gap="sm" flex="1" minWidth="0">
+                  <Text
+                    size="md"
+                    variant={isActive ? 'accent' : 'muted'}
+                    bold={isActive}
+                    ellipsis
+                    onPointerEnter={setTitleOnOverflow}
+                  >
+                    {group.name}
+                  </Text>
+                </Flex>
+                <CountBadge>
+                  <Text variant="muted" size="xs">
+                    {group.count}
+                  </Text>
+                </CountBadge>
+              </SidebarItemRow>
+            );
+          });
+          if (!showHeader) {
+            return <Stack key={sectionType ?? 'solo'}>{items}</Stack>;
+          }
+          return (
+            <SectionDisclosure
+              key={sectionType}
+              size="xs"
+              expanded={!isCollapsed}
+              onExpandedChange={expanded => toggleSection(sectionType, expanded)}
+            >
+              <Disclosure.Title>
+                <Flex align="center" gap="sm">
+                  <Dot pillColor={meta.color} active />
+                  <Text size="sm" bold>
+                    {meta.label}
+                  </Text>
+                </Flex>
+              </Disclosure.Title>
+              {!isCollapsed && items}
+            </SectionDisclosure>
+          );
+        })}
+        {!hasGroups && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No components found.')}
@@ -169,7 +227,7 @@ export function SnapshotSidebarContent({
       </Stack>
     </Stack>
   );
-}
+});
 
 function StatusPill({
   color,
@@ -214,10 +272,10 @@ const PillButton = styled('button')<{active: boolean}>`
   }
 `;
 
-const Dot = styled('span')<{active: boolean; pillColor: PillColor}>`
+const Dot = styled('span')<{active: boolean; pillColor: PillColor; dotSize?: number}>`
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: ${p => p.dotSize ?? 6}px;
+  height: ${p => p.dotSize ?? 6}px;
   border-radius: 50%;
   background: ${p => {
     if (!p.active) {
@@ -249,10 +307,28 @@ const CountBadge = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
 `;
 
-const SidebarItemRow = styled('div')<{isSelected: boolean}>`
+const SectionDisclosure = styled(Disclosure)`
+  width: 100%;
+  align-items: stretch;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
+  }
+`;
+
+const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   display: flex;
   align-items: center;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  padding-left: ${p =>
+    p.indented
+      ? `calc(${p.theme.space.xl} + 8px + ${p.theme.space.sm})`
+      : p.theme.space.xl};
   gap: ${p => p.theme.space.sm};
   cursor: pointer;
   border-right: 3px solid
