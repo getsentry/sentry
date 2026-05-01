@@ -334,28 +334,29 @@ export function SnapshotListView({
   const activeVirtualItem = virtualItems.find(virtualItem => {
     return scrollTop > 0 && activeGroupThreshold < virtualItem.end - ROW_PADDING_BOTTOM;
   });
-  const activeGroup =
-    activeVirtualItem === undefined ? null : groups[activeVirtualItem.index]!;
+  const activeGroupBounds =
+    activeVirtualItem === undefined
+      ? null
+      : {
+          bottom:
+            scrollContainerPaddingTop +
+            activeVirtualItem.end -
+            ROW_PADDING_BOTTOM -
+            scrollTop,
+          group: groups[activeVirtualItem.index]!,
+          top: scrollContainerPaddingTop + activeVirtualItem.start - scrollTop,
+        };
   const activeGroupName =
-    activeGroup && !activeGroup.isUngrouped ? activeGroup.name : null;
+    activeGroupBounds && !activeGroupBounds.group.isUngrouped
+      ? activeGroupBounds.group.name
+      : null;
   const stickyHeaderTop = Math.max(scrollContainerPaddingTop - scrollTop, 0);
-  const activeGroupTop =
-    activeVirtualItem === undefined
-      ? null
-      : scrollContainerPaddingTop + activeVirtualItem.start - scrollTop;
-  const activeGroupBottom =
-    activeVirtualItem === undefined
-      ? null
-      : scrollContainerPaddingTop +
-        activeVirtualItem.end -
-        ROW_PADDING_BOTTOM -
-        scrollTop;
   const stickyHeaderTranslateY =
-    activeGroupBottom === null
+    activeGroupBounds === null
       ? 0
       : Math.min(
-          Math.max(0, (activeGroupTop ?? 0) - stickyHeaderTop),
-          activeGroupBottom -
+          Math.max(0, activeGroupBounds.top - stickyHeaderTop),
+          activeGroupBounds.bottom -
             (stickyHeaderTop + HEADER_HEIGHT) +
             STICKY_HEADER_BOTTOM_OVERLAP
         );
