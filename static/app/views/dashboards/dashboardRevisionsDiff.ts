@@ -107,7 +107,10 @@ function makeWidgetFingerprint(w: Widget): string {
         `${q.conditions}|${q.aggregates.join(',')}|${q.columns.join(',')}|${q.orderby}|${q.name}`
     )
     .join(';');
-  return `${w.title}::${w.displayType}::${w.interval ?? ''}::${w.description ?? ''}::${queryPart}`;
+  const layoutPart = w.layout
+    ? `${w.layout.x},${w.layout.y},${w.layout.w},${w.layout.h}`
+    : '';
+  return `${w.title}::${w.displayType}::${w.interval ?? ''}::${w.description ?? ''}::${queryPart}::${layoutPart}`;
 }
 
 function diffQueryFields(
