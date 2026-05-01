@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useReducer,
@@ -209,6 +210,8 @@ function makeSlotConsumer<T extends Slot>(options: {
     const ctx = useContext(context);
     const [state, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
     const {name} = props;
+    const element = state[name]?.element;
+
     useLayoutEffect(() => {
       if (dispatch === NOOP_DISPATCH) {
         return;
@@ -216,6 +219,18 @@ function makeSlotConsumer<T extends Slot>(options: {
       dispatch({type: 'increment counter', name});
       return () => dispatch({type: 'decrement counter', name});
     }, [dispatch, name]);
+
+    useEffect(() => {
+      if (ctx && !element) {
+        reportSlotWarning(
+          'missing-outlet',
+          'Consumer',
+          name,
+          `<Slot.Consumer name="${name}"> could not find a registered <Slot.Outlet> element. ` +
+            `Ensure a <Slot.Outlet name="${name}"> is rendered inside the same <Slot.Provider>.`
+        );
+      }
+    }, [ctx, element, name]);
 
     if (!ctx) {
       reportSlotWarning(
@@ -227,15 +242,7 @@ function makeSlotConsumer<T extends Slot>(options: {
       return null;
     }
 
-    const element = state[name]?.element;
     if (!element) {
-      reportSlotWarning(
-        'missing-outlet',
-        'Consumer',
-        name,
-        `<Slot.Consumer name="${name}"> could not find a registered <Slot.Outlet> element. ` +
-          `Ensure a <Slot.Outlet name="${name}"> is rendered inside the same <Slot.Provider>.`
-      );
       return null;
     }
 
