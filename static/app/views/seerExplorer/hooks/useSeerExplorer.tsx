@@ -55,7 +55,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/explore/traces/trace/:traceSlug/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>(['/issues/']);
 
 function supportsStructuredContext(
   referrer: string,

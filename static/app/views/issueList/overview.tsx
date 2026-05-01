@@ -54,6 +54,8 @@ import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups'
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
@@ -124,7 +126,7 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   return pageInt;
 };
 
-function IssueListOverview({
+function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
   title = t('Issues'),
@@ -880,6 +882,32 @@ function IssueListOverview({
 
   const hasPageFrame = useHasPageFrameFeature();
 
+  useLLMContext({
+    contextHint:
+      'Sentry issue list page. Shows a filterable, sortable list of grouped issues. ' +
+      'query is the current search filter (Sentry search syntax). ' +
+      'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
+      'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      'Tools: get_issue_details(issue_id) for issue aggregate stats; ' +
+      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
+      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+    query,
+    sort,
+    issueCount: queryCount,
+    projects: selection.projects,
+    environments: selection.environments,
+    dateRange: selection.datetime,
+    displayedIssues: [
+      'shortId|title|issueType|level|priority|events|users|firstSeen',
+      ...groups
+        .slice(0, MAX_ITEMS)
+        .map(
+          g =>
+            `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
+        ),
+    ].join('\n'),
+  });
+
   return (
     <IssueSelectionProvider visibleGroupIds={groupIds}>
       <Stack flex={1}>
@@ -961,6 +989,8 @@ function IssueListOverview({
     </IssueSelectionProvider>
   );
 }
+
+const IssueListOverview = registerLLMContext('issue-list', IssueListOverviewInner);
 
 export default Sentry.withProfiler(IssueListOverview);
 
