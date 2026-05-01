@@ -9,10 +9,12 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
@@ -708,9 +710,15 @@ export function buildToolLinkUrl(
           const yAxesArray = Array.isArray(y_axes) ? y_axes : [y_axes];
           fields.push(...yAxesArray);
         }
-        if (fields.length > 0) {
-          queryParams.field = fields;
+
+        // make sure we always force some fields as discover will re-route to the
+        // saved default query in the event that no fields are specified
+        if (fields.length === 0) {
+          const defaultErrorView = DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS];
+          fields.push(...defaultErrorView.fields);
         }
+
+        queryParams.field = fields;
 
         // Discover sort strips parentheses from aggregates: -count() -> -count
         if (queryParams.sort) {
