@@ -83,7 +83,9 @@ export const FALLBACK_FEATURE_META: Record<ProductSolution, FeatureMeta> = {
       'Track application performance and usage over time with custom metrics'
     ),
     volume: t('5 GB / mo'),
-    volumeTooltip: t('Free plan includes 5 GB metrics / month'),
+    volumeTooltip: t(
+      'Free plan includes 5 GB metrics / month. Upgrade to Team or Business to send more.'
+    ),
   },
 };
 
