@@ -19,7 +19,10 @@ from sentry.api.event_search import (
 )
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import GroupCategory, get_group_type_by_slug
+from sentry.issues.grouptype import (
+    GroupCategory,
+    get_group_type_by_slug,
+)
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES
