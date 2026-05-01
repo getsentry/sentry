@@ -9,6 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import SuperuserStaffAccessForm from 'sentry/components/superuserStaffAccessForm';
 import {IconSentry, IconSliders} from 'sentry/icons';
@@ -43,17 +44,26 @@ const useToggleTheme = () => {
 
 export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
-  // null = preflight check in progress, true = verified, false = needs re-auth
-  const [superuserReady, setSuperuserReady] = useState<boolean | null>(null);
+  // null = preflight check in progress, true = verified, false = needs re-auth, 'error' = unexpected server error
+  const [superuserReady, setSuperuserReady] = useState<boolean | null | 'error'>(null);
 
-  useEffect(() => {
+  const checkSuperuser = () => {
+    setSuperuserReady(null);
     // Verify the superuser/staff session is still active before rendering any
     // admin content. We use the native fetch API here intentionally to bypass
     // the Sentry API client's SUPERUSER_REQUIRED error handler, which would
     // open a modal overlay over the (not yet rendered) page content.
     fetch('/api/0/_admin/superuser-check/', {credentials: 'include'})
-      .then(res => setSuperuserReady(res.ok))
-      .catch(() => setSuperuserReady(false));
+      .then(res => {
+        if (res.ok) setSuperuserReady(true);
+        else if (res.status === 403) setSuperuserReady(false);
+        else setSuperuserReady('error');
+      })
+      .catch(() => setSuperuserReady('error'));
+  };
+
+  useEffect(() => {
+    checkSuperuser();
   }, []);
 
   const hasStaff = ConfigStore.get('user')?.isStaff ?? false;
@@ -61,8 +71,10 @@ export function Layout() {
   let content: ReactNode;
   if (superuserReady === null) {
     content = <LoadingIndicator />;
-  } else if (superuserReady) {
+  } else if (superuserReady === true) {
     content = <Outlet />;
+  } else if (superuserReady === 'error') {
+    content = <LoadingError onRetry={checkSuperuser} />;
   } else {
     content = <SuperuserStaffAccessForm hasStaff={hasStaff} />;
   }
