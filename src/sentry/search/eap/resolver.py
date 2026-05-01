@@ -106,17 +106,23 @@ class SearchResolver:
         ],
     ] = field(default_factory=dict)
     qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
+    _internal_name_to_column: dict[str, ResolvedAttribute] = field(default_factory=dict, repr=False)
 
     def _find_column_by_internal_name(self, internal_name: str) -> ResolvedAttribute | None:
         """Look up a column definition by its internal name (e.g. 'sentry.item_id' -> 'id' column).
 
-        This enables users to query using internal attribute names and still get
-        the correct column definition with validators and normalizers.
+        Uses a lazily-built reverse mapping from internal_name -> column definition,
+        cached for the lifetime of this resolver instance.
         """
-        for column_def in self.definitions.columns.values():
-            if column_def.internal_name == internal_name:
-                return column_def
-        return None
+        if not self._internal_name_to_column:
+            self._internal_name_to_column.update(
+                {
+                    col.internal_name: col
+                    for col in self.definitions.columns.values()
+                    if not col.secondary_alias
+                }
+            )
+        return self._internal_name_to_column.get(internal_name)
 
     def get_function_definition(
         self, function_name: str
