@@ -209,6 +209,90 @@ describe('diffWidgets', () => {
     });
   });
 
+  it('distinguishes widgets with identical queries but different thresholds in fingerprint matching', () => {
+    const q = {
+      conditions: '',
+      aggregates: ['count()'],
+      columns: [],
+      orderby: '',
+      name: '',
+    } as any;
+    const base1 = makeWidget({
+      id: '1',
+      title: 'Custom Widget',
+      queries: [q],
+      thresholds: {max_values: {max1: 100}, unit: 'ms'},
+    });
+    const base2 = makeWidget({
+      id: '2',
+      title: 'Custom Widget',
+      queries: [q],
+      thresholds: {max_values: {max1: 200}, unit: 'ms'},
+    });
+    const snap1 = makeWidget({
+      id: '10',
+      title: 'Custom Widget',
+      queries: [q],
+      thresholds: {max_values: {max1: 100}, unit: 'ms'},
+    });
+    const snap2 = makeWidget({
+      id: '20',
+      title: 'Custom Widget',
+      queries: [q],
+      thresholds: {max_values: {max1: 200}, unit: 'ms'},
+    });
+    const result = diffWidgets(
+      makeDashboard([base1, base2]),
+      makeDashboard([snap1, snap2])
+    );
+    expect(result.find(r => r.status === 'added')).toBeUndefined();
+    expect(result.find(r => r.status === 'removed')).toBeUndefined();
+  });
+
+  it('detects a threshold change', () => {
+    const base = makeWidget({
+      id: '1',
+      thresholds: {max_values: {max1: 100}, unit: 'ms'},
+    });
+    const snap = makeWidget({
+      id: '1',
+      thresholds: {max_values: {max1: 200}, unit: 'ms'},
+    });
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({
+      status: 'modified',
+      fields: [{field: 'thresholds'}],
+    });
+  });
+
+  it('detects a threshold being added', () => {
+    const base = makeWidget({id: '1'});
+    const snap = makeWidget({id: '1', thresholds: {max_values: {max1: 100}, unit: 'ms'}});
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({
+      status: 'modified',
+      fields: [{field: 'thresholds', before: '(none)'}],
+    });
+  });
+
+  it('detects a threshold being removed', () => {
+    const base = makeWidget({id: '1', thresholds: {max_values: {max1: 100}, unit: 'ms'}});
+    const snap = makeWidget({id: '1'});
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({
+      status: 'modified',
+      fields: [{field: 'thresholds', after: '(none)'}],
+    });
+  });
+
+  it('does not flag a change when thresholds are identical', () => {
+    const thresholds = {max_values: {max1: 100}, unit: 'ms'};
+    const base = makeWidget({id: '1', thresholds});
+    const snap = makeWidget({id: '1', thresholds});
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result).toEqual([]);
+  });
+
   it('does not flag a change when one widget has null description and the other has empty string', () => {
     const base = makeWidget({
       id: '1',
