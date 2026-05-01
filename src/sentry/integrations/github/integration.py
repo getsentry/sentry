@@ -47,6 +47,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -67,6 +68,7 @@ from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiInvalidRequestError,
     ApiPaginationTruncated,
     IntegrationError,
@@ -219,6 +221,11 @@ class GitHubIntegration(
             return True
 
         return False
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiForbiddenError) and "suspended" in str(exc):
+            return "installation_suspended"
+        return super().is_broken_integration_error(exc)
 
     def message_from_error(self, exc: Exception) -> str:
         if not isinstance(exc, ApiError):

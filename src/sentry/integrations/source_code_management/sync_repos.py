@@ -38,8 +38,6 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import (
-    ApiError,
-    ApiForbiddenError,
     ApiPaginationTruncated,
     IntegrationError,
 )
@@ -210,31 +208,6 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                 tags={"provider": provider_key},
                 sample_rate=1.0,
             )
-        except ApiError as e:
-            # GitHub returns 403 "This installation has been suspended" when the
-            # user has suspended the app install.
-            # TODO: Move into GitHub-specific is_broken_integration_error override.
-            if (
-                provider_key in ("github", "github_enterprise")
-                and isinstance(e, ApiForbiddenError)
-                and "suspended" in str(e)
-            ):
-                _halt_broken_integration(
-                    lifecycle,
-                    e,
-                    integration.id,
-                    rpc_org.id,
-                    provider_key,
-                    "installation_suspended",
-                )
-                return
-            halt_reason = installation.is_broken_integration_error(e)
-            if halt_reason:
-                _halt_broken_integration(
-                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
-                )
-                return
-            raise
         except IntegrationError as e:
             halt_reason = installation.is_broken_integration_error(e)
             if halt_reason:

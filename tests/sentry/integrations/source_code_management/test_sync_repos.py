@@ -1,20 +1,40 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 import responses
+from requests.exceptions import TooManyRedirects
+from taskbroker_client.retry import RetryTaskError
 
 from sentry import audit_log
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.sync_repos import (
     sync_repos_for_org,
 )
+from sentry.locks import locks
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import (
+    ApiConnectionResetError,
+    ApiError,
+    ApiForbiddenError,
+    ApiHostError,
+    ApiPaginationTruncated,
+    ApiRateLimitedError,
+    ApiTimeoutError,
+    ApiUnauthorized,
+    IntegrationConfigurationError,
+    IntegrationError,
+    UnsupportedResponseType,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.users.models.identity import Identity
 
 
 @control_silo_test
@@ -324,8 +344,6 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
     def test_installation_suspended_halts_without_retry(
         self, mock_get_repositories: MagicMock, _: MagicMock
     ) -> None:
-        from sentry.shared_integrations.exceptions import ApiForbiddenError
-
         mock_get_repositories.side_effect = ApiForbiddenError(
             '{"message":"This installation has been suspended"}'
         )
@@ -338,8 +356,6 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_truncated_fetch_skips_disable(self, mock_get_repos: MagicMock, _: MagicMock) -> None:
-        from sentry.shared_integrations.exceptions import ApiPaginationTruncated
-
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -381,10 +397,6 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 class SyncReposForOrgGHETestCase(TestCase):
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_creates_new_repos_for_ghe(self, mock_get_repos: MagicMock) -> None:
-        from sentry.integrations.github_enterprise.integration import (
-            GitHubEnterpriseIntegrationProvider,
-        )
-
         GitHubEnterpriseIntegrationProvider().setup()
 
         integration = self.create_integration(
@@ -431,10 +443,6 @@ class SyncReposForOrgGHETestCase(TestCase):
         # client raises ApiPaginationTruncated with raw API dicts, the
         # integration must transform them to RepositoryInfo before re-raising
         # so sync_repos doesn't KeyError on `external_id`.
-        from sentry.integrations.github_enterprise.integration import (
-            GitHubEnterpriseIntegrationProvider,
-        )
-        from sentry.shared_integrations.exceptions import ApiPaginationTruncated
 
         GitHubEnterpriseIntegrationProvider().setup()
 
@@ -496,8 +504,6 @@ class SyncReposForOrgGHETestCase(TestCase):
 class SyncReposForOrgGitLabTestCase(TestCase):
     @responses.activate
     def test_creates_new_repos_for_gitlab(self) -> None:
-        from sentry.users.models.identity import Identity
-
         integration = self.create_provider_integration(
             provider="gitlab",
             name="Example Gitlab",
@@ -631,8 +637,6 @@ class SyncReposForOrgBitbucketTestCase(TestCase):
 class SyncReposForOrgVstsTestCase(TestCase):
     @patch("sentry.integrations.vsts.integration.VstsIntegration.get_client")
     def test_creates_new_repos_for_vsts(self, mock_get_client: MagicMock) -> None:
-        from sentry.users.models.identity import Identity
-
         integration = self.create_provider_integration(
             provider="vsts",
             external_id="vsts-account-id",
@@ -688,8 +692,6 @@ class SyncReposForOrgVstsTestCase(TestCase):
         assert repos[0].provider == "integrations:vsts"
 
     def _create_vsts_integration(self) -> OrganizationIntegration:
-        from sentry.users.models.identity import Identity
-
         integration = self.create_provider_integration(
             provider="vsts",
             external_id="vsts-account-id",
@@ -716,8 +718,6 @@ class SyncReposForOrgVstsTestCase(TestCase):
     def test_vsts_wrapped_unauthorized_halts_without_retry(
         self, mock_get_repositories: MagicMock
     ) -> None:
-        from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationError
-
         def _wrap_unauthorized(*args: object, **kwargs: object) -> None:
             # Mirror VSTS's real wrapping: raise IntegrationError from inside the
             # ApiUnauthorized except block so __context__ is populated.
@@ -744,8 +744,6 @@ class SyncReposForOrgVstsTestCase(TestCase):
         # VSTS wraps IdentityNotValid in IntegrationError with ERR_INTERNAL,
         # so the message does NOT contain "Unauthorized". The sync code must
         # still halt by detecting the original via __context__.
-        from sentry.auth.exceptions import IdentityNotValid
-        from sentry.shared_integrations.exceptions import IntegrationError
 
         def _wrap_identity_not_valid(*args: object, **kwargs: object) -> None:
             try:
@@ -769,9 +767,6 @@ class SyncReposForOrgVstsTestCase(TestCase):
 class SyncReposForOrgBrokenIdentityTestCase(TestCase):
     @patch("sentry.integrations.gitlab.integration.GitlabIntegration.get_repositories")
     def test_identity_not_valid_halts_without_retry(self, mock_get_repositories: MagicMock) -> None:
-        from sentry.auth.exceptions import IdentityNotValid
-        from sentry.users.models.identity import Identity
-
         integration = self.create_provider_integration(
             provider="gitlab",
             name="Example Gitlab",
@@ -821,8 +816,6 @@ class SyncReposLockTestCase(IntegrationTestCase):
     @responses.activate
     @patch("sentry.integrations.source_code_management.sync_repos._sync_repos_for_org")
     def test_skips_when_locked(self, mock_inner: MagicMock, _: MagicMock) -> None:
-        from sentry.locks import locks
-
         lock = locks.get(
             f"repo-sync:{self.oi.id}",
             duration=300,
@@ -869,49 +862,39 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
         self.installation = self.integration.get_installation(organization_id=self.organization.id)
 
     def test_identity_not_valid(self) -> None:
-        from sentry.auth.exceptions import IdentityNotValid
-
         assert (
             self.installation.is_broken_integration_error(IdentityNotValid())
             == "identity_not_valid"
         )
 
     def test_identity_does_not_exist(self) -> None:
-        from sentry.users.models.identity import Identity
-
         assert (
             self.installation.is_broken_integration_error(Identity.DoesNotExist())
             == "identity_not_found"
         )
 
     def test_api_unauthorized(self) -> None:
-        from sentry.shared_integrations.exceptions import ApiUnauthorized
-
         assert (
             self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
             == "unauthorized"
         )
 
     def test_api_forbidden_not_terminal(self) -> None:
-        from sentry.shared_integrations.exceptions import ApiForbiddenError
-
         assert self.installation.is_broken_integration_error(ApiForbiddenError("forbidden")) is None
 
-    def test_api_host_error(self) -> None:
-        from sentry.shared_integrations.exceptions import ApiHostError
+    def test_api_forbidden_suspended_returns_installation_suspended(self) -> None:
+        exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
+        assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
 
+    def test_api_host_error(self) -> None:
         exc = ApiHostError.from_exception(Exception("host down"))
         assert self.installation.is_broken_integration_error(exc) == "host_unreachable"
 
     def test_api_timeout_error(self) -> None:
-        from sentry.shared_integrations.exceptions import ApiTimeoutError
-
         exc = ApiTimeoutError("timed out")
         assert self.installation.is_broken_integration_error(exc) == "host_timeout"
 
     def test_api_connection_reset(self) -> None:
-        from sentry.shared_integrations.exceptions import ApiConnectionResetError
-
         assert (
             self.installation.is_broken_integration_error(
                 ApiConnectionResetError("Connection reset")
@@ -920,24 +903,18 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
         )
 
     def test_unsupported_response_type(self) -> None:
-        from sentry.shared_integrations.exceptions import UnsupportedResponseType
-
         assert (
             self.installation.is_broken_integration_error(UnsupportedResponseType("text/html"))
             == "unsupported_response"
         )
 
     def test_api_rate_limited(self) -> None:
-        from sentry.shared_integrations.exceptions import ApiRateLimitedError
-
         assert (
             self.installation.is_broken_integration_error(ApiRateLimitedError("slow down"))
             == "rate_limited"
         )
 
     def test_integration_configuration_error(self) -> None:
-        from sentry.shared_integrations.exceptions import IntegrationConfigurationError
-
         assert (
             self.installation.is_broken_integration_error(
                 IntegrationConfigurationError("bad config")
@@ -946,36 +923,25 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
         )
 
     def test_integration_error_wrapping_terminal_cause(self) -> None:
-        from sentry.auth.exceptions import IdentityNotValid
-        from sentry.shared_integrations.exceptions import IntegrationError
-
         exc = IntegrationError("wrapped")
         exc.__context__ = IdentityNotValid()
         assert self.installation.is_broken_integration_error(exc) == "identity_not_valid"
 
     def test_integration_error_wrapping_non_terminal_cause(self) -> None:
-        from sentry.shared_integrations.exceptions import IntegrationError
-
         exc = IntegrationError("wrapped")
         exc.__context__ = ValueError("not terminal")
         assert self.installation.is_broken_integration_error(exc) is None
 
     def test_integration_error_without_context(self) -> None:
-        from sentry.shared_integrations.exceptions import IntegrationError
-
         assert self.installation.is_broken_integration_error(IntegrationError("plain")) is None
 
     def test_too_many_redirects(self) -> None:
-        from requests.exceptions import TooManyRedirects
-
         assert (
             self.installation.is_broken_integration_error(TooManyRedirects())
             == "too_many_redirects"
         )
 
     def test_generic_api_error_not_terminal(self) -> None:
-        from sentry.shared_integrations.exceptions import ApiError
-
         assert (
             self.installation.is_broken_integration_error(ApiError("server error", code=500))
             is None
@@ -985,8 +951,6 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
         assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
 
     def test_rate_limited_via_is_rate_limited_error(self) -> None:
-        from sentry.shared_integrations.exceptions import ApiForbiddenError
-
         exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
         with patch.object(type(self.installation), "is_rate_limited_error", return_value=True):
             assert self.installation.is_broken_integration_error(exc) == "rate_limited"
@@ -1009,8 +973,6 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
     def test_api_host_error_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
-        from sentry.shared_integrations.exceptions import ApiHostError
-
         mock_get_repositories.side_effect = ApiHostError.from_exception(
             Exception("Unable to reach host")
         )
@@ -1023,8 +985,6 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
     def test_api_timeout_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
-        from sentry.shared_integrations.exceptions import ApiTimeoutError
-
         mock_get_repositories.side_effect = ApiTimeoutError("timed out")
 
         with self.feature("organizations:github-repo-auto-sync"), self.tasks():
@@ -1035,8 +995,6 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
     def test_too_many_redirects_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
-        from requests.exceptions import TooManyRedirects
-
         mock_get_repositories.side_effect = TooManyRedirects("Exceeded 30 redirects")
 
         with self.feature("organizations:github-repo-auto-sync"), self.tasks():
@@ -1049,8 +1007,6 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     def test_integration_configuration_error_halts(
         self, mock_get_repositories: MagicMock, _: MagicMock
     ) -> None:
-        from sentry.shared_integrations.exceptions import IntegrationConfigurationError
-
         mock_get_repositories.side_effect = IntegrationConfigurationError("Identity not found.")
 
         with self.feature("organizations:github-repo-auto-sync"), self.tasks():
@@ -1063,8 +1019,6 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     def test_identity_does_not_exist_halts(
         self, mock_get_repositories: MagicMock, _: MagicMock
     ) -> None:
-        from sentry.users.models.identity import Identity
-
         mock_get_repositories.side_effect = Identity.DoesNotExist()
 
         with self.feature("organizations:github-repo-auto-sync"), self.tasks():
@@ -1077,11 +1031,6 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     def test_generic_api_error_still_raises(
         self, mock_get_repositories: MagicMock, _: MagicMock
     ) -> None:
-        import pytest
-        from taskbroker_client.retry import RetryTaskError
-
-        from sentry.shared_integrations.exceptions import ApiError
-
         mock_get_repositories.side_effect = ApiError("Internal Server Error", code=500)
 
         with self.feature("organizations:github-repo-auto-sync"), self.tasks():
