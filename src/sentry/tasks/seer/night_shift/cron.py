@@ -44,9 +44,13 @@ logger = logging.getLogger("sentry.tasks.seer.night_shift")
 NIGHT_SHIFT_DISPATCH_STEP_SECONDS = 37
 NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=4)
 
-FEATURE_NAMES = [
+BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
     "organizations:gen-ai-features",
+]
+PER_ORG_FEATURE_NAMES = [
+    # INTERNAL handlers aren't routed through batch_has_for_organizations,
+    # so this gets checked per-org on the survivors of the batch loop.
     "organizations:seat-based-seer-enabled",
 ]
 
@@ -379,18 +383,23 @@ def _get_eligible_orgs_from_batch(
     orgs: Sequence[Organization],
 ) -> list[Organization]:
     """
-    Check feature flags for a batch of orgs using batch_has_for_organizations.
+    Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
     eligible = [org for org in orgs if not org.get_option("sentry:hide_ai_features")]
 
-    for feature_name in FEATURE_NAMES:
+    for feature_name in BATCH_FEATURE_NAMES:
         batch_result = features.batch_has_for_organizations(feature_name, eligible)
         if batch_result is None:
             raise RuntimeError(f"batch_has_for_organizations returned None for {feature_name}")
 
         eligible = [org for org in eligible if batch_result.get(f"organization:{org.id}", False)]
 
+        if not eligible:
+            return []
+
+    for feature_name in PER_ORG_FEATURE_NAMES:
+        eligible = [org for org in eligible if features.has(feature_name, org)]
         if not eligible:
             return []
 
