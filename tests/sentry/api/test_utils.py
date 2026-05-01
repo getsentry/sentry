@@ -10,6 +10,7 @@ from sentry_sdk import Scope
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
+    TimeoutException,
     clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
@@ -33,6 +34,7 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
+from sentry.utils.snuba_rpc import SnubaRPCTooManySimultaneous
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -232,6 +234,20 @@ class HandleQueryErrorsTest(APITestCase):
         except Exception as e:
             assert isinstance(e, OtherError)  # Should propagate original error
             mock_parse_error.assert_not_called()
+
+    def test_handle_snuba_rpc_too_many_simultaneous(self) -> None:
+        """ClickHouse 'Too many simultaneous queries' via RPC should return 504, not 500."""
+        from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
+
+        error_proto = ErrorProto(
+            code=500,
+            message="Code: 202. DB::Exception: Too many simultaneous queries. Maximum: 100.",
+        )
+        try:
+            with handle_query_errors():
+                raise SnubaRPCTooManySimultaneous(error_proto)
+        except Exception as e:
+            assert isinstance(e, TimeoutException)
 
 
 class ClampDateRangeTest(unittest.TestCase):

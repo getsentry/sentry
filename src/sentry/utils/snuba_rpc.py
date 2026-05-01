@@ -87,6 +87,12 @@ class SnubaRPCRateLimitExceeded(SnubaRPCError):
     pass
 
 
+class SnubaRPCTooManySimultaneous(SnubaRPCError):
+    """ClickHouse rejected the query because it hit the concurrent query limit."""
+
+    pass
+
+
 class SnubaRPCRequest(Protocol):
     def SerializeToString(self, *, deterministic: bool = ...) -> bytes: ...
 
@@ -401,6 +407,8 @@ def _make_rpc_request(
                         raise NotFound() from SnubaRPCError(error)
                     if http_resp.status == 429:
                         raise SnubaRPCRateLimitExceeded(error)
+                    if "Too many simultaneous queries" in error.message:
+                        raise SnubaRPCTooManySimultaneous(error)
                     raise SnubaRPCError(error)
                 return http_resp
 
