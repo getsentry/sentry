@@ -447,7 +447,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
               >
                 {sidebarOpen ? null : t('Advanced')}
               </LogsSidebarCollapseButton>
-              <LogsExportButton
+              <LogsExportSwitch
                 isLoading={tableData.isPending}
                 tableData={tableData.data}
                 error={tableData.error}

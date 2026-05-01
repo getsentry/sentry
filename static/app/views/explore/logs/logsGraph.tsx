@@ -325,7 +325,7 @@ function ContextMenu({
             ui_source: 'chart',
             organization,
           });
-          return undefined;
+          return;
         },
       },
       {
