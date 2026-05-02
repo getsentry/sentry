@@ -97,6 +97,26 @@ describe('useMembers', () => {
     expect(members).toEqual(expect.arrayContaining([userFoo]));
   });
 
+  it('combines id and email filters', async () => {
+    const userFoo = UserFixture({id: '10', email: 'foo@test.com'});
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'GET',
+      body: [{user: userFoo}],
+    });
+
+    const {result} = renderUseMembers({ids: ['10'], emails: ['foo@test.com']});
+
+    await waitFor(() => expect(result.current.initiallyLoaded).toBe(true));
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/members/`,
+      expect.objectContaining({
+        query: {query: 'user.id:10 email:foo@test.com'},
+      })
+    );
+  });
+
   it('tracks requested ids that failed to load', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,

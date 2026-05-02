@@ -74,7 +74,7 @@ type Options = {
    */
   ids?: string[];
   /**
-   * Number of members to return when not using `props.slugs`
+   * Number of members to return.
    */
   limit?: number;
 };
@@ -102,16 +102,17 @@ async function fetchMembers(
     query?: string;
   } = {};
 
-  if (ids !== undefined && ids.length > 0) {
-    query.query = ids.map(id => `user.id:${id}`).join(' ');
-  }
-
-  if (emails !== undefined && emails.length > 0) {
-    query.query = emails.map(email => `email:${email}`).join(' ');
-  }
+  const queryTerms = [
+    ...(ids?.map(id => `user.id:${id}`) ?? []),
+    ...(emails?.map(email => `email:${email}`) ?? []),
+  ];
 
   if (search) {
-    query.query = `${query.query ?? ''} ${search}`.trim();
+    queryTerms.push(search);
+  }
+
+  if (queryTerms.length > 0) {
+    query.query = queryTerms.join(' ');
   }
 
   const isSameSearch = lastSearch === search || (!lastSearch && !search);
@@ -162,9 +163,8 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   const orgId = organization.slug;
   const [members, setMembers] = useState<User[]>([]);
 
-  // Keep track of what queries we failed to find results for, otherwilse we'll
-  // just keep trying to look those up since they'll never end up in the store
-  // and {ids,emails}ToLoad will never be empty
+  // Keep track of identifiers that returned no results so we do not keep
+  // issuing the same lookup.
   const [idsFailedToLoad, setIdsFailedToLoad] = useState<Set<string>>(new Set());
   const [emailsFailedToLoad, setEmailsFailedToLoad] = useState<Set<string>>(new Set());
 
@@ -187,12 +187,8 @@ export function useMembers({ids, emails, limit}: Options = {}) {
 
   const shouldLoadByQuery = emailsToLoad.length > 0 || idsToLoad.length > 0;
 
-  // If we don't need to make a request either for emails and we have members,
-  // set initiallyLoaded to true
-  const initiallyLoaded = !shouldLoadByQuery && members.length > 0;
-
   const [state, setState] = useState<State>({
-    initiallyLoaded,
+    initiallyLoaded: false,
     fetching: false,
     hasMore: null,
     lastSearch: null,
@@ -240,6 +236,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
         hasMore,
         fetching: false,
         initiallyLoaded: true,
+        fetchError: null,
         nextCursor,
       }));
     } catch (err) {
@@ -279,7 +276,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
         const memberUsers = getMemberUsers(results);
 
         setMembers(prevMembers =>
-          uniqBy<User>([...prevMembers, ...memberUsers], ({email}) => email)
+          uniqBy<User>([...prevMembers, ...memberUsers], ({id}) => id)
         );
 
         setState(prev => ({
@@ -287,13 +284,19 @@ export function useMembers({ids, emails, limit}: Options = {}) {
           hasMore,
           fetching: false,
           initiallyLoaded: true,
+          fetchError: null,
           lastSearch: search ?? null,
           nextCursor,
         }));
       } catch (err) {
         console.error(err); // eslint-disable-line no-console
 
-        setState(prev => ({...prev, fetching: false, fetchError: err as RequestError}));
+        setState(prev => ({
+          ...prev,
+          fetching: false,
+          initiallyLoaded: true,
+          fetchError: err as RequestError,
+        }));
       }
     },
     [api, limit, orgId, state.lastSearch, state.nextCursor]
@@ -311,26 +314,24 @@ export function useMembers({ids, emails, limit}: Options = {}) {
     [handleFetchAdditionalMembers]
   );
 
-  // Load specified member identifiers.
+  const hasMemberFilter = ids !== undefined || emails !== undefined;
+  const shouldLoadInitialMembers =
+    !hasMemberFilter && members.length === 0 && !state.fetching && !state.initiallyLoaded;
+
   useEffect(() => {
     if (shouldLoadByQuery) {
       loadMembersByQuery();
-    }
-  }, [shouldLoadByQuery, loadMembersByQuery]);
-
-  useEffect(() => {
-    if (ids || emails || members.length > 0 || state.fetching || state.initiallyLoaded) {
       return;
     }
 
-    handleFetchAdditionalMembers();
+    if (shouldLoadInitialMembers) {
+      handleFetchAdditionalMembers();
+    }
   }, [
-    emails,
     handleFetchAdditionalMembers,
-    ids,
-    members.length,
-    state.fetching,
-    state.initiallyLoaded,
+    loadMembersByQuery,
+    shouldLoadByQuery,
+    shouldLoadInitialMembers,
   ]);
 
   const filteredMembers = useMemo(
@@ -344,7 +345,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   const result: Result = {
     members: filteredMembers,
     fetching: state.fetching,
-    initiallyLoaded: state.initiallyLoaded || initiallyLoaded,
+    initiallyLoaded: state.initiallyLoaded,
     fetchError: state.fetchError,
     hasMore: state.hasMore,
     onSearch: handleSearch,
