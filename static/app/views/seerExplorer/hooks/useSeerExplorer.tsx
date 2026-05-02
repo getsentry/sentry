@@ -309,13 +309,17 @@ export const useSeerExplorer = () => {
         queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
       });
     },
-    onError: e => {
+    onError: (e, params) => {
       setWaitingForInterrupt(false);
       addErrorMessage(
         typeof e.responseJSON?.detail === 'string'
           ? e.responseJSON.detail
           : 'Failed to create PR'
       );
+      // Clear optimistic processing status
+      queryClient.invalidateQueries({
+        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+      });
     },
   });
 
