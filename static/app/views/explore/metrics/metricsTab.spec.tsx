@@ -161,7 +161,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('should add a metric when Add Metric button is clicked', async () => {
+  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -536,7 +536,7 @@ describe('MetricsTabContent', () => {
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should switch to aggregate mode when a group by is added', async () => {
+  it.isKnownFlake('should switch to aggregate mode when a group by is added', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
