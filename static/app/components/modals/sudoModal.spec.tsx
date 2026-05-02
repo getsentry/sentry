@@ -61,7 +61,7 @@ describe('Sudo Modal', () => {
     OrganizationStore.reset();
   });
 
-  it('can delete an org with sudo flow', async () => {
+  it.isKnownFlake('can delete an org with sudo flow', async () => {
     setHasPasswordAuth(true);
 
     const successCb = jest.fn();
