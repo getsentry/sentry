@@ -96,7 +96,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         # just linking
         action = request.GET.get("action")
         if action not in {"link", "create"}:
-            return Response({"detail": "Action is required and should be either link or create"})
+            return Response(
+                {"detail": "Action is required and should be either link or create"}, status=400
+            )
 
         organization_id = group.project.organization_id
         result = integration_service.organization_context(
