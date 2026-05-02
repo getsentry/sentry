@@ -41,7 +41,7 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {IndexedMembersByProject} from 'sentry/utils/useOrganizationUsers';
+import type {IndexedMembersByProject} from 'sentry/utils/useOrganizationMembers';
 import {ActionSet} from 'sentry/views/issueList/actions/actionSet';
 import {COLUMN_BREAKPOINTS, ConfirmAction} from 'sentry/views/issueList/actions/utils';
 import {

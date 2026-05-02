@@ -22,8 +22,8 @@ import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   selectUsersFromMembers,
-  useOrganizationUsers,
-} from 'sentry/utils/useOrganizationUsers';
+  useOrganizationMembers,
+} from 'sentry/utils/useOrganizationMembers';
 import {useUser} from 'sentry/utils/useUser';
 import {getOwnerList} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
 
@@ -107,7 +107,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     projectSlug: project.slug,
     group,
   });
-  const {data: members = []} = useOrganizationUsers({
+  const {data: members = []} = useOrganizationMembers({
     projectIds: [project.id],
     select: selectUsersFromMembers,
   });

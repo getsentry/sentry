@@ -6,16 +6,16 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {
   indexMembersByProject,
-  organizationUsersQueryOptions,
+  organizationMembersQueryOptions,
   selectUsersFromMembers,
-  useOrganizationUsers,
-} from 'sentry/utils/useOrganizationUsers';
+  useOrganizationMembers,
+} from 'sentry/utils/useOrganizationMembers';
 
-describe('useOrganizationUsers', () => {
+describe('useOrganizationMembers', () => {
   const organization = OrganizationFixture();
 
   it('normalizes project ids for the query key', () => {
-    const options = organizationUsersQueryOptions({
+    const options = organizationMembersQueryOptions({
       orgSlug: organization.slug,
       projectIds: ['2', 1, '1', '2'],
     });
@@ -28,7 +28,7 @@ describe('useOrganizationUsers', () => {
   });
 
   it('omits the project query for empty project ids', () => {
-    const options = organizationUsersQueryOptions({
+    const options = organizationMembersQueryOptions({
       orgSlug: organization.slug,
       projectIds: [],
     });
@@ -70,7 +70,7 @@ describe('useOrganizationUsers', () => {
       body: [member],
     });
 
-    const {result} = renderHookWithProviders(() => useOrganizationUsers(), {
+    const {result} = renderHookWithProviders(() => useOrganizationMembers(), {
       organization,
     });
 

@@ -11,7 +11,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOrganizationUsers} from 'sentry/utils/useOrganizationUsers';
+import {useOrganizationMembers} from 'sentry/utils/useOrganizationMembers';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
@@ -45,7 +45,7 @@ export default function AlertBuilderProjectProvider() {
     ? (projects.find(p => p.isMember) ?? (projects.length && projects[0]))
     : projects.find(({slug}) => slug === projectId);
 
-  const {data: members} = useOrganizationUsers({
+  const {data: members} = useOrganizationMembers({
     enabled: Boolean(project),
     projectIds: project ? [project.id] : undefined,
   });

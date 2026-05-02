@@ -11,7 +11,7 @@ import type {Group} from 'sentry/types/group';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {IndexedMembersByProject} from 'sentry/utils/useOrganizationUsers';
+import type {IndexedMembersByProject} from 'sentry/utils/useOrganizationMembers';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';

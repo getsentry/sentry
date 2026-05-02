@@ -9,7 +9,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {IndexedMembersByProject} from 'sentry/utils/useOrganizationUsers';
+import type {IndexedMembersByProject} from 'sentry/utils/useOrganizationMembers';
 import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';

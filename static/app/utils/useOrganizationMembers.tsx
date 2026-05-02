@@ -1,20 +1,22 @@
+import {useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ProjectId = number | string;
 
-type OrganizationUsersQueryOptions = {
+type OrganizationMembersQueryOptions = {
   orgSlug: string;
   projectIds?: readonly ProjectId[] | null;
   staleTime?: number;
 };
 
-type UseOrganizationUsersOptions<TData> = {
+type UseOrganizationMembersOptions<TData> = {
   enabled?: boolean;
   projectIds?: readonly ProjectId[] | null;
   select?: (members: Member[]) => TData;
@@ -62,11 +64,11 @@ export function indexMembersByProject(members: Member[]): IndexedMembersByProjec
   }, {});
 }
 
-export function organizationUsersQueryOptions({
+export function organizationMembersQueryOptions({
   orgSlug,
   projectIds,
   staleTime = 30_000,
-}: OrganizationUsersQueryOptions) {
+}: OrganizationMembersQueryOptions) {
   return apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/users/', {
     path: {organizationIdOrSlug: orgSlug},
     query: {project: normalizeProjectIds(projectIds)},
@@ -74,22 +76,26 @@ export function organizationUsersQueryOptions({
   });
 }
 
-export function useOrganizationUsers<TData = Member[]>({
+export function useOrganizationMembers<TData = Member[]>({
   enabled = true,
   projectIds,
   select,
   staleTime,
-}: UseOrganizationUsersOptions<TData> = {}): UseQueryResult<TData> {
+}: UseOrganizationMembersOptions<TData> = {}): UseQueryResult<TData> {
   const organization = useOrganization();
-  const query = useQuery({
-    ...organizationUsersQueryOptions({
+  const selectOrganizationMembers = useCallback(
+    (response: ApiResponse<Member[]>) =>
+      (select ? select(response.json) : response.json) as TData,
+    [select]
+  );
+
+  return useQuery({
+    ...organizationMembersQueryOptions({
       orgSlug: organization.slug,
       projectIds,
       staleTime,
     }),
     enabled,
+    select: selectOrganizationMembers,
   });
-  const data = query.data && select ? select(query.data) : query.data;
-
-  return Object.assign({}, query, {data}) as UseQueryResult<TData>;
 }

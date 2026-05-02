@@ -44,8 +44,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   indexMembersByProject,
-  useOrganizationUsers,
-} from 'sentry/utils/useOrganizationUsers';
+  useOrganizationMembers,
+} from 'sentry/utils/useOrganizationMembers';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {IssueListTable} from 'sentry/views/issueList/issueListTable';
@@ -160,7 +160,7 @@ function IssueListOverviewInner({
     () => selection.projects.map(projectId => String(projectId)),
     [selection.projects]
   );
-  const {data: memberList = {}} = useOrganizationUsers({
+  const {data: memberList = {}} = useOrganizationMembers({
     projectIds: organizationUsersProjectIds,
     select: indexMembersByProject,
   });

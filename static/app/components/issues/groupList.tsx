@@ -25,8 +25,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   indexMembersByProject,
-  useOrganizationUsers,
-} from 'sentry/utils/useOrganizationUsers';
+  useOrganizationMembers,
+} from 'sentry/utils/useOrganizationMembers';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
@@ -119,7 +119,7 @@ export function GroupList({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {data: memberList} = useOrganizationUsers({
+  const {data: memberList} = useOrganizationMembers({
     select: indexMembersByProject,
   });
 

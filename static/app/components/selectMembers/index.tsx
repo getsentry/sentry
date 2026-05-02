@@ -12,8 +12,8 @@ import type {User} from 'sentry/types/user';
 import {useApi} from 'sentry/utils/useApi';
 import {
   selectUsersFromMembers,
-  useOrganizationUsers,
-} from 'sentry/utils/useOrganizationUsers';
+  useOrganizationMembers,
+} from 'sentry/utils/useOrganizationMembers';
 
 const getSearchKeyForUser = (user: User) =>
   `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
@@ -67,7 +67,7 @@ function SelectMembers({
   const api = useApi();
   const [inputValue, setInputValue] = useState('');
   const [options, setOptions] = useState<MentionableUser[] | null>(null);
-  const {data: users = [], isPending: memberListLoading} = useOrganizationUsers({
+  const {data: users = [], isPending: memberListLoading} = useOrganizationMembers({
     projectIds,
     select: selectUsersFromMembers,
   });

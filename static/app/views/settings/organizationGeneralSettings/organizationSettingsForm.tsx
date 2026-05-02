@@ -38,8 +38,8 @@ import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   selectUsersFromMembers,
-  useOrganizationUsers,
-} from 'sentry/utils/useOrganizationUsers';
+  useOrganizationMembers,
+} from 'sentry/utils/useOrganizationMembers';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 
@@ -98,7 +98,7 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const {data: members = [], isPending: fetching} = useOrganizationUsers({
+  const {data: members = [], isPending: fetching} = useOrganizationMembers({
     select: selectUsersFromMembers,
   });
   const memberOptions = members.map(m => ({value: m.id, label: m.name}));

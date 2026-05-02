@@ -15,8 +15,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {
   selectUsersFromMembers,
-  useOrganizationUsers,
-} from 'sentry/utils/useOrganizationUsers';
+  useOrganizationMembers,
+} from 'sentry/utils/useOrganizationMembers';
 import {
   useAssignIssueMutation,
   type AssignedBy,
@@ -105,7 +105,7 @@ export function AssigneeSelector({
   showLabel = false,
 }: AssigneeSelectorProps) {
   const {data: defaultMemberList = [], isPending: defaultMemberListLoading} =
-    useOrganizationUsers({
+    useOrganizationMembers({
       projectIds: [group.project.id],
       select: selectUsersFromMembers,
       enabled: memberList === undefined,
