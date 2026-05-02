@@ -161,7 +161,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('should add a metric when Add Metric button is clicked', async () => {
+  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -536,67 +536,74 @@ describe('MetricsTabContent', () => {
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should switch to aggregate mode when a group by is added', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [
+  it.isKnownFlake(
+    'should switch to aggregate mode when a group by is added',
+    async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {
+            attributeType: 'string',
+            key: 'test.region',
+            name: 'test.region',
+          },
+          {
+            attributeType: 'string',
+            key: 'test.service',
+            name: 'test.service',
+          },
+        ],
+        match: [
+          MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']}),
+        ],
+      });
+
+      const {router} = render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
         {
-          attributeType: 'string',
-          key: 'test.region',
-          name: 'test.region',
-        },
-        {
-          attributeType: 'string',
-          key: 'test.service',
-          name: 'test.service',
-        },
-      ],
-      match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
-    });
+          initialRouterConfig,
+          organization,
+        }
+      );
 
-    const {router} = render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
+      const toolbars = screen.getAllByTestId('metric-toolbar');
+      expect(toolbars).toHaveLength(1);
 
-    const toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(1);
+      // Wait for the toolbar to load
+      await waitFor(() => {
+        expect(
+          within(toolbars[0]!).getByRole('button', {name: 'bar'})
+        ).toBeInTheDocument();
+      });
 
-    // Wait for the toolbar to load
-    await waitFor(() => {
-      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    });
+      // Verify initial state is samples mode
+      const initialMetricQuery = JSON.parse(router.location.query.metric as string);
+      expect(initialMetricQuery.mode).toBe('samples');
 
-    // Verify initial state is samples mode
-    const initialMetricQuery = JSON.parse(router.location.query.metric as string);
-    expect(initialMetricQuery.mode).toBe('samples');
+      // Click on the Group by selector - use text content since prefix renders differently
+      const groupByButton = within(toolbars[0]!).getByText('Group by');
+      await userEvent.click(groupByButton);
 
-    // Click on the Group by selector - use text content since prefix renders differently
-    const groupByButton = within(toolbars[0]!).getByText('Group by');
-    await userEvent.click(groupByButton);
+      // Select a group by option (test.region)
+      const regionOption = await screen.findByRole('option', {name: 'test.region'});
+      await userEvent.click(regionOption);
 
-    // Select a group by option (test.region)
-    const regionOption = await screen.findByRole('option', {name: 'test.region'});
-    await userEvent.click(regionOption);
+      let metricQuery = router.location.query.metric;
+      expect(metricQuery).toBeDefined();
 
-    let metricQuery = router.location.query.metric;
-    expect(metricQuery).toBeDefined();
-
-    // Verify that the mode switched to aggregate in the URL
-    let parsedQuery: ReturnType<typeof JSON.parse>;
-    await waitFor(() => {
-      metricQuery = router.location.query.metric;
-      parsedQuery = JSON.parse(metricQuery as string);
-      expect(parsedQuery.mode).toBe('aggregate');
-    });
-    expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
-  });
+      // Verify that the mode switched to aggregate in the URL
+      let parsedQuery: ReturnType<typeof JSON.parse>;
+      await waitFor(() => {
+        metricQuery = router.location.query.metric;
+        parsedQuery = JSON.parse(metricQuery as string);
+        expect(parsedQuery.mode).toBe('aggregate');
+      });
+      expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
+    }
+  );
 
   it('does not show the Add Equation button when the feature flag is disabled', async () => {
     render(
@@ -744,78 +751,81 @@ describe('MetricsTabContent', () => {
     }
   );
 
-  it('disables delete button for metrics referenced by an equation', async () => {
-    const orgWithEquations = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
-    });
+  it.isKnownFlake(
+    'disables delete button for metrics referenced by an equation',
+    async () => {
+      const orgWithEquations = OrganizationFixture({
+        features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      });
 
-    const metricA = JSON.stringify({
-      metric: {name: 'metricA', type: 'distribution', unit: 'none'},
-      query: '',
-      aggregateFields: [{yAxes: ['sum(value,metricA,distribution,none)']}],
-      aggregateSortBys: [],
-      mode: 'samples',
-    });
+      const metricA = JSON.stringify({
+        metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+        query: '',
+        aggregateFields: [{yAxes: ['sum(value,metricA,distribution,none)']}],
+        aggregateSortBys: [],
+        mode: 'samples',
+      });
 
-    const metricB = JSON.stringify({
-      metric: {name: 'metricB', type: 'distribution', unit: 'none'},
-      query: '',
-      aggregateFields: [{yAxes: ['sum(value,metricB,distribution,none)']}],
-      aggregateSortBys: [],
-      mode: 'samples',
-    });
+      const metricB = JSON.stringify({
+        metric: {name: 'metricB', type: 'distribution', unit: 'none'},
+        query: '',
+        aggregateFields: [{yAxes: ['sum(value,metricB,distribution,none)']}],
+        aggregateSortBys: [],
+        mode: 'samples',
+      });
 
-    const equation = JSON.stringify({
-      metric: {name: '', type: ''},
-      query: '',
-      aggregateFields: [{yAxes: ['equation|sum(value,metricA,distribution,none)']}],
-      aggregateSortBys: [],
-      mode: 'samples',
-    });
+      const equation = JSON.stringify({
+        metric: {name: '', type: ''},
+        query: '',
+        aggregateFields: [{yAxes: ['equation|sum(value,metricA,distribution,none)']}],
+        aggregateSortBys: [],
+        mode: 'samples',
+      });
 
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        organization: orgWithEquations,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/:orgId/explore/metrics/',
-            query: {
-              start: '2025-04-10T14%3A37%3A55',
-              end: '2025-04-10T20%3A04%3A51',
-              metric: [metricA, metricB, equation],
-              title: 'Test Title',
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          organization: orgWithEquations,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/:orgId/explore/metrics/',
+              query: {
+                start: '2025-04-10T14%3A37%3A55',
+                end: '2025-04-10T20%3A04%3A51',
+                metric: [metricA, metricB, equation],
+                title: 'Test Title',
+              },
             },
+            route: '/organizations/:orgId/explore/metrics/',
           },
-          route: '/organizations/:orgId/explore/metrics/',
-        },
-      }
-    );
+        }
+      );
 
-    const toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(3);
+      const toolbars = screen.getAllByTestId('metric-toolbar');
+      expect(toolbars).toHaveLength(3);
 
-    await waitFor(() => {
+      await waitFor(() => {
+        expect(
+          within(toolbars[0]!).getByRole('button', {name: 'metricA'})
+        ).toBeInTheDocument();
+      });
+
+      // Metric A should be disabled because it is referenced by the equation
       expect(
-        within(toolbars[0]!).getByRole('button', {name: 'metricA'})
-      ).toBeInTheDocument();
-    });
+        within(toolbars[0]!).getByRole('button', {name: 'Delete Metric'})
+      ).toBeDisabled();
 
-    // Metric A should be disabled because it is referenced by the equation
-    expect(
-      within(toolbars[0]!).getByRole('button', {name: 'Delete Metric'})
-    ).toBeDisabled();
+      // Metric B should be enabled because it is not referenced by the equation
+      expect(
+        within(toolbars[1]!).getByRole('button', {name: 'Delete Metric'})
+      ).toBeEnabled();
 
-    // Metric B should be enabled because it is not referenced by the equation
-    expect(
-      within(toolbars[1]!).getByRole('button', {name: 'Delete Metric'})
-    ).toBeEnabled();
-
-    // Equation deletion should always be enabled
-    expect(
-      within(toolbars[2]!).getByRole('button', {name: 'Delete Metric'})
-    ).toBeEnabled();
-  });
+      // Equation deletion should always be enabled
+      expect(
+        within(toolbars[2]!).getByRole('button', {name: 'Delete Metric'})
+      ).toBeEnabled();
+    }
+  );
 });

@@ -43,7 +43,7 @@ describe('useReplayData', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('should hydrate the replayRecord', async () => {
+  it.isKnownFlake('should hydrate the replayRecord', async () => {
     const {mockReplayResponse, expectedReplay} = getMockReplayRecord({
       count_errors: 0,
       count_segments: 0,

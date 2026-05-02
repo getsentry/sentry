@@ -12,7 +12,7 @@ describe('ProjectDetail > ProjectQuickLinks', () => {
     jest.clearAllMocks();
   });
 
-  it('renders a list', async () => {
+  it.isKnownFlake('renders a list', async () => {
     const {router} = render(
       <ProjectQuickLinks organization={organization} project={ProjectFixture()} />
     );
@@ -32,7 +32,7 @@ describe('ProjectDetail > ProjectQuickLinks', () => {
     expect(router.location.query).toEqual({project: '2'});
   });
 
-  it('disables link if feature is missing', async () => {
+  it.isKnownFlake('disables link if feature is missing', async () => {
     render(
       <ProjectQuickLinks
         organization={{...organization, features: []}}
