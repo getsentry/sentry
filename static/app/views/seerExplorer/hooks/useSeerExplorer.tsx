@@ -549,11 +549,11 @@ export const useSeerExplorer = () => {
       (getDateFromTimestampAssumeUtc(blockAtInsert?.timestamp)?.getTime() ?? 0) >=
         Math.floor(lastSentTimestampMs / 1000) * 1000;
 
-    const serverHasAssistantResponse =
-      serverHasUserBlock &&
-      serverBlocks.slice(insertIndex + 1).some(b => b.message.role === 'assistant');
+    const serverHasResponse = serverBlocks
+      .slice(insertIndex + 1)
+      .some(b => b.message.role === 'assistant' || b.message.role === 'tool_use');
 
-    if (serverHasUserBlock && serverHasAssistantResponse) {
+    if (serverHasUserBlock && serverHasResponse) {
       return rawSessionData;
     }
 

@@ -428,7 +428,7 @@ describe('useSeerExplorer', () => {
       ).toBe(true);
     });
 
-    it('does not set optimistic blocks when session is processing but user and assistant blocks are in DB', async () => {
+    it('does not set optimistic blocks when session is processing with user and assistant blocks in DB', async () => {
       const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
       const serverSessionData = {
         blocks: [
@@ -450,6 +450,112 @@ describe('useSeerExplorer', () => {
         run_id: 456,
         status: 'processing',
         updated_at: new Date(Date.now() + 31_000).toISOString(),
+      };
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 456}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}456/`,
+        method: 'GET',
+        body: {
+          session: serverSessionData,
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toEqual(serverSessionData);
+      });
+    });
+
+    it('does not set optimistic blocks when session is processing with user and tool blocks in DB', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const serverSessionData = {
+        blocks: [
+          // Persisted user block with a future timestamp.
+          {
+            id: 'user-0',
+            message: {role: 'user', content: 'Test'},
+            timestamp: new Date(Date.now() + 30_000).toISOString(),
+            loading: false,
+          },
+          // Tool use with a future timestamp.
+          {
+            id: 'tool-1-loading',
+            message: {role: 'tool_use', content: 'Loading...'},
+            timestamp: new Date(Date.now() + 31_000).toISOString(),
+            loading: true,
+          },
+        ],
+        run_id: 456,
+        status: 'processing',
+        updated_at: new Date(Date.now() + 31_000).toISOString(),
+      };
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 456}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}456/`,
+        method: 'GET',
+        body: {
+          session: serverSessionData,
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toEqual(serverSessionData);
+      });
+    });
+
+    it('does not set optimistic blocks when session is processing with user and multiple tool blocks in DB', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const serverSessionData = {
+        blocks: [
+          // Persisted user block with a future timestamp.
+          {
+            id: 'user-0',
+            message: {role: 'user', content: 'Test'},
+            timestamp: new Date(Date.now() + 30_000).toISOString(),
+            loading: false,
+          },
+          // Tool uses with a future timestamp.
+          {
+            id: 'tool-1',
+            message: {role: 'tool_use', content: 'Tool 1 result'},
+            timestamp: new Date(Date.now() + 31_000).toISOString(),
+            loading: false,
+          },
+          {
+            id: 'tool-2',
+            message: {role: 'tool_use', content: 'Tool 2 result'},
+            timestamp: new Date(Date.now() + 32_000).toISOString(),
+            loading: false,
+          },
+          {
+            id: 'assistant-3-loading',
+            message: {role: 'assistant', content: 'loading...'},
+            timestamp: new Date(Date.now() + 33_000).toISOString(),
+            loading: true,
+          },
+        ],
+        run_id: 456,
+        status: 'processing',
+        updated_at: new Date(Date.now() + 33_000).toISOString(),
       };
 
       MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
