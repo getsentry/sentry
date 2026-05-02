@@ -376,7 +376,7 @@ describe('useSeerExplorer', () => {
       expect(blocks.some(b => b.message.role === 'assistant' && b.loading)).toBe(true);
     });
 
-    it('clears optimistic state when session completes without an assistant response', async () => {
+    it('clears optimistic state when session errors', async () => {
       const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
       const ts = '2024-01-01T00:00:00Z';
 
@@ -396,7 +396,7 @@ describe('useSeerExplorer', () => {
               },
             ],
             run_id: 321,
-            status: 'completed',
+            status: 'error',
             updated_at: ts,
           },
         },
