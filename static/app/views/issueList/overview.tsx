@@ -13,7 +13,6 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -43,6 +42,10 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  indexMembersByProject,
+  useOrganizationUsers,
+} from 'sentry/utils/useOrganizationUsers';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {IssueListTable} from 'sentry/views/issueList/issueListTable';
@@ -153,9 +156,14 @@ function IssueListOverviewInner({
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
-    {}
+  const organizationUsersProjectIds = useMemo(
+    () => selection.projects.map(projectId => String(projectId)),
+    [selection.projects]
   );
+  const {data: memberList = {}} = useOrganizationUsers({
+    projectIds: organizationUsersProjectIds,
+    select: indexMembersByProject,
+  });
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
@@ -562,30 +570,6 @@ function IssueListOverviewInner({
     previousRequestParams,
     requestParams,
   ]);
-
-  // Fetch members on mount
-  useEffect(() => {
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // If the project selection has changed reload the member list and tag keys
-  // allowing autocomplete and tag sidebar to be more accurate.
-  useEffect(() => {
-    if (isEqual(previousSelection?.projects, selection.projects)) {
-      return;
-    }
-
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug, selection.projects, previousSelection?.projects]);
 
   // Cleanup
   useEffect(() => {

@@ -14,12 +14,6 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/members', () => ({
-  fetchOrgMembers: jest.fn(() => Promise.resolve([])),
-  indexMembersByProject: jest.fn(() => {
-    return {};
-  }),
-}));
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startSpan: jest.fn(() => ({

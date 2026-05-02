@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -12,6 +11,7 @@ import type {Group} from 'sentry/types/group';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {IndexedMembersByProject} from 'sentry/utils/useOrganizationUsers';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';

@@ -1,10 +1,9 @@
-import {Fragment, useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -21,10 +20,13 @@ import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  indexMembersByProject,
+  useOrganizationUsers,
+} from 'sentry/utils/useOrganizationUsers';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
@@ -113,14 +115,13 @@ export function GroupList({
   useFilteredStats = true,
   useTintRow = true,
 }: Props) {
-  const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [memberList, setMemberList] = useState<
-    ReturnType<typeof indexMembersByProject> | undefined
-  >(undefined);
+  const {data: memberList} = useOrganizationUsers({
+    select: indexMembersByProject,
+  });
 
   const getQueryParams = useCallback(() => {
     const queryParamsFromLocation = {...location.query};
@@ -163,12 +164,6 @@ export function GroupList({
     },
     [navigate]
   );
-
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug]);
 
   const parsedQuery = useMemo(
     () => parseSearch(String(computedQueryParams.query ?? '')),

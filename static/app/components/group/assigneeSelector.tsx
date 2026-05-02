@@ -14,6 +14,10 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {
+  selectUsersFromMembers,
+  useOrganizationUsers,
+} from 'sentry/utils/useOrganizationUsers';
+import {
   useAssignIssueMutation,
   type AssignedBy,
 } from 'sentry/views/issueDetails/useAssignIssueMutation';
@@ -100,11 +104,19 @@ export function AssigneeSelector({
   additionalMenuFooterItems,
   showLabel = false,
 }: AssigneeSelectorProps) {
+  const {data: defaultMemberList = [], isPending: defaultMemberListLoading} =
+    useOrganizationUsers({
+      projectIds: [group.project.id],
+      select: selectUsersFromMembers,
+      enabled: memberList === undefined,
+    });
+  const currentMemberList = memberList ?? defaultMemberList;
+
   return (
     <AssigneeSelectorDropdown
       group={group}
-      loading={assigneeLoading}
-      memberList={memberList}
+      loading={assigneeLoading || (memberList === undefined && defaultMemberListLoading)}
+      memberList={currentMemberList}
       owners={owners}
       onAssign={(assignedActor: AssignableEntity | null) =>
         handleAssigneeChange(assignedActor)

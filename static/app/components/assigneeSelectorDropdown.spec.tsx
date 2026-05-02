@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -13,7 +13,6 @@ import {
 } from 'sentry/components/assigneeSelectorDropdown';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
@@ -109,12 +108,15 @@ describe('AssigneeSelectorDropdown', () => {
     GroupStore.reset();
     GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
-    jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
-    MemberListStore.reset();
-
     ProjectsStore.loadInitialData([PROJECT_1]);
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/members/',
+      body: [USER_1, USER_2, USER_3, USER_4].map(user => ({user})),
+    });
   });
 
   afterEach(() => {
@@ -155,7 +157,6 @@ describe('AssigneeSelectorDropdown', () => {
 
   describe('render with props', () => {
     it('renders members from the prop when present', async () => {
-      MemberListStore.loadInitialData([USER_1]);
       render(
         <AssigneeSelectorDropdown
           group={GROUP_1}
@@ -182,10 +183,10 @@ describe('AssigneeSelectorDropdown', () => {
       <AssigneeSelectorDropdown
         group={GROUP_1}
         loading={false}
+        memberList={[USER_1, USER_2, USER_3, USER_4]}
         onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
       />
     );
-    act(() => MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]));
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -204,9 +205,6 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('successfully assigns users', async () => {
-    // This is necessary in addition to passing in the same member list into the component
-    // because the avatar component uses the member list store to get the user's avatar
-    MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
     const assignedGroup: Group = {
       ...GROUP_1,
       assignedTo: {...USER_1, type: 'user'},
@@ -319,7 +317,6 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('successfully switches an assignee', async () => {
-    MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
     const assignedGroupUser1: Group = {
       ...GROUP_1,
       assignedTo: {...USER_1, type: 'user'},
@@ -466,7 +463,6 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('filters user by email and selects with keyboard', async () => {
-    MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
     const assignedGroup: Group = {
       ...GROUP_2,
       assignedTo: {...USER_2, type: 'user'},
@@ -522,7 +518,6 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('filters users based on their email address', async () => {
-    MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
     render(
       <AssigneeSelectorDropdown
         group={GROUP_2}
@@ -547,8 +542,6 @@ describe('AssigneeSelectorDropdown', () => {
   it('successfully shows suggested assignees and suggestion reason', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
 
-    MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
-
     const assignedGroup: Group = {
       ...GROUP_2,
       assignedTo: {...USER_1, type: 'user'},
@@ -568,15 +561,13 @@ describe('AssigneeSelectorDropdown', () => {
       <AssigneeSelectorDropdown
         group={GROUP_2}
         loading={false}
+        memberList={[USER_1, USER_2, USER_3]}
         onAssign={newAssignee => updateGroup(GROUP_2, newAssignee)}
       />
     );
 
     expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
-    // Hover over avatar
-    await userEvent.hover(await screen.findByTestId('letter_avatar-avatar'));
-    expect(await screen.findByText('Suggestion: Apple Bees')).toBeInTheDocument();
-    expect(await screen.findByText('commit data')).toBeInTheDocument();
+    expect(await screen.findByText('AB')).toBeInTheDocument();
 
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -606,7 +597,8 @@ describe('AssigneeSelectorDropdown', () => {
       />
     );
 
-    // Suggested assignees shouldn't show anymore because we assigned to the suggested actor    expect(screen.getByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
+    // Suggested assignees shouldn't show anymore because we assigned to the suggested actor
+    expect(screen.queryByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
 
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_2, {
       assignee: USER_1,
@@ -619,22 +611,18 @@ describe('AssigneeSelectorDropdown', () => {
   it('shows the suggested assignee even if they would be cut off by the size limit', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_3);
 
-    MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
-
     render(
       <AssigneeSelectorDropdown
         group={GROUP_3}
         loading={false}
+        memberList={[USER_1, USER_2, USER_3, USER_4]}
         onAssign={newAssignee => updateGroup(GROUP_3, newAssignee)}
         sizeLimit={2}
       />
     );
 
     expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
-    // Hover over avatar
-    await userEvent.hover(await screen.findByTestId('letter_avatar-avatar'));
-    expect(await screen.findByText('Suggestion: Git Hub')).toBeInTheDocument();
-    expect(await screen.findByText('commit data')).toBeInTheDocument();
+    expect(await screen.findByText('GH')).toBeInTheDocument();
 
     await openMenu();
     // User 4, Git Hub, would have normally been cut off by the size limit since it is
@@ -645,11 +633,11 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('shows invite member button', async () => {
-    MemberListStore.loadInitialData([USER_1, USER_2]);
     render(
       <AssigneeSelectorDropdown
         group={GROUP_1}
         loading={false}
+        memberList={[USER_1, USER_2]}
         onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
       />
     );

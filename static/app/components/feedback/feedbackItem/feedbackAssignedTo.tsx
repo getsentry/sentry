@@ -1,6 +1,3 @@
-import {useEffect} from 'react';
-
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import {
   AssigneeSelector,
@@ -10,7 +7,6 @@ import type {Group} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {EventOwners} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
 import {getOwnerList} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
@@ -22,12 +18,7 @@ interface Props {
 
 export function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
   const organization = useOrganization();
-  const api = useApi();
   const project = feedbackIssue.project;
-
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [api, organization, project]);
 
   const {data: eventOwners} = useApiQuery<EventOwners>(
     [

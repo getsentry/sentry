@@ -1,3 +1,4 @@
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
@@ -5,7 +6,6 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
@@ -16,14 +16,13 @@ describe('NewMetricDetectorForm', () => {
     features: ['workflow-engine-ui', 'visibility-explore-view'],
   });
   const project = ProjectFixture({id: '1', slug: 'proj-1'});
+  const user = UserFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     OrganizationStore.reset();
     OrganizationStore.onUpdate(organization);
     ProjectsStore.loadInitialData([project]);
-    MemberListStore.init();
-    MemberListStore.loadInitialData([UserFixture()]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -60,11 +59,11 @@ describe('NewMetricDetectorForm', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
-      body: [],
+      body: [MemberFixture({user})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [],
+      body: [MemberFixture({user})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',

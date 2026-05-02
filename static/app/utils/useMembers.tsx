@@ -2,14 +2,12 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import type {Client} from 'sentry/api';
-import {MemberListStore} from 'sentry/stores/memberListStore';
-import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type State = {
   /**
@@ -45,21 +43,21 @@ type State = {
 type Result = {
   /**
    * This is an action provided to consumers for them to request more members
-   * to be loaded. Additional members will be fetched and loaded into the store.
+   * to be loaded.
    */
   loadMore: (searchTerm?: string) => Promise<void>;
   /**
    * The loaded members list.
    *
    * XXX(epurkhiser): This is a misnomer, these are actually the *users* who are
-   * members of the organiation, Members is a different object type.
+   * members of the organization, Members is a different object type.
    */
   members: User[];
   /**
    * This is an action provided to consumers for them to update the current
    * users result set using a simple search query.
    *
-   * Will always add new options into the store.
+   * Will always add new options into the loaded result set.
    */
   onSearch: (searchTerm: string) => Promise<void>;
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
@@ -126,10 +124,6 @@ async function fetchMembers(
     query.per_page = limit;
   }
 
-  // XXX(epurkhiser): Very confusingly right now we actually store users in the
-  // members store, so here we're fetching member objects, but later we just
-  // extract out the user object from this.
-
   let hasMore: null | boolean = false;
   let nextCursor: null | string = null;
   const [data, , resp] = await api.requestPromise(`/organizations/${orgId}/members/`, {
@@ -147,15 +141,16 @@ async function fetchMembers(
   return {results: data as Member[], hasMore, nextCursor};
 }
 
-// TODO: Paging for items which have already exist in the store is not
-// correctly implemented.
+function getMemberUsers(members: Member[]) {
+  return members.map(m => m.user).filter((user): user is User => user !== null);
+}
 
 /**
- * Provides members from the MemberListStore
+ * Provides organization member users.
  *
  * This hook also provides a way to select specific emails to ensure they are
  * loaded, as well as search (type-ahead) for more members that may not be in the
- * MemberListStore.
+ * current result set.
  *
  * NOTE: It is NOT guaranteed that all members for an organization will be
  * loaded, so you should use this hook with the intention of providing specific
@@ -163,10 +158,9 @@ async function fetchMembers(
  */
 export function useMembers({ids, emails, limit}: Options = {}) {
   const api = useApi();
-  const {organization} = useLegacyStore(OrganizationStore);
-  const store = useLegacyStore(MemberListStore);
-
-  const orgId = organization?.slug;
+  const organization = useOrganization();
+  const orgId = organization.slug;
+  const [members, setMembers] = useState<User[]>([]);
 
   // Keep track of what queries we failed to find results for, otherwilse we'll
   // just keep trying to look those up since they'll never end up in the store
@@ -174,39 +168,35 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   const [idsFailedToLoad, setIdsFailedToLoad] = useState<Set<string>>(new Set());
   const [emailsFailedToLoad, setEmailsFailedToLoad] = useState<Set<string>>(new Set());
 
-  const storeIds = useMemo(() => new Set(store.members.map(u => u.id)), [store.members]);
+  const memberIds = useMemo(() => new Set(members.map(u => u.id)), [members]);
 
   const idsToLoad = useMemo(
-    () => ids?.filter(id => !storeIds.has(id) && !idsFailedToLoad.has(id)) ?? [],
-    [ids, idsFailedToLoad, storeIds]
+    () => ids?.filter(id => !memberIds.has(id) && !idsFailedToLoad.has(id)) ?? [],
+    [ids, idsFailedToLoad, memberIds]
   );
 
-  const storeEmails = useMemo(
-    () => new Set(store.members.map(u => u.email)),
-    [store.members]
-  );
+  const memberEmails = useMemo(() => new Set(members.map(u => u.email)), [members]);
 
   const emailsToLoad = useMemo(
     () =>
       emails?.filter(
-        email => !storeEmails.has(email) && !emailsFailedToLoad.has(email)
+        email => !memberEmails.has(email) && !emailsFailedToLoad.has(email)
       ) ?? [],
-    [emails, emailsFailedToLoad, storeEmails]
+    [emails, emailsFailedToLoad, memberEmails]
   );
 
-  const shouldLoadByQuery =
-    !store.loading && (emailsToLoad.length > 0 || idsToLoad.length > 0);
+  const shouldLoadByQuery = emailsToLoad.length > 0 || idsToLoad.length > 0;
 
   // If we don't need to make a request either for emails and we have members,
   // set initiallyLoaded to true
-  const initiallyLoaded = !shouldLoadByQuery && store.members.length > 0;
+  const initiallyLoaded = !shouldLoadByQuery && members.length > 0;
 
   const [state, setState] = useState<State>({
     initiallyLoaded,
     fetching: false,
-    hasMore: store.hasMore,
+    hasMore: null,
     lastSearch: null,
-    nextCursor: store.cursor,
+    nextCursor: null,
     fetchError: null,
   });
 
@@ -223,14 +213,11 @@ export function useMembers({ids, emails, limit}: Options = {}) {
         limit,
       });
 
-      const memberUsers = results
-        .map(m => m.user)
-        .filter((user): user is User => user !== null);
+      const memberUsers = getMemberUsers(results);
 
       // Unique by `id` to avoid duplicates due to renames and state store data
-      const fetchedMembers = uniqBy<User>(
-        [...memberUsers, ...store.members],
-        ({id}) => id
+      setMembers(prevMembers =>
+        uniqBy<User>([...memberUsers, ...prevMembers], ({id}) => id)
       );
 
       // Track member identifiers we couldn't load to exclude them from future requests
@@ -247,8 +234,6 @@ export function useMembers({ids, emails, limit}: Options = {}) {
       if (failedEmails.length > 0) {
         setEmailsFailedToLoad(prev => new Set([...prev, ...failedEmails]));
       }
-
-      MemberListStore.loadInitialData(fetchedMembers);
 
       setState(prev => ({
         ...prev,
@@ -267,13 +252,12 @@ export function useMembers({ids, emails, limit}: Options = {}) {
         fetchError: err as RequestError,
       }));
     }
-  }, [api, emailsToLoad, idsToLoad, limit, orgId, store.members]);
+  }, [api, emailsToLoad, idsToLoad, limit, orgId]);
 
   const handleFetchAdditionalMembers = useCallback(
     async (search?: string) => {
       const lastSearch = state.lastSearch;
-      // Use the store cursor if there is no search keyword provided
-      const cursor = search ? state.nextCursor : store.cursor;
+      const cursor = state.nextCursor;
 
       if (orgId === undefined) {
         // eslint-disable-next-line no-console
@@ -292,30 +276,17 @@ export function useMembers({ids, emails, limit}: Options = {}) {
           cursor,
         });
 
-        const memberUsers = results
-          .map(m => m.user)
-          .filter((user): user is User => user !== null);
+        const memberUsers = getMemberUsers(results);
 
-        const fetchedMembers = uniqBy<User>(
-          [...store.members, ...memberUsers],
-          ({email}) => email
+        setMembers(prevMembers =>
+          uniqBy<User>([...prevMembers, ...memberUsers], ({email}) => email)
         );
-
-        if (search) {
-          // Only update the store if we have more items
-          if (fetchedMembers.length > store.members.length) {
-            MemberListStore.loadInitialData(fetchedMembers);
-          }
-        } else {
-          // If we fetched a page of members without a search query, add cursor
-          // data to the store
-          MemberListStore.loadInitialData(fetchedMembers, hasMore, nextCursor);
-        }
 
         setState(prev => ({
           ...prev,
-          hasMore: hasMore && store.hasMore,
+          hasMore,
           fetching: false,
+          initiallyLoaded: true,
           lastSearch: search ?? null,
           nextCursor,
         }));
@@ -325,16 +296,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
         setState(prev => ({...prev, fetching: false, fetchError: err as RequestError}));
       }
     },
-    [
-      api,
-      limit,
-      orgId,
-      state.lastSearch,
-      state.nextCursor,
-      store.cursor,
-      store.hasMore,
-      store.members,
-    ]
+    [api, limit, orgId, state.lastSearch, state.nextCursor]
   );
 
   const handleSearch = useCallback(
@@ -343,48 +305,48 @@ export function useMembers({ids, emails, limit}: Options = {}) {
         return handleFetchAdditionalMembers(search);
       }
 
-      // Reset pagination state to match store if doing an empty search
-      if (state.hasMore !== store.hasMore || state.nextCursor !== store.cursor) {
-        setState(prev => ({
-          ...prev,
-          lastSearch: search,
-          hasMore: store.hasMore,
-          nextCursor: store.cursor,
-        }));
-      }
-
+      setState(prev => ({...prev, lastSearch: search}));
       return Promise.resolve();
     },
-    [
-      handleFetchAdditionalMembers,
-      state.hasMore,
-      state.nextCursor,
-      store.cursor,
-      store.hasMore,
-    ]
+    [handleFetchAdditionalMembers]
   );
 
-  // Load specified team slugs
+  // Load specified member identifiers.
   useEffect(() => {
     if (shouldLoadByQuery) {
       loadMembersByQuery();
     }
   }, [shouldLoadByQuery, loadMembersByQuery]);
 
+  useEffect(() => {
+    if (ids || emails || members.length > 0 || state.fetching || state.initiallyLoaded) {
+      return;
+    }
+
+    handleFetchAdditionalMembers();
+  }, [
+    emails,
+    handleFetchAdditionalMembers,
+    ids,
+    members.length,
+    state.fetching,
+    state.initiallyLoaded,
+  ]);
+
   const filteredMembers = useMemo(
     () =>
       emails || ids
-        ? store.members.filter(m => emails?.includes(m.email) || ids?.includes(m.id))
-        : store.members,
-    [emails, store.members, ids]
+        ? members.filter(m => emails?.includes(m.email) || ids?.includes(m.id))
+        : members,
+    [emails, members, ids]
   );
 
   const result: Result = {
     members: filteredMembers,
-    fetching: state.fetching || store.loading,
-    initiallyLoaded,
+    fetching: state.fetching,
+    initiallyLoaded: state.initiallyLoaded || initiallyLoaded,
     fetchError: state.fetchError,
-    hasMore: state.hasMore ?? store.hasMore,
+    hasMore: state.hasMore,
     onSearch: handleSearch,
     loadMore: handleFetchAdditionalMembers,
   };

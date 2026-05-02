@@ -1,7 +1,4 @@
-import {useEffect, useState} from 'react';
-
 import type {ResponseMeta} from 'sentry/api';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -41,16 +38,6 @@ export function IssueWidgetQueries({
   selection,
   widgetInterval,
 }: Props) {
-  const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
-
-  useEffect(() => {
-    setMemberListStoreLoaded(!MemberListStore.state.loading);
-    const unlistener = MemberListStore.listen(() => {
-      setMemberListStoreLoaded(!MemberListStore.state.loading);
-    }, undefined);
-    return () => unlistener();
-  }, []);
-
   const config = IssuesConfig;
 
   const afterFetchTableData = (_rawResult: Group[], response?: ResponseMeta) => {
@@ -73,7 +60,7 @@ export function IssueWidgetQueries({
 
   return getDynamicText({
     value: children({
-      loading: loading || !memberListStoreLoaded,
+      loading,
       ...rest,
     }),
     fixed: <div />,

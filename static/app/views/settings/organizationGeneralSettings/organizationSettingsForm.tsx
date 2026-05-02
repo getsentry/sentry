@@ -35,8 +35,11 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
-import {useMembers} from 'sentry/utils/useMembers';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  selectUsersFromMembers,
+  useOrganizationUsers,
+} from 'sentry/utils/useOrganizationUsers';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 
@@ -95,7 +98,9 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const {members, fetching} = useMembers();
+  const {data: members = [], isPending: fetching} = useOrganizationUsers({
+    select: selectUsersFromMembers,
+  });
   const memberOptions = members.map(m => ({value: m.id, label: m.name}));
 
   const replayMutationOpts = mutationOptions({

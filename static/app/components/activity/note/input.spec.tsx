@@ -4,13 +4,15 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {NoteInput} from 'sentry/components/activity/note/input';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 describe('NoteInput', () => {
   beforeEach(() => {
     TeamStore.reset();
-    MemberListStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: UserFixture()}],
+    });
   });
 
   describe('New item', () => {
@@ -80,7 +82,6 @@ describe('NoteInput', () => {
     });
 
     it('can mention a member', async () => {
-      MemberListStore.loadInitialData([UserFixture()], false, null);
       const onCreate = jest.fn();
       render(<NoteInput onCreate={onCreate} />);
       await userEvent.type(screen.getByRole('textbox'), '@foo');

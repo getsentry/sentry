@@ -14,7 +14,6 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -48,7 +47,10 @@ describe('StreamlinedActivitySection', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
-    MemberListStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     localStorage.clear();
   });
 
@@ -112,7 +114,10 @@ describe('StreamlinedActivitySection', () => {
 
   it('uses loaded members for mentions in the drawer comment input', async () => {
     const mentionedUser = UserFixture({id: '42', name: 'Jane Doe'});
-    MemberListStore.loadInitialData([mentionedUser]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: mentionedUser}],
+    });
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
       method: 'POST',

@@ -1,10 +1,9 @@
 import {useMemo} from 'react';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
+import {useMembers} from 'sentry/utils/useMembers';
 
 export function useMemberUsernames() {
-  const {members} = useLegacyStore(MemberListStore);
+  const {members} = useMembers();
   return useMemo(() => members.map(getUsername), [members]);
 }

@@ -9,7 +9,6 @@ import * as qs from 'query-string';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -570,7 +569,6 @@ function GroupDetailsContent({
   project,
   event,
 }: GroupDetailsContentProps) {
-  const api = useApi();
   const organization = useOrganization();
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
@@ -593,10 +591,6 @@ function GroupDetailsContent({
   });
 
   const {hasAutofixQuota} = useAiConfig(group, project);
-
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [api, organization.slug, project.id]);
 
   useEffect(() => {
     if (isAnyDrawerOpen) {

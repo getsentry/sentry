@@ -1,10 +1,9 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd} from 'sentry/icons';
@@ -14,8 +13,6 @@ import {
   DataConditionGroupLogicType,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {useApi} from 'sentry/utils/useApi';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActionFilterBlock} from 'sentry/views/automations/components/actionFilterBlock';
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
@@ -32,13 +29,6 @@ import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 export function AutomationBuilder() {
   const {state, actions, showTriggerLogicTypeSelector} = useAutomationBuilderContext();
   const {mutationErrors} = useAutomationBuilderErrorContext();
-  const organization = useOrganization();
-  const api = useApi();
-
-  // Fetch org members for SelectMembers dropdowns
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug);
-  }, [api, organization]);
 
   const conflictData = useMemo(() => {
     return findConflictingConditions(state.triggers, state.actionFilters);

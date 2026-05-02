@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import type {Client} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -12,11 +11,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {User} from 'sentry/types/user';
 import {
   addProjectFeaturesHandler,
   buildSentryFeaturesHandler,
@@ -52,7 +49,6 @@ type State = {
   error: boolean;
   errorType: ErrorTypes | null;
   loading: boolean;
-  memberList: User[];
   project: Project | null;
 };
 
@@ -73,7 +69,6 @@ class ProjectContextProvider extends Component<Props, State> {
       loading: true,
       error: false,
       errorType: null,
-      memberList: [],
       project: null,
     };
   }
@@ -115,17 +110,11 @@ class ProjectContextProvider extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    this.unsubscribeMembers();
     this.unsubscribeProjects();
   }
 
   unsubscribeProjects = ProjectsStore.listen(
     (projectIds: Set<string>) => this.onProjectChange(projectIds),
-    undefined
-  );
-
-  unsubscribeMembers = MemberListStore.listen(
-    ({members}: typeof MemberListStore.state) => this.setState({memberList: members}),
     undefined
   );
 
@@ -197,8 +186,6 @@ class ProjectContextProvider extends Component<Props, State> {
           errorType: ErrorTypes.UNKNOWN,
         });
       }
-
-      fetchOrgMembers(this.props.api, organization.slug, [activeProject.id]);
 
       return;
     }

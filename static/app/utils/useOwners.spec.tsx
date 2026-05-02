@@ -5,7 +5,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
@@ -20,8 +19,6 @@ describe('useOwners', () => {
   let membersRequest: jest.Mock;
 
   beforeEach(() => {
-    MemberListStore.init();
-    MemberListStore.loadInitialData(mockUsers);
     TeamStore.init();
     TeamStore.loadInitialData(mockTeams);
     OrganizationStore.onUpdate(org, {replace: true});
@@ -37,7 +34,7 @@ describe('useOwners', () => {
     });
     membersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [],
+      body: mockUsers.map(user => ({user})),
     });
   });
 
@@ -88,10 +85,7 @@ describe('useOwners', () => {
       })
     );
 
-    expect(result.current.members).toEqual([
-      ...members.map(member => member.user),
-      ...mockUsers,
-    ]);
+    expect(result.current.members).toEqual([...members.map(member => member.user)]);
     expect(result.current.teams).toEqual([...teams, ...mockTeams]);
   });
 });

@@ -21,9 +21,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
@@ -213,10 +211,9 @@ export function AssigneeSelectorDropdown({
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
-  const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = useUser();
 
-  const currentMemberList = memberList ?? memberLists?.members ?? [];
+  const currentMemberList = memberList ?? [];
 
   const getSuggestedAssignees = (): SuggestedAssignee[] => {
     const currAssignableTeams = getAssignableTeams();

@@ -1,20 +1,17 @@
-import {useEffect, useState} from 'react';
 import {Outlet, useOutletContext} from 'react-router-dom';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
-import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOrganizationUsers} from 'sentry/utils/useOrganizationUsers';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
@@ -34,13 +31,10 @@ export function useAlertBuilderOutlet() {
 }
 
 export default function AlertBuilderProjectProvider() {
-  const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
   const params = useParams<{projectId?: string}>();
   const navigate = useNavigate();
-  const isMountedRef = useIsMountedRef();
-  const [members, setMembers] = useState<Member[] | undefined>(undefined);
   useScrollToTop({location});
 
   const projectId = params.projectId || decodeScalar(location.query.project);
@@ -51,18 +45,10 @@ export default function AlertBuilderProjectProvider() {
     ? (projects.find(p => p.isMember) ?? (projects.length && projects[0]))
     : projects.find(({slug}) => slug === projectId);
 
-  useEffect(() => {
-    if (!project) {
-      return;
-    }
-
-    // fetch members list for mail action fields
-    fetchOrgMembers(api, organization.slug, [project.id]).then(mem => {
-      if (isMountedRef.current) {
-        setMembers(mem);
-      }
-    });
-  }, [api, organization, isMountedRef, project]);
+  const {data: members} = useOrganizationUsers({
+    enabled: Boolean(project),
+    projectIds: project ? [project.id] : undefined,
+  });
 
   if (!initiallyLoaded || fetching) {
     return <LoadingIndicator />;
