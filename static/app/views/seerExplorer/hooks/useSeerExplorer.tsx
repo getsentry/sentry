@@ -543,7 +543,6 @@ export const useSeerExplorer = () => {
     // the last user query and at least one assistant response.
     const blockAtInsert = serverBlocks[insertIndex];
     const serverHasUserBlock =
-      rawSessionData &&
       blockAtInsert?.message.role === 'user' &&
       blockAtInsert?.message.content === userQuery &&
       (getDateFromTimestampAssumeUtc(blockAtInsert?.timestamp)?.getTime() ?? 0) >=
