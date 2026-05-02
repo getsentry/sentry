@@ -376,7 +376,7 @@ describe('useSeerExplorer', () => {
       expect(blocks.some(b => b.message.role === 'assistant' && b.loading)).toBe(true);
     });
 
-    it('clears optimistic state when session errors', async () => {
+    it('does not set optimistic blocks when session errors', async () => {
       const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
       const ts = '2024-01-01T00:00:00Z';
 
@@ -387,14 +387,7 @@ describe('useSeerExplorer', () => {
         method: 'GET',
         body: {
           session: {
-            blocks: [
-              {
-                id: 'user-1',
-                message: {role: 'user', content: 'Test'},
-                timestamp: ts,
-                loading: false,
-              },
-            ],
+            blocks: [],
             run_id: 321,
             status: 'error',
             updated_at: ts,
@@ -412,8 +405,48 @@ describe('useSeerExplorer', () => {
 
       await waitFor(() => {
         const blocks = result.current.sessionData?.blocks ?? [];
-        expect(blocks.some(b => b.loading)).toBe(false);
-        expect(blocks).toHaveLength(1);
+        expect(blocks).toHaveLength(0);
+      });
+    });
+
+    it('does not set optimistic blocks when send message error', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const ts = '2024-01-01T00:00:00Z';
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      // Mock POST to error.
+      MockApiClient.addMockResponse({
+        url: chatUrl,
+        method: 'POST',
+        statusCode: 500,
+        body: {run_id: 321, detail: 'Server error'},
+      });
+
+      // State updated to processing, but POST request errors.
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}321/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 321,
+            status: 'processing',
+            updated_at: ts,
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        const blocks = result.current.sessionData?.blocks ?? [];
+        expect(blocks).toHaveLength(0);
       });
     });
   });

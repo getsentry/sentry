@@ -144,7 +144,11 @@ export const useSeerExplorer = () => {
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   // Queries and mutations
-  const {mutate: sendMessageMutate, isPending: isPendingSendMessage} = useMutation<
+  const {
+    mutate: sendMessageMutate,
+    isPending: isPendingSendMessage,
+    isError: isSendMessageError,
+  } = useMutation<
     SeerExplorerChatResponse,
     RequestError,
     {
@@ -398,7 +402,7 @@ export const useSeerExplorer = () => {
       const texts = getOptimisticAssistantTexts();
       const placeholderContent = texts[Math.floor(Math.random() * texts.length)]!;
 
-      // Update lastSentMessage for UI
+      // Update lastSentMessage for optimistic UI
       setLastSentMessage({
         query,
         insertIndex: newInsertIndex,
@@ -494,7 +498,11 @@ export const useSeerExplorer = () => {
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
-    if (lastSentMessage === null || rawSessionData?.status === 'error') {
+    if (
+      lastSentMessage === null ||
+      isSendMessageError ||
+      rawSessionData?.status === 'error'
+    ) {
       return rawSessionData;
     }
 
@@ -507,7 +515,7 @@ export const useSeerExplorer = () => {
       loadingPlaceholderContent,
     } = lastSentMessage;
 
-    // Hydrated state - don't inject optimistic blocks once the server has persisted
+    // Hydrated state - don't apply optimistic blocks once the server has persisted
     // the last user query and at least one assistant response.
     const blockAtInsert = serverBlocks[insertIndex];
     const serverHasUserBlock =
@@ -525,7 +533,7 @@ export const useSeerExplorer = () => {
       return rawSessionData;
     }
 
-    // Inject optimistic blocks + insertIndex truncation
+    // Apply optimistic blocks with insertIndex truncation
     const optimisticUserBlock: Block = {
       id: `user-${insertIndex}-optimistic`,
       message: {role: 'user', content: userQuery},
@@ -559,7 +567,7 @@ export const useSeerExplorer = () => {
       ...baseSession,
       blocks: visibleBlocks,
     };
-  }, [rawSessionData, runId, lastSentMessage]);
+  }, [rawSessionData, runId, lastSentMessage, isSendMessageError]);
 
   return {
     sessionData: processedSessionData,
