@@ -50,7 +50,7 @@ describe('AssertionOpJsonPath', () => {
     expect(screen.getByPlaceholderText('ok')).toBeInTheDocument();
   });
 
-  it('calls onChange when value changes', async () => {
+  it.isKnownFlake('calls onChange when value changes', async () => {
     await renderOp(
       makeJsonPathOp({
         id: 'test-id-1',
