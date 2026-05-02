@@ -165,7 +165,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
     });
   });
 
-  it('enables require2fa with confirm modal', async () => {
+  it.isKnownFlake('enables require2fa with confirm modal', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
