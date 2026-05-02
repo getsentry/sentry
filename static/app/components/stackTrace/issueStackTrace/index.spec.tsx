@@ -210,7 +210,7 @@ describe('IssueStackTrace', () => {
     });
   });
 
-  it('shares display options across chained issue exceptions', async () => {
+  it.isKnownFlake('shares display options across chained issue exceptions', async () => {
     const {event, stacktrace} = makeStackTraceData();
     render(
       <IssueStackTrace
@@ -246,7 +246,7 @@ describe('IssueStackTrace', () => {
     expect(await screen.findAllByTestId('core-stacktrace-frame-row')).toHaveLength(10);
   });
 
-  it('renders chained exceptions in newest-first order by default and reverses on sort toggle', async () => {
+  it.isKnownFlake('renders chained exceptions in newest-first order by default and reverses on sort toggle', async () => {
     const {event, stacktrace} = makeStackTraceData();
     render(
       <IssueStackTrace

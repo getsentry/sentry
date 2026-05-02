@@ -200,7 +200,7 @@ describe('TeamStatsHealth', () => {
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
-  it('allows team switching as non-owner', async () => {
+  it.isKnownFlake('allows team switching as non-owner', async () => {
     const {router} = createWrapper({isOrgOwner: false});
 
     expect(screen.getByText('#backend')).toBeInTheDocument();

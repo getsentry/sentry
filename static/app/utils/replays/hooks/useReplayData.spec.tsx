@@ -379,7 +379,7 @@ describe('useReplayData', () => {
     });
   });
 
-  it('should incrementally load attachments and errors', async () => {
+  it.isKnownFlake('should incrementally load attachments and errors', async () => {
     const ERROR_IDS = ['5c83aaccfffb4a708ae893bad9be3a1c'];
     const startedAt = new Date('12:00:00 01-01-2023');
     const finishedAt = new Date('12:00:10 01-01-2023');

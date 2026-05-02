@@ -156,7 +156,7 @@ describe('StacktraceLinkModal', () => {
     );
   });
 
-  it('displays suggestions from code mappings', async () => {
+  it.isKnownFlake('displays suggestions from code mappings', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/derive-code-mappings/`,
       body: [

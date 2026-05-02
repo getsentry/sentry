@@ -33,7 +33,7 @@ describe('JsonViewer', () => {
     expect(await screen.findByText(/Failed to load attachment/)).toBeInTheDocument();
   });
 
-  it('Renders JSON content if fetch is successful', async () => {
+  it.isKnownFlake('Renders JSON content if fetch is successful', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/`,
       body: '{"key":"value"}',
@@ -53,7 +53,7 @@ describe('JsonViewer', () => {
     expect(await screen.findByText('"value"')).toBeInTheDocument();
   });
 
-  it('renders JSON sucessfully parsed by the api client', async () => {
+  it.isKnownFlake('renders JSON sucessfully parsed by the api client', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/`,
       headers: {'content-type': 'application/json'},

@@ -137,7 +137,7 @@ describe('EventReplay', () => {
     });
   });
 
-  it.isKnownFlake(
+  it(
     'should render the replay inline onboarding component when replays are enabled and the project supports replay',
     async () => {
       MockUseReplayOnboardingSidebarPanel.mockReturnValue({

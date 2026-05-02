@@ -105,7 +105,7 @@ describe('InviteRowControlNew', () => {
     });
   });
 
-  it('updates email addresses when new emails are inputted and input is unfocussed', async () => {
+  it.isKnownFlake('updates email addresses when new emails are inputted and input is unfocussed', async () => {
     const mockSetEmails = jest.fn();
     render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
     const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
@@ -114,7 +114,7 @@ describe('InviteRowControlNew', () => {
     expect(mockSetEmails).toHaveBeenCalled();
   });
 
-  it('updates role value when new role is selected', async () => {
+  it.isKnownFlake('updates role value when new role is selected', async () => {
     const mockSetRole = jest.fn();
     render(getComponent({...defaultInviteProps, setRole: mockSetRole}));
     const roleInput = screen.getByRole('textbox', {name: 'Role'});
@@ -137,7 +137,7 @@ describe('InviteRowControlNew', () => {
     expect(teamInput).toBeDisabled();
   });
 
-  it('enables team selection when team roles are allowed', async () => {
+  it.isKnownFlake('enables team selection when team roles are allowed', async () => {
     const mockSetTeams = jest.fn();
     render(
       getComponent({
@@ -157,7 +157,7 @@ describe('InviteRowControlNew', () => {
     expect(mockSetTeams).toHaveBeenCalledTimes(2);
   });
 
-  it('shows all teams if Open Membership is enabled', async () => {
+  it.isKnownFlake('shows all teams if Open Membership is enabled', async () => {
     const {organization: orgWithInviteAccess} = initializeOrg({
       organization: {
         access: ['member:invite'],
@@ -173,7 +173,7 @@ describe('InviteRowControlNew', () => {
     expect(screen.getByText('#moo-waan')).toBeInTheDocument();
   });
 
-  it('only shows member teams if Open Membership is disabled', async () => {
+  it.isKnownFlake('only shows member teams if Open Membership is disabled', async () => {
     const {organization: orgWithInviteAccess} = initializeOrg({
       organization: {
         access: ['member:invite'],

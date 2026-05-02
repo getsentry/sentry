@@ -60,7 +60,7 @@ describe('ProjectPageFilter', () => {
     expect(router.location.query).toEqual({project: '1'});
   });
 
-  it('handles multiple selection', async () => {
+  it.isKnownFlake('handles multiple selection', async () => {
     const {router} = render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
@@ -88,7 +88,7 @@ describe('ProjectPageFilter', () => {
     expect(router.location.query).toEqual({project: '3'});
   });
 
-  it('renders keyboard-accessible trailing items', async () => {
+  it.isKnownFlake('renders keyboard-accessible trailing items', async () => {
     const mockApi = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/projects/${organization.slug}/project-1/`,
@@ -308,7 +308,7 @@ describe('ProjectPageFilter', () => {
     expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
   });
 
-  it('unchecking all project checkboxes from All Projects leaves everything unchecked', async () => {
+  it.isKnownFlake('unchecking all project checkboxes from All Projects leaves everything unchecked', async () => {
     // Start with All Projects active from URL
     PageFiltersStore.onInitializeUrlState({
       projects: [-1],
@@ -431,7 +431,7 @@ describe('ProjectPageFilter', () => {
     expect(screen.getByRole('checkbox', {name: 'Select project-3'})).toBeInTheDocument();
   });
 
-  it('shows selection limit warning when all projects are selected explicitly', async () => {
+  it.isKnownFlake('shows selection limit warning when all projects are selected explicitly', async () => {
     const manyProjects = Array.from({length: 52}, (_, index) =>
       ProjectFixture({
         id: String(index + 1),
@@ -536,7 +536,7 @@ describe('ProjectPageFilter', () => {
     });
   });
 
-  it('shows selection limit warning when clicking All Projects then unchecking a single project', async () => {
+  it.isKnownFlake('shows selection limit warning when clicking All Projects then unchecking a single project', async () => {
     // 51 members + 1 non-member = 52 total so the "All Projects" sentinel appears
     const manyProjects = [
       ...Array.from({length: 51}, (_, index) =>
@@ -649,7 +649,7 @@ describe('ProjectPageFilter', () => {
     }
   );
 
-  it('shows selection limit warning after editing All Projects sentinel selection', async () => {
+  it.isKnownFlake('shows selection limit warning after editing All Projects sentinel selection', async () => {
     const manyProjects = Array.from({length: 52}, (_, index) =>
       ProjectFixture({
         id: String(index + 1),

@@ -491,7 +491,7 @@ describe('DetectorsList', () => {
       expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
     });
 
-    it.isKnownFlake(
+    it(
       'shows option to select all query results when page is selected',
       async () => {
         const deleteRequest = MockApiClient.addMockResponse({

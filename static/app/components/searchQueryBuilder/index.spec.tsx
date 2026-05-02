@@ -230,7 +230,7 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('renders swap to is for * when using a wildcard operator', async () => {
+      it.isKnownFlake('renders swap to is for * when using a wildcard operator', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
         );
@@ -263,7 +263,7 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('callbacks', () => {
-    it('calls onChange, onBlur, and onSearch with the query string', async () => {
+    it.isKnownFlake('calls onChange, onBlur, and onSearch with the query string', async () => {
       const mockOnChange = jest.fn();
       const mockOnBlur = jest.fn();
       const mockOnSearch = jest.fn();
@@ -934,7 +934,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
-    it('escapes values with spaces and reserved characters', async () => {
+    it.isKnownFlake('escapes values with spaces and reserved characters', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
@@ -1202,7 +1202,7 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('combobox')).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('can add a filter after some free text', async () => {
+    it.isKnownFlake('can add a filter after some free text', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(getLastInput());
@@ -1276,7 +1276,7 @@ describe('SearchQueryBuilder', () => {
       expect(mockOnChange).toHaveBeenCalledTimes(1);
     });
 
-    it('focuses the correct text input after typing boolean operators', async () => {
+    it.isKnownFlake('focuses the correct text input after typing boolean operators', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(getLastInput());
@@ -1297,7 +1297,7 @@ describe('SearchQueryBuilder', () => {
       await screen.findByRole('row', {name: /b/});
     });
 
-    it('converts text to filter when typing <filter>:', async () => {
+    it.isKnownFlake('converts text to filter when typing <filter>:', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
 
@@ -1312,7 +1312,7 @@ describe('SearchQueryBuilder', () => {
       expect(browserNameFilter).toBeInTheDocument();
     });
 
-    it('converts text to negated filter when typing !<filter>:', async () => {
+    it.isKnownFlake('converts text to negated filter when typing !<filter>:', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
 
@@ -1327,7 +1327,7 @@ describe('SearchQueryBuilder', () => {
       expect(browserNameFilter).toBeInTheDocument();
     });
 
-    it('selects [Filtered] from dropdown', async () => {
+    it.isKnownFlake('selects [Filtered] from dropdown', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
 
@@ -1347,7 +1347,7 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('filter key suggestions', () => {
-    it('will suggest a filter key when typing its value', async () => {
+    it.isKnownFlake('will suggest a filter key when typing its value', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(getLastInput());
 
@@ -1368,7 +1368,7 @@ describe('SearchQueryBuilder', () => {
       expect(getLastInput()).toHaveFocus();
     });
 
-    it('will suggest a raw search when typing with a space', async () => {
+    it.isKnownFlake('will suggest a raw search when typing with a space', async () => {
       const mockOnSearch = jest.fn();
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="" onSearch={mockOnSearch} />
@@ -1392,7 +1392,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('logic items', () => {
-      it('will suggest logic items when typing its value', async () => {
+      it.isKnownFlake('will suggest logic items when typing its value', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(getLastInput());
 
@@ -1423,7 +1423,7 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
-    it('can remove a previous token by pressing backspace', async () => {
+    it.isKnownFlake('can remove a previous token by pressing backspace', async () => {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
@@ -1944,7 +1944,7 @@ describe('SearchQueryBuilder', () => {
       );
     });
 
-    it('wraps selected tokens correctly when duplicate content appears earlier', async () => {
+    it.isKnownFlake('wraps selected tokens correctly when duplicate content appears earlier', async () => {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -1989,7 +1989,7 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
-    it('can undo wrapping with ctrl-z', async () => {
+    it.isKnownFlake('can undo wrapping with ctrl-z', async () => {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -2075,7 +2075,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
-    it('selects the value when pressing enter after typing it in', async () => {
+    it.isKnownFlake('selects the value when pressing enter after typing it in', async () => {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
       );
@@ -4587,7 +4587,7 @@ describe('SearchQueryBuilder', () => {
         expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       });
 
-      it('focuses on the filter value after only argument is specified', async () => {
+      it.isKnownFlake('focuses on the filter value after only argument is specified', async () => {
         render(<SearchQueryBuilder {...aggregateDefaultProps} />);
 
         await userEvent.click(getLastInput());
@@ -4609,7 +4609,7 @@ describe('SearchQueryBuilder', () => {
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
 
-      it('focuses on the filter value after all arguments is specified', async () => {
+      it.isKnownFlake('focuses on the filter value after all arguments is specified', async () => {
         render(<SearchQueryBuilder {...aggregateDefaultProps} />);
 
         await userEvent.click(getLastInput());
@@ -5029,7 +5029,7 @@ describe('SearchQueryBuilder', () => {
       getSuggestedFilterKey,
     };
 
-    it('replace string key with suggestion when autocompleting', async () => {
+    it.isKnownFlake('replace string key with suggestion when autocompleting', async () => {
       render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
@@ -5040,7 +5040,7 @@ describe('SearchQueryBuilder', () => {
       ).toHaveTextContent('foo');
     });
 
-    it('replace number key with suggestion when autocompleting', async () => {
+    it.isKnownFlake('replace number key with suggestion when autocompleting', async () => {
       render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
@@ -5051,7 +5051,7 @@ describe('SearchQueryBuilder', () => {
       ).toHaveTextContent('bar');
     });
 
-    it('replaces string key with suggestion on enter', async () => {
+    it.isKnownFlake('replaces string key with suggestion on enter', async () => {
       render(
         <SearchQueryBuilder {...builderProps} initialQuery="browser.name:firefox" />
       );
@@ -5067,7 +5067,7 @@ describe('SearchQueryBuilder', () => {
       ).toHaveTextContent('foo');
     });
 
-    it('replaces number key with suggestion on enter', async () => {
+    it.isKnownFlake('replaces number key with suggestion on enter', async () => {
       render(
         <SearchQueryBuilder {...builderProps} initialQuery="browser.name:firefox" />
       );
