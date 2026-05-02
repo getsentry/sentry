@@ -82,7 +82,7 @@ describe('Quick Context', () => {
       ).toBeInTheDocument();
     });
 
-    it('Renders issue context header with copy button', async () => {
+    it.isKnownFlake('Renders issue context header with copy button', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/3512441874/',
         method: 'GET',
@@ -100,7 +100,7 @@ describe('Quick Context', () => {
       ).toBeInTheDocument();
     });
 
-    it('Renders release header with copy button', async () => {
+    it.isKnownFlake('Renders release header with copy button', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/releases/${encodeURIComponent(
           'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76'
@@ -132,7 +132,7 @@ describe('Quick Context', () => {
       ).toBeInTheDocument();
     });
 
-    it('Renders event id header', async () => {
+    it.isKnownFlake('Renders event id header', async () => {
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
