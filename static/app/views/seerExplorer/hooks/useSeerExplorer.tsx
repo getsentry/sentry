@@ -144,11 +144,7 @@ export const useSeerExplorer = () => {
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   // Queries and mutations
-  const {
-    mutate: sendMessageMutate,
-    isPending: isPendingSendMessage,
-    isError: isSendMessageError,
-  } = useMutation<
+  const {mutate: sendMessageMutate, isPending: isPendingSendMessage} = useMutation<
     SeerExplorerChatResponse,
     RequestError,
     {
@@ -164,9 +160,17 @@ export const useSeerExplorer = () => {
   >({
     mutationFn: async params => {
       setWaitingForInterrupt(false);
-      const {url} = parseQueryKey(
-        makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId)
-      );
+      const queryKey = makeSeerExplorerQueryKey(params.orgSlug, params.runId);
+
+      // Optimistic processing status to prevent isPolling flicker.
+      if (params.runId !== null) {
+        setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
+          prev?.session
+            ? {...prev, session: {...prev.session, status: 'processing'}}
+            : prev
+        );
+      }
+      const {url} = parseQueryKey(queryKey);
       return fetchMutation({
         url,
         method: 'POST',
@@ -181,14 +185,14 @@ export const useSeerExplorer = () => {
       });
     },
     onSuccess: (response, params) => {
-      if (params.runId) {
-        // invalidate the query so fresh data is fetched
-        queryClient.invalidateQueries({
-          queryKey: makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId),
-        });
-      } else {
+      if (params.runId === null) {
         // set run ID if this is a new session
         setRunId(response.run_id);
+      } else {
+        // invalidate the query so fresh data is fetched
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+        });
       }
     },
     onError: (e, params) => {
@@ -221,6 +225,18 @@ export const useSeerExplorer = () => {
   >({
     mutationFn: async params => {
       setWaitingForInterrupt(false);
+
+      // Optimistic processing status to prevent isPolling flicker.
+      if (params.runId !== null) {
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+          prev =>
+            prev?.session
+              ? {...prev, session: {...prev.session, status: 'processing'}}
+              : prev
+        );
+      }
       return fetchMutation({
         url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
         method: 'POST',
@@ -236,7 +252,7 @@ export const useSeerExplorer = () => {
     onSuccess: (_, params) => {
       // invalidate the query so fresh data is fetched
       queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId),
+        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
       });
     },
     onError: (e, params) => {
@@ -264,6 +280,18 @@ export const useSeerExplorer = () => {
   >({
     mutationFn: async params => {
       setWaitingForInterrupt(false);
+
+      // Optimistic processing status to prevent isPolling flicker.
+      if (params.runId !== null) {
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+          prev =>
+            prev?.session
+              ? {...prev, session: {...prev.session, status: 'processing'}}
+              : prev
+        );
+      }
       return fetchMutation({
         url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
         method: 'POST',
@@ -278,7 +306,7 @@ export const useSeerExplorer = () => {
     onSuccess: (_, params) => {
       // invalidate the query so fresh data is fetched
       queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId),
+        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
       });
     },
     onError: e => {
@@ -498,11 +526,7 @@ export const useSeerExplorer = () => {
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
-    if (
-      lastSentMessage === null ||
-      isSendMessageError ||
-      rawSessionData?.status === 'error'
-    ) {
+    if (lastSentMessage === null || !isPolling) {
       return rawSessionData;
     }
 
@@ -567,7 +591,7 @@ export const useSeerExplorer = () => {
       ...baseSession,
       blocks: visibleBlocks,
     };
-  }, [rawSessionData, runId, lastSentMessage, isSendMessageError]);
+  }, [rawSessionData, runId, lastSentMessage, isPolling]);
 
   return {
     sessionData: processedSessionData,
