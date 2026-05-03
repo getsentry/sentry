@@ -375,7 +375,7 @@ export function FrameworkSuggestionModal({
       </Body>
       <Footer>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={debounceHandleClick}
           busy={isCreatingProjectAndRules}
         >

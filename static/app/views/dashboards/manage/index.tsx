@@ -468,7 +468,7 @@ function ManageDashboards() {
                         <Button
                           {...triggerProps}
                           data-test-id="dashboard-create"
-                          priority="primary"
+                          variant="primary"
                           icon={<IconAdd />}
                         >
                           {t('Create Dashboard')}
@@ -490,7 +490,7 @@ function ManageDashboards() {
                         event.preventDefault();
                         onCreate();
                       }}
-                      priority="primary"
+                      variant="primary"
                       icon={<IconAdd />}
                       disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                       tooltipProps={{
@@ -643,7 +643,7 @@ function ManageDashboards() {
                                 location,
                               });
                             }}
-                            priority="primary"
+                            variant="primary"
                             icon={<IconAdd />}
                           >
                             {t('Import Dashboard from JSON')}
@@ -704,7 +704,7 @@ function ManageDashboards() {
                                         {...triggerProps}
                                         data-test-id="dashboard-create"
                                         size="sm"
-                                        priority="primary"
+                                        variant="primary"
                                         icon={<IconAdd />}
                                       >
                                         {t('Create Dashboard')}
@@ -727,7 +727,7 @@ function ManageDashboards() {
                                       onCreate();
                                     }}
                                     size="sm"
-                                    priority="primary"
+                                    variant="primary"
                                     icon={<IconAdd />}
                                     disabled={
                                       hasReachedDashboardLimit || isLoadingDashboardsLimit
@@ -754,7 +754,7 @@ function ManageDashboards() {
                               });
                             }}
                             size="sm"
-                            priority="primary"
+                            variant="primary"
                             icon={<IconAdd />}
                           >
                             {t('Import Dashboard from JSON')}

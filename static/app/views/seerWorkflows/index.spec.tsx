@@ -38,8 +38,27 @@ describe('SeerWorkflows', () => {
 
     expect(await screen.findByText('Night Shift')).toBeInTheDocument();
     expect(screen.getByText('agentic')).toBeInTheDocument();
-    expect(screen.getByText('Completed')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Seer Workflows'})).toBeInTheDocument();
+  });
+
+  it('shows the error message inline when a run failed', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: 'No Seer quota available',
+          extras: {},
+          issues: [],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    expect(await screen.findByText('No Seer quota available')).toBeInTheDocument();
   });
 
   it('expands a row to show issue drill-down', async () => {

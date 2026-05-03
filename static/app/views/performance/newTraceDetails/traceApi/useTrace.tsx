@@ -225,6 +225,7 @@ function useDemoTrace(
 type UseTraceOptions = {
   additionalAttributes?: string[];
   limit?: number;
+  referrer?: string;
   /**
    * When passed we make sure that the corresponding event is a part of the trace (if it exists)
    * irrespective of the trace query count limit.
@@ -282,8 +283,12 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     maxPickableDays > defaultStatsDays;
 
   const fallbackQueryParams = useMemo(
-    () => ({...queryParams, statsPeriod: `${maxPickableDays}d`}),
-    [queryParams, maxPickableDays]
+    () => ({
+      ...queryParams,
+      statsPeriod: `${maxPickableDays}d`,
+      referrer: options.referrer,
+    }),
+    [queryParams, maxPickableDays, options.referrer]
   );
 
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
@@ -291,7 +296,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
       getApiUrl('/organizations/$organizationIdOrSlug/events-trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
-      {query: queryParams},
+      {query: {...queryParams, referrer: options.referrer}},
     ],
     {
       staleTime: Infinity,
@@ -309,6 +314,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
           ...queryParams,
           project: -1,
           additional_attributes: options.additionalAttributes,
+          referrer: options.referrer,
         },
       },
     ],

@@ -117,7 +117,7 @@ export function getGroupActivityItem(
 
   function getAssignedMessage(assignedActivity: GroupActivityAssigned) {
     const {data} = assignedActivity;
-    let assignee: string | User | undefined = undefined;
+    let assignee: string | User | undefined;
 
     if (data.assigneeType === 'team') {
       const team = teams.find(({id}) => id === data.assignee);

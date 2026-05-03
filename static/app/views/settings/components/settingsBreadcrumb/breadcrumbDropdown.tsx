@@ -44,7 +44,7 @@ export function BreadcrumbDropdown({
 
   if (!hasMenu) {
     return (
-      <Button priority="link">
+      <Button variant="link">
         <Flex gap="sm" align="center">
           <Text bold={false}>{name || route.name} </Text>
           {isLast ? null : <Divider />}

@@ -58,7 +58,7 @@ export function getTraceContextData({
         case TraceContextKeys.TRACE_ID: {
           const traceId = data.trace_id || '';
           if (!traceId) {
-            return undefined;
+            return;
           }
 
           // We want to default to true for backwards compatibility, but we want to show
@@ -156,7 +156,7 @@ export function getTraceContextData({
           });
 
           if (!eventTag || typeof eventTag.value !== 'string') {
-            return undefined;
+            return;
           }
           const transactionName = eventTag.value;
 

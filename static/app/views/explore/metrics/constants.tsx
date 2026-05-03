@@ -14,6 +14,8 @@ import {
   type TraceMetricFieldKey,
 } from 'sentry/views/explore/metrics/types';
 
+export const NONE_UNIT = 'none';
+
 const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.ID,
   TraceMetricKnownFieldKey.ORGANIZATION_ID,
@@ -62,6 +64,10 @@ export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
   ...HiddenTraceMetricSearchFields,
   TraceMetricKnownFieldKey.TIMESTAMP,
 ];
+
+export const HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET = new Set(
+  HiddenTraceMetricGroupByFields
+);
 
 const TRACEMETRICS_FILTERS: FilterKeySection = {
   value: 'tracemetrics_filters',

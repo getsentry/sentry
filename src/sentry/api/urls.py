@@ -288,6 +288,9 @@ from sentry.integrations.api.endpoints.organization_integration_issues import (
 from sentry.integrations.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_integration_repo_sync import (
+    OrganizationIntegrationRepoSyncEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_integration_repos import (
     OrganizationIntegrationReposEndpoint,
 )
@@ -547,17 +550,17 @@ from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
 )
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
-from sentry.seer.endpoints.organization_seer_explorer_chat import (
-    OrganizationSeerExplorerChatEndpoint,
+from sentry.seer.endpoints.organization_seer_agent_chat import (
+    OrganizationSeerAgentChatEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_explorer_pr_groups import (
-    OrganizationSeerExplorerPRGroupsEndpoint,
+from sentry.seer.endpoints.organization_seer_agent_pr_groups import (
+    OrganizationSeerAgentPRGroupsEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_explorer_runs import (
-    OrganizationSeerExplorerRunsEndpoint,
+from sentry.seer.endpoints.organization_seer_agent_runs import (
+    OrganizationSeerAgentRunsEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_explorer_update import (
-    OrganizationSeerExplorerUpdateEndpoint,
+from sentry.seer.endpoints.organization_seer_agent_update import (
+    OrganizationSeerAgentUpdateEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
@@ -2018,6 +2021,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-integration-repos",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/repo-sync/$",
+        OrganizationIntegrationRepoSyncEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-repo-sync",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channels/$",
         OrganizationIntegrationChannelsEndpoint.as_view(),
         name="sentry-api-0-organization-integration-channels",
@@ -2439,17 +2447,17 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/$",
-        OrganizationSeerExplorerChatEndpoint.as_view(),
+        OrganizationSeerAgentChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?P<run_id>[^/]+)/$",
-        OrganizationSeerExplorerChatEndpoint.as_view(),
+        OrganizationSeerAgentChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-runs/$",
-        OrganizationSeerExplorerRunsEndpoint.as_view(),
+        OrganizationSeerAgentRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-runs",
     ),
     re_path(
@@ -2459,12 +2467,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-pr-groups/$",
-        OrganizationSeerExplorerPRGroupsEndpoint.as_view(),
+        OrganizationSeerAgentPRGroupsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-pr-groups",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
-        OrganizationSeerExplorerUpdateEndpoint.as_view(),
+        OrganizationSeerAgentUpdateEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-update",
     ),
     re_path(
