@@ -215,7 +215,11 @@ PERCENT_UNITS = {"ratio", "percent"}
 NO_CONVERSION_FIELDS = {"start", "end"}
 # Skip total_count_alias since it queries the total count and therefore doesn't make sense in a filter
 # In these cases we should instead treat it as a tag instead
-SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS}
+# "duration" is an internal Snuba column name for transaction.duration (UInt32).
+# Bare `duration:>3s` (without the `transaction.` prefix) causes a 500 because
+# the parser produces a string value while resolve_column maps to the raw numeric
+# column.  Forcing tag resolution makes the filter harmless instead of crashing.
+SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS, "duration"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
 ARRAY_FIELDS = {

@@ -23,10 +23,12 @@ export function LogsPageDataProvider({
   children,
   allowHighFidelity,
   disabled,
+  staleTime,
 }: {
   children: React.ReactNode;
   allowHighFidelity?: boolean;
   disabled?: boolean;
+  staleTime?: number;
 }) {
   const organization = useOrganization();
   const feature = isLogsEnabled(organization);
@@ -34,6 +36,7 @@ export function LogsPageDataProvider({
   const infiniteLogsQueryResult = useInfiniteLogsQuery({
     disabled: disabled || !feature,
     highFidelity: allowHighFidelity && highFidelity,
+    staleTime,
   });
   const value = useMemo(() => {
     return {

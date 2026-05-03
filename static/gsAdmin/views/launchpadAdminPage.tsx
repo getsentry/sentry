@@ -335,7 +335,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  variant="secondary"
                   type="submit"
                   disabled={!fetchInfoArtifactId.trim() || !region}
                   css={css`
@@ -366,7 +366,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="danger"
+                  variant="danger"
                   type="submit"
                   disabled={!deleteArtifactId.trim() || !region}
                   css={css`
@@ -398,7 +398,7 @@ export function LaunchpadAdminPage() {
                   placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="primary"
+                  variant="primary"
                   type="submit"
                   disabled={!rerunArtifactId.trim() || !region}
                   css={css`
@@ -429,7 +429,7 @@ export function LaunchpadAdminPage() {
                   placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="danger"
+                  variant="danger"
                   type="submit"
                   disabled={!batchDeleteArtifactIds.trim() || !region}
                   css={css`
@@ -460,7 +460,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  variant="secondary"
                   type="submit"
                   disabled={!downloadArtifactId.trim() || !region}
                   css={css`
@@ -502,7 +502,7 @@ export function LaunchpadAdminPage() {
               <InfoDisplay>
                 <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
               </InfoDisplay>
-              <Button priority="default" onClick={() => setFetchedArtifactInfo(null)}>
+              <Button variant="secondary" onClick={() => setFetchedArtifactInfo(null)}>
                 Clear Info
               </Button>
             </Flex>

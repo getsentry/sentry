@@ -29,6 +29,7 @@ describe('useScmRepoSelection', () => {
   let reposByIdentifier: Map<string, IntegrationRepository>;
 
   const mockRepo: IntegrationRepository = {
+    externalId: '1',
     identifier: 'getsentry/sentry',
     name: 'sentry',
     isInstalled: false,
@@ -50,6 +51,7 @@ describe('useScmRepoSelection', () => {
         {
           id: '99',
           name: 'getsentry/sentry',
+          externalId: '1',
           externalSlug: 'getsentry/sentry',
           status: 'active',
         },
@@ -190,6 +192,7 @@ describe('useScmRepoSelection', () => {
         {
           id: '99',
           name: 'getsentry/sentry',
+          externalId: '1',
           externalSlug: 'getsentry/sentry',
           status: 'active',
         },

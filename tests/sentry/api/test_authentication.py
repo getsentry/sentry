@@ -360,6 +360,16 @@ class TestTokenAuthentication(TestCase):
         assert user.id == self.user.id
         assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
 
+    def test_suspended_user_raises_authentication_failed(self) -> None:
+        self.user.update(is_suspended=True)
+
+        request = _drf_request()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+
+        with pytest.raises(AuthenticationFailed) as exc_info:
+            self.auth.authenticate(request)
+        assert exc_info.value.detail == "User account is suspended"
+
 
 @control_silo_test
 class TestOrgScopedAppTokenAuthentication(TestCase):
@@ -1072,6 +1082,20 @@ class TestViewerContextAuthentication(TestCase):
         token = encode_viewer_context(vc, key="wrong-key")
 
         request = self._make_request(viewer_context=token)
+        result = ViewerContextAuthentication().authenticate(request)
+
+        assert result is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_suspended_user_returns_none(self) -> None:
+        self.user.update(is_suspended=True)
+
+        context = encode_viewer_context(
+            ViewerContext(user_id=self.user.id, actor_type=ActorType.USER),
+            key=self.SHARED_SECRET,
+        )
+
+        request = self._make_request(viewer_context=context)
         result = ViewerContextAuthentication().authenticate(request)
 
         assert result is None

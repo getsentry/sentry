@@ -243,11 +243,6 @@ class AppService(RpcService):
     ) -> RpcSentryAppComponent | None:
         pass
 
-    @rpc_method
-    @abc.abstractmethod
-    def disable_sentryapp(self, *, id: int) -> None:
-        pass
-
 
 @back_with_silo_cache("app_service.get_installation", SiloMode.CELL, RpcSentryAppInstallation)
 def get_installation(id: int) -> RpcSentryAppInstallation | None:

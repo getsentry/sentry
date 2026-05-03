@@ -176,7 +176,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     <Flex>
                       {userHasBillingAccess ? (
                         <AddBudgetButton
-                          priority="primary"
+                          variant="primary"
                           onClick={() => {
                             handleAddBudget();
                             autofixAcknowledgeMutation.mutate();
@@ -189,7 +189,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         </AddBudgetButton>
                       ) : (
                         <Button
-                          priority="primary"
+                          variant="primary"
                           onClick={async () => {
                             await sendAddEventsRequest({
                               api,
@@ -212,14 +212,14 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                           addSuccessMessage(t('Refreshed Seer quota'));
                         }}
                         size="md"
-                        priority="default"
+                        variant="secondary"
                         aria-label={t('Refresh')}
                       />
                     </Flex>
                   </Flex>
                 ) : (
                   <Button
-                    priority="primary"
+                    variant="primary"
                     onClick={() => {
                       autofixAcknowledgeMutation.mutate();
                       handlePurchaseSeer();
@@ -253,7 +253,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           <Fragment>
             <Flex align="center" gap="md">
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={() => autofixAcknowledgeMutation.mutate()}
                 disabled={autofixAcknowledgeMutation.isPending}
                 analyticsEventKey="gen_ai_consent.in_drawer_clicked"

@@ -11,7 +11,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {GlobalModal} from 'sentry/components/globalModal';
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';

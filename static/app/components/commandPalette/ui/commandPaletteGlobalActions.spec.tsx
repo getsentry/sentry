@@ -24,15 +24,16 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {
   makeCloseButton,
   makeClosableHeader,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
+import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 function makeRenderProps(closeModal: jest.Mock) {

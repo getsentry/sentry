@@ -53,9 +53,9 @@ export function useDeleteReplays({projectSlug}: Props) {
   const queryOptionsToPayload = useCallback(
     (
       selectedIds: 'all' | string[],
-      queryOptions: QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
+      queryOptions: QueryKeyEndpointOptions
     ): ReplayBulkDeletePayload => {
-      const environments = queryOptions?.query?.environment ?? [];
+      const environments = (queryOptions?.query?.environment as string | undefined) ?? [];
 
       const query = queryOptions?.query ?? {};
       const normalizedQuery = normalizeDateTimeParams(query);
@@ -70,7 +70,7 @@ export function useDeleteReplays({projectSlug}: Props) {
         environments: environments.length === 0 ? project?.environments : environments,
         query:
           selectedIds === 'all'
-            ? (queryOptions?.query?.query ?? '')
+            ? ((queryOptions?.query?.query as string | undefined) ?? '')
             : `id:[${selectedIds.join(',')}]`,
         rangeStart: getDateWithTimezoneInUtc(
           getDateFromTimestamp(start) ?? new Date(),

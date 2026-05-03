@@ -307,7 +307,7 @@ function ConfigureIntegration() {
                 handleJiraMigration();
               }}
             >
-              <Button priority="primary" disabled={!hasAccess}>
+              <Button variant="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -348,7 +348,7 @@ function ConfigureIntegration() {
                 handleOpsgenieMigration();
               }}
             >
-              <Button priority="primary" disabled={!hasAccess}>
+              <Button variant="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -556,7 +556,7 @@ function PagerdutyAddServicesButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       icon={<IconAdd />}
       onClick={() => startFlow({provider, onInstall, account, organization})}

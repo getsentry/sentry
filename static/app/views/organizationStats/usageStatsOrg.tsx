@@ -708,7 +708,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
           <StyledSettingsButton
-            priority="transparent"
+            variant="transparent"
             size="zero"
             icon={<IconSettings variant="muted" />}
             tooltipProps={{title: t('Dynamic Sampling Settings')}}

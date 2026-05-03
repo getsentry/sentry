@@ -129,7 +129,7 @@ export function ProjectCard({
           />
           <Grid flow="column" align="center" gap="xs">
             <SettingsButton
-              priority="transparent"
+              variant="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
               tooltipProps={{title: t('Settings')}}

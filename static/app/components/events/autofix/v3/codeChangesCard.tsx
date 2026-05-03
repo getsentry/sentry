@@ -88,7 +88,7 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
           blocks={section.blocks}
           loadingMessage={t('Implementing changes\u2026')}
         />
-      ) : (
+      ) : artifact && patchesByRepo.size ? (
         <Fragment>
           {shouldShowReset && (
             <AutofixResetPrompt
@@ -98,48 +98,44 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
               prompt={t('How can this code change be improved?')}
             />
           )}
-          {patchesByRepo.size ? (
-            <Fragment>
-              <ArtifactDetails>
-                <Text>{summary}</Text>
-              </ArtifactDetails>
-              {[...patchesByRepo.entries()].map(([repo, patches]) => (
-                <ArtifactDetails key={repo}>
-                  <Flex gap="lg">
-                    <Text bold>{t('Repository:')}</Text>
-                    <Text>{repo}</Text>
-                  </Flex>
-                  {patches.map((patch, index) => (
-                    <FileDiffViewer
-                      key={index}
-                      patch={patch.patch}
-                      showBorder
-                      collapsible
-                      defaultExpanded={artifact !== null && artifact.length <= 1}
-                    />
-                  ))}
-                </ArtifactDetails>
+          <ArtifactDetails>
+            <Text>{summary}</Text>
+          </ArtifactDetails>
+          {[...patchesByRepo.entries()].map(([repo, patches]) => (
+            <ArtifactDetails key={repo}>
+              <Flex gap="lg">
+                <Text bold>{t('Repository:')}</Text>
+                <Text>{repo}</Text>
+              </Flex>
+              {patches.map((patch, index) => (
+                <FileDiffViewer
+                  key={index}
+                  patch={patch.patch}
+                  showBorder
+                  collapsible
+                  defaultExpanded={artifact !== null && artifact.length <= 1}
+                />
               ))}
-            </Fragment>
-          ) : (
-            <ArtifactDetails>
-              <Text>
-                {t(
-                  'Seer failed to generate a code change. This one is on us. Try running it again.'
-                )}
-              </Text>
-              <div>
-                <Button
-                  priority="primary"
-                  icon={<IconRefresh />}
-                  onClick={() => handleReset()}
-                >
-                  {t('Re-run')}
-                </Button>
-              </div>
             </ArtifactDetails>
-          )}
+          ))}
         </Fragment>
+      ) : (
+        <ArtifactDetails>
+          <Text>
+            {t(
+              'Seer failed to generate a code change. This one is on us. Try running it again.'
+            )}
+          </Text>
+          <div>
+            <Button
+              priority="primary"
+              icon={<IconRefresh />}
+              onClick={() => handleReset()}
+            >
+              {t('Re-run')}
+            </Button>
+          </div>
+        </ArtifactDetails>
       )}
     </ArtifactCard>
   );
