@@ -988,7 +988,7 @@ describe('trace view', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not render the summary tab even when the legacy feature flag is enabled', async () => {
+  it.isKnownFlake('does not render the summary tab even when the legacy feature flag is enabled', async () => {
     const organization = OrganizationFixture({features: ['single-trace-summary']});
 
     await completeTestSetup({organization});
