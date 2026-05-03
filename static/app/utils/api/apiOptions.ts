@@ -103,7 +103,7 @@ function _apiOptionsInfinite<
   return infiniteQueryOptions({
     queryKey:
       Object.keys(strippedOptions).length > 0
-        ? ([{infinite: true, version: 'v2'}, url, strippedOptions] as const)
+        ? ([{infinite: true, version: 'v2'}, url, strippedOptions] as any)
         : ([{infinite: true, version: 'v2'}, url] as const),
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
