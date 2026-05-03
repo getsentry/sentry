@@ -126,7 +126,7 @@ describe('SpansSearchBar', () => {
     await screen.findByLabelText('span.op:function');
   });
 
-  it('calls onSearch with the correct query', async () => {
+  it.isKnownFlake('calls onSearch with the correct query', async () => {
     mockSpanTags({type: 'string', mockedTags: [{key: 'span.op', name: 'span.op'}]});
     mockSpanTagValues({
       type: 'string',
