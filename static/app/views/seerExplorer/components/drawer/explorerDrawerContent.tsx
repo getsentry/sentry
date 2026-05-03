@@ -404,7 +404,7 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        canInterrupt={sessionData?.status === 'processing'} // TODO: update when adding timeouts
+        canInterrupt={isPolling}
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
         isVisible // Drawer content is always visible when rendered
