@@ -67,7 +67,7 @@ describe('EventsSearchBar', () => {
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.click(input, {delay: null});
-    await userEvent.paste('has:p', {delay: null});
+    await userEvent.type(input, 'has:p', {delay: null});
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Edit value for filter: has'})

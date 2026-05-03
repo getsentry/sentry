@@ -14,9 +14,19 @@ describe('Register', () => {
   };
 
   async function doLogin(apiRequest: jest.Mock) {
-    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'joe');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Email'}), 'test@test.com');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'joe', {
+      delay: null,
+    });
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Email'}),
+      'test@test.com',
+      {delay: null}
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Password'}),
+      '12345pass',
+      {delay: null}
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 

@@ -996,7 +996,9 @@ describe('trace view', () => {
       await completeTestSetup({organization});
 
       expect(await screen.findByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
-      expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
+      });
     }
   );
 

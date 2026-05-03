@@ -139,8 +139,7 @@ describe('SpansSearchBar', () => {
       name: 'Add a search term',
     });
     await userEvent.click(searchInput);
-    await userEvent.type(searchInput, 'span.op:', {delay: null});
-    await userEvent.keyboard('function', {delay: null});
+    await userEvent.type(searchInput, 'span.op:function', {delay: null});
     await userEvent.keyboard('{enter}', {delay: null});
 
     await waitFor(() => {

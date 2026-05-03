@@ -535,11 +535,12 @@ describe('DetectorsList', () => {
         // Wait for filtered results to load
         await screen.findByText('Assigned Detector 1');
 
-        const rows = screen.getAllByTestId('detector-list-row');
-
         // Focus on first row to make checkbox visible
-        await userEvent.click(rows[0]!);
-        const firstRowCheckbox = within(rows[0]!).getByRole('checkbox');
+        const firstRow = screen.getAllByTestId('detector-list-row')[0]!;
+        await userEvent.click(firstRow);
+        const firstRowCheckbox = within(
+          screen.getAllByTestId('detector-list-row')[0]!
+        ).getByRole('checkbox');
         await userEvent.click(firstRowCheckbox);
         expect(firstRowCheckbox).toBeChecked();
 
@@ -548,7 +549,7 @@ describe('DetectorsList', () => {
         await userEvent.click(masterCheckbox);
 
         // Should show alert with option to select all query results
-        expect(screen.getByText(/3 monitors on this page selected/)).toBeInTheDocument();
+        expect(await screen.findByText(/3 monitors on this page selected/)).toBeInTheDocument();
         const selectAllForQuery = screen.getByRole('button', {
           name: /Select all 10 monitors that match this search query/,
         });

@@ -8,8 +8,13 @@ import {ProjectQuickLinks} from 'sentry/views/projectDetail/projectQuickLinks';
 describe('ProjectDetail > ProjectQuickLinks', () => {
   const organization = OrganizationFixture({features: ['performance-view']});
 
+  beforeEach(() => {
+    jest.useFakeTimers({advanceTimers: true});
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   it.isKnownFlake('renders a list', async () => {

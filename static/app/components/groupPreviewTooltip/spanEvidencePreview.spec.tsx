@@ -13,6 +13,11 @@ describe('SpanEvidencePreview', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/',
     });
+    jest.useFakeTimers({advanceTimers: true});
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('does not fetch before hover', async () => {

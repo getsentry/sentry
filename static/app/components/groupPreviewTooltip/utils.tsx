@@ -62,6 +62,7 @@ export function usePreviewEvent<T = Event>({
       environments: [],
     }),
     gcTime: 30_000,
+    retry: false,
   });
 
   // Prefetch the group as well, but don't use the result

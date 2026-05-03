@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ModalStore} from 'sentry/stores/modalStore';
@@ -153,9 +153,11 @@ describe('RuleNode', () => {
     renderRuleNode(formNode(label));
 
     // Should render the first option if no initial is provided
-    expect(
-      screen.getByText('Here is a string choice field').parentElement
-    ).toHaveTextContent(labelReplacer(label, {[`{${fieldName}}`]: 'label1'}));
+    await waitFor(() => {
+      expect(
+        screen.getByText('Here is a string choice field').parentElement
+      ).toHaveTextContent(labelReplacer(label, {[`{${fieldName}}`]: 'label1'}));
+    });
 
     await selectEvent.select(screen.getByText('label1'), 'label3');
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, 'value3');

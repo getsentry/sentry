@@ -733,14 +733,16 @@ describe('MetricsTabContent', () => {
 
       // Add an entry, 3 entries (at cap) -> both buttons are disabled
       await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
-      for (const button of screen.getAllByRole('button', {
-        name: 'Add Metric',
-      })) {
-        expect(button).toBeDisabled();
-      }
-      for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
-        expect(button).toBeDisabled();
-      }
+      await waitFor(() => {
+        for (const button of screen.getAllByRole('button', {
+          name: 'Add Metric',
+        })) {
+          expect(button).toBeDisabled();
+        }
+        for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
+          expect(button).toBeDisabled();
+        }
+      });
     }
   );
 
