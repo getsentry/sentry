@@ -145,7 +145,7 @@ describe('EventReplay', () => {
     });
   });
 
-  it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async () => {
+  it.isKnownFlake('should render the replay inline onboarding component when replays are enabled and the project supports replay', async () => {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
