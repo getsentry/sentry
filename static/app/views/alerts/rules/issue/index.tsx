@@ -1217,7 +1217,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   rule.name
                 )}
               >
-                <Button priority="danger">{t('Delete Rule')}</Button>
+                <Button variant="danger">{t('Delete Rule')}</Button>
               </Confirm>
             ) : null
           }
