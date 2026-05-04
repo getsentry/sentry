@@ -86,7 +86,9 @@ class TestScheduleNightShift(TestCase):
             schedule_night_shift()
             mock_worker.apply_async.assert_called_once()
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
-            assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {}
+            assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {
+                "kinds": ["agentic_triage"],
+            }
 
     def test_dispatches_with_run_options(self) -> None:
         org = self.create_org_with_seer()
@@ -109,6 +111,7 @@ class TestScheduleNightShift(TestCase):
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
             assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {
                 "options": {"source": "manual", "dry_run": True, "max_candidates": 3},
+                "kinds": ["agentic_triage"],
             }
 
     def test_skips_orgs_without_seat_based_seer(self) -> None:
@@ -306,7 +309,9 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             assert "night_shift.no_eligible_projects" in info_events
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.extras.get("error_message") is None
+        triage_state = run.extras["kinds"]["agentic_triage"]
+        assert triage_state["status"] == "skipped"
+        assert triage_state["reason"] == "no_eligible_projects"
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_eligible_projects_error_records_error_message(self) -> None:
@@ -322,7 +327,9 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.extras["error_message"] == "Failed to get eligible projects"
+        triage_state = run.extras["kinds"]["agentic_triage"]
+        assert triage_state["status"] == "failed"
+        assert triage_state["error_message"] == "Failed to get eligible projects"
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_selects_candidates_and_skips_triggered(self) -> None:
@@ -358,18 +365,19 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             assert candidates[1]["seer_run_id"] == "101"
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.extras.get("error_message") is None
-        assert run.extras == {
-            "options": {
-                "source": "cron",
-                "max_candidates": 10,
-                "dry_run": False,
-                "intelligence_level": "high",
-                "reasoning_effort": "high",
-                "extra_triage_instructions": "",
-            },
-            "agent_run_id": 1,
+        assert run.extras["options"] == {
+            "source": "cron",
+            "max_candidates": 10,
+            "dry_run": False,
+            "intelligence_level": "high",
+            "reasoning_effort": "high",
+            "extra_triage_instructions": "",
         }
+        triage_state = run.extras["kinds"]["agentic_triage"]
+        assert triage_state["status"] == "succeeded"
+        assert triage_state["agent_run_id"] == 1
+        assert triage_state["num_candidates"] == 2
+        assert "error_message" not in triage_state
 
         result_group_ids = set(
             SeerNightShiftRunResult.objects.filter(run=run, kind="agentic_triage").values_list(
@@ -398,7 +406,9 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.extras["error_message"] == "Night shift run failed"
+        triage_state = run.extras["kinds"]["agentic_triage"]
+        assert triage_state["status"] == "failed"
+        assert triage_state["error_message"] == "Night shift run failed"
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_triggers_autofix_with_correct_stopping_point(self) -> None:
@@ -536,7 +546,9 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             mock_trigger.assert_not_called()
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.extras["error_message"] == "No Seer quota available"
+        triage_state = run.extras["kinds"]["agentic_triage"]
+        assert triage_state["status"] == "skipped"
+        assert triage_state["reason"] == "no_seer_quota"
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_skips_issue_row_on_trigger_failure(self) -> None:
@@ -684,17 +696,16 @@ class TestRunNightShiftForOrgManualPath(TestCase):
             )
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.extras == {
-            "options": {
-                "source": "manual",
-                "max_candidates": 5,
-                "dry_run": True,
-                "intelligence_level": "high",
-                "reasoning_effort": "high",
-                "extra_triage_instructions": "",
-            },
-            "target_project_ids": [project.id],
+        assert run.extras["options"] == {
+            "source": "manual",
+            "max_candidates": 5,
+            "dry_run": True,
+            "intelligence_level": "high",
+            "reasoning_effort": "high",
+            "extra_triage_instructions": "",
         }
+        assert run.extras["target_project_ids"] == [project.id]
+        assert "agentic_triage" in run.extras["kinds"]
 
     def test_extras_contain_triggering_user_id_when_provided(self) -> None:
         org = self.create_organization()
@@ -786,3 +797,110 @@ class TestTriageActionFromFixabilityScore:
         ]
         for score, expected in cases:
             assert TriageAction.from_fixability_score(score) == expected
+
+
+@django_db_all
+class TestMultiKindDispatch(TestCase):
+    """Per-kind feature gating + dispatch added by feedback summary feature."""
+
+    def _create_org_with_seer(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
+        SeerProjectRepository.objects.create(project=project, repository=repo)
+        return org
+
+    def test_dispatches_both_kinds_when_both_flags_set(self) -> None:
+        org = self._create_org_with_seer()
+
+        with (
+            self.options({"seer.night_shift.enable": True}),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:seer-night-shift-feedback-summary": [org.slug],
+                    "organizations:gen-ai-features": [org.slug],
+                    "organizations:seat-based-seer-enabled": [org.slug],
+                }
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+        ):
+            schedule_night_shift()
+
+        mock_worker.apply_async.assert_called_once()
+        kwargs = mock_worker.apply_async.call_args.kwargs["kwargs"]
+        assert sorted(kwargs["kinds"]) == ["agentic_triage", "feedback_summary"]
+
+    def test_dispatches_only_feedback_when_triage_flag_off(self) -> None:
+        org = self._create_org_with_seer()
+
+        with (
+            self.options({"seer.night_shift.enable": True}),
+            self.feature(
+                {
+                    # seer-night-shift intentionally omitted
+                    "organizations:seer-night-shift-feedback-summary": [org.slug],
+                    "organizations:gen-ai-features": [org.slug],
+                    "organizations:seat-based-seer-enabled": [org.slug],
+                }
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+        ):
+            schedule_night_shift()
+
+        mock_worker.apply_async.assert_called_once()
+        kwargs = mock_worker.apply_async.call_args.kwargs["kwargs"]
+        assert kwargs["kinds"] == ["feedback_summary"]
+
+    def test_skips_org_when_no_kinds_enabled(self) -> None:
+        org = self._create_org_with_seer()
+
+        with (
+            self.options({"seer.night_shift.enable": True}),
+            self.feature(
+                {
+                    "organizations:gen-ai-features": [org.slug],
+                    "organizations:seat-based-seer-enabled": [org.slug],
+                    # both kind flags intentionally omitted
+                }
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+        ):
+            schedule_night_shift()
+
+        mock_worker.apply_async.assert_not_called()
+
+    def test_run_for_org_creates_one_parent_and_dispatches_per_kind(self) -> None:
+        org = self.create_organization()
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.run_night_shift_execution.apply_async"
+        ) as mock_execute:
+            run_night_shift_for_org(
+                org.id,
+                kinds=["agentic_triage", "feedback_summary"],
+                execute_in_task=True,
+            )
+
+        assert SeerNightShiftRun.objects.filter(organization=org).count() == 1
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert set(run.extras["kinds"].keys()) == {"agentic_triage", "feedback_summary"}
+        assert run.extras["kinds"]["agentic_triage"]["status"] == "pending"
+        assert run.extras["kinds"]["feedback_summary"]["status"] == "pending"
+
+        assert mock_execute.call_count == 2
+        kinds_dispatched = sorted(
+            call.kwargs["kwargs"]["kind"] for call in mock_execute.call_args_list
+        )
+        assert kinds_dispatched == ["agentic_triage", "feedback_summary"]
+
+    def test_run_for_org_rejects_unknown_kinds(self) -> None:
+        org = self.create_organization()
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute:
+            result = run_night_shift_for_org(org.id, kinds=["bogus"])
+
+        assert result is None
+        assert SeerNightShiftRun.objects.filter(organization=org).count() == 0
+        mock_execute.assert_not_called()
+        mock_execute.apply_async.assert_not_called()

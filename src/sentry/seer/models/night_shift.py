@@ -9,6 +9,7 @@ from sentry.db.models.base import DefaultFieldsModel
 
 class NightShiftRunResultKind(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
+    FEEDBACK_SUMMARY = "feedback_summary"
 
 
 @cell_silo_model
