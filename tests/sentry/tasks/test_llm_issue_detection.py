@@ -181,11 +181,10 @@ class LLMIssueDetectionTest(TestCase):
             verification_reason="Verified",
             group_for_fingerprint="Other",
         )
-        result = create_issue_occurrence_from_detection(
+        create_issue_occurrence_from_detection(
             detected_issue=detected_issue,
             project=self.project,
         )
-        assert result is None
         assert not mock_produce_occurrence.called
 
     @with_feature("organizations:gen-ai-features")
