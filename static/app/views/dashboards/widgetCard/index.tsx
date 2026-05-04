@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
+import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -264,9 +265,17 @@ function WidgetCard(props: Props) {
   const onCopyUrlClick =
     currentDashboardId && props.index !== undefined
       ? () => {
-          const widgetUrl = `${window.location.origin}${normalizeUrl(
+          const pathname = normalizeUrl(
             `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`
-          )}`;
+          );
+          const params = qs.parse(location.search);
+          if (!params.interval && widgetInterval) {
+            params.interval = widgetInterval;
+          }
+          const query = qs.stringify(params);
+          const widgetUrl = `${window.location.origin}${pathname}${
+            query ? `?${query}` : ''
+          }`;
           copyToClipboard(widgetUrl, {
             successMessage: t('Widget URL copied to clipboard'),
           });
