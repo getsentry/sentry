@@ -196,7 +196,7 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
             trace_item_type=self.trace_item_type,
             downsampled_storage_config=DownsampledStorageConfig(
-                mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+                mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
             ),
         )
 
