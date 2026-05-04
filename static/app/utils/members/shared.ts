@@ -23,14 +23,14 @@ export interface MemberResult {
   members: User[];
 }
 
-export interface FetchMemberOptions {
+interface FetchMemberOptions {
   emails?: string[];
   ids?: string[];
   limit?: number;
   search?: null | string;
 }
 
-export interface MembersQueryOptions extends FetchMemberOptions {
+interface MembersQueryOptions extends FetchMemberOptions {
   orgSlug: string;
 }
 
@@ -64,21 +64,17 @@ function getMembersQuery({emails, ids, search, limit}: FetchMemberOptions = {}) 
   return query;
 }
 
-export function membersQueryOptions({orgSlug, ...options}: MembersQueryOptions) {
-  return apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
-    path: {organizationIdOrSlug: orgSlug},
-    query: getMembersQuery(options),
-    staleTime: 30_000,
-  });
-}
-
 function selectUsersFromResponse({json}: ApiResponse<Member[]>) {
   return json.map(m => m.user).filter((user): user is User => user !== null);
 }
 
 export function memberUsersQueryOptions(options: MembersQueryOptions) {
   return {
-    ...membersQueryOptions(options),
+    ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
+      path: {organizationIdOrSlug: options.orgSlug},
+      query: getMembersQuery(options),
+      staleTime: 30_000,
+    }),
     select: selectUsersFromResponse,
   };
 }
