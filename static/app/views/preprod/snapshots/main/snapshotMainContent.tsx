@@ -516,7 +516,7 @@ function SingleViewLayout({
   );
 }
 
-function SnapshotsToolbar({
+export function SnapshotsToolbar({
   toggle,
   sortDropdown,
   progressIndicator,
