@@ -64,8 +64,10 @@ export default function AddCredentialsModal({
           });
           closeModal();
         })
-        .catch((error: RequestError) => {
-          setFieldErrors(formApi, error);
+        .catch((error) => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
         }),
   });
 
