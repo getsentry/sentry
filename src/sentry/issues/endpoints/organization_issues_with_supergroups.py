@@ -6,6 +6,7 @@ from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -78,48 +79,66 @@ class OrganizationIssuesWithSupergroupsEndpoint(OrganizationEndpoint):
         try:
             with handle_query_errors():
                 # Overfetch 2x so supergroup collapse doesn't starve the page. Max out at 100.
-                groups, cursor_result, _ = search_and_serialize_issues(
-                    request,
-                    organization,
-                    projects,
-                    environments,
-                    limit=min(limit * 2, 100),
-                    **search_kwargs,
-                )
+                with start_span(op="issues_with_supergroups.search_and_serialize") as span:
+                    groups, cursor_result, _ = search_and_serialize_issues(
+                        request,
+                        organization,
+                        projects,
+                        environments,
+                        limit=min(limit * 2, 100),
+                        **search_kwargs,
+                    )
+                    span.set_data("limit", limit)
+                    span.set_data("raw_groups", len(groups))
 
                 if not groups:
                     return Response([])
 
                 # If Seer is down, fall through to plain groups rather than
                 # breaking the stream.
-                try:
-                    supergroup_data = get_supergroups_by_group_ids(
-                        organization, [int(g["id"]) for g in groups], user_id=request.user.id
-                    )
-                except SeerApiError:
-                    logger.exception("issues_with_supergroups.seer_fetch_failed")
-                    supergroup_data = None
+                with start_span(op="issues_with_supergroups.seer_fetch") as span:
+                    try:
+                        supergroup_data = get_supergroups_by_group_ids(
+                            organization,
+                            [int(g["id"]) for g in groups],
+                            user_id=request.user.id,
+                        )
+                        span.set_data("status", "ok")
+                        span.set_data("supergroups", len(supergroup_data["data"]))
+                    except SeerApiError:
+                        logger.exception("issues_with_supergroups.seer_fetch_failed")
+                        supergroup_data = None
+                        span.set_data("status", "error")
 
-                rows, last_consumed = _combine_groups_and_supergroups(
-                    groups,
-                    supergroup_data,
-                    limit,
-                )
+                with start_span(op="issues_with_supergroups.combine") as span:
+                    rows, last_consumed = _combine_groups_and_supergroups(
+                        groups,
+                        supergroup_data,
+                        limit,
+                    )
+                    span.set_data("rows", len(rows))
+                    span.set_data(
+                        "supergroup_rows",
+                        sum(1 for r in rows if "matchingGroups" in r),
+                    )
+                    span.set_data("page_filled", len(rows) >= limit)
+
                 # Re-run sized to what we actually consumed so its next cursor
                 # sits at our page boundary, not past unemitted groups
                 if last_consumed + 1 < len(groups):
-                    cursor_result, _ = search_issues(
-                        request,
-                        organization,
-                        projects,
-                        environments,
-                        {
-                            "count_hits": True,
-                            "date_to": end,
-                            "date_from": start,
-                            "limit": last_consumed + 1,
-                        },
-                    )
+                    with start_span(op="issues_with_supergroups.cursor_recompute"):
+                        cursor_result, _ = search_issues(
+                            request,
+                            organization,
+                            projects,
+                            environments,
+                            {
+                                "count_hits": True,
+                                "date_to": end,
+                                "date_from": start,
+                                "limit": last_consumed + 1,
+                            },
+                        )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
 
