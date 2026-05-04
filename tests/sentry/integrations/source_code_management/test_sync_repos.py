@@ -844,6 +844,57 @@ class SyncReposLockTestCase(IntegrationTestCase):
 
 
 @control_silo_test
+class BitbucketServerIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for the BitbucketServerIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_provider_integration(
+            provider="bitbucket_server",
+            name="Example Bitbucket",
+            metadata={"verify_ssl": False, "base_url": "https://bitbucket.example.com"},
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(
+                external_id="bitbucket.example.com:sentry-test", type="bitbucket_server"
+            ),
+            user=self.user,
+            external_id="bitbucket-server-123",
+            data={
+                "consumer_key": "sentry-test",
+                "private_key": "fake-key",
+                "access_token": "access-token",
+                "access_token_secret": "access-token-secret",
+            },
+        )
+        self.integration.add_organization(self.organization, self.user, identity.id)
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_api_error_403_returns_unauthorized(self) -> None:
+        exc = ApiError("forbidden", code=403)
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_api_error_404_returns_configuration_error(self) -> None:
+        exc = ApiError("not found", code=404)
+        assert self.installation.is_broken_integration_error(exc) == "configuration_error"
+
+    def test_api_error_500_not_terminal(self) -> None:
+        exc = ApiError("server error", code=500)
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_base_class_cases_still_work(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+        assert (
+            self.installation.is_broken_integration_error(IdentityNotValid())
+            == "identity_not_valid"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+
+@control_silo_test
 class IsBrokenIntegrationErrorTestCase(TestCase):
     """Tests for the RepositoryIntegration.is_broken_integration_error base implementation."""
 
