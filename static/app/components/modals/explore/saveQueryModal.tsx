@@ -93,6 +93,7 @@ function SaveQueryModal({
         <Wrapper>
           <SectionHeader>{t('Name')}</SectionHeader>
           <Input
+            autoFocus
             placeholder={
               defined(initialName)
                 ? t('Enter a name for your query')
