@@ -73,7 +73,8 @@ _FIELD_VALUE_TYPES: dict[str, str] = {
     "issue": "issue_short_id",
     "device.class": "device_class",
     "timesSeen": "integer",
-    "detector": "dynamic_id",
+    "detector": "dynamic_id",  # TODO - delete this once the UI has been updated
+    "monitor": "dynamic_id",
 }
 
 # Event context fields available for issue search (from frontend's ISSUE_EVENT_PROPERTY_FIELDS)
