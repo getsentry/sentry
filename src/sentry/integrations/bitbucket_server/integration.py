@@ -283,10 +283,11 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
         return data.get("error", {}).get("message", "unknown error")
 
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
-        if isinstance(exc, ApiError) and exc.code in (403, 404):
+        if isinstance(exc, ApiError):
+            if exc.code == 403:
+               return "unauthorized"
             if exc.code == 404:
                 return "configuration_error"
-            return "unauthorized"
         return super().is_broken_integration_error(exc)
 
     # RepositoryIntegration methods
