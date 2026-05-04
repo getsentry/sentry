@@ -79,8 +79,6 @@ def _parse_aggregate_field_entries(
         group_by, parsed_y_axes, parsed_chart_type = _parse_aggregate_field_json(field_json)
         if group_by:
             group_bys.append(group_by)
-        # yAxes and chartType are per-chart; only one chart is rendered per unfurl,
-        # so take them from the first entry that carries them.
         if not y_axes and parsed_y_axes:
             y_axes = parsed_y_axes
             if parsed_chart_type is not None:
@@ -171,7 +169,6 @@ def _parse_metrics_url(raw_query: QueryDict) -> tuple[QueryDict, int | None]:
             continue
         if agg_field.get("groupBy"):
             group_bys.append(agg_field["groupBy"])
-        # yAxes and chartType are per-chart; take them from the first entry only.
         if not y_axes and isinstance(agg_field.get("yAxes"), list):
             y_axes = list(agg_field["yAxes"])
             if isinstance(agg_field.get("chartType"), int):
