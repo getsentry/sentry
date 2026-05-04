@@ -56,6 +56,10 @@ function imageGroupKey(img: SnapshotImage): string {
   return img.group ?? img.image_file_name;
 }
 
+function imageGroupDisplayName(img: SnapshotImage): string {
+  return img.group ?? getImageName(img);
+}
+
 function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
   const groups = new Map<string, T[]>();
   for (const item of items) {
@@ -249,7 +253,7 @@ export default function SnapshotsPage() {
             type,
             key: `${type}:${groupKey}`,
             name: groupKey,
-            displayName: getImageName(groupedPairs[0]!.head_image),
+            displayName: imageGroupDisplayName(groupedPairs[0]!.head_image),
             pairs: groupedPairs,
           });
         }
@@ -264,7 +268,7 @@ export default function SnapshotsPage() {
             type,
             key: `${type}:${groupKey}`,
             name: groupKey,
-            displayName: getImageName(images[0]!),
+            displayName: imageGroupDisplayName(images[0]!),
             images,
           });
         }
@@ -289,7 +293,7 @@ export default function SnapshotsPage() {
         type: 'solo' as const,
         key: `solo:${groupKey}`,
         name: groupKey,
-        displayName: getImageName(images[0]!),
+        displayName: imageGroupDisplayName(images[0]!),
         images,
       }));
   }, [data, comparisonType]);
