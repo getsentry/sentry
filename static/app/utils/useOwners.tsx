@@ -1,7 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import {useMembers} from 'sentry/utils/members/useMembers';
+import {useMembersById} from 'sentry/utils/members/useMembersById';
 import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -26,7 +26,7 @@ export function useOwners({currentValue}: Options) {
         .map(user => user.replace(/^user:/, '')),
     [currentValue]
   );
-  const {members: ensuredMembers, isPending: isEnsuringMembers} = useMembers({
+  const {members: ensuredMembers, isPending: isEnsuringMembers} = useMembersById({
     ids: ensureUserIds ?? [],
   });
 

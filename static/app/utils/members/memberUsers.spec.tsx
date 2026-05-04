@@ -9,17 +9,17 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useMembers} from 'sentry/utils/members/useMembers';
+import {useMembersById} from 'sentry/utils/members/useMembersById';
 import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
 import {useOrganizationMemberUsers} from 'sentry/utils/members/useOrganizationMemberUsers';
 
-describe('useMembers', () => {
+describe('members hooks', () => {
   const org = OrganizationFixture();
 
   const mockUsers = [UserFixture()];
 
-  const renderUseMembers = (props: Parameters<typeof useMembers>[0]) =>
-    renderHookWithProviders(useMembers, {initialProps: props, organization: org});
+  const renderUseMembersById = (props: Parameters<typeof useMembersById>[0]) =>
+    renderHookWithProviders(useMembersById, {initialProps: props, organization: org});
 
   function MultipleOrganizationMemberUsers() {
     const first = useOrganizationMemberUsers();
@@ -117,31 +117,12 @@ describe('useMembers', () => {
       body: mockUsers.map(user => ({user})),
     });
 
-    const {result} = renderUseMembers({ids: []});
+    const {result} = renderUseMembersById({ids: []});
 
     expect(result.current.isFetched).toBe(true);
     expect(result.current.isPending).toBe(false);
     expect(result.current.members).toEqual([]);
     expect(mockRequest).not.toHaveBeenCalled();
-  });
-
-  it('provides only the specified emails', async () => {
-    const userFoo = UserFixture({email: 'foo@test.com'});
-    const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
-      method: 'GET',
-      body: [{user: userFoo}],
-    });
-
-    const {result} = renderUseMembers({emails: ['foo@test.com']});
-
-    expect(result.current.isFetched).toBe(false);
-
-    await waitFor(() => expect(result.current.members).toHaveLength(1));
-
-    expect(mockRequest).toHaveBeenCalled();
-    const {members} = result.current;
-    expect(members).toEqual(expect.arrayContaining([userFoo]));
   });
 
   it('provides only the specified ids', async () => {
@@ -152,7 +133,7 @@ describe('useMembers', () => {
       body: [{user: userFoo}],
     });
 
-    const {result} = renderUseMembers({ids: ['10']});
+    const {result} = renderUseMembersById({ids: ['10']});
 
     expect(result.current.isFetched).toBe(false);
 
@@ -161,24 +142,5 @@ describe('useMembers', () => {
     expect(mockRequest).toHaveBeenCalled();
     const {members} = result.current;
     expect(members).toEqual(expect.arrayContaining([userFoo]));
-  });
-
-  it('only provides emails that were requested', async () => {
-    const requestedUser = UserFixture({email: mockUsers[0]!.email});
-    const otherUser = UserFixture({email: 'other@test.com'});
-    const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
-      method: 'GET',
-      body: [{user: requestedUser}, {user: otherUser}],
-    });
-
-    const {result} = renderUseMembers({emails: [mockUsers[0]!.email]});
-
-    await waitFor(() => expect(result.current.isFetched).toBe(true));
-
-    const {members, isFetched} = result.current;
-    expect(mockRequest).toHaveBeenCalled();
-    expect(isFetched).toBe(true);
-    expect(members).toEqual([requestedUser]);
   });
 });

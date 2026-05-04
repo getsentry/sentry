@@ -24,7 +24,6 @@ export interface MemberResult {
 }
 
 interface FetchMemberOptions {
-  emails?: string[];
   ids?: string[];
   limit?: number;
   search?: null | string;
@@ -38,16 +37,13 @@ export function normalizeMemberValues(values: string[] | undefined) {
   return values ? Array.from(new Set(values)).sort() : [];
 }
 
-function getMembersQuery({emails, ids, search, limit}: FetchMemberOptions = {}) {
+function getMembersQuery({ids, search, limit}: FetchMemberOptions = {}) {
   const query: {
     per_page?: number;
     query?: string;
   } = {};
 
-  const queryTerms = [
-    ...normalizeMemberValues(ids).map(id => `user.id:${id}`),
-    ...normalizeMemberValues(emails).map(email => `email:${email}`),
-  ];
+  const queryTerms = [...normalizeMemberValues(ids).map(id => `user.id:${id}`)];
 
   if (search) {
     queryTerms.push(search);
@@ -73,7 +69,7 @@ export function memberUsersQueryOptions(options: MembersQueryOptions) {
     ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
       path: {organizationIdOrSlug: options.orgSlug},
       query: getMembersQuery(options),
-      staleTime: 30_000,
+      staleTime: Infinity,
     }),
     select: selectUsersFromResponse,
   };
