@@ -112,7 +112,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             'privacy',
             'pii',
             'attachments',
-            'advanced',
             'advanced data scrubbing',
           ],
           description: t(
@@ -209,12 +208,9 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           keywords: [
             'slack',
             'github',
-            'github enterprise',
             'gitlab',
             'bitbucket',
-            'bitbucket server',
             'jira',
-            'jira server',
             'azure devops',
             'vercel',
             'pagerduty',
@@ -231,7 +227,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             'twilio',
             'victorops',
             'segment',
-            'code mapping',
             'code mappings',
           ],
           description: t(
@@ -252,7 +247,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Custom Integrations'),
           keywords: [
             'integration',
-            'developer',
             'vercel',
             'internal integration',
             'developer settings',

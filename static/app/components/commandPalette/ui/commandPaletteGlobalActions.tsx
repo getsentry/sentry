@@ -407,7 +407,7 @@ export function GlobalCommandPaletteActions() {
           )}
           <CMDKAction
             display={{label: t('Starred Dashboards'), icon: <IconStar />}}
-            keywords={[t('bookmark'), t('bookmarked'), t('favorites')]}
+            keywords={[t('bookmarked'), t('favorites')]}
           >
             {starredDashboards.map(dashboard => (
               <CMDKAction
@@ -466,7 +466,7 @@ export function GlobalCommandPaletteActions() {
               {!hasWorkflowEngineUI && (
                 <CMDKAction
                   display={{label: t('Crons')}}
-                  keywords={[t('jobs'), t('job'), t('cron jobs')]}
+                  keywords={[t('jobs'), t('cron jobs')]}
                   to={`${prefix}/insights/crons/`}
                 />
               )}
@@ -503,7 +503,7 @@ export function GlobalCommandPaletteActions() {
             />
             <CMDKAction
               display={{label: t('Crons')}}
-              keywords={[t('jobs'), t('job'), t('cron jobs')]}
+              keywords={[t('jobs'), t('cron jobs')]}
               to={`${prefix}/monitors/crons/`}
             />
             {organization.features.includes('uptime') && (
