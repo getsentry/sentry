@@ -265,7 +265,7 @@ def fire_actions(
     deduped_actions = get_unique_active_actions(actions, event_data.group)
 
     for action in deduped_actions:
-        workflow_id = action_to_workflow_id.get(action.id)
+        workflow_id = action_to_workflow_id[action.id]
         task_params = build_trigger_action_task_params(
             action, event_data, workflow_uuid_map, workflow_id=workflow_id
         )

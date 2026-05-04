@@ -69,20 +69,3 @@ class TestBuildTriggerActionTaskParams(TestCase):
         assert params["action_id"] == 1
         assert params["workflow_id"] == 42
         assert "notification_uuid" not in params
-
-    def test_build_trigger_action_task_params_no_workflow_id(self) -> None:
-        mock_group_event = Mock(spec=GroupEvent)
-        mock_group_event.event_id = "event-123"
-        mock_group_event.occurrence_id = "occurrence-456"
-        mock_group_event.group_id = self.group.id
-
-        event_data = WorkflowEventData(event=mock_group_event, group=self.group)
-        action = Action(id=1, type=Action.Type.SLACK)
-
-        workflow_uuid_map = {42: str(uuid.uuid4())}
-
-        params = build_trigger_action_task_params(action, event_data, workflow_uuid_map)
-
-        assert params["action_id"] == 1
-        assert params["workflow_id"] is None
-        assert "notification_uuid" not in params

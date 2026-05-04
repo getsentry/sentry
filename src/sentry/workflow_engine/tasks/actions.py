@@ -31,7 +31,7 @@ def build_trigger_action_task_params(
     event_data: WorkflowEventData,
     workflow_uuid_map: dict[WorkflowId, str],
     *,
-    workflow_id: WorkflowId | None = None,
+    workflow_id: WorkflowId,
 ) -> dict[str, object]:
     """
     Build parameters for trigger_action task invocation.
@@ -64,8 +64,7 @@ def build_trigger_action_task_params(
         "has_escalated": event_data.has_escalated,
     }
 
-    # Add notification_uuid if available from workflow_uuid_map
-    if workflow_id is not None and workflow_id in workflow_uuid_map:
+    if workflow_id in workflow_uuid_map:
         task_params["notification_uuid"] = workflow_uuid_map[workflow_id]
 
     return task_params
