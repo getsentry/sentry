@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponseForbidden, JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
@@ -12,18 +13,6 @@ SUSPENDED_EXEMPT_PATHS = (
     "/auth/login/",
     "/auth/logout/",
     "/api/0/auth/login/",
-)
-
-# Paths serving static/cacheable content where evaluating request.user
-# would pollute the Vary header with "Cookie" and break caching.
-SUSPENDED_SKIP_PATHS = (
-    "/_static/",
-    "/_media/",
-    "/avatar/",
-    "/organization-avatar/",
-    "/team-avatar/",
-    "/sentry-app-avatar/",
-    "/doc-integration-avatar/",
 )
 
 
@@ -37,7 +26,7 @@ class SuspendedUserMiddleware(MiddlewareMixin):
     """
 
     def process_request(self, request: HttpRequest) -> HttpResponseForbidden | JsonResponse | None:
-        if any(request.path.startswith(p) for p in SUSPENDED_SKIP_PATHS):
+        if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
             return None
 
         user = getattr(request, "user", None)
