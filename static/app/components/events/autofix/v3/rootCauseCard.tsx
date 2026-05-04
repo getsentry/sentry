@@ -26,10 +26,11 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface RootCauseCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
+  groupId: string;
   section: AutofixSection;
 }
 
-export function RootCauseCard({autofix, section}: RootCauseCardProps) {
+export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
@@ -114,6 +115,8 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
                   <AutofixEvidence
                     key={e.toolCall.id}
                     evidenceButtonProps={e.evidenceButtonProps}
+                    groupId={groupId}
+                    toolCall={e.toolCall}
                   />
                 ))}
               </Flex>
