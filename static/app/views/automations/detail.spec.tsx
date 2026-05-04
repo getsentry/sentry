@@ -244,7 +244,7 @@ describe('AutomationDetail', () => {
 
     expect(
       screen.getByText(
-        'Warning, the alert is not connected to a project or monitor. Alert will not trigger.'
+        'This alert is not connected to a project or monitor. Alert will not trigger.'
       )
     ).toBeInTheDocument();
   });
@@ -262,7 +262,7 @@ describe('AutomationDetail', () => {
 
     expect(
       screen.queryByText(
-        'Warning, the alert is not connected to a project or monitor. Alert will not trigger.'
+        'This alert is not connected to a project or monitor. Alert will not trigger.'
       )
     ).not.toBeInTheDocument();
   });
