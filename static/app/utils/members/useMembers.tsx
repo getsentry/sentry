@@ -4,30 +4,27 @@ import {useQuery} from '@tanstack/react-query';
 import type {User} from 'sentry/types/user';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {
-  getRequestError,
-  membersQueryOptions,
-  type MemberResult,
-  selectMemberUsersFromResponse,
-} from './shared';
+import {getRequestError, memberUsersQueryOptions, type MemberResult} from './shared';
 
-type UseMembersOptions =
-  | {
-      /**
-       * Fetches specified members by id if necessary and only provides those
-       * members.
-       */
-      ids: string[];
-      emails?: never;
-    }
-  | {
-      /**
-       * When provided, fetches specified members by email if necessary and only
-       * provides those members.
-       */
-      emails: string[];
-      ids?: never;
-    };
+interface UseMembersByEmailOptions {
+  /**
+   * When provided, fetches specified members by email if necessary and only
+   * provides those members.
+   */
+  emails: string[];
+  ids?: never;
+}
+
+interface UseMembersByIdOptions {
+  /**
+   * Fetches specified members by id if necessary and only provides those
+   * members.
+   */
+  ids: string[];
+  emails?: never;
+}
+
+type UseMembersOptions = UseMembersByEmailOptions | UseMembersByIdOptions;
 
 function normalizeMemberValues(values: string[] | undefined) {
   return values ? Array.from(new Set(values)).sort() : [];
@@ -57,13 +54,12 @@ export function useMembers({ids, emails}: UseMembersOptions): MemberResult {
   const normalizedEmails = useMemo(() => normalizeMemberValues(emails), [emails]);
   const hasFilters = normalizedIds.length > 0 || normalizedEmails.length > 0;
   const query = useQuery({
-    ...membersQueryOptions({
+    ...memberUsersQueryOptions({
       orgSlug: organization.slug,
       ids: normalizedIds,
       emails: normalizedEmails,
     }),
     enabled: hasFilters,
-    select: selectMemberUsersFromResponse,
   });
 
   const members = useMemo(

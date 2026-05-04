@@ -2,22 +2,21 @@ import {useQuery} from '@tanstack/react-query';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {membersQueryOptions, selectMemberUsersFromResponse} from './shared';
+import {memberUsersQueryOptions} from './shared';
 
-type UseOrganizationMemberUsersOptions = {
+interface UseOrganizationMemberUsersOptions {
   limit?: number;
-};
+}
 
 export function useOrganizationMemberUsers({
   limit,
 }: UseOrganizationMemberUsersOptions = {}) {
   const organization = useOrganization();
 
-  return useQuery({
-    ...membersQueryOptions({
+  return useQuery(
+    memberUsersQueryOptions({
       orgSlug: organization.slug,
       limit,
-    }),
-    select: selectMemberUsersFromResponse,
-  });
+    })
+  );
 }

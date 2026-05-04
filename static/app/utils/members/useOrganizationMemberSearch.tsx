@@ -1,28 +1,34 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import uniqBy from 'lodash/uniqBy';
 
+import type {User} from 'sentry/types/user';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {
-  getRequestError,
-  membersQueryOptions,
-  type MemberSearchResult,
-  selectMemberUsersFromResponse,
-  uniqueMembers,
-} from './shared';
+import {getRequestError, memberUsersQueryOptions, type MemberResult} from './shared';
 import {useOrganizationMemberUsers} from './useOrganizationMemberUsers';
+
+interface MemberSearchResult extends MemberResult {
+  /**
+   * Updates the current member search query.
+   */
+  onSearch: (searchTerm: string) => Promise<void>;
+}
+
+function uniqueMembers(...memberLists: User[][]) {
+  return uniqBy(memberLists.flat(), ({id}) => id);
+}
 
 export function useOrganizationMemberSearch(): MemberSearchResult {
   const organization = useOrganization();
   const [search, setSearch] = useState('');
   const defaultMembersQuery = useOrganizationMemberUsers();
   const searchMembersQuery = useQuery({
-    ...membersQueryOptions({
+    ...memberUsersQueryOptions({
       orgSlug: organization.slug,
       search,
     }),
     enabled: search !== '',
-    select: selectMemberUsersFromResponse,
   });
 
   const members = useMemo(

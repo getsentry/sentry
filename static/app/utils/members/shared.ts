@@ -1,12 +1,10 @@
-import uniqBy from 'lodash/uniqBy';
-
 import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-export type MemberResult = {
+export interface MemberResult {
   /**
    * The query error, if fetching failed.
    */
@@ -23,25 +21,18 @@ export type MemberResult = {
    * The loaded organization member users.
    */
   members: User[];
-};
+}
 
-export type MemberSearchResult = MemberResult & {
-  /**
-   * Updates the current member search query.
-   */
-  onSearch: (searchTerm: string) => Promise<void>;
-};
-
-export type FetchMemberOptions = {
+export interface FetchMemberOptions {
   emails?: string[];
   ids?: string[];
   limit?: number;
   search?: null | string;
-};
+}
 
-export type MembersQueryOptions = FetchMemberOptions & {
+export interface MembersQueryOptions extends FetchMemberOptions {
   orgSlug: string;
-};
+}
 
 function normalizeMemberValues(values: string[] | undefined) {
   return values ? Array.from(new Set(values)).sort() : [];
@@ -74,28 +65,24 @@ function getMembersQuery({emails, ids, search, limit}: FetchMemberOptions = {}) 
 }
 
 export function membersQueryOptions({orgSlug, ...options}: MembersQueryOptions) {
-  return {
-    ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
-      path: {organizationIdOrSlug: orgSlug},
-      query: getMembersQuery(options),
-      staleTime: 30_000,
-    }),
-    select: selectJsonWithHeaders,
-  };
+  return apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query: getMembersQuery(options),
+    staleTime: 30_000,
+  });
 }
 
-function getMemberUsers(members: Member[]) {
+function selectUsersFromMembers(members: Member[]) {
   return members.map(m => m.user).filter((user): user is User => user !== null);
 }
 
-export function uniqueMembers(...memberLists: User[][]) {
-  return uniqBy<User>(memberLists.flat(), ({id}) => id);
+export function memberUsersQueryOptions(options: MembersQueryOptions) {
+  return {
+    ...membersQueryOptions(options),
+    select: ({json}: ApiResponse<Member[]>) => selectUsersFromMembers(json),
+  };
 }
 
 export function getRequestError(error: Error | null): RequestError | null {
   return error instanceof RequestError ? error : null;
-}
-
-export function selectMemberUsersFromResponse(response: ApiResponse<Member[]>): User[] {
-  return getMemberUsers(response.json);
 }
