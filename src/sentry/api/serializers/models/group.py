@@ -911,7 +911,6 @@ SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
         "substatus",
-        "detector",  # TODO - delete this once the UI has been updated
         "monitor",
         "bookmarked_by",
         "assigned_to",
