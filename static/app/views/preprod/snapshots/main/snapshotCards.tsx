@@ -320,11 +320,8 @@ const StatusBadge = memo(function StatusBadge({
     case DiffStatus.CHANGED:
       label =
         diffPercent === null || diffPercent === undefined
-          ? t('Modified')
-          : t(
-              'Modified - %s',
-              formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 4)
-            );
+          ? t('Changed')
+          : t('Changed - %s', formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 4));
       break;
     case DiffStatus.ADDED:
       label = t('Added');

@@ -10,7 +10,7 @@ from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_pr
 _HEADER = "## Sentry Snapshot Testing"
 PROCESSING_STATUS = "⏳ Processing"
 COMPARISON_TABLE_HEADER = (
-    "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+    "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
     "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
 )
 
