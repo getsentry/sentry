@@ -172,7 +172,7 @@ function collectRawMessages(items: unknown[], defaultRole: string): RawMessage[]
  */
 function unwrapMessagesField(value: UnknownRecord, defaultRole: string): RawMessage[] {
   const result: RawMessage[] = [];
-  const system = getStringField(value, 'system');
+  const system = value.system;
   if (system) {
     result.push({role: 'system', roleExplicit: true, content: system});
   }
@@ -200,7 +200,7 @@ function unwrapMessagesField(value: UnknownRecord, defaultRole: string): RawMess
  */
 function unwrapSystemPrompt(value: UnknownRecord): RawMessage[] {
   const result: RawMessage[] = [];
-  const system = getStringField(value, 'system');
+  const system = value.system;
   if (system) {
     result.push({role: 'system', roleExplicit: true, content: system});
   }
