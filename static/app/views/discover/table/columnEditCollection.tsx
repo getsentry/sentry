@@ -456,7 +456,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
     let placeholder: React.ReactNode = null;
     // Add a placeholder above the target row.
-    if (isDragging && isGhost === false && draggingTargetIndex === i) {
+    if (isDragging && !isGhost && draggingTargetIndex === i) {
       placeholder = (
         <DragPlaceholder
           key={`placeholder:${this.keyForColumn(col, isGhost)}`}
@@ -467,7 +467,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
     // If the current row is the row in the drag ghost return the placeholder
     // or a hole if the placeholder is elsewhere.
-    if (isDragging && isGhost === false && draggingIndex === i) {
+    if (isDragging && !isGhost && draggingIndex === i) {
       return placeholder;
     }
 

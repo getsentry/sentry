@@ -361,7 +361,7 @@ export class Results extends Component<Props, State> {
     const {api, organization, location} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
-    if (confirmedQuery === false || !eventView.isValid()) {
+    if (!confirmedQuery || !eventView.isValid()) {
       return;
     }
 

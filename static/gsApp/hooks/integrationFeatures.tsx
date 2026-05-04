@@ -100,7 +100,7 @@ function mapFeatureGroups({
       hasFeatures:
         groupedPlanFeatures[plan.id]!.map(f => f.featureGate)
           .map(f => organization.features.includes(f))
-          .filter(v => v !== true).length === 0,
+          .filter(v => !v).length === 0,
     }));
 
   // Are any features available for the current users plan?

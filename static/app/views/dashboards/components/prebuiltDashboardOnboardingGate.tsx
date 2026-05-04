@@ -72,7 +72,7 @@ export function PrebuiltDashboardOnboardingGate({
   );
 
   const hasData = onboarding.requiredProjectFlags.some(flag =>
-    selectedProjects.some(p => p[flag] === true)
+    selectedProjects.some(p => p[flag])
   );
 
   if (hasData) {
