@@ -163,7 +163,10 @@ def process_mention_for_slack(
             )
             thread_context = build_thread_context(messages) or None
 
-        on_page_context = _join_context(linked_result.block, thread_context)
+        parts = [p for p in (linked_result.block, thread_context) if p]
+        if not parts:
+            return None
+        on_page_context = "\n\n".join(parts)
 
         if linked_result.unresolved_channel_ids or linked_result.private_channel_ids:
             _send_inaccessible_links_prompt(
@@ -424,14 +427,6 @@ def _resolve_linked_messages(
         unresolved_channel_ids=list(unresolved),
         private_channel_ids=list(private_channels),
     )
-
-
-def _join_context(linked_block: str, thread_context: str | None) -> str | None:
-    """Join the linked-message block and the in-thread context with blank-line separators."""
-    parts = [p for p in (linked_block, thread_context) if p]
-    if not parts:
-        return None
-    return "\n\n".join(parts)
 
 
 def _send_inaccessible_links_prompt(
