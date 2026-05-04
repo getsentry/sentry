@@ -253,20 +253,14 @@ function MessagesArrayRenderer({
       <TraceDrawerComponents.MultilineJSON value={message.content} maxDefaultDepth={2} />
     );
 
-  const renderSystemMessageContent = (message: AIMessage) =>
-    typeof message.content === 'string' ? (
-      <AIContentRenderer text={message.content} />
-    ) : (
-      <SystemMessageClippedBox
-        clipHeight={150}
-        buttonProps={{priority: 'default', size: 'xs'}}
-      >
-        <TraceDrawerComponents.MultilineJSON
-          value={message.content}
-          maxDefaultDepth={2}
-        />
-      </SystemMessageClippedBox>
-    );
+  const renderSystemMessageContent = (message: AIMessage) => (
+    <SystemMessageClippedBox
+      clipHeight={150}
+      buttonProps={{priority: 'default', size: 'xs'}}
+    >
+      {renderMessageContent(message)}
+    </SystemMessageClippedBox>
+  );
 
   const renderMessage = (message: AIMessage, index: number) => {
     if (message.role === 'system') {

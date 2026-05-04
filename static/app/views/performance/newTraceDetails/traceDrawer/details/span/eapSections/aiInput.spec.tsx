@@ -9,11 +9,19 @@ const originalResizeObserver = window.ResizeObserver;
 function makeAiNode(
   messages: Array<{content: unknown; role: string}> | Record<string, unknown>
 ): ComponentProps<typeof AIInputSection>['node'] {
+  return makeAiNodeWithAttributes({
+    'gen_ai.input.messages': JSON.stringify(messages),
+  });
+}
+
+function makeAiNodeWithAttributes(
+  attributes: Record<string, unknown>
+): ComponentProps<typeof AIInputSection>['node'] {
   return {
     id: 'span-id',
     attributes: {
       'gen_ai.operation.type': 'chat',
-      'gen_ai.input.messages': JSON.stringify(messages),
+      ...attributes,
     },
     value: {},
   } as unknown as ComponentProps<typeof AIInputSection>['node'];
@@ -78,6 +86,24 @@ describe('AIInputSection', () => {
     );
 
     expect(screen.getByText('instructions')).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'System'})).not.toBeInTheDocument();
+  });
+
+  it('clips JSON system instructions with show more', () => {
+    window.ResizeObserver = MockResizeObserver;
+
+    render(
+      <AIInputSection
+        node={makeAiNodeWithAttributes({
+          'gen_ai.system_instructions': JSON.stringify([
+            {content: 'You are Seer, a powerful AI assistant built by Sentry.'},
+          ]),
+        })}
+      />
+    );
+
+    expect(screen.getByText('content')).toBeVisible();
     expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'System'})).not.toBeInTheDocument();
   });
