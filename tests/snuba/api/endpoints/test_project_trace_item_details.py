@@ -362,7 +362,7 @@ class ProjectTraceItemDetailsEndpointTest(
                 "value": span_1["event_id"],
             },
             {
-                "name": "transaction.span_id",
+                "name": "sentry.segment.id",
                 "type": "str",
                 "value": span_1["segment_id"],
             },
