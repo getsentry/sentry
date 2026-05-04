@@ -374,8 +374,7 @@ ignore_missing_imports = true
 
 # python3 -m tools.mypy_helpers.make_module_ignores
 # begin: sentry modules with typing issues
-# - DO NOT add new modules here! Move them to the weaklist below instead.
-# - To improve: remove the module from this list and fix the type errors.
+# - remove the module from the list and fix the issues!
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
