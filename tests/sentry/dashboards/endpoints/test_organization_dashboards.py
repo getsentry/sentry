@@ -13,7 +13,6 @@ from sentry.dashboards.endpoints.organization_dashboards import (
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardLastVisited,
 )
 from sentry.models.dashboard_widget import (
     DashboardWidget,
