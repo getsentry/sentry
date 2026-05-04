@@ -1098,6 +1098,10 @@ class GHEIsBrokenIntegrationErrorTestCase(TestCase):
         exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
         assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
 
+    def test_rate_limited_forbidden_returns_rate_limited(self) -> None:
+        exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
+        assert self.installation.is_broken_integration_error(exc) == "rate_limited"
+
     def test_base_class_cases_still_work(self) -> None:
         assert (
             self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
