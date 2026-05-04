@@ -88,7 +88,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           },
         }}
         aria-label={t('Start trial')}
-        priority="primary"
+        variant="primary"
         handleClick={() => setIsStartingTrial(true)}
         onTrialStarted={() => setIsStartingTrial(true)}
         onTrialFailed={() => setIsStartingTrial(false)}

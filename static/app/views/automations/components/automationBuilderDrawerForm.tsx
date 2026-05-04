@@ -88,7 +88,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           </Button>
           <Observer>
             {() => (
-              <Button priority="primary" type="submit" busy={model.isSaving}>
+              <Button variant="primary" type="submit" busy={model.isSaving}>
                 {t('Create Alert')}
               </Button>
             )}

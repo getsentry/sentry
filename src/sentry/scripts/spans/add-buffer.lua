@@ -29,7 +29,7 @@ ARGS:
 - byte_count -- int -- The total number of bytes in the subsegment.
 - max_segment_bytes -- int -- Maximum allowed ingested bytes for a segment. 0 means no limit.
 - salt -- str -- Unique identifier for this subsegment. When the segment exceeds max_segment_bytes, this subsegment
-                 is detached into its own segment keyed by salt. Empty string disables this behavior.
+                 is detached into its own segment keyed by salt.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:
@@ -127,149 +127,62 @@ redis.call("expire", main_redirect_key, set_timeout)
 local redirect_end_time_ms = get_time_ms()
 table.insert(latency_table, {"redirect_step_latency_ms", redirect_end_time_ms - start_time_ms})
 
-if salt ~= "" then
-    local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
-    local ingested_byte_count = tonumber(redis.call("get", ingested_byte_count_key) or 0)
+local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
+local ingested_byte_count = tonumber(redis.call("get", ingested_byte_count_key) or 0)
 
-    for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
-        local span_id = ARGV[i]
-        if span_id ~= parent_span_id then
-            local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
-            local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
-            local child_ibc = tonumber(redis.call("get", child_ibc_key) or 0)
-            byte_count = byte_count + child_ibc
-        end
-    end
-
-    -- If the segment is already too big, make this subsegment its own segment
-    -- with salt as the identifier.
-    if max_segment_bytes > 0 and tonumber(ingested_byte_count) + byte_count > max_segment_bytes then
-        set_span_id = salt
-        set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, salt)
-        ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
-    end
-
-    local ingested_count_key = string.format("span-buf:ic:%s", set_key)
-    local members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)
-
-    for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
-        local span_id = ARGV[i]
-        if span_id ~= parent_span_id then
-            local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
-
-            local child_ic_key = string.format("span-buf:ic:%s", child_set_key)
-            local child_ic = redis.call("get", child_ic_key)
-            if child_ic then
-                redis.call("incrby", ingested_count_key, child_ic)
-                redis.call("del", child_ic_key)
-            end
-
-            local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
-            local child_ibc = redis.call("get", child_ibc_key)
-            if child_ibc then
-                -- byte_count already holds the child's byte count, so we don't need to add again
-                redis.call("del", child_ibc_key)
-            end
-
-            local child_members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
-            if redis.call("exists", child_members_key) == 1 then
-                merge_set(child_members_key, members_key)
-                redis.call("del", child_members_key)
-            end
-        end
-    end
-
-    local merge_payload_keys_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"merge_payload_keys_step_latency_ms", merge_payload_keys_end_time_ms - redirect_end_time_ms})
-
-    redis.call("sadd", members_key, salt)
-    redis.call("expire", members_key, set_timeout)
-
-    -- Track total number of spans ingested for this segment
-    redis.call("incrby", ingested_count_key, num_spans)
-    redis.call("incrby", ingested_byte_count_key, byte_count)
-    redis.call("expire", ingested_count_key, set_timeout)
-    redis.call("expire", ingested_byte_count_key, set_timeout)
-
-    local counter_merge_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"counter_merge_step_latency_ms", counter_merge_end_time_ms - merge_payload_keys_end_time_ms})
-
-    -- Capture end time and calculate latency in milliseconds
-    local end_time_ms = get_time_ms()
-    local latency_ms = end_time_ms - start_time_ms
-    table.insert(latency_table, {"total_step_latency_ms", latency_ms})
-
-    return {set_key, has_root_span, latency_ms, latency_table, metrics_table}
-end
-
--- Maintain member-keys (span-buf:mk) tracking sets so the flusher
--- knows which payload keys to fetch.
-local member_keys_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)
-redis.call("sadd", member_keys_key, parent_span_id)
-
--- Merge child tracking sets from span_ids that were previously segment roots.
 for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     if span_id ~= parent_span_id then
-        local child_mk_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
-        if redis.call("exists", child_mk_key) == 1 then
-            merge_set(child_mk_key, member_keys_key)
-            redis.call("del", child_mk_key)
+        local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
+        local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
+        local child_ibc = tonumber(redis.call("get", child_ibc_key) or 0)
+        byte_count = byte_count + child_ibc
+    end
+end
+
+-- If the segment is already too big, make this subsegment its own segment
+-- with salt as the identifier.
+if max_segment_bytes > 0 and tonumber(ingested_byte_count) + byte_count > max_segment_bytes then
+    set_span_id = salt
+    set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, salt)
+    ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
+end
+
+local ingested_count_key = string.format("span-buf:ic:%s", set_key)
+local members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)
+
+for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
+    local span_id = ARGV[i]
+    if span_id ~= parent_span_id then
+        local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
+
+        local child_ic_key = string.format("span-buf:ic:%s", child_set_key)
+        local child_ic = redis.call("get", child_ic_key)
+        if child_ic then
+            redis.call("incrby", ingested_count_key, child_ic)
+            redis.call("del", child_ic_key)
+        end
+
+        local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
+        local child_ibc = redis.call("get", child_ibc_key)
+        if child_ibc then
+            -- byte_count already holds the child's byte count, so we don't need to add again
+            redis.call("del", child_ibc_key)
+        end
+
+        local child_members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
+        if redis.call("exists", child_members_key) == 1 then
+            merge_set(child_members_key, members_key)
+            redis.call("del", child_members_key)
         end
     end
 end
 
--- Merge parent's tracking set if parent_span_id redirected to a different root.
-if set_span_id ~= parent_span_id then
-    local parent_mk_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, parent_span_id)
-    if redis.call("exists", parent_mk_key) == 1 then
-        merge_set(parent_mk_key, member_keys_key)
-        redis.call("del", parent_mk_key)
-    end
-end
-
-redis.call("expire", member_keys_key, set_timeout)
 local merge_payload_keys_end_time_ms = get_time_ms()
 table.insert(latency_table, {"merge_payload_keys_step_latency_ms", merge_payload_keys_end_time_ms - redirect_end_time_ms})
 
--- Merge ic/ibc counters from child keys into the segment root.
-local ingested_count_key = string.format("span-buf:ic:%s", set_key)
-local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
-for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
-    local span_id = ARGV[i]
-    if span_id ~= parent_span_id then
-        local child_merged = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
-        local child_ic_key = string.format("span-buf:ic:%s", child_merged)
-        local child_ibc_key = string.format("span-buf:ibc:%s", child_merged)
-        local child_count = redis.call("get", child_ic_key)
-        local child_byte_count = redis.call("get", child_ibc_key)
-        if child_count then
-            redis.call("incrby", ingested_count_key, child_count)
-            redis.call("del", child_ic_key)
-        end
-        if child_byte_count then
-            redis.call("incrby", ingested_byte_count_key, child_byte_count)
-            redis.call("del", child_ibc_key)
-        end
-    end
-end
-if set_span_id ~= parent_span_id then
-    local parent_merged = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
-    local parent_ic_key = string.format("span-buf:ic:%s", parent_merged)
-    local parent_ibc_key = string.format("span-buf:ibc:%s", parent_merged)
-    local parent_count = redis.call("get", parent_ic_key)
-    local parent_byte_count = redis.call("get", parent_ibc_key)
-    if parent_count then
-        redis.call("incrby", ingested_count_key, parent_count)
-        redis.call("del", parent_ic_key)
-    end
-    if parent_byte_count then
-        redis.call("incrby", ingested_byte_count_key, parent_byte_count)
-        redis.call("del", parent_ibc_key)
-    end
-end
-local counter_merge_end_time_ms = get_time_ms()
-table.insert(latency_table, {"counter_merge_step_latency_ms", counter_merge_end_time_ms - merge_payload_keys_end_time_ms})
+redis.call("sadd", members_key, salt)
+redis.call("expire", members_key, set_timeout)
 
 -- Track total number of spans ingested for this segment
 redis.call("incrby", ingested_count_key, num_spans)
@@ -277,9 +190,8 @@ redis.call("incrby", ingested_byte_count_key, byte_count)
 redis.call("expire", ingested_count_key, set_timeout)
 redis.call("expire", ingested_byte_count_key, set_timeout)
 
-local ingested_count_end_time_ms = get_time_ms()
-local ingested_count_step_latency_ms = ingested_count_end_time_ms - counter_merge_end_time_ms
-table.insert(latency_table, {"ingested_count_step_latency_ms", ingested_count_step_latency_ms})
+local counter_merge_end_time_ms = get_time_ms()
+table.insert(latency_table, {"counter_merge_step_latency_ms", counter_merge_end_time_ms - merge_payload_keys_end_time_ms})
 
 -- Capture end time and calculate latency in milliseconds
 local end_time_ms = get_time_ms()

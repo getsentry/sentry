@@ -33,14 +33,9 @@ Segments are flushed out to `buffered-spans` topic under two conditions:
 Now how does that look like in Redis? For each incoming span, we:
 
 1. Store the span payload in a payload key. Each subsegment gets its own key,
-   distributed across Redis cluster nodes.
-   a. When segment size enforcement is disabled, the key uses the parent_span_id to
-   determine where to write span payloads to.
-   Key: `span-buf:s:{project_id:trace_id:parent_span_id}:parent_span_id`
-   b. When segment size enforcement is enabled, the key uses a unique salt per
-   subsegment. This allows us to skip merging the subsegment into the parent segment
-   and not lose any data, since the subsegment will become its own separate segment
-   and be flushed out independently.
+   distributed across Redis cluster nodes. The key uses a unique salt per subsegment
+   so that, if the parent segment is over the byte limit, the subsegment can be
+   detached into its own segment without merging or copying any data.
    Key: `span-buf:s:{project_id:trace_id:salt}:salt`
 2. The Lua script (add-buffer.lua) receives the span IDs and:
    a. Follows redirects from parent_span_id (hashmap at
@@ -49,9 +44,8 @@ Now how does that look like in Redis? For each incoming span, we:
    c. Merges member-keys indexes and counters (ingested count, byte count)
       from span IDs that were previously separate segment roots into the
       current segment root.
-   d. If segment size enforcement is enabled and the segment exceeds
-      max_segment_bytes, detaches the subsegment into its own segment
-      keyed by the salt.
+   d. If the segment exceeds max_segment_bytes, detaches the subsegment
+      into its own segment keyed by the salt.
 3. To a "global queue", we write the segment key, sorted by timeout.
 
 Eventually, flushing cronjob looks at that global queue, and removes all timed
@@ -72,8 +66,7 @@ Segment size enforcement:
 
 Segments can grow unboundedly as spans arrive. To prevent oversized segments from
 consuming excessive memory during flush, the buffer enforces a maximum byte limit
-per segment (controlled by `spans.buffer.max-segment-bytes` and gated behind
-`spans.buffer.enforce-segment-size`).
+per segment (controlled by `spans.buffer.max-segment-bytes`).
 
 Each subsegment is assigned a unique salt (UUID). The Lua script tracks cumulative
 ingested bytes per segment via `span-buf:ibc` keys. If adding a subsegment would
@@ -307,7 +300,6 @@ class SpansBuffer:
         root_timeout = options.get("spans.buffer.root-timeout")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
-        enforce_segment_size = options.get("spans.buffer.enforce-segment-size")
         result_meta = []
         is_root_span_count = 0
 
@@ -336,9 +328,7 @@ class SpansBuffer:
                 with self.client.pipeline(transaction=False) as p:
                     for (project_and_trace, parent_span_id), salt, subsegment in batch:
                         set_members = self._prepare_payloads(subsegment)
-                        payload_key = self._get_payload_key(project_and_trace, parent_span_id)
-                        if enforce_segment_size:
-                            payload_key = self._get_payload_key(project_and_trace, salt)
+                        payload_key = self._get_payload_key(project_and_trace, salt)
                         p.sadd(payload_key, *set_members)
                         p.expire(payload_key, redis_ttl)
 
@@ -381,7 +371,7 @@ class SpansBuffer:
                             redis_ttl,
                             byte_count,
                             max_segment_bytes,
-                            salt if enforce_segment_size else "",
+                            salt,
                             *span_ids,
                         )
 

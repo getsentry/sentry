@@ -43,7 +43,7 @@ export function LogsEmptyResults({
           </EmptyStateText>
           <Container paddingTop="md">
             <Button
-              priority="default"
+              variant="secondary"
               onClick={() => {
                 trackAnalytics('logs.explorer.continue_searching_clicked', {
                   bytes_scanned: bytesScanned,

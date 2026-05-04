@@ -158,7 +158,7 @@ function DashboardRevisionsModal({
               {t('Cancel')}
             </Button>
             <Button
-              priority="primary"
+              variant="primary"
               size="sm"
               onClick={() => restore()}
               busy={isRestoring}

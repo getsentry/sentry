@@ -55,7 +55,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable anomaly detection feature for EAP spans
     manager.add("organizations:anomaly-detection-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable array fields in trace item details endpoint
-    manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the cron job to auto-enable codecov integrations.
     manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enabled for orgs that participated in the code review beta
@@ -378,6 +378,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-modules-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights metrics alerts
     manager.add("organizations:insights-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable data browsing heat map widget
+    manager.add("organizations:data-browsing-heat-map-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable data browsing widget unfurl
     manager.add("organizations:data-browsing-widget-unfurl", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable public RPC endpoint for local seer development
@@ -495,6 +497,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-equations-in-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable equations in trace metrics explore
     manager.add("organizations:tracemetrics-equations-in-explore", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable equations for trace metrics in dashboards
+    manager.add("organizations:tracemetrics-equations-in-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics multi-metric selection in dashboards
@@ -509,8 +513,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:traces-page-cross-event-querying", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable overlaying charts in traces
     manager.add("organizations:traces-overlay-charts-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable feature flag to cache detectors by data source
-    manager.add("organizations:cache-detectors-by-data-source", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Conversation focused views in AI Insights
     manager.add("organizations:gen-ai-conversations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:on-demand-gen-metrics-deprecation-prefill", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -546,9 +548,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=True)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Enable new similarity grouping model upgrade (version-agnostic rollout)
-    manager.add("projects:similarity-grouping-model-upgrade", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable next similarity grouping model rollout (for migrating EA projects from v2 to v2.1)
+    # Enable next similarity grouping model rollout
     manager.add("projects:similarity-grouping-model-next", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Starfish: extract metrics from the spans
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
@@ -566,8 +566,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enables the uploading of minidump attachments to the objectstore.
     manager.add("projects:relay-minidump-attachment-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
-    # Enable supergroup RCA embedding generation from autofix explorer runs
-    manager.add("projects:supergroup-embeddings-explorer", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 

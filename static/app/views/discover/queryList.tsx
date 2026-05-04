@@ -122,7 +122,7 @@ class QueryList extends Component<Props> {
             {...triggerProps}
             aria-label={t('Query actions')}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

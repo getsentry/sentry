@@ -3,8 +3,10 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
+from django.db.models import F
 
 from sentry.issues.grouptype import AIDetectedDBGroupType, AIDetectedGeneralGroupType
+from sentry.models.project import Project
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
@@ -343,6 +345,32 @@ class LLMIssueDetectionTest(TestCase):
 
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=business" in budget_url
+
+
+class LLMIssueDetectionProjectFilterTest(TestCase):
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch(
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
+    )
+    def test_skips_projects_without_transactions(self, mock_get_transactions, mock_budget_request):
+        project_with_txns = self.create_project(organization=self.organization)
+        project_with_txns.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        project_without_txns = self.create_project(organization=self.organization)
+
+        mock_budget_response = Mock()
+        mock_budget_response.status = 200
+        mock_budget_response.data = b'{"has_budget": true}'
+        mock_budget_request.return_value = mock_budget_response
+        mock_get_transactions.return_value = []
+
+        detect_llm_issues_for_org(self.organization.id)
+
+        mock_get_transactions.assert_called_once()
+        called_project_id = mock_get_transactions.call_args[0][0]
+        assert called_project_id == project_with_txns.id
+        assert called_project_id != project_without_txns.id
 
 
 class TestGetValidTraceIdsBySpanCount:

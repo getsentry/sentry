@@ -149,7 +149,7 @@ export function LogsExportModal({
       <Footer>
         <Flex gap="xl" justify="end">
           <Button
-            priority="default"
+            variant="secondary"
             onClick={() => {
               trackAnalytics('logs.export_modal', {
                 organization,
@@ -161,7 +161,7 @@ export function LogsExportModal({
           >
             {t('Cancel')}
           </Button>
-          <form.SubmitButton priority="primary">{t('Export')}</form.SubmitButton>
+          <form.SubmitButton variant="primary">{t('Export')}</form.SubmitButton>
         </Flex>
       </Footer>
     </form.AppForm>

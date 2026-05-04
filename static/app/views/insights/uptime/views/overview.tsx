@@ -89,7 +89,7 @@ export default function UptimeOverview() {
           <Fragment>
             <TopBar.Slot name="actions">
               <LinkButton
-                priority="primary"
+                variant="primary"
                 to={makeAlertsPathname({path: '/new/uptime/', organization})}
                 icon={<IconAdd />}
                 disabled={!canCreateAlert}
@@ -113,7 +113,7 @@ export default function UptimeOverview() {
               <FeedbackButton />
               <LinkButton
                 size="sm"
-                priority="primary"
+                variant="primary"
                 to={makeAlertsPathname({path: '/new/uptime/', organization})}
                 icon={<IconAdd />}
                 disabled={!canCreateAlert}
@@ -183,7 +183,7 @@ export default function UptimeOverview() {
                 action={
                   <LinkButton
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                     to={makeAlertsPathname({path: '/new/uptime/', organization})}
                     icon={<IconAdd />}
                   >

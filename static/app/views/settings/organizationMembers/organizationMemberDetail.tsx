@@ -244,7 +244,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
   const memberDeactivated = isMemberDisabledFromLimit(member);
   const canEdit = organization.access.includes('org:write') && !memberDeactivated;
-  const isPartnershipUser = member.flags['partnership:restricted'] === true;
+  const isPartnershipUser = member.flags['partnership:restricted'];
 
   const {email, expired, pending} = member;
   const canResend = !expired;

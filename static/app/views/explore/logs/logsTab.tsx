@@ -91,6 +91,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
 // eslint-disable-next-line boundaries/dependencies
@@ -202,7 +203,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
                 trigger={triggerProps => (
                   <Button
                     {...triggerProps}
-                    priority="primary"
+                    variant="primary"
                     aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
@@ -356,6 +357,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
           numberTags={numberAttributes}
           booleanTags={booleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
+          traceItemType={TraceItemDataset.LOGS}
           handleReset={() => {
             onColumnsChange(defaultLogFields());
           }}
