@@ -344,7 +344,6 @@ export default function SnapshotsPage() {
     function toGroup(item: SidebarItem) {
       return {
         key: item.key,
-        name: item.name,
         displayName: item.displayName,
         count: itemVariantCount(item),
       };
@@ -364,7 +363,7 @@ export default function SnapshotsPage() {
     ];
     const byType = new Map<
       DiffStatus,
-      Array<{count: number; displayName: string; key: string; name: string}>
+      Array<{count: number; displayName: string; key: string}>
     >();
     for (const type of sectionOrder) {
       byType.set(type, []);

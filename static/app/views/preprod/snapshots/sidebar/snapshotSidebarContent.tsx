@@ -14,7 +14,6 @@ interface SidebarGroup {
   count: number;
   displayName: string;
   key: string;
-  name: string;
 }
 
 export interface SidebarSection {
