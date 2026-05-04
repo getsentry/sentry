@@ -37,12 +37,15 @@ function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
   };
 }
 
-jest.useFakeTimers();
-
 describe('useReplayData', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('should hydrate the replayRecord', async () => {
