@@ -3,7 +3,12 @@ import {SentryGlobalSearch} from '@sentry-internal/global-search';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
-import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
+import {
+  OrganizationAvatar,
+  ProjectAvatar,
+  TeamAvatar,
+  UserAvatar,
+} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -50,6 +55,7 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
+import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -747,7 +753,13 @@ export function GlobalCommandPaletteActions() {
         />
         <CMDKAction
           display={{label: t('Invite Members'), icon: <IconUser />}}
-          keywords={[t('team invite')]}
+          keywords={[
+            t('team invite'),
+            t('add user'),
+            t('add member'),
+            t('manage members'),
+            t('team members'),
+          ]}
           onAction={openInviteMembersModal}
         />
       </CMDKAction>
@@ -791,6 +803,106 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <ResolvedIdentifierCommandPaletteAction />
+
+      <CMDKAction
+        display={{label: t('People'), icon: <IconUser />}}
+        keywords={[t('member'), t('user'), t('person'), t('assign')]}
+        limit={4}
+        resource={query => {
+          return cmdkQueryOptions({
+            ...apiOptions.as<Member[]>()(
+              '/organizations/$organizationIdOrSlug/members/',
+              {
+                path: {organizationIdOrSlug: organization.slug},
+                query: {query},
+                staleTime: 30_000,
+              }
+            ),
+            enabled: query.length >= 2,
+            select: data =>
+              data.json.map(member => ({
+                display: {
+                  label: member.name || member.email,
+                  details: member.name ? member.email : undefined,
+                  icon: member.user ? (
+                    <UserAvatar user={member.user} size={16} />
+                  ) : (
+                    <IconUser size="sm" />
+                  ),
+                },
+                keywords: [member.name, member.email].filter(Boolean),
+                to: `/settings/${organization.slug}/members/${member.id}/`,
+              })),
+          });
+        }}
+      >
+        {data => data.map((item, i) => renderAsyncResult(item, i))}
+      </CMDKAction>
+
+      <CMDKAction
+        display={{label: t('Teams'), icon: <IconGroup />}}
+        keywords={[t('team'), t('squad')]}
+        limit={4}
+        resource={query => {
+          const teamQuery = query.startsWith('#') ? query.slice(1) : query;
+          return cmdkQueryOptions({
+            ...apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+              path: {organizationIdOrSlug: organization.slug},
+              query: {query: teamQuery},
+              staleTime: 30_000,
+            }),
+            enabled: teamQuery.length >= 1,
+            select: data =>
+              data.json.map(team => ({
+                display: {
+                  label: `#${team.slug}`,
+                  details: team.name === team.slug ? undefined : team.name,
+                  icon: <TeamAvatar team={team} size={16} />,
+                },
+                keywords: [team.name, team.slug],
+                to: `/settings/${organization.slug}/teams/${team.slug}/members/`,
+              })),
+          });
+        }}
+      >
+        {data => data.map((item, i) => renderAsyncResult(item, i))}
+      </CMDKAction>
+
+      <CMDKAction
+        display={{label: t('Open Project'), icon: <IconAllProjects />}}
+        keywords={[t('project'), t('switch project'), t('go to project')]}
+        prompt={t('Search for a project...')}
+        limit={4}
+        resource={(_query, {state}) =>
+          // `projects` is intentionally omitted from the queryKey:
+          // TanStack serializes the entire key for cache lookups, and
+          // including the full projects array would be too costly —
+          // some orgs have thousands of projects.
+          // eslint-disable-next-line @tanstack/query/exhaustive-deps
+          cmdkQueryOptions({
+            queryKey: [
+              'cmdk-project-nav',
+              organization.slug,
+              projects.map(p => p.slug).join(','),
+            ],
+            queryFn: () =>
+              projects
+                .sort((a, b) => a.slug.localeCompare(b.slug))
+                .map(project => ({
+                  display: {
+                    label: project.slug,
+                    icon: <ProjectAvatar project={project} size={16} />,
+                  },
+                  keywords: [project.name, project.slug],
+                  to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
+                })),
+            enabled: state === 'selected',
+            staleTime: Infinity,
+          })
+        }
+      >
+        {data => data.map((item, i) => renderAsyncResult(item, i))}
+      </CMDKAction>
 
       <CMDKAction
         id="cmdk:supplementary:help"
