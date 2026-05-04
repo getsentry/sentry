@@ -459,16 +459,11 @@ class DatabaseBackedAppService(AppService):
         return serialize_sentry_app_component(component) if component else None
 
     def get_notification_emails_for_sentry_app(
-        self, *, sentry_app_id: int, creator_label: str | None
+        self, *, organization_id: int, creator_label: str | None
     ) -> list[str]:
-        try:
-            sentry_app = SentryApp.objects.get(id=sentry_app_id)
-        except SentryApp.DoesNotExist:
-            return []
-
         if creator_label and "@" in creator_label:
-            emails = _validate_creator_email(creator_label, sentry_app.owner_id)
+            emails = _validate_creator_email(creator_label, organization_id)
             if emails:
                 return emails
 
-        return _get_org_owner_email(sentry_app.owner_id)
+        return _get_org_owner_email(organization_id)

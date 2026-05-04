@@ -132,7 +132,7 @@ def _get_notification_recipients(
     sentry_app: SentryApp | RpcSentryApp,
 ) -> list[str]:
     return app_service.get_notification_emails_for_sentry_app(
-        sentry_app_id=sentry_app.id,
+        organization_id=sentry_app.owner_id,
         creator_label=sentry_app.creator_label,
     )
 

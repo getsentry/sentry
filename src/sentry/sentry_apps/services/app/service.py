@@ -246,7 +246,7 @@ class AppService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def get_notification_emails_for_sentry_app(
-        self, *, sentry_app_id: int, creator_label: str | None
+        self, *, organization_id: int, creator_label: str | None
     ) -> list[str]:
         pass
 
