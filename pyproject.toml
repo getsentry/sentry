@@ -411,6 +411,7 @@ disable_error_code = [
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
+    "bin.*",
     "bitfield.*",
     "django_picklefield.*",
     "fixtures.apidocs_test_case",
