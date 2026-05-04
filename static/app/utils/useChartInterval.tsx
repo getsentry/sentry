@@ -116,6 +116,20 @@ function useChartIntervalImpl({
     if (!writeToUrl) {
       return;
     }
+    if (!pagefilters.isReady) {
+      return;
+    }
+    // PageFiltersContainer reacts to any location.query change and uses an
+    // asymmetric default (defaultStatsPeriod) when re-deriving datetime, which
+    // resets the store to the default if the URL has no datetime params. Wait
+    // until PageFilters has pinned its datetime into the URL before writing
+    // interval, so our navigate is a no-op for the datetime diff.
+    const hasDatetimeInUrl =
+      decodeScalar(location.query.statsPeriod) ||
+      (decodeScalar(location.query.start) && decodeScalar(location.query.end));
+    if (!hasDatetimeInUrl) {
+      return;
+    }
     if (decodeScalar(location.query.interval) === interval) {
       return;
     }
@@ -129,7 +143,7 @@ function useChartIntervalImpl({
       },
       {replace: true}
     );
-  }, [writeToUrl, interval, location, navigate]);
+  }, [writeToUrl, pagefilters.isReady, interval, location, navigate]);
 
   return [interval, setInterval, intervalOptions];
 }
