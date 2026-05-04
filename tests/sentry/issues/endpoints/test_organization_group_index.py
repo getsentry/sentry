@@ -2546,14 +2546,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
 
         # Query for the specific detector ID
-        response = self.get_response(sort_by="date", query=f"detector:{detector_id}")
+        response = self.get_response(sort_by="date", query=f"monitor:{detector_id}")
         assert response.status_code == 200
 
         # Should return only the group associated with the detector
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == group.id
 
-        response_empty = self.get_response(sort_by="date", query="detector:99999")
+        response_empty = self.get_response(sort_by="date", query="monitor:99999")
         assert response_empty.status_code == 200
         assert len(response_empty.data) == 0
 

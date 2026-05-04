@@ -31,7 +31,7 @@ export enum FieldKey {
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
-  DETECTOR = 'detector',
+  MONITOR = 'monitor',
   DEVICE = 'device',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -178,7 +178,7 @@ type ErrorFieldKey =
   | FieldKey.ASSIGNED_OR_SUGGESTED
   | FieldKey.BOOKMARKS
   | FieldKey.CULPRIT
-  | FieldKey.DETECTOR
+  | FieldKey.MONITOR
   | FieldKey.ERROR_HANDLED
   | FieldKey.ERROR_MECHANISM
   | FieldKey.ERROR_TYPE
@@ -1959,8 +1959,8 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.DETECTOR]: {
-    desc: t('The detector that triggered the issue'),
+  [FieldKey.MONITOR]: {
+    desc: t('The monitor that triggered the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
@@ -2747,7 +2747,7 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ASSIGNED_OR_SUGGESTED,
   FieldKey.ASSIGNED,
   FieldKey.BOOKMARKS,
-  FieldKey.DETECTOR,
+  FieldKey.MONITOR,
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
   FieldKey.HAS,

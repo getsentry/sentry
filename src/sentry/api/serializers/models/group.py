@@ -911,7 +911,7 @@ SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
         "substatus",
-        "detector",
+        "monitor",
         "bookmarked_by",
         "assigned_to",
         "for_review",

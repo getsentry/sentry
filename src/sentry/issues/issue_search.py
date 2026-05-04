@@ -286,7 +286,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "device.class": convert_device_class_value,
     "substatus": convert_substatus_value,
     "issue.seer_actionability": convert_seer_actionability_value,
-    "detector": convert_detector_value,
+    "monitor": convert_detector_value,
 }
 
 
