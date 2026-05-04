@@ -6,16 +6,15 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import {resolveChartIntervalForDatetime} from 'sentry/utils/useChartInterval';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {StyledPageFilterBar} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function ErrorsFilterSection() {
-  const getAdditionalUrlParams = useExploreUrlIntervalParams();
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
@@ -30,7 +29,7 @@ export function ErrorsFilterSection() {
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter getAdditionalUrlParams={getAdditionalUrlParams} />
+            <DatePageFilter resolveDefaultInterval={resolveChartIntervalForDatetime} />
           </StyledPageFilterBar>
 
           <TraceItemSearchQueryBuilder

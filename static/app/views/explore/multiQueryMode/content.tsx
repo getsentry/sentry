@@ -27,13 +27,13 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+import {resolveChartIntervalForDatetime} from 'sentry/utils/useChartInterval';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
@@ -217,13 +217,15 @@ export function MultiQueryModeContent() {
     dataCategories: [DataCategory.SPANS],
   });
   const baseDatePageFilterProps = useDatePageFilterProps(maxPickableDays);
-  const getAdditionalUrlParams = useExploreUrlIntervalParams();
-  const datePageFilterProps = {...baseDatePageFilterProps, getAdditionalUrlParams};
+  const datePageFilterProps = {
+    ...baseDatePageFilterProps,
+    resolveDefaultInterval: resolveChartIntervalForDatetime,
+  };
 
   return (
     <PageFiltersContainer
       maxPickableDays={datePageFilterProps.maxPickableDays}
-      getAdditionalUrlParams={getAdditionalUrlParams}
+      resolveDefaultInterval={resolveChartIntervalForDatetime}
     >
       <Content datePageFilterProps={datePageFilterProps} />
     </PageFiltersContainer>

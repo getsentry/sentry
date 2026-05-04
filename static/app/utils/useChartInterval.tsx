@@ -117,22 +117,11 @@ function computeIntervalOptionsAndDefault(
 }
 
 /**
- * Pure helper for the default interval given a page-filter datetime selection.
- * Useful for callers (e.g. PageFiltersContainer / DatePageFilter) that need to
- * write the default interval into the URL alongside the datetime so the URL
- * always carries it without requiring a separate render to land it.
- */
-export function getDefaultChartInterval(
-  datetime: PageFilters['datetime'],
-  unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy
-): string {
-  return computeIntervalOptionsAndDefault(datetime, unspecifiedStrategy).defaultInterval;
-}
-
-/**
  * Returns the chart interval that should be used in the URL for a given
  * datetime. Preserves a user-set `currentInterval` if it's still valid for the
- * new datetime, otherwise falls back to the default.
+ * new datetime, otherwise falls back to the default. Suitable for passing to
+ * `PageFiltersContainer` / `DatePageFilter`'s `resolveDefaultInterval` prop so
+ * the chart interval is co-written with the datetime in a single navigate.
  */
 export function resolveChartIntervalForDatetime(
   datetime: PageFilters['datetime'],

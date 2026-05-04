@@ -12,13 +12,13 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {resolveChartIntervalForDatetime} from 'sentry/utils/useChartInterval';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -38,8 +38,10 @@ export default function LogsContent() {
     dataCategories: [DataCategory.LOG_BYTE],
   });
   const baseDatePageFilterProps = useDatePageFilterProps(maxPickableDays);
-  const getAdditionalUrlParams = useExploreUrlIntervalParams();
-  const datePageFilterProps = {...baseDatePageFilterProps, getAdditionalUrlParams};
+  const datePageFilterProps = {
+    ...baseDatePageFilterProps,
+    resolveDefaultInterval: resolveChartIntervalForDatetime,
+  };
   const tableExpando = useOurLogsTableExpando();
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
@@ -60,7 +62,7 @@ export default function LogsContent() {
               }
             : undefined
         }
-        getAdditionalUrlParams={getAdditionalUrlParams}
+        resolveDefaultInterval={resolveChartIntervalForDatetime}
       >
         <AnalyticsArea name="explore.logs">
           <LogsPageStack

@@ -6,6 +6,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {resolveChartIntervalForDatetime} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ExploreBodyContent,
@@ -17,18 +18,16 @@ import {
 } from 'sentry/views/explore/errors/body';
 import {ErrorsFilterSection} from 'sentry/views/explore/errors/filterContent';
 import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
-import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 export default function ErrorsContent() {
   const organization = useOrganization();
-  const getAdditionalUrlParams = useExploreUrlIntervalParams();
   // TODO: max pickable days logic for error occurences
 
   return (
     <SentryDocumentTitle title={t('Errors')} orgSlug={organization?.slug}>
       <ErrorsHeader />
-      <PageFiltersContainer getAdditionalUrlParams={getAdditionalUrlParams}>
+      <PageFiltersContainer resolveDefaultInterval={resolveChartIntervalForDatetime}>
         <ExploreBodySearch>
           <ErrorsFilterSection />
         </ExploreBodySearch>

@@ -28,20 +28,19 @@ import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 type EnvironmentId = Environment['id'];
 
-type AdditionalParams = Record<string, string | string[] | null | undefined>;
-
 type Options = {
   /**
-   * Extra query params to merge into the URL alongside the page-filter
-   * params. Useful when a callsite needs to write a sibling param (e.g. a
-   * chart interval that derives from the datetime) in the same navigate so
-   * other URL-watching effects don't see an intermediate state.
+   * Optional chart `interval` URL param to write alongside the page-filter
+   * params. Page filters know about this sibling param so we can co-write it
+   * in the same navigate as the datetime, avoiding a follow-up effect that
+   * would race with other URL-watching effects.
    */
-  additionalParams?: AdditionalParams;
+  interval?: string;
   /**
    * Do not reset the `cursor` query parameter when updating page filters
    */
@@ -111,9 +110,16 @@ function mergeDatetime(
   return datetime;
 }
 
-export type GetAdditionalUrlParams = (
-  datetime: PageFilters['datetime']
-) => Record<string, string | string[] | null | undefined> | undefined;
+/**
+ * Resolves the chart `interval` URL param for a given datetime selection.
+ * Receives the current URL interval (if any) so callers can preserve a
+ * user-set value when it's still valid for the new datetime, or fall back
+ * to a default. Return `undefined` to leave the URL interval untouched.
+ */
+export type ResolveDefaultInterval = (
+  datetime: PageFilters['datetime'],
+  currentInterval: string | undefined
+) => string | undefined;
 
 export type InitializeUrlStateParams = {
   location: Location;
@@ -124,15 +130,16 @@ export type InitializeUrlStateParams = {
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
   /**
-   * Compute additional URL params that should be written alongside the
-   * page-filter params on initialization. Called with the resolved datetime
-   * so the caller can derive params (e.g. chart interval) from it.
-   */
-  getAdditionalUrlParams?: GetAdditionalUrlParams;
-  /**
    * When set, the stats period will fallback to the `maxPickableDays` days if the stored selection exceeds the limit.
    */
   maxPickableDays?: number;
+  /**
+   * Resolve the chart `interval` URL param to write alongside the page-filter
+   * datetime on initialization. Receives the resolved datetime and the
+   * current URL interval (if any) so callers can preserve a user-set value
+   * when valid or fall back to a default.
+   */
+  resolveDefaultInterval?: ResolveDefaultInterval;
   shouldForceProject?: boolean;
   /**
    * Whether to save changes to local storage. This setting should be page-specific:
@@ -183,7 +190,7 @@ export function initializeUrlState({
   showAbsolute = true,
   skipInitializeUrlParams = false,
   storageNamespace,
-  getAdditionalUrlParams,
+  resolveDefaultInterval,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
   const queryParams = location.query;
@@ -386,11 +393,12 @@ export function initializeUrlState({
       period: newDatetime.period ?? null,
       utc: newDatetime.utc ?? null,
     };
-    const additionalParams = getAdditionalUrlParams?.(resolvedDatetime);
+    const currentInterval = decodeScalar(location.query.interval);
+    const interval = resolveDefaultInterval?.(resolvedDatetime, currentInterval);
     updateParams({project, environment, ...newDatetime}, location, navigate, {
       replace: true,
       keepCursor: true,
-      additionalParams,
+      interval,
     });
   }
 }
@@ -538,7 +546,7 @@ function getNewQueryParams(
   currentQuery: Location['query'],
   options: Options = {}
 ) {
-  const {resetParams, keepCursor, additionalParams} = options;
+  const {resetParams, keepCursor, interval} = options;
 
   const cleanCurrentQuery = resetParams?.length
     ? omit(currentQuery, resetParams)
@@ -573,9 +581,9 @@ function getNewQueryParams(
     utc: utc ? 'true' : null,
     statsPeriod,
     ...extraParams,
-    // additionalParams take precedence; allows callers to override sibling
-    // params they own (e.g. interval keyed off the new datetime).
-    ...additionalParams,
+    // Override the URL `interval` only when the caller explicitly resolved one,
+    // so callers can opt out by leaving it undefined.
+    ...(interval === undefined ? {} : {interval}),
   };
 
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));

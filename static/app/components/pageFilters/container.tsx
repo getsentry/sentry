@@ -17,6 +17,7 @@ import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -70,7 +71,7 @@ export function PageFiltersContainer({
     skipInitializeUrlParams,
     disablePersistence,
     storageNamespace,
-    getAdditionalUrlParams,
+    resolveDefaultInterval,
   } = props;
   const location = useLocation();
   const navigate = useNavigate();
@@ -113,7 +114,7 @@ export function PageFiltersContainer({
       showAbsolute,
       skipInitializeUrlParams,
       storageNamespace,
-      getAdditionalUrlParams,
+      resolveDefaultInterval,
     });
   };
 
@@ -184,20 +185,24 @@ export function PageFiltersContainer({
       environment: [],
       project: [],
     });
-    const additionalParams = getAdditionalUrlParams?.({
-      start: null,
-      end: null,
-      period: `${maxPickableDays}d`,
-      utc: selection.datetime.utc,
-    });
-    updateDateTime(newDateState, location, navigate, {additionalParams});
+    const currentInterval = decodeScalar(location.query.interval);
+    const interval = resolveDefaultInterval?.(
+      {
+        start: null,
+        end: null,
+        period: `${maxPickableDays}d`,
+        utc: selection.datetime.utc,
+      },
+      currentInterval
+    );
+    updateDateTime(newDateState, location, navigate, {interval});
   }, [
     maxPickableDays,
     location,
     navigate,
     selection.datetime.utc,
     shouldResetDateTime,
-    getAdditionalUrlParams,
+    resolveDefaultInterval,
   ]);
 
   // Update store persistence when `disablePersistence` changes

@@ -1,9 +1,10 @@
-import type {GetAdditionalUrlParams} from 'sentry/components/pageFilters/actions';
+import type {ResolveDefaultInterval} from 'sentry/components/pageFilters/actions';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TimeRangeSelectorProps} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -11,15 +12,15 @@ export interface DatePageFilterProps extends Partial<
   Partial<Omit<TimeRangeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>>
 > {
   /**
-   * Compute additional URL params to write alongside the datetime when the
-   * user changes the time range. The callback receives the new datetime so
-   * callers can derive sibling params (e.g. chart interval).
-   */
-  getAdditionalUrlParams?: GetAdditionalUrlParams;
-  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Resolve the chart `interval` URL param to write alongside the new
+   * datetime when the user changes the time range. Receives the new datetime
+   * and the current URL interval (if any).
+   */
+  resolveDefaultInterval?: ResolveDefaultInterval;
   upsell?: boolean;
 }
 
@@ -29,7 +30,7 @@ export function DatePageFilter({
   menuTitle,
   menuWidth,
   resetParamsOnChange,
-  getAdditionalUrlParams,
+  resolveDefaultInterval,
   ...selectProps
 }: DatePageFilterProps) {
   const location = useLocation();
@@ -51,17 +52,21 @@ export function DatePageFilter({
 
         onChange?.(timePeriodUpdate);
 
-        const additionalParams = getAdditionalUrlParams?.({
-          start: newTimePeriod.start ?? null,
-          end: newTimePeriod.end ?? null,
-          period: newTimePeriod.period ?? null,
-          utc: newTimePeriod.utc ?? null,
-        });
+        const currentInterval = decodeScalar(location.query.interval);
+        const interval = resolveDefaultInterval?.(
+          {
+            start: newTimePeriod.start ?? null,
+            end: newTimePeriod.end ?? null,
+            period: newTimePeriod.period ?? null,
+            utc: newTimePeriod.utc ?? null,
+          },
+          currentInterval
+        );
 
         updateDateTime(newTimePeriod, location, navigate, {
           save: true,
           resetParams: resetParamsOnChange,
-          additionalParams,
+          interval,
         });
       }}
       menuTitle={menuTitle ?? t('Filter Time Range')}

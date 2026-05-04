@@ -14,6 +14,7 @@ import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {resolveChartIntervalForDatetime} from 'sentry/utils/useChartInterval';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {
   useMaxPickableDays,
@@ -25,7 +26,6 @@ import {
   MAX_DAYS_FOR_CROSS_EVENTS,
   MAX_PERIOD_FOR_CROSS_EVENTS,
 } from 'sentry/views/explore/constants';
-import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   useQueryParamsCrossEvents,
@@ -82,15 +82,17 @@ function ExploreContentInner() {
     : dataCategoryMaxPickableDays;
 
   const baseDatePageFilterProps = useDatePageFilterProps(maxPickableDays);
-  const getAdditionalUrlParams = useExploreUrlIntervalParams();
-  const datePageFilterProps = {...baseDatePageFilterProps, getAdditionalUrlParams};
+  const datePageFilterProps = {
+    ...baseDatePageFilterProps,
+    resolveDefaultInterval: resolveChartIntervalForDatetime,
+  };
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <SpansCommandPaletteActions />
       <PageFiltersContainer
         maxPickableDays={datePageFilterProps.maxPickableDays}
-        getAdditionalUrlParams={getAdditionalUrlParams}
+        resolveDefaultInterval={resolveChartIntervalForDatetime}
       >
         <AnalyticsArea name="explore.spans">
           <Stack flex={1}>
