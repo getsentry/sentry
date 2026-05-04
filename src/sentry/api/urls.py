@@ -119,7 +119,6 @@ from sentry.core.endpoints.organization_projects import (
 from sentry.core.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
-from sentry.core.endpoints.organization_region import OrganizationRegionEndpoint
 from sentry.core.endpoints.organization_request_project_creation import (
     OrganizationRequestProjectCreation,
 )
@@ -2718,11 +2717,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-organization-prompts-activity",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/region/$",
-        OrganizationRegionEndpoint.as_view(),
-        name="sentry-api-0-organization-region",
     ),
     # Trigger relocation
     re_path(
