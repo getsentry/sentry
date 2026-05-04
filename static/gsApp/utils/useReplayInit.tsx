@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import type {BrowserClientReplayOptions} from '@sentry/core';
 import type {replayIntegration} from '@sentry/react';
 import {getClient} from '@sentry/react';
@@ -8,12 +8,31 @@ import {useUser} from 'sentry/utils/useUser';
 
 // Single replayRef across the whole app, even if this hook is called multiple times
 let replayRef: ReturnType<typeof replayIntegration> | null;
+const readyListeners = new Set<() => void>();
 
 /**
  * Load the Sentry Replay integration based on the feature flag.
+ *
+ * Returns `true` once the integration has been registered with the Sentry
+ * client. Useful for callers that need to wait for `Sentry.getReplay()` to
+ * become non-null before flushing (e.g. forced replays during onboarding,
+ * which mounts outside `OrganizationLayout`).
  */
-export function useReplayInit() {
+export function useReplayInit(): boolean {
   const user = useUser();
+  const [ready, setReady] = useState(() => replayRef !== null);
+
+  useEffect(() => {
+    if (replayRef) {
+      setReady(true);
+      return;
+    }
+    const listener = () => setReady(true);
+    readyListeners.add(listener);
+    return () => {
+      readyListeners.delete(listener);
+    };
+  }, []);
 
   useEffect(() => {
     async function init(sessionSampleRate: number, errorSampleRate: number) {
@@ -67,6 +86,7 @@ export function useReplayInit() {
         });
 
         client.addIntegration(replayRef);
+        readyListeners.forEach(l => l());
       }
     }
 
@@ -86,4 +106,6 @@ export function useReplayInit() {
     // NOTE: if this component is unmounted (e.g. when org is switched), we will continue to record!
     // This can be changed by calling `stop/start()` on unmount/mount respectively.
   }, [user]);
+
+  return ready;
 }

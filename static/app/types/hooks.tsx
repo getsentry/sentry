@@ -364,6 +364,11 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
+  'react-hook:use-replay-for-critical-flow': (options: {
+    flowName: string;
+    enabled?: boolean;
+    sampleRate?: number;
+  }) => void;
   'react-hook:use-scm-feature-meta': () => UseScmFeatureMetaResult;
 };
 
