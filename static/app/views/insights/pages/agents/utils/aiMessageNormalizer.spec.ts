@@ -190,6 +190,20 @@ describe('normalizeToMessages', () => {
         {role: 'user', content: 'Hi!'},
       ]);
     });
+
+    it('prepends a structured system field when present', () => {
+      const input = JSON.stringify({
+        system: {instructions: ['Be concise'], priority: 'high'},
+        messages: [{role: 'user', content: 'Hi!'}],
+      });
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([
+        {role: 'system', content: {instructions: ['Be concise'], priority: 'high'}},
+        {role: 'user', content: 'Hi!'},
+      ]);
+    });
   });
 
   describe('legacy shapes', () => {
@@ -200,6 +214,20 @@ describe('normalizeToMessages', () => {
 
       expect(messages).toEqual([
         {role: 'system', content: 'sys'},
+        {role: 'user', content: 'do the thing'},
+      ]);
+    });
+
+    it('expands structured {system, prompt} into two messages', () => {
+      const input = JSON.stringify({
+        system: {instructions: ['Be concise'], priority: 'high'},
+        prompt: 'do the thing',
+      });
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([
+        {role: 'system', content: {instructions: ['Be concise'], priority: 'high'}},
         {role: 'user', content: 'do the thing'},
       ]);
     });
