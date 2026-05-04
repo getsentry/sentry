@@ -1593,10 +1593,7 @@ def test_flush_lock_mixed_contention(
 def test_flush_lock_detaches_subsegment(mock_project_model, buffer: SpansBuffer) -> None:
     """
     Tests that a span that arrives while a segment is being flushed detaches
-    under the salt rather than merge into the locked segment. If we keep writing
-    to the segment while it is being flushed, conditional cleanup will skip.
-    We can potentially end up flushing duplicate spans in the next cycle, and
-    segments accumulating in Redis without having their data cleaned up.
+    to a new segment rather than merge into the locked segment.
     """
     mock_project = mock.Mock()
     mock_project.id = 1

@@ -143,8 +143,14 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     end
 end
 
--- If the segment is already too large or is currently being flushed, make
--- this subsegment its own segment with salt as the identifier.
+-- Detach this subsegment into a new segment if either:
+--   1. The target segment is already over the byte limit. Without this,
+--      segments would grow unboundedly past max_segment_bytes.
+--   2. The target segment is currently being flushed (lock held). If we keep
+--      writing to a segment while it is being flushed, conditional cleanup
+--      in `done-flush-segment` will skip, and we can end up flushing
+--      duplicate spans in the next cycle while leaving segments accumulating
+--      in Redis without their data being cleaned up.
 local segment_too_large = max_segment_bytes > 0 and tonumber(ingested_byte_count) + byte_count > max_segment_bytes
 local segment_locked = false
 if check_flush_lock then
