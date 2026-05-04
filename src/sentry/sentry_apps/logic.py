@@ -268,11 +268,8 @@ class SentryAppUpdater:
             self.sentry_app.is_alertable = self.is_alertable
 
     def _update_is_disabled(self, user: User | RpcUser) -> None:
-        if self.is_disabled is None:
-            return
-        if not _is_elevated_user(user):
-            raise ParseError(detail="Only staff can change a Sentry App's disabled state.")
-        self.sentry_app.is_disabled = self.is_disabled
+        if self.is_disabled is not None and _is_elevated_user(user):
+            self.sentry_app.is_disabled = self.is_disabled
 
     def _update_verify_install(self) -> None:
         if self.verify_install is not None:
