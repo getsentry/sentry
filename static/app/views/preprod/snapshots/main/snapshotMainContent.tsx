@@ -22,6 +22,8 @@ import {
   IconStack,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
@@ -105,6 +107,7 @@ export function SnapshotMainContent({
   canNavigateNext,
   navButtonRefs,
 }: SnapshotMainContentProps) {
+  const organization = useOrganization();
   const [isDark, setIsDark] = useState(false);
   const toggleDark = useCallback(() => setIsDark(v => !v), []);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -269,6 +272,16 @@ export function SnapshotMainContent({
           diffPercent: currentPair.diff,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
+          onCopyLink: () =>
+            trackAnalytics('preprod.snapshots.details.image_link_copied', {
+              organization,
+              diff_status: 'changed',
+            }),
+          onCopyMetadata: () =>
+            trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+              organization,
+              diff_status: 'changed',
+            }),
         }}
         diffControls={diffControls}
         body={
@@ -311,6 +324,16 @@ export function SnapshotMainContent({
           status: DiffStatus.RENAMED,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
+          onCopyLink: () =>
+            trackAnalytics('preprod.snapshots.details.image_link_copied', {
+              organization,
+              diff_status: 'renamed',
+            }),
+          onCopyMetadata: () =>
+            trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+              organization,
+              diff_status: 'renamed',
+            }),
         }}
         body={<SingleImageDisplay imageUrl={imageUrl} alt={getImageName(image)} />}
       />
@@ -352,6 +375,16 @@ export function SnapshotMainContent({
         status,
         copyData: currentImage,
         copyUrl: buildSnapshotLink(currentImage.image_file_name),
+        onCopyLink: () =>
+          trackAnalytics('preprod.snapshots.details.image_link_copied', {
+            organization,
+            diff_status: status ? selectedItem.type : null,
+          }),
+        onCopyMetadata: () =>
+          trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+            organization,
+            diff_status: status ? selectedItem.type : null,
+          }),
       }}
       body={<SingleImageDisplay imageUrl={imageUrl} alt={getImageName(currentImage)} />}
     />
@@ -551,11 +584,18 @@ function ViewModeToggle({
   onViewModeChange: (mode: ViewMode) => void;
   viewMode: ViewMode;
 }) {
+  const organization = useOrganization();
   return (
     <SegmentedControl
       size="xs"
       value={viewMode}
-      onChange={onViewModeChange}
+      onChange={(value: ViewMode) => {
+        onViewModeChange(value);
+        trackAnalytics('preprod.snapshots.details.view_mode_changed', {
+          organization,
+          view_mode: value,
+        });
+      }}
       aria-label={t('View mode')}
     >
       <SegmentedControl.Item
@@ -657,8 +697,19 @@ function DiffModeToggle({
   diffMode: DiffMode;
   onDiffModeChange: (mode: DiffMode) => void;
 }) {
+  const organization = useOrganization();
   return (
-    <SegmentedControl size="xs" value={diffMode} onChange={onDiffModeChange}>
+    <SegmentedControl
+      size="xs"
+      value={diffMode}
+      onChange={(value: DiffMode) => {
+        onDiffModeChange(value);
+        trackAnalytics('preprod.snapshots.details.diff_mode_changed', {
+          organization,
+          diff_mode: value,
+        });
+      }}
+    >
       <SegmentedControl.Item
         key="split"
         icon={<IconPause />}
