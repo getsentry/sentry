@@ -81,6 +81,8 @@ import {
   useEnvironmentsFromUrl,
   useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -564,7 +566,7 @@ function GroupDetailsContentError({
   }
 }
 
-function GroupDetailsContent({
+function GroupDetailsContentInner({
   children,
   group,
   project,
@@ -640,6 +642,27 @@ function GroupDetailsContent({
 
   useEngagedViewTracking({group, project});
 
+  useLLMContext({
+    contextHint:
+      'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
+      'shortId is the human-readable issue identifier (e.g. PROJ-123). ' +
+      'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
+      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
+      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+    shortId: group.shortId,
+    title: group.title,
+    level: group.level,
+    status: group.status,
+    priority: group.priority,
+    issueType: group.issueType,
+    count: group.count,
+    userCount: group.userCount,
+    firstSeen: group.firstSeen,
+    lastSeen: group.lastSeen,
+    projectSlug: project.slug,
+    eventId: event?.id,
+  });
+
   const isDisplayingEventDetails = [
     Tab.DETAILS,
     Tab.DISTRIBUTIONS,
@@ -660,6 +683,8 @@ function GroupDetailsContent({
     </GroupDetailsLayout>
   );
 }
+
+const GroupDetailsContent = registerLLMContext('issue-detail', GroupDetailsContentInner);
 
 interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
   children: React.ReactNode;
