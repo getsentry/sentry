@@ -35,7 +35,6 @@ import {
   ExploreBodySearch,
   ExploreContentSection,
   ExploreControlSection,
-  ExploreSchemaHintsSection,
 } from 'sentry/views/explore/components/styles';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -54,6 +53,7 @@ import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
+import {ExpandingSchemaHintsSection} from 'sentry/views/explore/logs/expandingSchemaHintsSection';
 import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwitch';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
@@ -217,7 +217,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          <ExploreSchemaHintsSection>
+          <ExpandingSchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={supportedAggregates}
               booleanTags={booleanAttributes}
@@ -232,7 +232,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
               source={SchemaHintsSources.LOGS}
               searchBarWidthOffset={searchBarWidthOffset}
             />
-          </ExploreSchemaHintsSection>
+          </ExpandingSchemaHintsSection>
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>

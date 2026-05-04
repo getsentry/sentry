@@ -64,18 +64,12 @@ export const ExploreSchemaHintsSection = styled(SchemaHintsSection)`
 
 export const ExploreBodySearch = styled(Layout.Body)`
   flex-grow: 0;
-
+  padding-bottom: 0;
   position: sticky;
   top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
   z-index: ${p => p.theme.zIndex.header};
   background-color: ${p => p.theme.tokens.background.primary};
-
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-bottom: ${p => p.theme.space.xl};
-  }
 `;
 
 export const ExploreBodyContent = styled('div')`
