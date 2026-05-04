@@ -102,7 +102,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             {!hasConnections && (
               <Alert variant="warning">
                 {t(
-                  'Warning, the alert is not connected to a project or monitor. Alert will not trigger.'
+                  'This alert is not connected to a project or monitor and will not trigger.'
                 )}
               </Alert>
             )}
