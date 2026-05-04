@@ -10,11 +10,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.organizations.services.organization import organization_service
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -23,6 +26,26 @@ from ..utils import handle_assignee_change, handle_jira_api_error, handle_status
 from .base import JiraWebhookBase
 
 logger = logging.getLogger(__name__)
+
+PAYLOAD_LOGGING_FEATURE = "organizations:jira-issue-updated-payload-logging"
+
+
+def _payload_logging_enabled(integration_id: int) -> bool:
+    """True if any org linked to this Jira integration has the
+    `jira-issue-updated-payload-logging` feature enabled.
+
+    A Jira integration can be shared by multiple Sentry orgs, and
+    `features.has` needs an `Organization`, so we have to walk the linked
+    `OrganizationIntegration` rows and look each org up.
+    """
+    contexts = integration_service.organization_contexts(integration_id=integration_id)
+    for oi in contexts.organization_integrations:
+        org = organization_service.get_organization_by_id(
+            id=oi.organization_id, include_teams=False, include_projects=False
+        )
+        if org and features.has(PAYLOAD_LOGGING_FEATURE, org.organization):
+            return True
+    return False
 
 
 @cell_silo_endpoint
@@ -75,6 +98,36 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
         sentry_sdk.set_tag("integration_id", rpc_integration.id)
 
         data = request.data
+
+        # Temporary: when a linked org has the
+        # `jira-issue-updated-payload-logging` feature enabled, log the full
+        # webhook payload so we can see exactly what Jira sends us (especially
+        # for `project` changes, which we want to use to update the linked
+        # Jira issue link in Sentry).
+        if _payload_logging_enabled(rpc_integration.id):
+            issue = data.get("issue") or {}
+            fields = issue.get("fields") or {}
+            changelog_items = (data.get("changelog") or {}).get("items") or []
+            payload_extra = {
+                "integration_id": rpc_integration.id,
+                "issue_key": issue.get("key"),
+                "issue_id": issue.get("id"),
+                "webhook_event": data.get("webhookEvent"),
+                "changed_fields": [item.get("field") for item in changelog_items],
+                "project": fields.get("project"),
+                "payload": data,
+            }
+            logger.info("jira.issue-updated.payload", extra=payload_extra)
+            project_change = next(
+                (item for item in changelog_items if item.get("field") == "project"),
+                None,
+            )
+            if project_change is not None:
+                logger.info(
+                    "jira.issue-updated.project-changed",
+                    extra={**payload_extra, "project_change": project_change},
+                )
+
         if not data.get("changelog"):
             logger.info("jira.missing-changelog", extra={"integration_id": rpc_integration.id})
             return self.respond()
