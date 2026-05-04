@@ -96,7 +96,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           )}
         </AlertLink>
         {hasBillingPerms ? (
-          isPending || !backendThresholds ? (
+          isPending ? (
             <LoadingIndicator />
           ) : isError ? (
             <LoadingError onRetry={refetch} />
