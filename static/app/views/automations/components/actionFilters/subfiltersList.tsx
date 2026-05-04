@@ -137,7 +137,7 @@ function SubfilterRow({onRemove, isFirstRow, isLastRow}: SubfilterRowProps) {
           aria-label={t('Delete Subfilter')}
           size="sm"
           icon={<IconDelete />}
-          priority="transparent"
+          variant="transparent"
           onClick={onRemove}
         />
       </StyledRowLine>

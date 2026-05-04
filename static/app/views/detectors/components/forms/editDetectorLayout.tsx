@@ -111,7 +111,7 @@ export function EditDetectorLayout<
               {() => (
                 <Button
                   type="submit"
-                  priority="primary"
+                  variant="primary"
                   size="sm"
                   busy={form?.isSaving}
                   disabled={form?.isFormIncomplete || form?.isError}

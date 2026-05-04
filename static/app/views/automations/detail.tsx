@@ -272,12 +272,12 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
 
   return (
     <Fragment>
-      <Button priority="default" size={size} onClick={toggleDisabled} busy={isUpdating}>
+      <Button variant="secondary" size={size} onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
-        priority="primary"
+        variant="primary"
         icon={<IconEdit />}
         size={size}
       >
