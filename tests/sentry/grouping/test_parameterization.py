@@ -32,6 +32,7 @@ standard_cases = [
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     ("url - with path", "http://dogsaregreat.com/adopt/dont/shop", "<url>"),
     ("url - with path/trailing slash", "http://dogsaregreat.com/adopt/dont/shop/", "<url>"),
+    ("url - with internal comma", "http://dogsaregreat.com?tricks=spin,kangaroo", "<url>"),
     ("url - with path/filename", "http://dogsaregreat.com/adopt/dont/shop.js", "<url>"),
     (
         "url - with querystring",
@@ -40,7 +41,9 @@ standard_cases = [
     ),
     ("url - with anchor", "http://dogsaregreat.com/adopt/dont/shop.html#shelters", "<url>"),
     ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
+    ("url - with encoding", "http://dogsaregreat.com/%F0%9F%90%B6", "<url>"),
     ("url - localhost", "http://localhost:8000", "<url>"),
+    ("url - single-segment domain", "http://dogserver", "<url>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
@@ -371,16 +374,46 @@ incorrect_cases = [
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
     ),
     (
-        "url - non-http protocol with username/password/port",
-        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
-        "<url> had a problem",
-        "tcp://charlie:<email>:<int> had a problem",
-    ),
-    (
         "url - tcp",
         "tcp://dogsaregreat.com:10",
         "<url>",
         "tcp://<hostname>:<int>",
+    ),
+    (
+        "url - one-character path",
+        "http://d ogsaregreat",
+        "<url> ogsaregreat",
+        "<url>",
+    ),
+    (
+        "url - filepath",
+        "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg",
+        "<url>",
+        "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg",
+    ),
+    (
+        "url - postgres",
+        "postgresql:///dogdb",
+        "<url>",
+        "postgresql:///dogdb",
+    ),
+    (
+        "url - app-specific scheme",
+        "best-dogs-app://number-one-dog",
+        "<url>",
+        "best-dogs-app://number-one-dog",
+    ),
+    (
+        "url - with trailing comma",
+        "http://dogsaregreat.com, http://numberonedog.com",
+        "<url>, <url>",
+        "<url> <url>",
+    ),
+    (
+        "url - with trailing period",
+        "The URL is http://dogsaregreat.com.",
+        "The URL is <url>.",
+        "The URL is <url>",
     ),
 ]
 

@@ -7,7 +7,7 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
 
 import DataConsentModal from 'getsentry/components/dataConsentModal';
 

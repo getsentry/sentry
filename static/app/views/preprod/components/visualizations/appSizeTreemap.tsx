@@ -102,7 +102,7 @@ function FullscreenModalContent({
             <Button
               onClick={() => handleSearchChange('')}
               aria-label="Clear search"
-              priority="transparent"
+              variant="transparent"
               size="zero"
             >
               <IconClose size="sm" />

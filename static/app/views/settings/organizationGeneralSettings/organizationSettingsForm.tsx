@@ -489,7 +489,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                         'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
                         {
                           link: (
-                            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
+                            <ExternalLink href="https://www.sentry.help/en/articles/13964423-can-i-update-my-sentry-organization-slug" />
                           ),
                         }
                       )}

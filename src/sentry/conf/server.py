@@ -543,6 +543,7 @@ CSP_CONNECT_SRC = [
     "*.algolia.net",
     "*.algolianet.com",
     "*.algolia.io",
+    "browser.sentry-cdn.com",
 ]
 CSP_FRAME_ANCESTORS = [
     "'none'",
@@ -867,6 +868,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.nodestore",
     "sentry.deletions.tasks.scheduled",
+    "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.per_org.tasks.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",

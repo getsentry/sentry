@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
 import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -57,7 +57,7 @@ function CommandPaletteSlotOutlets() {
 
 function UserAndOrganizationNavigation() {
   const {layout} = usePrimaryNavigation();
-  const {visible} = useGlobalModal();
+  const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
 
   const hasPageFrame = useHasPageFrameFeature();

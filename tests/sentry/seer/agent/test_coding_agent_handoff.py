@@ -52,7 +52,11 @@ class TestLaunchCodingAgents(TestCase):
         assert len(result["failures"]) == 0
         assert result["successes"][0]["repo_name"] == "owner/repo"
         mock_installation.launch.assert_called_once()
-        mock_store.assert_called_once()
+        mock_store.assert_called_once_with(
+            run_id=self.run_id,
+            coding_agent_states=[mock_installation.launch.return_value],
+            organization_id=self.organization.id,
+        )
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
@@ -105,6 +109,7 @@ class TestLaunchCodingAgents(TestCase):
         assert len(result["failures"]) == 1
         assert result["successes"][0]["repo_name"] == "owner/repo1"
         assert result["failures"][0]["repo_name"] == "owner/repo2"
+        assert mock_store.call_args.kwargs["organization_id"] == self.organization.id
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
@@ -127,6 +132,7 @@ class TestLaunchCodingAgents(TestCase):
         # Verify launch was called with a sanitized branch name
         launch_request = mock_installation.launch.call_args[0][0]
         assert launch_request.branch_name.startswith("my-fix-")
+        assert mock_store.call_args.kwargs["organization_id"] == self.organization.id
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
