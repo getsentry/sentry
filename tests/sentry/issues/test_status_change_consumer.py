@@ -527,6 +527,117 @@ class TestStatusChangeRegistry(IssueOccurrenceTestBase):
 
             mock_handler.assert_called_once_with(self.group, self.message, latest_activity)
 
+    def test_event_only_activity_type_creates_activity_without_status_change(self) -> None:
+        self.message["new_status"] = self.group.status
+        self.message["new_substatus"] = self.group.substatus
+        self.message["activity_type"] = ActivityType.AUTOFIX_PR_MERGED.value
+        self.message["activity_data"] = {"run_id": 42, "pr_url": "https://example.invalid/pr/1"}
+
+        previous_status = self.group.status
+        previous_substatus = self.group.substatus
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {"test_event_only": mock_handler}
+
+            update_status(self.group, self.message)
+
+            latest_activity = self.get_latest_activity(ActivityType.AUTOFIX_PR_MERGED)
+            assert latest_activity.data == {
+                "run_id": 42,
+                "pr_url": "https://example.invalid/pr/1",
+            }
+            mock_handler.assert_called_once_with(self.group, self.message, latest_activity)
+
+        self.group.refresh_from_db()
+        assert self.group.status == previous_status
+        assert self.group.substatus == previous_substatus
+
+    def test_event_only_unknown_activity_type_is_dropped(self) -> None:
+        self.message["new_status"] = self.group.status
+        self.message["new_substatus"] = self.group.substatus
+        self.message["activity_type"] = 99999  # not a real ActivityType value
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {"test_event_only": mock_handler}
+
+            update_status(self.group, self.message)
+            assert mock_handler.call_count == 0
+
+        assert not Activity.objects.filter(
+            group_id=self.group.id, type=ActivityType.AUTOFIX_PR_MERGED.value
+        ).exists()
+
+    def test_event_only_malformed_dict_activity_type_is_dropped(self) -> None:
+        # Non-int payloads (dict, list, string, etc.) would raise TypeError
+        # from ActivityType(...). Validate they're rejected without
+        # propagating an exception that would crash the consumer.
+        self.message["new_status"] = self.group.status
+        self.message["new_substatus"] = self.group.substatus
+        self.message["activity_type"] = {}  # type: ignore[typeddict-item]
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {"test_event_only": mock_handler}
+
+            update_status(self.group, self.message)
+            assert mock_handler.call_count == 0
+
+    def test_event_only_malformed_list_activity_type_is_dropped(self) -> None:
+        self.message["new_status"] = self.group.status
+        self.message["new_substatus"] = self.group.substatus
+        self.message["activity_type"] = []  # type: ignore[typeddict-item]
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {"test_event_only": mock_handler}
+
+            update_status(self.group, self.message)
+            assert mock_handler.call_count == 0
+
+    def test_event_only_malformed_string_activity_type_is_dropped(self) -> None:
+        self.message["new_status"] = self.group.status
+        self.message["new_substatus"] = self.group.substatus
+        self.message["activity_type"] = "30"  # type: ignore[typeddict-item]
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {"test_event_only": mock_handler}
+
+            update_status(self.group, self.message)
+            assert mock_handler.call_count == 0
+
+    def test_event_only_bool_activity_type_is_dropped(self) -> None:
+        # bool is a subclass of int and would otherwise coerce to 1/0 and
+        # match real ActivityType values.
+        self.message["new_status"] = self.group.status
+        self.message["new_substatus"] = self.group.substatus
+        self.message["activity_type"] = True  # type: ignore[typeddict-item]
+
+        with patch(
+            "sentry.issues.status_change_consumer.group_status_update_registry",
+        ) as mock_registry:
+            mock_handler = MagicMock()
+            mock_registry.registrations = {"test_event_only": mock_handler}
+
+            update_status(self.group, self.message)
+            assert mock_handler.call_count == 0
+
+        assert not Activity.objects.filter(
+            group_id=self.group.id, type=ActivityType.SET_RESOLVED.value
+        ).exists()
+
     def test_update_status_with_custom_update_date(self) -> None:
         self.message["new_status"] = GroupStatus.RESOLVED
         self.message["new_substatus"] = None

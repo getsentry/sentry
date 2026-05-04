@@ -22,7 +22,7 @@ from sentry.models.groupinbox import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.types.activity import ActivityType
+from sentry.types.activity import AUTOFIX_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import IGNORED_SUBSTATUS_CHOICES, GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.registry import Registry
@@ -30,10 +30,79 @@ from sentry.utils.registry import Registry
 logger = logging.getLogger(__name__)
 
 
+def _record_event_activity(
+    group: Group,
+    activity_type: ActivityType,
+    status_change: StatusChangeMessageData,
+) -> None:
+    """
+    Record an Activity row tied to ``group`` for an event-only
+    StatusChangeMessage (one that carries an explicit ``activity_type`` and
+    does not actually change the group's status).
+
+    Mirrors the activity-creation + handler-dispatch tail of ``update_status``
+    so the workflow engine and other registered handlers see these activities.
+    """
+    activity = Activity.objects.create_group_activity(
+        group=group,
+        type=activity_type,
+        data=status_change.get("activity_data"),
+    )
+
+    metrics.incr(
+        "workflow_engine.issue_platform.status_change_handler",
+        amount=len(group_status_update_registry.registrations.keys()),
+        tags={"activity_type": activity_type.value, "event_only": "true"},
+        sample_rate=1.0,
+    )
+    for handler in group_status_update_registry.registrations.values():
+        logger.info(
+            "group.status_change.activity_created.handler",
+            extra={
+                "group_id": group.id,
+                "activity_type": activity_type,
+                "event_only": True,
+            },
+        )
+        handler(group, status_change, activity)
+
+
 def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
     activity_type: ActivityType | None = None
     new_status = status_change["new_status"]
     new_substatus = status_change["new_substatus"]
+
+    # Event-only path: a StatusChangeMessage may carry an explicit
+    # `activity_type` to record an activity on the group without changing
+    # its status (used for autofix/Seer state transitions). Handle that
+    # branch before the status-equality early return below.
+    requested_activity_type_value = status_change.get("activity_type")
+    if requested_activity_type_value is not None:
+        is_int = isinstance(requested_activity_type_value, int)
+        is_bool = isinstance(requested_activity_type_value, bool)
+        if not is_int or is_bool:
+            logger.error(
+                "group.update_status.invalid_activity_type",
+                extra={
+                    "group_id": group.id,
+                    "activity_type": repr(requested_activity_type_value),
+                },
+            )
+            return
+        try:
+            requested_activity_type = ActivityType(requested_activity_type_value)
+        except ValueError:
+            logger.error(
+                "group.update_status.unknown_activity_type",
+                extra={
+                    "group_id": group.id,
+                    "activity_type": requested_activity_type_value,
+                },
+            )
+            return
+        if requested_activity_type in AUTOFIX_ACTIVITY_TYPES:
+            _record_event_activity(group, requested_activity_type, status_change)
+            return
 
     if group.status == new_status and group.substatus == new_substatus:
         return
@@ -247,6 +316,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "detector_id": payload.get("detector_id", None),
         "activity_data": payload.get("activity_data", None),
         "update_date": payload.get("update_date", None),
+        "activity_type": payload.get("activity_type", None),
     }
 
     process_occurrence_data(data)

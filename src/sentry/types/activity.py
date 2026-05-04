@@ -34,6 +34,9 @@ class ActivityType(Enum):
     DELETED_ATTACHMENT = 27
     REFERENCED_IN_COMMIT = 28
 
+    AUTOFIX_PR_CREATED = 29
+    AUTOFIX_PR_MERGED = 30
+
 
 # Warning: This must remain in this EXACT order.
 CHOICES = tuple(
@@ -67,6 +70,8 @@ CHOICES = tuple(
         ActivityType.SET_PRIORITY,  # 26
         ActivityType.DELETED_ATTACHMENT,  # 27
         ActivityType.REFERENCED_IN_COMMIT,  # 28
+        ActivityType.AUTOFIX_PR_CREATED,  # 29
+        ActivityType.AUTOFIX_PR_MERGED,  # 30
     ]
 )
 
@@ -81,4 +86,13 @@ STATUS_CHANGE_ACTIVITY_TYPES = (
     ActivityType.SET_RESOLVED_IN_COMMIT,
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
     ActivityType.SET_ESCALATING,
+)
+
+
+# Activity types that record autofix/Seer state transitions on an issue.
+# These do NOT change the group's status — they exist purely to drive the
+# activity timeline, workflow engine, and notification platform.
+AUTOFIX_ACTIVITY_TYPES = (
+    ActivityType.AUTOFIX_PR_CREATED,
+    ActivityType.AUTOFIX_PR_MERGED,
 )
