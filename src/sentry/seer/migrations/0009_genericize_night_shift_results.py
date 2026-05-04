@@ -201,9 +201,4 @@ class Migration(CheckedMigration):
             name="error_message",
             deletion_action=DeletionAction.MOVE_TO_PENDING,
         ),
-        migrations.AlterField(
-            model_name="seernightshiftrunresult",
-            name="kind",
-            field=models.CharField(max_length=256),
-        ),
     ]
