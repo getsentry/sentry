@@ -30,7 +30,7 @@ class AtlassianConnectTest(TestCase):
         self.valid_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6MTIzIiwiaWF0IjoxMjM0NTY3ODkwLCJleHAiOjk5OTk5OTk5OTksInFzaCI6IjM2ZjQzYjg4ZDZhOGNkZjg5YmI4Zjc0NGUyMzc4YmIwY2ViNjM3OGU4MGFiMGI1MTMwODJhOGI3MjM5NmJjY2MiLCJzdWIiOiJjb25uZWN0OjEyMyJ9.DjaYGvzLDO0RWTbNRHk3jyXsUvo9Jb7fAP8hguqpMvE"
         self.unknown_issuer_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6dW5rbm93biIsImlhdCI6MTIzNDU2Nzg5MCwiZXhwIjo5OTk5OTk5OTk5LCJxc2giOiIzNmY0M2I4OGQ2YThjZGY4OWJiOGY3NDRlMjM3OGJiMGNlYjYzNzhlODBhYjBiNTEzMDgyYThiNzIzOTZiY2NjIiwic3ViIjoiY29ubmVjdDoxMjMifQ.dhIYA45uNkp4jONnpniNeW-k7E3dywJhPzMI55KVlus"
         self.invalid_secret_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6MTIzIiwiaWF0IjoxMjM0NTY3ODkwLCJleHAiOjk5OTk5OTk5OTksInFzaCI6IjM2ZjQzYjg4ZDZhOGNkZjg5YmI4Zjc0NGUyMzc4YmIwY2ViNjM3OGU4MGFiMGI1MTMwODJhOGI3MjM5NmJjY2MiLCJzdWIiOiJjb25uZWN0OjEyMyJ9.7nGQQWUeXewnfL8_yvwzLGyf_rgkGdaQxKbDoi7tu_g"
-
+        self.none_alg_jwt = "eyJ0eXAiOiAiSldUIiwgImFsZyI6ICJub25lIn0.eyJpc3MiOiAidGVzdHNlcnZlci5qaXJhOjEyMyIsICJpYXQiOiAxMjM0NTY3ODkwLCAiZXhwIjogOTk5OTk5OTk5OSwgInFzaCI6ICIzNmY0M2I4OGQ2YThjZGY4OWJiOGY3NDRlMjM3OGJiMGNlYjYzNzhlODBhYjBiNTEzMDgyYThiNzIzOTZiY2NjIiwgInN1YiI6ICJjb25uZWN0OjEyMyJ9."
         self.expired_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6MTIzIiwiaWF0IjoxMjM0NTY3ODkwLCJleHAiOjEyMzQ1Njc4OTAsInFzaCI6IjM2ZjQzYjg4ZDZhOGNkZjg5YmI4Zjc0NGUyMzc4YmIwY2ViNjM3OGU4MGFiMGI1MTMwODJhOGI3MjM5NmJjY2MiLCJzdWIiOiJjb25uZWN0OjEyMyJ9.1ZIrXDbaS6nUMgtmdCE1BFbsT7yvNKTkzVnSjX-Q7TA"
 
     def test_get_token_success(self) -> None:
@@ -62,6 +62,17 @@ class AtlassianConnectTest(TestCase):
             method=self.method,
         )
         assert integration.id == self.integration.id
+
+    def test_get_integration_from_jwt_rejects_non_hs256_algorithm(self) -> None:
+        # JWT with alg=none and a valid issuer — must be rejected
+        with pytest.raises(AtlassianConnectValidationError, match="Invalid algorithm"):
+            get_integration_from_jwt(
+                token=self.none_alg_jwt,
+                path=self.path,
+                provider=self.provider,
+                query_params=self.query_params,
+                method=self.method,
+            )
 
     def test_get_integration_from_jwt_failure(self) -> None:
         try:
