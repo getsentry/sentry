@@ -13,7 +13,7 @@ from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestEx
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
-from sentry import analytics, features, nodestore
+from sentry import analytics, nodestore, options
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
     AlertRuleUiComponentWebhookSentEvent,
 )
@@ -45,7 +45,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
-from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
@@ -748,15 +747,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 def _is_sentry_app_disabled_for_webhooks(sentry_app: RpcSentryApp) -> bool:
     if not sentry_app.is_disabled:
         return False
-    owner_context = organization_service.get_organization_by_id(
-        id=sentry_app.owner_id, user_id=None, include_projects=False, include_teams=False
-    )
-    if owner_context and features.has(
-        "organizations:sentry-app-disabled-enforcement",
-        owner_context.organization,
-    ):
-        return True
-    return False
+    return options.get("sentry-apps.disabled-enforcement")
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:

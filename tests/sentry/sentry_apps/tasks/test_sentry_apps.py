@@ -51,6 +51,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -2111,7 +2112,7 @@ class TestSendMetricAlertWebhook(TestCase):
         assert len(ui_component_calls) == 0
 
 
-FEATURE_FLAG = "organizations:sentry-app-disabled-enforcement"
+DISABLED_OPTION = {"sentry-apps.disabled-enforcement": True}
 
 
 def disable_app(app: SentryApp) -> None:
@@ -2132,7 +2133,7 @@ class TestDisabledSentryAppWebhooks(TestCase):
         )
         self.issue = self.create_group(project=self.project)
 
-    @with_feature(FEATURE_FLAG)
+    @override_options(DISABLED_OPTION)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_workflow_notification_blocked_for_disabled_app(
@@ -2145,7 +2146,7 @@ class TestDisabledSentryAppWebhooks(TestCase):
             mock_record=mock_record, error_msg=SentryAppWebhookHaltReason.APP_DISABLED
         )
 
-    @with_feature(FEATURE_FLAG)
+    @override_options(DISABLED_OPTION)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_send_alert_webhook_v2_blocked_for_disabled_app(
@@ -2166,7 +2167,7 @@ class TestDisabledSentryAppWebhooks(TestCase):
             mock_record=mock_record, error_msg=SentryAppWebhookHaltReason.APP_DISABLED
         )
 
-    @with_feature(FEATURE_FLAG)
+    @override_options(DISABLED_OPTION)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_send_metric_alert_webhook_blocked_for_disabled_app(
