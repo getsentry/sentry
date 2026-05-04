@@ -566,8 +566,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enables the uploading of minidump attachments to the objectstore.
     manager.add("projects:relay-minidump-attachment-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
-    # Enable supergroup RCA embedding generation from autofix explorer runs
-    manager.add("projects:supergroup-embeddings-explorer", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
