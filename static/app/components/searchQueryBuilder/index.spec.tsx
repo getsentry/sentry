@@ -4056,6 +4056,18 @@ describe('SearchQueryBuilder', () => {
         expect(await screen.findByText('$100')).toBeInTheDocument();
       });
 
+      it('span GenAI cost filters render with a $ prefix when absent from filter keys', async () => {
+        render(
+          <SearchQueryBuilder
+            {...spanCurrencyProps}
+            filterKeys={{}}
+            initialQuery={`${SpanFields.GEN_AI_COST_TOTAL_TOKENS}:>100`}
+          />
+        );
+
+        expect(await screen.findByText('$100')).toBeInTheDocument();
+      });
+
       it('span GenAI cost aggregate filters render with a $ prefix', async () => {
         render(
           <SearchQueryBuilder
