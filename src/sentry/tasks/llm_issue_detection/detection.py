@@ -299,14 +299,12 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     except Organization.DoesNotExist:
         return
 
-    project_ids = [
-        pid
-        for pid, flags in Project.objects.filter(
+    project_ids = list(
+        Project.objects.filter(
             organization_id=org_id,
             status=ObjectStatus.ACTIVE,
-        ).values_list("id", "flags")
-        if flags & Project.flags.has_transactions
-    ]
+        ).values_list("id", flat=True)
+    )
     if not project_ids:
         return
 
