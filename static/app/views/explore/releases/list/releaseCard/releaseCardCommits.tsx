@@ -15,7 +15,7 @@ type Props = {
   withHeading: boolean;
 };
 
-export function ReleaseCardCommits({release, withHeading = true}: Props) {
+export function ReleaseCardCommits({release, withHeading}: Props) {
   const commitCount = release.commitCount || 0;
   const authorCount = release.authors?.length || 0;
 

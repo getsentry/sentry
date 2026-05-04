@@ -9,6 +9,16 @@ import {DisplayType} from './types';
 
 const ALICE = {id: '1', name: 'Alice', email: 'alice@example.com'};
 const BOB = {id: '2', name: 'Bob', email: 'bob@example.com'};
+const CAROL = {
+  id: '3',
+  name: 'Carol',
+  email: 'carol@example.com',
+  avatar: {
+    avatarType: 'upload' as const,
+    avatarUrl: 'https://gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=120',
+    avatarUuid: null,
+  },
+};
 const DATE = '2024-06-01T10:00:00Z';
 const DATE_OLDER = '2024-05-28T09:00:00Z';
 const DASHBOARD_ID = 'demo';
@@ -120,6 +130,28 @@ export default Storybook.story('RevisionListItem', story => {
           dateCreated={null}
           dashboardId={DASHBOARD_ID}
           baseRevisionId="prev"
+          snapshotOverride={snapshot}
+          baseSnapshotOverride={prevSnapshot}
+        />
+      </ItemContainer>
+    );
+  });
+
+  story('With avatar', () => {
+    const [selected, setSelected] = useState(false);
+    const snapshot = base();
+    const prevSnapshot = base({title: 'Old Title'});
+    return (
+      <ItemContainer>
+        <RevisionListItem
+          isSelected={selected}
+          onSelect={() => setSelected(s => !s)}
+          revisionSource="edit"
+          createdBy={CAROL}
+          dateCreated={DATE}
+          dashboardId={DASHBOARD_ID}
+          baseRevisionId="prev"
+          revisionId="rev-avatar"
           snapshotOverride={snapshot}
           baseSnapshotOverride={prevSnapshot}
         />

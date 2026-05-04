@@ -90,7 +90,7 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      priority="transparent"
+      variant="transparent"
       icon={
         <IconStar
           variant={favorited ? 'warning' : 'muted'}
@@ -283,7 +283,7 @@ function DashboardTable({
                       onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
                     });
                   }}
-                  priority="transparent"
+                  variant="transparent"
                   aria-label={t('Duplicate Dashboard')}
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
@@ -304,14 +304,12 @@ function DashboardTable({
                   onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
                 });
               }}
-              priority="transparent"
+              variant="transparent"
               aria-label={t('Delete Dashboard')}
               data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
-              disabled={
-                (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
-              }
+              disabled={defined(dataRow.prebuiltId)}
               tooltipProps={{
                 title: defined(dataRow.prebuiltId)
                   ? tct('[label] dashboards cannot be deleted', {

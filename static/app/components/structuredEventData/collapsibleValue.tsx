@@ -64,7 +64,7 @@ export function CollapsibleValue({
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
-          priority="transparent"
+          variant="transparent"
           data-base-with-toggle={baseLevelPadding}
         />
       ) : null}
@@ -73,7 +73,7 @@ export function CollapsibleValue({
       {shouldShowToggleButton && !isExpanded ? (
         <NumItemsButton
           size="zero"
-          priority="transparent"
+          variant="transparent"
           onClick={() => {
             expand();
             setIsExpanded(true);

@@ -3,14 +3,19 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+
 from sentry.api.event_search import SearchFilter
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.occurrences.attributes import OCCURRENCE_ATTRIBUTE_DEFINITIONS
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.constants import TAG_KEY_RE
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.utils.cursors import Cursor
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +61,18 @@ AGGREGATION_FIELD_TO_EAP_FUNCTION: dict[str, str] = {
     "user_count": "count_unique(user)",
 }
 
+# Upper bound on the grouped count query used when the query contains aggregation
+# filters. The legacy path caps similar totals via too_many_candidates handling; the
+# UI does not meaningfully distinguish between very large result counts.
+EAP_COUNT_QUERY_MAX_LIMIT = 10000
+
+# Sort fields whose legacy aggregations multiply timestamps by 1000 to return
+# milliseconds (see executors.py:864-865). EAP's first_seen() / last_seen() are
+# plain min/max on `timestamp`, which is stored in seconds. We rescale on both
+# sides — cursor values ms → s when filtering, and returned scores s → ms when
+# returning — so the caller sees the same units as the legacy path.
+MS_SCORE_SORT_FIELDS: frozenset[str] = frozenset({"first_seen", "last_seen"})
+
 
 def search_filters_to_query_string(
     search_filters: Sequence[SearchFilter],
@@ -95,6 +112,13 @@ def _convert_single_filter(sf: SearchFilter) -> str | None:
 
     if key in TRANSLATE_KEYS:
         key = TRANSLATE_KEYS[key]
+
+    # User-defined tags (keys not defined as known EAP occurrence attributes)
+    # need to be wrapped as `tags[{key}]` so the SearchResolver parses them as
+    # tag filters. OCCURRENCE_DEFINITIONS.alias_to_column then maps the tag
+    # name to the EAP ingestion format `attr[{key}]` (see item_helpers.py).
+    if key not in OCCURRENCE_ATTRIBUTE_DEFINITIONS and not TAG_KEY_RE.match(key):
+        key = f"tags[{key}]"
 
     # has / !has filters: empty string value with = or !=
     if raw_value == "" and op in ("=", "!="):
@@ -196,11 +220,14 @@ def _format_string_value(s: str) -> str:
 #   "trends" → "trends"   → complex ClickHouse expression (not supported)
 #   "recommended" → "recommended" → complex ClickHouse expression (not supported)
 #   "inbox" → ""          → Postgres only (not supported)
+#
+# group_id is included as a secondary orderby tiebreaker for stable ordering
+# within the same score, matching the legacy `[f"-{sort_field}", "group_id"]`.
 EAP_SORT_STRATEGIES: dict[str, tuple[list[str], list[str]]] = {
-    "last_seen": (["group_id", "last_seen()"], ["-last_seen()"]),
-    "times_seen": (["group_id", "count()"], ["-count()"]),
-    "first_seen": (["group_id", "first_seen()"], ["-first_seen()"]),
-    "user_count": (["group_id", "count_unique(user)"], ["-count_unique(user)"]),
+    "last_seen": (["group_id", "last_seen()"], ["-last_seen()", "group_id"]),
+    "times_seen": (["group_id", "count()"], ["-count()", "group_id"]),
+    "first_seen": (["group_id", "first_seen()"], ["-first_seen()", "group_id"]),
+    "user_count": (["group_id", "count_unique(user)"], ["-count_unique(user)", "group_id"]),
 }
 
 
@@ -211,6 +238,7 @@ def run_eap_group_search(
     environment_ids: Sequence[int] | None,
     sort_field: str,
     organization: Organization,
+    cursor: Cursor | None = None,
     group_ids: Sequence[int] | None = None,
     limit: int | None = None,
     offset: int = 0,
@@ -249,6 +277,7 @@ def run_eap_group_search(
     )
 
     query_string = search_filters_to_query_string(search_filters or [])
+    query_string = _append_cursor_filter(query_string, cursor, sort_field)
 
     extra_conditions = None
     if group_ids:
@@ -283,9 +312,94 @@ def run_eap_group_search(
         group_id = row.get("group_id")
         score = row.get(score_column)
         if group_id is not None:
+            if sort_field in MS_SCORE_SORT_FIELDS and score is not None:
+                score = int(score * 1000)
             tuples.append((int(group_id), score))
 
-    # TODO: the EAP RPC TraceItemTableResponse does not include a total count
-    # (unlike Snuba's totals=True). During double-reading the legacy result
-    # provides the real total, so we return 0 here.
-    return (tuples, 0)
+    # The EAP RPC TraceItemTableResponse does not include a total count
+    # (unlike Snuba's totals=True), so we issue a separate aggregate query.
+    # When the query contains aggregation filters (HAVING) — either user-supplied
+    # or an appended cursor filter — we must use a grouped count query to match
+    # the legacy `after_having_exclusive` totals semantics. Otherwise the cheap
+    # count_unique(group_id) would treat the aggregation filter as a global
+    # condition instead of a per-group one.
+    needs_grouped_count = (
+        any(sf.key.name in AGGREGATION_FIELD_TO_EAP_FUNCTION for sf in (search_filters or []))
+        or cursor is not None
+    )
+    total = _get_total_count(
+        snuba_params=snuba_params,
+        query_string=query_string,
+        extra_conditions=extra_conditions,
+        referrer=referrer,
+        organization_id=organization.id,
+        needs_grouped_count=needs_grouped_count,
+    )
+
+    return (tuples, total)
+
+
+def _append_cursor_filter(query_string: str, cursor: Cursor | None, sort_field: str) -> str:
+    """
+    Append an aggregation filter replicating the legacy cursor HAVING clause.
+
+    Legacy behavior (executors.py): having.append((sort_field, ">=" if is_prev else "<=", value))
+    EAP equivalent: append {sort_function}:{>=|<=}{cursor.value} to the query string, which
+    the SearchResolver parses as an AggregateFilter → routed to the RPC's aggregation_filter.
+    """
+    if cursor is None:
+        return query_string
+
+    sort_function = EAP_SORT_STRATEGIES[sort_field][0][1]  # e.g. "last_seen()" or "count()"
+    operator = ">=" if cursor.is_prev else "<="
+    cursor_value = cursor.value
+    if sort_field in MS_SCORE_SORT_FIELDS:
+        cursor_value = float(cursor_value) / 1000
+    cursor_filter = f"{sort_function}:{operator}{cursor_value}"
+    return f"{query_string} {cursor_filter}".strip()
+
+
+def _get_total_count(
+    *,
+    snuba_params: SnubaParams,
+    query_string: str,
+    extra_conditions: TraceItemFilter | None,
+    referrer: str,
+    organization_id: int,
+    needs_grouped_count: bool,
+) -> int:
+    """Calculate the total count of matching groups for the given query."""
+    try:
+        if needs_grouped_count:
+            count_result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=query_string,
+                selected_columns=["group_id", "count()"],
+                orderby=None,
+                offset=0,
+                limit=EAP_COUNT_QUERY_MAX_LIMIT,
+                referrer=referrer,
+                config=SearchResolverConfig(),
+                extra_conditions=extra_conditions,
+            )
+            return len(count_result.get("data", []))
+
+        count_result = Occurrences.run_table_query(
+            params=snuba_params,
+            query_string=query_string,
+            selected_columns=["count_unique(group_id)"],
+            orderby=None,
+            offset=0,
+            limit=1,
+            referrer=referrer,
+            config=SearchResolverConfig(),
+            extra_conditions=extra_conditions,
+        )
+        if count_result["data"]:
+            return int(count_result["data"][0].get("count_unique(group_id)", 0))
+    except Exception:
+        logger.exception(
+            "eap.search_executor.count_query_failed",
+            extra={"organization_id": organization_id, "referrer": referrer},
+        )
+    return 0

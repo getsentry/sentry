@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {isMac as detectIsMac} from '@react-aria/utils';
 
 import {toArray} from 'sentry/utils/array/toArray';
 
@@ -28,12 +27,10 @@ interface HotkeyProps {
 }
 
 export function Hotkey({value, variant}: HotkeyProps) {
-  const isMac = detectIsMac();
-
   const keySets = toArray(value).map(v => v.trim().split('+'));
 
   // Resolve glyphs for each key set
-  const resolved = keySets.map(keys => keys.map(key => resolveKeyGlyph(key, isMac)));
+  const resolved = keySets.map(keys => keys.map(key => resolveKeyGlyph(key)));
 
   // If multiple combos provided, prefer the first one.
   // (With auto platform mapping, a single string works cross-platform,

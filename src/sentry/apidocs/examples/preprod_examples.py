@@ -116,6 +116,7 @@ class PreprodExamples:
         "buildConfiguration": "release",
         "isInstallable": True,
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=apk",
+        "installUrlExpiresAt": "2025-01-15T22:30:00+00:00",
         "downloadCount": 5,
         "releaseNotes": "Bug fixes and performance improvements.",
         "installGroups": ["beta-testers"],
@@ -135,6 +136,7 @@ class PreprodExamples:
         "buildConfiguration": None,
         "isInstallable": False,
         "installUrl": None,
+        "installUrlExpiresAt": None,
         "downloadCount": 0,
         "releaseNotes": None,
         "installGroups": None,
@@ -157,6 +159,7 @@ class PreprodExamples:
         "buildConfiguration": "release",
         "isInstallable": True,
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=plist",
+        "installUrlExpiresAt": "2025-01-15T22:30:00+00:00",
         "downloadCount": 3,
         "releaseNotes": None,
         "installGroups": None,
@@ -197,6 +200,7 @@ class PreprodExamples:
         "buildConfiguration": "release",
         "isInstallable": True,
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=apk",
+        "installUrlExpiresAt": "2025-01-15T22:30:00+00:00",
         "downloadCount": 5,
         "releaseNotes": "Bug fixes and performance improvements.",
         "installGroups": ["beta-testers"],
@@ -222,6 +226,34 @@ class PreprodExamples:
     EXAMPLE_NO_UPDATE = {
         "latestArtifact": EXAMPLE_BUILD_SUMMARY,
         "currentArtifact": EXAMPLE_BUILD_SUMMARY,
+    }
+
+    EXAMPLE_SIZE_STATUS_CHECK_RULES = {
+        "enabled": True,
+        "rules": [
+            {
+                "id": "rule-1",
+                "metric": "install_size",
+                "measurement": "absolute_diff",
+                "value": "5000000",
+                "filterQuery": "app_id:com.example.app platform_name:apple build_configuration_name:Release",
+                "filters": [
+                    {
+                        "key": "app_id",
+                        "conditions": [{"operator": "equals", "values": ["com.example.app"]}],
+                    },
+                    {
+                        "key": "platform_name",
+                        "conditions": [{"operator": "equals", "values": ["apple"]}],
+                    },
+                    {
+                        "key": "build_configuration_name",
+                        "conditions": [{"operator": "equals", "values": ["Release"]}],
+                    },
+                ],
+                "artifactType": "main_artifact",
+            }
+        ],
     }
 
     GET_LATEST_BUILD = [
@@ -267,6 +299,15 @@ class PreprodExamples:
         OpenApiExample(
             "Completed Analysis with Comparison",
             value=EXAMPLE_SIZE_ANALYSIS_COMPLETED_WITH_COMPARISON,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    GET_SIZE_STATUS_CHECK_RULES = [
+        OpenApiExample(
+            "Configured Size Analysis Status Check Rules",
+            value=EXAMPLE_SIZE_STATUS_CHECK_RULES,
             status_codes=["200"],
             response_only=True,
         ),

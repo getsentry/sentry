@@ -6,6 +6,7 @@ from sentry.search.eap.occurrences.search_executor import (
     search_filters_to_query_string,
 )
 from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, TestCase
+from sentry.utils.cursors import Cursor
 
 
 class TestSearchFiltersToQueryString:
@@ -13,10 +14,22 @@ class TestSearchFiltersToQueryString:
         cases = [
             (SearchFilter(SearchKey("level"), "=", SearchValue("error")), "level:error"),
             (SearchFilter(SearchKey("level"), "!=", SearchValue("error")), "!level:error"),
-            (SearchFilter(SearchKey("count"), ">", SearchValue("5")), "count:>5"),
-            (SearchFilter(SearchKey("count"), ">=", SearchValue("5")), "count:>=5"),
-            (SearchFilter(SearchKey("count"), "<", SearchValue("5")), "count:<5"),
-            (SearchFilter(SearchKey("count"), "<=", SearchValue("5")), "count:<=5"),
+            (
+                SearchFilter(SearchKey("exception_count"), ">", SearchValue("5")),
+                "exception_count:>5",
+            ),
+            (
+                SearchFilter(SearchKey("exception_count"), ">=", SearchValue("5")),
+                "exception_count:>=5",
+            ),
+            (
+                SearchFilter(SearchKey("exception_count"), "<", SearchValue("5")),
+                "exception_count:<5",
+            ),
+            (
+                SearchFilter(SearchKey("exception_count"), "<=", SearchValue("5")),
+                "exception_count:<=5",
+            ),
             (
                 SearchFilter(SearchKey("level"), "IN", SearchValue(["error", "warning"])),
                 "level:[error, warning]",
@@ -47,17 +60,30 @@ class TestSearchFiltersToQueryString:
                 'message:"foo \\"bar\\""',
             ),
             # Numeric values
-            (SearchFilter(SearchKey("count"), "=", SearchValue(42)), "count:42"),
-            (SearchFilter(SearchKey("count"), ">", SearchValue(3.14)), "count:>3.14"),
+            (
+                SearchFilter(SearchKey("exception_count"), "=", SearchValue(42)),
+                "exception_count:42",
+            ),
+            (
+                SearchFilter(SearchKey("exception_count"), ">", SearchValue(3.14)),
+                "exception_count:>3.14",
+            ),
             # Datetime values
             (
                 SearchFilter(SearchKey("timestamp"), ">", SearchValue(dt)),
                 "timestamp:>2024-01-15T12:00:00+00:00",
             ),
-            # Tags pass through
+            # User-defined tags are wrapped as `tags[...]` so the SearchResolver
+            # parses them as tag filters. OCCURRENCE_DEFINITIONS.alias_to_column
+            # maps the tag name to `attr[{name}]` at resolve time to match EAP's
+            # ingestion format.
             (
                 SearchFilter(SearchKey("tags[browser]"), "=", SearchValue("chrome")),
                 "tags[browser]:chrome",
+            ),
+            (
+                SearchFilter(SearchKey("service"), "=", SearchValue("api-gateway")),
+                "tags[service]:api-gateway",
             ),
         ]
         for sf, expected in cases:
@@ -180,7 +206,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         self.store_eap_items([occ])
 
     def test_last_seen_sort(self) -> None:
-        result, _ = run_eap_group_search(
+        result, total = run_eap_group_search(
             start=self.start,
             end=self.end,
             project_ids=[self.project.id],
@@ -193,9 +219,10 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert len(group_ids) == 2
         assert group_ids[0] == self.group1.id
         assert group_ids[1] == self.group2.id
+        assert total == 2
 
     def test_times_seen_sort(self) -> None:
-        result, _ = run_eap_group_search(
+        result, total = run_eap_group_search(
             start=self.start,
             end=self.end,
             project_ids=[self.project.id],
@@ -208,9 +235,10 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert len(group_ids) == 2
         assert group_ids[0] == self.group1.id
         assert group_ids[1] == self.group2.id
+        assert total == 2
 
     def test_first_seen_sort(self) -> None:
-        result, _ = run_eap_group_search(
+        result, total = run_eap_group_search(
             start=self.start,
             end=self.end,
             project_ids=[self.project.id],
@@ -223,6 +251,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert len(group_ids) == 2
         assert group_ids[0] == self.group1.id
         assert group_ids[1] == self.group2.id
+        assert total == 2
 
     def test_user_count_sort(self) -> None:
         group3 = self.create_group(project=self.project)
@@ -243,7 +272,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         )
         self.store_eap_items([occ])
 
-        result, _ = run_eap_group_search(
+        result, total = run_eap_group_search(
             start=self.start,
             end=self.end,
             project_ids=[self.project.id],
@@ -256,6 +285,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert len(group_ids) == 2
         assert group_ids[0] == group3.id
         assert group_ids[1] == self.group1.id
+        assert total == 3
 
     def test_unsupported_sort_returns_empty(self) -> None:
         result, total = run_eap_group_search(
@@ -271,7 +301,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert total == 0
 
     def test_filter_narrows_results(self) -> None:
-        result, _ = run_eap_group_search(
+        result, total = run_eap_group_search(
             start=self.start,
             end=self.end,
             project_ids=[self.project.id],
@@ -283,9 +313,10 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         )
         group_ids = {gid for gid, _ in result}
         assert group_ids == {self.group1.id}
+        assert total == 1
 
     def test_group_id_pre_filter(self) -> None:
-        result, _ = run_eap_group_search(
+        result, total = run_eap_group_search(
             start=self.start,
             end=self.end,
             project_ids=[self.project.id],
@@ -296,6 +327,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
             referrer="test",
         )
         assert {gid for gid, _ in result} == {self.group1.id}
+        assert total == 1
 
     def test_environment_filter(self) -> None:
         env = self.create_environment(project=self.project, name="production")
@@ -315,7 +347,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         )
         self.store_eap_items([occ2])
 
-        result, _ = run_eap_group_search(
+        result, total = run_eap_group_search(
             start=self.start,
             end=self.end,
             project_ids=[self.project.id],
@@ -327,6 +359,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         group_ids = {gid for gid, _ in result}
         assert self.group1.id in group_ids
         assert self.group2.id not in group_ids
+        assert total == 1
 
     def test_sort_and_filter(self) -> None:
         group3 = self.create_group(project=self.project)
@@ -338,7 +371,7 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
             )
             self.store_eap_items([occ])
 
-        result, _ = run_eap_group_search(
+        result, total = run_eap_group_search(
             start=self.start,
             end=self.end,
             project_ids=[self.project.id],
@@ -354,3 +387,94 @@ class TestRunEAPGroupSearch(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert group_ids[0] == group3.id
         assert group_ids[1] == self.group1.id
         assert self.group2.id not in group_ids
+        assert total == 2
+
+    def test_total_with_aggregation_filter(self) -> None:
+        # setUp: group1 has 3 occurrences, group2 has 1.
+        # With times_seen:>2 only group1 passes.
+        result, total = run_eap_group_search(
+            start=self.start,
+            end=self.end,
+            project_ids=[self.project.id],
+            environment_ids=None,
+            sort_field="times_seen",
+            organization=self.organization,
+            search_filters=[SearchFilter(SearchKey("times_seen"), ">", SearchValue("2"))],
+            referrer="test",
+        )
+        group_ids = {gid for gid, _ in result}
+        assert group_ids == {self.group1.id}
+        assert total == 1
+
+    def test_cursor_next_page_filters_by_score(self) -> None:
+        # First: get the actual last_seen scores from an unfiltered query.
+        result, _ = run_eap_group_search(
+            start=self.start,
+            end=self.end,
+            project_ids=[self.project.id],
+            environment_ids=None,
+            sort_field="last_seen",
+            organization=self.organization,
+            referrer="test",
+        )
+        assert len(result) == 2
+        # group1 has the higher score (more recent). Use group2's score as the
+        # cursor — the "next page" should exclude group1 (score > cursor) but
+        # include group2 (score == cursor).
+        group2_score = next(score for gid, score in result if gid == self.group2.id)
+
+        cursor_result, _ = run_eap_group_search(
+            start=self.start,
+            end=self.end,
+            project_ids=[self.project.id],
+            environment_ids=None,
+            sort_field="last_seen",
+            organization=self.organization,
+            cursor=Cursor(value=group2_score, offset=0, is_prev=False),
+            referrer="test",
+        )
+        cursor_group_ids = {gid for gid, _ in cursor_result}
+        assert cursor_group_ids == {self.group2.id}
+
+    def test_cursor_prev_page_filters_by_score(self) -> None:
+        result, _ = run_eap_group_search(
+            start=self.start,
+            end=self.end,
+            project_ids=[self.project.id],
+            environment_ids=None,
+            sort_field="last_seen",
+            organization=self.organization,
+            referrer="test",
+        )
+        group1_score = next(score for gid, score in result if gid == self.group1.id)
+
+        cursor_result, _ = run_eap_group_search(
+            start=self.start,
+            end=self.end,
+            project_ids=[self.project.id],
+            environment_ids=None,
+            sort_field="last_seen",
+            organization=self.organization,
+            cursor=Cursor(value=group1_score, offset=0, is_prev=True),
+            referrer="test",
+        )
+        cursor_group_ids = {gid for gid, _ in cursor_result}
+        # Only group1 has score >= group1_score
+        assert cursor_group_ids == {self.group1.id}
+
+    def test_last_seen_score_is_milliseconds(self) -> None:
+        result, _ = run_eap_group_search(
+            start=self.start,
+            end=self.end,
+            project_ids=[self.project.id],
+            environment_ids=None,
+            sort_field="last_seen",
+            organization=self.organization,
+            referrer="test",
+        )
+        group1_score = next(score for gid, score in result if gid == self.group1.id)
+        # group1's newest event is self.now - 5min. In ms that's ~1.7e12; in
+        # seconds it would be ~1.7e9. Only the ms range matches reality.
+        assert group1_score >= 10**12
+        expected_ms = int((self.now - timedelta(minutes=5)).timestamp() * 1000)
+        assert abs(group1_score - expected_ms) < 2000

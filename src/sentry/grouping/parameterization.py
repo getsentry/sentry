@@ -236,8 +236,18 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (::[fF]{4}:)? # Optional prefix mapping the IPv4 address which follows to IPv6 format
             (
                 \b
-                (\d{1,3}\.){3} # Three sets of 1-3 digits, each followed by a literal dot
-                \d{1,3} # Final set of 1-3 digits
+                # Three numbers from 0-255, each followed by a literal dot, no leading zeros allowed
+                (
+                    (
+                        \d | # 0-9
+                        [1-9]\d | # 10-99
+                        1\d{2} | # 100-199
+                        2[0-4]\d | # 200-249
+                        25[0-5] # 250-255
+                    )\.
+                ){3}
+                # Final number from 0-255 (same pattern alternatives as above)
+                (\d | [1-9]\d | 1\d{2} | 2[0-4]\d | 25[0-5])
                 (/\d{1,2})? # Optional CIDR suffix
                 \b
             )
@@ -296,13 +306,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # and number if shorter than 8 characters, and either all uppercase or all lowercase -
             # we're more conservative here in order to reduce false positives).
             (
-                # Regular word boundary (for positive values)
-                \b
+                # For positive values, a negative lookbehind to create a word boundary but with
+                # underscores allowed (to permit things like `some_file_31d12.py`)
+                (?<![a-zA-Z0-9])
                 |
-                # Alphanumeric negative lookbehind before the dash in negative values to ensure it's
-                # only considered a minus sign if it doesn't connect two alphanumeric strings. (No
-                # word boundary here because the dash serves as the word boundary, since it's not a
-                # word character.)
+                # For negative values, an alphanumeric negative lookbehind before the dash to ensure
+                # it's only considered a minus sign if it doesn't connect two alphanumeric strings
                 (?<!\w)-
             )
             (
@@ -325,7 +334,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 [0-9a-f]{8,128} |
                 [0-9A-F]{8,128}
             )
-            \b
+            # Negative lookahead similar to the negative lookbehind for positive values above - \b,
+            # but with underscores allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(
@@ -375,15 +386,19 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         name="int",
         raw_pattern=r"""
             (
-                # Regular word boundary for positive ints
-                \b
+                # For positive values, a negative lookbehind to create a word boundary but with
+                # underscores allowed (to permit things like `some_file_1121.py`)
+                (?<![a-zA-Z0-9])
                 |
-                # Alphanumeric negative lookbehind before the dash in negative ints (logic the same
-                # as in the hex pattern above)
+                # For negative values, an alphanumeric negative lookbehind before the dash to ensure
+                # it's only considered a minus sign if it doesn't connect two alphanumeric strings
                 (?<!\w)-
             )
-            \d{1,7} # Anything 8 digits and up is considered hex
-            \b
+            # The value itself (with a count limit because anything with 8+ digits is considered hex)
+            \d{1,7}
+            # Negative lookahead similar to the negative lookbehind for positive values above - \b,
+            # but with underscores allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(

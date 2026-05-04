@@ -232,7 +232,7 @@ export function BreadcrumbsDrawer({
             <EmptyMessage>
               {t('No breadcrumbs found.')}
               <Button
-                priority="link"
+                variant="link"
                 onClick={() => {
                   setFilters([]);
                   setSearch('');

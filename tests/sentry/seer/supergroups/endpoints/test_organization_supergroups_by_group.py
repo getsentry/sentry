@@ -7,6 +7,7 @@ import orjson
 
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.seer.supergroups.endpoints import organization_supergroups_by_group
 from sentry.testutils.cases import APITestCase
 
 
@@ -172,6 +173,34 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
 
         sg = response.data["data"][0]
         assert sg["assignees"] == []
+
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_skips_fanout_over_threshold(self, mock_seer):
+        threshold = organization_supergroups_by_group._MAX_GROUPS_FOR_FETCH
+        fake_group_ids = list(range(10_000_000, 10_000_000 + threshold))
+        mock_seer.return_value = mock_seer_response(
+            {
+                "data": [
+                    {
+                        "id": 1,
+                        "group_ids": [self.resolved_group.id, *fake_group_ids],
+                        "title": "too big",
+                    }
+                ]
+            }
+        )
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug,
+                group_id=[self.resolved_group.id],
+                status="unresolved",
+            )
+
+        assert response.data["meta"] == {"estimated": True}
+        sg = response.data["data"][0]
+        assert "assignees" not in sg
+        assert self.resolved_group.id in sg["group_ids"]
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_assignee_summary_tolerates_missing_actor(self, mock_seer):

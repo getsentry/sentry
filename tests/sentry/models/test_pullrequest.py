@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
@@ -15,6 +16,7 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.types.activity import ActivityType
 
 
 class FindReferencedGroupsTest(TestCase):
@@ -43,6 +45,14 @@ class FindReferencedGroupsTest(TestCase):
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id,
         ).exists()
+        assert Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
+        ).exists()
+        assert not Activity.objects.filter(
+            group=group,
+            type=ActivityType.REFERENCED_IN_COMMIT.value,
+        ).exists()
         assert GroupHistory.objects.filter(
             group=group,
             status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
@@ -53,9 +63,9 @@ class FindReferencedGroupsTest(TestCase):
     @with_feature("organizations:defer-commit-resolution")
     def test_resolve_in_commit_deferred(self) -> None:
         """
-        With defer-commit-resolution ON: commits create GroupLinks but do NOT
-        immediately resolve issues. Resolution happens when a release is created
-        that includes these commits, via update_group_resolutions().
+        With defer-commit-resolution ON: commits create GroupLinks and referenced
+        activity but do NOT immediately resolve issues. Resolution happens when a
+        release is created that includes these commits, via update_group_resolutions().
         """
         group = self.create_group()
 
@@ -76,7 +86,16 @@ class FindReferencedGroupsTest(TestCase):
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id,
         ).exists()
-        assert GroupHistory.objects.filter(
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.REFERENCED_IN_COMMIT.value,
+        )
+        assert activity.data == {"commit": commit.id}
+        assert not Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
+        ).exists()
+        assert not GroupHistory.objects.filter(
             group=group,
             status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
         ).exists()
@@ -121,6 +140,12 @@ class FindReferencedGroupsTest(TestCase):
         assert resolution.release == release
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.status == GroupResolution.Status.resolved
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        )
+        assert activity.data == {"version": release.version}
+        assert activity.ident == str(resolution.id)
 
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()
@@ -151,6 +176,75 @@ class FindReferencedGroupsTest(TestCase):
         # XXX: Oddly,resolved_in_pull_request doesn't update the group status
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
+
+    @with_feature("organizations:defer-commit-resolution")
+    def test_resolve_in_pull_request_resolved_via_release(self) -> None:
+        group = self.create_group()
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+        merge_commit_sha = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+
+        pr = PullRequest.objects.create(
+            key="1",
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            title="very cool PR to fix the thing",
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+            merge_commit_sha=merge_commit_sha,
+        )
+
+        assert GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        ).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        release = self.create_release(project=group.project, version="1.0.0")
+        release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        )
+        assert activity.data == {"version": release.version}
+        assert activity.ident == str(resolution.id)
+
+    def test_resolve_in_pull_request_resolved_via_release_with_defer_flag_off(self) -> None:
+        group = self.create_group()
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+        merge_commit_sha = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+
+        PullRequest.objects.create(
+            key="1",
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            title="very cool PR to fix the thing",
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+            merge_commit_sha=merge_commit_sha,
+        )
+
+        release = self.create_release(project=group.project, version="1.0.0")
+        release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+        ).exists()
+        assert not Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        ).exists()
 
 
 class PullRequestRetentionTest(TestCase):

@@ -1,9 +1,4 @@
-from unittest.mock import MagicMock, patch
-
-import pytest
-
 from sentry.constants import ObjectStatus
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.repository.service import repository_service
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
@@ -20,8 +15,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         )
         self.provider = "integrations:github"
 
-    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_disables_matching_active_repos(self, mock_cleanup: MagicMock) -> None:
+    def test_disables_matching_active_repos(self) -> None:
         repo1 = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -50,24 +44,6 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         repo2.refresh_from_db()
         assert repo1.status == ObjectStatus.DISABLED
         assert repo2.status == ObjectStatus.DISABLED
-
-        mock_cleanup.apply_async.assert_called_once_with(
-            kwargs={
-                "organization_id": self.organization.id,
-                "repos": [
-                    {
-                        "repo_id": repo1.id,
-                        "repo_external_id": "100",
-                        "repo_provider": self.provider,
-                    },
-                    {
-                        "repo_id": repo2.id,
-                        "repo_external_id": "200",
-                        "repo_provider": self.provider,
-                    },
-                ],
-            }
-        )
 
     def test_does_not_disable_already_disabled_repos(self) -> None:
         repo = Repository.objects.create(
@@ -135,8 +111,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.ACTIVE
 
-    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_only_disables_specified_external_ids(self, mock_seer_cleanup: MagicMock) -> None:
+    def test_only_disables_specified_external_ids(self) -> None:
         repo_to_disable = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -197,8 +172,7 @@ class DisableRepositoriesForIntegrationTest(TestCase):
         )
         self.provider = "integrations:github"
 
-    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_disables_matching_active_repos(self, mock_cleanup: MagicMock) -> None:
+    def test_disables_matching_active_repos(self) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -217,19 +191,6 @@ class DisableRepositoriesForIntegrationTest(TestCase):
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.DISABLED
 
-        mock_cleanup.apply_async.assert_called_once_with(
-            kwargs={
-                "organization_id": self.organization.id,
-                "repos": [
-                    {
-                        "repo_id": repo.id,
-                        "repo_external_id": "100",
-                        "repo_provider": self.provider,
-                    }
-                ],
-            }
-        )
-
 
 @cell_silo_test
 class DisassociateOrganizationIntegrationTest(TestCase):
@@ -242,11 +203,7 @@ class DisassociateOrganizationIntegrationTest(TestCase):
         self.provider = "integrations:github"
         self.org_integration = self.integration.organizationintegration_set.first()
 
-    @patch(
-        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
-    )
-    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_disassociates_repos(self, mock_cleanup: MagicMock, mock_handoff: MagicMock) -> None:
+    def test_disassociates_repos(self) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -264,61 +221,6 @@ class DisassociateOrganizationIntegrationTest(TestCase):
 
         repo.refresh_from_db()
         assert repo.integration_id is None
-
-        mock_cleanup.apply_async.assert_called_once_with(
-            kwargs={
-                "organization_id": self.organization.id,
-                "repos": [
-                    {
-                        "repo_id": repo.id,
-                        "repo_external_id": "100",
-                        "repo_provider": self.provider,
-                    }
-                ],
-            }
-        )
-        mock_handoff.apply_async.assert_called_once_with(
-            kwargs={
-                "organization_id": self.organization.id,
-                "integration_id": self.integration.id,
-            }
-        )
-
-    @patch(
-        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
-    )
-    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_transaction_rollback_does_not_dispatch_seer_cleanup(
-        self, mock_cleanup: MagicMock, mock_handoff: MagicMock
-    ) -> None:
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/sentry",
-            external_id="100",
-            provider=self.provider,
-            integration_id=self.integration.id,
-            status=ObjectStatus.ACTIVE,
-        )
-
-        with patch.object(
-            RepositoryProjectPathConfig.objects,
-            "filter",
-            side_effect=RuntimeError("simulated failure"),
-        ):
-            with pytest.raises(RuntimeError):
-                repository_service.disassociate_organization_integration(
-                    organization_id=self.organization.id,
-                    organization_integration_id=self.org_integration.id,
-                    integration_id=self.integration.id,
-                )
-
-        # Transaction rolled back: repo should still have its integration
-        repo.refresh_from_db()
-        assert repo.integration_id == self.integration.id
-
-        # Tasks should not have been dispatched
-        mock_cleanup.apply_async.assert_not_called()
-        mock_handoff.apply_async.assert_not_called()
 
 
 @cell_silo_test

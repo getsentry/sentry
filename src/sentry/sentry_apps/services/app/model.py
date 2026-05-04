@@ -86,6 +86,7 @@ class RpcSentryApp(RpcModel):
     events: list[str] = Field(default_factory=list)
     webhook_url: str | None = None
     is_alertable: bool = False
+    is_disabled: bool = False
     is_published: bool = False
     is_unpublished: bool = False
     is_internal: bool = True

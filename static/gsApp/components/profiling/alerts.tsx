@@ -117,7 +117,7 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
         {action.label}
       </Button>
       {dismiss ? (
-        <StyledButton priority="link" size="sm" onClick={dismiss}>
+        <StyledButton variant="link" size="sm" onClick={dismiss}>
           <IconClose variant="primary" size="sm" />
         </StyledButton>
       ) : null}
@@ -520,7 +520,7 @@ function OnDemandOrPaygBanner({
           organization={organization}
           subscription={subscription}
           buttonProps={{
-            priority: 'primary',
+            variant: 'primary',
             size: 'sm',
             style: {textDecoration: 'none'},
           }}

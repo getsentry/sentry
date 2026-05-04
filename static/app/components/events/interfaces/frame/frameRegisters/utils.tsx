@@ -34,7 +34,7 @@ function getRegisterMap(deviceArch: string) {
     return REGISTERS_PPC;
   }
 
-  return undefined;
+  return;
 }
 
 function getRegisterIndex(register: string, registerMap: Record<string, number>) {

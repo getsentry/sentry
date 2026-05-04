@@ -37,11 +37,10 @@ export function ArtifactLoadingDetails({
   }, [blocks]);
 
   return (
-    <ArtifactDetails paddingTop="0">
+    <ArtifactDetails>
       <Flex
         direction="column"
         gap="md"
-        marginTop="md"
         ref={containerRef}
         maxHeight="200px"
         overflowY="auto"
