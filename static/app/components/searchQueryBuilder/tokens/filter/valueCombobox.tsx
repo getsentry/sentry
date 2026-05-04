@@ -18,6 +18,7 @@ import {
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
 import {
   SearchQueryBuilderCombobox,
   type CustomComboboxMenu,
@@ -412,8 +413,15 @@ function useFilterSuggestions({
 
   const createItem = useCallback(
     (suggestion: SuggestionItem) => {
+      const label = suggestion.label ?? suggestion.value;
+
       return {
-        label: suggestion.label ?? suggestion.value,
+        label:
+          typeof label === 'string' ? (
+            <HighlightText text={label} query={filterValue} />
+          ) : (
+            label
+          ),
         value: suggestion.value,
         details: suggestion.description,
         textValue: suggestion.value,
@@ -434,7 +442,7 @@ function useFilterSuggestions({
         },
       };
     },
-    [canSelectMultipleValues]
+    [canSelectMultipleValues, filterValue]
   );
 
   const suggestionGroups = useMemo(() => {
