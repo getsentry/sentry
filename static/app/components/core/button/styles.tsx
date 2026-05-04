@@ -275,7 +275,7 @@ function getButtonTheme(variant: ButtonVariant, theme: Theme) {
       };
     case 'danger':
       return {
-        surface: theme.tokens.interactive.chonky.embossed.danger.background,
+        surface: theme.tokens.interactive.chonky.embossed.success.background,
         background: theme.tokens.interactive.chonky.embossed.danger.chonk,
         color: theme.tokens.interactive.chonky.embossed.danger.content,
       };
