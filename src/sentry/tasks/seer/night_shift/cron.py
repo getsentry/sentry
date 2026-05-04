@@ -10,7 +10,11 @@ from typing import Any, Literal, TypedDict
 import sentry_sdk
 
 from sentry import features, options, quotas
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import (
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    DataCategory,
+    ObjectStatus,
+)
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
@@ -325,10 +329,12 @@ def run_night_shift_execution(
         for c in candidates:
             c.group.project = projects_by_id[c.group.project_id]
 
+        stopping_point_by_project_id = {ep.project.id: ep.stopping_point for ep in eligible}
         issues = _run_autofix_for_candidates(
             run=run,
             candidates=candidates,
             options=resolved_options,
+            stopping_point_by_project_id=stopping_point_by_project_id,
             log_extra=log_extra,
         )
         seer_run_id_by_group = {i.group_id: i.seer_run_id for i in issues}
@@ -422,6 +428,7 @@ def _fail_run(
 class EligibleProject:
     project: Project
     tweaks: NightShiftTweaks
+    stopping_point: AutofixStoppingPoint
 
 
 def _get_eligible_projects(
@@ -454,7 +461,15 @@ def _get_eligible_projects(
         return []
 
     eligible = [
-        EligibleProject(project=p, tweaks=get_night_shift_tweaks(p)) for p in with_automation
+        EligibleProject(
+            project=p,
+            tweaks=get_night_shift_tweaks(p),
+            stopping_point=AutofixStoppingPoint(
+                preferences[p.id].automated_run_stopping_point
+                or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+            ),
+        )
+        for p in with_automation
     ]
     if source == "cron":
         eligible = [ep for ep in eligible if ep.tweaks.enabled]
@@ -465,6 +480,7 @@ def _run_autofix_for_candidates(
     run: SeerNightShiftRun,
     candidates: Sequence[TriageResult],
     options: SeerNightShiftRunOptions,
+    stopping_point_by_project_id: Mapping[int, AutofixStoppingPoint],
     log_extra: dict[str, object],
 ) -> list[SeerNightShiftRunIssue]:
     """
@@ -486,11 +502,10 @@ def _run_autofix_for_candidates(
 
     issues = []
     for c in fixable_candidates:
-        # Ignore automated_run_stopping_point preference — its default blocks PR creation.
         stopping_point = (
             AutofixStoppingPoint.ROOT_CAUSE
             if c.action == TriageAction.ROOT_CAUSE_ONLY
-            else AutofixStoppingPoint.OPEN_PR
+            else stopping_point_by_project_id[c.group.project_id]
         )
 
         user_context = (
