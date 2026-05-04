@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 
 function makeAiNode(
-  messages: Array<{content: string; role: string}>
+  messages: Array<{content: unknown; role: string}> | Record<string, unknown>
 ): ComponentProps<typeof AIInputSection>['node'] {
   return {
     id: 'span-id',
@@ -34,5 +34,23 @@ describe('AIInputSection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'System'}));
 
     expect(screen.getByText('System prompt')).toBeVisible();
+  });
+
+  it('minimizes structured system prompts by default', async () => {
+    render(
+      <AIInputSection
+        node={makeAiNode({
+          system: {instructions: ['Be concise'], priority: 'high'},
+          prompt: 'User message',
+        })}
+      />
+    );
+
+    expect(screen.getByText('User message')).toBeVisible();
+    expect(screen.getByText('instructions')).not.toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', {name: 'System'}));
+
+    expect(screen.getByText('instructions')).toBeVisible();
   });
 });
