@@ -268,7 +268,7 @@ export default function AutomationNewSettings() {
           >
             <Observer>
               {() => (
-                <Button priority="primary" type="submit" busy={model.isSaving}>
+                <Button variant="primary" type="submit" busy={model.isSaving}>
                   {t('Create Alert')}
                 </Button>
               )}

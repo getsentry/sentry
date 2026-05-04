@@ -42,7 +42,7 @@ export function Footer({
       {canTrial && !showTrialResetContent ? (
         <UpgradeOrTrialButton
           data-test-id="upgrade-plan"
-          priority="default"
+          variant="secondary"
           action="upgrade"
           {...buttonProps}
         />
