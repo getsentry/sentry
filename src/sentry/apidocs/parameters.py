@@ -184,7 +184,6 @@ Valid query fields include:
 - `slug`: The organization slug
 - `status`: The organization's current status (one of `active`, `pending_deletion`, or `deletion_in_progress`)
 - `email` or `member_id`: Filter your organizations by the emails or [organization member IDs](/api/organizations/list-an-organizations-members/) of specific members included
-- `platform`: Filter your organizations to those with at least one project using this platform
 - `query`: Filter your organizations by name, slug, and members that contain this substring
 
 Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,thing-two@example.com] AND query:bar)`
@@ -199,7 +198,6 @@ Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,th
 
 Valid fields include:
 - `members`: By number of members
-- `projects`: By number of projects
 - `events`: By number of events in the past 24 hours
 """,
     )
