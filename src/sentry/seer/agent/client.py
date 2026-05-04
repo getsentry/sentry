@@ -253,6 +253,7 @@ class SeerAgentClient:
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
         override_ce_enable: bool = True,
+        ui_tools: str | None = None,
     ) -> int:
         """
         Start a new Seer Agent session.
@@ -327,6 +328,9 @@ class SeerAgentClient:
 
         if metadata:
             chat_body["metadata"] = metadata
+
+        if ui_tools:
+            chat_body["ui_tools"] = ui_tools
 
         if features.has(
             "organizations:seer-explorer-context-engine", self.organization, actor=self.user
@@ -406,6 +410,7 @@ class SeerAgentClient:
         page_name: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        ui_tools: str | None = None,
         request: Request | None = None,
     ) -> int:
         """
@@ -449,6 +454,9 @@ class SeerAgentClient:
         if artifact_key and artifact_schema:
             chat_body["artifact_key"] = artifact_key
             chat_body["artifact_schema"] = artifact_schema.schema()
+
+        if ui_tools:
+            chat_body["ui_tools"] = ui_tools
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
