@@ -50,6 +50,11 @@ jobs:
 
       - name: Get base branch commit
         id: merge_base
+        # GHA pull_request checks out a merge commit (refs/pull/N/merge):
+        #   HEAD^1 = base branch tip (e.g. master)
+        #   HEAD^2 = PR branch tip
+        # HEAD^1 gives us the base branch tip, NOT one commit back on the PR.
+        # @see https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#how-the-merge-branch-affects-your-workflow
         run: |
           BASE_COMMIT=$(git rev-parse HEAD^1 2>/dev/null) || true
           if [ -z "$BASE_COMMIT" ]; then
