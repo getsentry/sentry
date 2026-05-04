@@ -17,9 +17,9 @@ describe('ProjectReleaseTracking', () => {
 
   const initialRouterConfig = {
     location: {
-      pathname: `/settings/${org.slug}/projects/${project.slug}/settings/release-tracking/`,
+      pathname: `/settings/${org.slug}/projects/${project.slug}/release-tracking/`,
     },
-    route: '/settings/:orgId/projects/:projectId/settings/release-tracking/',
+    route: '/settings/:orgId/projects/:projectId/release-tracking/',
   };
 
   beforeEach(() => {

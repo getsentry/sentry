@@ -130,7 +130,7 @@ export default function ProjectReleaseTracking() {
 
   const hasWrite = hasEveryAccess(['project:write'], {organization, project});
   return (
-    <FormSearch route="/settings/:orgId/projects/:projectId/settings/release-tracking/">
+    <FormSearch route="/settings/:orgId/projects/:projectId/release-tracking/">
       <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug}>
         <SettingsPageHeader
           title={t('Release Tracking')}
