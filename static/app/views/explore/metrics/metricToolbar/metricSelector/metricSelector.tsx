@@ -607,9 +607,8 @@ export function MetricSelector({
                   </Container>
                 </Stack>
                 {hasSelectedMetric ? (
-                  <SidePanel
+                  <Container
                     ref={setSidePanelRef}
-                    $inline={inlineSidePanel}
                     top={
                       inlineSidePanel || isOverlayAboveTrigger
                         ? undefined
@@ -625,12 +624,19 @@ export function MetricSelector({
                     width={inlineSidePanel ? '100%' : {xs: '100%', md: '280px'}}
                     padding="lg"
                     minHeight="0"
+                    position={inlineSidePanel ? undefined : {md: 'absolute'}}
+                    left={inlineSidePanel ? undefined : {md: '100%'}}
+                    maxHeight={inlineSidePanel ? undefined : {md: 'calc(100vh - 32px)'}}
+                    overflowY={inlineSidePanel ? undefined : {md: 'auto'}}
+                    background={inlineSidePanel ? undefined : {md: 'primary'}}
+                    border={inlineSidePanel ? undefined : {md: 'primary'}}
+                    radius={inlineSidePanel ? undefined : {md: 'md'}}
                   >
                     <MetricDetailPanel
                       metric={highlightedOption ?? optionFromTraceMetric}
                       hasMetricUnitsUI={hasMetricUnitsUI}
                     />
-                  </SidePanel>
+                  </Container>
                 ) : null}
               </Flex>
             </FocusScope>
@@ -644,22 +650,5 @@ export function MetricSelector({
 const MetricSelectorOverlay = styled(Overlay)`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     overflow: visible;
-  }
-`;
-
-const SidePanel = styled(Container)<{$inline?: boolean}>`
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    ${p =>
-      p.$inline
-        ? ''
-        : `
-      position: absolute;
-      left: 100%;
-      max-height: calc(100vh - 32px);
-      overflow-y: auto;
-      background: ${p.theme.tokens.background.primary};
-      border: 1px solid ${p.theme.tokens.border.primary};
-      border-radius: ${p.theme.radius.md};
-    `}
   }
 `;
