@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -31,7 +31,6 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofi
 from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
 )
-from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -93,8 +92,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         # Send webhook for the completed step
         cls._send_step_webhook(organization, run_id, state, group)
-
-        cls._maybe_trigger_supergroups_embedding(organization, run_id, state, group)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
         cls._maybe_continue_pipeline(organization, run_id, state, group)
@@ -249,43 +246,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         referrer=referrer,
                     )
                 )
-
-    @classmethod
-    def _maybe_trigger_supergroups_embedding(
-        cls,
-        organization: Organization,
-        run_id: int,
-        state: SeerRunState,
-        group: Group,
-    ) -> None:
-        """Trigger supergroups embedding if feature flag is enabled."""
-        current_step, _ = cls._get_current_step(state)
-        if current_step != AutofixStep.ROOT_CAUSE:
-            return
-
-        if not features.has("projects:supergroup-embeddings-explorer", group.project):
-            return
-
-        root_cause_artifact = cls.find_latest_artifact_for_step(state, AutofixStep.ROOT_CAUSE)
-        if not root_cause_artifact or not root_cause_artifact.data:
-            return
-
-        try:
-            trigger_supergroups_embedding(
-                organization_id=organization.id,
-                group_id=group.id,
-                project_id=group.project_id,
-                artifact_data=root_cause_artifact.data,
-            )
-        except Exception:
-            logger.exception(
-                "autofix.on_completion_hook.supergroups_embedding_failed",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group.id,
-                },
-            )
 
     @classmethod
     def _get_current_step(
