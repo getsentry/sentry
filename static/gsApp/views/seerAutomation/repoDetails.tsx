@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
@@ -15,6 +15,7 @@ import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon'
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {t} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import type {Location} from 'sentry/types/location';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -30,6 +31,9 @@ export default function SeerRepoDetails() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
+
+  const queryRef = useRef<Location['query']>(query);
+  queryRef.current = query;
 
   const isSupportedProvider = useIsSeerSupportedProvider();
 
@@ -92,7 +96,7 @@ export default function SeerRepoDetails() {
         onClose: () => {
           navigate({
             pathname: `/settings/${organization.slug}/seer/repos/`,
-            query,
+            query: queryRef.current,
           });
         },
         shouldCloseOnLocationChange: nextLocation =>
@@ -104,7 +108,6 @@ export default function SeerRepoDetails() {
     hasCodeReviewAccess,
     isPending,
     isSupportedProvider,
-    query,
     navigate,
     openDrawer,
     organization,

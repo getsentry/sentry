@@ -1,10 +1,11 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {t} from 'sentry/locale';
+import type {Location} from 'sentry/types/location';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,6 +17,9 @@ export default function RepoDefaultsDrawer() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
+
+  const queryRef = useRef<Location['query']>(query);
+  queryRef.current = query;
 
   useEffect(() => {
     openDrawer(
@@ -36,12 +40,12 @@ export default function RepoDefaultsDrawer() {
         onClose: () => {
           navigate({
             pathname: `/settings/${organization.slug}/seer/repos/`,
-            query,
+            query: queryRef.current,
           });
         },
       }
     );
-  }, [openDrawer, organization, navigate, query]);
+  }, [openDrawer, organization, navigate]);
 
   return null;
 }
