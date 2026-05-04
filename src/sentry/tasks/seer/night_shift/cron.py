@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from django.db import transaction
 
 from sentry import features, options, quotas
 from sentry.constants import (
@@ -32,6 +33,7 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
+from sentry.tasks.seer.night_shift.feedback_summary import agentic_feedback_summary_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.tweaks import (
     DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
@@ -52,11 +54,21 @@ logger = logging.getLogger("sentry.tasks.seer.night_shift")
 NIGHT_SHIFT_DISPATCH_STEP_SECONDS = 37
 NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=4)
 
-BATCH_FEATURE_NAMES = [
-    "organizations:seer-night-shift",
+NightShiftKind = Literal["agentic_triage", "feedback_summary"]
+ALL_NIGHT_SHIFT_KINDS: tuple[NightShiftKind, ...] = ("agentic_triage", "feedback_summary")
+
+# Each kind requires its own organization-level feature flag, so kinds can be
+# rolled out independently.
+KIND_FEATURE_NAMES: dict[NightShiftKind, str] = {
+    "agentic_triage": "organizations:seer-night-shift",
+    "feedback_summary": "organizations:seer-night-shift-feedback-summary",
+}
+
+# Universal flags required for any kind.
+UNIVERSAL_BATCH_FEATURE_NAMES = [
     "organizations:gen-ai-features",
 ]
-PER_ORG_FEATURE_NAMES = [
+UNIVERSAL_PER_ORG_FEATURE_NAMES = [
     # INTERNAL handlers aren't routed through batch_has_for_organizations,
     # so this gets checked per-org on the survivors of the batch loop.
     "organizations:seat-based-seer-enabled",
@@ -102,13 +114,8 @@ def schedule_night_shift(
 ) -> None:
     """
     Nightly scheduler: collects org ids that have a Seer-connected repo, then
-    dispatches per-org worker tasks in batches with jitter. Feature flags
-    still gate the dispatch — SeerProjectRepository rows can outlive a paid
-    Seer subscription.
-
-    The real cron caller passes nothing (defaults). Manual admin triggers
-    forward `run_options` so every per-org task inherits the same overrides
-    (source="manual", dry_run, max_candidates, etc.).
+    dispatches per-org worker tasks in batches with jitter. Each org is
+    dispatched once with the list of kinds its feature flags enable.
     """
     if not options.get("seer.night_shift.enable"):
         return
@@ -135,7 +142,7 @@ def schedule_night_shift(
 
     spread_seconds = int(NIGHT_SHIFT_SPREAD_DURATION.total_seconds())
     batch_index = 0
-    task_kwargs: dict[str, Any] = {"options": dict(run_options)} if run_options else {}
+    base_kwargs: dict[str, Any] = {"options": dict(run_options)} if run_options else {}
 
     for chunk_index, org_id_chunk in enumerate(chunked(seer_org_ids, 100)):
         org_batch = list(
@@ -144,9 +151,12 @@ def schedule_night_shift(
                 status=OrganizationStatus.ACTIVE,
             )
         )
-        eligible = _get_eligible_orgs_from_batch(org_batch)
-        for org in eligible:
+        kinds_by_org = _get_eligible_kinds_by_org(org_batch)
+        for org, kinds in kinds_by_org.items():
+            if not kinds:
+                continue
             delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
+            task_kwargs = {**base_kwargs, "kinds": list(kinds)}
             run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
             batch_index += 1
 
@@ -179,26 +189,24 @@ def schedule_night_shift(
 def run_night_shift_for_org(
     organization_id: int,
     *,
+    kinds: Sequence[str] | None = None,
     options: SeerNightShiftRunOptionsPartial | None = None,
     project_ids: list[int] | None = None,
     triggering_user_id: int | None = None,
     execute_in_task: bool = False,
     **kwargs: Any,
 ) -> int | None:
-    """Run night shift for one organization. `options` is a partial dict —
-    any missing fields are filled in by build_run_options. Cron dispatches
-    with no options (all defaults); manual triggers (project settings "Run
-    Now", admin endpoint) pass `{"source": "manual", ...}` and may scope the
-    run to specific projects.
-
-    When execute_in_task is True, the heavy execution phase (quota check,
-    eligibility, triage, autofix) is dispatched to a separate task so the
-    caller doesn't block on it. The run record is always created synchronously
-    so callers have a stable handle to the run."""
+    """Run night shift for one organization. `kinds` controls which units of
+    work execute under this run; defaults to agentic_triage for backward
+    compatibility with manual callers that haven't been updated."""
     organization = Organization.objects.filter(
         id=organization_id, status=OrganizationStatus.ACTIVE
     ).first()
     if organization is None:
+        return None
+
+    resolved_kinds = _validated_kinds(kinds)
+    if not resolved_kinds:
         return None
 
     resolved_options = build_run_options(options)
@@ -206,7 +214,10 @@ def run_night_shift_for_org(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
-    extras: dict[str, object] = {"options": dict(resolved_options)}
+    extras: dict[str, object] = {
+        "options": dict(resolved_options),
+        "kinds": {k: {"status": "pending"} for k in resolved_kinds},
+    }
     if project_ids is not None:
         extras["target_project_ids"] = project_ids
     if triggering_user_id is not None:
@@ -217,14 +228,16 @@ def run_night_shift_for_org(
         extras=extras,
     )
 
-    task_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
+    base_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
     if project_ids is not None:
-        task_kwargs["project_ids"] = project_ids
+        base_kwargs["project_ids"] = project_ids
 
-    if execute_in_task:
-        run_night_shift_execution.apply_async(args=[run.id], kwargs=task_kwargs)
-    else:
-        run_night_shift_execution(run.id, **task_kwargs)
+    for kind in resolved_kinds:
+        per_kind_kwargs = {**base_kwargs, "kind": kind}
+        if execute_in_task:
+            run_night_shift_execution.apply_async(args=[run.id], kwargs=per_kind_kwargs)
+        else:
+            run_night_shift_execution(run.id, **per_kind_kwargs)
     return run.id
 
 
@@ -236,13 +249,17 @@ def run_night_shift_for_org(
 def run_night_shift_execution(
     run_id: int,
     *,
+    kind: str = "agentic_triage",
     options: SeerNightShiftRunOptionsPartial | None = None,
     project_ids: list[int] | None = None,
     **kwargs: Any,
 ) -> None:
-    """Heavy phase of a night shift run: quota check, eligibility, triage, and
-    optional autofix dispatch. Single code path used by both sync invocation
-    (from run_night_shift_for_org) and async dispatch (apply_async)."""
+    """Heavy phase of a night shift run for a single kind: quota check, then
+    dispatch to the kind-specific strategy."""
+    if kind not in ALL_NIGHT_SHIFT_KINDS:
+        logger.error("night_shift.unknown_kind", extra={"run_id": run_id, "kind": kind})
+        return None
+
     run = SeerNightShiftRun.objects.select_related("organization").filter(id=run_id).first()
     if run is None:
         logger.info("night_shift.missing_run", extra={"run_id": run_id})
@@ -255,6 +272,7 @@ def run_night_shift_execution(
         "organization_id": organization.id,
         "organization_slug": organization.slug,
         "run_id": run.id,
+        "kind": kind,
     }
     if project_ids is not None:
         log_extra["project_ids"] = project_ids
@@ -265,32 +283,65 @@ def run_night_shift_execution(
     start_time = time.monotonic()
     logger.info("night_shift.execute.start", extra=log_extra)
 
+    _update_kind_state(run.id, kind, {"status": "running"})
+
     if not quotas.backend.check_seer_quota(
         org_id=organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     ):
         logger.info("night_shift.no_seer_quota", extra=log_extra)
-        _record_run_error(run, "No Seer quota available")
+        _update_kind_state(run.id, kind, {"status": "skipped", "reason": "no_seer_quota"})
         return None
 
+    if kind == "agentic_triage":
+        _execute_triage(
+            run=run,
+            organization=organization,
+            resolved_options=resolved_options,
+            project_ids=project_ids,
+            log_extra=log_extra,
+            start_time=start_time,
+        )
+    elif kind == "feedback_summary":
+        _execute_feedback_summary(
+            run=run,
+            organization=organization,
+            resolved_options=resolved_options,
+            log_extra=log_extra,
+        )
+
+
+def _execute_triage(
+    *,
+    run: SeerNightShiftRun,
+    organization: Organization,
+    resolved_options: SeerNightShiftRunOptions,
+    project_ids: list[int] | None,
+    log_extra: dict[str, object],
+    start_time: float,
+) -> None:
     try:
         eligible = _get_eligible_projects(
             organization, resolved_options["source"], project_ids=project_ids
         )
     except Exception:
-        _fail_run(
+        _fail_kind(
             run,
+            kind="agentic_triage",
             message="Failed to get eligible projects",
             event="night_shift.failed_to_get_eligible_projects",
             extra=log_extra,
         )
-        return None
+        return
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible))
 
     if not eligible:
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
-        return None
+        _update_kind_state(
+            run.id, "agentic_triage", {"status": "skipped", "reason": "no_eligible_projects"}
+        )
+        return
 
     eligible_projects = [ep.project for ep in eligible]
     agent_run_id: int | None = None
@@ -308,13 +359,14 @@ def run_night_shift_execution(
             log_extra["agent_run_id"] = agent_run_id
     except Exception:
         sentry_sdk.metrics.count("night_shift.run_error", 1)
-        _fail_run(
+        _fail_kind(
             run,
+            kind="agentic_triage",
             message="Night shift run failed",
             event="night_shift.run_failed",
             extra={**log_extra, "agent_run_id": agent_run_id},
         )
-        return None
+        return
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
@@ -342,6 +394,16 @@ def run_night_shift_execution(
         )
         seer_run_id_by_group = {r.group_id: r.seer_run_id for r in results}
 
+    _update_kind_state(
+        run.id,
+        "agentic_triage",
+        {
+            "status": "succeeded",
+            "agent_run_id": agent_run_id,
+            "num_candidates": len(candidates),
+        },
+    )
+
     logger.info(
         "night_shift.candidates_selected",
         extra={
@@ -359,6 +421,48 @@ def run_night_shift_execution(
                 for c in candidates
             ],
         },
+    )
+
+
+def _execute_feedback_summary(
+    *,
+    run: SeerNightShiftRun,
+    organization: Organization,
+    resolved_options: SeerNightShiftRunOptions,
+    log_extra: dict[str, object],
+) -> None:
+    agent_run_id: int | None = None
+    try:
+        agent_run_id = agentic_feedback_summary_strategy(
+            organization,
+            run=run,
+            intelligence_level=resolved_options["intelligence_level"],
+            reasoning_effort=resolved_options["reasoning_effort"],
+        )
+    except Exception:
+        sentry_sdk.metrics.count("night_shift.feedback_summary_run_error", 1)
+        _fail_kind(
+            run,
+            kind="feedback_summary",
+            message="Feedback summary run failed",
+            event="night_shift.feedback_summary.run_failed",
+            extra={**log_extra, "agent_run_id": agent_run_id},
+        )
+        return
+
+    if agent_run_id is None:
+        # Strategy short-circuited (insufficient feedback).
+        _update_kind_state(
+            run.id,
+            "feedback_summary",
+            {"status": "skipped", "reason": "insufficient_feedbacks"},
+        )
+        return
+
+    _update_kind_state(
+        run.id,
+        "feedback_summary",
+        {"status": "succeeded", "agent_run_id": agent_run_id},
     )
 
 
@@ -388,47 +492,82 @@ def build_run_options(
     return _run_option_defaults(partial or {})
 
 
-def _get_eligible_orgs_from_batch(
-    orgs: Sequence[Organization],
-) -> list[Organization]:
-    """
-    Check feature flags for a batch of orgs.
-    Returns orgs that have all required feature flags enabled.
-    """
-    eligible = [org for org in orgs if not org.get_option("sentry:hide_ai_features")]
+def _validated_kinds(kinds: Sequence[str] | None) -> list[NightShiftKind]:
+    if kinds is None:
+        return ["agentic_triage"]
+    deduped: list[NightShiftKind] = []
+    seen: set[str] = set()
+    for k in kinds:
+        if k in seen:
+            continue
+        if k not in ALL_NIGHT_SHIFT_KINDS:
+            logger.error("night_shift.unknown_kind_requested", extra={"kind": k})
+            continue
+        seen.add(k)
+        deduped.append(k)  # type: ignore[arg-type]
+    return deduped
 
-    for feature_name in BATCH_FEATURE_NAMES:
-        batch_result = features.batch_has_for_organizations(feature_name, eligible)
+
+def _get_eligible_kinds_by_org(
+    orgs: Sequence[Organization],
+) -> dict[Organization, list[NightShiftKind]]:
+    """Return org → list of kinds enabled for that org. Orgs that pass the
+    universal gates but have no kinds enabled are present with an empty list."""
+    universal_eligible = [org for org in orgs if not org.get_option("sentry:hide_ai_features")]
+
+    for feature_name in UNIVERSAL_BATCH_FEATURE_NAMES:
+        batch_result = features.batch_has_for_organizations(feature_name, universal_eligible)
         if batch_result is None:
             raise RuntimeError(f"batch_has_for_organizations returned None for {feature_name}")
+        universal_eligible = [
+            org for org in universal_eligible if batch_result.get(f"organization:{org.id}", False)
+        ]
+        if not universal_eligible:
+            return {}
 
-        eligible = [org for org in eligible if batch_result.get(f"organization:{org.id}", False)]
+    for feature_name in UNIVERSAL_PER_ORG_FEATURE_NAMES:
+        universal_eligible = [org for org in universal_eligible if features.has(feature_name, org)]
+        if not universal_eligible:
+            return {}
 
-        if not eligible:
-            return []
+    kinds_by_org: dict[Organization, list[NightShiftKind]] = {org: [] for org in universal_eligible}
+    for kind, feature_name in KIND_FEATURE_NAMES.items():
+        batch_result = features.batch_has_for_organizations(feature_name, universal_eligible)
+        if batch_result is None:
+            raise RuntimeError(f"batch_has_for_organizations returned None for {feature_name}")
+        for org in universal_eligible:
+            if batch_result.get(f"organization:{org.id}", False):
+                kinds_by_org[org].append(kind)
 
-    for feature_name in PER_ORG_FEATURE_NAMES:
-        eligible = [org for org in eligible if features.has(feature_name, org)]
-        if not eligible:
-            return []
-
-    return eligible
-
-
-def _record_run_error(run: SeerNightShiftRun, message: str) -> None:
-    run.update(extras={**(run.extras or {}), "error_message": message})
+    return kinds_by_org
 
 
-def _fail_run(
+def _update_kind_state(run_id: int, kind: str, patch: Mapping[str, Any]) -> None:
+    """Atomically merge `patch` into run.extras["kinds"][kind]. The kind
+    branches run concurrently against the same parent row, so we use
+    select_for_update to avoid clobbering each other's sub-dicts."""
+    with transaction.atomic(using="default"):
+        run = SeerNightShiftRun.objects.select_for_update().get(id=run_id)
+        extras = dict(run.extras or {})
+        kinds_state = dict(extras.get("kinds") or {})
+        existing = dict(kinds_state.get(kind) or {})
+        existing.update(patch)
+        kinds_state[kind] = existing
+        extras["kinds"] = kinds_state
+        run.extras = extras
+        run.save(update_fields=["extras"])
+
+
+def _fail_kind(
     run: SeerNightShiftRun,
     *,
+    kind: str,
     message: str,
     event: str,
     extra: dict[str, object],
 ) -> None:
-    """Log an exception and record an error message on the run."""
     logger.exception(event, extra=extra)
-    _record_run_error(run, message)
+    _update_kind_state(run.id, kind, {"status": "failed", "error_message": message})
 
 
 @dataclasses.dataclass(frozen=True)

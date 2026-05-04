@@ -29,9 +29,11 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
         assert response.data["success"] is True
         assert response.data["organization_id"] == self.organization.id
         assert response.data["max_candidates"] is None
+        assert response.data["kinds"] == ["agentic_triage"]
         mock_task.apply_async.assert_called_once_with(
             args=[self.organization.id],
             kwargs={
+                "kinds": ["agentic_triage"],
                 "options": {"source": "manual", "dry_run": False},
                 "execute_in_task": True,
             },
@@ -52,6 +54,7 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
         mock_task.apply_async.assert_called_once_with(
             args=[self.organization.id],
             kwargs={
+                "kinds": ["agentic_triage"],
                 "options": {"source": "manual", "dry_run": True, "max_candidates": 3},
                 "execute_in_task": True,
             },
@@ -123,3 +126,38 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
         self.login_as(user=non_staff_user)
         response = super().get_response(organization_id=self.organization.id)
         assert response.status_code == 403
+
+    def test_accepts_explicit_kinds(self) -> None:
+        with patch(
+            "sentry.seer.endpoints.admin_night_shift_trigger.run_night_shift_for_org"
+        ) as mock_task:
+            response = self.get_success_response(
+                organization_id=self.organization.id,
+                kinds=["feedback_summary"],
+                status_code=200,
+            )
+
+        assert response.data["kinds"] == ["feedback_summary"]
+        mock_task.apply_async.assert_called_once_with(
+            args=[self.organization.id],
+            kwargs={
+                "kinds": ["feedback_summary"],
+                "options": {"source": "manual", "dry_run": False},
+                "execute_in_task": True,
+            },
+        )
+
+    def test_rejects_unknown_kinds(self) -> None:
+        response = self.get_response(organization_id=self.organization.id, kinds=["bogus"])
+        assert response.status_code == 400
+        assert "unknown kinds" in response.data["detail"]
+
+    def test_rejects_non_list_kinds(self) -> None:
+        response = self.get_response(organization_id=self.organization.id, kinds="agentic_triage")
+        assert response.status_code == 400
+        assert response.data["detail"] == "kinds must be a list of strings"
+
+    def test_rejects_empty_kinds(self) -> None:
+        response = self.get_response(organization_id=self.organization.id, kinds=[])
+        assert response.status_code == 400
+        assert response.data["detail"] == "kinds must not be empty"

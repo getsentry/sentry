@@ -36,6 +36,7 @@ class SeerNightShiftRunResponse(TypedDict):
     dateAdded: str
     extras: dict[str, Any]
     errorMessage: str | None
+    kinds: dict[str, Any]
     results: list[SeerNightShiftRunResultResponse]
     issues: list[SeerNightShiftRunIssueResponse]
     triageStrategy: str
@@ -61,12 +62,15 @@ class SeerNightShiftRunSerializer(Serializer):
             r for r in all_results if r.kind == NightShiftRunResultKind.AGENTIC_TRIAGE
         ]
         extras = obj.extras or {}
+        kinds_state = extras.get("kinds") or {}
+        triage_state = kinds_state.get(NightShiftRunResultKind.AGENTIC_TRIAGE.value) or {}
         return {
             "id": str(obj.id),
             "dateAdded": obj.date_added.isoformat(),
             "extras": extras,
-            # Legacy alias: error_message lives in extras now.
-            "errorMessage": extras.get("error_message"),
+            "kinds": kinds_state,
+            # Legacy alias: prefer per-kind triage error, fall back to flat extras.
+            "errorMessage": triage_state.get("error_message") or extras.get("error_message"),
             "results": [_serialize_result(r) for r in all_results],
             "issues": [_serialize_legacy_issue(r) for r in triage_results],
             # Match the pre-migration column behavior: always "agentic_triage"
