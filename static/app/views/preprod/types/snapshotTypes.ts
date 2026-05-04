@@ -91,6 +91,7 @@ export function getImageName(image: SnapshotImage): string {
 }
 
 interface SidebarItemBase {
+  displayName: string;
   key: string;
   name: string;
 }
