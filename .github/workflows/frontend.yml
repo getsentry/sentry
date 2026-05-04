@@ -171,7 +171,7 @@ jobs:
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
           # When the "Frontend: Rerun Flaky Tests" label is on the PR,
-          # tests wrapped with it.isKnownFlake() run 50x to validate fixes.
+          # tests wrapped with it.isKnownFlake() run 50x with overloaded workers.
           RERUN_KNOWN_FLAKY_TESTS: "${{ contains(github.event.pull_request.labels.*.name, 'Frontend: Rerun Flaky Tests') }}"
         run: pnpm run test-ci --forceExit
 

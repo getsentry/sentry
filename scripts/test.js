@@ -19,4 +19,11 @@ if (process.env.CI || process.env.SENTRY_PRECOMMIT || argv.includes('--coverage'
   argv = argv.filter(arg => arg !== '--watch');
 }
 
+// When RERUN_KNOWN_FLAKY_TESTS is set (see .github/workflows/frontend.yml),
+// oversubscribe Jest workers beyond CPU count.
+if (process.env.RERUN_KNOWN_FLAKY_TESTS === 'true') {
+  argv = argv.filter(arg => !/^--maxWorkers=/.test(arg));
+  argv.push('--maxWorkers=300%');
+}
+
 run(argv);
