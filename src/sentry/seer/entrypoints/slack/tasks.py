@@ -164,9 +164,7 @@ def process_mention_for_slack(
             thread_context = build_thread_context(messages) or None
 
         parts = [p for p in (linked_result.block, thread_context) if p]
-        if not parts:
-            return None
-        on_page_context = "\n\n".join(parts)
+        on_page_context = "\n\n".join(parts) if parts else None
 
         if linked_result.unresolved_channel_ids or linked_result.private_channel_ids:
             _send_inaccessible_links_prompt(
