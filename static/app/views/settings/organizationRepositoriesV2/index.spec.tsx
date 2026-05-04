@@ -1,0 +1,200 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+
+import {OrganizationRepositoriesV2} from 'sentry/views/settings/organizationRepositoriesV2';
+
+// ScmRepositoryTable uses @tanstack/react-virtual, which only renders rows
+// whose bounding rect overlaps the scroll container. Without this stub it
+// sees a 0×0 viewport and renders nothing.
+function stubBoundingClientRect() {
+  jest
+    .spyOn(window.Element.prototype, 'getBoundingClientRect')
+    .mockImplementation(() => ({
+      x: 0,
+      y: 0,
+      width: 600,
+      height: 400,
+      left: 0,
+      top: 0,
+      right: 600,
+      bottom: 400,
+      toJSON: jest.fn(),
+    }));
+}
+
+const GITHUB_PROVIDER = GitHubIntegrationProviderFixture();
+const GITHUB_INTEGRATION = OrganizationIntegrationsFixture({
+  id: '1',
+  name: 'my-org',
+  provider: {
+    key: 'github',
+    slug: 'github',
+    name: 'GitHub',
+    canAdd: true,
+    canDisable: false,
+    features: [],
+    aspects: {},
+  },
+});
+
+function setupDefaultMocks() {
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/config/integrations/',
+    body: {providers: [GITHUB_PROVIDER]},
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/integrations/',
+    body: [GITHUB_INTEGRATION],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+    body: GITHUB_INTEGRATION,
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/repos/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/code-mappings/',
+    body: [],
+  });
+}
+
+describe('OrganizationRepositoriesV2', () => {
+  beforeEach(() => {
+    stubBoundingClientRect();
+  });
+
+  it('shows a loading indicator while queries are pending', async () => {
+    setupDefaultMocks();
+    render(<OrganizationRepositoriesV2 />);
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await screen.findByRole('searchbox');
+  });
+
+  it('shows empty state with a Connect button per provider when no integrations are installed', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: {providers: [GITHUB_PROVIDER, GitLabIntegrationProviderFixture()]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/code-mappings/',
+      body: [],
+    });
+
+    render(<OrganizationRepositoriesV2 />);
+
+    expect(await screen.findByText('GitHub')).toBeInTheDocument();
+    expect(screen.getByText('GitLab')).toBeInTheDocument();
+
+    const connectButtons = screen.getAllByRole('button', {name: 'Add integration'});
+    expect(connectButtons).toHaveLength(2);
+  });
+
+  it('shows the connect provider button in the header when integrations are installed', async () => {
+    setupDefaultMocks();
+    render(<OrganizationRepositoriesV2 />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Connect new provider'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders a table for each provider that has an installation', async () => {
+    setupDefaultMocks();
+    render(<OrganizationRepositoriesV2 />);
+
+    expect(await screen.findByText('my-org')).toBeInTheDocument();
+  });
+
+  it('shows repos loading state in the table while the repos query is pending', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: {providers: [GITHUB_PROVIDER]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [GITHUB_INTEGRATION],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+      body: GITHUB_INTEGRATION,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/code-mappings/',
+      body: [],
+    });
+    // Use a large delay to simulate a slow/pending repos query. The
+    // providers and integrations responses arrive first, so the table
+    // renders, but reposLoading stays true until repos resolves.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: [],
+      asyncDelay: 10000,
+    });
+
+    render(<OrganizationRepositoriesV2 />);
+
+    expect(await screen.findByText('Loading repositories')).toBeInTheDocument();
+  });
+
+  it('clicking uninstall prompts for confirmation then refetches integrations', async () => {
+    setupDefaultMocks();
+
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+      method: 'DELETE',
+      body: {},
+    });
+
+    render(<OrganizationRepositoriesV2 />);
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Uninstall'}));
+
+    // The confirmation modal must appear before any DELETE is fired.
+    expect(deleteRequest).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: "I'm sure, uninstall"})).toBeInTheDocument();
+
+    // Override the integrations mock before the refetch happens.
+    const refetchRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [],
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: "I'm sure, uninstall"}));
+
+    await waitFor(() => expect(deleteRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(refetchRequest).toHaveBeenCalledTimes(1));
+  });
+
+  it('hides the uninstall button when the user lacks org:integrations access', async () => {
+    setupDefaultMocks();
+
+    render(<OrganizationRepositoriesV2 />, {
+      organization: OrganizationFixture({access: []}),
+    });
+
+    await screen.findByText('my-org');
+    expect(screen.queryByRole('button', {name: 'Uninstall'})).not.toBeInTheDocument();
+  });
+});
