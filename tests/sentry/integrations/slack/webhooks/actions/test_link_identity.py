@@ -42,12 +42,8 @@ class LinkIdentityActionTest(BaseEventTest):
             user_ext_id=self.external_id,
         )
         assert cached is not None
-        assert cached["response_url"] == self.response_url
-        # The rest of the payload is unchanged.
-        for key in original:
-            if key == "response_url":
-                continue
-            assert cached[key] == original[key]
+        # response_url is stashed; the rest of the payload is unchanged.
+        assert dict(cached) == {**original, "response_url": self.response_url}
 
     def test_no_pending_cache_is_noop(self) -> None:
         resp = self.post_webhook(
