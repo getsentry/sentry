@@ -1075,7 +1075,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # consistent with the surfacing result. Gated for safe rollout.
         condition_resolver = (
             get_snuba_column_name
-            if options.get("issues.search.fix_seen_stats_column_tag_collision")
+            if options.get("issues.search.use-tag-aware-condition-resolver")
             else None
         )
 
@@ -1112,7 +1112,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
         condition_resolver = (
             get_snuba_column_name
-            if options.get("issues.search.fix_seen_stats_column_tag_collision")
+            if options.get("issues.search.use-tag-aware-condition-resolver")
             else None
         )
 

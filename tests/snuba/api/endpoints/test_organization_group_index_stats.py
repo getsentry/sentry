@@ -297,7 +297,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group = self._store_platform_tag_collision_events()
         self.login_as(user=self.user)
 
-        with self.options({"issues.search.fix_seen_stats_column_tag_collision": True}):
+        with self.options({"issues.search.use-tag-aware-condition-resolver": True}):
             response = self.get_response(query="platform:SJ1", groups=[group.id])
 
         assert response.status_code == 200
@@ -310,7 +310,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         self.login_as(user=self.user)
 
         for option_value in (False, True):
-            with self.options({"issues.search.fix_seen_stats_column_tag_collision": option_value}):
+            with self.options({"issues.search.use-tag-aware-condition-resolver": option_value}):
                 response = self.get_response(query="tags[platform]:SJ1", groups=[group.id])
             assert response.status_code == 200
             assert response.data[0]["filtered"]["count"] == "3"
