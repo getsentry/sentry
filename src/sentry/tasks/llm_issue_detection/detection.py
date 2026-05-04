@@ -125,17 +125,17 @@ def get_base_platform(platform: str | None) -> str | None:
 
 
 TITLE_TO_GROUP_TYPE: dict[str, type[GroupType]] = {
-    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
-    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
-    "Failed HTTP Operation": AIDetectedHTTPGroupType,
+    "Blocking Operation": AIDetectedRuntimePerformanceGroupType,
     "Inefficient Database Queries": AIDetectedDBGroupType,
+    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
     "Degraded Database Operation": AIDetectedDBGroupType,
-    "Main Thread Blocking Operation": AIDetectedRuntimePerformanceGroupType,
+    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
     "Degraded UI Performance": AIDetectedRuntimePerformanceGroupType,
+    "Configuration Warning": AIDetectedCodeHealthGroupType,
     "Potential Security Leak": AIDetectedSecurityGroupType,
     "Potential Security Risk": AIDetectedSecurityGroupType,
-    "Configuration Warning": AIDetectedCodeHealthGroupType,
     "Deprecation Warning": AIDetectedCodeHealthGroupType,
+    "Failed HTTP Operation": AIDetectedHTTPGroupType,
 }
 
 GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
