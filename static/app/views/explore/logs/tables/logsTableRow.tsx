@@ -346,7 +346,7 @@ export const LogRowContent = memo(function LogRowContent({
                 aria-label={t('Toggle trace details')}
                 aria-expanded={expanded}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 onClick={() => toggleExpanded()}
               />
             ) : (

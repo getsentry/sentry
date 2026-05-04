@@ -239,7 +239,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                   trigger={triggerProps => (
                     <OverlayTrigger.Button
                       {...triggerProps}
-                      priority="transparent"
+                      variant="transparent"
                       size="zero"
                     />
                   )}

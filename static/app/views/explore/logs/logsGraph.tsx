@@ -204,7 +204,7 @@ function Graph({
               title: t('Type of chart displayed in this visualization (ex. line)'),
             }}
             icon={<IconGraph type={chartIcon} />}
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             size="xs"
           />
@@ -224,7 +224,7 @@ function Graph({
               title: t('Time interval displayed in this visualization (ex. 5m)'),
             }}
             icon={<IconClock />}
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             size="xs"
           />

@@ -339,7 +339,7 @@ export function RuleListRow({
                       assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
                     }
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                   >
                     {avatarElement}
                   </OverlayTrigger.Button>
