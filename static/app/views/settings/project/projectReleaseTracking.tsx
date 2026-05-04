@@ -153,14 +153,12 @@ export default function ProjectReleaseTracking() {
           <Stack gap="md">
             <Text as="p">
               {tct(
-                'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
+                'Start by binding the [code:release] attribute in your application. See [link:our docs] for instructions on configuring this in your SDK.',
                 {
+                  code: <code />,
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/releases/">
-                      our docs
-                    </ExternalLink>
+                    <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/releases/" />
                   ),
-                  release: <code>release</code>,
                 }
               )}
             </Text>
