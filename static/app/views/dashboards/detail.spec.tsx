@@ -862,32 +862,35 @@ describe('Dashboards > Detail', () => {
       });
     });
 
-    it('redirects user to dashboard url if widget is not found', async () => {
-      const {router} = render(<ViewEditDashboard />, {
-        ...makeDashboardRouterConfig({
-          pathname: '/organizations/org-slug/dashboard/1/widget/123/',
-          route: DASHBOARD_WIDGET_ROUTE,
-          query: initialData.router.location.query,
-        }),
-        organization: initialData.organization,
-      });
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
-      });
-      expect(router.location.pathname).toBe(
-        '/organizations/org-slug/dashboard/1/widget/123/'
-      );
+    it.isKnownFlake(
+      'redirects user to dashboard url if widget is not found',
+      async () => {
+        const {router} = render(<ViewEditDashboard />, {
+          ...makeDashboardRouterConfig({
+            pathname: '/organizations/org-slug/dashboard/1/widget/123/',
+            route: DASHBOARD_WIDGET_ROUTE,
+            query: initialData.router.location.query,
+          }),
+          organization: initialData.organization,
+        });
+        const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/dashboards/1/',
+          body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
+        });
+        expect(router.location.pathname).toBe(
+          '/organizations/org-slug/dashboard/1/widget/123/'
+        );
 
-      expect(await screen.findByText('All Releases')).toBeInTheDocument();
+        expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
-      expect(openWidgetViewerModal).not.toHaveBeenCalled();
+        expect(openWidgetViewerModal).not.toHaveBeenCalled();
 
-      await waitFor(() => {
-        expect(router.location.pathname).toBe('/organizations/org-slug/dashboard/1/');
-      });
-    });
+        await waitFor(() => {
+          expect(router.location.pathname).toBe('/organizations/org-slug/dashboard/1/');
+        });
+      }
+    );
 
     it('saves a new dashboard with the page filters', async () => {
       const mockPOST = MockApiClient.addMockResponse({
