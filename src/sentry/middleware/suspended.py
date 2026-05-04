@@ -14,6 +14,18 @@ SUSPENDED_EXEMPT_PATHS = (
     "/api/0/auth/",
 )
 
+# Paths serving static/cacheable content where evaluating request.user
+# would pollute the Vary header with "Cookie" and break caching.
+SUSPENDED_SKIP_PATHS = (
+    "/_static/",
+    "/_media/",
+    "/avatar/",
+    "/organization-avatar/",
+    "/team-avatar/",
+    "/sentry-app-avatar/",
+    "/doc-integration-avatar/",
+)
+
 
 class SuspendedUserMiddleware(MiddlewareMixin):
     """
@@ -25,6 +37,9 @@ class SuspendedUserMiddleware(MiddlewareMixin):
     """
 
     def process_request(self, request: HttpRequest) -> HttpResponseForbidden | JsonResponse | None:
+        if any(request.path.startswith(p) for p in SUSPENDED_SKIP_PATHS):
+            return None
+
         user = getattr(request, "user", None)
         if user is None or not getattr(user, "is_authenticated", False):
             return None
