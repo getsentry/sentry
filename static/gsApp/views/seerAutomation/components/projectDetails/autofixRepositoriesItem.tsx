@@ -150,7 +150,7 @@ export function AutofixRepositoriesItem({
               {t('Disconnect')}
             </Flex>
           }
-          variant="danger"
+          priority="danger"
         >
           <Button
             aria-label={t('Disconnect Repository')}
