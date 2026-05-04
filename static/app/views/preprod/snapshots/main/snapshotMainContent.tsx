@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -38,7 +39,6 @@ import {
   SnapshotListView,
   type SnapshotListViewHandle,
 } from './snapshotListView';
-import {SnapshotsToolbar} from './snapshotsToolbar';
 
 type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
@@ -200,7 +200,7 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <SnapshotsToolbar
+        <ToolbarContainer
           toggle={toggle}
           sortDropdown={sortDropdown}
           progressIndicator={progressIndicator}
@@ -228,7 +228,7 @@ export function SnapshotMainContent({
   if (!selectedItem) {
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <SnapshotsToolbar
+        <ToolbarContainer
           toggle={toggle}
           sortDropdown={sortDropdown}
           progressIndicator={progressIndicator}
@@ -470,7 +470,7 @@ function SingleViewLayout({
       background="secondary"
       onClick={e => e.stopPropagation()}
     >
-      <SnapshotsToolbar
+      <ToolbarContainer
         toggle={toggle}
         sortDropdown={sortDropdown}
         progressIndicator={progressIndicator}
@@ -789,3 +789,45 @@ const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
       transparent calc(50% + 1.5px)
     );`}
 `;
+
+function ToolbarContainer({
+  toggle,
+  sortDropdown,
+  progressIndicator,
+  diffControls,
+  soloDiffToggle,
+}: {
+  toggle: React.ReactNode;
+  diffControls?: React.ReactNode;
+  progressIndicator?: React.ReactNode;
+  soloDiffToggle?: React.ReactNode;
+  sortDropdown?: React.ReactNode;
+}) {
+  return (
+    <Fragment>
+      <Flex
+        align="center"
+        justify="between"
+        gap="md"
+        padding="md xl md 0"
+        background="primary"
+        onClick={e => e.stopPropagation()}
+      >
+        <Flex align="center" gap="md">
+          {toggle}
+          {sortDropdown}
+          {progressIndicator}
+        </Flex>
+        <Flex align="center" gap="md">
+          {diffControls && (
+            <Flex align="center" gap="sm">
+              {diffControls}
+            </Flex>
+          )}
+          {soloDiffToggle}
+        </Flex>
+      </Flex>
+      <Separator orientation="horizontal" />
+    </Fragment>
+  );
+}
