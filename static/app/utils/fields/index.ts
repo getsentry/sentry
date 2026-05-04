@@ -31,7 +31,6 @@ export enum FieldKey {
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
-  DETECTOR = 'detector',
   DEVICE = 'device',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -87,6 +86,7 @@ export enum FieldKey {
   LEVEL = 'level',
   LOCATION = 'location',
   MESSAGE = 'message',
+  MONITOR = 'monitor',
   OS = 'os',
   OS_BUILD = 'os.build',
   OS_KERNEL_VERSION = 'os.kernel_version',
@@ -178,7 +178,6 @@ type ErrorFieldKey =
   | FieldKey.ASSIGNED_OR_SUGGESTED
   | FieldKey.BOOKMARKS
   | FieldKey.CULPRIT
-  | FieldKey.DETECTOR
   | FieldKey.ERROR_HANDLED
   | FieldKey.ERROR_MECHANISM
   | FieldKey.ERROR_TYPE
@@ -199,6 +198,7 @@ type ErrorFieldKey =
   | FieldKey.LAST_SEEN
   | FieldKey.LEVEL
   | FieldKey.LOCATION
+  | FieldKey.MONITOR
   | FieldKey.STACK_ABS_PATH
   | FieldKey.STACK_COLNO
   | FieldKey.STACK_FILENAME
@@ -1959,12 +1959,6 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.DETECTOR]: {
-    desc: t('The detector that triggered the issue'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
   [FieldKey.ERROR_HANDLED]: {
     desc: t('Determines handling status of the error'),
     kind: FieldKind.FIELD,
@@ -2073,6 +2067,12 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     desc: t('Location of error'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FieldKey.MONITOR]: {
+    desc: t('The monitor that triggered the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.STACK_ABS_PATH]: {
     desc: t('Absolute path to the source file'),
@@ -2747,7 +2747,6 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ASSIGNED_OR_SUGGESTED,
   FieldKey.ASSIGNED,
   FieldKey.BOOKMARKS,
-  FieldKey.DETECTOR,
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
   FieldKey.HAS,
@@ -2759,6 +2758,7 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ISSUE_TYPE,
   FieldKey.ISSUE,
   FieldKey.LAST_SEEN,
+  FieldKey.MONITOR,
   FieldKey.RELEASE_STAGE,
   FieldKey.TIMES_SEEN,
 ];
