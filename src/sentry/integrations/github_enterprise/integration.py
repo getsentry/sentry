@@ -38,6 +38,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -50,6 +51,7 @@ from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiPaginationTruncated,
     IntegrationError,
 )
@@ -216,6 +218,11 @@ class GitHubEnterpriseIntegration(
         )
 
     # IntegrationInstallation methods
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiForbiddenError) and "suspended" in str(exc):
+            return "installation_suspended"
+        return super().is_broken_integration_error(exc)
 
     def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):

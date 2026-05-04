@@ -139,7 +139,7 @@ export function TableView(props: TableViewProps) {
               title={t('event id')}
               direction={undefined}
               canSort={false}
-              generateSortLink={() => undefined}
+              generateSortLink={() => {}}
             />
           </PrependHeader>,
         ];

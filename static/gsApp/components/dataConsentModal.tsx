@@ -45,7 +45,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         analyticsEventKey="data_consent_banner.dismissed"
         analyticsEventName="Data Consent Banner: Dismissed"
         size="zero"
-        priority="transparent"
+        variant="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => closeModal()}
@@ -139,7 +139,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
           onClick={() => {
             updateOrganizationOption();
           }}
-          priority="primary"
+          variant="primary"
           busy={isPending}
         >
           {t('I agree')}

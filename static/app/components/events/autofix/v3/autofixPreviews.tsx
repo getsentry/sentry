@@ -209,7 +209,7 @@ export function CodingAgentPreview({section}: ArtifactPreviewProps) {
               <Tag variant={statusVariant}>{codingAgent.status}</Tag>
               {codingAgent.agent_url ? (
                 <LinkButton
-                  priority="transparent"
+                  variant="transparent"
                   size="xs"
                   icon={<IconOpen />}
                   href={codingAgent.agent_url}

@@ -80,7 +80,7 @@ export function GithubCopilotIntegrationCta() {
           <div>
             <LinkButton
               to={`/settings/${organization.slug}/integrations/github_copilot/`}
-              priority="default"
+              variant="secondary"
               size="sm"
               onClick={handleInstallClick}
             >

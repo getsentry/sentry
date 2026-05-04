@@ -12,7 +12,7 @@ export function useTopEvents(): number | undefined {
 
   const topEvents: number | undefined = useMemo(() => {
     if (groupBys.every(groupBy => groupBy === '')) {
-      return undefined;
+      return;
     }
 
     return TOP_EVENTS_LIMIT;

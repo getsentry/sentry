@@ -201,7 +201,7 @@ export function SizeCompareMainContent() {
         message={t("We don't have any comparison data available yet for these builds.")}
       >
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => {
             triggerComparison({
               baseArtifactId,
@@ -241,7 +241,7 @@ export function SizeCompareMainContent() {
         }
       >
         <Button
-          priority="default"
+          variant="secondary"
           onClick={() => {
             triggerComparison({
               baseArtifactId,
@@ -324,7 +324,7 @@ export function SizeCompareMainContent() {
             </Flex>
             <Flex align="center" gap="sm">
               <Button
-                priority="transparent"
+                variant="transparent"
                 size="sm"
                 onClick={() => setIsFilesExpanded(!isFilesExpanded)}
                 aria-label={isFilesExpanded ? t('Collapse items') : t('Expand items')}

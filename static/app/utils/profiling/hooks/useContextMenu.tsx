@@ -138,7 +138,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   // Observe the menu
   useEffect(() => {
     if (!itemProps.menuRef) {
-      return undefined;
+      return;
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {
@@ -156,7 +156,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   // Observe the container
   useEffect(() => {
     if (!container) {
-      return undefined;
+      return;
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {

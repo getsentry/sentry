@@ -256,7 +256,7 @@ export function Alert({
           <Flex align="center" alignSelf="flex-start">
             <Button
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
               onClick={() => {

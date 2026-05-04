@@ -17,7 +17,7 @@ export function DragReorderButton({
   return (
     <Button
       aria-label={t('Drag to reorder')}
-      priority="transparent"
+      variant="transparent"
       size={size}
       style={{cursor: 'grab'}}
       icon={<IconGrabbable size={iconSize} />}

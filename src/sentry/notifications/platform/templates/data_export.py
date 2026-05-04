@@ -102,8 +102,6 @@ class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
             ],
             actions=[
                 NotificationRenderedAction(label="Documentation", link="https://docs.sentry.io/"),
-                NotificationRenderedAction(
-                    label="Help Center", link="https://sentry.zendesk.com/hc/en-us"
-                ),
+                NotificationRenderedAction(label="Help Center", link="https://www.sentry.help/"),
             ],
         )

@@ -671,6 +671,7 @@ function SearchQueryBuilderInputInternal({
         onKeyDown={onKeyDown}
         onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
+        onSearchQueryClear={() => setInputValue('')}
         openOnFocus={shouldReopenDropdownOnFocus}
         onFocus={() => {
           if (shouldReopenDropdownOnFocus) {

@@ -211,6 +211,9 @@ def recover_confirm(
     except LostPasswordHash.DoesNotExist:
         return render_to_response(get_template(mode, "failure"), {"user_id": user_id}, request)
 
+    if getattr(user, "is_suspended", False):
+        return render_to_response(get_template(mode, "failure"), {"user_id": user_id}, request)
+
     extra = {
         "ip_address": request.META["REMOTE_ADDR"],
         "user_agent": request.META.get("HTTP_USER_AGENT"),
