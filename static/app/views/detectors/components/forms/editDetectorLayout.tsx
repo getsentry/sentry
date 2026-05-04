@@ -18,8 +18,7 @@ import {
   DeleteDetectorAction,
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
-import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {DetectorNameField} from 'sentry/views/detectors/components/forms/common/detectorNameField';
+import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
@@ -78,10 +77,10 @@ export function EditDetectorLayout<
         <EditLayoutDeprecated.HeaderContent>
           {hasPageFrame ? (
             <TopBar.Slot name="title">
-              <EditDetectorBreadcrumbs detector={detector} />
+              <DetectorFormBreadcrumbs />
             </TopBar.Slot>
           ) : (
-            <EditDetectorBreadcrumbs detector={detector} />
+            <DetectorFormBreadcrumbs />
           )}
         </EditLayoutDeprecated.HeaderContent>
 
@@ -91,10 +90,11 @@ export function EditDetectorLayout<
           </EditLayoutDeprecated.Actions>
         </div>
 
-        <EditLayoutDeprecated.HeaderFields>
-          <DetectorNameField />
-          {previewChart ?? <div />}
-        </EditLayoutDeprecated.HeaderFields>
+        {previewChart && (
+          <EditLayoutDeprecated.HeaderFields>
+            {previewChart}
+          </EditLayoutDeprecated.HeaderFields>
+        )}
       </EditLayoutDeprecated.Header>
 
       <EditLayoutDeprecated.Body maxWidth={maxWidth}>
