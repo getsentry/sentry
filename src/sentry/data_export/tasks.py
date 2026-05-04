@@ -252,19 +252,16 @@ def _schedule_next_task(
         "export_retries": export_retries,
         "page_token": _page_token_b64_from_processor(processor),
     }
-    should_continue = (
-        new_bytes_written
-        and next_offset < export_limit
-        and (
-            (
-                isinstance(processor, TraceItemFullExportProcessor)
-                and processor.page_token is not None
-            )
-            or (
-                not isinstance(processor, TraceItemFullExportProcessor)
-                and rows
-                and len(rows) >= batch_size
-            )
+    should_continue = next_offset < export_limit and (
+        (
+            isinstance(processor, TraceItemFullExportProcessor)
+            and processor.page_token is not None
+        )
+        or (
+            not isinstance(processor, TraceItemFullExportProcessor)
+            and new_bytes_written
+            and rows
+            and len(rows) >= batch_size
         )
     )
 
