@@ -19,7 +19,7 @@ import type {Actor} from 'sentry/types/core';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import type {Actor} from 'sentry/types/core';
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 import {Avatar, type AvatarProps} from './avatar';

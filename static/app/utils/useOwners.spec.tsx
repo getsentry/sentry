@@ -43,13 +43,13 @@ describe('useOwners', () => {
       initialProps: {},
     });
 
-    await waitFor(() => !result.current.fetching);
+    await waitFor(() => expect(result.current.fetching).toBe(false));
 
     expect(result.current.members).toEqual(mockUsers);
     expect(result.current.teams).toEqual(mockTeams);
   });
 
-  it('fetches users and memberrs', async () => {
+  it('fetches users and members', async () => {
     const members = [
       MemberFixture({
         user: UserFixture({id: '5'}),
@@ -64,13 +64,14 @@ describe('useOwners', () => {
     membersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: members,
+      match: [MockApiClient.matchQuery({query: 'user.id:5'})],
     });
 
     const {result} = renderHookWithProviders(useOwners, {
       initialProps: {currentValue: ['user:5', 'team:4']},
     });
 
-    await waitFor(() => !result.current.fetching);
+    await waitFor(() => expect(result.current.fetching).toBe(false));
 
     expect(teamsRequest).toHaveBeenCalledWith(
       expect.anything(),
@@ -85,7 +86,10 @@ describe('useOwners', () => {
       })
     );
 
-    expect(result.current.members).toEqual([...members.map(member => member.user)]);
+    expect(result.current.members).toEqual([
+      ...members.map(member => member.user),
+      ...mockUsers,
+    ]);
     expect(result.current.teams).toEqual([...teams, ...mockTeams]);
   });
 });

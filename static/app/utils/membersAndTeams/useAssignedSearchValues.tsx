@@ -6,12 +6,12 @@ import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {useOrganizationMemberUsers} from 'sentry/utils/members/useOrganizationMemberUsers';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
-import {useMembers} from 'sentry/utils/useMembers';
 
 export function useAssignedSearchValues(): SearchGroup[] {
   const {teams} = useLegacyStore(TeamStore);
-  const {members} = useMembers();
+  const {data: members = []} = useOrganizationMemberUsers();
 
   const assignedValues: SearchGroup[] = useMemo(() => {
     const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);

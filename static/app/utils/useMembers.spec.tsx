@@ -1,62 +1,125 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
+import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
+import {useOrganizationMemberUsers} from 'sentry/utils/members/useOrganizationMemberUsers';
 
 describe('useMembers', () => {
   const org = OrganizationFixture();
 
   const mockUsers = [UserFixture()];
 
-  const renderUseMembers = (props?: Parameters<typeof useMembers>[0]) =>
+  const renderUseMembers = (props: Parameters<typeof useMembers>[0]) =>
     renderHookWithProviders(useMembers, {initialProps: props, organization: org});
 
-  it('provides members from the members endpoint', async () => {
+  function MultipleOrganizationMemberUsers() {
+    const first = useOrganizationMemberUsers();
+    const second = useOrganizationMemberUsers();
+
+    return (
+      <div data-test-id="load-state">
+        {String(first.isSuccess)}:{String(second.isSuccess)}:{first.data?.length ?? 0}:
+        {second.data?.length ?? 0}
+      </div>
+    );
+  }
+
+  it('provides organization member users from the members endpoint', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'GET',
       body: mockUsers.map(user => ({user})),
     });
 
-    const {result} = renderUseMembers();
+    const {result} = renderHookWithProviders(useOrganizationMemberUsers, {
+      organization: org,
+    });
 
-    await waitFor(() => expect(result.current.initiallyLoaded).toBe(true));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockRequest).toHaveBeenCalled();
-    expect(result.current.members).toEqual(mockUsers);
+    expect(result.current.data).toEqual(mockUsers);
   });
 
-  it('loads more members when using onSearch', async () => {
-    const newUser2 = UserFixture({id: '2', email: 'test-user2@example.com'});
-    const newUser3 = UserFixture({id: '3', email: 'test-user3@example.com'});
-
+  it('shares the default members request across default hook instances', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'GET',
-      body: [{user: mockUsers[0]}, {user: newUser2}, {user: newUser3}],
+      body: mockUsers.map(user => ({user})),
     });
 
-    const {result} = renderUseMembers();
+    render(<MultipleOrganizationMemberUsers />, {organization: org});
+
+    await waitFor(() =>
+      expect(screen.getByTestId('load-state')).toHaveTextContent('true:true:1:1')
+    );
+
+    expect(mockRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads more members when using organization member search', async () => {
+    const newUser2 = UserFixture({id: '2', email: 'test-user2@example.com'});
+    const newUser3 = UserFixture({id: '3', email: 'test-user3@example.com'});
+
+    const initialRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'GET',
+      body: [{user: mockUsers[0]}],
+    });
+    const searchRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'GET',
+      body: [{user: mockUsers[0]}, {user: newUser2}, {user: newUser3}],
+      match: [MockApiClient.matchQuery({query: 'test'})],
+    });
+
+    const {result} = renderHookWithProviders(useOrganizationMemberSearch, {
+      organization: org,
+    });
+    await waitFor(() => expect(result.current.initiallyLoaded).toBe(true));
     const {onSearch} = result.current;
 
     // Works with append
     await act(() => onSearch('test'));
+
+    await waitFor(() => expect(result.current.members).toHaveLength(3));
     expect(result.current.fetching).toBe(false);
 
-    await waitFor(() => result.current.members.length === 3);
-
-    expect(mockRequest).toHaveBeenCalled();
+    expect(initialRequest).toHaveBeenCalledTimes(1);
+    expect(searchRequest).toHaveBeenCalled();
     expect(result.current.members).toEqual([...mockUsers, newUser2, newUser3]);
 
-    // de-duplicates items in the query results
-    mockRequest.mockClear();
+    // De-duplicates cached query results.
+    searchRequest.mockClear();
     await act(() => onSearch('test'));
 
     // No new items have been added
-    expect(mockRequest).toHaveBeenCalled();
+    expect(searchRequest).not.toHaveBeenCalled();
     expect(result.current.members).toEqual([...mockUsers, newUser2, newUser3]);
+  });
+
+  it('requires filters and does not request members for empty filters', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'GET',
+      body: mockUsers.map(user => ({user})),
+    });
+
+    const {result} = renderUseMembers({ids: []});
+
+    expect(result.current.initiallyLoaded).toBe(true);
+    expect(result.current.fetching).toBe(false);
+    expect(result.current.members).toEqual([]);
+    expect(mockRequest).not.toHaveBeenCalled();
   });
 
   it('provides only the specified emails', async () => {
@@ -70,10 +133,10 @@ describe('useMembers', () => {
     const {result} = renderUseMembers({emails: ['foo@test.com']});
 
     expect(result.current.initiallyLoaded).toBe(false);
-    expect(mockRequest).toHaveBeenCalled();
 
     await waitFor(() => expect(result.current.members).toHaveLength(1));
 
+    expect(mockRequest).toHaveBeenCalled();
     const {members} = result.current;
     expect(members).toEqual(expect.arrayContaining([userFoo]));
   });
@@ -89,10 +152,10 @@ describe('useMembers', () => {
     const {result} = renderUseMembers({ids: ['10']});
 
     expect(result.current.initiallyLoaded).toBe(false);
-    expect(mockRequest).toHaveBeenCalled();
 
     await waitFor(() => expect(result.current.members).toHaveLength(1));
 
+    expect(mockRequest).toHaveBeenCalled();
     const {members} = result.current;
     expect(members).toEqual(expect.arrayContaining([userFoo]));
   });
@@ -117,29 +180,6 @@ describe('useMembers', () => {
     );
   });
 
-  it('tracks requested ids that failed to load', async () => {
-    const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
-      method: 'GET',
-      body: [],
-    });
-
-    const {result} = renderUseMembers({ids: ['10']});
-
-    expect(result.current.initiallyLoaded).toBe(false);
-
-    await waitFor(() => expect(result.current.initiallyLoaded).toBe(true));
-
-    expect(mockRequest).toHaveBeenCalledTimes(1);
-    expect(result.current.members).toEqual([]);
-
-    mockRequest.mockClear();
-    await act(() => result.current.loadMore());
-
-    expect(result.current.members).toEqual([]);
-    expect(mockRequest).toHaveBeenCalledTimes(1);
-  });
-
   it('only provides emails that were requested', async () => {
     const requestedUser = UserFixture({email: mockUsers[0]!.email});
     const otherUser = UserFixture({email: 'other@test.com'});
@@ -157,23 +197,5 @@ describe('useMembers', () => {
     expect(mockRequest).toHaveBeenCalled();
     expect(initiallyLoaded).toBe(true);
     expect(members).toEqual([requestedUser]);
-  });
-
-  it('correctly returns hasMore before and after store update', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
-      method: 'GET',
-      body: mockUsers.map(user => ({user})),
-    });
-
-    const {result} = renderUseMembers();
-
-    const {members, hasMore} = result.current;
-    expect(hasMore).toBeNull();
-    expect(members).toEqual(expect.arrayContaining([]));
-
-    await waitFor(() => expect(result.current.members).toHaveLength(1));
-
-    expect(result.current.hasMore).toBe(false);
   });
 });

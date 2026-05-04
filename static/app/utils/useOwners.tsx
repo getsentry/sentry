@@ -1,6 +1,8 @@
 import {useEffect, useMemo} from 'react';
+import uniqBy from 'lodash/uniqBy';
 
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
+import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
@@ -24,14 +26,19 @@ export function useOwners({currentValue}: Options) {
         .map(user => user.replace(/^user:/, '')),
     [currentValue]
   );
-  useMembers({ids: ensureUserIds});
+  const {members: ensuredMembers, fetching: fetchingEnsuredMembers} = useMembers({
+    ids: ensureUserIds ?? [],
+  });
 
   const {
-    members,
+    members: defaultMembers,
     fetching: fetchingMembers,
     onSearch: onMemberSearch,
-    loadMore: loadMoreMembers,
-  } = useMembers();
+  } = useOrganizationMemberSearch();
+  const members = useMemo(
+    () => uniqBy([...ensuredMembers, ...defaultMembers], member => member.id),
+    [defaultMembers, ensuredMembers]
+  );
 
   // Ensure the current value of the fields teams is loaded
   const ensureTeamIds = useMemo(
@@ -51,14 +58,12 @@ export function useOwners({currentValue}: Options) {
   } = useTeams();
 
   // TODO(epurkhiser): This is an unfortunate hack right now since we don't
-  // actually load members anywhere and the useMembers and useTeams hook don't
-  // handle initial loading of data.
+  // actually load teams anywhere and the useTeams hook doesn't handle initial
+  // loading of data.
   //
-  // In the future when these things use react query we should be able to clean
-  // this up.
+  // In the future when this uses react query we should be able to clean this up.
   useEffect(
     () => {
-      loadMoreMembers();
       loadMoreTeams();
     },
     // Only ensure things are loaded at mount
@@ -69,7 +74,7 @@ export function useOwners({currentValue}: Options) {
   return {
     members,
     teams,
-    fetching: fetchingMembers || fetchingTeams,
+    fetching: fetchingEnsuredMembers || fetchingMembers || fetchingTeams,
     onMemberSearch,
     onTeamSearch,
   };
