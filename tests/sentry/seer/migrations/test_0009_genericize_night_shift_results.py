@@ -1,3 +1,5 @@
+from django.db.migrations.state import StateApps
+
 from sentry.testutils.cases import TestMigrations
 
 
@@ -9,7 +11,7 @@ class GenericizeNightShiftResultsMigrationTest(TestMigrations):
     def setup_initial_state(self) -> None:
         self.group = self.create_group()
 
-    def setup_before_migration(self, apps) -> None:
+    def setup_before_migration(self, apps: StateApps) -> None:
         SeerNightShiftRun = apps.get_model("seer", "SeerNightShiftRun")
         SeerNightShiftRunIssue = apps.get_model("seer", "SeerNightShiftRunIssue")
 
