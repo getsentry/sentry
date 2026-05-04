@@ -11,6 +11,7 @@ from slack_sdk.errors import SlackApiError
 
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -30,7 +31,6 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
@@ -43,6 +43,7 @@ from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_au
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils import metrics
 from sentry.workflow_engine.models.action import Action
 
@@ -328,7 +329,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         )
 
         open_period_start: datetime | None = None
-        if event.group.issue_category == GroupCategory.UPTIME:
+        if event.group.issue_type.type_id == UptimeDomainCheckFailure.type_id:
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
 
@@ -414,8 +415,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         open_period_start: datetime | None = None
         if (
-            event.group.issue_category == GroupCategory.UPTIME
-            or event.group.issue_category == GroupCategory.METRIC_ALERT
+            event.group.issue_type.type_id == UptimeDomainCheckFailure.type_id
+            or event.group.issue_type.type_id == MetricIssue.type_id
         ):
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start

@@ -460,10 +460,10 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         group_3 = event_3.group
         group_3.update(type=PerformanceNPlusOneGroupType.type_id)
-        results = self.make_query(search_filter_query="issue.category:performance")
+        results = self.make_query(search_filter_query="issue.category:db_query")
         assert set(results) == {group_3}
 
-        results = self.make_query(search_filter_query="issue.category:[error, performance]")
+        results = self.make_query(search_filter_query="issue.category:[error, db_query]")
         assert set(results) == {self.group1, self.group2, group_3}
 
         with pytest.raises(InvalidSearchQuery):
@@ -473,7 +473,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(search_filter_query="issue.category:error foo")
         assert set(results) == {self.group1}
 
-        not_results = self.make_query(search_filter_query="!issue.category:performance foo")
+        not_results = self.make_query(search_filter_query="!issue.category:db_query foo")
         assert set(not_results) == {self.group1}
 
     def test_type(self) -> None:
@@ -3169,7 +3169,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
     def test_performance_query(self) -> None:
         with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+            results = self.make_query(search_filter_query="issue.category:frontend my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
             results = self.make_query(
@@ -3195,7 +3195,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
                 self.error_group_1,
             ]
             results = self.make_query(
-                search_filter_query="issue.category:[performance, error] my_tag:1"
+                search_filter_query="issue.category:[frontend, error] my_tag:1"
             )
             assert list(results) == [
                 self.perf_group_1,
@@ -3218,7 +3218,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3229,7 +3229,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3240,7 +3240,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3299,7 +3299,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert result["data"][0]["transaction_name"] == transaction_name
             assert result["data"][0]["group_id"] == created_group.id
 
-            results = self.make_query(search_filter_query="issue.category:performance tea")
+            results = self.make_query(search_filter_query="issue.category:frontend tea")
             assert set(results) == {created_group}
 
             results2 = self.make_query(search_filter_query="tea")
@@ -3490,10 +3490,12 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         self.error_group_2 = error_event_2.group
 
     def test_generic_query(self) -> None:
-        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+        results = self.make_query(
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1"
+        )
         assert list(results) == [self.profile_group_1, self.profile_group_2]
         results = self.make_query(
-            search_filter_query="issue.type:profile_file_io_main_thread my_tag:1"
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1"
         )
         assert list(results) == [self.profile_group_1, self.profile_group_2]
 
@@ -3525,7 +3527,10 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 assert group_info is not None
 
             with self.feature(group_type.build_visible_feature_name()):
-                results = self.make_query(search_filter_query="issue.category:performance my_tag:3")
+                results = self.make_query(
+                    search_filter_query=f"issue.type:{PerformanceNPlusOneGroupType.slug} my_tag:3"
+                )
+
         assert list(results) == [group_info.group]
 
     def test_error_generic_query(self) -> None:
@@ -3537,7 +3542,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             self.error_group_1,
         ]
         results = self.make_query(
-            search_filter_query="issue.category:[performance, error] my_tag:1"
+            search_filter_query=f"issue.type:[{ProfileFileIOGroupType.slug}, error] my_tag:1"
         )
         assert list(results) == [
             self.profile_group_1,
@@ -3547,7 +3552,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         ]
 
         results = self.make_query(
-            search_filter_query="issue.type:[profile_file_io_main_thread, error] my_tag:1"
+            search_filter_query=f"issue.type:[{ProfileFileIOGroupType.slug}, error] my_tag:1"
         )
         assert list(results) == [
             self.profile_group_1,
@@ -3559,7 +3564,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
     def test_cursor_profile_issues(self) -> None:
         results = self.make_query(
             projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1",
             sort_by="date",
             limit=1,
             count_hits=True,
@@ -3570,7 +3575,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
         results = self.make_query(
             projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1",
             sort_by="date",
             limit=1,
             cursor=results.next,
@@ -3581,7 +3586,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
         results = self.make_query(
             projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1",
             sort_by="date",
             limit=1,
             cursor=results.next,
@@ -3811,7 +3816,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
             with self.feature(group_type.build_visible_feature_name()):
                 results = self.make_query(
-                    search_filter_query="issue.category:performance perfkeyword456"
+                    search_filter_query=f"issue.type:{PerformanceNPlusOneGroupType.slug} perfkeyword456"
                 )
                 assert list(results) == [group_info.group]
 

@@ -161,7 +161,7 @@ export function LogsExportModal({
           >
             {t('Cancel')}
           </Button>
-          <form.SubmitButton priority="primary">{t('Export')}</form.SubmitButton>
+          <form.SubmitButton variant="primary">{t('Export')}</form.SubmitButton>
         </Flex>
       </Footer>
     </form.AppForm>

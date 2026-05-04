@@ -26,8 +26,10 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {openBuildDebugInfoModal} from 'sentry/views/preprod/snapshots/header/buildDebugInfoModal';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
@@ -48,6 +50,7 @@ export function SnapshotHeaderActions({
   const clientRef = useRef(new Client());
   useEffect(() => () => clientRef.current.clear(), []);
   const navigate = useNavigate();
+  const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -70,6 +73,10 @@ export function SnapshotHeaderActions({
   }));
 
   const handleApprove = () => {
+    trackAnalytics('preprod.snapshots.details.approve_clicked', {
+      organization,
+      build_id: data.head_artifact_id,
+    });
     setIsApproving(true);
     clientRef.current.request(
       `/organizations/${organizationSlug}/preprodartifacts/${data.head_artifact_id}/approve/`,

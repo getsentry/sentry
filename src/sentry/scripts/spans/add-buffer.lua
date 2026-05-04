@@ -30,6 +30,8 @@ ARGS:
 - max_segment_bytes -- int -- Maximum allowed ingested bytes for a segment. 0 means no limit.
 - salt -- str -- Unique identifier for this subsegment. When the segment exceeds max_segment_bytes, this subsegment
                  is detached into its own segment keyed by salt.
+- check_flush_lock -- "true" or "false" -- When true, this script checks for the per-segment flush lock and detaches
+                                           the subsegment if the target segment is currently being flushed.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:
@@ -72,7 +74,8 @@ local set_timeout = tonumber(ARGV[4])
 local byte_count = tonumber(ARGV[5])
 local max_segment_bytes = tonumber(ARGV[6])
 local salt = ARGV[7] or ""
-local NUM_ARGS = 7
+local check_flush_lock = ARGV[8] == "true"
+local NUM_ARGS = 8
 
 local function get_time_ms()
     local time = redis.call("TIME")
@@ -140,13 +143,27 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     end
 end
 
--- If the segment is already too big, make this subsegment its own segment
--- with salt as the identifier.
-if max_segment_bytes > 0 and tonumber(ingested_byte_count) + byte_count > max_segment_bytes then
+-- Detach this subsegment into a new segment if either:
+--   1. The target segment is already over the byte limit. Without this,
+--      segments would grow unboundedly past max_segment_bytes.
+--   2. The target segment is currently being flushed (lock held). If we keep
+--      writing to a segment while it is being flushed, conditional cleanup
+--      in `done-flush-segment` will skip, and we can end up flushing
+--      duplicate spans in the next cycle while leaving segments accumulating
+--      in Redis without their data being cleaned up.
+local segment_too_large = max_segment_bytes > 0 and tonumber(ingested_byte_count) + byte_count > max_segment_bytes
+local segment_locked = false
+if check_flush_lock then
+    local flush_lock_key = string.format("span-buf:fl:%s", set_key)
+    segment_locked = redis.call("exists", flush_lock_key) == 1
+end
+if segment_too_large or segment_locked then
     set_span_id = salt
     set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, salt)
     ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
 end
+table.insert(metrics_table, {"detached_segment_too_large", segment_too_large and 1 or 0})
+table.insert(metrics_table, {"detached_segment_locked", segment_locked and 1 or 0})
 
 local ingested_count_key = string.format("span-buf:ic:%s", set_key)
 local members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)

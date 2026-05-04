@@ -7,7 +7,7 @@ def test_sort_stronger_modules(tmp_path: Path) -> None:
     src = """\
 # before
 
-# begin: stronger typing
+# begin: not yet strongly typed
 [[tool.mypy.overrides]]
 module = [
     "mod2",
@@ -15,14 +15,14 @@ module = [
     "mod3",
 ]
 some_setting = true
-# end: stronger typing
+# end: not yet strongly typed
 
 # after
 """
     expected = """\
 # before
 
-# begin: stronger typing
+# begin: not yet strongly typed
 [[tool.mypy.overrides]]
 module = [
     "mod1",
@@ -30,7 +30,7 @@ module = [
     "mod3",
 ]
 some_setting = true
-# end: stronger typing
+# end: not yet strongly typed
 
 # after
 """
@@ -47,23 +47,23 @@ some_setting = true
 
 def test_removes_duplicates(tmp_path: Path) -> None:
     src = """\
-# begin: stronger typing
+# begin: not yet strongly typed
 [[tool.mypy.overrides]]
 module = [
     "mod1",
     "mod1",
 ]
 some_setting = true
-# end: stronger typing
+# end: not yet strongly typed
 """
     expected = """\
-# begin: stronger typing
+# begin: not yet strongly typed
 [[tool.mypy.overrides]]
 module = [
     "mod1",
 ]
 some_setting = true
-# end: stronger typing
+# end: not yet strongly typed
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)
