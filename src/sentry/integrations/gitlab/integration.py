@@ -202,6 +202,14 @@ class GitlabIntegration(
             # Note: gitlab projects are the same things as repos everywhere else
             group = self.get_group_id()
             resp = self.get_client().search_projects(group, query)
+            # GitLab returns {"status": "error", ...} when the group is
+            # inaccessible. The pagination layer turns that dict into a list
+            # of its keys (e.g. ["status", "error"]), which would crash the
+            # list comprehension below with TypeError on str["id"].
+            if resp and not isinstance(resp[0], dict):
+                raise IntegrationError(
+                    "Expected list of projects from GitLab, got unexpected response"
+                )
             instance = self.model.metadata["instance"]
             return [
                 {
