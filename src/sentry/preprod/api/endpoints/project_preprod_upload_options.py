@@ -59,6 +59,8 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
             expirationPolicy=format_expiration(
                 TimeToLive(timedelta(days=30))
             ),  # Hardcoded for now, check with Objectstore before increasing
+            maxIndividualConcurrency=16,
+            maxBatchConcurrency=16,
         )
 
         return Response({"objectstore": options})

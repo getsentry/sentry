@@ -8,3 +8,5 @@ class ObjectstoreUploadOptions(TypedDict):
     scopes: list[tuple[str, str]]
     authToken: str | None
     expirationPolicy: str
+    maxIndividualConcurrency: int
+    maxBatchConcurrency: int
