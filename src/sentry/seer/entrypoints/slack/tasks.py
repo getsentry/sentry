@@ -304,12 +304,15 @@ def _send_link_identity_prompt(
         response_url=None,
     )
     renderable = _build_link_identity_renderable(associate_url)
-    entrypoint.install.send_threaded_ephemeral_message(
-        slack_user_id=entrypoint.slack_user_id,
-        channel_id=entrypoint.channel_id,
-        renderable=renderable,
-        thread_ts=thread_ts,
-    )
+    try:
+        entrypoint.install.send_threaded_ephemeral_message(
+            slack_user_id=entrypoint.slack_user_id,
+            channel_id=entrypoint.channel_id,
+            renderable=renderable,
+            thread_ts=thread_ts,
+        )
+    except Exception as e:
+        _logger.warning("seer.slack.process_mention.send_link_identity_prompt_failed", exc_info=e)
 
 
 def _build_link_identity_renderable(associate_url: str) -> SlackRenderable:
@@ -343,12 +346,15 @@ def _send_not_org_member_message(
         blocks=[MarkdownBlock(text=message)],
         text=message,
     )
-    entrypoint.install.send_threaded_ephemeral_message(
-        slack_user_id=entrypoint.slack_user_id,
-        channel_id=entrypoint.channel_id,
-        renderable=renderable,
-        thread_ts=thread_ts,
-    )
+    try:
+        entrypoint.install.send_threaded_ephemeral_message(
+            slack_user_id=entrypoint.slack_user_id,
+            channel_id=entrypoint.channel_id,
+            renderable=renderable,
+            thread_ts=thread_ts,
+        )
+    except Exception as e:
+        _logger.warning("seer.slack.process_mention.send_not_org_member_message_failed", exc_info=e)
 
 
 class _LinkedMessagesResult(NamedTuple):
@@ -391,21 +397,34 @@ def _resolve_linked_messages(
             msgs_to_include.append((link, [attachment_message]))
             continue
 
-        conversation_info = entrypoint.install.get_conversations_info(channel_id=link.channel_id)
+        try:
+            conversation_info = entrypoint.install.get_conversations_info(
+                channel_id=link.channel_id
+            )
+        except Exception as e:
+            _logger.warning("seer.slack.process_mention.get_conversations_info_failed", exc_info=e)
+            unresolved.add(link.channel_id)
+            continue
+
         if conversation_info.get("channel", {}).get("is_private"):
             private_channels.add(link.channel_id)
             continue
 
         # This will only fetch the single message that was linked PLUS the parent message,
         # if that linked message was in a thread.
-        messages = entrypoint.install.get_thread_history(
-            channel_id=link.channel_id,
-            thread_ts=link.thread_ts or link.ts,
-            latest=link.ts,
-            oldest=link.ts,
-            inclusive=True,
-            limit=1,
-        )
+        try:
+            messages = entrypoint.install.get_thread_history(
+                channel_id=link.channel_id,
+                thread_ts=link.thread_ts or link.ts,
+                latest=link.ts,
+                oldest=link.ts,
+                inclusive=True,
+                limit=1,
+            )
+        except Exception as e:
+            _logger.warning("seer.slack.process_mention.get_thread_history_failed", exc_info=e)
+            unresolved.add(link.channel_id)
+            continue
 
         # If the parent message is also included, ignore that
         message = next((m for m in messages if m.get("ts") == link.ts), None)
@@ -441,12 +460,17 @@ def _send_inaccessible_links_prompt(
         unresolved_channel_ids=unresolved_channel_ids,
         private_channel_ids=private_channel_ids,
     )
-    entrypoint.install.send_threaded_ephemeral_message(
-        slack_user_id=entrypoint.slack_user_id,
-        channel_id=entrypoint.channel_id,
-        renderable=renderable,
-        thread_ts=thread_ts,
-    )
+    try:
+        entrypoint.install.send_threaded_ephemeral_message(
+            slack_user_id=entrypoint.slack_user_id,
+            channel_id=entrypoint.channel_id,
+            renderable=renderable,
+            thread_ts=thread_ts,
+        )
+    except Exception as e:
+        _logger.warning(
+            "seer.slack.process_mention.send_inaccessible_links_prompt_failed", exc_info=e
+        )
 
 
 def _build_inaccessible_links_renderable(
