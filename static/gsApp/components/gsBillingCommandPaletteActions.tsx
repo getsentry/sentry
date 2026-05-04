@@ -23,6 +23,7 @@ export function GsBillingCommandPaletteActions() {
           keywords={[
             'billing',
             'plan',
+            'change plan',
             'usage',
             'invoice',
             'payment',

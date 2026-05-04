@@ -17,6 +17,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -142,6 +143,22 @@ export default function SnapshotsPage() {
       },
     }
   );
+
+  const viewedArtifactRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isPending || !data || viewedArtifactRef.current === data.head_artifact_id) {
+      return;
+    }
+    viewedArtifactRef.current = data.head_artifact_id;
+    trackAnalytics('preprod.snapshots.details.viewed', {
+      organization,
+      comparison_type: data.comparison_type,
+      image_count: data.image_count,
+      approval_status: data.approval_info?.status ?? null,
+      has_base_build: !!data.base_artifact_id,
+      project_id: data.project_id,
+    });
+  }, [isPending, data, organization]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const pushHistory = {history: 'push' as const};

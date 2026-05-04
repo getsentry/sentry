@@ -111,6 +111,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -128,6 +129,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -148,6 +150,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -163,6 +166,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -185,6 +189,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -203,6 +208,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -220,6 +226,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -615,6 +622,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -631,6 +639,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
@@ -650,6 +659,7 @@ describe('ArtifactCard', () => {
       render(
         <RootCauseCard
           autofix={mockAutofix}
+          groupId="1"
           section={makeSection('root_cause', 'completed', [artifact])}
         />
       );
