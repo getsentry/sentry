@@ -463,31 +463,18 @@ def _build_inaccessible_links_renderable(
     sections: list[str] = []
 
     if unresolved_channel_ids:
-        if len(unresolved_channel_ids) == 1:
-            sections.append(
-                "I couldn't read a Slack message you linked. "
-                f"Go to <#{unresolved_channel_ids[0]}> and run `/invite @Sentry` so I can read messages there next time."
-            )
-        else:
-            bullets = "\n".join(f"- <#{cid}>" for cid in unresolved_channel_ids)
-            sections.append(
-                "I couldn't read some of the Slack messages you linked. "
-                "Run `/invite @Sentry` in each channel so I can read messages there next time:\n"
-                f"{bullets}"
-            )
+        unresolved_channel_links = [f"<#{cid}>" for cid in unresolved_channel_ids]
+        unresolved_channel_text = ", ".join(unresolved_channel_links)
+        sections.append(
+            f"I need to be invited to read from some channels: {unresolved_channel_text}"
+        )
 
     if private_channel_ids:
-        if len(private_channel_ids) == 1:
-            sections.append(
-                "For privacy, I don't read messages from private channels. "
-                f"I skipped the link to <#{private_channel_ids[0]}>."
-            )
-        else:
-            bullets = "\n".join(f"- <#{cid}>" for cid in private_channel_ids)
-            sections.append(
-                "For privacy, I don't read messages from private channels. "
-                f"I skipped these links:\n{bullets}"
-            )
+        private_channel_links = [f"<#{cid}>" for cid in private_channel_ids]
+        private_channel_text = ", ".join(private_channel_links)
+        sections.append(
+            f"For privacy, I don't read messages from private channels: {private_channel_text}"
+        )
 
     message = "\n\n".join(sections)
     return SlackRenderable(blocks=[MarkdownBlock(text=message)], text=message)
