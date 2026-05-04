@@ -14,7 +14,7 @@ function makeAiNode(
       'gen_ai.input.messages': JSON.stringify(messages),
     },
     value: {},
-  } as ComponentProps<typeof AIInputSection>['node'];
+  } as unknown as ComponentProps<typeof AIInputSection>['node'];
 }
 
 describe('AIInputSection', () => {
