@@ -88,10 +88,6 @@ function WrappedComponent({
 }
 
 describe('IssueListActions', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   beforeEach(() => {
     GroupStore.reset();
 
@@ -99,6 +95,10 @@ describe('IssueListActions', () => {
       url: `/organizations/${organization.slug}/projects/`,
       body: [ProjectFixture({id: '1'})],
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('selection state', () => {
