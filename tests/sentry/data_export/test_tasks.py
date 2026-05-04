@@ -743,7 +743,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         ]
         logs = [
             self.create_ourlog(
-                {"body": p["body"], "severity_text": "info", "severity_number": 9},
+                {"body": p["body"], "severity_text": "info", "severity_number": 9},  # type: ignore[arg-type]
                 timestamp=before_now(minutes=10, seconds=i * 30),
                 organization=self.org,
                 project=self.project,
@@ -757,7 +757,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                     "rate_limited": "False",
                     "payload_size": p["payload_size"],
                 },
-            )  # type: ignore[arg-type]
+            )
             for i, p in enumerate(per_log)
         ]
         self.store_eap_items(logs)
