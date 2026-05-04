@@ -14,6 +14,14 @@ import {
 
 interface Variables extends Partial<Organization> {}
 
+function updateOrganizationsStore(org: Organization) {
+  try {
+    OrganizationsStore.onUpdate(org);
+  } catch {
+    // OrganizationsStore throws if the org isn't loaded yet
+  }
+}
+
 export function useOrganizationMutationOptions(organization: Organization) {
   const queryClient = useQueryClient();
 
@@ -55,7 +63,7 @@ export function useOrganizationMutationOptions(organization: Organization) {
       // Update caches optimistically
       // 1. update the OrganizationStore
       OrganizationStore.onUpdate(updatedOrganization);
-      OrganizationsStore.onUpdate(updatedOrganization);
+      updateOrganizationsStore(updatedOrganization);
 
       // 2. update the v1 cache
       setApiQueryData(queryClient, v1QueryKey, updatedOrganization);
@@ -79,12 +87,16 @@ export function useOrganizationMutationOptions(organization: Organization) {
         data,
       });
     },
+    onSuccess: (responseOrg: Organization) => {
+      OrganizationStore.onUpdate(responseOrg);
+      updateOrganizationsStore(responseOrg);
+    },
     onError: (_error, _variables, context) => {
       if (context?.previousOrganization) {
         // Rollback optimistic update
         // 1. rollback the OrganizationStore
         OrganizationStore.onUpdate(context.previousOrganization);
-        OrganizationsStore.onUpdate(context.previousOrganization);
+        updateOrganizationsStore(context.previousOrganization);
 
         // 2. rollback the v1 cache
         setApiQueryData(queryClient, v1QueryKey, context.previousOrganization);
