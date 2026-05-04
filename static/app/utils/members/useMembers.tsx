@@ -5,7 +5,11 @@ import type {User} from 'sentry/types/user';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {memberUsersQueryOptions, type MemberResult} from './shared';
+import {
+  memberUsersQueryOptions,
+  normalizeMemberValues,
+  type MemberResult,
+} from './shared';
 
 interface UseMembersByEmailOptions {
   /**
@@ -26,10 +30,6 @@ interface UseMembersByIdOptions {
 }
 
 type UseMembersOptions = UseMembersByEmailOptions | UseMembersByIdOptions;
-
-function normalizeMemberValues(values: string[] | undefined) {
-  return values ? Array.from(new Set(values)).sort() : [];
-}
 
 function filterUsersByMemberOptions(
   users: User[],

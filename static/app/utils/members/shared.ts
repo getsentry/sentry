@@ -34,7 +34,7 @@ interface MembersQueryOptions extends FetchMemberOptions {
   orgSlug: string;
 }
 
-function normalizeMemberValues(values: string[] | undefined) {
+export function normalizeMemberValues(values: string[] | undefined) {
   return values ? Array.from(new Set(values)).sort() : [];
 }
 

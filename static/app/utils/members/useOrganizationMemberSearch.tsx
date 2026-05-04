@@ -50,7 +50,7 @@ export function useOrganizationMemberSearch(): MemberSearchResult {
 
   return {
     members,
-    isPending: defaultMembersQuery.isPending || searchMembersQuery.isFetching,
+    isPending: defaultMembersQuery.isPending,
     isFetched: defaultMembersQuery.isFetched,
     error,
     onSearch: handleSearch,

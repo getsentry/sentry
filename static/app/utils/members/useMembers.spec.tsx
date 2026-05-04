@@ -80,6 +80,7 @@ describe('useMembers', () => {
       method: 'GET',
       body: [{user: mockUsers[0]}, {user: newUser2}, {user: newUser3}],
       match: [MockApiClient.matchQuery({query: 'test'})],
+      asyncDelay: 100,
     });
 
     const {result} = renderHookWithProviders(useOrganizationMemberSearch, {
@@ -90,6 +91,8 @@ describe('useMembers', () => {
 
     // Works with append
     await act(() => onSearch('test'));
+
+    expect(result.current.isPending).toBe(false);
 
     await waitFor(() => expect(result.current.members).toHaveLength(3));
     expect(result.current.isPending).toBe(false);
