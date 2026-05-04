@@ -23,8 +23,6 @@ export interface MemberResult {
   members: User[];
 }
 
-export type IndexedMembersByProject = Record<string, User[]>;
-
 interface FetchMemberOptions {
   ids?: string[];
   limit?: number;
@@ -49,6 +47,8 @@ export function selectUsersFromMembers(members: Member[]): User[] {
       role: member.role,
     }));
 }
+
+export type IndexedMembersByProject = Record<string, User[]>;
 
 /**
  * Convert a list of members with user & project data into an object that maps
