@@ -39,7 +39,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
-    "spans.buffer.enforce-segment-size": False,
     "spans.process-segments.schema-validation": 1.0,
 }
 
@@ -823,71 +822,6 @@ def test_compression_functionality(compression_level) -> None:
 
 
 @mock.patch("sentry.spans.buffer.Project")
-def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> None:
-    # Mock the project lookup to avoid database access
-    mock_project = mock.Mock()
-    mock_project.id = 1
-    mock_project.organization_id = 100
-    mock_project_model.objects.get_from_cache.return_value = mock_project
-
-    batch1 = [
-        Span(
-            payload=_payload("c" * 16),
-            trace_id="a" * 32,
-            span_id="c" * 16,
-            parent_span_id="b" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=_payload("b" * 16),
-            trace_id="a" * 32,
-            span_id="b" * 16,
-            parent_span_id="a" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-    ]
-    batch2 = [
-        Span(
-            payload=_payload("d" * 16),
-            trace_id="a" * 32,
-            span_id="d" * 16,
-            parent_span_id="a" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=_payload("e" * 16),
-            trace_id="a" * 32,
-            span_id="e" * 16,
-            parent_span_id="a" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=_payload("a" * 16),
-            trace_id="a" * 32,
-            span_id="a" * 16,
-            parent_span_id=None,
-            project_id=1,
-            segment_id=None,
-            is_segment_span=True,
-        ),
-    ]
-
-    with override_options({"spans.buffer.max-segment-bytes": 100}):
-        buffer.process_spans(batch1, now=0)
-        buffer.process_spans(batch2, now=0)
-        rv = buffer.flush_segments(now=11)
-
-    # The segment is kept even though it exceeds max_segment_bytes,
-    # because oversized segments are chunked at the message level.
-    segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
-    assert len(segment.spans) == 5
-
-
-@mock.patch("sentry.spans.buffer.Project")
 def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: SpansBuffer) -> None:
     """When a segment's cumulative ingested bytes exceed max-segment-bytes, subsequent
     subsegments are written to a detached (salted) key so that overflow spans are not lost."""
@@ -931,9 +865,7 @@ def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: Spans
         ),
     ]
 
-    with override_options(
-        {"spans.buffer.max-segment-bytes": 70, "spans.buffer.enforce-segment-size": True}
-    ):
+    with override_options({"spans.buffer.max-segment-bytes": 70}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
         buffer.process_spans(batch3, now=0)
@@ -989,7 +921,6 @@ def test_max_segment_bytes_under_limit_merges_normally(
     with override_options(
         {
             "spans.buffer.max-segment-bytes": 10 * 1024 * 1024,
-            "spans.buffer.enforce-segment-size": True,
         }
     ):
         buffer.process_spans(batch1, now=0)
@@ -1006,7 +937,8 @@ def test_max_segment_bytes_under_limit_merges_normally(
 
 @mock.patch("sentry.spans.buffer.Project")
 def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> None:
-    """Test that oversized segments are kept instead of dropped."""
+    """When cumulative bytes exceed max-segment-bytes, spans split across
+    segments but none are dropped."""
     mock_project = mock.Mock()
     mock_project.id = 1
     mock_project.organization_id = 100
@@ -1058,30 +990,18 @@ def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> No
         ),
     ]
 
+    # `now=61` is past the non-root timeout (60) so the parent segment also flushes.
     with override_options({"spans.buffer.max-segment-bytes": 100}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
-        rv = buffer.flush_segments(now=11)
+        rv = buffer.flush_segments(now=61)
 
-    segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
-    assert len(segment.spans) == 5
-    _normalize_output(rv)
-    assert rv == {
-        _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
-            queue_key=mock.ANY,
-            score=mock.ANY,
-            ingested_count=mock.ANY,
-            payload_keys=mock.ANY,
-            project_id=1,
-            spans=[
-                _output_segment(b"a" * 16, b"a" * 16, True),
-                _output_segment(b"b" * 16, b"a" * 16, False),
-                _output_segment(b"c" * 16, b"a" * 16, False),
-                _output_segment(b"d" * 16, b"a" * 16, False),
-                _output_segment(b"e" * 16, b"a" * 16, False),
-            ],
-        )
-    }
+    all_span_ids = {span.payload["span_id"] for seg in rv.values() for span in seg.spans}
+    assert all_span_ids == {"a" * 16, "b" * 16, "c" * 16, "d" * 16, "e" * 16}
+    assert sum(len(seg.spans) for seg in rv.values()) == 5
+    # Confirms the byte-limit detach actually triggered. Exact count depends on
+    # max-spans-per-evalsha chunking (2 segments for nochunk, 3 for chunk1).
+    assert len(rv) >= 2
 
 
 def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
@@ -1780,10 +1700,15 @@ def test_distributed_payload_keys_populated(distributed_buffer: SpansBuffer) -> 
     buf = distributed_buffer
     process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], buf, now=0)
 
-    dist_key = b"span-buf:s:{1:" + b"a" * 32 + b":" + b"b" * 16 + b"}:" + b"b" * 16
     mk_key = b"span-buf:mk:{1:" + b"a" * 32 + b"}:" + b"b" * 16
-    assert buf.client.scard(dist_key) > 0
     assert buf.client.scard(mk_key) > 0
+
+    # Payload keys are salt-keyed (one per subsegment), tracked via mk.
+    salts = buf.client.smembers(mk_key)
+    assert salts
+    for salt in salts:
+        dist_key = b"span-buf:s:{1:" + b"a" * 32 + b":" + salt + b"}:" + salt
+        assert buf.client.scard(dist_key) > 0
 
     rv = buf.flush_segments(now=11)
     set_key = _segment_id(1, "a" * 32, "b" * 16)

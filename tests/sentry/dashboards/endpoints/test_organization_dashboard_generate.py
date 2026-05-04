@@ -29,7 +29,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         response = self.client.post(self.url, data, format="json")
         assert response.status_code == 400
 
-    @patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerExplorerClient")
+    @patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerAgentClient")
     def test_post_starts_run_and_returns_run_id(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = 789
@@ -75,7 +75,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         response = self.client.post(self.url, data, format="json")
         assert response.status_code == 403
 
-    @patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerExplorerClient")
+    @patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerAgentClient")
     def test_post_seer_permission_error_returns_403(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.side_effect = SeerPermissionError("Forbidden")
@@ -104,7 +104,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         response = self.client.post(self.url, data, format="json")
         assert response.status_code == 400
 
-    @patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerExplorerClient")
+    @patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerAgentClient")
     def test_post_with_current_dashboard_uses_edit_context(
         self, mock_client_class: MagicMock
     ) -> None:

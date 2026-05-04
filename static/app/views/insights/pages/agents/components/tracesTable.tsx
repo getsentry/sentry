@@ -7,12 +7,12 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,
@@ -370,7 +370,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <span>
           <TraceIdButton
-            priority="link"
+            variant="link"
             onClick={() =>
               openTraceViewDrawer?.(dataRow.traceId, undefined, dataRow.timestamp / 1000)
             }
@@ -523,7 +523,7 @@ function AgentTags({agents}: {agents: string[]}) {
         padding="2xs xs 0 xl"
         style={{bottom: '0', right: '0'}}
       >
-        <Button priority="link" size="xs" onClick={handleShowAll}>
+        <Button variant="link" size="xs" onClick={handleShowAll}>
           {showAll ? t('Show less') : t('Show all')}
         </Button>
       </Container>

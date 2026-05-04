@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -11,31 +12,27 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconAdd, IconClock, IconCopy, IconLink} from 'sentry/icons';
+import {IconAdd, IconClock, IconCopy, IconEllipsis, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface ExplorerDrawerHeaderProps {
-  isEmptyState: boolean;
   onChangeSession: (runId: number) => void;
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
-  onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
-  overrideCodeModeEnable: boolean;
   overrideCtxEngEnable: boolean;
-  showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
   showThinking: boolean;
   showThinkingToggle: boolean;
+  disableNewChatButton?: boolean;
 }
 
 export function ExplorerDrawerHeader({
-  isEmptyState,
   onNewChatClick,
   onChangeSession,
   onCopySessionClick,
@@ -43,12 +40,10 @@ export function ExplorerDrawerHeader({
   showContextEngineToggle,
   overrideCtxEngEnable,
   onOverrideCtxEngEnableToggle,
-  showCodeModeToggle,
-  overrideCodeModeEnable,
-  onOverrideCodeModeEnableToggle,
   showThinking,
   showThinkingToggle,
   onShowThinkingToggle,
+  disableNewChatButton = false,
 }: ExplorerDrawerHeaderProps) {
   // Session history query
   const {
@@ -103,17 +98,39 @@ export function ExplorerDrawerHeader({
     ];
   }, [rawSessionMenuItems, isPending, isError]);
 
+  const overflowMenuItems: MenuItemProps[] = useMemo(
+    () => [
+      {
+        key: 'copy-session',
+        label: t('Copy conversation to clipboard'),
+        onAction: onCopySessionClick ?? undefined,
+        disabled: !onCopySessionClick,
+        leadingItems: <IconCopy />,
+      },
+      {
+        key: 'copy-link',
+        label: t('Copy link to current chat'),
+        onAction: onCopyLinkClick ?? undefined,
+        disabled: !onCopyLinkClick,
+        leadingItems: <IconLink />,
+      },
+    ],
+    [onCopySessionClick, onCopyLinkClick]
+  );
+
   return (
     <DrawerHeader hideBar hideCloseButtonText>
       <Flex align="center" gap="xs" height="100%">
-        <Text size="md">{t('Seer Agent')}</Text>
+        <Text wrap="nowrap" size="md">
+          {t('Seer Agent')}
+        </Text>
         <FeatureBadge
           type="beta"
           tooltipProps={{title: t('This feature is in beta and may change')}}
         />
       </Flex>
       <Flex flex="1" />
-      <Flex gap="md">
+      <Flex gap="sm">
         {showContextEngineToggle && (
           <Tooltip
             title={
@@ -131,27 +148,6 @@ export function ExplorerDrawerHeader({
               />
               <Text size="sm" variant="muted">
                 {t('CE')}
-              </Text>
-            </Flex>
-          </Tooltip>
-        )}
-        {showCodeModeToggle && (
-          <Tooltip
-            title={
-              overrideCodeModeEnable
-                ? t('Code mode enabled (click to disable)')
-                : t('Code mode disabled (click to enable)')
-            }
-          >
-            <Flex align="center" gap="xs" padding="xs sm" height="100%">
-              <Switch
-                size="sm"
-                checked={overrideCodeModeEnable}
-                onChange={onOverrideCodeModeEnableToggle}
-                aria-label={t('Toggle code mode')}
-              />
-              <Text size="sm" variant="muted">
-                {t('CM')}
               </Text>
             </Flex>
           </Tooltip>
@@ -177,24 +173,40 @@ export function ExplorerDrawerHeader({
             </Flex>
           </Tooltip>
         )}
-        <Button
-          icon={<IconCopy />}
-          onClick={onCopySessionClick}
-          disabled={!onCopySessionClick}
-          priority="default"
-          size="xs"
-          aria-label={t('Copy conversation to clipboard')}
-          tooltipProps={{title: t('Copy conversation to clipboard')}}
-        />
-        <Button
-          icon={<IconLink />}
-          onClick={onCopyLinkClick}
-          disabled={!onCopyLinkClick}
-          priority="default"
-          size="xs"
-          aria-label={t('Copy link to current chat and web page')}
-          tooltipProps={{title: t('Copy link to current chat and web page')}}
-        />
+        <InlineActions>
+          <Button
+            icon={<IconCopy />}
+            onClick={onCopySessionClick}
+            disabled={!onCopySessionClick}
+            variant="secondary"
+            size="xs"
+            aria-label={t('Copy conversation to clipboard')}
+            tooltipProps={{title: t('Copy conversation to clipboard')}}
+          />
+          <Button
+            icon={<IconLink />}
+            onClick={onCopyLinkClick}
+            disabled={!onCopyLinkClick}
+            variant="secondary"
+            size="xs"
+            aria-label={t('Copy link to current chat and web page')}
+            tooltipProps={{title: t('Copy link to current chat and web page')}}
+          />
+        </InlineActions>
+        <OverflowActions>
+          <DropdownMenu
+            items={overflowMenuItems}
+            size="xs"
+            position="bottom-end"
+            triggerProps={{
+              'aria-label': t('More actions'),
+              icon: <IconEllipsis />,
+              showChevron: false,
+              variant: 'secondary',
+              size: 'xs',
+            }}
+          />
+        </OverflowActions>
         <DropdownMenu
           items={sessionMenuItems}
           size="xs"
@@ -205,21 +217,34 @@ export function ExplorerDrawerHeader({
             tooltipProps: {title: t('Chat history')},
             icon: <IconClock />,
             showChevron: false,
-            priority: 'default',
+            variant: 'secondary',
             size: 'xs',
           }}
         />
-        <Button
-          icon={<IconAdd />}
-          onClick={onNewChatClick}
-          disabled={isEmptyState}
-          priority="default"
-          size="xs"
-          aria-label={t('Start a new chat (/new)')}
-          tooltipProps={{title: t('Start a new chat (/new)')}}
-        >
-          {t('New chat')}
-        </Button>
+        <OverflowActions>
+          <Button
+            icon={<IconAdd />}
+            onClick={onNewChatClick}
+            disabled={disableNewChatButton}
+            variant="secondary"
+            size="xs"
+            aria-label={t('Start a new chat (/new)')}
+            tooltipProps={{title: t('Start a new chat (/new)')}}
+          />
+        </OverflowActions>
+        <InlineActions>
+          <Button
+            icon={<IconAdd />}
+            onClick={onNewChatClick}
+            disabled={disableNewChatButton}
+            variant="secondary"
+            size="xs"
+            aria-label={t('Start a new chat (/new)')}
+            tooltipProps={{title: t('Start a new chat (/new)')}}
+          >
+            {t('New chat')}
+          </Button>
+        </InlineActions>
       </Flex>
     </DrawerHeader>
   );
@@ -275,3 +300,19 @@ function useSessionMenuItems({
     refetch,
   };
 }
+
+const InlineActions = styled(Flex)`
+  gap: ${p => p.theme.space.md};
+
+  @container seer-explorer-root (max-width: 500px) {
+    display: none;
+  }
+`;
+
+const OverflowActions = styled('div')`
+  display: none;
+
+  @container seer-explorer-root (max-width: 500px) {
+    display: block;
+  }
+`;

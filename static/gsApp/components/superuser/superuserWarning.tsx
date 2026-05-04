@@ -54,7 +54,7 @@ function ExitSuperuserButton() {
         bottom: theme.space.sm,
       }}
       size="sm"
-      priority="primary"
+      variant="primary"
       onClick={() => {
         handleExitSuperuser(api);
       }}

@@ -15,12 +15,12 @@ import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
@@ -71,7 +71,7 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -104,7 +104,7 @@ function WidgetBuilderSlideoutInner({
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const {visible: isModalVisible} = useGlobalModal();
+  const {visible: isModalVisible} = useModal();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
@@ -234,7 +234,7 @@ function WidgetBuilderSlideoutInner({
     [observer]
   );
 
-  const widgetLibraryWidgets = getTopNConvertedDefaultWidgets(organization);
+  const widgetLibraryWidgets = getDefaultWidgets(organization);
 
   const widgetLibraryElement = (
     <SlideoutBreadcrumb
@@ -302,7 +302,7 @@ function WidgetBuilderSlideoutInner({
     >
       <Breadcrumbs crumbs={breadcrumbs} />
       <CloseButton
-        priority="link"
+        variant="link"
         size="zero"
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
@@ -346,7 +346,7 @@ function WidgetBuilderSlideoutInner({
                           setShowTransactionsDeprecationAlert(false);
                         }}
                         size="zero"
-                        priority="transparent"
+                        variant="transparent"
                       />
                     }
                   >
@@ -377,7 +377,7 @@ function WidgetBuilderSlideoutInner({
                               </Link>
                             ),
                             FAQLink: (
-                              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                              <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                             ),
                           }
                         )
@@ -385,7 +385,7 @@ function WidgetBuilderSlideoutInner({
                           'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                           {
                             FAQLink: (
-                              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                              <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                             ),
                           }
                         )}

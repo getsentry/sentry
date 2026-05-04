@@ -204,7 +204,7 @@ export function DetectorListTable({
               <VisualizationExpandButton>
                 <Button
                   size="xs"
-                  priority="transparent"
+                  variant="transparent"
                   icon={
                     <IconChevron
                       isDouble

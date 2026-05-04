@@ -27,6 +27,7 @@ from sentry.models.organizationslugreservation import (
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions
+from sentry.utils import json
 from sentry.utils.snowflake import generate_snowflake_id
 
 
@@ -47,7 +48,11 @@ def create_organization_provisioning_outbox(
     cell_name: str,
     org_provision_payload: OrganizationProvisioningOptions | None,
 ) -> ControlOutbox:
-    payload = org_provision_payload.dict() if org_provision_payload is not None else None
+    payload = None
+    if org_provision_payload:
+        # Go through a json encode/decode to handle datetimes
+        payload = json.loads(org_provision_payload.json())
+
     return ControlOutbox(
         cell_name=cell_name,
         shard_scope=OutboxScope.PROVISION_SCOPE,

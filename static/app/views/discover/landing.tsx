@@ -18,7 +18,7 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -88,7 +88,7 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
       const needleSearch = searchQuery.toLowerCase();
 
       const numOfPrebuiltQueries = views.reduce((sum, view) => {
-        const newQuery = getSavedQueryWithDataset(view) as NewQuery;
+        const newQuery = getSavedQueryWithDataset(view)!;
         const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
         // if a search is performed on the list of queries, we filter
@@ -220,7 +220,7 @@ function DiscoverLanding() {
                   data-test-id="build-new-query"
                   to={to}
                   size="sm"
-                  priority="primary"
+                  variant="primary"
                   onClick={() => {
                     trackAnalytics('discover_v2.build_new_query', {
                       organization,
@@ -263,7 +263,7 @@ function DiscoverLanding() {
                   <LinkButton
                     data-test-id="build-new-query"
                     to={to}
-                    priority="primary"
+                    variant="primary"
                     onClick={() => {
                       trackAnalytics('discover_v2.build_new_query', {
                         organization,

@@ -98,7 +98,7 @@ function ensureAttributeObject(
 
 function getAISpanAttributes({
   spanId,
-  attributes = {},
+  attributes,
 }: {
   attributes: Record<string, string | number | boolean>;
   spanId: string;

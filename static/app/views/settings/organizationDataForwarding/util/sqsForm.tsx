@@ -181,7 +181,7 @@ export function SQSSetupForm({
       const {
         is_enabled: _is_enabled,
         enroll_new_projects,
-        project_ids = [],
+        project_ids,
         ...configFields
       } = value;
       onSubmit({
@@ -252,7 +252,7 @@ export function SQSEditForm({
     },
     validators: {onDynamic: sqsSchema},
     onSubmit: ({value}) => {
-      const {is_enabled, enroll_new_projects, project_ids = [], ...configFields} = value;
+      const {is_enabled, enroll_new_projects, project_ids, ...configFields} = value;
       onSubmit({
         provider: DataForwarderProviderSlug.SQS,
         config: buildSqsConfig(configFields),

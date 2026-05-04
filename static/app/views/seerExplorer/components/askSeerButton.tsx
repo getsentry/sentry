@@ -30,7 +30,7 @@ export function AskSeerButton() {
   const props: ButtonProps = {
     'aria-label': state === 'thinking' ? t('Seer is thinking...') : t('Ask Seer'),
     'aria-expanded': isOpen ? true : undefined,
-    priority: 'default',
+    variant: 'secondary',
     icon: (
       <IconSeer
         animation={
@@ -50,7 +50,7 @@ export function AskSeerButton() {
         >
           <Container>{t('Ask Seer')}</Container>
           <Container display={{xs: 'none', md: 'inline-block'}}>
-            <Hotkey value="command+/" variant="debossed" />
+            <Hotkey value="mod+/" variant="debossed" />
           </Container>
         </Flex>
         <ThinkingIndicator state={state} />

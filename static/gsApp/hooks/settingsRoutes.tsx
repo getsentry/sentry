@@ -110,7 +110,7 @@ export const settingsRoutes = (): SentryRouteObject => ({
       name: 'Support',
       path: 'support/',
       component: () => {
-        window.location.replace('https://sentry.zendesk.com/hc/en-us');
+        window.location.replace('https://www.sentry.help');
         return null;
       },
     },

@@ -1,8 +1,7 @@
 import {memo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
@@ -113,38 +112,41 @@ function ConversationView({
     <ConversationSplitLayout
       left={
         <ConversationLeftPanel>
-          <StyledTabs
-            value={activeTab}
-            onChange={key => handleTabChange(key as ConversationTab)}
-          >
-            <Container borderBottom="primary">
-              <TabList>
-                <TabList.Item key="messages">{t('Chat')}</TabList.Item>
-                <TabList.Item key="trace">{t('Spans')}</TabList.Item>
-              </TabList>
+          <Flex direction="column" flex="1" minHeight="0" width="100%" overflow="hidden">
+            <Container flexShrink={0} borderBottom="primary" background="primary">
+              <Tabs value={activeTab} onChange={handleTabChange}>
+                <TabList>
+                  <TabList.Item key="messages">{t('Chat')}</TabList.Item>
+                  <TabList.Item key="trace">{t('Spans')}</TabList.Item>
+                </TabList>
+              </Tabs>
             </Container>
-            <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">
-              <FullWidthTabPanels>
-                <TabPanels.Item key="messages">
-                  <MessagesPanel
+            <Flex
+              flex="1"
+              minHeight="0"
+              width="100%"
+              overflowX="hidden"
+              overflowY="auto"
+              background="secondary"
+            >
+              {activeTab === 'messages' ? (
+                <MessagesPanel
+                  nodes={nodes}
+                  selectedNodeId={selectedNode?.id ?? null}
+                  onSelectNode={onSelectNode}
+                />
+              ) : (
+                <Container padding="md lg md lg" width="100%">
+                  <AISpanList
                     nodes={nodes}
-                    selectedNodeId={selectedNode?.id ?? null}
+                    selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
                     onSelectNode={onSelectNode}
+                    compressGaps
                   />
-                </TabPanels.Item>
-                <TabPanels.Item key="trace">
-                  <Container padding="md lg md lg">
-                    <AISpanList
-                      nodes={nodes}
-                      selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                      onSelectNode={onSelectNode}
-                      compressGaps
-                    />
-                  </Container>
-                </TabPanels.Item>
-              </FullWidthTabPanels>
+                </Container>
+              )}
             </Flex>
-          </StyledTabs>
+          </Flex>
         </ConversationLeftPanel>
       }
       right={
@@ -156,19 +158,3 @@ function ConversationView({
     />
   );
 }
-
-const StyledTabs = styled(Tabs)`
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const FullWidthTabPanels = styled(TabPanels)`
-  width: 100%;
-  padding: 0;
-
-  > [role='tabpanel'] {
-    width: 100%;
-  }
-`;

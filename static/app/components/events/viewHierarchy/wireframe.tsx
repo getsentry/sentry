@@ -173,7 +173,7 @@ function Wireframe({
 
   useEffect(() => {
     if (!canvasRef || !overlayRef || !zoomIn || !zoomOut) {
-      return undefined;
+      return;
     }
 
     let start: vec2 | null;

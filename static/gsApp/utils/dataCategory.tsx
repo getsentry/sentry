@@ -296,7 +296,7 @@ export function formatCategoryQuantityWithDisplayName({
   formattedQuantity,
   subscription,
   planOverride,
-  options = {},
+  options,
 }: {
   dataCategory: DataCategory;
   formattedQuantity: string;

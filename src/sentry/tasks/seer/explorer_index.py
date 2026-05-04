@@ -13,10 +13,10 @@ from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    ExplorerIndexProject,
-    ExplorerIndexRequest,
+    AgentIndexProject,
+    AgentIndexRequest,
     SeerViewerContext,
-    make_explorer_index_request,
+    make_agent_index_request,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.statistical_detectors import compute_delay
@@ -65,7 +65,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         if not project.flags.has_transactions:
             continue
 
-        # Check open team membership (Explorer requires this for context)
+        # Check open team membership (the agent requires this for context)
         if not project.organization.flags.allow_joinleave:
             continue
 
@@ -225,17 +225,16 @@ def run_explorer_index_for_projects(
         return
 
     project_list = [
-        ExplorerIndexProject(org_id=org_id, project_id=project_id)
-        for project_id, org_id in projects
+        AgentIndexProject(org_id=org_id, project_id=project_id) for project_id, org_id in projects
     ]
-    payload = ExplorerIndexRequest(projects=project_list)
+    payload = AgentIndexRequest(projects=project_list)
 
     # Only set viewer_context when all projects in the batch share the same org
     org_ids = {org_id for _, org_id in projects}
     viewer_context = SeerViewerContext(organization_id=org_ids.pop()) if len(org_ids) == 1 else None
 
     try:
-        response = make_explorer_index_request(
+        response = make_agent_index_request(
             payload,
             timeout=30,
             viewer_context=viewer_context,

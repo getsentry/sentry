@@ -26,7 +26,7 @@ const NON_DATA_SCRUBBING_RULES = {
 
 export function getTooltipText({
   remark = '',
-  rule_id = '',
+  rule_id,
   organization,
   project,
 }: Pick<ChunkType, 'remark' | 'rule_id'> & {
