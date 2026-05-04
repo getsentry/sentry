@@ -31,8 +31,8 @@ class SuspendedUserMiddlewareUnitTest(TestCase):
         return RequestFactory()
 
     def _make_request(self, path="/test/", method="GET"):
-        request = self.factory.get(path) if method == "GET" else self.factory.post(path)
-        return request
+        factory_method = getattr(self.factory, method.lower(), self.factory.get)
+        return factory_method(path)
 
     def _make_mock_user(self, *, is_suspended=False):
         mock_user = MagicMock()
@@ -94,10 +94,27 @@ class SuspendedUserMiddlewareUnitTest(TestCase):
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_exempt_path_api_auth(self):
-        request = self._make_suspended_request(path="/api/0/auth/")
+    def test_exempt_path_api_auth_login(self):
+        request = self._make_suspended_request(path="/api/0/auth/login/")
         result = self.middleware.process_request(request)
         assert result is None
+
+    def test_api_auth_delete_exempt(self):
+        request = self._make_suspended_request(path="/api/0/auth/", method="DELETE")
+        result = self.middleware.process_request(request)
+        assert result is None
+
+    def test_api_auth_get_blocked(self):
+        request = self._make_suspended_request(path="/api/0/auth/")
+        result = self.middleware.process_request(request)
+        assert result is not None
+        assert result.status_code == 403
+
+    def test_api_auth_put_blocked(self):
+        request = self._make_suspended_request(path="/api/0/auth/", method="PUT")
+        result = self.middleware.process_request(request)
+        assert result is not None
+        assert result.status_code == 403
 
     def test_exempt_path_prefix_match(self):
         request = self._make_suspended_request(path="/auth/login/sso/")

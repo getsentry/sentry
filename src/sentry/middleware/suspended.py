@@ -11,7 +11,7 @@ SUSPENDED_EXEMPT_PATHS = (
     "/auth/reactivate/",
     "/auth/login/",
     "/auth/logout/",
-    "/api/0/auth/",
+    "/api/0/auth/login/",
 )
 
 # Paths serving static/cacheable content where evaluating request.user
@@ -48,6 +48,10 @@ class SuspendedUserMiddleware(MiddlewareMixin):
             return None
 
         if any(request.path.startswith(p) for p in SUSPENDED_EXEMPT_PATHS):
+            return None
+
+        # Allow logout (DELETE /api/0/auth/) so suspended users can end their session.
+        if request.path == "/api/0/auth/" and request.method == "DELETE":
             return None
 
         logger.error(
