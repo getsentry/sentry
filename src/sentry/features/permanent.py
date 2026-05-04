@@ -120,6 +120,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-scm-multi-org": True,
         # Enable issue view endpoints and UI
         "organizations:issue-views": False,
+        # Display profile durations on the stats page
+        "organizations:continuous-profiling-stats": False,
     }
 
     permanent_project_features = {
@@ -173,4 +175,12 @@ def register_permanent_features(manager: FeatureManager) -> None:
         FeatureHandlerStrategy.INTERNAL,
         default=False,
         api_expose=False,
+    )
+
+    # Enables user registration.
+    manager.add(
+        "auth:register",
+        SystemFeature,
+        FeatureHandlerStrategy.INTERNAL,
+        default=True,
     )

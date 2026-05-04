@@ -36,8 +36,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # You won't be able to control system feature flags with flagpole, as flagpole only handles
     # organization or project scoped features. You would need to use an option instead.
 
-    # Enables user registration.
-    manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Controls whether or not the relocation endpoints can be used.
@@ -64,8 +62,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:code-review-experiments-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable continuous profiling
     manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Display profile durations on the stats page
-    manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable the ingestion of profile functions metrics into EAP
     manager.add("projects:profile-functions-metrics-eap-ingestion", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables read only dashboards
