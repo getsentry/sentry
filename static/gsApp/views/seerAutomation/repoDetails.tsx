@@ -15,7 +15,6 @@ import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon'
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {t} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
-import type {Location} from 'sentry/types/location';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -32,7 +31,7 @@ export default function SeerRepoDetails() {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
 
-  const queryRef = useRef<Location['query']>(query);
+  const queryRef = useRef(query);
   queryRef.current = query;
 
   const isSupportedProvider = useIsSeerSupportedProvider();

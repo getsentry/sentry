@@ -5,7 +5,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {t} from 'sentry/locale';
-import type {Location} from 'sentry/types/location';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -18,7 +17,7 @@ export default function RepoDefaultsDrawer() {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
 
-  const queryRef = useRef<Location['query']>(query);
+  const queryRef = useRef(query);
   queryRef.current = query;
 
   useEffect(() => {
