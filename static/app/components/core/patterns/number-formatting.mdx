@@ -25,8 +25,7 @@ There are many tools available for formatting of numbers. When formatting is don
 - **Trailing Zeroes**. **Sentry renders numbers with a floating decimal point**. e.g., we render `"1.2"` rather than `"1.20"`.
 - **Multipliers**. Some data types benefit from multipliers, whether by prefix or by unit. e.g., for `integer` values, a multiplier saves a lot of space (`"12,341,000"` vs. `"12.3M"`). The same goes for types with known units like data size (`"431312 bytes"` vs. `"0.411 MiB"`). **Sentry formats numbers using the nearest appropriate multiplier** whenever possible. If the value exceeds the maximum or minimum multiplier (e.g., a duration of &gt;1000 years, or a size of &lt;0.001 bytes) **Sentry uses scientific notation**. The exact minimum and maximum depend on the type, see the documentation for every type for details.
 - **Units**. If data has a known unit, **Sentry _always_ shows the unit alongside the value**. Sentry shows the full unit (e.g., `"milliseconds"`) in expanded contexts like detail panels, and the abbreviated unit in other contexts.
-- **Minimum Obfuscation**. In most contexts, very small numbers are not meaningful. e.g., a `"rate"` of `0.000012` per minute is not useful to show in a table. For applicable types (e.g., `"rate"`) in applicable contexts (e.g., table cells), **Sentry may obfuscate values &lt;0.0001** and replace them with "&lt;0.0001".
-- **Tooltips**. Whenever data has been obfuscated **Sentry always provides a tooltip to show the full value**. This includes charts, heavily truncated values, minimum obfuscation, etc.
+- **Minimum Obfuscation**. Small numbers may or may not be meaningful to the user, but we don't make that decision for them. e.g., a `"rate"` of `0.000012` per minute seems too small to display, but there's a huge difference between "0" and "almost 0". Sentry does not obfuscate small numbers with short labels like `"~0"` or `"<0.001"`, instead **Sentry formats very small numbers with Scientific Notation**.
 - **Localization**. Different locales format numbers differently. The delimiters of numbers vary by locale, and **Sentry will format numbers in the user's locale** whenever possible.
 - **Zeros**. `0` is a special value! **Sentry always renders `0` without decimal points**. We always show a unit next to `0` if the unit is known. If the unit is not known, but the type is known, we show the smallest unit of that type (e.g., `"0 ns"`).
 - **Negation**. **Sentry formats negative numbers using the same rules as positive numbers**.
@@ -36,7 +35,6 @@ There are many tools available for formatting of numbers. When formatting is don
 
 TODO: Get more eyes on this and get some consensus.
 
-- [ ] "Minimum Obfuscation" is fairly strange. This deserves a second look, scientific notation might be better. If we stop doing this, we don't need separate guidelines for tooltips!
 - [ ] "Multipliers" do not apply to `"number"` type, which might be incorrect. Maybe multipliers should always apply
 - [ ] "Trailing Zeroes" often creates visual misalignment in tables and Y-axes, and is worth reconsidering. Do we want to keep doing this?
 - [ ] "Units" is interesting, is it valuable to fully say "milliseconds"? Maybe we should never do that
@@ -106,6 +104,9 @@ When the full unit is shown, it must be pluralized. When an abbreviated unit is 
 
 e.g., `"0ns"`, `"2.3E-2ns"`, `"14.2ms"`, `"12.3 milliseconds"`, `"2 y"`, `"1.23E3 y"`
 
+> [!WARNING]
+> Do not use the abbrevation `"m"` for minute or month, since it will create an ambiguity with the "million" multiplier.
+
 ### Size
 
 Size represents the volume of data in bytes. Size is always specified with a corresponding unit. The unit is _always_ chosen based on the quantity of the value. e.g., 1.2MiB is correct, we never format it as "0.00117GiB". Units above petabyte and pebibyte exist, but we do not use them. The smallest unit in use is "bytes", never "bits".
@@ -144,7 +145,7 @@ SI units were often used historically, and we use them in some contexts.
 
 When the full unit is shown, it must be pluralized. When an abbreviated unit is shown, it should never be pluralized. Sizes >1,000 Pebibytes or Petabytes use scientific notation.
 
-e.g., `"0 B"`, `"1.2E-8 B"`, `"0.001 B"`, `"12.3 MiB"`, `"16.7 pebibytes"`, `"1.4E4 PiB"`
+e.g., `"12.3 MiB"`, `"16.7 pebibytes"`, `"1.4E4 PiB"`
 
 ### Timestamp
 
