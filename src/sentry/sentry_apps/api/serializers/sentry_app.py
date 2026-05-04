@@ -37,7 +37,6 @@ class SentryAppSerializerResponse(TypedDict):
     events: set[str]
     featureData: list[str]
     isAlertable: bool
-    isDisabled: bool
     metadata: str
     name: str
     schema: str
@@ -48,6 +47,7 @@ class SentryAppSerializerResponse(TypedDict):
     verifyInstall: bool
 
     # Optional fields
+    isDisabled: NotRequired[bool]
     author: NotRequired[str | None]
     overview: NotRequired[str | None]
     popularity: NotRequired[int | None]
