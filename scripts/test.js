@@ -23,7 +23,7 @@ if (process.env.CI || process.env.SENTRY_PRECOMMIT || argv.includes('--coverage'
 // oversubscribe Jest workers beyond CPU count.
 if (process.env.RERUN_KNOWN_FLAKY_TESTS === 'true') {
   argv = argv.filter(arg => !/^--maxWorkers=/.test(arg));
-  argv.push('--maxWorkers=300%');
+  argv.push('--maxWorkers=200%');
 }
 
 run(argv);
