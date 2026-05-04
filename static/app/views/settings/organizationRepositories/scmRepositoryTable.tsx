@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button, type ButtonProps, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
@@ -96,6 +96,11 @@ export interface ScmInstallation {
    * `repositories` is still empty.
    */
   reposLoading?: boolean;
+  /**
+   * Props forwarded to the uninstall button. Use to disable or annotate it
+   * when the viewer lacks the required access.
+   */
+  uninstallButtonProps?: Omit<ButtonProps, 'onClick'>;
 }
 
 interface ScmRepositoryTableProps {
@@ -396,7 +401,7 @@ function InstallationActions({
   onUninstall,
   onSettings,
 }: InstallationActionsProps) {
-  const {manageUrl, overflowMenuItems} = installation;
+  const {manageUrl, overflowMenuItems, uninstallButtonProps} = installation;
   return (
     <Fragment>
       {manageUrl && (
@@ -421,6 +426,7 @@ function InstallationActions({
               size="xs"
               variant="transparent"
               icon={<IconDelete />}
+              {...uninstallButtonProps}
               onClick={() => onUninstall(installation)}
             />
           )}

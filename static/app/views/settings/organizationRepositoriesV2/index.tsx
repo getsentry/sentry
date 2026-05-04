@@ -133,6 +133,16 @@ export function OrganizationRepositoriesV2() {
       manageUrl: getProviderConfigUrl(integration) ?? undefined,
       mappedProjectSlugsByRepoId,
       mappingsLoading,
+      uninstallButtonProps: hasAccess
+        ? undefined
+        : {
+            disabled: true,
+            tooltipProps: {
+              title: t(
+                'You must be an organization owner, manager or admin to uninstall this provider'
+              ),
+            },
+          },
     }));
     return groupBy(installations, i => i.integration.provider.key);
   }, [
@@ -141,6 +151,7 @@ export function OrganizationRepositoriesV2() {
     reposLoading,
     mappedProjectSlugsByRepoId,
     mappingsLoading,
+    hasAccess,
   ]);
 
   const handleAddIntegration = (_data: Integration) => {
@@ -226,11 +237,7 @@ export function OrganizationRepositoriesV2() {
                   provider={provider}
                   installations={installationsByProviderKey[provider.key]!}
                   repoMatches={repoMatches}
-                  onUninstall={
-                    hasAccess
-                      ? inst => handleDeleteIntegration(inst.integration)
-                      : undefined
-                  }
+                  onUninstall={inst => handleDeleteIntegration(inst.integration)}
                 />
               ))
           )}
