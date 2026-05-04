@@ -573,8 +573,22 @@ export default function SnapshotsPage() {
       : deferredItem;
   const singleViewVariantIndex = singleViewPosition?.variantIdx ?? 0;
 
-  const activeItemKey =
-    viewMode === 'list' ? visibleItemKey : (singleViewItem?.key ?? null);
+  const activeItemKey = useMemo(() => {
+    if (viewMode !== 'list') {
+      return singleViewItem?.key ?? null;
+    }
+    if (selectedSnapshotKey && singleViewPosition) {
+      return listItems[singleViewPosition.itemIdx]?.key ?? visibleItemKey;
+    }
+    return visibleItemKey;
+  }, [
+    viewMode,
+    singleViewItem,
+    selectedSnapshotKey,
+    singleViewPosition,
+    listItems,
+    visibleItemKey,
+  ]);
 
   const isComparisonProcessing =
     !!comparisonRunInfo?.state &&

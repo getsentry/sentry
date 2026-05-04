@@ -296,20 +296,15 @@ export const SnapshotListView = memo(function SnapshotListView({
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) {
+    if (!el || groups.length === 0) {
       return;
     }
     el.addEventListener('scroll', handleScroll, {passive: true});
+    handleScroll();
     return () => {
       el.removeEventListener('scroll', handleScroll);
       cancelAnimationFrame(rafId.current);
     };
-  }, [handleScroll]);
-
-  useEffect(() => {
-    if (groups.length > 0) {
-      handleScroll();
-    }
   }, [groups, handleScroll]);
 
   const initialSnapshotKey = useRef(selectedSnapshotKey ?? null).current;
