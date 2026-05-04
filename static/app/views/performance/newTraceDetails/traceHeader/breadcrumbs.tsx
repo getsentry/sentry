@@ -399,7 +399,7 @@ function LeafBreadCrumbLabel({
         className="trace-id-copy-button"
         text={traceSlug}
         size="zero"
-        priority="transparent"
+        variant="transparent"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
         }}

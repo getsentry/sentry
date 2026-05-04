@@ -96,7 +96,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
         maxMenuHeight={400}
         trigger={props => (
           <OverlayTrigger.Button
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter Breadcrumbs')}
@@ -112,7 +112,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
         position="bottom-end"
         trigger={props => (
           <OverlayTrigger.IconButton
-            priority="transparent"
+            variant="transparent"
             icon={<IconSort />}
             aria-label={t('Sort Breadcrumbs')}
             title={t('Sort')}
