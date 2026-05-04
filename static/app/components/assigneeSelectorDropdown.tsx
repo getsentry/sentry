@@ -520,7 +520,7 @@ export function AssigneeSelectorDropdown({
         )}
         {!loading && !noDropdown && (
           <AssigneeTrigger
-            priority="transparent"
+            variant="transparent"
             data-test-id="assignee-selector"
             {...props}
           >

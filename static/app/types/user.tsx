@@ -110,6 +110,8 @@ export type ApiApplication = {
   privacyUrl: string | null;
   redirectUris: string[];
   termsUrl: string | null;
+  // Remove the optional marker after June 1, 2026 once the backend field is deployed everywhere.
+  dateCreated?: string;
 };
 
 export type OrgAuthToken = {

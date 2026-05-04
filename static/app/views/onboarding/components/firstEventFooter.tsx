@@ -140,7 +140,7 @@ export function FirstEventFooter({
           <CreateSampleEventButton
             project={project}
             source="targeted-onboarding"
-            priority="primary"
+            variant="primary"
             hasScmOnboarding={hasScmOnboarding}
           >
             {t('View Sample Error')}

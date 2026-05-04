@@ -998,12 +998,6 @@ urlpatterns += [
         react_page_view,
         name="prevent",
     ),
-    # Seer
-    re_path(
-        r"^seer/",
-        react_page_view,
-        name="seer",
-    ),
     # Monitors
     re_path(
         r"^monitors/",

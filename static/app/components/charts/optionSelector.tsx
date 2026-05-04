@@ -130,7 +130,7 @@ export function OptionSelector({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
-          priority="transparent"
+          variant="transparent"
           prefix={
             <Fragment>
               {title}
