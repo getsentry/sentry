@@ -99,17 +99,19 @@ def _check_sentry_app_disabled(
     request: Request,
     sentry_app: SentryApp | RpcSentryApp,
 ) -> None:
+    if not options.get("sentry-apps.disabled-enforcement"):
+        return
+
     if not sentry_app.is_disabled:
         return
 
     if request.method in endpoint.allow_disabled_sentry_app_for_methods:
         return
 
-    if options.get("sentry-apps.disabled-enforcement"):
-        raise SentryAppError(
-            message="This Sentry App has been disabled",
-            status_code=403,
-        )
+    raise SentryAppError(
+        message="This Sentry App has been disabled",
+        status_code=403,
+    )
 
 
 class IntegrationPlatformEndpoint(Endpoint):

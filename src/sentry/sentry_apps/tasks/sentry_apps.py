@@ -745,9 +745,9 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 
 
 def _is_sentry_app_disabled_for_webhooks(sentry_app: RpcSentryApp) -> bool:
-    if not sentry_app.is_disabled:
+    if not options.get("sentry-apps.disabled-enforcement"):
         return False
-    return options.get("sentry-apps.disabled-enforcement")
+    return sentry_app.is_disabled
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
