@@ -89,6 +89,14 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       url: `/organizations/${organization.slug}/explore/saved/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
   });
 
   async function drillIntoGeneralSettings() {
@@ -289,6 +297,14 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
       body: [],
     });
   });

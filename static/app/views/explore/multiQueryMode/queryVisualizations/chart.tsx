@@ -207,7 +207,7 @@ export function MultiQueryModeChart({
             key="contextMenu"
             triggerProps={{
               size: 'xs',
-              priority: 'transparent',
+              variant: 'transparent',
               showChevron: false,
               icon: <IconEllipsis />,
             }}

@@ -256,7 +256,7 @@ function MessagesArrayRenderer({
   const renderSystemMessageContent = (message: AIMessage) => (
     <SystemMessageClippedBox
       clipHeight={150}
-      buttonProps={{priority: 'default', size: 'xs'}}
+      buttonProps={{variant: 'secondary', size: 'xs'}}
     >
       {renderMessageContent(message)}
     </SystemMessageClippedBox>

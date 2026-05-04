@@ -15,6 +15,8 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -573,10 +575,22 @@ const GroupContainer = memo(function GroupContainer({
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
 }) {
+  const organization = useOrganization();
   const cards = group.cards.map(card => {
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
+    const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
+    const onCopyLink = () =>
+      trackAnalytics('preprod.snapshots.details.image_link_copied', {
+        organization,
+        diff_status: diffStatus === 'solo' ? null : diffStatus,
+      });
+    const onCopyMetadata = () =>
+      trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+        organization,
+        diff_status: diffStatus === 'solo' ? null : diffStatus,
+      });
     return card.type === 'pair-card' ? (
       <PairCard
         key={card.id}
@@ -591,6 +605,8 @@ const GroupContainer = memo(function GroupContainer({
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
         onOpenSnapshot={onOpenSnapshot}
+        onCopyLink={onCopyLink}
+        onCopyMetadata={onCopyMetadata}
       />
     ) : (
       <ImageCard
@@ -604,6 +620,8 @@ const GroupContainer = memo(function GroupContainer({
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
         onOpenSnapshot={onOpenSnapshot}
+        onCopyLink={onCopyLink}
+        onCopyMetadata={onCopyMetadata}
       />
     );
   });

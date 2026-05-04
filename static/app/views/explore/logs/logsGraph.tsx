@@ -417,7 +417,7 @@ function ContextMenu({
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        priority: 'transparent',
+        variant: 'transparent',
         showChevron: false,
         icon: <IconEllipsis />,
       }}

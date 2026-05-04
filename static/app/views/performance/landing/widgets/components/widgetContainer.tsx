@@ -254,7 +254,7 @@ function WidgetInteractiveTitle({
       value={chartSetting}
       onChange={handleChange}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+        <OverlayTrigger.Button {...triggerProps} variant="transparent" size="zero" />
       )}
       offset={4}
     />

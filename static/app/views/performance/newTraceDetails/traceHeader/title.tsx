@@ -63,7 +63,7 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
       <Divider />
       <ReplayButton
         type="button"
-        priority="link"
+        variant="link"
         icon={<IconPlay size="xs" />}
         to={{
           pathname: makeReplaysPathname({
