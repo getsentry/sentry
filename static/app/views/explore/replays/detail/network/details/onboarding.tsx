@@ -219,6 +219,7 @@ const StyledTextCopyInput = styled(TextCopyInput)`
 
 const NoMarginAlert = styled(Alert)`
   border-width: 1px 0 0 0;
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledInstructions = styled('div')`
