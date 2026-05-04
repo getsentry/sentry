@@ -66,6 +66,10 @@ describe('ProjectAlertsCreate', () => {
       body: [],
       match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
     const providerKeys = ['slack', 'discord', 'msteams'];
     providerKeys.forEach(providerKey => {
       MockApiClient.addMockResponse({

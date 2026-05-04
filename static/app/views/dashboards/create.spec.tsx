@@ -22,6 +22,10 @@ describe('Dashboards > CreateDashboard', () => {
     PageFiltersStore.reset();
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
     });

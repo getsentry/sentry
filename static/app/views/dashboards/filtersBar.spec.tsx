@@ -226,6 +226,10 @@ describe('FiltersBar', () => {
 
 const mockNetworkRequests = () => {
   MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/members/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
     url: '/organizations/org-slug/releases/',
     body: [ReleaseFixture()],
   });

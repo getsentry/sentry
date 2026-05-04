@@ -133,6 +133,10 @@ describe('Dashboards > Detail', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
 
     beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [],
+      });
       act(() => ProjectsStore.loadInitialData(projects));
       initialData = initializeOrg({organization});
 
@@ -289,6 +293,10 @@ describe('Dashboards > Detail', () => {
         router: {
           location: LocationFixture(),
         },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [],
       });
       PageFiltersStore.init();
       PageFiltersStore.onInitializeUrlState({

@@ -85,6 +85,10 @@ describe('IssueListBulkCommandPaletteActions', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/tags/`,
       body: [],
     });
