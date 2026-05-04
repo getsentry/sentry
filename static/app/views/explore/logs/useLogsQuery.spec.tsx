@@ -68,10 +68,6 @@ describe('useInfiniteLogsQuery', () => {
 
   let mockNow: jest.SpyInstance;
 
-  afterEach(() => {
-    mockNow.mockRestore();
-  });
-
   beforeEach(() => {
     jest.resetAllMocks();
     mockNow = jest.spyOn(Date, 'now');
@@ -84,6 +80,10 @@ describe('useInfiniteLogsQuery', () => {
       selection: PageFiltersFixture(),
     });
     queryClient.clear();
+  });
+
+  afterEach(() => {
+    mockNow.mockRestore();
   });
 
   it('should not fetch logs when disabled', () => {
