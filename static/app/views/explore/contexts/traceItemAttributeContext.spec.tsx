@@ -140,10 +140,16 @@ describe('useTraceItemAttributes number filtering', () => {
     expect('custom_metric' in result.current.attributes).toBe(true);
   });
 
-  it('includes GenAI cost fields even when selected projects have not seen them', async () => {
+  it('only includes GenAI cost fields when returned by the attributes response', async () => {
     const organization = OrganizationFixture();
 
-    addAttributeMock([]);
+    addAttributeMock([
+      {
+        attributeType: 'number',
+        key: SpanFields.GEN_AI_COST_INPUT_TOKENS,
+        name: SpanFields.GEN_AI_COST_INPUT_TOKENS,
+      },
+    ]);
 
     const {result} = renderHookWithProviders(
       () =>
@@ -162,8 +168,12 @@ describe('useTraceItemAttributes number filtering', () => {
     });
 
     expect(result.current.attributes[SpanFields.GEN_AI_COST_INPUT_TOKENS]).toBeDefined();
-    expect(result.current.attributes[SpanFields.GEN_AI_COST_OUTPUT_TOKENS]).toBeDefined();
-    expect(result.current.attributes[SpanFields.GEN_AI_COST_TOTAL_TOKENS]).toBeDefined();
+    expect(
+      result.current.attributes[SpanFields.GEN_AI_COST_OUTPUT_TOKENS]
+    ).toBeUndefined();
+    expect(
+      result.current.attributes[SpanFields.GEN_AI_COST_TOTAL_TOKENS]
+    ).toBeUndefined();
   });
 
   it('filters tags[key,number] format when boolean version exists', async () => {
