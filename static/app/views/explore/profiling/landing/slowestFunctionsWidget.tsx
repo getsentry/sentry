@@ -407,7 +407,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
-          priority="transparent"
+          variant="transparent"
           onClick={setExpanded}
         />
         {project && (
@@ -438,7 +438,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           position="bottom-end"
           triggerProps={{
             icon: <IconEllipsis size="xs" />,
-            priority: 'transparent',
+            variant: 'transparent',
             showChevron: false,
             size: 'xs',
             'aria-label': t('Example Profiles'),
