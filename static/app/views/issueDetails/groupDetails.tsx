@@ -684,10 +684,7 @@ function GroupDetailsContentInner({
   );
 }
 
-const GroupDetailsContent = registerLLMContext(
-  'issue-detail',
-  GroupDetailsContentInner as unknown as React.ComponentType<Record<string, unknown>>
-) as unknown as React.ComponentType<GroupDetailsContentProps>;
+const GroupDetailsContent = registerLLMContext('issue-detail', GroupDetailsContentInner);
 
 interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
   children: React.ReactNode;
