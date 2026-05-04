@@ -173,15 +173,14 @@ export function SnapshotMainContent({
     onSortByChange && comparisonType !== 'solo' && hasChangedInList ? (
       <SortDropdown value={sortBy} onChange={onSortByChange} />
     ) : null;
-  const listDiffControls =
-    viewMode === 'list' && hasChangedInList ? (
-      <Flex align="center" gap="sm">
-        {diffMode === 'split' && (
-          <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
-        )}
-        <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
-      </Flex>
-    ) : null;
+  const diffControls = hasChangedInList ? (
+    <Fragment>
+      {diffMode === 'split' && (
+        <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
+      )}
+      <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
+    </Fragment>
+  ) : null;
   let soloDiffToggle: React.ReactNode = null;
   if (hasDiffComparison) {
     soloDiffToggle = (
@@ -201,24 +200,13 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <Flex
-          align="center"
-          justify="between"
-          gap="md"
-          padding="md xl md 0"
-          background="primary"
-        >
-          <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
-            {toggle}
-            {sortDropdown}
-            {progressIndicator}
-          </Flex>
-          <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
-            {listDiffControls}
-            {soloDiffToggle}
-          </Flex>
-        </Flex>
-        <Separator orientation="horizontal" />
+        <ToolbarContainer
+          toggle={toggle}
+          sortDropdown={sortDropdown}
+          progressIndicator={progressIndicator}
+          diffControls={diffControls}
+          soloDiffToggle={soloDiffToggle}
+        />
         <SnapshotListView
           ref={listViewRef}
           items={listItems}
@@ -240,21 +228,12 @@ export function SnapshotMainContent({
   if (!selectedItem) {
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <Flex
-          align="center"
-          justify="between"
-          gap="md"
-          padding="md xl md 0"
-          background="primary"
-        >
-          <Flex align="center" gap="md">
-            {toggle}
-            {sortDropdown}
-            {progressIndicator}
-          </Flex>
-          {soloDiffToggle}
-        </Flex>
-        <Separator orientation="horizontal" />
+        <ToolbarContainer
+          toggle={toggle}
+          sortDropdown={sortDropdown}
+          progressIndicator={progressIndicator}
+          soloDiffToggle={soloDiffToggle}
+        />
         <Flex align="center" justify="center" padding="3xl" width="100%" flex="1">
           <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
         </Flex>
@@ -291,14 +270,7 @@ export function SnapshotMainContent({
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
         }}
-        rightControls={
-          <Fragment>
-            {diffMode === 'split' && (
-              <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
-            )}
-            <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
-          </Fragment>
-        }
+        diffControls={diffControls}
         body={
           <DiffImageDisplay
             pair={currentPair}
@@ -400,7 +372,7 @@ function SingleViewLayout({
   navButtonRefs,
   headerProps,
   body,
-  rightControls,
+  diffControls,
 }: {
   body: React.ReactNode;
   canNavigateNext: boolean;
@@ -415,7 +387,7 @@ function SingleViewLayout({
   soloDiffToggle: React.ReactNode;
   sortDropdown: React.ReactNode;
   toggle: React.ReactNode;
-  rightControls?: React.ReactNode;
+  diffControls?: React.ReactNode;
 }) {
   const wheelCooldownRef = useRef(false);
   const pressTimeoutRef = useRef<number | undefined>(undefined);
@@ -498,18 +470,13 @@ function SingleViewLayout({
       background="secondary"
       onClick={e => e.stopPropagation()}
     >
-      <Flex align="center" justify="between" gap="md" padding="md xl md 0">
-        <Flex align="center" gap="md">
-          {toggle}
-          {sortDropdown}
-          {progressIndicator}
-        </Flex>
-        <Flex align="center" gap="md">
-          {rightControls}
-          {soloDiffToggle}
-        </Flex>
-      </Flex>
-      <Separator orientation="horizontal" />
+      <ToolbarContainer
+        toggle={toggle}
+        sortDropdown={sortDropdown}
+        progressIndicator={progressIndicator}
+        diffControls={diffControls}
+        soloDiffToggle={soloDiffToggle}
+      />
       <SingleViewScroll ref={scrollRef}>
         <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
           <Flex direction="column" flex="1" minWidth="0">
@@ -822,3 +789,45 @@ const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
       transparent calc(50% + 1.5px)
     );`}
 `;
+
+function ToolbarContainer({
+  toggle,
+  sortDropdown,
+  progressIndicator,
+  diffControls,
+  soloDiffToggle,
+}: {
+  toggle: React.ReactNode;
+  diffControls?: React.ReactNode;
+  progressIndicator?: React.ReactNode;
+  soloDiffToggle?: React.ReactNode;
+  sortDropdown?: React.ReactNode;
+}) {
+  return (
+    <Fragment>
+      <Flex
+        align="center"
+        justify="between"
+        gap="md"
+        padding="md xl md 0"
+        background="primary"
+        onClick={e => e.stopPropagation()}
+      >
+        <Flex align="center" gap="md">
+          {toggle}
+          {sortDropdown}
+          {progressIndicator}
+        </Flex>
+        <Flex align="center" gap="md">
+          {diffControls && (
+            <Flex align="center" gap="sm">
+              {diffControls}
+            </Flex>
+          )}
+          {soloDiffToggle}
+        </Flex>
+      </Flex>
+      <Separator orientation="horizontal" />
+    </Fragment>
+  );
+}
