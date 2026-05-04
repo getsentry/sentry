@@ -178,7 +178,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               >
                 <StyledButton
                   type="submit"
-                  priority="primary"
+                  variant="primary"
                   disabled={primaryOption.disabled}
                   analyticsEventKey={
                     message
@@ -200,7 +200,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                 trigger={(triggerProps, isOpen) => (
                   <DropdownTrigger
                     {...triggerProps}
-                    priority="primary"
+                    variant="primary"
                     aria-label={t('Choose stopping point')}
                     icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   />

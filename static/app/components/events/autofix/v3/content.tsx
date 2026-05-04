@@ -68,7 +68,7 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
           trailingItems={
             <Button
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconClose size="sm" />}
               aria-label={t('Dismiss error')}
               onClick={() => autofix.dismissCodingAgentError(id)}

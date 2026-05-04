@@ -409,7 +409,7 @@ function AutofixHighlightPopupContent({
                   <Divider />
                   <ResolveButton
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                     aria-label={t('Resolve thread')}
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
@@ -440,7 +440,7 @@ function AutofixHighlightPopupContent({
                 {allMessages.length > 0 && (
                   <ResolveButton
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                     aria-label={t('Resolve thread')}
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
@@ -506,7 +506,7 @@ function AutofixHighlightPopupContent({
               <StyledButton
                 size="zero"
                 type="submit"
-                priority="transparent"
+                variant="transparent"
                 aria-label={t('Submit Comment')}
               >
                 {'\u23CE'}

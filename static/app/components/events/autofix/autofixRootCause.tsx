@@ -267,7 +267,7 @@ function SolutionActionButton({
   isLoadingAgents: boolean;
   isSelectingRootCause: boolean;
   preferredAction: string;
-  primaryButtonPriority: React.ComponentProps<typeof Button>['priority'];
+  primaryButtonPriority: React.ComponentProps<typeof Button>['variant'];
   submitFindSolution: () => void;
 }) {
   // Support both 'agent:' (new) and 'cursor:' (legacy) prefixes for backwards compatibility
@@ -298,7 +298,7 @@ function SolutionActionButton({
     return (
       <Button
         size="sm"
-        priority={primaryButtonPriority}
+        variant={primaryButtonPriority}
         busy={isSelectingRootCause}
         onClick={submitFindSolution}
         tooltipProps={{title: findSolutionTitle}}
@@ -394,7 +394,7 @@ function SolutionActionButton({
     <ButtonBar>
       <Button
         size="sm"
-        priority={primaryButtonPriority}
+        variant={primaryButtonPriority}
         disabled={isLoadingAgents}
         {...primaryButtonProps}
       >
@@ -406,7 +406,7 @@ function SolutionActionButton({
           <DropdownTrigger
             {...triggerProps}
             size="sm"
-            priority={primaryButtonPriority}
+            variant={primaryButtonPriority}
             busy={isSelectingRootCause || isLaunchingAgent}
             disabled={isLoadingAgents}
             aria-label={t('More solution options')}
@@ -551,8 +551,8 @@ function AutofixRootCauseDisplay({
     rootCauseSelection && 'cause_id' in rootCauseSelection
   );
   const hasCodingAgents = Boolean(codingAgents && Object.keys(codingAgents).length > 0);
-  const primaryButtonPriority: React.ComponentProps<typeof Button>['priority'] =
-    isRootCauseAlreadySelected || hasCodingAgents ? 'default' : 'primary';
+  const primaryButtonPriority: React.ComponentProps<typeof Button>['variant'] =
+    isRootCauseAlreadySelected || hasCodingAgents ? 'secondary' : 'primary';
   const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
   if (!cause) {
@@ -608,7 +608,7 @@ function AutofixRootCauseDisplay({
           {t('Root Cause')}
           <Button
             size="zero"
-            priority="transparent"
+            variant="transparent"
             tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"

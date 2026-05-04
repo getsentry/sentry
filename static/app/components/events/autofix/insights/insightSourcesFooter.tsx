@@ -158,7 +158,7 @@ export function InsightSourcesFooter({
               <FooterSubmitButton
                 type="submit"
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 tooltipProps={{title: t('Give feedback and rethink the answer')}}
                 disabled={!newInsightText.trim()}
               >
