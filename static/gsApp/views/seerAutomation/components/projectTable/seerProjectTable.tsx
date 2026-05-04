@@ -55,7 +55,11 @@ import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/pro
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {projects, fetching, fetchError} = useProjects();
+  const {
+    projects: allProjects,
+    fetching: fetchingProjects,
+    fetchError: projectFetchError,
+  } = useProjects();
 
   const [isLoadingModal, setIsLoadingModal] = useState(false);
 
@@ -79,7 +83,19 @@ export function SeerProjectTable() {
       ),
   });
   useFetchAllPages({result});
-  const {data: autofixSettingsByProjectId} = result;
+  const {
+    data: autofixSettingsByProjectId,
+    isPending: isPendingSettings,
+    isFetchingNextPage,
+    isError: isErrorSettings,
+  } = result;
+
+  const projects = useMemo(() => {
+    return allProjects.filter(project => {
+      const setting = autofixSettingsByProjectId?.[project.id];
+      return setting?.reposCount;
+    });
+  }, [allProjects, autofixSettingsByProjectId]);
 
   const {data: integrations, isPending: isPendingIntegrations} = useQuery({
     ...organizationIntegrationsCodingAgents(organization),
@@ -292,11 +308,11 @@ export function SeerProjectTable() {
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
 
-          {fetching ? (
+          {fetchingProjects || isPendingSettings || isFetchingNextPage ? (
             <SimpleTable.Empty>
               <LoadingIndicator />
             </SimpleTable.Empty>
-          ) : fetchError ? (
+          ) : projectFetchError || isErrorSettings ? (
             <SimpleTable.Empty>
               <LoadingError />
             </SimpleTable.Empty>

@@ -52,6 +52,11 @@ export type SeerAnalyticsEventsParameters = {
     mode?: 'explorer' | 'legacy';
     referrer?: string;
   };
+  'autofix.evidence.clicked': {
+    group_id: string;
+    organization: Organization;
+    tool_name: string;
+  };
   'autofix.root_cause.find_solution': {
     group_id: string;
     organization: Organization;
@@ -155,6 +160,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.coding_agent.launch': 'Autofix: Coding Agent Launch',
   'autofix.code_changes.re_run': 'Autofix: Code Changes Re-run',
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
+  'autofix.evidence.clicked': 'Autofix: Evidence Clicked',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',
   'autofix.solution.code': 'Autofix: Code It Up',
