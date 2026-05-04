@@ -120,7 +120,7 @@ export function SaveAsDropdown({
                     <SaveAsButton
                       type="submit"
                       onClick={modifiedHandleCreateQuery}
-                      priority="primary"
+                      variant="primary"
                       disabled={disabled || !queryName}
                     >
                       {t('Save for Organization')}

@@ -2,17 +2,16 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Literal
+from typing import Any
 
 from sentry import analytics as sentry_analytics
-from sentry.api.event_search import SearchConfig, SearchFilter, parse_search_query
+from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.github.status_check import GitHubCheckStatus
 from sentry.integrations.source_code_management.status_check import (
     StatusCheckStatus,
 )
 from sentry.models.commitcomparison import CommitComparison
-from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodStatusCheckTriggeredRulePostedEvent
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -20,6 +19,11 @@ from sentry.preprod.models import (
     PreprodComparisonApproval,
 )
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.status_checks.size.rules import (
+    PREPROD_ARTIFACT_SEARCH_CONFIG,
+    get_status_check_rules,
+    get_status_checks_enabled,
+)
 from sentry.preprod.vcs.status_checks.size.templates import (
     format_all_skipped_messages,
     format_no_quota_messages,
@@ -42,38 +46,12 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
-
-ENABLED_OPTION_KEY = "sentry:preprod_size_status_checks_enabled"
-RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 
 # Action identifier for the "Approve" button on GitHub check runs.
 # This is sent back in the webhook payload when the button is clicked.
 APPROVE_SIZE_ACTION_IDENTIFIER = "approve_size"
-
-preprod_artifact_search_config = SearchConfig.create_from(
-    SearchConfig[Literal[True]](),
-    text_operator_keys={
-        "platform_name",
-        "git_head_ref",
-        "app_id",
-        "build_configuration_name",
-    },
-    key_mappings={
-        "platform_name": ["platform_name"],
-        "git_head_ref": ["git_head_ref"],
-        "app_id": ["app_id"],
-        "build_configuration_name": ["build_configuration_name"],
-    },
-    allowed_keys={
-        "platform_name",
-        "git_head_ref",
-        "app_id",
-        "build_configuration_name",
-    },
-)
 
 RULE_ARTIFACT_TYPE_TO_METRICS_ARTIFACT_TYPE = {
     RuleArtifactType.MAIN_ARTIFACT: PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -182,7 +160,7 @@ def create_preprod_status_check_task(
         )
         return
 
-    status_checks_enabled = preprod_artifact.project.get_option(ENABLED_OPTION_KEY, default=True)
+    status_checks_enabled = get_status_checks_enabled(preprod_artifact.project)
     if not status_checks_enabled:
         logger.info(
             "preprod.status_checks.create.disabled",
@@ -271,7 +249,7 @@ def create_preprod_status_check_task(
             completed_at = preprod_artifact.date_updated
             triggered_rules = []
         else:
-            rules = _get_status_check_rules(preprod_artifact.project)
+            rules = get_status_check_rules(preprod_artifact.project)
             base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
 
             status, triggered_rules = _compute_overall_status(
@@ -368,69 +346,6 @@ def create_preprod_status_check_task(
             "organization_slug": preprod_artifact.project.organization.slug,
         },
     )
-
-
-def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
-    """
-    Fetch and parse status check rules from project options.
-
-    Returns an empty list if feature is disabled or no rules configured.
-    """
-
-    rules_json = project.get_option(RULES_OPTION_KEY, default=None)
-    if not rules_json:
-        return []
-
-    try:
-        # Handle bytes from project options (json.loads requires str, not bytes)
-        if isinstance(rules_json, bytes):
-            rules_json = rules_json.decode("utf-8")
-        rules_data = json.loads(rules_json) if isinstance(rules_json, str) else rules_json
-        if not isinstance(rules_data, list):
-            logger.warning(
-                "preprod.status_checks.rules.invalid_format",
-                extra={"project_id": project.id, "rules_type": type(rules_data).__name__},
-            )
-            return []
-
-        rules: list[StatusCheckRule] = []
-        for rule_dict in rules_data:
-            if (
-                not isinstance(rule_dict.get("id"), str)
-                or not isinstance(rule_dict.get("metric"), str)
-                or not isinstance(rule_dict.get("measurement"), str)
-                or not isinstance(rule_dict.get("value"), (int, float))
-            ):
-                logger.warning(
-                    "preprod.status_checks.rules.invalid_rule",
-                    extra={"project_id": project.id, "rule_id": rule_dict.get("id")},
-                )
-                continue
-
-            filter_query_raw = rule_dict.get("filterQuery", "")
-            filter_query = str(filter_query_raw) if filter_query_raw is not None else ""
-            artifact_type = (
-                RuleArtifactType.from_raw(rule_dict.get("artifactType"))
-                or RuleArtifactType.MAIN_ARTIFACT
-            )
-
-            rules.append(
-                StatusCheckRule(
-                    id=rule_dict["id"],
-                    metric=rule_dict["metric"],
-                    measurement=rule_dict["measurement"],
-                    value=float(rule_dict["value"]),
-                    filter_query=filter_query,
-                    artifact_type=artifact_type,
-                )
-            )
-        return rules
-    except (json.JSONDecodeError, TypeError, ValueError, AttributeError) as e:
-        logger.warning(
-            "preprod.status_checks.rules.parse_error",
-            extra={"project_id": project.id, "error": str(e)},
-        )
-        return []
 
 
 def _fetch_base_size_metrics(
@@ -536,7 +451,7 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
     try:
         search_filters = [
             f
-            for f in parse_search_query(rule.filter_query, config=preprod_artifact_search_config)
+            for f in parse_search_query(rule.filter_query, config=PREPROD_ARTIFACT_SEARCH_CONFIG)
             if isinstance(f, SearchFilter)
         ]
     except InvalidSearchQuery:

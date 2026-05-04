@@ -152,7 +152,7 @@ export function PolicyRow({
                   </Button>
                   <Button
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                     onClick={() => {
                       onAccept(curPolicy);
                       closeModal();
@@ -212,7 +212,7 @@ export function PolicyRow({
             hasBillingAccess ? (
             <Button
               size="sm"
-              priority="primary"
+              variant="primary"
               onClick={showModal}
               disabled={activeSuperUser || !hasBillingAccess}
               tooltipProps={{

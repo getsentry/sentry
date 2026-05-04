@@ -43,7 +43,7 @@ function metricOptionsQueryKey({
     queryFields.push(TraceMetricKnownFieldKey.METRIC_UNIT);
   }
 
-  let searchValue: MutableSearch | undefined = undefined;
+  let searchValue: MutableSearch | undefined;
   if (search) {
     searchValue = new MutableSearch('');
     searchValue.addContainsFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, search);
@@ -114,7 +114,7 @@ export function useMetricOptions({
 
   const filteredData = useMemo(() => {
     if (!result?.data) {
-      return undefined;
+      return;
     }
     // Filter out empty string metric names which cause infinite update loops
     return result.data

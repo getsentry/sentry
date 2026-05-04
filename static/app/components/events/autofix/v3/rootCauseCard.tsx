@@ -129,7 +129,7 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
           </Text>
           <div>
             <Button
-              priority="primary"
+              variant="primary"
               icon={<IconRefresh />}
               onClick={() => handleReset()}
             >

@@ -36,7 +36,7 @@ def update_inbox(
     if in_inbox:
         for group in group_list:
             add_group_to_inbox(group, GroupInboxReason.MANUAL)
-    elif not in_inbox:
+    else:
         for group in group_list:
             # Remove from inbox first to insert the mark reviewed activity
             remove_group_from_inbox(

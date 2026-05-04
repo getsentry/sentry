@@ -60,7 +60,7 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
 
   return (
     <LinkButton
-      priority="transparent"
+      variant="transparent"
       onClick={handleClick}
       to={`/organizations/${organization.slug}/issues/?referrer=${config.referrer}`}
     >

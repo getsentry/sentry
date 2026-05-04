@@ -867,7 +867,7 @@ function Flamegraph(): ReactElement {
   // when we register/unregister these top level listeners.
   useLayoutEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
-      return undefined;
+      return;
     }
 
     // This code below manages the synchronization of the config views between spans and flamegraph

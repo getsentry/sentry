@@ -177,10 +177,10 @@ export function AggregateColumnEditorModal({
           </Body>
           <Footer data-test-id="editor-footer">
             <Grid flow="column" align="center" gap="md">
-              <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+              <LinkButton variant="secondary" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
-              <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
+              <Button aria-label={t('Apply')} variant="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
             </Grid>
@@ -252,7 +252,7 @@ function ColumnEditorRow({
       )}
       <StyledButton
         aria-label={t('Remove Column')}
-        priority="transparent"
+        variant="transparent"
         disabled={!canDelete}
         size="sm"
         icon={<IconDelete size="sm" />}

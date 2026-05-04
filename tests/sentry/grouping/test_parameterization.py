@@ -32,6 +32,7 @@ standard_cases = [
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     ("url - with path", "http://dogsaregreat.com/adopt/dont/shop", "<url>"),
     ("url - with path/trailing slash", "http://dogsaregreat.com/adopt/dont/shop/", "<url>"),
+    ("url - with internal comma", "http://dogsaregreat.com?tricks=spin,kangaroo", "<url>"),
     ("url - with path/filename", "http://dogsaregreat.com/adopt/dont/shop.js", "<url>"),
     (
         "url - with querystring",
@@ -40,7 +41,9 @@ standard_cases = [
     ),
     ("url - with anchor", "http://dogsaregreat.com/adopt/dont/shop.html#shelters", "<url>"),
     ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
+    ("url - with encoding", "http://dogsaregreat.com/%F0%9F%90%B6", "<url>"),
     ("url - localhost", "http://localhost:8000", "<url>"),
+    ("url - single-segment domain", "http://dogserver", "<url>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
@@ -371,16 +374,46 @@ incorrect_cases = [
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
     ),
     (
-        "url - non-http protocol with username/password/port",
-        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
-        "<url> had a problem",
-        "tcp://charlie:<email>:<int> had a problem",
-    ),
-    (
         "url - tcp",
         "tcp://dogsaregreat.com:10",
         "<url>",
         "tcp://<hostname>:<int>",
+    ),
+    (
+        "url - one-character path",
+        "http://d ogsaregreat",
+        "<url> ogsaregreat",
+        "<url>",
+    ),
+    (
+        "url - filepath",
+        "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg",
+        "<url>",
+        "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg",
+    ),
+    (
+        "url - postgres",
+        "postgresql:///dogdb",
+        "<url>",
+        "postgresql:///dogdb",
+    ),
+    (
+        "url - app-specific scheme",
+        "best-dogs-app://number-one-dog",
+        "<url>",
+        "best-dogs-app://number-one-dog",
+    ),
+    (
+        "url - with trailing comma",
+        "http://dogsaregreat.com, http://numberonedog.com",
+        "<url>, <url>",
+        "<url> <url>",
+    ),
+    (
+        "url - with trailing period",
+        "The URL is http://dogsaregreat.com.",
+        "The URL is <url>.",
+        "The URL is <url>",
     ),
 ]
 
@@ -785,6 +818,41 @@ def test_replacement_callback_false_positive_triggers_individual_regex_fallback(
             )
             == 1
         )
+
+
+# Cases where we might or might not trigger a false positive with our IP regex (necessitating use of
+# the slower fallback parameterization method if we do). The goal is to have as many of these as
+# possible have `False` for their third parameter while still keeping our regex relatively
+# straightforward.
+ip_false_positive_cases = [
+    # (name, input, whether callback is expected to have been called)
+    ("ip - too many initial characters", "12345::6:789", False),
+    ("ip - too many final characters", "123:4::56789", False),
+    ("ip - too many initial colons", ":::1121", False),
+    ("ip - too many interior colons", "1231:::1121", True),
+    ("ip - too many final colons", "1231:::", False),
+    ("ip - three colons alone", ":::", False),
+    ("ip - single leading colon", "Script error. :0:0", False),
+    ("ip - single trailing colon", "12::31:", False),
+    ("ip - too few segments", "12:31:99", True),
+    ("ip - v4 leading zeros", "11.21.12.001", False),
+    ("ip - v4 segment > 255", "12.31.12.908", False),
+    ("ip - v4 too many segments", "11.21.12.31.12", True),
+    ("date - colon btwn date and time", "21/Nov/2012:12:31:12", True),
+]
+
+
+@pytest.mark.parametrize(("name", "input", "callback_call_expected"), ip_false_positive_cases)
+@patch("sentry.grouping.parameterization.is_valid_ip", wraps=is_valid_ip)
+def test_ip_false_positives(
+    mock_is_valid_ip: MagicMock, name: str, input: str, callback_call_expected: bool
+) -> None:
+    parameterizer.parameterize(input)
+
+    if callback_call_expected:
+        mock_is_valid_ip.assert_called()
+    else:
+        mock_is_valid_ip.assert_not_called()
 
 
 @patch("sentry.grouping.parameterization.logger")

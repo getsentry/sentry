@@ -929,7 +929,7 @@ function OpenButton({
           <Tooltip
             title={t('Explore does not support multiple queries for this dataset')}
           >
-            <Button priority="primary" disabled>
+            <Button variant="primary" disabled>
               {openLabel}
             </Button>
           </Tooltip>
@@ -961,7 +961,7 @@ function OpenButton({
     <Tooltip title={disabledTooltip} disabled={!disabled}>
       <LinkButton
         to={path}
-        priority="primary"
+        variant="primary"
         disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {

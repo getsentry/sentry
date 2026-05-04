@@ -114,7 +114,7 @@ export function SpansTabCrossEventSearchBars() {
               numberSecondaryAliases={{}}
               stringSecondaryAliases={{}}
               searchSource="explore"
-              getFilterTokenWarning={() => undefined}
+              getFilterTokenWarning={() => {}}
               supportedAggregates={[]}
               onSearch={() => {}}
               onChange={() => {

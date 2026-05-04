@@ -358,7 +358,7 @@ function EnhancedUsageStatsOrganization({
         const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
 
         const storedSpikes: SpikeDetails[] = [];
-        let newSpikeThresholds: SpikeThresholds | undefined = undefined;
+        let newSpikeThresholds: SpikeThresholds | undefined;
 
         if (isSingleProject) {
           if (hasAccurateSpikes) {

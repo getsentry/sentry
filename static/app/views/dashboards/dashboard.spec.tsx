@@ -160,9 +160,9 @@ describe('Dashboards > Dashboard', () => {
     render(
       <Dashboard
         dashboard={mockDashboard}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
-        handleAddCustomWidget={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
+        handleAddCustomWidget={() => {}}
         widgetLimitReached={false}
         isEditingDashboard={false}
         widgetLegendState={widgetLegendState}
@@ -178,8 +178,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         newWidget={newWidget}
         widgetLimitReached={false}
@@ -198,8 +198,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -214,8 +214,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -234,8 +234,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -273,9 +273,9 @@ describe('Dashboards > Dashboard', () => {
           isEditingDashboard={false}
           onUpdate={mockOnUpdate}
           handleUpdateWidgetList={mockHandleUpdateWidgetList}
-          handleAddCustomWidget={() => undefined}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
-          onSetNewWidget={() => undefined}
+          onSetNewWidget={() => {}}
           widgetLegendState={widgetLegendState}
         />
       </MEPSettingProvider>,
@@ -330,9 +330,9 @@ describe('Dashboards > Dashboard', () => {
         <Dashboard
           dashboard={dashboardWithOneWidget}
           isEditingDashboard={false}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           isEmbedded
           widgetLegendState={widgetLegendState}
@@ -374,9 +374,9 @@ describe('Dashboards > Dashboard', () => {
           <Dashboard
             dashboard={dashboard}
             isEditingDashboard={false}
-            onUpdate={() => undefined}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            onUpdate={() => {}}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
           />
@@ -507,14 +507,14 @@ describe('Dashboards > Dashboard', () => {
             isEditingDashboard={false}
             isPreview={false}
             location={location}
-            onDashboardFilterChange={() => undefined}
+            onDashboardFilterChange={() => {}}
           />
           <Dashboard
             dashboard={dashboard}
             isEditingDashboard={false}
-            onUpdate={() => undefined}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            onUpdate={() => {}}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
             widgetInterval={widgetInterval}
@@ -723,8 +723,8 @@ describe('Dashboards > Dashboard', () => {
             onUpdate={newWidgets => {
               widgets.splice(0, widgets.length, ...newWidgets);
             }}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             isPreview={isPreview}
             onEditWidget={onEditWidget}
@@ -856,9 +856,9 @@ describe('Dashboards > Dashboard', () => {
         <Dashboard
           dashboard={dashboardWithGlobalFilters}
           isEditingDashboard={false}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
         />
@@ -892,9 +892,9 @@ describe('Dashboards > Dashboard', () => {
       <div>
         <Dashboard
           dashboard={{...mockDashboard, title: 'LLM Test Dashboard'}}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           isEditingDashboard={false}
           widgetLegendState={widgetLegendState}

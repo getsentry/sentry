@@ -50,7 +50,11 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
 }) {
   const createdBy = detector.createdBy ?? null;
 
-  const {isPending, data: user} = useUserFromId({
+  const {
+    isPending,
+    isError,
+    data: user,
+  } = useUserFromId({
     id: createdBy ? parseInt(createdBy, 10) : undefined,
   });
 
@@ -67,6 +71,10 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
         value={<Placeholder width="80px" height="16px" />}
       />
     );
+  }
+
+  if (isError) {
+    return <KeyValueTableRow keyName={keyName} value={t('Deactivated user')} />;
   }
 
   const title = user?.name ?? user?.email ?? t('Unknown');

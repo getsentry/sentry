@@ -54,7 +54,7 @@ export function BreadcrumbDescription({
         !showSnippet &&
         frame.data?.nodeId !== undefined &&
         !isSpanFrame(frame) && (
-          <NoWrapButton priority="link" onClick={handleViewHtml} size="xs">
+          <NoWrapButton variant="link" onClick={handleViewHtml} size="xs">
             {t('View HTML')}
           </NoWrapButton>
         )}

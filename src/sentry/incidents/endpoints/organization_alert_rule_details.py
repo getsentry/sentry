@@ -130,7 +130,7 @@ def update_alert_rule(
     )
     if validator.is_valid():
         try:
-            trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
+            trigger_sentry_app_action_creators_for_incidents(validator.validated_data, organization)
         except SentryAppBaseError as e:
             return e.response_from_exception()
 

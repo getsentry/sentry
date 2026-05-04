@@ -57,7 +57,7 @@ export function OverviewTimeline({monitorList}: Props) {
 
     queryClient.setQueryData(monitorListOptions.queryKey, old => {
       if (!old) {
-        return undefined;
+        return;
       }
       const oldMonitorList = old.json;
       const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);

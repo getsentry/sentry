@@ -80,7 +80,7 @@ function BaseFooter({className}: Props) {
       <RightLinks>
         {appState === 'stale' && (
           <Button
-            priority="transparent"
+            variant="transparent"
             size="xs"
             onClick={() => window.location.reload()}
             tooltipProps={{

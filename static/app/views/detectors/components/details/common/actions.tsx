@@ -81,7 +81,7 @@ export function EditDetectorAction({
     >
       <LinkButton
         to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
-        priority="primary"
+        variant="primary"
         icon={<IconEdit />}
         size="sm"
         disabled={!canEdit}
@@ -120,7 +120,7 @@ export function DeleteDetectorAction({detector}: {detector: Detector}) {
   }
 
   return (
-    <Button priority="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
+    <Button variant="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
       {t('Delete')}
     </Button>
   );
