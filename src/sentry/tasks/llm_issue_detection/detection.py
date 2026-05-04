@@ -8,6 +8,7 @@ from uuid import uuid4
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.db.models import F
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
@@ -272,6 +273,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         Project.objects.filter(
             organization_id=org_id,
             status=ObjectStatus.ACTIVE,
+            flags=F("flags").bitor(Project.flags.has_transactions),
         ).values_list("id", flat=True)
     )
     if not project_ids:

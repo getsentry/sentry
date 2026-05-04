@@ -254,7 +254,7 @@ export function SeerProjectTable() {
           </InputGroup>
 
           <Button
-            priority="primary"
+            variant="primary"
             size="md"
             onClick={async () => {
               setIsLoadingModal(true);

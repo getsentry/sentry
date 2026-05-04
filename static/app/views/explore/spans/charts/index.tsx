@@ -227,7 +227,7 @@ function Chart({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconGraph type={chartIcon} />}
-              priority="transparent"
+              variant="transparent"
               showChevron={false}
               size="xs"
             />
@@ -246,7 +246,7 @@ function Chart({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconClock />}
-              priority="transparent"
+              variant="transparent"
               showChevron={false}
               size="xs"
             />

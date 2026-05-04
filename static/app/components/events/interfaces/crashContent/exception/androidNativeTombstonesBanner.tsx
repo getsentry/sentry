@@ -174,7 +174,7 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
           style={{alignSelf: 'flex-start'}}
           href={TOMBSTONES_DOCS_URL}
           external
-          priority="primary"
+          variant="primary"
           size="sm"
           analyticsEventName="Clicked Android Tombstones Onboarding CTA"
           analyticsEventKey="issue-details.android-tombstones-onboarding-cta-clicked"

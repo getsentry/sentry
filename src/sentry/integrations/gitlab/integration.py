@@ -35,6 +35,7 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -163,6 +164,21 @@ class GitlabIntegration(
             return data["message"]
         if "error" in data:
             return data["error"]
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        # GitLab's get_repositories does not wrap errors in IntegrationError,
+        # so plain ApiError bubbles up directly. 403/404 indicate a terminally
+        # broken integration (blocked account, revoked access, deleted group).
+        if isinstance(exc, ApiError):
+            if exc.code == 404:
+                return "configuration_error"
+            if exc.code == 403:
+                return "unauthorized"
+        # Self-hosted GitLab instances sometimes return HTML login/captcha
+        # pages instead of JSON. The response parser raises ValueError.
+        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
+            return "unsupported_response"
+        return super().is_broken_integration_error(exc)
 
     # RepositoryIntegration methods
 

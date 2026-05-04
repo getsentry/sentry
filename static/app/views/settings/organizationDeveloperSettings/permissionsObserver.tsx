@@ -103,7 +103,7 @@ export class PermissionsObserver extends Component<Props, State> {
   renderCallout() {
     const {elevating} = this.state;
 
-    if (!this.props.newApp && elevating === true) {
+    if (!this.props.newApp && elevating) {
       return (
         <Alert.Container>
           <Alert variant="warning">

@@ -479,6 +479,112 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.data["metadata"]["value"] == "actual error"
         assert event.group is not None
 
+    def test_compose_diagnostic_exception_correct_title(self) -> None:
+        """DiagnosticComposeException should not determine the title."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "IllegalStateException",
+                            "value": "main exception",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "IllegalStateException"
+        assert event.data["metadata"]["value"] == "main exception"
+        assert event.group is not None
+        assert event.group.title == "IllegalStateException: main exception"
+
+    def test_compose_diagnostic_exception_no_parent_keeps_default_behavior(self) -> None:
+        """DiagnosticComposeException without parent_id should not change behavior."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "DiagnosticComposeException"
+        assert event.group is not None
+        assert "DiagnosticComposeException" in event.group.title
+
+    def test_compose_and_coroutine_diagnostic_exceptions_chained_correct_title(self) -> None:
+        """When both DiagnosticComposeException and DiagnosticCoroutineContextException
+        are chained on top of the real error, the title should walk past both wrappers."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "IllegalStateException",
+                            "value": "boom",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 2,
+                                "parent_id": 1,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "IllegalStateException"
+        assert event.data["metadata"]["value"] == "boom"
+        assert event.group is not None
+        assert event.group.title == "IllegalStateException: boom"
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
@@ -4383,6 +4489,7 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
                     group_id=event.group_id,
                     error_type="future_timestamp",
                     platform="python",
+                    sample_rate=1.0,
                     name="timestamp",
                     value=None,
                 ),
@@ -4390,10 +4497,53 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
             assert recorded_events == expected_events
 
     @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_recorded_at_one_percent_for_older_orgs(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Orgs older than 30 days record at 1% sample rate, surfaced on the analytics event."""
+        self.organization.date_added = timezone.now() - timedelta(days=60)
+        self.organization.save()
+        mock_random.return_value = 0.001
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            future = timezone.now() + timedelta(minutes=10)
+            event = self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            recorded_events = [
+                call[0][0]
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert recorded_events == [
+                EventProcessingErrorRecorded(
+                    organization_id=self.project.organization_id,
+                    project_id=self.project.id,
+                    event_id=event.event_id,
+                    group_id=event.group_id,
+                    error_type="future_timestamp",
+                    platform="python",
+                    sample_rate=0.01,
+                    name="timestamp",
+                    value=None,
+                ),
+            ]
+
+    @mock.patch("sentry.event_manager.random.random")
     def test_processing_errors_not_recorded_when_not_sampled(
         self, mock_random: mock.MagicMock
     ) -> None:
-        """Test that processing errors are not recorded when outside the 1% sample."""
+        """Test that processing errors are not recorded when the random draw is above the sample rate."""
+        # Age the org past the 30-day full-sample window so the rate is 1%, then 0.5 fails the check.
+        self.organization.date_added = timezone.now() - timedelta(days=60)
+        self.organization.save()
         mock_random.return_value = 0.5
         with (
             self.feature("organizations:processing-error-analytics"),

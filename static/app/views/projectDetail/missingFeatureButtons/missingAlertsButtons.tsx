@@ -19,7 +19,7 @@ export function MissingAlertsButtons({organization, projectSlug}: Props) {
         organization={organization}
         iconProps={{size: 'xs'}}
         size="sm"
-        priority="primary"
+        variant="primary"
         referrer="project_detail"
         projectSlug={projectSlug}
         hideIcon

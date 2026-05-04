@@ -183,7 +183,7 @@ function StreamlinedNoteInput({
             </Button>
           )}
           <Button
-            priority="primary"
+            variant="primary"
             size="xs"
             disabled={!canSubmit}
             aria-label={existingItem ? t('Save comment') : t('Submit comment')}

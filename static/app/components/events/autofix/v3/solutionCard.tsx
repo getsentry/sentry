@@ -103,7 +103,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
           </Text>
           <div>
             <Button
-              priority="primary"
+              variant="primary"
               icon={<IconRefresh />}
               onClick={() => handleReset()}
             >

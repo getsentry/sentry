@@ -404,6 +404,9 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
         self._make_eligible(project)
+        project.update_option(
+            "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.OPEN_PR.value
+        )
 
         autofix_group = self._store_event_and_update_group(
             project, "autofix", seer_fixability_score=0.9, times_seen=5
@@ -431,6 +434,23 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             SeerNightShiftRunIssue.objects.filter(run=run).values_list("group_id", "seer_run_id")
         )
         assert issue_run_ids == {autofix_group.id: "42", root_cause_group.id: "99"}
+
+    def test_autofix_stopping_point_honors_project_preference(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        project.update_option(
+            "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.SOLUTION.value
+        )
+
+        group = self._store_event_and_update_group(
+            project, "autofix", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with self._patched_night_shift([(group.id, "autofix")]) as (mock_trigger, _):
+            run_night_shift_for_org(org.id)
+
+        assert mock_trigger.call_args.kwargs["stopping_point"] == AutofixStoppingPoint.SOLUTION
 
     def test_forwards_reasoning_effort_to_trigger(self) -> None:
         org = self.create_organization()
