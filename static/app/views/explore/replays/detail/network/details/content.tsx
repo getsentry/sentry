@@ -109,6 +109,7 @@ export function NetworkDetailsContent(props: Props) {
 
 const OverflowFluidHeight = styled(FluidHeight)`
   overflow: auto;
+  padding-bottom: ${p => p.theme.space.md};
 `;
 const SectionList = styled('dl')`
   margin: 0;
