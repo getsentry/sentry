@@ -42,7 +42,7 @@ export function LogsExportModalButton({
     <Button
       disabled={!!disabledTooltip}
       size="xs"
-      priority="default"
+      variant="secondary"
       icon={<IconDownload />}
       onClick={() => {
         trackAnalytics('logs.export_modal', {

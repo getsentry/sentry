@@ -530,7 +530,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 tooltipProps={{title: t('Remove column')}}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                priority="transparent"
+                variant="transparent"
               />
             ) : (
               <RemoveButton
@@ -538,7 +538,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                priority="transparent"
+                variant="transparent"
               />
             )
           ) : singleColumn && showAliasField ? null : (

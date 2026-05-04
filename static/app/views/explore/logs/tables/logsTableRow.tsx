@@ -614,7 +614,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
   return (
     <LogDetailTableActionsButtonBar>
       <Button
-        priority="transparent"
+        variant="transparent"
         size="sm"
         icon={<IconAdd />}
         onClick={() => {
@@ -627,7 +627,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
         {t('Add to filter')}
       </Button>
       <Button
-        priority="transparent"
+        variant="transparent"
         size="sm"
         icon={<IconSubtract />}
         onClick={() => {
@@ -685,7 +685,7 @@ function LogRowDetailsActions({
       )}
       <LogDetailTableActionsButtonBar>
         <Button
-          priority="transparent"
+          variant="transparent"
           size="sm"
           icon={<IconJson />}
           onClick={betterCopyToClipboard}

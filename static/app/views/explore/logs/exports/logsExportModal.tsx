@@ -149,7 +149,7 @@ export function LogsExportModal({
       <Footer>
         <Flex gap="xl" justify="end">
           <Button
-            priority="default"
+            variant="secondary"
             onClick={() => {
               trackAnalytics('logs.export_modal', {
                 organization,
