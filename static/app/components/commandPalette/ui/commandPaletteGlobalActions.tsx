@@ -725,7 +725,6 @@ export function GlobalCommandPaletteActions() {
               t('explorer'),
               t('nightshift'),
               t('autofix'),
-              t('claude'),
             ]}
             limit={10}
             resource={() => {
