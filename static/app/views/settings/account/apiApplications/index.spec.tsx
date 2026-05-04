@@ -45,6 +45,28 @@ describe('ApiApplications', () => {
     expect(requestMock).toHaveBeenCalled();
 
     expect(screen.getByText('Adjusted Shrimp')).toBeInTheDocument();
+    expect(screen.getByText('Age')).toBeInTheDocument();
+    expect(screen.getByRole('time')).toHaveAttribute(
+      'dateTime',
+      '2024-01-15T12:00:00.000Z'
+    );
+  });
+
+  it('renders when dateCreated is missing', async () => {
+    const apiApp = ApiApplicationFixture();
+    delete apiApp.dateCreated;
+
+    MockApiClient.addMockResponse({
+      url: '/api-applications/',
+      body: [apiApp],
+    });
+
+    render(<ApiApplications />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(screen.getByText('Adjusted Shrimp')).toBeInTheDocument();
+    expect(screen.queryByRole('time')).not.toBeInTheDocument();
+    expect(screen.getByText('-')).toBeInTheDocument();
   });
 
   it('renders empty in demo mode even if there are applications', async () => {
