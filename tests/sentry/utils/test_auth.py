@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
@@ -61,8 +62,10 @@ class EmailAuthBackendTest(TestCase):
 
     def test_get_user_returns_none_for_suspended_user(self) -> None:
         self.user.update(is_suspended=True)
-        result = self.backend.get_user(self.user.id)
+        with mock.patch("sentry.utils.auth.record_suspended_user_rejection") as mock_metric:
+            result = self.backend.get_user(self.user.id)
         assert result is None
+        mock_metric.assert_called_once_with("session_get_user")
 
     def test_get_user_returns_user_for_active_user(self) -> None:
         result = self.backend.get_user(self.user.id)
@@ -186,7 +189,9 @@ class LoginTest(TestCase):
     def test_suspended_user_cannot_login(self) -> None:
         self.user.update(is_suspended=True)
         request = self._make_request()
-        assert not login(request, self.user)
+        with mock.patch("sentry.utils.auth.record_suspended_user_rejection") as mock_metric:
+            assert not login(request, self.user)
+        mock_metric.assert_called_once_with("session_login")
 
 
 def test_sso_expiry_default() -> None:

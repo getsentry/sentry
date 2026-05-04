@@ -62,6 +62,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
         if getattr(user, "is_suspended", False):
             metrics.incr("login.attempt", instance="failure", skip_internal=True, sample_rate=1.0)
+            auth.record_suspended_user_rejection("api_login")
             return self.respond_with_error({"__all__": ["Your account has been suspended."]})
 
         auth.login(request, user, organization_id=organization.id if organization else None)
