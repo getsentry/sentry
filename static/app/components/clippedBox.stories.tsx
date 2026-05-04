@@ -52,7 +52,7 @@ export default Storybook.story('ClippedBox', story => {
       render={ClippedBox}
       propMatrix={{
         btnText: ['Custom Label'],
-        buttonProps: [undefined, {priority: 'danger'}],
+        buttonProps: [undefined, {variant: 'danger'}],
         clipHeight: [100],
         clipFade: [
           undefined,

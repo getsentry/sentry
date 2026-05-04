@@ -455,9 +455,9 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
           {...props}
           {...(layout === 'mobile'
             ? hasPageFrame
-              ? {priority: 'default'}
-              : {size: 'zero' as const, priority: 'transparent'}
-            : {priority: props.priority})}
+              ? {variant: 'secondary'}
+              : {size: 'zero' as const, variant: 'transparent'}
+            : {variant: props.variant})}
         />
       )}
     </Flex>

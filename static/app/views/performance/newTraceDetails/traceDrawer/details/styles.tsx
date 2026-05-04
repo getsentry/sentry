@@ -1208,7 +1208,7 @@ function MultilineText({
 
   return (
     <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
+      <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
           <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (
