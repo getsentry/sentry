@@ -9,7 +9,7 @@ import {
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -462,7 +462,7 @@ describe('useReplayData', () => {
 
     // Advance past the replay asyncDelay (1ms) so it resolves,
     // but segments (100ms) and errors (250ms) are still pending
-    await jest.advanceTimersByTimeAsync(2);
+    await act(() => jest.advanceTimersByTimeAsync(2));
 
     // Afterwards we see the attachments & errors requests are made
     await waitFor(() => expect(mockedReplayCall).toHaveBeenCalledTimes(1));
@@ -483,7 +483,7 @@ describe('useReplayData', () => {
     );
 
     // Advance past the segments asyncDelay (100ms) so rrweb data arrives
-    await jest.advanceTimersByTimeAsync(100);
+    await act(() => jest.advanceTimersByTimeAsync(100));
 
     // Next we see that some rrweb data has arrived
     await waitFor(() =>
@@ -497,7 +497,7 @@ describe('useReplayData', () => {
     );
 
     // Advance past the errors asyncDelay (250ms) so error data arrives
-    await jest.advanceTimersByTimeAsync(250);
+    await act(() => jest.advanceTimersByTimeAsync(250));
 
     // Finally we see fetching is complete, errors are here too
     await waitFor(() =>
