@@ -563,7 +563,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 isResolved={isResolved}
                 isAutoResolved={isAutoResolved}
                 size="sm"
-                priority="primary"
+                variant="primary"
               />
             )}
             <ArchiveActions
