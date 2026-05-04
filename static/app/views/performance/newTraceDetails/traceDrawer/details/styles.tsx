@@ -145,7 +145,7 @@ function SubtitleWithCopyButton({
       {clipboardText ? (
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={clipboardText}
           tooltipProps={{disabled: true}}
@@ -176,7 +176,7 @@ function TitleOp({text}: {text: string}) {
           {text}
           <CopyToClipboardButton
             aria-label={t('Copy to clipboard')}
-            priority="transparent"
+            variant="transparent"
             size="zero"
             text={text}
             tooltipProps={{disabled: true}}
@@ -1146,7 +1146,7 @@ function CopyableCardValueWithLink({
         {value}
         {typeof value === 'string' ? (
           <StyledCopyToClipboardButton
-            priority="transparent"
+            variant="transparent"
             size="zero"
             text={value}
             aria-label={t('Copy to clipboard')}
@@ -1208,7 +1208,7 @@ function MultilineText({
 
   return (
     <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
+      <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
           <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (

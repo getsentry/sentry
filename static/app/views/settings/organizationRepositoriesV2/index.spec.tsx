@@ -187,14 +187,13 @@ describe('OrganizationRepositoriesV2', () => {
     await waitFor(() => expect(refetchRequest).toHaveBeenCalledTimes(1));
   });
 
-  it('hides the uninstall button when the user lacks org:integrations access', async () => {
+  it('shows the uninstall button as disabled when the user lacks org:integrations access', async () => {
     setupDefaultMocks();
 
     render(<OrganizationRepositoriesV2 />, {
       organization: OrganizationFixture({access: []}),
     });
 
-    await screen.findByText('my-org');
-    expect(screen.queryByRole('button', {name: 'Uninstall'})).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Uninstall'})).toBeDisabled();
   });
 });

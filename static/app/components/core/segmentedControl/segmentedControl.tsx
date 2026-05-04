@@ -278,7 +278,7 @@ const SegmentWrap = styled('label')<{
     ...DO_NOT_USE_getButtonStyles({
       ...p,
       disabled: p.isDisabled,
-      priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default',
+      variant: p.isSelected && p.priority === 'primary' ? 'primary' : 'secondary',
       shapeVariant: p.shapeVariant,
     }),
   })}

@@ -73,6 +73,7 @@ class AgentChatRequest(TypedDict):
     is_context_engine_enabled: NotRequired[bool]
     max_iterations: NotRequired[int]
     proxy_headers: NotRequired[dict[str, str] | None]
+    ui_tools: NotRequired[str | None]
 
 
 class AgentRunsRequest(TypedDict):
