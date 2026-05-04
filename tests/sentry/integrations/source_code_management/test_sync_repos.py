@@ -957,6 +957,74 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
 
 
 @control_silo_test
+class GitlabIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for the GitlabIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_provider_integration(
+            provider="gitlab",
+            name="Example Gitlab",
+            external_id="example.gitlab.com:group-x",
+            metadata={
+                "instance": "example.gitlab.com",
+                "base_url": "https://example.gitlab.com",
+                "domain_name": "example.gitlab.com/group-x",
+                "verify_ssl": False,
+                "group_id": 1,
+                "webhook_secret": "secret123",
+            },
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="gitlab", config={}),
+            user=self.user,
+            external_id="gitlab123",
+            data={"access_token": "123456789"},
+        )
+        self.integration.add_organization(self.organization, self.user, identity.id)
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_api_error_403_returns_unauthorized(self) -> None:
+        exc = ApiError("forbidden", code=403)
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_api_error_404_returns_configuration_error(self) -> None:
+        exc = ApiError("not found", code=404)
+        assert self.installation.is_broken_integration_error(exc) == "configuration_error"
+
+    def test_api_forbidden_error_returns_unauthorized(self) -> None:
+        exc = ApiForbiddenError("blocked")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_api_error_500_not_terminal(self) -> None:
+        exc = ApiError("server error", code=500)
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_api_error_no_code_not_terminal(self) -> None:
+        exc = ApiError("something")
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_valueerror_html_response_returns_unsupported_response(self) -> None:
+        exc = ValueError("Not a valid response type: <html><head><title>gitlab.support</title>")
+        assert self.installation.is_broken_integration_error(exc) == "unsupported_response"
+
+    def test_valueerror_unrelated_not_terminal(self) -> None:
+        exc = ValueError("some other value error")
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_base_class_cases_still_work(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+        assert (
+            self.installation.is_broken_integration_error(IdentityNotValid())
+            == "identity_not_valid"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+
+@control_silo_test
 @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
 class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     """Tests that sync_repos_for_org halts correctly for newly-handled error types."""
