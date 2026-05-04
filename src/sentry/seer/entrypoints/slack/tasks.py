@@ -393,6 +393,8 @@ def _resolve_linked_messages(
             private_channels.add(link.channel_id)
             continue
 
+        # This will only fetch the single message that was linked PLUS the parent message,
+        # if that linked message was in a thread.
         messages = entrypoint.install.get_thread_history(
             channel_id=link.channel_id,
             thread_ts=link.thread_ts or link.ts,
