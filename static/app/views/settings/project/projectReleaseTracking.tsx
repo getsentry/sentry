@@ -179,6 +179,7 @@ export default function ProjectReleaseTracking() {
           <FieldGroup
             label={t('Token')}
             help={t('A unique secret which is used to generate deploy hook URLs')}
+            hideControlState
           >
             <TextCopyInput aria-label={t('Token')}>
               {releaseTokenData.token}
@@ -190,6 +191,7 @@ export default function ProjectReleaseTracking() {
             help={t(
               'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
             )}
+            hideControlState
           >
             <Container>
               <Confirm
@@ -213,6 +215,7 @@ export default function ProjectReleaseTracking() {
               'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
             )}
             inline={false}
+            hideControlState
           >
             <TextCopyInput aria-label={t('Webhook URL')}>
               {releaseTokenData.webhookUrl}
@@ -225,6 +228,7 @@ export default function ProjectReleaseTracking() {
               'The release webhook accepts the same parameters as the "Create a new Release" API endpoint.'
             )}
             inline={false}
+            hideControlState
           >
             <CodeBlock language="bash">{getReleaseWebhookInstructions()}</CodeBlock>
           </FieldGroup>
