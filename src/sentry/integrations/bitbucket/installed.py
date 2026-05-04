@@ -54,7 +54,7 @@ class BitbucketInstalledEndpoint(Endpoint):
                     logger.info("installation-webhook", extra={"included_fields": state.keys()})
                     AtlassianConnectTokenValidator(request, method="POST").get_token()
                 except AtlassianConnectValidationError as e:
-                    lifecycle.record_halt(halt_reason=str(e), create_issue=True)
+                    lifecycle.record_halt(halt_reason=e, create_issue=True)
                     return self.respond(
                         {"detail": "Request Token Validation Failed"},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -64,7 +64,7 @@ class BitbucketInstalledEndpoint(Endpoint):
                 data = BitbucketIntegrationProvider().build_integration(state)
                 ensure_integration(IntegrationProviderSlug.BITBUCKET.value, data)
             except AtlassianConnectValidationError as e:
-                lifecycle.record_halt(halt_reason=str(e), create_issue=True)
+                lifecycle.record_halt(halt_reason=e, create_issue=True)
                 return self.respond(
                     {"detail": "Request Token Validation Failed"},
                     status=status.HTTP_400_BAD_REQUEST,
