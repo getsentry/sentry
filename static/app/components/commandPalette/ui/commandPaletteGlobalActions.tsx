@@ -10,10 +10,7 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import type {
-  CMDKQueryOptions,
-  CommandPaletteAction,
-} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import Hook from 'sentry/components/hook';
 import {
   DSN_PATTERN,
@@ -92,7 +89,6 @@ import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSetti
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
 import {CMDKAction} from './cmdk';
-import type {CMDKResourceContext} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
 
@@ -150,14 +146,13 @@ function ResolvedIdentifierCommandPaletteAction() {
   const isEventId = EVENT_ID_PATTERN.test(query);
   const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
 
+  // `projects` is intentionally omitted from the queryKey:
+  // TanStack serializes the entire key for cache lookups, and
+  // including the full projects array would be too costly —
+  // some orgs have thousands of projects.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data} = useQuery<ResolvedIdentifier | null>({
-    queryKey: [
-      'command-palette-identifier-lookup',
-      organization.slug,
-      query,
-      isShortId,
-      projects,
-    ],
+    queryKey: ['command-palette-identifier-lookup', organization.slug, query, isShortId],
     queryFn: async () => {
       try {
         if (isShortId) {
@@ -283,7 +278,6 @@ export function GlobalCommandPaletteActions() {
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
 
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
@@ -536,7 +530,7 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('Switch Organization'), icon: <IconBuilding />}}
             keywords={[t('organization'), t('change'), t('change organization')]}
             prompt={t('Select an organization...')}
-            resource={(_query: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
+            resource={(_query, {state}) =>
               // organization.slug and the org slugs list are the meaningful cache keys;
               // including the full objects would be too costly to serialize.
               // eslint-disable-next-line @tanstack/query/exhaustive-deps
@@ -624,10 +618,7 @@ export function GlobalCommandPaletteActions() {
                 keywords={navItem.keywords}
                 prompt={t('Select a project...')}
                 limit={4}
-                resource={(
-                  _query: string,
-                  {state}: CMDKResourceContext
-                ): CMDKQueryOptions =>
+                resource={(_query, {state}) =>
                   // `projects` is intentionally omitted from the queryKey:
                   // TanStack serializes the entire key for cache lookups, and
                   // including the full projects array would be too costly —
@@ -715,21 +706,21 @@ export function GlobalCommandPaletteActions() {
               t('autofix'),
             ]}
             limit={10}
-            resource={(): CMDKQueryOptions => {
-              const url = getApiUrl(
-                '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
-                {path: {organizationIdOrSlug: organization.slug}}
-              );
-              const query = {per_page: 10, category_key: 'night_shift', owner: 'false'};
+            resource={() => {
               return cmdkQueryOptions({
-                queryKey: [url, {query}],
-                queryFn: () => QUERY_API_CLIENT.requestPromise(url, {query}),
-                select: (data: {data: Array<{run_id: number; title: string}>}) =>
-                  data.data.map(session => ({
+                ...apiOptions.as<{data: Array<{run_id: number; title: string}>}>()(
+                  '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
+                  {
+                    path: {organizationIdOrSlug: organization.slug},
+                    query: {per_page: 10, category_key: 'night_shift', owner: 'false'},
+                    staleTime: 30_000,
+                  }
+                ),
+                select: data =>
+                  data.json.data.map(session => ({
                     display: {label: session.title, icon: <IconSeer />},
                     onAction: () => openSeerExplorer({runId: session.run_id}),
                   })),
-                staleTime: 30_000,
               });
             }}
           >
@@ -762,43 +753,41 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
-        {hasDsnLookup && (
-          <CMDKAction
-            display={{
-              label: t('Reverse DSN lookup'),
-              details: t(
-                'Paste a DSN into the search bar to find the project it belongs to.'
+        <CMDKAction
+          display={{
+            label: t('Reverse DSN lookup'),
+            details: t(
+              'Paste a DSN into the search bar to find the project it belongs to.'
+            ),
+            icon: <IconSearch />,
+          }}
+          prompt={t('Paste a DSN...')}
+          resource={query => {
+            return cmdkQueryOptions({
+              ...apiOptions.as<DsnLookupResponse>()(
+                '/organizations/$organizationIdOrSlug/dsn-lookup/',
+                {
+                  path: {organizationIdOrSlug: organization.slug},
+                  query: {dsn: query},
+                  staleTime: 30_000,
+                }
               ),
-              icon: <IconSearch />,
-            }}
-            prompt={t('Paste a DSN...')}
-            resource={(query: string): CMDKQueryOptions => {
-              return cmdkQueryOptions({
-                ...apiOptions.as<DsnLookupResponse>()(
-                  '/organizations/$organizationIdOrSlug/dsn-lookup/',
-                  {
-                    path: {organizationIdOrSlug: organization.slug},
-                    query: {dsn: query},
-                    staleTime: 30_000,
-                  }
-                ),
-                enabled: DSN_PATTERN.test(query),
-                select: data =>
-                  getDsnNavTargets(data.json).map((target, i) => ({
-                    to: target.to,
-                    display: {
-                      label: target.label,
-                      details: target.description,
-                      icon: DSN_ICONS[i],
-                    },
-                    keywords: [query],
-                  })),
-              });
-            }}
-          >
-            {data => data.map((item, i) => renderAsyncResult(item, i))}
-          </CMDKAction>
-        )}
+              enabled: DSN_PATTERN.test(query),
+              select: data =>
+                getDsnNavTargets(data.json).map((target, i) => ({
+                  to: target.to,
+                  display: {
+                    label: target.label,
+                    details: target.description,
+                    icon: DSN_ICONS[i],
+                  },
+                  keywords: [query],
+                })),
+            });
+          }}
+        >
+          {data => data.map((item, i) => renderAsyncResult(item, i))}
+        </CMDKAction>
       </CMDKAction>
 
       <ResolvedIdentifierCommandPaletteAction />
@@ -807,7 +796,7 @@ export function GlobalCommandPaletteActions() {
         id="cmdk:supplementary:help"
         display={{label: t('Help')}}
         limit={4}
-        resource={(query: string): CMDKQueryOptions => {
+        resource={query => {
           return cmdkQueryOptions({
             queryKey: ['command-palette-help-search', query, helpSearch],
             queryFn: () =>

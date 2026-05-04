@@ -88,7 +88,7 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
           ? t('Issue unarchived')
           : t('Issue marked unresolved');
       default:
-        return undefined;
+        return;
     }
   }
 
@@ -96,7 +96,7 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
     return t('Issue marked reviewed');
   }
 
-  return undefined;
+  return;
 };
 
 interface GroupActionsProps {
@@ -357,7 +357,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               <Button
                 style={{marginLeft: theme.space.md}}
-                priority="primary"
+                variant="primary"
                 onClick={onDiscard}
                 disabled={!hasFeature}
               >

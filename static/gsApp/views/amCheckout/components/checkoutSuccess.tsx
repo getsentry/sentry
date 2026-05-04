@@ -604,7 +604,7 @@ export function CheckoutSuccess({
           </Description>
           <Flex gap="sm">
             <LinkButton
-              priority="primary"
+              variant="primary"
               aria-label={t('View your subscription')}
               to={`/settings/${organization.slug}/billing/overview/${viewSubscriptionQueryParams}`}
             >

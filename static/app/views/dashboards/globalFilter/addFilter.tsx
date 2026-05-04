@@ -147,7 +147,7 @@ export function AddFilter({
                 <Flex gap="md" justify="end">
                   <Button
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     icon={<IconArrow direction="left" />}
                     onClick={() => {
                       resetSearch();

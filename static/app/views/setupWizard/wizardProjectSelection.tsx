@@ -448,7 +448,7 @@ export function WizardProjectSelection({
           ))}
         <SubmitButton
           disabled={!isFormValid || isPending}
-          priority="primary"
+          variant="primary"
           type="submit"
         >
           {t('Continue')}

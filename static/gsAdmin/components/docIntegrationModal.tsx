@@ -103,7 +103,7 @@ export function DocIntegrationModal(props: Props) {
           }}
         />
         <RemoveButton
-          priority="transparent"
+          variant="transparent"
           icon={<IconClose />}
           size="zero"
           onClick={e => {
@@ -120,7 +120,7 @@ export function DocIntegrationModal(props: Props) {
     ));
     resourceRows.push(
       <AddButton
-        priority="link"
+        variant="link"
         onClick={e => {
           e.preventDefault();
           setResources(state => ({

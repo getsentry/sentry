@@ -47,7 +47,7 @@ export function useCurrentEventMarklineSeries({
 
   return useMemo(() => {
     if (!event) {
-      return undefined;
+      return;
     }
 
     const eventDateCreated = new Date(event.dateCreated!).getTime();
@@ -64,7 +64,7 @@ export function useCurrentEventMarklineSeries({
     }, undefined);
 
     if (!closestEventSeries) {
-      return undefined;
+      return;
     }
 
     // Labels and colors based on series type, matching eventGraph.tsx bar chart series

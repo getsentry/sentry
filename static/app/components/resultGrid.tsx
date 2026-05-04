@@ -310,7 +310,7 @@ export function ResultGrid(props: Props) {
                 <Button
                   type="submit"
                   size="sm"
-                  priority="primary"
+                  variant="primary"
                   icon={<IconSearch size="xs" />}
                   aria-label={t('Search')}
                 />

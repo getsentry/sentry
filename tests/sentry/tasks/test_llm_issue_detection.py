@@ -13,8 +13,6 @@ from sentry.tasks.llm_issue_detection import (
 from sentry.tasks.llm_issue_detection.detection import (
     START_TIME_DELTA_MINUTES,
     TRANSACTION_BATCH_SIZE,
-    _get_unprocessed_traces,
-    mark_traces_as_processed,
 )
 from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
@@ -195,97 +193,64 @@ class LLMIssueDetectionTest(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
-    @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
-    @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
-    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     def test_detect_llm_issues_full_flow(
         self,
-        mock_shuffle,
         mock_spans_query,
         mock_seer_request,
-        mock_get_unprocessed,
-        mock_mark_processed,
         mock_budget_request,
     ):
         mock_budget_request.return_value = self._budget_ok_response()
 
-        mock_shuffle.return_value = None  # shuffles in-place, mock to prevent reordering
-        mock_get_unprocessed.return_value = {"trace_id_1", "trace_id_2"}  # All unprocessed
-
         mock_spans_query.side_effect = [
-            # First call: transaction spans
             {
                 "data": [
                     {"transaction": "POST /some/thing", "sum(span.duration)": 1007},
-                    {"transaction": "GET /another/", "sum(span.duration)": 1003},
                 ],
                 "meta": {},
             },
-            # Second call: trace for transaction 1
             {
                 "data": [
                     {"trace": "trace_id_1", "precise.start_ts": 1234},
                 ],
                 "meta": {},
             },
-            # Third call: trace for transaction 2
-            {
-                "data": [
-                    {"trace": "trace_id_2", "precise.start_ts": 1234},
-                ],
-                "meta": {},
-            },
-            # Fourth call: span count query
             {
                 "data": [
                     {"trace": "trace_id_1", "count()": 50},
-                    {"trace": "trace_id_2", "count()": 100},
                 ],
                 "meta": {},
             },
         ]
 
-        # Seer returns 202 for async processing
         mock_accepted_response = Mock()
         mock_accepted_response.status = 202
         mock_seer_request.return_value = mock_accepted_response
 
         detect_llm_issues_for_org(self.organization.id)
 
-        assert mock_spans_query.call_count == 4  # 1 transactions, 2 traces, 1 span count
-        assert mock_seer_request.call_count == 1  # Single batch request
+        assert mock_spans_query.call_count == 3
+        assert mock_seer_request.call_count == 1
 
         seer_request = mock_seer_request.call_args[0][0]
         assert seer_request.project_id == self.project.id
         assert seer_request.organization_id == self.organization.id
         assert len(seer_request.traces) == 1
 
-        assert mock_mark_processed.call_count == 1
-
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
-    @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
-    @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
-    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     @patch("sentry.tasks.llm_issue_detection.detection.logger.error")
-    def test_detect_llm_issues_seer_error_no_traces_marked(
+    def test_detect_llm_issues_seer_error_logged(
         self,
         mock_logger_error,
-        mock_shuffle,
         mock_spans_query,
         mock_seer_request,
-        mock_get_unprocessed,
-        mock_mark_processed,
         mock_budget_request,
     ):
         mock_budget_request.return_value = self._budget_ok_response()
-
-        mock_shuffle.return_value = None
-        mock_get_unprocessed.return_value = {"trace_id_1"}
 
         mock_spans_query.side_effect = [
             {
@@ -307,8 +272,6 @@ class LLMIssueDetectionTest(TestCase):
 
         assert mock_seer_request.call_count == 1
         assert mock_logger_error.call_count == 1
-        # Traces NOT marked as processed on error - will be retried next run
-        assert mock_mark_processed.call_count == 0
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
@@ -382,59 +345,6 @@ class LLMIssueDetectionTest(TestCase):
         assert "plan_tier=business" in budget_url
 
 
-class TestTraceProcessingFunctions:
-    @pytest.mark.parametrize(
-        ("trace_ids", "mget_return", "expected"),
-        [
-            # All unprocessed (mget returns None for missing keys)
-            (["a", "b", "c"], [None, None, None], {"a", "b", "c"}),
-            # Some processed (mget returns "1" for existing keys)
-            (["a", "b", "c"], ["1", None, "1"], {"b"}),
-            # All processed
-            (["a", "b"], ["1", "1"], set()),
-            # Empty input
-            ([], [], set()),
-        ],
-    )
-    @patch("sentry.tasks.llm_issue_detection.detection.redis_clusters")
-    def test_get_unprocessed_traces(
-        self, mock_redis_clusters: Mock, trace_ids: list, mget_return: list, expected: set
-    ) -> None:
-        mock_cluster = Mock()
-        mock_redis_clusters.get.return_value = mock_cluster
-        mock_cluster.mget.return_value = mget_return
-
-        result = _get_unprocessed_traces(trace_ids)
-
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        ("trace_ids", "expected_set_calls"),
-        [
-            (["trace_123"], 1),  # Single trace
-            (["trace_1", "trace_2", "trace_3"], 3),  # Multiple traces
-            ([], 0),  # Empty list - early return, no pipeline calls
-        ],
-    )
-    @patch("sentry.tasks.llm_issue_detection.detection.redis_clusters")
-    def test_mark_traces_as_processed(
-        self, mock_redis_clusters: Mock, trace_ids: list[str], expected_set_calls: int
-    ) -> None:
-        mock_cluster = Mock()
-        mock_pipeline = Mock()
-        mock_redis_clusters.get.return_value = mock_cluster
-        mock_cluster.pipeline.return_value.__enter__ = Mock(return_value=mock_pipeline)
-        mock_cluster.pipeline.return_value.__exit__ = Mock(return_value=False)
-
-        mark_traces_as_processed(trace_ids)
-
-        assert mock_pipeline.set.call_count == expected_set_calls
-        if expected_set_calls == 0:
-            mock_cluster.pipeline.assert_not_called()
-        else:
-            mock_pipeline.execute.assert_called_once()
-
-
 class TestGetValidTraceIdsBySpanCount:
     @pytest.mark.parametrize(
         ("query_result", "expected"),
@@ -481,19 +391,18 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         self.ten_mins_ago = before_now(minutes=10)
 
     @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
-    def test_returns_deduped_transaction_traces(self, mock_span_count) -> None:
-        # Mock span count check to return all traces as valid
+    def test_returns_sampled_traces(self, mock_span_count) -> None:
         mock_span_count.side_effect = lambda trace_ids, *args: {tid: 50 for tid in trace_ids}
 
         trace_id_1 = uuid.uuid4().hex
         span1 = self.create_span(
             {
-                "description": "GET /api/users/123456",  # will dedupe
-                "sentry_tags": {"transaction": "GET /api/users/123456"},
+                "description": "GET /api/users",
+                "sentry_tags": {"transaction": "GET /api/users"},
                 "trace_id": trace_id_1,
                 "is_segment": True,
-                "exclusive_time_ms": 100,
-                "duration_ms": 100,
+                "exclusive_time_ms": 200,
+                "duration_ms": 200,
             },
             start_ts=self.ten_mins_ago,
         )
@@ -501,37 +410,22 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         trace_id_2 = uuid.uuid4().hex
         span2 = self.create_span(
             {
-                "description": "GET /api/users/789012",  # will dedupe
-                "sentry_tags": {"transaction": "GET /api/users/789012"},
-                "trace_id": trace_id_2,
-                "is_segment": True,
-                "exclusive_time_ms": 200,
-                "duration_ms": 200,  # will return before span1 in transaction query
-            },
-            start_ts=self.ten_mins_ago + timedelta(seconds=1),
-        )
-
-        trace_id_3 = uuid.uuid4().hex
-        span3 = self.create_span(
-            {
                 "description": "POST /api/orders",
                 "sentry_tags": {"transaction": "POST /api/orders"},
-                "trace_id": trace_id_3,
+                "trace_id": trace_id_2,
                 "is_segment": True,
                 "exclusive_time_ms": 150,
                 "duration_ms": 150,
             },
-            start_ts=self.ten_mins_ago + timedelta(seconds=2),
+            start_ts=self.ten_mins_ago + timedelta(seconds=1),
         )
 
-        self.store_spans([span1, span2, span3])
+        self.store_spans([span1, span2])
 
         evidence_traces = get_project_top_transaction_traces_for_llm_detection(
             self.project.id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=30
         )
 
         assert len(evidence_traces) == 2
-
-        # trace_id_2 prevails over trace_id_1 because transaction span duration was higher
-        assert evidence_traces[0].trace_id == trace_id_2
-        assert evidence_traces[1].trace_id == trace_id_3
+        result_trace_ids = {t.trace_id for t in evidence_traces}
+        assert result_trace_ids == {trace_id_1, trace_id_2}

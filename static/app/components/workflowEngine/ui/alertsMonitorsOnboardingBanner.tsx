@@ -38,7 +38,7 @@ export function OnboardingBanner() {
         <Button
           aria-label={t('Dismiss banner')}
           icon={<IconClose variant="accent" />}
-          priority="transparent"
+          variant="transparent"
           onClick={() => dismissPrompt()}
           size="zero"
         />
@@ -60,7 +60,7 @@ export function OnboardingBanner() {
           >
             {t('Take a tour')}
           </Button>
-          <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/48882501173915">
+          <ExternalLink href="https://www.sentry.help/articles/48882501173915">
             {t("Read what's changed")}
           </ExternalLink>
         </Flex>

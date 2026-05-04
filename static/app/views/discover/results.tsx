@@ -734,7 +734,7 @@ export class Results extends Component<Props, State> {
               {
                 traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
                 FAQLink: (
-                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                  <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                 ),
               }
             )}

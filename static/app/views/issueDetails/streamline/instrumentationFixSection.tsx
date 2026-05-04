@@ -128,7 +128,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
       <FoldSection title={t('Fix with Seer')} sectionKey={SectionKey.INSTRUMENTATION_FIX}>
         <Flex justify="start" direction="row">
           <Button
-            priority="primary"
+            variant="primary"
             icon={<IconSeer />}
             onClick={handleStartCodeChanges}
             analyticsEventKey="issue_details.instrumentation_fix_clicked"

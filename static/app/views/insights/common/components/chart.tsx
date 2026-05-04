@@ -189,7 +189,7 @@ export function Chart({
     }
   }
 
-  let transformedThroughput: LineSeriesOption[] | undefined = undefined;
+  let transformedThroughput: LineSeriesOption[] | undefined;
   const additionalAxis: YAXisOption[] = [];
 
   if (throughput && throughput.length > 1) {

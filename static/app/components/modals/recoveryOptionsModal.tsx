@@ -106,7 +106,7 @@ function RecoveryOptionsModal({
             {t('Skip this step')}
           </Button>
           <LinkButton
-            priority="primary"
+            variant="primary"
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
             css={css`
@@ -121,7 +121,7 @@ function RecoveryOptionsModal({
         // get recovery codes
         <Footer>
           <LinkButton
-            priority="primary"
+            variant="primary"
             onClick={closeModal}
             to={
               recoveryEnrolled

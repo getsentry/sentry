@@ -21,7 +21,7 @@ import {
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 
 function getUpdatedAggregatesMultiMetric(
   aggregateSource: Column[],
