@@ -97,7 +97,7 @@ ruleTester.run('$ARGUMENTS', $RULE_NAME, {
 Run tests:
 
 ```bash
-pnpm run test-ci "static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
+pnpm test-ci "static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
 ```
 
 ## Autofix Guidance
@@ -165,7 +165,7 @@ Add to `eslint.config.ts` inside the `name: 'plugin/@sentry/scraps'` block:
 ### 3. Verify
 
 ```bash
-pnpm run test-ci "static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
+pnpm test-ci "static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
 ```
 
 ## Extending an Existing Rule

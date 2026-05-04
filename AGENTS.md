@@ -166,10 +166,10 @@ pnpm run fix
 
 ```bash
 # Run JavaScript tests
-pnpm run test-ci <file_path>
+pnpm test-ci <file_path>
 
 # Run specific test file(s)
-pnpm run test-ci components/avatar.spec.tsx
+pnpm test-ci components/avatar.spec.tsx
 ```
 
 ### Git worktrees
