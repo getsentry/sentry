@@ -1,0 +1,139 @@
+import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
+import {Collapsible} from 'sentry/components/collapsible';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import * as SidebarSection from 'sentry/components/sidebarSection';
+import {t, tn} from 'sentry/locale';
+import type {Commit} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
+import {percent} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {userDisplayName} from 'sentry/utils/formatters';
+
+type GroupedAuthorCommits = Record<
+  string,
+  {author: User | undefined; commitCount: number}
+>;
+
+type Props = {
+  orgId: string;
+  projectSlug: string;
+  version: string;
+};
+
+export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
+  const {
+    data: commits,
+    isPending,
+    isError,
+  } = useQuery(
+    apiOptions.as<Commit[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
+      {
+        path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectSlug, version},
+        staleTime: 0,
+      }
+    )
+  );
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  function getDisplayPercent(authorCommitCount: number) {
+    if (commits) {
+      const calculatedPercent = Math.round(percent(authorCommitCount, commits.length));
+      return `${calculatedPercent < 1 ? '<1' : calculatedPercent}%`;
+    }
+
+    return '';
+  }
+
+  // group commits by author
+  const groupedAuthorCommits = commits?.reduce<GroupedAuthorCommits>(
+    (authorCommitsAccumulator, commit) => {
+      const email = commit.author?.email ?? 'unknown';
+
+      if (authorCommitsAccumulator.hasOwnProperty(email)) {
+        authorCommitsAccumulator[email]!.commitCount += 1;
+      } else {
+        authorCommitsAccumulator[email] = {
+          commitCount: 1,
+          author: commit.author,
+        };
+      }
+
+      return authorCommitsAccumulator;
+    },
+    {}
+  );
+
+  // sort authors by number of commits
+  const sortedAuthorsByNumberOfCommits = Object.values(groupedAuthorCommits).sort(
+    (a, b) => b.commitCount - a.commitCount
+  );
+
+  if (!sortedAuthorsByNumberOfCommits.length) {
+    return null;
+  }
+
+  return (
+    <SidebarSection.Wrap>
+      <SidebarSection.Title>{t('Commit Author Breakdown')}</SidebarSection.Title>
+      <SidebarSection.Content>
+        <Collapsible
+          expandButton={({onExpand, numberOfHiddenItems}) => (
+            <Button priority="link" onClick={onExpand}>
+              {tn('Show %s other author', 'Show %s other authors', numberOfHiddenItems)}
+            </Button>
+          )}
+        >
+          {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
+            <AuthorLine key={author?.email ?? index}>
+              {author ? <UserAvatar user={author} size={20} hasTooltip /> : null}
+              <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
+              <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
+              <Percent>{getDisplayPercent(commitCount)}</Percent>
+            </AuthorLine>
+          ))}
+        </Collapsible>
+      </SidebarSection.Content>
+    </SidebarSection.Wrap>
+  );
+}
+
+const AuthorLine = styled('div')`
+  display: inline-grid;
+  grid-template-columns: 30px 2fr 1fr 40px;
+  width: 100%;
+  margin-bottom: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.md};
+`;
+
+const AuthorName = styled('div')`
+  color: ${p => p.theme.tokens.content.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const Commits = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
+  text-align: right;
+`;
+
+const Percent = styled('div')`
+  min-width: 40px;
+  text-align: right;
+`;

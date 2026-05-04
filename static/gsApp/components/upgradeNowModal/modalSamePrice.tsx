@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -44,7 +43,7 @@ function UpgradeNowModal({
 
   const api = useApi();
 
-  const onUpdatePlan = useCallback(async () => {
+  const onUpdatePlan = async () => {
     try {
       await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
         method: 'PUT',
@@ -82,7 +81,7 @@ function UpgradeNowModal({
         )
       );
     }
-  }, [api, organization, subscription, plan, reservations, onComplete, surface]);
+  };
 
   return (
     <UpsellContent>
@@ -90,7 +89,7 @@ function UpgradeNowModal({
       <Header>{t('Get to the root cause of an error faster')}</Header>
       <p>
         {t(
-          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occured.'
+          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occurred.'
         )}
       </p>
       <CTAPanel>
@@ -98,7 +97,7 @@ function UpgradeNowModal({
           <CTAPrimary>{t('500 replays')}</CTAPrimary>
           <CTASecondary>{t('at no additional cost')}</CTASecondary>
         </div>
-        <Button priority="primary" onClick={onUpdatePlan}>
+        <Button variant="primary" onClick={onUpdatePlan}>
           {t('Enable Now')}
         </Button>
       </CTAPanel>

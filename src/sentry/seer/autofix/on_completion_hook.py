@@ -10,10 +10,13 @@ from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEv
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.agent.client_models import Artifact
+from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
-    trigger_autofix_explorer,
+    trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
@@ -21,21 +24,13 @@ from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_project_seer_preferences,
-    resolve_repository_ids,
-    set_project_seer_preference,
-    write_preference_to_sentry_db,
+    clear_preference_automation_handoff,
+    read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.client_models import Artifact
-from sentry.seer.explorer.client_utils import fetch_run_status
-from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.models import (
-    SeerApiError,
-    SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
-from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -43,7 +38,7 @@ from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.seer.explorer.client_models import SeerRunState
+    from sentry.seer.agent.client_models import SeerRunState
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +57,9 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
 }
 
 
-class AutofixOnCompletionHook(ExplorerOnCompletionHook):
+class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
-    Hook called when an Explorer-based autofix run completes.
+    Hook called when an agent-based autofix run completes.
 
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
@@ -74,7 +69,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
         """
-        Execute the hook when the Explorer agent completes a step.
+        Execute the hook when the agent completes a step.
 
         Args:
             organization: The organization context
@@ -195,10 +190,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     ]
                     for repo, patches in diffs_by_repo.items()
                 }
-        elif current_step == AutofixStep.IMPACT_ASSESSMENT:
-            webhook_action_type = SeerActionType.IMPACT_ASSESSMENT_COMPLETED
-        elif current_step == AutofixStep.TRIAGE:
-            webhook_action_type = SeerActionType.TRIAGE_COMPLETED
 
         if not webhook_action_type:
             return
@@ -418,7 +409,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "stopping_point": stopping_point,
             },
         )
-        trigger_autofix_explorer(
+        trigger_autofix_agent(
             group=group,
             step=next_step,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
@@ -487,22 +478,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         ]:
             return None
 
-        # Check project preferences
-        try:
-            preference_response = get_project_seer_preferences(group.project_id)
-        except (SeerApiError, SeerApiResponseValidationError):
-            logger.exception(
-                "autofix.on_completion_hook.get_preferences_failed",
-                extra={"group_id": group.id, "project_id": group.project_id},
-            )
-            return None
-        if not preference_response or not preference_response.preference:
-            return None
-        handoff_config = preference_response.preference.automation_handoff
-        if not handoff_config:
-            return None
-
-        return handoff_config
+        return read_preference_from_sentry_db(group.project).automation_handoff
 
     @classmethod
     def _clear_handoff_preference(
@@ -510,24 +486,8 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
     ) -> None:
         """Clear automation_handoff from project preferences after integration is not found."""
         try:
-            preference_response = get_project_seer_preferences(project.id)
-            if preference_response and preference_response.preference:
-                updated_preference = preference_response.preference.copy(
-                    update={"automation_handoff": None}
-                )
-                set_project_seer_preference(updated_preference)
-
-                if features.has("organizations:seer-project-settings-dual-write", organization):
-                    try:
-                        validated_pref = SeerProjectPreference.validate(updated_preference)
-                        resolved_pref = resolve_repository_ids(organization.id, [validated_pref])
-                        write_preference_to_sentry_db(project, resolved_pref[0])
-                    except Exception:
-                        logger.exception(
-                            "seer.write_preferences.failed",
-                            extra={"project_id": project.id, "organization_id": organization.id},
-                        )
-        except (SeerApiError, SeerApiResponseValidationError):
+            clear_preference_automation_handoff(project)
+        except Exception:
             logger.exception(
                 "autofix.on_completion_hook.clear_handoff_preference_failed",
                 extra={"run_id": run_id, "organization_id": organization.id},

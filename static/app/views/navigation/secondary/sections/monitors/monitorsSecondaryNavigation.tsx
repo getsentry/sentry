@@ -35,7 +35,10 @@ export function MonitorsSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="monitors-data-types" title={t('By Data Type')}>
+        <SecondaryNavigation.Section
+          id="monitors-data-types"
+          title={t('By Monitor Type')}
+        >
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link

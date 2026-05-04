@@ -1,37 +1,25 @@
 import {useEffect} from 'react';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import type {RawFlagData} from 'sentry/components/featureFlags/utils';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface Params {
   organization: Organization;
-  query: Record<string, any>;
-  enabled?: boolean;
+  query: Record<string, unknown>;
 }
 
-export function useOrganizationFlagLog({
-  organization,
-  query,
-  enabled: enabledParam = true,
-}: Params) {
+export function organizationFlagLogOptions({organization, query}: Params) {
   // Don't make the request if start = end. The backend returns 400 but we prefer an empty response.
-  const enabled =
-    (!query.start || !query.end || query.start !== query.end) && enabledParam;
+  const enabled = !query.start || !query.end || query.start !== query.end;
 
-  return useApiQuery<RawFlagData>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/flags/logs/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-      }),
-      {query},
-    ],
+  return apiOptions.as<RawFlagData>()(
+    '/organizations/$organizationIdOrSlug/flags/logs/',
     {
+      path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+      query,
       staleTime: 0,
-      enabled,
     }
   );
 }
@@ -48,39 +36,42 @@ export function useOrganizationFlagLogInfinite({
   query,
   enabled: enabledParam = true,
   maxPages = 10,
-}: InfiniteParams) {
+}: InfiniteParams & {enabled?: boolean}) {
   // Don't make the request if start = end. The backend returns 400 but we prefer an empty response.
   const enabled =
     (!query.start || !query.end || query.start !== query.end) && enabledParam;
 
-  const apiQuery = useInfiniteApiQuery<RawFlagData>({
-    queryKey: [
-      {infinite: true, version: 'v1'},
-      getApiUrl('/organizations/$organizationIdOrSlug/flags/logs/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-      }),
-      {query},
-    ],
-    staleTime: 0,
-    enabled,
+  const {
+    data: infiniteData,
+    isFetching,
+    hasNextPage,
+    fetchNextPage,
+    isPending,
+    isError,
+    error,
+  } = useInfiniteQuery({
+    ...apiOptions.asInfinite<RawFlagData>()(
+      '/organizations/$organizationIdOrSlug/flags/logs/',
+      {
+        path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query,
+        staleTime: 0,
+      }
+    ),
   });
 
-  const currentNumberPages = apiQuery.data?.pages.length ?? 0;
+  const currentNumberPages = infiniteData?.pages.length ?? 0;
 
   useEffect(() => {
-    if (
-      !apiQuery.isFetching &&
-      apiQuery.hasNextPage &&
-      currentNumberPages + 1 < maxPages
-    ) {
-      apiQuery.fetchNextPage();
+    if (!isFetching && hasNextPage && currentNumberPages + 1 < maxPages) {
+      fetchNextPage();
     }
-  }, [apiQuery, maxPages, currentNumberPages]);
+  }, [isFetching, hasNextPage, fetchNextPage, maxPages, currentNumberPages]);
 
   return {
-    ...apiQuery,
-    data: apiQuery.data?.pages.flatMap(([pageData]) => pageData.data),
+    data: infiniteData?.pages.flatMap(page => page.json.data),
+    isPending,
+    isError,
+    error,
   };
 }

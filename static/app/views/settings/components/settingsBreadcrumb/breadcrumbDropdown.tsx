@@ -44,7 +44,7 @@ export function BreadcrumbDropdown({
 
   if (!hasMenu) {
     return (
-      <Button priority="link">
+      <Button variant="link">
         <Flex gap="sm" align="center">
           <Text bold={false}>{name || route.name} </Text>
           {isLast ? null : <Divider />}
@@ -112,11 +112,11 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
     closeTimeoutRef.current = window.setTimeout(() => close?.(), CLOSE_MENU_TIMEOUT);
   }, [close]);
 
-  const handleOpen = useCallback(() => {
+  const handleOpen = () => {
     activeCrumbStates.forEach(state => state?.close());
     window.clearTimeout(closeTimeoutRef.current);
     open?.();
-  }, [open]);
+  };
 
   useEffect(() => {
     if (menuHasHover) {

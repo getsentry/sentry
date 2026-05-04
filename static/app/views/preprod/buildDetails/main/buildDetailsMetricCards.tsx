@@ -241,7 +241,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                     <LinkButton
                       to={card.comparisonUrl}
                       size="zero"
-                      priority="link"
+                      variant="link"
                       aria-label={t('Compare builds')}
                     >
                       <Flex align="center" gap="xs">

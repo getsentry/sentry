@@ -6,12 +6,12 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -185,7 +185,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
           emptyMessage={t('No monitors found')}
         >
           {isPending || !monitorList
-            ? [...new Array(NUM_PLACEHOLDER_ROWS)].map((_, i) => (
+            ? [...Array.from({length: NUM_PLACEHOLDER_ROWS})].map((_, i) => (
                 <RowPlaceholder key={i}>
                   <Placeholder height="20px" />
                 </RowPlaceholder>
@@ -218,7 +218,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <Pagination pageLinks={monitorPageLinks ?? ''} onCursor={setCursor} />
       </Body>
       <Footer>
-        <Button priority="primary" onClick={closeModal} aria-label={t('Done')}>
+        <Button variant="primary" onClick={closeModal} aria-label={t('Done')}>
           {t('Done')}
         </Button>
       </Footer>

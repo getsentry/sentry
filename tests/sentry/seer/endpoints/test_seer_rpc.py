@@ -14,18 +14,23 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.agent.tools import get_trace_item_attributes
+from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.endpoints.seer_rpc import (
+    bulk_get_project_preferences,
     check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
     trigger_coding_agent_launch,
     validate_repo,
 )
-from sentry.seer.explorer.tools import get_trace_item_attributes
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -84,6 +89,50 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 429
         assert "Rate limit exceeded" in response.data["detail"]
 
+    def test_rest_framework_exceptions_are_reraised(self) -> None:
+        """Test that REST framework exceptions preserve their status codes."""
+        from rest_framework.exceptions import APIException
+
+        class CustomAPIException(APIException):
+            status_code = 503
+            default_detail = "Service temporarily unavailable"
+
+        path = self._get_path("get_organization_slug")
+        data: dict[str, Any] = {"args": {"org_id": 1}, "meta": {}}
+
+        with patch(
+            "sentry.seer.endpoints.seer_rpc.SeerRpcServiceEndpoint._dispatch_to_local_method"
+        ) as mock_dispatch:
+            mock_dispatch.side_effect = CustomAPIException()
+
+            response = self.client.post(
+                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+            )
+
+        assert response.status_code == 503
+        assert "Service temporarily unavailable" in response.data["detail"]
+
+    def test_generic_exceptions_return_500(self) -> None:
+        """Test that generic exceptions return 500 instead of 400."""
+        path = self._get_path("get_organization_slug")
+        data: dict[str, Any] = {"args": {"org_id": 1}, "meta": {}}
+
+        for is_test_environment in [True, False]:
+            with patch(
+                "sentry.seer.endpoints.seer_rpc.in_test_environment",
+                return_value=is_test_environment,
+            ):
+                with patch(
+                    "sentry.seer.endpoints.seer_rpc.SeerRpcServiceEndpoint._dispatch_to_local_method"
+                ) as mock_dispatch:
+                    mock_dispatch.side_effect = RuntimeError("Unexpected internal error")
+
+                    response = self.client.post(
+                        path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+                    )
+
+                assert response.status_code == 500
+
 
 class TestSeerRpcMethods(APITestCase):
     """Test individual RPC methods"""
@@ -137,7 +186,7 @@ class TestSeerRpcMethods(APITestCase):
             ],
         }
 
-        with patch("sentry.seer.explorer.tools.client.get") as mock_get:
+        with patch("sentry.seer.agent.tools.client.get") as mock_get:
             mock_get.return_value.data = mock_response_data
             result = get_trace_item_attributes(
                 org_id=self.organization.id,
@@ -1484,6 +1533,84 @@ class TestSeerRpcMethods(APITestCase):
 
         assert result == {"error": "integration_not_found"}
 
+    def test_get_project_preferences_returns_preference(self) -> None:
+        project = self.create_project(organization=self.organization)
+        repo = self.create_repo(
+            project=project,
+            provider="integrations:github",
+            external_id="123",
+            name="getsentry/sentry",
+        )
+        SeerProjectRepository.objects.create(project=project, repository=repo)
+
+        result = get_project_preferences(
+            organization_id=self.organization.id,
+            project_id=project.id,
+        )
+
+        assert result is not None
+        assert result["project_id"] == project.id
+        assert result["organization_id"] == self.organization.id
+        assert len(result["repositories"]) == 1
+        assert result["repositories"][0]["external_id"] == "123"
+        assert result["repositories"][0]["name"] == "sentry"
+
+    def test_get_project_preferences_returns_default_when_no_preference(self) -> None:
+        project = self.create_project(organization=self.organization)
+        result = get_project_preferences(
+            organization_id=self.organization.id, project_id=project.id
+        )
+        assert result is not None
+        assert result["project_id"] == project.id
+        assert result["organization_id"] == self.organization.id
+        assert result["repositories"] == []
+        assert result["automated_run_stopping_point"] == "code_changes"
+        assert result["automation_handoff"] is None
+
+    def test_get_project_preferences_raises_for_nonexistent_project(self) -> None:
+        with pytest.raises(Project.DoesNotExist):
+            get_project_preferences(
+                organization_id=self.organization.id,
+                project_id=999999,
+            )
+
+    def test_get_project_preferences_raises_for_wrong_org(self) -> None:
+        project = self.create_project(organization=self.organization)
+        other_org = self.create_organization(owner=self.user)
+        with pytest.raises(Project.DoesNotExist):
+            get_project_preferences(
+                organization_id=other_org.id,
+                project_id=project.id,
+            )
+
+    def test_bulk_get_project_preferences_returns_preferences(self) -> None:
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        repo1 = self.create_repo(
+            project=project1,
+            provider="integrations:github",
+            external_id="111",
+            name="getsentry/p1",
+        )
+        SeerProjectRepository.objects.create(project=project1, repository=repo1)
+
+        result = bulk_get_project_preferences(
+            organization_id=self.organization.id,
+            project_ids=[project1.id, project2.id],
+        )
+
+        assert set(result) == {str(project1.id), str(project2.id)}
+        assert len(result[str(project1.id)]["repositories"]) == 1
+        assert result[str(project1.id)]["repositories"][0]["external_id"] == "111"
+        assert result[str(project2.id)]["repositories"] == []
+
+    def test_bulk_get_project_preferences_returns_empty_for_no_projects(self) -> None:
+        result = bulk_get_project_preferences(
+            organization_id=self.organization.id,
+            project_ids=[],
+        )
+        assert result == {}
+
 
 class TestTriggerCodingAgentLaunch:
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
@@ -1535,36 +1662,9 @@ class TestTriggerCodingAgentLaunch:
 
 
 class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
-    def _make_preference_response(self):
-        from sentry.seer.models.seer_api_models import (
-            AutofixHandoffPoint,
-            SeerAutomationHandoffConfiguration,
-            SeerProjectPreference,
-            SeerRawPreferenceResponse,
-        )
-
-        return SeerRawPreferenceResponse(
-            preference=SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[],
-                automation_handoff=SeerAutomationHandoffConfiguration(
-                    handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
-                    target="cursor_background_agent",
-                    integration_id=42,
-                ),
-            )
-        )
-
-    @patch("sentry.seer.endpoints.seer_rpc.get_project_seer_preferences")
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_integration_not_found_clears_handoff_project_options(
-        self, mock_launch, mock_get_prefs
-    ):
-        from sentry.seer.autofix.coding_agent import IntegrationNotFound
-
+    def test_integration_not_found_clears_handoff_project_options(self, mock_launch):
         mock_launch.side_effect = IntegrationNotFound()
-        mock_get_prefs.return_value = self._make_preference_response()
 
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(
@@ -1572,32 +1672,6 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
         )
         self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
         self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-
-        with self.feature("organizations:seer-project-settings-dual-write"):
-            result = trigger_coding_agent_launch(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                integration_id=42,
-                run_id=99,
-            )
-
-        assert result == {"success": False, "error_code": "integration_not_found"}
-        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
-
-    @patch("sentry.seer.endpoints.seer_rpc.get_project_seer_preferences")
-    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_integration_not_found_skips_clear_without_feature_flag(
-        self, mock_launch, mock_get_prefs
-    ):
-        from sentry.seer.autofix.coding_agent import IntegrationNotFound
-
-        mock_launch.side_effect = IntegrationNotFound()
-        mock_get_prefs.return_value = self._make_preference_response()
-
-        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
 
         result = trigger_coding_agent_launch(
             organization_id=self.organization.id,
@@ -1607,5 +1681,26 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
         )
 
         assert result == {"success": False, "error_code": "integration_not_found"}
-        assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
-        mock_get_prefs.assert_not_called()
+        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_integration_not_found_skips_clear_when_project_outside_org(self, mock_launch):
+        """Project IDs outside the caller org must not have their preferences mutated."""
+        mock_launch.side_effect = IntegrationNotFound()
+
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+
+        result = trigger_coding_agent_launch(
+            organization_id=self.organization.id,
+            project_id=other_project.id,
+            integration_id=42,
+            run_id=99,
+        )
+
+        assert result == {"success": False, "error_code": "integration_not_found"}
+        assert other_project.get_option("sentry:seer_automation_handoff_point") == "root_cause"

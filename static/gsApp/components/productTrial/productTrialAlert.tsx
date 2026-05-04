@@ -10,9 +10,9 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
@@ -50,6 +50,7 @@ interface ProductTrialAlertProps {
 
 export function ProductTrialAlert(props: ProductTrialAlertProps) {
   const {trial, subscription, organization, onDismiss, product, api} = props;
+  const navigate = useNavigate();
   const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [isUpgradeSent, setIsUpgradeSent] = useState(false);
 
@@ -131,7 +132,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
             hasBillingRole ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS
           }
           buttonProps={{
-            priority: 'default',
+            variant: 'secondary',
             size: 'xs',
             style: {marginBlock: '-2px'},
           }}
@@ -164,9 +165,9 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           </Button>
         ) : (
           <Button
-            priority="primary"
+            variant="primary"
             onClick={() => {
-              browserHistory.push(normalizeUrl(`/checkout/${organization.slug}/`));
+              navigate(normalizeUrl(`/checkout/${organization.slug}/`));
             }}
           >
             {t('Update Plan')}
@@ -207,9 +208,9 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
         </Button>
       ) : (
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => {
-            browserHistory.push(normalizeUrl(`/checkout/${organization.slug}/`));
+            navigate(normalizeUrl(`/checkout/${organization.slug}/`));
           }}
         >
           {t('Update Plan')}
@@ -233,7 +234,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           onDismiss?.();
         }}
         size="zero"
-        priority="transparent"
+        variant="transparent"
         tooltipProps={{title: t('Dismiss')}}
         aria-label={t('Dismiss trial notice')}
       />

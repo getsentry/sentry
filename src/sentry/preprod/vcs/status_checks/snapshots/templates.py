@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
+from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
@@ -26,6 +27,7 @@ def format_snapshot_status_check_messages(
     overall_status: StatusCheckStatus,
     base_artifact_map: dict[int, PreprodArtifact],
     changes_map: dict[int, bool],
+    project: Project,
     approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[str, str, str]:
     if not artifacts:
@@ -38,6 +40,7 @@ def format_snapshot_status_check_messages(
     total_removed = 0
     total_renamed = 0
     total_unchanged = 0
+    total_skipped = 0
 
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
@@ -58,6 +61,7 @@ def format_snapshot_status_check_messages(
             total_removed += comparison.images_removed
             total_renamed += comparison.images_renamed
             total_unchanged += comparison.images_unchanged
+            total_skipped += comparison.images_skipped
 
     if overall_status == StatusCheckStatus.IN_PROGRESS:
         subtitle = str(_("Comparing snapshots..."))
@@ -112,6 +116,17 @@ def format_snapshot_status_check_messages(
             )
         subtitle = ", ".join(str(p) for p in parts)
 
+    if total_skipped > 0 and overall_status != StatusCheckStatus.IN_PROGRESS:
+        skipped_text = str(
+            ngettext(
+                "%(count)d skipped",
+                "%(count)d skipped",
+                total_skipped,
+            )
+            % {"count": total_skipped}
+        )
+        subtitle = f"{subtitle}, {skipped_text}"
+
     summary = _format_snapshot_summary(
         artifacts,
         snapshot_metrics_map,
@@ -121,12 +136,16 @@ def format_snapshot_status_check_messages(
         approvals_map=approvals_map,
     )
 
+    settings_url = _get_settings_url(project)
+    summary += "\n\n" + _format_configure_link(project, settings_url)
+
     return str(title), str(subtitle), str(summary)
 
 
 def format_first_snapshot_status_check_messages(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    project: Project,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -148,12 +167,16 @@ def format_first_snapshot_status_check_messages(
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
     summary += "\n\nThis looks like your first snapshot upload. Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
 
+    settings_url = _get_settings_url(project)
+    summary += "\n\n" + _format_configure_link(project, settings_url)
+
     return str(title), str(subtitle), str(summary)
 
 
 def format_generated_snapshot_status_check_messages(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    project: Project,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -174,12 +197,16 @@ def format_generated_snapshot_status_check_messages(
 
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
 
+    settings_url = _get_settings_url(project)
+    summary += "\n\n" + _format_configure_link(project, settings_url)
+
     return str(title), str(subtitle), str(summary)
 
 
 def format_missing_base_snapshot_status_check_messages(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    project: Project,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -189,6 +216,9 @@ def format_missing_base_snapshot_status_check_messages(
 
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
     summary += "\n\nNo base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
+
+    settings_url = _get_settings_url(project)
+    summary += "\n\n" + _format_configure_link(project, settings_url)
 
     return str(title), str(subtitle), str(summary)
 
@@ -231,19 +261,19 @@ def _format_snapshot_summary(
 
         metrics = snapshot_metrics_map.get(artifact.id)
         if not metrics:
-            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
         comparison = comparisons_map.get(metrics.id)
         if not comparison:
-            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
         if comparison.state in (
             PreprodSnapshotComparison.State.PENDING,
             PreprodSnapshotComparison.State.PROCESSING,
         ):
-            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
         else:
             base_artifact = base_artifact_map.get(artifact.id)
             artifact_url = (
@@ -270,7 +300,22 @@ def _format_snapshot_summary(
                 f" | {_section_cell(comparison.images_changed, 'changed', artifact_url)}"
                 f" | {_section_cell(comparison.images_renamed, 'renamed', artifact_url)}"
                 f" | {_section_cell(comparison.images_unchanged, 'unchanged', artifact_url)}"
+                f" | {_section_cell(comparison.images_skipped, 'skipped', artifact_url)}"
                 f" | {status} |"
             )
 
     return COMPARISON_TABLE_HEADER + "\n".join(table_rows)
+
+
+def _get_settings_url(project: Project) -> str:
+    base_url = f"/settings/projects/{project.slug}/snapshots/"
+    return project.organization.absolute_url(base_url)
+
+
+def _format_configure_link(project: Project, settings_url: str) -> str:
+    return str(
+        _("[Configure {project_name} snapshot settings]({settings_url})").format(
+            project_name=project.name,
+            settings_url=settings_url,
+        )
+    )

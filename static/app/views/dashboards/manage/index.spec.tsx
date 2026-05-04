@@ -112,6 +112,25 @@ describe('Dashboards > Detail', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not fetch dashboards when there are no projects', async () => {
+    act(() => ProjectsStore.loadInitialData([]));
+
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    render(<ManageDashboards />, {
+      organization: mockAuthorizedOrg,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+
+    expect(dashboardsRequest).not.toHaveBeenCalled();
+  });
+
   it('creates new dashboard', async () => {
     const org = OrganizationFixture({features: FEATURES});
     const mockNavigate = jest.fn();
@@ -222,16 +241,48 @@ describe('Dashboards > Detail', () => {
       },
     });
 
-    expect(await screen.findByTestId('table')).toBeInTheDocument();
-    await userEvent.click(await screen.findByTestId('table'));
-
-    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
 
     expect(await screen.findByTestId('grid')).toBeInTheDocument();
     await userEvent.click(await screen.findByTestId('grid'));
 
     expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
+    expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
+
+    expect(await screen.findByTestId('table')).toBeInTheDocument();
+    await userEvent.click(await screen.findByTestId('table'));
+
+    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
+    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
+  });
+
+  it('defaults to table view when no layout preference is stored', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
+      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
+    });
+
+    render(<ManageDashboards />, {
+      organization: mockAuthorizedOrg,
+    });
+
+    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
+  });
+
+  it('respects stored grid layout preference', async () => {
+    localStorageWrapper.setItem(LAYOUT_KEY, '"grid"');
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
+      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
+    });
+
+    render(<ManageDashboards />, {
+      organization: mockAuthorizedOrg,
+    });
+
     expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
   });
 
@@ -283,6 +334,8 @@ describe('Dashboards > Detail', () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     mockUseLocation.mockReturnValue(LocationFixture({query: {sort: 'invalid'}}));
+
+    localStorageWrapper.setItem(LAYOUT_KEY, '"grid"');
 
     render(<ManageDashboards />, {
       organization: org,

@@ -11,7 +11,7 @@ describe('slot', () => {
     expect(SlotModule.Fallback).toBeDefined();
   });
 
-  it('renders children in place when no Outlet is registered', () => {
+  it('renders nothing when no Outlet is registered', () => {
     const SlotModule = slot(['header'] as const);
 
     render(
@@ -22,7 +22,7 @@ describe('slot', () => {
       </SlotModule.Provider>
     );
 
-    expect(screen.getByText('inline content')).toBeInTheDocument();
+    expect(screen.queryByText('inline content')).not.toBeInTheDocument();
   });
 
   it('portals children to the Outlet element', () => {
@@ -44,7 +44,7 @@ describe('slot', () => {
     );
   });
 
-  it('multiple slot consumers render their children independently', () => {
+  it('multiple slot consumers render nothing independently when no Outlet is registered', () => {
     const SlotModule = slot(['a', 'b'] as const);
 
     render(
@@ -58,38 +58,32 @@ describe('slot', () => {
       </SlotModule.Provider>
     );
 
-    expect(screen.getByText('slot a content')).toBeInTheDocument();
-    expect(screen.getByText('slot b content')).toBeInTheDocument();
+    expect(screen.queryByText('slot a content')).not.toBeInTheDocument();
+    expect(screen.queryByText('slot b content')).not.toBeInTheDocument();
   });
 
-  it('consumer throws when rendered outside provider', () => {
+  it('consumer renders nothing when rendered outside provider', () => {
     const SlotModule = slot(['nav'] as const);
 
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const {container} = render(
+      <SlotModule name="nav">
+        <span>content</span>
+      </SlotModule>
+    );
 
-    expect(() =>
-      render(
-        <SlotModule name="nav">
-          <span>content</span>
-        </SlotModule>
-      )
-    ).toThrow('SlotContext not found');
-
-    consoleError.mockRestore();
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it('Outlet throws when rendered outside provider', () => {
+  it('Outlet renders children without portaling when rendered outside provider', () => {
     const SlotModule = slot(['aside'] as const);
 
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    render(
+      <SlotModule.Outlet name="aside">
+        {props => <div {...props} data-test-id="outlet-child" />}
+      </SlotModule.Outlet>
+    );
 
-    expect(() =>
-      render(
-        <SlotModule.Outlet name="aside">{props => <div {...props} />}</SlotModule.Outlet>
-      )
-    ).toThrow('SlotContext not found');
-
-    consoleError.mockRestore();
+    expect(screen.getByTestId('outlet-child')).toBeInTheDocument();
   });
 
   it('Outlet renders the element returned by the render prop', () => {
@@ -137,19 +131,15 @@ describe('slot', () => {
     const SlotModule1 = slot(['zone'] as const);
     const SlotModule2 = slot(['zone'] as const);
 
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    render(
+      <SlotModule1.Provider>
+        <SlotModule2 name="zone">
+          <span>content</span>
+        </SlotModule2>
+      </SlotModule1.Provider>
+    );
 
-    expect(() =>
-      render(
-        <SlotModule1.Provider>
-          <SlotModule2 name="zone">
-            <span>content</span>
-          </SlotModule2>
-        </SlotModule1.Provider>
-      )
-    ).toThrow('SlotContext not found');
-
-    consoleError.mockRestore();
+    expect(screen.queryByText('content')).not.toBeInTheDocument();
   });
 
   describe('Fallback', () => {
@@ -201,20 +191,16 @@ describe('slot', () => {
       );
     });
 
-    it('throws when rendered outside provider', () => {
+    it('renders nothing when rendered outside provider', () => {
       const SlotModule = slot(['x'] as const);
 
-      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const {container} = render(
+        <SlotModule.Fallback>
+          <span>fallback</span>
+        </SlotModule.Fallback>
+      );
 
-      expect(() =>
-        render(
-          <SlotModule.Fallback>
-            <span>fallback</span>
-          </SlotModule.Fallback>
-        )
-      ).toThrow('SlotContext not found');
-
-      consoleError.mockRestore();
+      expect(container).toBeEmptyDOMElement();
     });
 
     it('throws when rendered outside Outlet', () => {

@@ -22,8 +22,8 @@ import {
   getSessionsInterval,
   initSessionsChart,
 } from 'sentry/utils/sessions';
+import {getCrashFreePercent} from 'sentry/views/explore/releases/utils';
 import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
-import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
@@ -200,15 +200,13 @@ class ProjectSessionsChartRequest extends Component<
   }
 
   queryParams({shouldFetchWithPrevious = false}): Record<string, any> {
-    const {selection, query, organization} = this.props;
+    const {selection, query} = this.props;
     const {datetime, projects, environments: environment} = selection;
 
     const baseParams = {
       field: this.field,
       groupBy: this.isCrashFreeRate ? undefined : 'session.status',
-      interval: getSessionsInterval(datetime, {
-        highFidelity: organization.features.includes('minute-resolution-sessions'),
-      }),
+      interval: getSessionsInterval(datetime),
       project: projects[0],
       environment,
       query,

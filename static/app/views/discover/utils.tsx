@@ -42,6 +42,7 @@ import {
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -215,12 +216,8 @@ export function downloadAsCsv(tableData: any, columnOrder: any, filename: any) {
   const encodedDataUrl = `data:text/csv;charset=utf8,${encodeURIComponent(csvContent)}`;
 
   // Create a download link then click it, this is so we can get a filename
-  const link = document.createElement('a');
   const now = new Date();
-  link.setAttribute('href', encodedDataUrl);
-  link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
-  link.click();
-  link.remove();
+  downloadFromHref(`${filename} ${getUtcDateString(now)}.csv`, encodedDataUrl);
 
   // Make testing easier
   return encodedDataUrl;
@@ -501,7 +498,7 @@ export function generateFieldOptions({
     const ellipsis = aggregations[func]!.parameters.length ? '\u2026' : '';
     const parameters = aggregations[func]!.parameters.map(param => {
       const overrides = aggregations[func]!.getFieldOverrides;
-      if (typeof overrides === 'undefined') {
+      if (overrides === undefined) {
         return param;
       }
       return {
@@ -787,7 +784,7 @@ export function handleAddMultipleQueriesToDashboard({
       interval: eventView.interval!,
       limit: widgetAsQueryParams?.limit,
       widgetType,
-    } as Widget;
+    };
   });
 
   openAddToDashboardModal({

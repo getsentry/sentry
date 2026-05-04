@@ -112,10 +112,12 @@ function getPerformanceBreadCrumbs(
       ),
     });
   } else {
-    crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
-    });
+    if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
+      crumbs.push({
+        label: DOMAIN_VIEW_BASE_TITLE,
+        to: undefined,
+      });
+    }
   }
 
   switch (location.query.tab) {
@@ -251,12 +253,14 @@ function getInsightsModuleBreadcrumbs(
       ),
     });
   } else {
-    crumbs.push({
-      label: t('Insights'),
-    });
+    if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
+      crumbs.push({
+        label: DOMAIN_VIEW_BASE_TITLE,
+      });
+    }
   }
 
-  let moduleName: RoutableModuleNames | undefined = undefined;
+  let moduleName: RoutableModuleNames | undefined;
 
   if (
     typeof location.query.source === 'string' &&
@@ -519,7 +523,7 @@ export function getTraceViewBreadcrumbs({
     case TraceViewSources.TRACE_METRICS:
       return [
         {
-          label: t('Metrics'),
+          label: t('Application Metrics'),
           to: getBreadCrumbTarget(
             normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
             location.query

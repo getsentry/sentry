@@ -7,9 +7,9 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
-import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
-import type {ApiResult, ResponseMeta} from 'sentry/api';
+import type {ApiResult} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {
@@ -17,7 +17,6 @@ import type {
   InfiniteApiQueryKey,
   QueryKeyEndpointOptions,
 } from 'sentry/utils/api/apiQueryKey';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type {
@@ -76,12 +75,7 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends
   staleTime: number;
 }
 
-export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
-  /**
-   * Get a header value from the response
-   */
-  getResponseHeader?: ResponseMeta['getResponseHeader'];
-};
+export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError>;
 
 /**
  * Wraps React Query's useQuery for consistent usage in the Sentry app.
@@ -110,7 +104,6 @@ export function useApiQuery<TResponseData, TError = RequestError>(
 
   const queryResult = {
     data: data?.[0],
-    getResponseHeader: data?.[2]?.getResponseHeader,
     ...rest,
   };
 
@@ -120,41 +113,13 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   return queryResult as UseApiQueryResult<TResponseData, TError>;
 }
 
-export function useApiQueries<TResponseData, TError = RequestError>(
-  queryKeys: ApiQueryKey[],
-  options: UseApiQueryOptions<TResponseData, TError>
-): Array<UseApiQueryResult<TResponseData, TError>> {
-  const results = useQueries({
-    queries: queryKeys.map(queryKey => {
-      return {
-        queryKey,
-        queryFn: fetchDataQuery<TResponseData>,
-        ...options,
-      };
-    }),
-  });
-
-  return results.map(({data, ...rest}) => {
-    const queryResult = {
-      data: data?.[0],
-      getResponseHeader: data?.[2]?.getResponseHeader,
-      ...rest,
-    };
-
-    // XXX: We need to cast here because unwrapping `data` breaks the type returned by
-    //      useQuery above. The react-query library's UseQueryResult is a union type and
-    //      too complex to recreate here so casting the entire object is more appropriate.
-    return queryResult as UseApiQueryResult<TResponseData, TError>;
-  });
-}
-
 /**
  * This method can be used as a default `queryFn` with `useApiQuery`
  * or even the raw `useQuery` hook.
  *
  * See also: fetchMutation
  */
-export function fetchDataQuery<TResponseData = unknown>(
+function fetchDataQuery<TResponseData = unknown>(
   context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResult<TResponseData>> {
   const {url, options} = parseQueryKey(context.queryKey);
@@ -183,6 +148,7 @@ export function getApiQueryData<TResponseData>(
   if (version !== 'v1') {
     return undefined;
   }
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
 }
 
@@ -200,6 +166,7 @@ export function setApiQueryData<TResponseData>(
   if (version !== 'v1') {
     return undefined;
   }
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   const updateResult = queryClient.setQueryData<ApiResult<TResponseData>>(
     queryKey,
     previous => {
@@ -224,59 +191,11 @@ export function setApiQueryData<TResponseData>(
   return updateResult?.[0];
 }
 
-function parsePageParam(dir: 'previous' | 'next') {
-  return ([, , resp]: ApiResult<unknown>) => {
-    const parsed = parseLinkHeader(resp?.getResponseHeader('Link') ?? null);
-    return parsed[dir]?.results ? parsed[dir] : null;
-  };
-}
-
-/**
- * Wraps React Query's useInfiniteQuery for consistent usage in the Sentry app.
- * Query keys should be an array which include an endpoint URL and options such as query params.
- * This wrapper will execute the request using the query key URL.
- *
- * See https://tanstack.com/query/v4/docs/overview for docs on React Query.
- */
-export function useInfiniteApiQuery<TResponseData>({
-  queryKey,
-  enabled,
-  staleTime,
-}: {
-  queryKey: InfiniteApiQueryKey;
-  enabled?: boolean;
-  staleTime?: number;
-}) {
-  return useInfiniteQuery({
-    queryKey,
-    queryFn: ({pageParam}): Promise<ApiResult<TResponseData>> => {
-      const {url, options} = parseQueryKey(queryKey);
-      return QUERY_API_CLIENT.requestPromise(url, {
-        includeAllArgs: true,
-        headers: options?.headers,
-        query: {
-          ...options?.query,
-          cursor: pageParam?.cursor,
-        },
-      });
-    },
-    getPreviousPageParam: parsePageParam('previous'),
-    getNextPageParam: parsePageParam('next'),
-    initialPageParam: undefined,
-    enabled: enabled ?? true,
-    staleTime,
-  });
-}
-
-type ApiMutationVariables<
-  Headers extends Record<string, unknown> = Record<string, string>,
-  Query extends Record<string, unknown> = Record<string, any>,
-  Data extends Record<string, unknown> = Record<string, unknown>,
-> = {
+type ApiMutationVariables = {
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
-  data?: Data;
-  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers' | 'host'>;
+  data?: Record<string, unknown>;
+  options?: Pick<QueryKeyEndpointOptions, 'query' | 'headers' | 'host'>;
 };
 
 /**
@@ -297,5 +216,3 @@ export function fetchMutation<TResponseData = unknown>(
     data,
   });
 }
-
-export * from '@tanstack/react-query';

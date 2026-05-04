@@ -104,7 +104,7 @@ function FindOutMoreButton({
   return (
     <LinkButton
       icon={<IconOpen />}
-      priority="link"
+      variant="link"
       size="sm"
       href={href}
       to={to ?? ''}
@@ -288,7 +288,7 @@ function UpgradeCta({
             subscription.canSelfServe ? (
               <LinkButton
                 icon={<IconUpload />}
-                priority="primary"
+                variant="primary"
                 href={`/checkout/${organization.slug}/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
               >
                 {t('Add to plan')}
@@ -337,7 +337,7 @@ function UpgradeCta({
         subscription.canSelfServe && hasBillingPerms ? (
           <Fragment>
             <LinkButton
-              priority="primary"
+              variant="primary"
               href={`/checkout/${organization.slug}/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
             >
               {t('Upgrade now')}
@@ -379,7 +379,7 @@ function SetupCta({
         <LinkButton
           icon={<IconSeer />}
           href={`/settings/${organization.slug}/seer/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
-          priority="primary"
+          variant="primary"
           analyticsEventName="Subscription Settings: Set Up Button Clicked"
           analyticsEventKey="subscription_settings.set_up_button_clicked"
           analyticsParams={{

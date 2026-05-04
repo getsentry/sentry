@@ -24,6 +24,7 @@ DEFAULT_PROMPTS: dict[str, _PromptConfig] = {
     "seer_autofix_setup_acknowledged": {"required_fields": ["organization_id"]},
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
     "user_snooze_deprecation": {"required_fields": ["organization_id", "project_id"]},
+    "workflow_engine_onboarding_banner": {"required_fields": ["organization_id"]},
 }
 
 

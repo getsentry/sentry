@@ -24,6 +24,11 @@ export type LogsAnalyticsEventParameters = {
     page_source: LogsAnalyticsPageSource;
     toggleState: 'enabled' | 'disabled';
   };
+  'logs.explorer.continue_searching_clicked': {
+    bytes_scanned: number;
+    organization: Organization;
+    page_source: LogsAnalyticsPageSource;
+  };
   'logs.explorer.metadata': {
     columns: readonly string[];
     columns_count: number;
@@ -47,6 +52,11 @@ export type LogsAnalyticsEventParameters = {
     organization: Organization;
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
+  };
+  'logs.export_modal': {
+    action: 'cancel' | 'open';
+    organization: Organization;
+    close_reason?: 'backdrop_click' | 'cancel_button' | 'close_button' | 'escape_key';
   };
   'logs.issue_details.drawer_opened': {
     organization: Organization;
@@ -100,8 +110,10 @@ type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
   'logs.auto_refresh.timeout': 'Log Auto-refresh Timeout',
   'logs.auto_refresh.toggled': 'Log Auto-refresh Toggled',
-  'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
+  'logs.export_modal': 'Logs Export Modal',
+  'logs.explorer.continue_searching_clicked': 'Log Explorer Continue Searching Clicked',
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
+  'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
   'logs.onboarding': 'Logs Explore Empty State (Onboarding)',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
   'logs.timestamp_tooltip.add_timezone_clicked':

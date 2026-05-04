@@ -16,6 +16,7 @@ class SnapshotDiffSection(StrEnum):
     CHANGED = "changed"
     UNCHANGED = "unchanged"
     ERRORED = "errored"
+    SKIPPED = "skipped"
 
 
 # GET response
@@ -69,6 +70,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     comparison_type: str
     state: PreprodArtifact.ArtifactState
     vcs_info: BuildDetailsVcsInfo
+    app_id: str | None = None
 
     # Solo fields (comparison_type == SOLO)
     images: list[SnapshotImageResponse] = []
@@ -93,9 +95,14 @@ class SnapshotDetailsApiResponse(BaseModel):
     errored: list[SnapshotDiffPair] = []
     errored_count: int = 0
 
+    skipped: list[SnapshotImageResponse] = []
+    skipped_count: int = 0
+
     comparison_run_info: SnapshotComparisonRunInfo | None = None
 
     approval_info: SnapshotApprovalInfo | None = None
+
+    diff_threshold: float | None = None
 
 
 # TODO: POST request in the future when we migrate away from current schemas

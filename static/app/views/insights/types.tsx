@@ -1,7 +1,6 @@
 import type {Simplify} from 'type-fest';
 
 import type {PlatformKey} from 'sentry/types/project';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -52,8 +51,10 @@ export enum SpanFields {
   SPAN_SYSTEM = 'span.system',
   SPAN_CATEGORY = 'span.category',
   TRANSACTION_SPAN_ID = 'transaction.span_id',
+  TRANSACTION_EVENT_ID = 'transaction.event_id',
   SPAN_SELF_TIME = 'span.self_time',
   TRACE = 'trace',
+  TRACE_PARENT_SPAN = 'trace.parent_span',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
   REPLAYID = 'replayId',
@@ -77,6 +78,7 @@ export enum SpanFields {
   PRECISE_START_TS = 'precise.start_ts',
   PRECISE_FINISH_TS = 'precise.finish_ts',
   OS_NAME = 'os.name',
+  OS_VERSION = 'os.version',
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
@@ -120,6 +122,8 @@ export enum SpanFields {
   GEN_AI_OUTPUT_MESSAGES = 'gen_ai.output.messages',
   GEN_AI_SYSTEM_INSTRUCTIONS = 'gen_ai.system_instructions',
   GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions',
+  GEN_AI_CONTEXT_WINDOW_SIZE = 'gen_ai.context.window_size',
+  GEN_AI_CONTEXT_UTILIZATION = 'gen_ai.context.utilization',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -148,6 +152,8 @@ export enum SpanFields {
   FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
   SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
   DEVICE_CLASS = 'device.class',
+  DEVICE_MODEL = 'device.model',
+  DEVICE_MANUFACTURER = 'device.manufacturer',
   APP_START_COLD = 'measurements.app_start_cold',
   APP_START_WARM = 'measurements.app_start_warm',
   MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
@@ -201,7 +207,7 @@ type SpanBooleanFields =
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 
-export type SpanNumberFields =
+type SpanNumberFields =
   | SpanFields.AI_TOTAL_COST
   | SpanFields.AI_TOTAL_TOKENS_USED
   | SpanFields.SPAN_SELF_TIME
@@ -264,7 +270,7 @@ export type SpanNumberFields =
 // is _not_ up-to-date! If you discover more nullable string fields, update this
 // list. In theory, maybe _all_ of these fields are actually nullable in
 // reality, which means we'll need to update a lot of code.
-export type NonNullableStringFields =
+type NonNullableStringFields =
   | SpanFields.COMMAND
   | SpanFields.REQUEST_METHOD
   | SpanFields.HTTP_REQUEST_METHOD
@@ -293,6 +299,7 @@ export type NonNullableStringFields =
   | SpanFields.MCP_RESOURCE_URI
   | SpanFields.MCP_PROMPT_NAME
   | SpanFields.TRACE
+  | SpanFields.TRACE_PARENT_SPAN
   | SpanFields.PROFILEID
   | SpanFields.PROFILE_ID
   | SpanFields.REPLAYID
@@ -304,12 +311,15 @@ export type NonNullableStringFields =
   | SpanFields.CLS_SOURCE
   | SpanFields.LCP_ELEMENT
   | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TRANSACTION_EVENT_ID
   | SpanFields.DB_SYSTEM
   | SpanFields.CODE_FILEPATH
   | SpanFields.CODE_FUNCTION
   | SpanFields.SDK_NAME
   | SpanFields.SDK_VERSION
   | SpanFields.DEVICE_CLASS
+  | SpanFields.DEVICE_MODEL
+  | SpanFields.DEVICE_MANUFACTURER
   | SpanFields.SPAN_ACTION
   | SpanFields.SPAN_DOMAIN
   | SpanFields.MESSAGING_MESSAGE_BODY_SIZE
@@ -321,14 +331,15 @@ export type NonNullableStringFields =
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_GROUP
   | SpanFields.SPAN_CATEGORY
   | SpanFields.SPAN_SYSTEM
   | SpanFields.TIMESTAMP
   | SpanFields.TRANSACTION
   | SpanFields.TRANSACTION_METHOD
   | SpanFields.RELEASE
+  | SpanFields.ENVIRONMENT
   | SpanFields.OS_NAME
+  | SpanFields.OS_VERSION
   | SpanFields.SPAN_STATUS_CODE
   | SpanFields.SPAN_AI_PIPELINE_GROUP
   | SpanFields.PROJECT
@@ -338,9 +349,9 @@ export type NonNullableStringFields =
   | SpanFields.USER_DISPLAY
   | SpanFields.SENTRY_ORIGIN;
 
-type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION;
+type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
 
-export type SpanStringFields = NullableStringFields | NonNullableStringFields;
+type SpanStringFields = NullableStringFields | NonNullableStringFields;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE
@@ -551,38 +562,6 @@ export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanFields.PROJECT_ID]?: string;
 };
 
-export enum ErrorField {
-  ISSUE = 'issue',
-  ID = 'id',
-  ISSUE_ID = 'issue.id',
-  TITLE = 'title',
-}
-
-enum ErrorFunction {
-  COUNT = 'count',
-  EPM = 'epm',
-  LAST_SEEN = 'last_seen',
-}
-
-type ErrorStringFields = ErrorField.TITLE | ErrorField.ID | ErrorField.ISSUE_ID;
-type ErrorNumberFields = ErrorField.ISSUE;
-
-type NoArgErrorFunction =
-  | ErrorFunction.COUNT
-  | ErrorFunction.EPM
-  | ErrorFunction.LAST_SEEN;
-
-type ErrorResponseRaw = {
-  [Property in ErrorStringFields as `${Property}`]: string;
-} & {
-  [Property in ErrorNumberFields as `${Property}`]: number;
-} & {
-  [Property in NoArgErrorFunction as `${Property}()`]: number;
-};
-
-export type ErrorResponse = Simplify<ErrorResponseRaw>;
-export type ErrorProperty = keyof ErrorResponse;
-
 // Maps the subregion code to the subregion name according to UN m49 standard
 // We also define this in relay in `country_subregion.rs`
 export const subregionCodeToName = {
@@ -611,5 +590,3 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
-
-export type SearchHook = {search: MutableSearch; enabled?: boolean};

@@ -161,6 +161,31 @@ describe('viewSamplesTarget', () => {
       },
     });
   });
+
+  it('drill down with no value group by uses !has filter', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['user.id'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        'user.id': undefined,
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: '!has:user.id',
+        sort: ['-span.duration'],
+      },
+    });
+  });
 });
 
 describe('findSuggestedColumns', () => {

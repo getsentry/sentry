@@ -14,17 +14,15 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
+from sentry.integrations.source_code_management.sync_repos import bump_org_integration_last_sync
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.plugins.providers.integration_repository import (
-    RepositoryInputConfig,
-    get_integration_repository_provider,
-)
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
 
-from .link_all_repos import get_repo_config
+from .link_all_repos import GitHubRepoInputConfig, get_repo_config
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +80,7 @@ def sync_repos_on_install_change(
             )
             continue
 
-        if not features.has("organizations:github-repo-auto-sync", rpc_org):
+        if not features.has("organizations:github-repo-auto-sync-webhook", rpc_org):
             continue
 
         with SCMIntegrationInteractionEvent(
@@ -98,6 +96,9 @@ def sync_repos_on_install_change(
                 repos_added=repos_added,
                 repos_removed=repos_removed,
             )
+            removals_enabled = features.has("organizations:scm-repo-auto-sync-removal", rpc_org)
+            repos_changed = bool(repos_added or (repos_removed and removals_enabled))
+            bump_org_integration_last_sync(oi.id, repos_changed=repos_changed)
 
 
 def _sync_repos_for_org(
@@ -110,7 +111,7 @@ def _sync_repos_for_org(
 ) -> None:
     if repos_added:
         integration_repo_provider = get_integration_repository_provider(integration)
-        repo_configs: list[RepositoryInputConfig] = []
+        repo_configs: list[GitHubRepoInputConfig] = []
         for repo in repos_added:
             try:
                 repo_configs.append(get_repo_config(repo, integration.id))
@@ -143,7 +144,7 @@ def _sync_repos_for_org(
                     provider=integration.provider,
                 )
 
-    if repos_removed:
+    if repos_removed and features.has("organizations:scm-repo-auto-sync-removal", rpc_org):
         # Look up repos before disabling to get their IDs and names
         external_ids = [str(repo["id"]) for repo in repos_removed]
         existing_repos = repository_service.get_repositories(

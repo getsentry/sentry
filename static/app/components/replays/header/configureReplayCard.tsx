@@ -12,7 +12,8 @@ import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function ConfigureReplayCard({
   isMobile,
@@ -22,6 +23,7 @@ export function ConfigureReplayCard({
   replayRecord: ReplayRecord | undefined;
 }) {
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <DropdownMenu
@@ -33,7 +35,11 @@ export function ConfigureReplayCard({
       }}
       items={isMobile ? getMobileItems(replayRecord) : getWebItems()}
       trigger={(triggerProps, isOpen) => (
-        <DropdownButton {...triggerProps} isOpen={isOpen} size="xs">
+        <DropdownButton
+          {...triggerProps}
+          isOpen={isOpen}
+          size={hasPageFrameFeature ? 'sm' : 'xs'}
+        >
           {t('Configure Replay')}
         </DropdownButton>
       )}

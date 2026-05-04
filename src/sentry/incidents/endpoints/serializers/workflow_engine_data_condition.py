@@ -13,12 +13,13 @@ from sentry.incidents.endpoints.utils import translate_data_condition_type
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.migration_helpers.utils import get_resolve_threshold
+from sentry.workflow_engine.migration_helpers.utils import get_resolve_thresholds
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
     DataCondition,
     DataConditionAlertRuleTrigger,
+    DataConditionGroup,
     DataConditionGroupAction,
     Detector,
     DetectorWorkflow,
@@ -112,6 +113,12 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             )
         )
 
+        # Bulk-fetch resolve thresholds for all condition groups
+        condition_groups_by_id = {
+            cg.id: cg for cg in DataConditionGroup.objects.filter(id__in=condition_group_ids)
+        }
+        resolve_thresholds = get_resolve_thresholds(list(condition_groups_by_id.values()))
+
         result: defaultdict[DataCondition, dict[str, Any]] = defaultdict(dict)
 
         for trigger in item_list:
@@ -137,8 +144,8 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 key=lambda a: a.id,
             )
 
-            alert_rule_trigger_id = trigger_id_map.get(
-                trigger.id, get_fake_id_from_object_id(trigger.id)
+            alert_rule_trigger_id = trigger_id_map.get(trigger.id) or get_fake_id_from_object_id(
+                trigger.id
             )
 
             serialized_actions = serialize(
@@ -158,6 +165,9 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             result[trigger]["detector"] = detector
             result[trigger]["alert_rule_trigger_id"] = alert_rule_trigger_id
             result[trigger]["alert_rule_id"] = alert_rule_id
+            result[trigger]["resolve_threshold"] = resolve_thresholds.get(
+                trigger.condition_group_id
+            )
 
         return result
 
@@ -169,9 +179,11 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         **kwargs: Any,
     ) -> dict[str, Any]:
         # XXX: we are assuming that the obj/DataCondition is a detector trigger
-        detector = attrs["detector"]
-        alert_rule_trigger_id = attrs["alert_rule_trigger_id"]
-        alert_rule_id = attrs["alert_rule_id"]
+        detector: Detector | None = attrs["detector"]
+        alert_rule_trigger_id: int = attrs["alert_rule_trigger_id"]
+        alert_rule_id: int | None = attrs["alert_rule_id"]
+
+        comparison_delta = detector.config.get("comparison_delta") if detector else None
 
         if obj.type == Condition.ANOMALY_DETECTION:
             threshold_type = obj.comparison["threshold_type"]
@@ -184,20 +196,19 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             )
             # For static/metric rules, calculate resolve threshold from the resolve condition
             resolve_threshold = translate_data_condition_type(
-                detector.config.get("comparison_delta"),
+                comparison_delta,
                 obj.type,
-                get_resolve_threshold(obj.condition_group),
+                attrs["resolve_threshold"],
             )
-
         return {
             "id": str(alert_rule_trigger_id),
-            "alertRuleId": str(alert_rule_id),
+            "alertRuleId": str(alert_rule_id) if alert_rule_id is not None else None,
             "label": (
                 "critical" if obj.condition_result == DetectorPriorityLevel.HIGH else "warning"
             ),
             "thresholdType": threshold_type,
             "alertThreshold": translate_data_condition_type(
-                detector.config.get("comparison_delta"),
+                comparison_delta,
                 obj.type,
                 (
                     0 if obj.type == Condition.ANOMALY_DETECTION else obj.comparison

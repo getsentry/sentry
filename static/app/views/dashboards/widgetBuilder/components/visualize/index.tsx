@@ -170,11 +170,30 @@ export function getColumnOptions(
   filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
+
   if (
     selectedField.kind !== FieldValueKind.FUNCTION ||
     dataset === WidgetType.SPANS ||
     dataset === WidgetType.LOGS
   ) {
+    // For SPANS/LOGS functions, check for dropdown parameters before returning
+    // generic columns. Functions like performance_score and opportunity_score
+    // define restricted dropdown options that must be respected.
+    if (
+      selectedField.kind === FieldValueKind.FUNCTION &&
+      (dataset === WidgetType.SPANS || dataset === WidgetType.LOGS)
+    ) {
+      const fnData = fieldValues.find(
+        option => option.value.meta.name === selectedField.function[0]
+      )?.value;
+      if (
+        fnData?.kind === FieldValueKind.FUNCTION &&
+        fnData.meta.parameters.length > 0 &&
+        fnData.meta.parameters[0]?.kind === 'dropdown'
+      ) {
+        return fnData.meta.parameters[0].options;
+      }
+    }
     return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
       .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
       .sort(_sortFn);
@@ -980,7 +999,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                             ) && (
                               <Tooltip title={LINK_FIELD_TOOLTIP}>
                                 <Button
-                                  priority="transparent"
+                                  variant="transparent"
                                   icon={<IconLink />}
                                   aria-label={t('Link field')}
                                   size="zero"
@@ -1029,7 +1048,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                             datasetConfig.enableEquations ||
                             (isBigNumberWidget && fields.length > 1)) && (
                             <Button
-                              priority="transparent"
+                              variant="transparent"
                               icon={<IconDelete />}
                               size="zero"
                               disabled={
@@ -1087,7 +1106,7 @@ export function Visualize({error, setError}: VisualizeProps) {
       {canAddFields && (
         <AddButtons>
           <AddButton
-            priority="link"
+            variant="link"
             disabled={disableTransactionWidget}
             aria-label={
               isTimeSeriesWidget
@@ -1102,7 +1121,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                 payload: [
                   ...(fields ?? []),
                   state.dataset === WidgetType.TRACEMETRICS && fields?.length
-                    ? cloneDeep(fields?.[fields.length - 1] as QueryFieldValue)
+                    ? cloneDeep(fields?.[fields.length - 1]!)
                     : cloneDeep(defaultField),
                 ],
               });
@@ -1126,7 +1145,7 @@ export function Visualize({error, setError}: VisualizeProps) {
           </AddButton>
           {datasetConfig.enableEquations && (
             <AddButton
-              priority="link"
+              variant="link"
               disabled={disableTransactionWidget}
               aria-label={t('Add Equation')}
               onClick={() => {

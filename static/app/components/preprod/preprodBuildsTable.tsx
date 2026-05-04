@@ -1,10 +1,10 @@
 import React, {Fragment, useMemo} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -14,6 +14,7 @@ import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 import {PreprodBuildsDisplay} from './preprodBuildsDisplay';
 import {PreprodBuildsDistributionTable} from './preprodBuildsDistributionTable';
 import {PreprodBuildsSizeTable} from './preprodBuildsSizeTable';
+import {PreprodBuildsSnapshotTable} from './preprodBuildsSnapshotTable';
 
 interface PreprodBuildsTableProps {
   builds: BuildDetailsApiResponse[];
@@ -51,10 +52,12 @@ export function PreprodBuildsTable({
   hasSearchQuery,
   showProjectColumn = false,
 }: PreprodBuildsTableProps) {
-  const isDistributionDisplay = display === PreprodBuildsDisplay.DISTRIBUTION;
-  const emptyStateDocUrl = isDistributionDisplay
-    ? 'https://docs.sentry.io/product/build-distribution/'
-    : 'https://docs.sentry.io/product/size-analysis/';
+  const emptyStateDocUrl =
+    display === PreprodBuildsDisplay.DISTRIBUTION
+      ? 'https://docs.sentry.io/product/build-distribution/'
+      : display === PreprodBuildsDisplay.SNAPSHOT
+        ? 'https://docs.sentry.io/product/snapshot-testing/'
+        : 'https://docs.sentry.io/product/size-analysis/';
 
   const hasMultiplePlatforms = useMemo(() => {
     const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
@@ -75,24 +78,38 @@ export function PreprodBuildsTable({
   } else if (error) {
     tableContent = <SimpleTable.Empty>{getErrorMessage(error)}</SimpleTable.Empty>;
   } else if (builds.length === 0) {
+    const isSnapshot = display === PreprodBuildsDisplay.SNAPSHOT;
+    let emptyText: React.ReactNode;
+    if (hasSearchQuery) {
+      emptyText = isSnapshot
+        ? t('No snapshots found for your search')
+        : t('No mobile builds found for your search');
+    } else {
+      const link = <ExternalLink href={emptyStateDocUrl}>{t('Learn more')}</ExternalLink>;
+      emptyText = isSnapshot
+        ? tct('No snapshots found, see our [link:documentation] for more info.', {link})
+        : tct('No mobile builds found, see our [link:documentation] for more info.', {
+            link,
+          });
+    }
     tableContent = (
       <SimpleTable.Empty>
-        <Text as="p">
-          {hasSearchQuery
-            ? t('No mobile builds found for your search')
-            : tct('No mobile builds found, see our [link:documentation] for more info.', {
-                link: (
-                  <ExternalLink href={emptyStateDocUrl}>{t('Learn more')}</ExternalLink>
-                ),
-              })}
-        </Text>
+        <Text as="p">{emptyText}</Text>
       </SimpleTable.Empty>
     );
   }
 
   return (
     <Fragment>
-      {isDistributionDisplay ? (
+      {display === PreprodBuildsDisplay.SNAPSHOT ? (
+        <PreprodBuildsSnapshotTable
+          builds={builds}
+          content={tableContent}
+          onRowClick={onRowClick}
+          organizationSlug={organizationSlug}
+          showProjectColumn={showProjectColumn}
+        />
+      ) : display === PreprodBuildsDisplay.DISTRIBUTION ? (
         <PreprodBuildsDistributionTable
           builds={builds}
           content={tableContent}

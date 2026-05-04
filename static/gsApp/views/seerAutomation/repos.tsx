@@ -1,15 +1,30 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SeerRepoTable} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTable';
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
+import {useRepoDetailsDrawer} from 'getsentry/views/seerAutomation/hooks/useRepoDetailsDrawer';
+import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 
 export default function SeerAutomationRepos() {
+  const organization = useOrganization();
+  useRepoDetailsDrawer();
+
+  if (!orgHasCodeReviewFeature(organization)) {
+    return (
+      <AnalyticsArea name="repos">
+        <NoAccess />
+      </AnalyticsArea>
+    );
+  }
+
   return (
     <AnalyticsArea name="repos">
       <SeerSettingsPageWrapper>

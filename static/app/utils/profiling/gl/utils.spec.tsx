@@ -61,7 +61,9 @@ describe('upperBound', () => {
   });
 
   it('finds the upper bound frame outside of view', () => {
-    const frames = new Array(10).fill(1).map((_, i) => ({start: i, end: i + 1}));
+    const frames = Array.from({length: 10})
+      .fill(1)
+      .map((_, i) => ({start: i, end: i + 1}));
     const view = new Rect(4, 0, 2, 0);
 
     expect(upperBound(view.right, frames)).toBe(6);
@@ -87,7 +89,9 @@ describe('lowerBound', () => {
   });
 
   it('finds the lower bound frame outside of view', () => {
-    const frames = new Array(10).fill(1).map((_, i) => ({start: i, end: i + 1}));
+    const frames = Array.from({length: 10})
+      .fill(1)
+      .map((_, i) => ({start: i, end: i + 1}));
     const view = new Rect(4, 0, 2, 0);
 
     expect(lowerBound(view.left, frames)).toBe(3);
@@ -359,7 +363,7 @@ describe('Rect', () => {
 
 describe('findRangeBinarySearch', () => {
   it('finds in single iteration', () => {
-    const text = new Array(10)
+    const text = Array.from({length: 10})
       .fill(0)
       .map((_, i) => String.fromCharCode(i + 97))
       .join('');
@@ -380,7 +384,7 @@ describe('findRangeBinarySearch', () => {
   });
 
   it('finds closest range', () => {
-    const text = new Array(10)
+    const text = Array.from({length: 10})
       .fill(0)
       .map((_, i) => String.fromCharCode(i + 97))
       .join('');

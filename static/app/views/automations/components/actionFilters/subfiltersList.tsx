@@ -137,7 +137,7 @@ function SubfilterRow({onRemove, isFirstRow, isLastRow}: SubfilterRowProps) {
           aria-label={t('Delete Subfilter')}
           size="sm"
           icon={<IconDelete />}
-          priority="transparent"
+          variant="transparent"
           onClick={onRemove}
         />
       </StyledRowLine>
@@ -201,7 +201,7 @@ function ComparisonTypeField() {
           ...(option.value === DataConditionType.EVENT_ATTRIBUTE
             ? {attribute: Attribute.MESSAGE}
             : {key: ''}),
-        } as Subfilter);
+        });
       }}
     />
   );

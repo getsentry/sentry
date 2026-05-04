@@ -29,7 +29,7 @@ export function GenericOnboarding({heading}: OverviewOnboardingPanelProps) {
             </Text>
 
             <LinkButton
-              priority="primary"
+              variant="primary"
               external
               href="https://docs.sentry.io/product/dashboards/"
             >

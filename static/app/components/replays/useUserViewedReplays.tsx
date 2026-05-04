@@ -1,7 +1,8 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 type RawQueryData = {
   data: ReplayRecord[];
@@ -9,14 +10,12 @@ type RawQueryData = {
 
 export function useUserViewedReplays() {
   const organization = useOrganization();
-  const {data, isError, isPending} = useApiQuery<RawQueryData>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/replays/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {query: 'viewed_by_me:true'}},
-    ],
-    {staleTime: 0}
+  const {data, isError, isPending} = useQuery(
+    apiOptions.as<RawQueryData>()('/organizations/$organizationIdOrSlug/replays/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {query: 'viewed_by_me:true'},
+      staleTime: 0,
+    })
   );
   return {data, isError, isPending};
 }

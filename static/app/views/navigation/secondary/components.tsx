@@ -181,18 +181,11 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
-  const secondaryNavigation = useSecondaryNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
-  const {layout} = usePrimaryNavigation();
 
   return (
     <Container
       background="secondary"
-      borderRight={
-        hasPageFrame && secondaryNavigation.view === 'expanded' && layout !== 'mobile'
-          ? undefined
-          : 'primary'
-      }
+      borderRight="primary"
       position="relative"
       height="100%"
     >
@@ -315,7 +308,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
             icon={<IconClose />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            priority="transparent"
+            variant="transparent"
           />
         ) : layout === 'mobile' ? null : (
           <Button
@@ -323,7 +316,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            priority={isCollapsed ? 'primary' : 'transparent'}
+            variant={isCollapsed ? 'primary' : 'transparent'}
             analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
             analyticsEventKey="sidebar_secondary_toggle_button_clicked"
             analyticsParams={{
@@ -370,7 +363,7 @@ function SectionTitle(props: SectionTitleProps) {
           <Button
             {...p}
             size="sm"
-            priority="transparent"
+            variant="transparent"
             onClick={() => props.setIsCollapsed(!props.isCollapsed)}
           >
             <Text bold ellipsis align="left">

@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
@@ -64,6 +63,7 @@ export function ToolbarSaveAs() {
   const fields = useQueryParamsFields();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const crossEvents = useQueryParamsCrossEvents();
   const mode = useQueryParamsMode();
   const id = useQueryParamsId();
 
@@ -87,6 +87,7 @@ export function ToolbarSaveAs() {
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
@@ -186,7 +187,7 @@ export function ToolbarSaveAs() {
         label: formattedYAxes.filter(Boolean).join(', '),
         onAction: () => {
           if (disableAddToDashboard) {
-            return undefined;
+            return;
           }
 
           trackAnalytics('trace_explorer.save_as', {
@@ -217,7 +218,7 @@ export function ToolbarSaveAs() {
     children: chartOptions.length > 1 ? chartOptions : undefined,
     onAction: () => {
       if (disableAddToDashboard || chartOptions.length > 1) {
-        return undefined;
+        return;
       }
 
       trackAnalytics('trace_explorer.save_as', {
@@ -251,6 +252,7 @@ export function ToolbarSaveAs() {
         singleQuery?.visualize,
         true
       ),
+      !valueIsEqual(savedQuery.crossEvents ?? [], crossEvents ?? [], true),
       !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
       !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
       (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
@@ -272,15 +274,13 @@ export function ToolbarSaveAs() {
     sortBys,
     fields,
     visualizes,
+    crossEvents,
     pageFilters.selection.datetime.start,
     pageFilters.selection.datetime.end,
     pageFilters.selection.datetime.period,
     pageFilters.selection.projects,
     pageFilters.selection.environments,
   ]);
-
-  const crossEvents = useQueryParamsCrossEvents();
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   if (items.length === 0) {
     return null;
@@ -289,32 +289,27 @@ export function ToolbarSaveAs() {
   const canCompareQueries = visualizeFunctions.length >= 2;
 
   return (
-    <StyledToolbarSection data-test-id="section-save-as">
+    <SaveStyledToolbarSection data-test-id="section-save-as">
       <Grid flow="column" align="center" gap="md">
-        <Tooltip
-          disabled={!hasCrossEvents}
-          title={t('Saving cross event queries is not supported during early access.')}
-        >
-          <DropdownMenu
-            isDisabled={hasCrossEvents}
-            items={items}
-            trigger={triggerProps => (
-              <SaveAsButton
-                {...triggerProps}
-                priority={shouldHighlightSaveButton ? 'primary' : 'default'}
-                aria-label={t('Save as')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
+        <DropdownMenu
+          items={items}
+          trigger={triggerProps => (
+            <SaveAsButton
+              {...triggerProps}
+              priority={shouldHighlightSaveButton ? 'primary' : 'default'}
+              aria-label={t('Save as')}
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
 
-                  triggerProps.onClick?.(e);
-                }}
-              >
-                {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
-              </SaveAsButton>
-            )}
-          />
-        </Tooltip>
+                triggerProps.onClick?.(e);
+              }}
+            >
+              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+            </SaveAsButton>
+          )}
+        />
+
         <WideLinkButton
           aria-label={t('Compare')}
           disabled={hasCrossEvents || !canCompareQueries}
@@ -338,7 +333,7 @@ export function ToolbarSaveAs() {
           })}
           tooltipProps={
             hasCrossEvents
-              ? {title: t('Comparing queries is not supported during early access.')}
+              ? {title: t('Cross-event queries cannot be compared.')}
               : canCompareQueries
                 ? undefined
                 : {title: t('Add two or more charts to compare chart queries.')}
@@ -347,7 +342,7 @@ export function ToolbarSaveAs() {
           {t('Compare Queries')}
         </WideLinkButton>
       </Grid>
-    </StyledToolbarSection>
+    </SaveStyledToolbarSection>
   );
 }
 
@@ -359,7 +354,7 @@ const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;
 
-const StyledToolbarSection = styled(ToolbarSection)`
+export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${p => p.theme.space['2xl']};
 `;

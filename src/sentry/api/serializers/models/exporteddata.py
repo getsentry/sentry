@@ -47,4 +47,5 @@ class ExportedDataSerializer(Serializer):
             "status": obj.status,
             "checksum": checksum,
             "fileName": file_name,
+            "export_format": obj.export_format,
         }

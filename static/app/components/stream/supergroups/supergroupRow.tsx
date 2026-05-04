@@ -1,97 +1,63 @@
-import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  CheckboxLabel,
-  SupergroupCheckbox,
-} from 'sentry/components/stream/supergroups/supergroupCheckbox';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
-import {useOptionalIssueSelectionSummary} from 'sentry/views/issueList/issueSelectionContext';
 import type {AggregatedSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
-import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
+import {SUPERGROUP_DRAWER_QUERY_PARAM} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
 
 interface SupergroupRowProps {
-  matchedGroupIds: string[];
   supergroup: SupergroupDetail;
   aggregatedStats?: AggregatedSupergroupStats | null;
-  memberList?: IndexedMembersByProject;
 }
 
-export function SupergroupRow({
-  supergroup,
-  matchedGroupIds,
-  aggregatedStats,
-  memberList,
-}: SupergroupRowProps) {
-  const matchedCount = matchedGroupIds.length;
-  const {openDrawer, isDrawerOpen} = useDrawer();
-  const [isActive, setIsActive] = useState(false);
+export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const supergroupId = String(supergroup.id);
   const handleClick = () => {
-    setIsActive(true);
-    openDrawer(
-      () => (
-        <SupergroupDetailDrawer
-          supergroup={supergroup}
-          matchedGroupIds={matchedGroupIds}
-          memberList={memberList}
-        />
-      ),
+    navigate(
       {
-        ariaLabel: t('Supergroup details'),
-        drawerKey: 'supergroup-drawer',
-        onClose: () => setIsActive(false),
-      }
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          [SUPERGROUP_DRAWER_QUERY_PARAM]: supergroupId,
+        },
+      },
+      {replace: true, preventScrollReset: true}
     );
   };
 
-  const summary = useOptionalIssueSelectionSummary();
-  const selectedCount = useMemo(() => {
-    if (!summary) {
-      return 0;
-    }
-    let count = 0;
-    for (const id of matchedGroupIds) {
-      if (summary.records.get(id)) {
-        count++;
-      }
-    }
-    return count;
-  }, [summary, matchedGroupIds]);
-
-  const highlighted = isActive && isDrawerOpen;
+  const highlighted = location.query[SUPERGROUP_DRAWER_QUERY_PARAM] === supergroupId;
 
   return (
-    <Wrapper onClick={handleClick} highlighted={highlighted}>
+    <Wrapper
+      onClick={handleClick}
+      highlighted={highlighted}
+      data-sentry-component="SupergroupRow"
+    >
       <InteractionStateLayer />
       <IconArea>
         <AccentIcon size="md" />
-        <SupergroupCheckbox
-          matchedGroupIds={matchedGroupIds}
-          selectedCount={selectedCount}
-        />
       </IconArea>
       <Summary>
-        {supergroup.error_type ? (
-          <Text size="md" bold ellipsis>
-            {supergroup.error_type}
-          </Text>
-        ) : null}
-        <Text size="sm" variant="muted" ellipsis>
+        <Text size="md" bold ellipsis>
           {supergroup.title}
+        </Text>
+        <Text size="sm" variant="muted" ellipsis>
+          {supergroup.error_type}
         </Text>
         <MetaRow>
           {supergroup.code_area ? (
@@ -99,18 +65,10 @@ export function SupergroupRow({
               {supergroup.code_area}
             </Text>
           ) : null}
-          {supergroup.code_area && matchedCount > 0 ? <Dot /> : null}
-          {matchedCount > 0 ? (
-            <Text
-              size="sm"
-              variant={selectedCount > 0 ? 'primary' : 'muted'}
-              bold={selectedCount > 0}
-            >
-              {selectedCount > 0
-                ? `${selectedCount} / ${supergroup.group_ids.length} ${t('issues selected')}`
-                : `${matchedCount} / ${supergroup.group_ids.length} ${t('issues matched')}`}
-            </Text>
-          ) : null}
+          {supergroup.code_area ? <Dot /> : null}
+          <Text size="sm" variant="muted">
+            {`${supergroup.group_ids.length} ${t('issues')}`}
+          </Text>
         </MetaRow>
       </Summary>
 
@@ -196,12 +154,6 @@ const Wrapper = styled(PanelItem)<{highlighted: boolean}>`
   min-height: 82px;
   background: ${p =>
     p.highlighted ? p.theme.tokens.background.secondary : 'transparent'};
-
-  &:not(:hover):not(:has(input:checked)):not(:has(input:indeterminate)) {
-    ${CheckboxLabel} {
-      ${p => p.theme.visuallyHidden};
-    }
-  }
 `;
 
 const Summary = styled('div')`

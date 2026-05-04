@@ -14,29 +14,28 @@ from collections.abc import Callable
 from typing import assert_never, cast
 
 import msgspec
-import sentry_sdk
+from scm.types import CheckRunAction, CommentAction, CommentType, ProviderName, PullRequestAction
 
 from sentry.scm.errors import SCMProviderEventNotSupported, SCMProviderNotSupported
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream, scm_event_stream
+from sentry.scm.private.helpers import (
+    record_count_metric,
+    record_distribution_metric,
+    record_timer_metric,
+)
 from sentry.scm.private.webhooks.github import deserialize_github_event
 from sentry.scm.types import (
-    CheckRunAction,
     CheckRunEvent,
-    CommentAction,
     CommentEvent,
-    CommentType,
     EventType,
     EventTypeHint,
     HybridCloudSilo,
-    ProviderName,
-    PullRequestAction,
     PullRequestEvent,
     SubscriptionEvent,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import scm_tasks
-from sentry.utils import metrics
 
 
 class SubscriptionEventParser(msgspec.Struct, gc=False, frozen=True):
@@ -431,26 +430,6 @@ def run_webhook_handler_region_task(
         record_distribution=record_distribution_metric,
         record_timer=record_timer_metric,
     )
-
-
-def report_error_to_sentry(e: Exception) -> None:
-    """Typing wrapper around sentry_sdk.capture_exception."""
-    sentry_sdk.capture_exception(e)
-
-
-def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
-    """Typing wrapper around metrics.incr."""
-    metrics.incr(key, amount, tags=tags)
-
-
-def record_distribution_metric(key: str, amount: int, tags: dict[str, str], unit: str) -> None:
-    """Typing wrapper around metrics.distribution."""
-    metrics.distribution(key, amount, tags=tags, unit=unit)
-
-
-def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
-    """Typing wrapper around metrics.distribution."""
-    metrics.distribution(key, amount, tags=tags)
 
 
 METRIC_PREFIX = "sentry.scm.run_listener"

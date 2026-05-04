@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -9,7 +9,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -21,7 +20,7 @@ export function GithubCopilotIntegrationCta() {
     organizationIntegrationsCodingAgents(organization)
   );
 
-  const handleInstallClick = useCallback(() => {
+  const handleInstallClick = () => {
     trackAnalytics('coding_integration.install_clicked', {
       organization,
       project_slug: '', // GitHub Copilot CTA is not project-specific
@@ -29,7 +28,7 @@ export function GithubCopilotIntegrationCta() {
       source: 'cta',
       user_id: user.id,
     });
-  }, [organization, user.id]);
+  };
 
   const githubCopilotIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'github_copilot'
@@ -81,7 +80,7 @@ export function GithubCopilotIntegrationCta() {
           <div>
             <LinkButton
               to={`/settings/${organization.slug}/integrations/github_copilot/`}
-              priority="default"
+              variant="secondary"
               size="sm"
               onClick={handleInstallClick}
             >

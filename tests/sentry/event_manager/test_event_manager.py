@@ -479,6 +479,112 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.data["metadata"]["value"] == "actual error"
         assert event.group is not None
 
+    def test_compose_diagnostic_exception_correct_title(self) -> None:
+        """DiagnosticComposeException should not determine the title."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "IllegalStateException",
+                            "value": "main exception",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "IllegalStateException"
+        assert event.data["metadata"]["value"] == "main exception"
+        assert event.group is not None
+        assert event.group.title == "IllegalStateException: main exception"
+
+    def test_compose_diagnostic_exception_no_parent_keeps_default_behavior(self) -> None:
+        """DiagnosticComposeException without parent_id should not change behavior."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "DiagnosticComposeException"
+        assert event.group is not None
+        assert "DiagnosticComposeException" in event.group.title
+
+    def test_compose_and_coroutine_diagnostic_exceptions_chained_correct_title(self) -> None:
+        """When both DiagnosticComposeException and DiagnosticCoroutineContextException
+        are chained on top of the real error, the title should walk past both wrappers."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "IllegalStateException",
+                            "value": "boom",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 2,
+                                "parent_id": 1,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "IllegalStateException"
+        assert event.data["metadata"]["value"] == "boom"
+        assert event.group is not None
+        assert event.group.title == "IllegalStateException: boom"
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()

@@ -1,10 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -12,7 +14,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -21,9 +22,8 @@ import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,39 +38,32 @@ export default function TeamProjects() {
   const [query, setQuery] = useState<string>('');
   const {team} = useTeamDetailsOutlet();
   const {
-    data: linkedProjects,
+    data: linkedProjectsResponse,
     isError: linkedProjectsError,
     isPending: linkedProjectsLoading,
-    getResponseHeader: linkedProjectsHeaders,
     refetch: refetchLinkedProjects,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          query: `team:${team.slug}`,
-          cursor: location.query.cursor,
-        },
+  } = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        query: `team:${team.slug}`,
+        cursor: location.query.cursor,
       },
-    ],
-    {staleTime: 0}
-  );
+      staleTime: 0,
+    }),
+    select: selectJsonWithHeaders,
+  });
+  const linkedProjects = linkedProjectsResponse?.json;
   const {
     data: unlinkedProjects = [],
     isPending: loadingUnlinkedProjects,
     refetch: refetchUnlinkedProjects,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`},
-      },
-    ],
-    {staleTime: 0}
+  } = useQuery(
+    apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`},
+      staleTime: 0,
+    })
   );
 
   const handleLinkProject = (project: Project, action: string) => {
@@ -92,7 +85,7 @@ export default function TeamProjects() {
     });
   };
 
-  const linkedProjectsPageLinks = linkedProjectsHeaders?.('Link');
+  const linkedProjectsPageLinks = linkedProjectsResponse?.headers.Link;
   const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
   const otherProjects = useMemo(() => {
     return unlinkedProjects

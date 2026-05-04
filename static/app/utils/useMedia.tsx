@@ -9,7 +9,7 @@ export function useMedia(query: string) {
   useEffect(() => {
     let mounted = true;
     if (!window.matchMedia) {
-      return undefined;
+      return;
     }
 
     const mql = window.matchMedia(query);

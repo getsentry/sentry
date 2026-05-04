@@ -58,15 +58,13 @@ class FormatPrCommentTest(TestCase):
 
         result = format_pr_comment([artifact], project=self.project)
 
-        assert "## Sentry Build Distribution" in result
-        assert "| App Name | App ID | Version | Configuration | Install Page |" in result
-        assert "MyApp" in result
+        assert "## 📲 Install Builds" in result
+        assert "| 🔗 App Name | App ID | Version | Configuration |" in result
+        assert "[MyApp](" in result
         assert "com.example.app" in result
         assert "1.2.3 (456)" in result
         assert "Release" in result
-        assert "[Install Build](" in result
-        # Single platform — no subheader
-        assert "### iOS" not in result
+        assert "### iOS" in result
 
     def test_single_android_artifact(self) -> None:
         artifact = self._create_artifact(
@@ -77,7 +75,7 @@ class FormatPrCommentTest(TestCase):
         result = format_pr_comment([artifact], project=self.project)
 
         assert "AndroidApp" in result
-        assert "### Android" not in result
+        assert "### Android" in result
 
     def test_multiple_platforms_shows_subheaders(self) -> None:
         ios_artifact = self._create_artifact(app_name="iOSApp")
@@ -99,7 +97,7 @@ class FormatPrCommentTest(TestCase):
 
         result = format_pr_comment([artifact], project=self.project)
 
-        assert f"[Configure {self.project.name} build distribution settings](" in result
+        assert f"[⚙️ {self.project.name} Build Distribution Settings](" in result
         assert f"/settings/projects/{self.project.slug}/mobile-builds/?tab=distribution" in result
 
     def test_empty_list_raises(self) -> None:

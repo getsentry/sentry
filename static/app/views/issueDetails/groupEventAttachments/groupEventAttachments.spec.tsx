@@ -84,7 +84,6 @@ describe('GroupEventAttachments', () => {
         query: {
           screenshot: '1',
           environment: [],
-          statsPeriod: '14d',
         },
       })
     );

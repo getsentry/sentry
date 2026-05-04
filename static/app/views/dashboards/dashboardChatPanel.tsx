@@ -8,11 +8,10 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {IconChevron, IconSeer} from 'sentry/icons';
+import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useLocation} from 'sentry/utils/useLocation';
-import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -29,6 +28,7 @@ interface DashboardChatPanelProps {
   onSend: (message: string) => void;
   isError?: boolean;
   pendingUserInput?: PendingUserInput | null;
+  showWarningMessage?: boolean;
   widgetErrors?: WidgetError[];
 }
 
@@ -39,16 +39,14 @@ export function DashboardChatPanel({
   isUpdating,
   isError,
   widgetErrors,
+  showWarningMessage,
 }: DashboardChatPanelProps) {
   const theme = useTheme();
-  const location = useLocation();
   const [inputValue, setInputValue] = useState('');
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const seerRunId = location.query?.seerRunId
-    ? Number(location.query.seerRunId)
-    : undefined;
+  const [warningMessageDismissed, setWarningMessageDismissed] = useState(false);
 
   // Expand history automatically when updating triggered by user input
   useEffect(() => {
@@ -79,24 +77,21 @@ export function DashboardChatPanel({
   }, [inputValue, isUpdating, onSend]);
 
   // Handle Enter key press to send message
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSubmit();
-      }
-    },
-    [handleSubmit]
-  );
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
 
     // Auto-resize textarea
     const textarea = e.target;
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
-  }, []);
+  };
 
   const hasHistory = blocks.length > 0;
 
@@ -116,7 +111,7 @@ export function DashboardChatPanel({
         <ChatHistoryToggle
           onClick={() => setIsHistoryExpanded(prev => !prev)}
           aria-expanded={isHistoryExpanded}
-          priority="transparent"
+          variant="transparent"
           disabled={!hasHistory}
         >
           <Flex align="center" gap="sm">
@@ -131,12 +126,33 @@ export function DashboardChatPanel({
           <FeatureBadge type="beta" />
         </Container>
       </Flex>
+      {showWarningMessage && !isUpdating && hasHistory && !warningMessageDismissed && (
+        <Container padding="md">
+          <Alert.Container>
+            <Alert
+              variant="muted"
+              showIcon
+              trailingItems={
+                <Button
+                  aria-label="Dismiss"
+                  icon={<IconClose />}
+                  size="xs"
+                  onClick={() => setWarningMessageDismissed(true)}
+                />
+              }
+            >
+              {t(
+                'Double check your whole dashboard before saving, edits from this conversation are AI-generated and may not be perfect'
+              )}
+            </Alert>
+          </Alert.Container>
+        </Container>
+      )}
       {hasHistory && isHistoryExpanded && (
         <ChatHistory
           ref={chatContainerRef}
           blocks={blocks}
           pendingUserInput={pendingUserInput}
-          seerRunId={seerRunId}
           isError={isError}
           widgetErrors={widgetErrors}
         />
@@ -167,7 +183,6 @@ const ChatHistory = memo(function ChatHistoryInner({
   ref,
   blocks,
   pendingUserInput,
-  seerRunId,
   isError,
   widgetErrors,
 }: {
@@ -175,7 +190,6 @@ const ChatHistory = memo(function ChatHistoryInner({
   ref: React.Ref<HTMLDivElement>;
   isError?: boolean;
   pendingUserInput?: PendingUserInput | null;
-  seerRunId?: number;
   widgetErrors?: WidgetError[];
 }) {
   return (
@@ -188,12 +202,7 @@ const ChatHistory = memo(function ChatHistoryInner({
     >
       <Stack>
         {blocks.map((block, index) => (
-          <BlockComponent
-            key={block.id}
-            block={block}
-            blockIndex={index}
-            runId={seerRunId}
-          />
+          <BlockComponent key={block.id} block={block} blockIndex={index} />
         ))}
         {pendingUserInput && pendingUserInput.data.questions?.length > 0 && (
           <ChatMessageContainer padding="xl">

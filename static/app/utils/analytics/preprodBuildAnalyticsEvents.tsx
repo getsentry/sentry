@@ -18,6 +18,7 @@ type PreprodSettingsEvent = {
 export type BuildListPageSource =
   | 'preprod_builds_list'
   | 'releases_mobile_builds_tab'
+  | 'releases_snapshots_tab'
   | 'releases_details_preprod_builds';
 
 export type PreprodBuildEventParameters = {
@@ -66,6 +67,9 @@ export type PreprodBuildEventParameters = {
   'preprod.releases.mobile-builds.tab-clicked': {
     organization: Organization;
   };
+  'preprod.releases.snapshots.tab-clicked': {
+    organization: Organization;
+  };
   'preprod.settings.status_check_rule_created': PreprodSettingsEvent;
   'preprod.settings.status_check_rule_deleted': PreprodSettingsEvent;
   'preprod.settings.status_check_rule_updated': PreprodSettingsEvent & {
@@ -73,6 +77,15 @@ export type PreprodBuildEventParameters = {
     measurement: string;
     metric: string;
     value: number;
+  };
+  'preprod.snapshots.list.row_clicked': BasePreprodBuildEvent & {
+    approval_status?: string | null;
+    comparison_state?: string | null;
+    image_count?: number;
+    images_added?: number;
+    images_changed?: number;
+    images_removed?: number;
+    images_unchanged?: number;
   };
 };
 
@@ -99,6 +112,8 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.onboarding.docs_clicked': 'Preprod Builds: Onboarding Docs Clicked',
   'preprod.releases.mobile-builds.tab-clicked':
     'Preprod Releases: Mobile Builds Tab Clicked',
+  'preprod.releases.snapshots.tab-clicked': 'Preprod Releases: Snapshots Tab Clicked',
+  'preprod.snapshots.list.row_clicked': 'Preprod Snapshots: List Row Clicked',
   'preprod.settings.status_check_rule_created':
     'Preprod Settings: Status Check Rule Created',
   'preprod.settings.status_check_rule_deleted':

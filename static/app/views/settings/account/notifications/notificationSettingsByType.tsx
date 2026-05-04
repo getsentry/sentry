@@ -99,7 +99,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
     useApiQuery<Array<OrganizationIntegration | null>>(
-      [getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}})],
+      [
+        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
+        {query: {provider: [...ALLOWED_PROVIDERS]}},
+      ],
       {staleTime: 30_000}
     );
   const organizationIntegrations = allOrgIntegrations.filter(

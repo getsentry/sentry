@@ -46,7 +46,7 @@ describe('ProjectDetail > ProjectAnr', () => {
 
     endpointMockPreviousPeriod = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
-      match: [MockApiClient.matchQuery({start: '2017-10-03T02:41:20.000'})], // setup mocks a constant current date, so this works
+      match: [MockApiClient.matchQuery({statsPeriodStart: '14d'})],
       body: {
         groups: [
           {
@@ -96,7 +96,6 @@ describe('ProjectDetail > ProjectAnr', () => {
       `/organizations/${organization.slug}/sessions/`,
       expect.objectContaining({
         query: {
-          end: '2017-10-10T02:41:20.000',
           environment: [],
           field: ['anr_rate()'],
           includeSeries: '0',
@@ -104,7 +103,8 @@ describe('ProjectDetail > ProjectAnr', () => {
           interval: '1h',
           project: [1],
           query: 'release:abc',
-          start: '2017-10-03T02:41:20.000',
+          statsPeriodStart: '14d',
+          statsPeriodEnd: '7d',
         },
       })
     );

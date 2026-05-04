@@ -14,11 +14,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
-from sentry.seer.autofix.utils import (
-    bulk_get_project_preferences,
-    get_autofix_repos_from_project_code_mappings,
-)
-from sentry.seer.explorer.context_engine_utils import (
+from sentry.seer.agent.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
     ProjectEventCounts,
     get_event_counts_for_org_projects,
@@ -27,15 +23,19 @@ from sentry.seer.explorer.context_engine_utils import (
     get_top_span_ops_for_org_projects,
     get_top_transactions_for_org_projects,
 )
-from sentry.seer.explorer.explorer_service_map_utils import (
+from sentry.seer.agent.service_map_utils import (
     _build_nodes,
     _query_service_dependencies,
     _send_to_seer,
 )
+from sentry.seer.autofix.utils import (
+    bulk_read_preferences_from_sentry_db,
+    get_autofix_repos_from_project_code_mappings,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    ExplorerIndexOrgRepoRequest,
-    ExplorerIndexSentryKnowledgeRequest,
+    AgentIndexOrgRepoRequest,
+    AgentIndexSentryKnowledgeRequest,
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
     RepoDetails,
@@ -257,14 +257,14 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
 
     org_repo_definitions: dict[tuple[str, str, str], RepoDetails] = {}
 
-    preferences_by_id = bulk_get_project_preferences(organization_id, list(project_map.keys()))
+    preferences_by_id = bulk_read_preferences_from_sentry_db(
+        organization_id, list(project_map.keys())
+    )
 
     for project_id, project in project_map.items():
-        existing_pref = preferences_by_id.get(str(project_id))
-        if not existing_pref:
+        existing_pref = preferences_by_id.get(project_id)
+        if existing_pref is None or not existing_pref.repositories:
             continue
-
-        project_pref_repos = existing_pref.get("repositories") or []
 
         autofix_repos = get_autofix_repos_from_project_code_mappings(project)
         # Use autofix repos to get repo languages
@@ -273,27 +273,24 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
             key = (autofix_repo["provider"], autofix_repo["owner"], autofix_repo["name"])
             language_map[key] = autofix_repo["languages"]
 
-        for repo in project_pref_repos:
-            key = (repo["provider"], repo["owner"], repo["name"])
+        for repo in existing_pref.repositories:
+            key = (repo.provider, repo.owner, repo.name)
             if key in org_repo_definitions:
-                repo_definition = org_repo_definitions[key]
-                repo_definition["project_ids"].append(project_id)
+                org_repo_definitions[key]["project_ids"].append(project_id)
             else:
                 org_repo_definitions[key] = {
                     "project_ids": [project_id],
-                    "provider": repo["provider"],
-                    "owner": repo["owner"],
-                    "name": repo["name"],
-                    "external_id": repo["external_id"],
+                    "provider": repo.provider,
+                    "owner": repo.owner,
+                    "name": repo.name,
+                    "external_id": repo.external_id,
                     "languages": language_map.get(key, []),
-                    "integration_id": repo.get("integration_id"),
+                    "integration_id": repo.integration_id,
                 }
 
     viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_org_repo_knowledge_index_request(
-        ExplorerIndexOrgRepoRequest(
-            org_id=organization.id, repos=list(org_repo_definitions.values())
-        ),
+        AgentIndexOrgRepoRequest(org_id=organization.id, repos=list(org_repo_definitions.values())),
         timeout=30,
         viewer_context=viewer_context,
     )
@@ -409,7 +406,7 @@ def schedule_context_engine_indexing_tasks() -> None:
 )
 def index_sentry_knowledge() -> None:
     response = make_index_sentry_knowledge_request(
-        body=ExplorerIndexSentryKnowledgeRequest(replace_existing=True)
+        body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
     )
 
     if response.status >= 400:

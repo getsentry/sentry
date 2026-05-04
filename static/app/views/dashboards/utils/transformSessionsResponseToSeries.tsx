@@ -79,7 +79,7 @@ export function transformSessionsResponseToSeries(
       requestedStatusMetrics.forEach(status => {
         const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
         if (result) {
-          let metricField: string | undefined = undefined;
+          let metricField: string | undefined;
           if (group.by['session.status'] === result[1]) {
             if (result[2] === 'session') {
               metricField = 'sum(session)';

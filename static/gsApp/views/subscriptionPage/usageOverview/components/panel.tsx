@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -10,7 +11,7 @@ import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -146,9 +147,9 @@ export function ProductBreakdownPanel({
   // TODO(billing): if we ever show the setup state for other products, this will need refactoring
   // maybe a billing hook for setup checks
   const shouldCheckSetup = selectedProduct === AddOnCategory.SEER && isEnabled;
-  const {data: setupCheck, isLoading: setupCheckLoading} = useSeerOnboardingCheck({
+  const {data: setupCheck, isLoading: setupCheckLoading} = useQuery({
+    ...getSeerOnboardingCheckQueryOptions({organization, staleTime: 60_000}),
     enabled: shouldCheckSetup,
-    staleTime: 60_000,
   });
   const setupRequired =
     shouldCheckSetup &&

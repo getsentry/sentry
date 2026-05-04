@@ -7,7 +7,6 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
-  'static/app/views/integrationPipeline/index.tsx',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
@@ -22,9 +21,12 @@ const productionEntryPoints = [
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
-  'static/app/components/pipeline/**/*.{js,ts,tsx}',
-  // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
+  // TODO: Remove when used
+  'static/app/views/settings/organizationRepositories/connectProviderDropdown.tsx',
+  'static/app/views/settings/organizationRepositories/noIntegrationsEmptyState.tsx',
+  'static/app/views/settings/organizationRepositories/scmRepositoryTable.tsx',
+  'static/app/views/settings/organizationRepositories/useRepoSearch.tsx',
 ];
 
 const testingEntryPoints = [
@@ -76,17 +78,10 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'core-js',
     'tslib', // subdependency of many packages, declare the latest version
-    'jest-environment-jsdom', // used as testEnvironment in jest config
-    'jsdom', // knip thinks we need this because of jest-environment jsdom
-    'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
-    '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
-    '@babel/preset-env', // Still used in jest
-    '@babel/preset-react', // Still used in jest
-    '@babel/preset-typescript', // Still used in jest
-    '@emotion/babel-plugin', // Still used in jest
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
+    '@swc-contrib/mut-cjs-exports', // used in jest config
   ],
   rules: {
     binaries: 'off',

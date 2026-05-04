@@ -189,7 +189,7 @@ export function Chart({
     }
   }
 
-  let transformedThroughput: LineSeriesOption[] | undefined = undefined;
+  let transformedThroughput: LineSeriesOption[] | undefined;
   const additionalAxis: YAXisOption[] = [];
 
   if (throughput && throughput.length > 1) {
@@ -267,7 +267,7 @@ export function Chart({
           ],
         ] as PairOfSeries;
       },
-      [[], []] as PairOfSeries
+      [[], []]
     );
   }
 
@@ -586,12 +586,12 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-export function computeAxisMax(data: Series[], stacked?: boolean) {
+function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {
     for (const serie of data) {
-      maxValue += max(serie.data.map(point => point.value)) as number;
+      maxValue += max(serie.data.map(point => point.value))!;
     }
   } else {
     maxValue = computeMax(data);

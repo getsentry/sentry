@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
+  getFirstToolInputValue,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
@@ -167,7 +168,7 @@ function TransactionWrapper({
           {canCollapse ? (
             <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
           ) : null}
-          <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
             <span>{title}</span>
           </Tooltip>
         </TransactionButton>
@@ -256,20 +257,14 @@ const TraceListItem = memo(function TraceListItem({
       <Stack gap="xs" flex="1" minWidth="0">
         <Flex align="center" gap="xs">
           <Container maxWidth="40%" flexShrink={0}>
-            <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+            <Tooltip title={title} showOnlyOnOverflow skipWrapper>
               <Text bold size="sm" ellipsis>
                 {title}
               </Text>
             </Tooltip>
           </Container>
           {subtitle && (
-            <Tooltip
-              title={subtitle}
-              showOnlyOnOverflow
-              skipWrapper
-              delay={500}
-              maxWidth={500}
-            >
+            <Tooltip title={subtitle} showOnlyOnOverflow skipWrapper maxWidth={500}>
               <Text size="sm" variant="muted" ellipsis>
                 - {subtitle}
               </Text>
@@ -475,6 +470,7 @@ function getSpanPresentation(
     case GenAiOperationType.AI_CLIENT: {
       const tokens = getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
       const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS);
+      const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const tokenLabel = tokens ? (
         <Fragment>
           <Count value={tokens} />
@@ -484,7 +480,7 @@ function getSpanPresentation(
       return {
         icon: <IconChat size="md" />,
         color,
-        title: description || op,
+        title: responseModel || description || op,
         subtitle:
           tokenLabel && cost ? (
             <Fragment>
@@ -497,11 +493,12 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+      const firstInputValue = getFirstToolInputValue(node);
       return {
         icon: <IconFix size="md" />,
         color,
         title: toolName || op,
-        subtitle: toolName ? op : '',
+        subtitle: firstInputValue || (toolName ? op : ''),
       };
     }
     case GenAiOperationType.HANDOFF:

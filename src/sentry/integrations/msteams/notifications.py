@@ -14,9 +14,15 @@ from sentry.notifications.notifications.activity.assigned import AssignedActivit
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.note import NoteActivityNotification
+from sentry.notifications.notifications.activity.referenced_in_commit import (
+    ReferencedInCommitActivityNotification,
+)
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_commit import (
+    ResolvedInCommitActivityNotification,
+)
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
@@ -41,6 +47,8 @@ SUPPORTED_NOTIFICATION_TYPES = [
     UnassignedActivityNotification,
     AlertRuleNotification,
     ResolvedActivityNotification,
+    ResolvedInCommitActivityNotification,
+    ReferencedInCommitActivityNotification,
     ResolvedInReleaseActivityNotification,
     ReleaseActivityNotification,
     RegressionActivityNotification,

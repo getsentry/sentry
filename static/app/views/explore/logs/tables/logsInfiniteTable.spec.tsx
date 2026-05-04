@@ -32,17 +32,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('sentry/utils/useRelease', () => ({
-  useRelease: jest.fn().mockReturnValue({
-    data: {
-      id: 10,
-      lastCommit: {
-        id: '1e5a9462e6ac23908299b218e18377837297bda1',
-      },
-    },
-  }),
-}));
-
 jest.mock('@tanstack/react-virtual', () => {
   return {
     useWindowVirtualizer: jest.fn().mockReturnValue({
@@ -165,6 +154,16 @@ describe('LogsInfiniteTable', () => {
     );
 
     MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/1.0.0/`,
+      body: {
+        id: 10,
+        lastCommit: {
+          id: '1e5a9462e6ac23908299b218e18377837297bda1',
+        },
+      },
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
@@ -209,7 +208,9 @@ describe('LogsInfiniteTable', () => {
   };
 
   it('should render the table component', async () => {
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -217,7 +218,9 @@ describe('LogsInfiniteTable', () => {
   });
 
   it('should render with loading state initially', async () => {
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     const loadingIndicator = await screen.findByTestId('loading-indicator');
     expect(loadingIndicator).toBeInTheDocument();
@@ -241,7 +244,9 @@ describe('LogsInfiniteTable', () => {
         })
       );
     }
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -273,7 +278,12 @@ describe('LogsInfiniteTable', () => {
   });
 
   it('should not be interactable on embedded views', async () => {
-    renderWithProviders(<LogsInfiniteTable embedded />);
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        embedded
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -306,7 +316,9 @@ describe('LogsInfiniteTable', () => {
       },
     });
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(emptyApiMock).toHaveBeenCalled();
@@ -321,7 +333,9 @@ describe('LogsInfiniteTable', () => {
       statusCode: 500,
     });
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalled();
@@ -412,7 +426,9 @@ describe('LogsInfiniteTable', () => {
       })
     );
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     expect(eventsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
@@ -447,12 +463,11 @@ describe('LogsInfiniteTable', () => {
         `/organizations/${organization.slug}/replay-count/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            data_source: 'discover',
+            data_source: 'events',
             project: -1,
             query: 'replay_id:[abc123def456,abc123eef457]',
             start: '2025-04-10T08:00:00.000Z',
             end: '2025-04-10T10:00:00.000Z',
-            statsPeriod: undefined,
           }),
         })
       );

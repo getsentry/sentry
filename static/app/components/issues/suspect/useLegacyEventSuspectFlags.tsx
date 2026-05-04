@@ -1,7 +1,9 @@
 import {useEffect, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import intersection from 'lodash/intersection';
 import moment from 'moment-timezone';
 
+import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {
   hydrateToFlagSeries,
   type RawFlag,
@@ -11,9 +13,6 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Legacy suspect flags implementation.
@@ -33,7 +32,13 @@ export function useLegacyEventSuspectFlags({
   firstSeen: string;
   organization: Organization;
   rawFlagData: RawFlagData | undefined;
-}): UseApiQueryResult<RawFlagData, RequestError> & {suspectFlags: RawFlag[]} {
+}): {
+  data: RawFlagData | undefined;
+  error: Error | null;
+  isError: boolean;
+  isPending: boolean;
+  suspectFlags: RawFlag[];
+} {
   const hydratedFlagData = hydrateToFlagSeries(rawFlagData?.data ?? []);
 
   // map flag data to arrays of flag names
@@ -48,28 +53,19 @@ export function useLegacyEventSuspectFlags({
 
   // get all the audit log flag changes which happened prior to the first seen date
   const start = moment(firstSeen).subtract(1, 'year').format('YYYY-MM-DD HH:mm:ss');
-  const apiQueryResponse = useApiQuery<RawFlagData>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/flags/logs/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          flag: intersectionFlags,
-          start,
-          end: firstSeen,
-          statsPeriod: undefined,
-        },
+  const {data, isError, isPending, error} = useQuery({
+    ...organizationFlagLogOptions({
+      organization,
+      query: {
+        flag: intersectionFlags,
+        start,
+        end: firstSeen,
+        statsPeriod: undefined,
       },
-    ],
-    {
-      staleTime: 0,
-      // if no intersection, then there are no suspect flags
-      enabled: enabled && Boolean(intersectionFlags.length),
-    }
-  );
-
-  const {data, isError, isPending} = apiQueryResponse;
+    }),
+    // if no intersection, then there are no suspect flags
+    enabled: enabled && Boolean(intersectionFlags.length),
+  });
 
   // no flags in common between event evaluations and audit log
   // only track this analytic if there is at least 1 flag recorded
@@ -131,5 +127,5 @@ export function useLegacyEventSuspectFlags({
     organization,
   ]);
 
-  return {...apiQueryResponse, suspectFlags};
+  return {data, isError, isPending, error, suspectFlags};
 }

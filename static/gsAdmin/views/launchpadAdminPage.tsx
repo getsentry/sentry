@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -14,7 +15,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -334,7 +335,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  variant="secondary"
                   type="submit"
                   disabled={!fetchInfoArtifactId.trim() || !region}
                   css={css`
@@ -365,7 +366,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="danger"
+                  variant="danger"
                   type="submit"
                   disabled={!deleteArtifactId.trim() || !region}
                   css={css`
@@ -397,7 +398,7 @@ export function LaunchpadAdminPage() {
                   placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="primary"
+                  variant="primary"
                   type="submit"
                   disabled={!rerunArtifactId.trim() || !region}
                   css={css`
@@ -428,7 +429,7 @@ export function LaunchpadAdminPage() {
                   placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="danger"
+                  variant="danger"
                   type="submit"
                   disabled={!batchDeleteArtifactIds.trim() || !region}
                   css={css`
@@ -459,7 +460,7 @@ export function LaunchpadAdminPage() {
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="default"
+                  variant="secondary"
                   type="submit"
                   disabled={!downloadArtifactId.trim() || !region}
                   css={css`
@@ -501,7 +502,7 @@ export function LaunchpadAdminPage() {
               <InfoDisplay>
                 <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
               </InfoDisplay>
-              <Button priority="default" onClick={() => setFetchedArtifactInfo(null)}>
+              <Button variant="secondary" onClick={() => setFetchedArtifactInfo(null)}>
                 Clear Info
               </Button>
             </Flex>

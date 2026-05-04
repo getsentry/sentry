@@ -8,5 +8,5 @@ export const CursorIntegrationCta = makeCodingAgentIntegrationCta({
   pluginId: 'cursor',
   displayName: 'Cursor',
   headingName: 'Cursor Agent',
-  docsUrl: 'https://docs.sentry.io/organization/integrations/cursor/',
+  docsUrl: 'https://docs.sentry.io/organization/integrations/coding-agents/cursor/',
 });

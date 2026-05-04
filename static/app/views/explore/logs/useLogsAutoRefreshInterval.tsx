@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
-
-import type {ApiResult} from 'sentry/api';
 import type {
   InfiniteData,
   InfiniteQueryObserverRefetchErrorResult,
-} from 'sentry/utils/queryClient';
+} from '@tanstack/react-query';
+
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS,
@@ -15,7 +15,6 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {EventsLogsResult} from 'sentry/views/explore/logs/types';
 import {parseLinkHeaderFromLogsPage} from 'sentry/views/explore/logs/utils';
-
 /**
  * Hook that manages the auto-refresh interval using setInterval.
  * Handles rate limiting, error checking, and timeout conditions.
@@ -28,7 +27,7 @@ export function useLogsAutoRefreshInterval({
     | false
     | Promise<
         InfiniteQueryObserverRefetchErrorResult<
-          InfiniteData<ApiResult<EventsLogsResult>>,
+          InfiniteData<ApiResponse<EventsLogsResult>>,
           Error
         >
       >;
@@ -55,7 +54,7 @@ export function useLogsAutoRefreshInterval({
   const shouldDisableForRateLimit = useCallback(
     (
       pageResult: InfiniteQueryObserverRefetchErrorResult<
-        InfiniteData<ApiResult<EventsLogsResult>>,
+        InfiniteData<ApiResponse<EventsLogsResult>>,
         Error
       >
     ): boolean => {

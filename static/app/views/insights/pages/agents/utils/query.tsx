@@ -25,14 +25,6 @@ export const getToolSpansFilter = () => {
   return 'gen_ai.operation.type:tool';
 };
 
-export const getAgentAndAIClientFilter = () => {
-  return 'gen_ai.operation.type:[agent, ai_client]';
-};
-
-export const getAIGenerationsFilter = () => {
-  return 'gen_ai.operation.type:ai_client';
-};
-
 /**
  * Agent name fallback filters.
  *
@@ -75,20 +67,20 @@ export enum GenAiOperationType {
 }
 
 // Should be used only when we don't have the gen_ai.operation.type attribute available
-export const getGenAiOperationTypeFromSpanOp = (
-  spanOp?: string
+export const getGenAiOperationTypeFromSpanName = (
+  spanName?: string
 ): GenAiOperationType | undefined => {
-  if (!spanOp?.startsWith('gen_ai.')) {
+  if (!spanName?.startsWith('gen_ai.')) {
     return undefined;
   }
 
-  if (['gen_ai.invoke_agent', 'gen_ai.create_agent'].includes(spanOp)) {
+  if (['gen_ai.invoke_agent', 'gen_ai.create_agent'].includes(spanName)) {
     return GenAiOperationType.AGENT;
   }
-  if (spanOp === 'gen_ai.execute_tool') {
+  if (spanName === 'gen_ai.execute_tool') {
     return GenAiOperationType.TOOL;
   }
-  if (spanOp === 'gen_ai.handoff') {
+  if (spanName === 'gen_ai.handoff') {
     return GenAiOperationType.HANDOFF;
   }
   return GenAiOperationType.AI_CLIENT;

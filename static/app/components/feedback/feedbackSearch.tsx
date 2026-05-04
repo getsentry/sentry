@@ -245,7 +245,7 @@ export function FeedbackSearch() {
   }, [issuePlatformTags]);
 
   const getTagValues = useCallback<GetTagValues>(
-    (tag, searchQuery) => {
+    ({tag, searchQuery}) => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't

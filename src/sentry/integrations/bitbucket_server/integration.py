@@ -288,6 +288,8 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
+        use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
         if not query:
             resp = self.get_client().get_repos()

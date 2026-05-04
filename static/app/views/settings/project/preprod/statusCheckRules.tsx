@@ -71,21 +71,18 @@ export function StatusCheckRules() {
     [location.query, navigate]
   );
 
-  const handleToggleExpanded = useCallback(
-    (ruleId: string, isExpanded: boolean) => {
-      const newExpanded = new Set(expandedRuleIds);
-      if (isExpanded) {
-        newExpanded.add(ruleId);
-      } else {
-        newExpanded.delete(ruleId);
-        if (ruleId === newRuleId) {
-          setNewRuleId(null);
-        }
+  const handleToggleExpanded = (ruleId: string, isExpanded: boolean) => {
+    const newExpanded = new Set(expandedRuleIds);
+    if (isExpanded) {
+      newExpanded.add(ruleId);
+    } else {
+      newExpanded.delete(ruleId);
+      if (ruleId === newRuleId) {
+        setNewRuleId(null);
       }
-      updateExpandedInUrl([...newExpanded]);
-    },
-    [expandedRuleIds, newRuleId, updateExpandedInUrl]
-  );
+    }
+    updateExpandedInUrl([...newExpanded]);
+  };
 
   const hasRepositories = !isLoadingRepos && repositories && repositories.length > 0;
 
@@ -190,7 +187,7 @@ export function StatusCheckRules() {
               <Text>
                 {t('Connect at least one repository to get Size Analysis status checks')}
               </Text>
-              <LinkButton to={`/settings/${organization.slug}/repos/`} priority="primary">
+              <LinkButton to={`/settings/${organization.slug}/repos/`} variant="primary">
                 {t('Add Repo')}
               </LinkButton>
             </Stack>

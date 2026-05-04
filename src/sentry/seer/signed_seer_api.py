@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import logging
 from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import orjson
@@ -12,7 +12,12 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
-from sentry.viewer_context import ViewerContext, get_viewer_context
+from sentry.viewer_context import (
+    ViewerContext,
+    encode_viewer_context,
+    get_viewer_context,
+    observe_viewer_context_propagation,
+)
 
 
 class SeerViewerContext(TypedDict, total=False):
@@ -137,25 +142,25 @@ def make_signed_seer_api_request(
     }
 
     resolved = _resolve_viewer_context(viewer_context)
+    observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
     if resolved:
-        if settings.SEER_API_SHARED_SECRET:
-            try:
-                context_bytes = orjson.dumps(resolved.serialize())
-                context_signature = sign_viewer_context(context_bytes)
-                headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
-                headers["X-Viewer-Context-Signature"] = context_signature
-            except Exception:
-                logger.exception("Failed to serialize viewer context for call to Seer.")
-        else:
+        try:
+            headers["X-Viewer-Context"] = encode_viewer_context(resolved)
+        except ValueError:
             logger.warning(
-                "settings.SEER_API_SHARED_SECRET is not set. Unable to sign viewer context for call to Seer."
+                "viewer_context_jwt.no_signing_key",
+                extra={"msg": "No key available to sign viewer context JWT."},
             )
+        except Exception:
+            logger.exception("Failed to encode viewer context JWT for call to Seer.")
 
     options: dict[str, Any] = {}
     if timeout:
         options["timeout"] = timeout
     if retries is not None:
         options["retries"] = retries
+
+    request_target = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
 
     with metrics.timer(
         "seer.request_to_seer",
@@ -164,7 +169,7 @@ def make_signed_seer_api_request(
     ):
         return connection_pool.urlopen(
             method,
-            parsed.path,
+            request_target,
             body=body,
             headers=headers,
             **options,
@@ -203,16 +208,25 @@ class BulkRemoveRepositoriesRequest(TypedDict):
     repositories: list[RepoIdentifier]
 
 
-class ExplorerIndexProject(TypedDict):
+class RemoveHandoffsForIntegrationRequest(TypedDict):
+    organization_id: int
+    integration_id: int
+
+
+class AgentIndexProject(TypedDict):
     org_id: int
     project_id: int
 
 
-class ExplorerIndexRequest(TypedDict):
-    projects: list[ExplorerIndexProject]
+class AgentIndexRequest(TypedDict):
+    projects: list[AgentIndexProject]
 
 
-class ExplorerIndexSentryKnowledgeRequest(TypedDict):
+class AgentExportIndexesRequest(TypedDict):
+    org_id: int
+
+
+class AgentIndexSentryKnowledgeRequest(TypedDict):
     replace_existing: bool
 
 
@@ -225,6 +239,8 @@ class LlmGenerateRequest(TypedDict):
     temperature: float
     max_tokens: int
     response_schema: NotRequired[dict[str, Any]]
+    timeout: NotRequired[float | None]
+    reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
 
 
 class RepoDetails(TypedDict):
@@ -237,13 +253,13 @@ class RepoDetails(TypedDict):
     integration_id: NotRequired[str | None]
 
 
-class ExplorerIndexOrgRepoRequest(TypedDict):
+class AgentIndexOrgRepoRequest(TypedDict):
     org_id: int
     repos: list[RepoDetails]
 
 
 def make_org_repo_knowledge_index_request(
-    body: ExplorerIndexOrgRepoRequest,
+    body: AgentIndexOrgRepoRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
@@ -271,7 +287,7 @@ def make_org_project_knowledge_index_request(
 
 
 def make_index_sentry_knowledge_request(
-    body: ExplorerIndexSentryKnowledgeRequest,
+    body: AgentIndexSentryKnowledgeRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
@@ -312,8 +328,36 @@ def make_bulk_remove_repositories_request(
     )
 
 
-def make_explorer_index_request(
-    body: ExplorerIndexRequest,
+def make_remove_handoffs_for_integration_request(
+    body: RemoveHandoffsForIntegrationRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/remove-handoffs-for-integration",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_agent_export_indexes_request(
+    body: AgentExportIndexesRequest,
+    viewer_context: SeerViewerContext,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/export-indexes",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_agent_index_request(
+    body: AgentIndexRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
@@ -350,6 +394,7 @@ def make_llm_generate_request(
         "/v1/llm/generate",
         body=orjson.dumps(body),
         timeout=timeout,
+        metric_tags={"referrer": body["referrer"]},
         viewer_context=viewer_context,
     )
 
@@ -707,12 +752,3 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
         )
         metrics.incr("seer.unsigned_request", sample_rate=1.0)
     return auth_headers
-
-
-def sign_viewer_context(context_bytes: bytes) -> str:
-    """Sign the viewer context payload with the shared secret."""
-    return hmac.new(
-        settings.SEER_API_SHARED_SECRET.encode("utf-8"),
-        context_bytes,
-        hashlib.sha256,
-    ).hexdigest()

@@ -26,6 +26,7 @@ class InstallInfoResponseDict(TypedDict):
     buildConfiguration: str | None
     isInstallable: bool
     installUrl: str | None
+    installUrlExpiresAt: str | None
     downloadCount: int
     releaseNotes: str | None
     installGroups: list[str] | None
@@ -56,6 +57,11 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
         ),
         "isInstallable": info.is_installable,
         "installUrl": info.install_url,
+        "installUrlExpiresAt": (
+            info.install_url_expires_at.isoformat()
+            if info.install_url_expires_at is not None
+            else None
+        ),
         "downloadCount": info.download_count,
         "releaseNotes": info.release_notes,
         "installGroups": info.install_groups,
@@ -99,6 +105,7 @@ class BuildDistributionSummaryResponseDict(TypedDict):
     buildConfiguration: str | None
     isInstallable: bool
     installUrl: str | None
+    installUrlExpiresAt: str | None
     isCodeSignatureValid: bool | None
     profileName: str | None
     codesigningType: str | None
@@ -166,6 +173,11 @@ def build_build_distribution_summary(
         ),
         isInstallable=install_info.is_installable,
         installUrl=install_info.install_url,
+        installUrlExpiresAt=(
+            install_info.install_url_expires_at.isoformat()
+            if install_info.install_url_expires_at is not None
+            else None
+        ),
         isCodeSignatureValid=install_info.is_code_signature_valid,
         profileName=install_info.profile_name,
         codesigningType=install_info.codesigning_type,

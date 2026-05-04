@@ -908,33 +908,6 @@ describe('Results', () => {
       });
     });
 
-    it('renders metric fallback alert', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
-
-      ProjectsStore.loadInitialData([ProjectFixture()]);
-
-      renderMockRequests();
-
-      render(<Results />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
-            query: {fromMetric: 'true', id: '1'},
-          },
-          route: '/organizations/:orgId/explore/discover/results/',
-        },
-        organization,
-      });
-
-      expect(
-        await screen.findByText(
-          /You've navigated to this page from a performance metric widget generated from processed events/
-        )
-      ).toBeInTheDocument();
-    });
-
     it('renders unparameterized data banner', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
@@ -999,6 +972,35 @@ describe('Results', () => {
           }),
         })
       );
+    });
+
+    it('does not fetch the homepage query when discover-query is disabled', async () => {
+      renderMockRequests();
+      const mockHomepageGet = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/homepage/',
+        method: 'GET',
+        statusCode: 404,
+      });
+
+      const organization = OrganizationFixture({
+        features: ['discover-basic', 'page-frame'],
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            query: generateFields(),
+          },
+          route: '/organizations/:orgId/explore/discover/results/',
+        },
+        organization,
+      });
+
+      expect(await screen.findByText(eventTitle)).toBeInTheDocument();
+      expect(mockHomepageGet).not.toHaveBeenCalled();
     });
 
     it('Changes the Use as Discover button to a reset button for saved query', async () => {

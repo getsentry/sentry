@@ -6,6 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -19,7 +20,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -85,27 +85,45 @@ export default function UptimeOverview() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            {hasPageFrameFeature ? (
-              <TopBar.Slot name="feedback">
-                <FeedbackButton>{null}</FeedbackButton>
-              </TopBar.Slot>
-            ) : (
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <LinkButton
+                variant="primary"
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                icon={<IconAdd />}
+                disabled={!canCreateAlert}
+                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+              >
+                {t('Add Uptime Monitor')}
+              </LinkButton>
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
               <FeedbackButton />
-            )}
-            <LinkButton
-              size="sm"
-              priority="primary"
-              to={makeAlertsPathname({path: '/new/uptime/', organization})}
-              icon={<IconAdd />}
-              disabled={!canCreateAlert}
-              tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
-            >
-              {t('Add Uptime Monitor')}
-            </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
+              <LinkButton
+                size="sm"
+                variant="primary"
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                icon={<IconAdd />}
+                disabled={!canCreateAlert}
+                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+              >
+                {t('Add Uptime Monitor')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        )}
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">
@@ -165,7 +183,7 @@ export default function UptimeOverview() {
                 action={
                   <LinkButton
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                     to={makeAlertsPathname({path: '/new/uptime/', organization})}
                     icon={<IconAdd />}
                   >

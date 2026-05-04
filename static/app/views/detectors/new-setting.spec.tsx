@@ -16,8 +16,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import DetectorNewSettings from 'sentry/views/detectors/new-settings';
 
 describe('DetectorEdit', () => {
@@ -813,6 +816,12 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('menuitemradio', {name: /Metrics/})).toBeInTheDocument();
     });
 
+    it('auto-generates names using application metrics wording', () => {
+      expect(
+        getDatasetConfig(DetectorDataset.METRICS).formatAggregateForTitle?.('count()')
+      ).toBe('Number of application metrics');
+    });
+
     it('can submit a new metric detector with metrics dataset from URL params', async () => {
       const metricsOrganization = OrganizationFixture({
         features: [
@@ -1240,6 +1249,40 @@ describe('DetectorEdit', () => {
           }),
         })
       );
+    });
+
+    it('displays slug errors on the name field and in a toast', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {
+          dataSources: {slug: ['The slug "new-test-cron-job" is already in use.']},
+        },
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('new-test-cron-job{enter}');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'The slug "new-test-cron-job" is already in use.'
+        );
+      });
+
+      // The slug error is mapped to the name field and shown inline
+      expect(
+        await screen.findByText('The slug "new-test-cron-job" is already in use.')
+      ).toBeInTheDocument();
     });
   });
 });

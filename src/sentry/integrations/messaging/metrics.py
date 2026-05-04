@@ -21,6 +21,8 @@ class MessagingInteractionType(StrEnum):
     UNLINK_IDENTITY = "UNLINK_IDENTITY"
     LINK_TEAM = "LINK_TEAM"
     UNLINK_TEAM = "UNLINK_TEAM"
+    SET_DEFAULT_ORG = "SET_DEFAULT_ORG"
+    UNSET_DEFAULT_ORG = "UNSET_DEFAULT_ORG"
 
     # Interactions on Issues
     STATUS = "STATUS"
@@ -36,7 +38,10 @@ class MessagingInteractionType(StrEnum):
     MARK_ONGOING = "MARK_ONGOING"
     VIEW_SUBMISSION = "VIEW_SUBMISSION"
     SEER_AUTOFIX_START = "SEER_AUTOFIX_START"
+    SEER_AUTOFIX_HANDOFF = "SEER_AUTOFIX_HANDOFF"
     APP_MENTION = "APP_MENTION"
+    DIRECT_MESSAGE = "DIRECT_MESSAGE"
+    ASSISTANT_THREAD_STARTED = "ASSISTANT_THREAD_STARTED"
 
     # Automatic behaviors
     PROCESS_SHARED_LINK = "PROCESS_SHARED_LINK"
@@ -45,6 +50,7 @@ class MessagingInteractionType(StrEnum):
     UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
     UNFURL_DISCOVER = "UNFURL_DISCOVER"
     UNFURL_EXPLORE = "UNFURL_EXPLORE"
+    UNFURL_DASHBOARDS = "UNFURL_DASHBOARDS"
 
     GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
 
@@ -98,6 +104,10 @@ class MessageCommandHaltReason(StrEnum):
     TEAM_NOT_LINKED = "team_not_linked"
     INSUFFICIENT_ROLE = "insufficient_role"
 
+    # Setting a default organization
+    MISSING_ORG_SLUG = "missing_org_slug"
+    ORG_NOT_FOUND = "org_not_found"
+
 
 class MessageCommandFailureReason(StrEnum):
     """Common reasons why a messaging command may fail."""
@@ -112,11 +122,11 @@ class MessageInteractionFailureReason(StrEnum):
     MISSING_ACTION = "missing_action"
 
 
-class AppMentionHaltReason(StrEnum):
-    """Reasons why an app mention event may halt without processing."""
+class SeerSlackHaltReason(StrEnum):
+    """Reasons why a Seer Slack event (app mention, DM, assistant thread) may halt."""
 
-    NO_ORGANIZATION = "no_organization"
-    ORGANIZATION_NOT_FOUND = "organization_not_found"
-    ORGANIZATION_NOT_ACTIVE = "organization_not_active"
-    FEATURE_NOT_ENABLED = "feature_not_enabled"
+    NO_VALID_INTEGRATION = "no_valid_integration"
+    NO_VALID_ORGANIZATION = "no_valid_organization"
+    IDENTITY_NOT_LINKED = "identity_not_linked"
     MISSING_EVENT_DATA = "missing_event_data"
+    MISSING_MEMBERSHIP = "missing_membership"

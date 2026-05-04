@@ -93,7 +93,8 @@ class WorkflowEngineDetectorSerializer(Serializer):
         for serialized in serialized_data_conditions:
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
-            assert alert_rule_id
+            if not alert_rule_id:
+                continue
             detector_id = detector_ids_by_alert_rule_id.get(
                 int(alert_rule_id),
                 get_object_id_from_fake_id(int(alert_rule_id)),
@@ -242,7 +243,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         detector_trigger_data_conditions = DataCondition.objects.filter(
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
-        )
+        ).order_by("-condition_result")
         workflow_dcg_ids = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow__in=Subquery(
                 DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(

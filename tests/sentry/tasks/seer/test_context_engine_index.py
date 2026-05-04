@@ -2,7 +2,8 @@ from unittest import mock
 
 import pytest
 
-from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
+from sentry.seer.agent.context_engine_utils import ProjectEventCounts
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.context_engine_index import (
     get_allowed_org_ids_context_engine_indexing,
     index_org_project_knowledge,
@@ -253,71 +254,45 @@ class TestIndexRepos(TestCase):
             organization_integration=self.org_integration,
         )
 
-    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_returns_early_when_option_disabled(
-        self, mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
+        self, mock_make_org_repo_knowledge_index_request
     ) -> None:
         with override_options({"explorer.context_engine_indexing.enable": False}):
             index_repos(self.org.id)
         mock_make_org_repo_knowledge_index_request.assert_not_called()
 
-    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_returns_early_when_feature_flag_disabled(
-        self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
+        self, mock_make_org_repo_knowledge_index_request
     ) -> None:
         with override_options({"explorer.context_engine_indexing.enable": True}):
             index_repos(self.org.id)
-        mock_mock_make_org_repo_knowledge_index_request.assert_not_called()
+        mock_make_org_repo_knowledge_index_request.assert_not_called()
 
-    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_returns_early_when_no_projects(
-        self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
+        self, mock_make_org_repo_knowledge_index_request
     ) -> None:
         org_without_projects = self.create_organization()
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with self.feature({"organizations:context-engine-experiments": True}):
                 index_repos(org_without_projects.id)
-        mock_mock_make_org_repo_knowledge_index_request.assert_not_called()
+        mock_make_org_repo_knowledge_index_request.assert_not_called()
 
-    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_calls_seer_with_correct_org_and_repos(
-        self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
+        self, mock_make_org_repo_knowledge_index_request
     ) -> None:
-        mock_bulk_get_project_preferences.return_value = {
-            str(self.project1.id): {
-                "repositories": [
-                    {
-                        "name": "sentry",
-                        "owner": "getsentry",
-                        "provider": "integrations:github",
-                        "external_id": "123",
-                        "integration_id": str(self.integration.id),
-                    }
-                ],
-            },
-            str(self.project2.id): {
-                "repositories": [
-                    {
-                        "name": "relay",
-                        "owner": "getsentry",
-                        "provider": "integrations:github",
-                        "external_id": "456",
-                        "integration_id": str(self.integration.id),
-                    }
-                ],
-            },
-        }
-        mock_mock_make_org_repo_knowledge_index_request.return_value.status = 200
+        SeerProjectRepository.objects.create(project=self.project1, repository=self.repo1)
+        SeerProjectRepository.objects.create(project=self.project2, repository=self.repo2)
+        mock_make_org_repo_knowledge_index_request.return_value.status = 200
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with self.feature({"organizations:context-engine-experiments": True}):
                 index_repos(self.org.id)
 
-        mock_mock_make_org_repo_knowledge_index_request.assert_called_once()
-        body = mock_mock_make_org_repo_knowledge_index_request.call_args[0][0]
+        mock_make_org_repo_knowledge_index_request.assert_called_once()
+        body = mock_make_org_repo_knowledge_index_request.call_args[0][0]
         assert body["org_id"] == self.org.id
         repos = body["repos"]
         assert len(repos) == 2
@@ -339,36 +314,13 @@ class TestIndexRepos(TestCase):
         assert relay_repo["project_ids"] == [self.project2.id]
         assert relay_repo["integration_id"] == str(self.integration.id)
 
-    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_deduplicates_repos_across_projects(
-        self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
+        self, mock_make_org_repo_knowledge_index_request
     ) -> None:
-        mock_bulk_get_project_preferences.return_value = {
-            str(self.project1.id): {
-                "repositories": [
-                    {
-                        "name": "sentry",
-                        "owner": "getsentry",
-                        "provider": "integrations:github",
-                        "external_id": "123",
-                        "integration_id": str(self.integration.id),
-                    }
-                ],
-            },
-            str(self.project2.id): {
-                "repositories": [
-                    {
-                        "name": "sentry",
-                        "owner": "getsentry",
-                        "provider": "integrations:github",
-                        "external_id": "123",
-                        "integration_id": str(self.integration.id),
-                    }
-                ],
-            },
-        }
-        mock_mock_make_org_repo_knowledge_index_request.return_value.status = 200
+        SeerProjectRepository.objects.create(project=self.project1, repository=self.repo1)
+        SeerProjectRepository.objects.create(project=self.project2, repository=self.repo1)
+        mock_make_org_repo_knowledge_index_request.return_value.status = 200
         # Map project2 to the same repo as project1
         self.create_code_mapping(
             project=self.project2,
@@ -382,20 +334,19 @@ class TestIndexRepos(TestCase):
             with self.feature({"organizations:context-engine-experiments": True}):
                 index_repos(self.org.id)
 
-        mock_mock_make_org_repo_knowledge_index_request.assert_called_once()
-        body = mock_mock_make_org_repo_knowledge_index_request.call_args[0][0]
+        mock_make_org_repo_knowledge_index_request.assert_called_once()
+        body = mock_make_org_repo_knowledge_index_request.call_args[0][0]
         repos = body["repos"]
         repos_by_name = {r["name"]: r for r in repos}
 
         sentry_repo = repos_by_name["sentry"]
         assert sorted(sentry_repo["project_ids"]) == sorted([self.project1.id, self.project2.id])
 
-    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_uses_seer_project_preferences_if_available(
-        self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
+        self, mock_make_org_repo_knowledge_index_request
     ) -> None:
-        mock_mock_make_org_repo_knowledge_index_request.return_value.status = 200
+        mock_make_org_repo_knowledge_index_request.return_value.status = 200
         # Map project2 to the same repo as project1
         self.create_code_mapping(
             project=self.project2,
@@ -405,29 +356,21 @@ class TestIndexRepos(TestCase):
             source_root="src/",
         )
 
-        mock_bulk_get_project_preferences.return_value = {
-            str(self.project1.id): {
-                "repositories": [
-                    {
-                        "name": "sentry-seer",
-                        "owner": "getsentry",
-                        "provider": "integrations:github",
-                        "external_id": "999",
-                        "integration_id": "000",
-                    }
-                ],
-            },
-            str(self.project2.id): {
-                "repositories": None,
-            },
-        }
+        seer_repo = self.create_repo(
+            project=self.project1,
+            name="getsentry/sentry-seer",
+            provider="integrations:github",
+            external_id="999",
+            integration_id=self.integration.id,
+        )
+        SeerProjectRepository.objects.create(project=self.project1, repository=seer_repo)
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with self.feature({"organizations:context-engine-experiments": True}):
                 index_repos(self.org.id)
 
-        mock_mock_make_org_repo_knowledge_index_request.assert_called_once()
-        body = mock_mock_make_org_repo_knowledge_index_request.call_args[0][0]
+        mock_make_org_repo_knowledge_index_request.assert_called_once()
+        body = mock_make_org_repo_knowledge_index_request.call_args[0][0]
         repos = body["repos"]
         repos_by_name = {r["name"]: r for r in repos}
 
@@ -435,36 +378,22 @@ class TestIndexRepos(TestCase):
         sentry_repo = repos_by_name["sentry-seer"]
         assert sorted(sentry_repo["project_ids"]) == sorted([self.project1.id])
 
-    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
-    def test_skips_projects_without_seer_preferences(
-        self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
+    def test_skips_projects_without_seer_repositories(
+        self, mock_make_org_repo_knowledge_index_request
     ) -> None:
-        mock_mock_make_org_repo_knowledge_index_request.return_value.status = 200
+        mock_make_org_repo_knowledge_index_request.return_value.status = 200
 
-        # Only project1 has preferences; project2 is absent from the map
-        mock_bulk_get_project_preferences.return_value = {
-            str(self.project1.id): {
-                "repositories": [
-                    {
-                        "name": "sentry",
-                        "owner": "getsentry",
-                        "provider": "integrations:github",
-                        "external_id": "123",
-                        "integration_id": str(self.integration.id),
-                    }
-                ],
-            },
-        }
+        SeerProjectRepository.objects.create(project=self.project1, repository=self.repo1)
+        # project2 has no SeerProjectRepository rows.
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with self.feature({"organizations:context-engine-experiments": True}):
                 index_repos(self.org.id)
 
-        mock_mock_make_org_repo_knowledge_index_request.assert_called_once()
-        body = mock_mock_make_org_repo_knowledge_index_request.call_args[0][0]
+        mock_make_org_repo_knowledge_index_request.assert_called_once()
+        body = mock_make_org_repo_knowledge_index_request.call_args[0][0]
         repos = body["repos"]
-
         assert len(repos) == 1
         assert repos[0]["name"] == "sentry"
         assert repos[0]["project_ids"] == [self.project1.id]

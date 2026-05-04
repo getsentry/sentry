@@ -2,32 +2,20 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {useRemoveMetric} from 'sentry/views/explore/metrics/metricsQueryParams';
 
-export function DeleteMetricButton() {
-  const organization = useOrganization();
+export function DeleteMetricButton({disabledReason}: {disabledReason?: string}) {
   const removeMetric = useRemoveMetric();
-
-  if (canUseMetricsUIRefresh(organization)) {
-    return (
-      <Button
-        priority="transparent"
-        icon={<IconDelete />}
-        size="zero"
-        onClick={removeMetric}
-        aria-label={t('Delete Metric')}
-      />
-    );
-  }
 
   return (
     <Button
-      size="sm"
+      priority="transparent"
       icon={<IconDelete />}
-      aria-label={t('Delete metric')}
+      size="zero"
       onClick={removeMetric}
+      disabled={disabledReason !== undefined}
+      tooltipProps={{title: disabledReason}}
+      aria-label={t('Delete Metric')}
     />
   );
 }

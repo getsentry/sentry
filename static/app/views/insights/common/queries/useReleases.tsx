@@ -1,54 +1,47 @@
+import {queryOptions, useQueries, useQuery} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
-export function useReleases(
+function useReleases(
   searchTerm: string | undefined,
-  sortBy: ReleasesSortByOption | undefined
+  sortBy: ReleasesSortOption | undefined
 ) {
   const organization = useOrganization();
   const location = useLocation();
   const {selection, isReady} = usePageFilters();
   const {environments, projects} = selection;
-  const api = useApi();
 
   const activeSort = sortBy ?? ReleasesSortOption.DATE;
-  const releaseResults = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project: projects,
-          per_page: 50,
-          environment: environments,
-          query: searchTerm,
-          sort: activeSort,
-          // Depending on the selected sortBy option, 'flatten' is needed or we get an error from the backend.
-          // A similar logic can be found in https://github.com/getsentry/sentry/blob/6209d6fbf55839bb7a2f93ef65decbf495a64974/static/app/views/releases/list/index.tsx#L106
-          flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
-        },
+  const releaseResults = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: projects,
+        per_page: 50,
+        environment: environments,
+        query: searchTerm,
+        sort: activeSort,
+        // Depending on the selected sortBy option, 'flatten' is needed or we get an error from the backend.
+        // A similar logic can be found in https://github.com/getsentry/sentry/blob/6209d6fbf55839bb7a2f93ef65decbf495a64974/static/app/views/releases/list/index.tsx#L106
+        flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
       },
-    ],
-    {staleTime: Infinity, enabled: isReady, retry: false}
-  );
+      staleTime: Infinity,
+    }),
+    enabled: isReady,
+    retry: false,
+  });
 
   const chunks = releaseResults.data?.length ? chunk(releaseResults.data, 10) : [];
 
@@ -65,30 +58,18 @@ export function useReleases(
         projects: selection.projects,
       };
       const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
-      const queryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      return queryOptions({
+        ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
           path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
           query: {
             ...eventView.getEventsAPIPayload(location),
             referrer: 'api.insights.mobile-release-selector',
           },
-        },
-      ] as ApiQueryKey;
-      const {url, options} = parseQueryKey(queryKey);
-      return {
-        queryKey,
-        queryFn: () => {
-          return api.requestPromise(url, {
-            method: 'GET',
-            query: options?.query,
-          }) as Promise<TableData>;
-        },
-        staleTime: Infinity,
+          staleTime: Infinity,
+        }),
         enabled: isReady && !releaseResults.isPending,
         retry: false,
-      };
+      });
     }),
   });
 
@@ -124,7 +105,6 @@ export function useReleases(
       : [];
 
   return {
-    ...releaseResults,
     data: releaseStats,
     isLoading: !metricsFetched || releaseResults.isPending,
   };

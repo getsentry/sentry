@@ -50,7 +50,9 @@ function getStoppingPointOptions(organization: Organization) {
             '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
             {
               settings: (
-                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                <Link
+                  to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+                />
               ),
             }
           ),
@@ -66,7 +68,9 @@ function getStoppingPointOptions(organization: Organization) {
             '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
             {
               settings: (
-                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                <Link
+                  to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+                />
               ),
             }
           ),
@@ -174,7 +178,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               >
                 <StyledButton
                   type="submit"
-                  priority="primary"
+                  variant="primary"
                   disabled={primaryOption.disabled}
                   analyticsEventKey={
                     message
@@ -196,7 +200,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                 trigger={(triggerProps, isOpen) => (
                   <DropdownTrigger
                     {...triggerProps}
-                    priority="primary"
+                    variant="primary"
                     aria-label={t('Choose stopping point')}
                     icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   />

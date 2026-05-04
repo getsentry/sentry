@@ -53,6 +53,8 @@ export function StackTraceViewStateProvider({
 export interface StackTraceContextValue {
   /** All frames regardless of system-frame filter, for Activity-based rendering. */
   allRows: Row[];
+  /** When true, all frames start collapsed regardless of their position. */
+  collapseAll: boolean;
   /** Event payload for project/platform metadata and integrations. */
   event: Event;
   /** Active frame list for the selected (symbolicated/minified) stacktrace. */

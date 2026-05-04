@@ -92,21 +92,12 @@ class GithubRequestParser(BaseRequestParser):
             return None
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
-    def try_forward_to_codecov(self, event: Mapping[str, Any]) -> None:
-        if options.get("codecov.forward-webhooks.disabled"):
-            return
-        try:
-            self.forward_to_codecov(external_id=self._get_external_id(event=event))
-        except Exception:
-            metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=0.01)
-
     def get_response(self) -> HttpResponseBase:
         """
         Orchestrates GitHub webhook routing across Sentry's multi-service architecture.
 
-        Handles installation events in control silo, distributes webhooks to appropriate
-        cell silos based on organization locations, and conditionally forwards to
-        external services (Codecov) based on configuration and cell.
+        Handles installation events in control silo and distributes webhooks to appropriate
+        cell silos based on organization locations.
         """
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
@@ -117,7 +108,6 @@ class GithubRequestParser(BaseRequestParser):
             return HttpResponse(status=400)
 
         if self.should_route_to_control_silo(parsed_event=event, request=self.request):
-            self.try_forward_to_codecov(event=event)
             return self.get_response_from_control_silo()
 
         try:
@@ -131,14 +121,6 @@ class GithubRequestParser(BaseRequestParser):
 
         if len(cells) == 0:
             return self.get_default_missing_integration_response()
-
-        if options.get("codecov.forward-webhooks.regions"):
-            # if any of the cells are in the codecov.forward-webhooks.regions option, forward to codecov
-            codecov_cells = list(
-                {cell.name for cell in cells} & set(options.get("codecov.forward-webhooks.regions"))
-            )
-            if codecov_cells:
-                self.try_forward_to_codecov(event=event)
 
         github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
 

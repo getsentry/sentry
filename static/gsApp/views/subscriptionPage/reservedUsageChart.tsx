@@ -278,7 +278,7 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
 
             // @ts-expect-error TS(2339): Property 'dropped' does not exist on type 'OptionD... Remove this comment to see the full error message
             const dropped = s.data.dropped as DroppedBreakdown | undefined;
-            if (typeof dropped === 'undefined' || value === '0') {
+            if (dropped === undefined || value === '0') {
               return `<div><span class="tooltip-label">${s.marker as string} <strong>${label}</strong></span> ${value}</div>`;
             }
             const other = tooltipValueFormatter(dropped.other);
@@ -332,7 +332,7 @@ function defaultChartData(): ChartStats {
 }
 
 export function mapStatsToChart({
-  stats = [],
+  stats,
   transform,
 }: {
   stats: BillingStats;
@@ -396,7 +396,7 @@ export function mapStatsToChart({
 }
 
 export function mapCostStatsToChart({
-  stats = [],
+  stats,
   transform,
   subscription,
   category,
@@ -459,7 +459,7 @@ export function mapCostStatsToChart({
 }
 
 export function mapReservedBudgetStatsToChart({
-  statsByDateAndCategory = {},
+  statsByDateAndCategory,
   transform,
   subscription,
   reservedBudgetCategoryInfo,
@@ -613,15 +613,14 @@ export function ProductUsageChart({
           (budgetType === ReservedBudgetCategoryType.DYNAMIC_SAMPLING &&
             subscription.hadCustomDynamicSampling)
         ) {
-          const statsByDateAndCategory = categoryStats.reduce(
-            (acc, stat) => {
-              if (stat) {
-                acc[stat.date] = {[category]: [stat]};
-              }
-              return acc;
-            },
-            {} as Record<string, Record<string, BillingStats>>
-          );
+          const statsByDateAndCategory = categoryStats.reduce<
+            Record<string, Record<string, BillingStats>>
+          >((acc, stat) => {
+            if (stat) {
+              acc[stat.date] = {[category]: [stat]};
+            }
+            return acc;
+          }, {});
           dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
             statsByDateAndCategory,
             transform,
@@ -638,17 +637,16 @@ export function ProductUsageChart({
             [category]: categoryStats,
             [otherCategory]: otherCategoryStats,
           };
-          const statsByDateAndCategory = Object.entries(statsByCategory).reduce(
-            (acc, [budgetCategory, stats]) => {
-              stats.forEach(stat => {
-                if (stat) {
-                  acc[stat.date] = {...acc[stat.date], [budgetCategory]: [stat]};
-                }
-              });
-              return acc;
-            },
-            {} as Record<string, Record<string, BillingStats>>
-          );
+          const statsByDateAndCategory = Object.entries(statsByCategory).reduce<
+            Record<string, Record<string, BillingStats>>
+          >((acc, [budgetCategory, stats]) => {
+            stats.forEach(stat => {
+              if (stat) {
+                acc[stat.date] = {...acc[stat.date], [budgetCategory]: [stat]};
+              }
+            });
+            return acc;
+          }, {});
           dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
             statsByDateAndCategory,
             transform,

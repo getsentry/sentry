@@ -1,4 +1,4 @@
-{{ provider.name }} Single Sign-On has been configured for the {{ organization.name }} organization.
+{% load sentry_helpers %}{{ provider.name }} Single Sign-On has been configured for the {{ organization.name|sanitize_periods }} organization.
 
 Link your Sentry account to enable signing on with your {{ provider.name }} account by visiting the following url:
 

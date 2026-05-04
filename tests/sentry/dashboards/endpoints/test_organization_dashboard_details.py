@@ -16,7 +16,7 @@ from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
     DashboardLastVisited,
-    DashboardTombstone,
+    DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -133,36 +133,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
 
-    def test_get_prebuilt_dashboard(self) -> None:
-        # Pre-built dashboards should be accessible
-        response = self.do_request("get", self.url("default-overview"))
-        assert response.status_code == 200
-        assert response.data["id"] == "default-overview"
-
-    def test_get_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            response = self.do_request("get", self.url("default-overview"))
-            assert response.status_code == 200
-            assert response.data["widgets"][7]["widgetType"] == "spans"
-
-    def test_prebuilt_dashboard_with_discover_split_feature_flag(self) -> None:
-        response = self.do_request("get", self.url("default-overview"))
-        assert response.status_code == 200, response.data
-
-        for widget in response.data["widgets"]:
-            assert widget["widgetType"] in {"issue", "transaction-like", "error-events"}
-
-    def test_get_prebuilt_dashboard_tombstoned(self) -> None:
-        DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
-        # Pre-built dashboards should be accessible even when tombstoned
-        # This is to preserve behavior around bookmarks
-        response = self.do_request("get", self.url("default-overview"))
-        assert response.status_code == 200
-        assert response.data["id"] == "default-overview"
-
     def test_features_required(self) -> None:
         with self.feature({"organizations:dashboards-basic": False}):
-            response = self.do_request("get", self.url("default-overview"))
+            response = self.do_request("get", self.url(self.dashboard.id))
             assert response.status_code == 404
 
     def test_dashboard_widget_returns_limit(self) -> None:
@@ -789,33 +762,14 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
 
-    def test_delete_prebuilt_dashboard(self) -> None:
-        slug = "default-overview"
-        response = self.do_request("delete", self.url(slug))
-        assert response.status_code == 204
-        assert DashboardTombstone.objects.filter(organization=self.organization, slug=slug).exists()
-
     def test_delete_last_dashboard(self) -> None:
-        slug = "default-overview"
-        response = self.do_request("delete", self.url(slug))
-        assert response.status_code == 204
-        assert DashboardTombstone.objects.filter(organization=self.organization, slug=slug).exists()
-
-        response = self.do_request("delete", self.url(self.dashboard.id))
-        assert response.status_code == 409
-
-    def test_delete_last_default_dashboard(self) -> None:
         response = self.do_request("delete", self.url(self.dashboard.id))
         assert response.status_code == 204
-        assert self.client.get(self.url(self.dashboard.id)).status_code == 404
-
-        slug = "default-overview"
-        response = self.do_request("delete", self.url(slug))
-        assert response.status_code == 409
+        assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
 
     def test_features_required(self) -> None:
         with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request("delete", self.url("default-overview"))
+            response = self.do_request("delete", self.url(self.dashboard.id))
             assert response.status_code == 404
 
     def test_delete_dashboard_with_edit_permissions_not_granted(self) -> None:
@@ -978,7 +932,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "put", self.url(self.dashboard.id), data={"title": "Dashboard 2"}
         )
         assert response.status_code == 409, response.data
-        assert list(response.data) == ["Dashboard with that title already exists."]
+        assert response.data["detail"] == "Dashboard with that title already exists."
 
     def test_allow_put_when_no_project_access(self) -> None:
         # disable Open Membership
@@ -1330,6 +1284,28 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
             assert response.status_code == 200, response.data
             assert response.data["widgets"][1]["description"] == "x" * 256
+
+    def test_update_text_widget_description_exceeds_15000_chars(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "First dashboard",
+                "widgets": [
+                    {"id": str(self.widget_1.id)},
+                    {
+                        "id": str(self.widget_2.id),
+                        "title": "Text Widget",
+                        "displayType": "text",
+                        "description": "x" * 15001,
+                    },
+                ],
+            }
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 400, response.data
+            assert "description" in response.data["widgets"][1], response.data
+            assert (
+                response.data["widgets"][1]["description"][0]
+                == "Description must not exceed 15,000 characters"
+            )
 
     def test_add_widget_with_limit(self) -> None:
         data = {
@@ -1719,6 +1695,45 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         widgets = self.get_widgets(self.dashboard.id)
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+    def test_update_widget_with_deprecated_display_type_is_allowed(self) -> None:
+        # Existing widgets created via the API with deprecated display types
+        # should remain editable; the rejection only applies to new widgets.
+        deprecated_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=4,
+            title="Stacked area",
+            display_type=DashboardWidgetDisplayTypes.STACKED_AREA_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            limit=5,
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=deprecated_widget,
+            name="Transactions",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="event.type:transaction",
+            order=0,
+        )
+
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {"id": str(self.widget_2.id)},
+                {"id": str(self.widget_3.id)},
+                {"id": str(self.widget_4.id)},
+                {"id": str(deprecated_widget.id), "title": "Renamed stacked area"},
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        deprecated_widget.refresh_from_db()
+        assert deprecated_widget.title == "Renamed stacked area"
+        assert deprecated_widget.display_type == DashboardWidgetDisplayTypes.STACKED_AREA_CHART
 
     def test_update_widget_add_query(self) -> None:
         data: dict[str, Any] = {
@@ -2288,65 +2303,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widgets = response.data["widgets"]
         for widget in widgets:
             assert widget["layout"] == expected_layouts[int(widget["id"])]
-
-    def test_update_prebuilt_dashboard(self) -> None:
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {
-                    "title": "New title",
-                    "displayType": "line",
-                    "queries": [
-                        {
-                            "name": "transactions",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:transaction",
-                        },
-                    ],
-                },
-            ],
-        }
-        slug = "default-overview"
-        response = self.do_request("put", self.url(slug), data=data)
-        assert response.status_code == 200, response.data
-        dashboard_id = response.data["id"]
-        assert dashboard_id != slug
-
-        # Ensure widget and query were saved
-        widgets = self.get_widgets(dashboard_id)
-        assert len(widgets) == 1
-        self.assert_serialized_widget(data["widgets"][0], widgets[0])
-
-        queries = self.get_widget_queries(widgets[0])
-        assert len(queries) == 1
-        assert DashboardTombstone.objects.filter(slug=slug).exists()
-
-    def test_update_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {
-                    "title": "New title",
-                    "displayType": "line",
-                    "widgetType": "transaction-like",
-                    "queries": [
-                        {
-                            "name": "transactions",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:transaction",
-                        },
-                    ],
-                },
-            ],
-        }
-        slug = "default-overview"
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            response = self.do_request("put", self.url(slug), data=data)
-            assert response.status_code == 400, response.data
 
     def test_update_unknown_prebuilt(self) -> None:
         data = {
@@ -3114,8 +3070,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:performance-use-metrics": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
@@ -3167,8 +3122,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:performance-use-metrics": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
@@ -4013,6 +3967,105 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
             assert "queries" in response.data["widgets"][1], response.data
             assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
+
+    def test_put_creates_dashboard_revision_when_feature_enabled(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
+            )
+        assert response.status_code == 200, response.data
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 1
+
+    def test_put_does_not_create_revision_when_feature_disabled(self) -> None:
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
+        )
+        assert response.status_code == 200, response.data
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 0
+
+    def test_put_snapshot_contains_pre_save_state(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        # Snapshot reflects the state before the update
+        assert revision.snapshot["title"] == self.dashboard.title
+        assert revision.title == self.dashboard.title
+        # The dashboard itself was updated
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "New Title"
+
+    def test_put_snapshot_includes_widgets_and_queries(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        snapshot_widgets = revision.snapshot["widgets"]
+
+        assert len(snapshot_widgets) == 4
+        assert snapshot_widgets[0]["id"] == str(self.widget_1.id)
+        assert snapshot_widgets[0]["title"] == self.widget_1.title
+        assert len(snapshot_widgets[0]["queries"]) == 2
+        assert snapshot_widgets[1]["id"] == str(self.widget_2.id)
+        assert snapshot_widgets[1]["title"] == self.widget_2.title
+        assert len(snapshot_widgets[1]["queries"]) == 1
+        assert snapshot_widgets[2]["id"] == str(self.widget_3.id)
+        assert snapshot_widgets[3]["id"] == str(self.widget_4.id)
+
+    def test_put_snapshot_captures_widget_state_before_widget_edit(self) -> None:
+        original_widget_title = self.widget_1.title
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={
+                    "title": self.dashboard.title,
+                    "widgets": [
+                        {"id": str(self.widget_1.id), "title": "Updated Widget Title"},
+                        {"id": str(self.widget_2.id)},
+                        {"id": str(self.widget_3.id)},
+                        {"id": str(self.widget_4.id)},
+                    ],
+                },
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        snapshot_widget = revision.snapshot["widgets"][0]
+        # Snapshot reflects the widget state before the edit
+        assert snapshot_widget["id"] == str(self.widget_1.id)
+        assert snapshot_widget["title"] == original_widget_title
+        # The widget itself was updated
+        self.widget_1.refresh_from_db()
+        assert self.widget_1.title == "Updated Widget Title"
+
+    def test_put_revision_source_defaults_to_edit(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "Updated"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit"
+
+    def test_put_revision_source_edit_with_agent(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"title": "Updated", "revisionSource": "edit-with-agent"},
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit-with-agent"
+
+    def test_put_revision_source_ignores_unknown_values(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"title": "Updated", "revisionSource": "malicious-value"},
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit"
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

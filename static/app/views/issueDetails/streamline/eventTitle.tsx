@@ -1,4 +1,4 @@
-import {Fragment, useCallback, type CSSProperties} from 'react';
+import {type CSSProperties, Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
@@ -68,7 +68,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   const {copy} = useCopyToClipboard();
 
-  const handleCopyEventId = useCallback(() => {
+  const handleCopyEventId = () => {
     copy(event.id, {successMessage: t('Event ID copied to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_event_id_clicked', {
         organization,
@@ -77,7 +77,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
         streamline: true,
       });
     });
-  }, [copy, organization, group, event]);
+  };
 
   return (
     <div {...props} ref={ref}>
@@ -92,7 +92,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               tooltipProps={{title: t('Copy Event ID')}}
               onClick={handleCopyEventId}
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconCopy size="xs" variant="muted" />}
             />
           </EventIdWrapper>
@@ -127,7 +127,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                     'Sentry has detected configuration issues with this event. Click for more info.'
                   ),
                 }}
-                priority="transparent"
+                variant="transparent"
                 size="zero"
                 icon={<IconWarning variant="danger" />}
                 onClick={() => {

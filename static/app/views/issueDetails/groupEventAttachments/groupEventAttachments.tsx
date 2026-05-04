@@ -2,11 +2,11 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group, IssueAttachment} from 'sentry/types/group';
@@ -67,13 +67,15 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
     }
   }, [previouslyUsedAttachmentsTab, location, navigate]);
 
-  const {attachments, isPending, isError, getResponseHeader, refetch} =
-    useGroupEventAttachments({
-      group,
-      activeAttachmentsTab,
-    });
+  const {attachments, isPending, isError, pageLinks, refetch} = useGroupEventAttachments({
+    group,
+    activeAttachmentsTab,
+  });
 
   const {mutate: deleteAttachment} = useDeleteGroupEventAttachment();
+
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
 
   const handleDelete = (attachment: IssueAttachment) => {
     deleteAttachment({
@@ -84,10 +86,12 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
       environment: eventView.environment as string[],
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
       eventQuery,
+      ...(hasSetStatsPeriod && {
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+      }),
     });
   };
 
@@ -162,7 +166,7 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? renderScreenshotGallery()
         : renderAttachmentsTable()}
-      <NoMarginPagination pageLinks={getResponseHeader?.('Link')} />
+      <NoMarginPagination pageLinks={pageLinks} />
     </Stack>
   );
 }

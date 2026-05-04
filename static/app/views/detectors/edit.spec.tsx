@@ -17,6 +17,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
@@ -257,6 +258,33 @@ describe('DetectorEdit', () => {
         );
       });
     });
+
+    it('displays error response detail in a toast when save fails', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        method: 'PUT',
+        statusCode: 403,
+        body: {detail: 'You do not have permission to perform this action.'},
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'You do not have permission to perform this action.'
+        );
+      });
+    });
   });
 
   describe('Metric', () => {
@@ -449,8 +477,9 @@ describe('DetectorEdit', () => {
         await screen.findByRole('link', {name: detectorWithOkEqualsHigh.name})
       ).toBeInTheDocument();
 
-      expect(screen.getByText('Default').closest('label')).toHaveClass(
-        'css-1aktlwe-RadioLineItem'
+      expect(screen.getByText('Default').closest('label')).toHaveAttribute(
+        'aria-checked',
+        'true'
       );
 
       // Switching to Custom should reveal prefilled resolution input with the current OK value

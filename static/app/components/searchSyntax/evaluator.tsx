@@ -139,7 +139,7 @@ export function toPostFix(tokens: Array<TokenResult<Token>>): ProcessedTokenResu
           }
           // we dont need to check for balanced parens as the parser grammar will only succeed
           // in parsing the input string if the parens are balanced.
-          result.push(stack.pop() as ProcessedTokenResult);
+          result.push(stack.pop()!);
         }
         break;
       }
@@ -152,7 +152,7 @@ export function toPostFix(tokens: Array<TokenResult<Token>>): ProcessedTokenResu
 
   // Push the remained of the operators to the output
   while (stack.length > 0) {
-    result.push(stack.pop() as ProcessedTokenResult);
+    result.push(stack.pop()!);
   }
 
   return result;

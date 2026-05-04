@@ -1,13 +1,13 @@
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
-export type CrossEventType = 'logs' | 'spans';
+export type CrossEventType = 'logs' | 'spans' | 'metrics';
 
-export interface CrossEvent {
-  query: string;
-  type: CrossEventType;
-}
+export type CrossEvent =
+  | {query: string; type: 'logs' | 'spans'}
+  | {metric: TraceMetric; query: string; type: 'metrics'};
 
 export function getCrossEventsFromLocation(
   location: Location,
@@ -25,23 +25,38 @@ export function getCrossEventsFromLocation(
     return undefined;
   }
 
-  if (Array.isArray(json) && json.every(isCrossEvent)) {
-    return json;
+  if (!Array.isArray(json)) {
+    return undefined;
   }
 
-  return undefined;
+  const crossEvents = json.filter(isCrossEvent);
+  return crossEvents.length > 0 ? crossEvents : undefined;
 }
 
 export function isCrossEventType(value: string): value is CrossEventType {
-  return value === 'logs' || value === 'spans';
+  return value === 'logs' || value === 'spans' || value === 'metrics';
 }
 
 function isCrossEvent(value: any): value is CrossEvent {
-  return (
-    defined(value) &&
-    typeof value === 'object' &&
-    typeof value.query === 'string' &&
-    typeof value.type === 'string' &&
-    isCrossEventType(value.type)
-  );
+  if (
+    !defined(value) ||
+    typeof value !== 'object' ||
+    typeof value.query !== 'string' ||
+    typeof value.type !== 'string' ||
+    !isCrossEventType(value.type)
+  ) {
+    return false;
+  }
+
+  if (value.type === 'metrics') {
+    return (
+      defined(value.metric) &&
+      typeof value.metric === 'object' &&
+      typeof value.metric.name === 'string' &&
+      typeof value.metric.type === 'string' &&
+      (value.metric.unit === undefined || typeof value.metric.unit === 'string')
+    );
+  }
+
+  return true;
 }

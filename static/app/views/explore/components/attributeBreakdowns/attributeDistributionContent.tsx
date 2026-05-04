@@ -107,7 +107,7 @@ export function AttributeDistribution() {
 
   const {
     data: attributeBreakdownsData,
-    getResponseHeader: getAttributeBreakdownsResponseHeader,
+    pageLinks: attributeBreakdownsPageLinks,
     isLoading: isAttributeBreakdownsLoading,
     error: attributeBreakdownsError,
   } = useAttributeBreakdowns({
@@ -129,9 +129,7 @@ export function AttributeDistribution() {
     setPagination({cursor: undefined, page: 0});
   }, [debouncedSearchQuery, selection, query]);
 
-  const parsedLinks = parseLinkHeader(
-    getAttributeBreakdownsResponseHeader?.('Link') ?? null
-  );
+  const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 
   const uniqueAttributeDistribution = useMemo(() => {
     if (!attributeBreakdownsData) return [];

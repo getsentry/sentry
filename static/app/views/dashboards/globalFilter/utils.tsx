@@ -19,6 +19,40 @@ export function globalFilterKeysAreEqual(a: GlobalFilter, b: GlobalFilter): bool
   return a.tag.key === b.tag.key && a.dataset === b.dataset;
 }
 
+/**
+ * Merges two lists of global filters. Walks `baseFilters` in order and
+ * replaces each entry with its match from `overrideFilters` (by tag key +
+ * dataset) when one exists. Override filters that don't match any base
+ * entry are appended at the end.
+ */
+export function mergeGlobalFilters(
+  baseFilters: GlobalFilter[],
+  overrideFilters: GlobalFilter[]
+): GlobalFilter[] {
+  const overridesByKey = new Map(
+    overrideFilters.map(f => [`${f.tag.key}:${f.dataset}`, f])
+  );
+  const usedKeys = new Set<string>();
+
+  const merged = baseFilters.map(f => {
+    const key = `${f.tag.key}:${f.dataset}`;
+    const override = overridesByKey.get(key);
+    if (override) {
+      usedKeys.add(key);
+      return override;
+    }
+    return f;
+  });
+
+  for (const f of overrideFilters) {
+    if (!usedKeys.has(`${f.tag.key}:${f.dataset}`)) {
+      merged.push(f);
+    }
+  }
+
+  return merged;
+}
+
 export function getFieldDefinitionForDataset(
   tag: Tag,
   datasetType: WidgetType

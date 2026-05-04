@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -24,17 +25,12 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {toPermissions} from 'sentry/utils/consolidatedScopes';
+import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getSentryAppInstallStatus,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -133,6 +129,14 @@ export default function SentryAppDetailedView() {
     () => toPermissions(sentryApp?.scopes || []),
     [sentryApp?.scopes]
   );
+  const specialPermissions = useMemo(
+    () => getSpecialPermissions(sentryApp?.scopes || []),
+    [sentryApp?.scopes]
+  );
+  const hasStandardPermissions =
+    permissions.read.length > 0 ||
+    permissions.write.length > 0 ||
+    permissions.admin.length > 0;
   const installationStatus = useMemo(() => getSentryAppInstallStatus(install), [install]);
   const isPending = isSentryAppPending || isFeatureDataPending || isAppInstallsPending;
   const isError = isSentryAppError || isFeatureDataError || isAppInstallsError;
@@ -181,6 +185,7 @@ export default function SentryAppDetailedView() {
       view: 'integrations_directory_integration_detail',
       integration: integrationSlug,
       integration_type: integrationType,
+      is_scm: false,
       already_installed: installationStatus !== 'Not Installed',
       organization,
       integration_status: sentryApp.status,
@@ -195,6 +200,7 @@ export default function SentryAppDetailedView() {
         view: 'integrations_directory_integration_detail',
         integration: integrationSlug,
         integration_type: integrationType,
+        is_scm: false,
         already_installed: installationStatus !== 'Not Installed',
         organization,
         integration_status: sentryApp.status,
@@ -282,8 +288,7 @@ export default function SentryAppDetailedView() {
   }, [integrationSlug, integrationType, organization, sentryApp?.status]);
 
   const renderPermissions = useCallback(() => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    if (!Object.keys(permissions).some(scope => permissions[scope].length > 0)) {
+    if (!hasStandardPermissions && specialPermissions.length === 0) {
       return null;
     }
     return (
@@ -323,9 +328,20 @@ export default function SentryAppDetailedView() {
             </Text>
           </Flex>
         )}
+        {specialPermissions.map(permission => (
+          <Flex key={permission.scope}>
+            <Indicator />
+            <Text>
+              {tct('[label]: [summary]', {
+                label: <strong>{permission.label}</strong>,
+                summary: permission.summary,
+              })}
+            </Text>
+          </Flex>
+        ))}
       </PermissionWrapper>
     );
-  }, [permissions]);
+  }, [hasStandardPermissions, permissions, specialPermissions]);
 
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
@@ -366,7 +382,7 @@ export default function SentryAppDetailedView() {
               disabledFromFeatures || integrationSlug === 'github-deployment-gates'
             }
             onClick={() => handleInstall()}
-            priority="primary"
+            variant="primary"
             size="sm"
             style={{marginLeft: theme.space.md}}
           >

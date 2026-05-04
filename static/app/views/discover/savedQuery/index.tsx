@@ -21,7 +21,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
+import {IconBookmark, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -80,7 +80,7 @@ type SaveAsDropdownProps = {
   queryName: string;
 };
 
-function SaveAsDropdown({
+export function SaveAsDropdown({
   queryName,
   disabled,
   onChangeInput,
@@ -100,7 +100,7 @@ function SaveAsDropdown({
         aria-label={t('Save as')}
         disabled={disabled}
       >
-        {`${t('Save as')}\u2026`}
+        {t('Save as')}
       </Button>
       <AnimatePresence>
         {isOpen && (
@@ -160,6 +160,7 @@ type Props = DefaultProps & {
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
+  hasPageFrameFeature?: boolean;
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
 };
@@ -433,25 +434,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     return this.renderButtonSaveAs(disabled);
   }
 
-  renderButtonDelete(disabled: boolean) {
-    const {isNewQuery} = this.state;
-
-    if (isNewQuery) {
-      return null;
-    }
-
-    return (
-      <Button
-        data-test-id="discover2-savedquery-button-delete"
-        onClick={this.handleDeleteQuery}
-        disabled={disabled}
-        size="sm"
-        icon={<IconDelete />}
-        aria-label={t('Delete')}
-      />
-    );
-  }
-
   renderButtonCreateAlert() {
     const {eventView, organization, projects, location, savedQuery} = this.props;
     const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
@@ -497,7 +479,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           onClick={this.handleCreateAlertSuccess}
           referrer="discover"
           size="sm"
-          aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
           alertType={alertType}
         />
@@ -628,7 +609,15 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, eventView, savedQuery, yAxis, location, isHomepage} = this.props;
+    const {
+      organization,
+      eventView,
+      savedQuery,
+      yAxis,
+      location,
+      isHomepage,
+      hasPageFrameFeature,
+    } = this.props;
 
     const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
       location,
@@ -705,13 +694,17 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar>
-        {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
-        {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
-        <Feature organization={organization} features="incidents">
-          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
-        </Feature>
+        {!hasPageFrameFeature &&
+          this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
+        {!hasPageFrameFeature &&
+          this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        {!hasPageFrameFeature && (
+          <Feature organization={organization} features="incidents">
+            {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
+          </Feature>
+        )}
 
-        {contextMenuItems.length > 0 && contextMenu}
+        {!hasPageFrameFeature && contextMenuItems.length > 0 && contextMenu}
 
         {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
       </ResponsiveButtonBar>
@@ -735,7 +728,7 @@ const SaveAsButton = styled(Button)`
   width: 100%;
 `;
 
-const IconUpdate = styled('div')`
+export const IconUpdate = styled('div')`
   display: inline-block;
   width: 10px;
   height: 10px;

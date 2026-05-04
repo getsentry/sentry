@@ -4,6 +4,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
 import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
 
 import {crashReport} from './crashReport';
 import {logs} from './logs';
@@ -17,6 +18,7 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
+  featureFlagOnboarding: featureFlag(),
   profilingOnboarding: profiling,
   logsOnboarding: logs,
   metricsOnboarding: metrics,

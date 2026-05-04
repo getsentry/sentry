@@ -1,3 +1,5 @@
+from typing import Literal
+
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
@@ -210,6 +212,8 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 search_type="string",
             ),
             # Exception data
+            # TODO: some of these values are arrays, but EAP does not yet support array-aware operators for these
+            # For example, a query like `error.unhandled is False` returns no results from EAP when it should
             ResolvedAttribute(
                 public_alias="exception_count",
                 internal_name="exception_count",
@@ -219,16 +223,19 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 public_alias="error.type",
                 internal_name="stack_types",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="error.value",
                 internal_name="stack_values",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="error.mechanism",
                 internal_name="stack_mechanism_types",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="error.handled",
@@ -239,46 +246,55 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 public_alias="stack.abs_path",
                 internal_name="frame_abs_paths",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.filename",
                 internal_name="frame_filenames",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.function",
                 internal_name="frame_functions",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.module",
                 internal_name="frame_modules",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.package",
                 internal_name="frame_packages",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.in_app",
                 internal_name="frame_in_app",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.colno",
                 internal_name="frame_colnos",
-                search_type="string",
+                search_type="integer",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.lineno",
                 internal_name="frame_linenos",
-                search_type="string",
+                search_type="integer",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="stack.stack_level",
                 internal_name="frame_stack_levels",
                 search_type="string",
+                internal_type=constants.ARRAY,
             ),
             ResolvedAttribute(
                 public_alias="issue",
@@ -293,4 +309,77 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
 
 OCCURRENCE_VIRTUAL_CONTEXTS = {
     **project_virtual_contexts(),
+}
+
+OCCURRENCE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
+    Literal["string", "number", "boolean"], dict[str, str]
+] = {
+    "string": {
+        definition.internal_name: definition.public_alias
+        for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "string"
+    }
+    | {
+        # sentry.service is the project id as a string, but map to project for convenience
+        "sentry.service": "project",
+    },
+    "boolean": {
+        definition.internal_name: definition.public_alias
+        for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "boolean"
+    },
+    "number": {
+        definition.internal_name: definition.public_alias
+        for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+        # Include boolean attributes because they're stored as numbers (0 or 1)
+        if not definition.secondary_alias and definition.search_type != "string"
+    },
+}
+
+OCCURRENCE_PRIVATE_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+    if definition.private
+}
+
+# For dynamic internal attributes (eg. meta information for attributes) we match by the beginning of the key.
+OCCURRENCE_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {constants.META_PREFIX}
+
+OCCURRENCE_REPLACEMENT_ATTRIBUTES: set[str] = {
+    definition.replacement
+    for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+OCCURRENCE_REPLACEMENT_MAP: dict[str, str] = {
+    definition.public_alias: definition.replacement
+    for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+OCCURRENCE_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
+
+for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values():
+    if not definition.secondary_alias:
+        continue
+
+    secondary_aliases = OCCURRENCE_INTERNAL_TO_SECONDARY_ALIASES_MAPPING.get(
+        definition.internal_name, set()
+    )
+    secondary_aliases.add(definition.public_alias)
+    OCCURRENCE_INTERNAL_TO_SECONDARY_ALIASES_MAPPING[definition.internal_name] = secondary_aliases
+
+# Attributes excluded from stats queries (e.g., attribute distributions)
+# These are typically system-level identifiers that don't provide useful distribution insights
+OCCURRENCE_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS: set[str] = {
+    "id",
+    "trace",
+    "span_id",
+    "group_id",
+    "issue_occurrence_id",
+    "primary_hash",
+    "fingerprint",
+    "resource_id",
+    "profile_id",
+    "replay_id",
 }

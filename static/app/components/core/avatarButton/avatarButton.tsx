@@ -1,5 +1,6 @@
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
@@ -7,9 +8,7 @@ import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
-import {useQuery} from 'sentry/utils/queryClient';
-
-interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'priority'> {
+interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'variant'> {
   'aria-label': string;
   avatar: BaseAvatarProps;
   size?: Exclude<ButtonProps['size'], 'zero'>;

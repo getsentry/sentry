@@ -17,7 +17,6 @@ function makeAiConfig(
 ): ReturnType<typeof useAiConfig> {
   return {
     areAiFeaturesAllowed: true,
-    autofixEnabled: true,
     hasAutofix: true,
     hasAutofixQuota: true,
     hasGithubIntegration: true,

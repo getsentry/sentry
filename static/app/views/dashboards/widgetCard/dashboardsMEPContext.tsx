@@ -13,8 +13,6 @@ const [_DashboardsMEPProvider, useDashboardsMEPContext, DashboardsMEPContext] =
     name: 'DashboardsMEPContext',
   });
 
-const DashboardsMEPConsumer = DashboardsMEPContext.Consumer;
-
 function DashboardsMEPProvider({children}: {children: ReactNode}) {
   const [isMetricsData, setIsMetricsData] = useState<boolean | undefined>(undefined); // undefined means not initialized
 
@@ -30,9 +28,7 @@ function DashboardsMEPProvider({children}: {children: ReactNode}) {
   );
 }
 
-export {
-  DashboardsMEPContext,
-  DashboardsMEPProvider,
-  DashboardsMEPConsumer,
-  useDashboardsMEPContext,
-};
+export {DashboardsMEPProvider, useDashboardsMEPContext};
+
+/** @internal exported for tests */
+export {DashboardsMEPContext};

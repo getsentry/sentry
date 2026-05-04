@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -63,88 +63,74 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
   const apiEndpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
   const loaderLink = data.dsn.cdn;
 
-  const updateLoaderOption = useCallback(
-    async (changes: {
-      browserSdkVersion?: string;
-      hasDebug?: boolean;
-      hasFeedback?: boolean;
-      hasLogsAndMetrics?: boolean;
-      hasPerformance?: boolean;
-      hasReplay?: boolean;
-    }) => {
-      setRequestPending(true);
-      setOptimisticState({
-        browserSdkVersion: data.browserSdkVersion,
-        hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
-        hasLogsAndMetrics: data.dynamicSdkLoaderOptions.hasLogsAndMetrics,
-        hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
-        hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
-        hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
-        ...changes,
+  const updateLoaderOption = async (changes: {
+    browserSdkVersion?: string;
+    hasDebug?: boolean;
+    hasFeedback?: boolean;
+    hasLogsAndMetrics?: boolean;
+    hasPerformance?: boolean;
+    hasReplay?: boolean;
+  }) => {
+    setRequestPending(true);
+    setOptimisticState({
+      browserSdkVersion: data.browserSdkVersion,
+      hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+      hasLogsAndMetrics: data.dynamicSdkLoaderOptions.hasLogsAndMetrics,
+      hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
+      hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
+      hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
+      ...changes,
+    });
+    addLoadingMessage();
+
+    const browserSdkVersion = changes.browserSdkVersion ?? data.browserSdkVersion;
+
+    let payload: any;
+    if (sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)) {
+      payload = {
+        browserSdkVersion,
+        dynamicSdkLoaderOptions: {
+          hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+          hasLogsAndMetrics: sdkVersionSupportsLogsAndMetrics(browserSdkVersion)
+            ? (changes.hasLogsAndMetrics ??
+              data.dynamicSdkLoaderOptions.hasLogsAndMetrics)
+            : false,
+          hasFeedback: changes.hasFeedback ?? data.dynamicSdkLoaderOptions.hasFeedback,
+          hasPerformance:
+            changes.hasPerformance ?? data.dynamicSdkLoaderOptions.hasPerformance,
+          hasReplay: changes.hasReplay ?? data.dynamicSdkLoaderOptions.hasReplay,
+        },
+      };
+    } else {
+      payload = {
+        browserSdkVersion,
+        dynamicSdkLoaderOptions: {
+          hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+          hasLogsAndMetrics: false,
+          hasFeedback: false,
+          hasPerformance: false,
+          hasReplay: false,
+        },
+      };
+    }
+
+    try {
+      const response = await api.requestPromise(apiEndpoint, {
+        method: 'PUT',
+        data: payload,
       });
-      addLoadingMessage();
 
-      const browserSdkVersion = changes.browserSdkVersion ?? data.browserSdkVersion;
+      updateData(response);
 
-      let payload: any;
-      if (sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)) {
-        payload = {
-          browserSdkVersion,
-          dynamicSdkLoaderOptions: {
-            hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
-            hasLogsAndMetrics: sdkVersionSupportsLogsAndMetrics(browserSdkVersion)
-              ? (changes.hasLogsAndMetrics ??
-                data.dynamicSdkLoaderOptions.hasLogsAndMetrics)
-              : false,
-            hasFeedback: changes.hasFeedback ?? data.dynamicSdkLoaderOptions.hasFeedback,
-            hasPerformance:
-              changes.hasPerformance ?? data.dynamicSdkLoaderOptions.hasPerformance,
-            hasReplay: changes.hasReplay ?? data.dynamicSdkLoaderOptions.hasReplay,
-          },
-        };
-      } else {
-        payload = {
-          browserSdkVersion,
-          dynamicSdkLoaderOptions: {
-            hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
-            hasLogsAndMetrics: false,
-            hasFeedback: false,
-            hasPerformance: false,
-            hasReplay: false,
-          },
-        };
-      }
-
-      try {
-        const response = await api.requestPromise(apiEndpoint, {
-          method: 'PUT',
-          data: payload,
-        });
-
-        updateData(response);
-
-        addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
-      } catch (error) {
-        const message = t('Unable to updated dynamic SDK loader configuration');
-        handleXhrErrorResponse(message, error as RequestError);
-        addErrorMessage(message);
-      } finally {
-        setRequestPending(false);
-      }
-    },
-    [
-      api,
-      apiEndpoint,
-      data.browserSdkVersion,
-      data.dynamicSdkLoaderOptions.hasDebug,
-      data.dynamicSdkLoaderOptions.hasLogsAndMetrics,
-      data.dynamicSdkLoaderOptions.hasFeedback,
-      data.dynamicSdkLoaderOptions.hasPerformance,
-      data.dynamicSdkLoaderOptions.hasReplay,
-      setRequestPending,
-      updateData,
-    ]
-  );
+      addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
+    } catch (error) {
+      const message = t('Unable to updated dynamic SDK loader configuration');
+      handleXhrErrorResponse(message, error as RequestError);
+      addErrorMessage(message);
+    } finally {
+      setRequestPending(false);
+    }
+  };
 
   return (
     <Access access={['project:write']} project={project}>

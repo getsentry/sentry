@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -47,7 +46,7 @@ export function ActionButtons({
 }: Props) {
   const api = useApi();
 
-  const onUpdatePlan = useCallback(async () => {
+  const onUpdatePlan = async () => {
     try {
       await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
         method: 'PUT',
@@ -82,18 +81,9 @@ export function ActionButtons({
       Sentry.captureException(err);
       redirectToManage(organization);
     }
-  }, [
-    api,
-    onComplete,
-    organization,
-    plan,
-    previewData.billedAmount,
-    reservations,
-    subscription,
-    surface,
-  ]);
+  };
 
-  const onEmailOwner = useCallback(async () => {
+  const onEmailOwner = async () => {
     const currentPlanName =
       subscription.planTier === PlanTier.AM2 ? 'am2-non-beta' : 'am1-non-beta';
 
@@ -117,9 +107,9 @@ export function ActionButtons({
         redirectToManage(organization);
       },
     });
-  }, [api, organization, subscription, surface, onComplete]);
+  };
 
-  const onClickManageSubscription = useCallback(() => {
+  const onClickManageSubscription = () => {
     trackGetsentryAnalytics('upgrade_now.modal.manage_sub', {
       organization,
       surface,
@@ -128,14 +118,14 @@ export function ActionButtons({
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
     });
-  }, [organization, subscription, surface]);
+  };
 
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   return hasBillingAccess ? (
     <ButtonRow>
       <Button
-        priority="primary"
+        variant="primary"
         onClick={onUpdatePlan}
         disabled={isActionDisabled === true}
       >
@@ -151,7 +141,7 @@ export function ActionButtons({
   ) : (
     <ButtonRow>
       <Button
-        priority="primary"
+        variant="primary"
         tooltipProps={{
           title: t(
             'Notify an owner by email to update to the latest version of your plan'

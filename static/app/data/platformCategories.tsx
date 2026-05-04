@@ -501,32 +501,6 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
 export const withoutMetricsSupport = new Set<PlatformKey>(['dotnet-xamarin']);
 
-export const limitedMetricsSupportPrefixes = new Set<string>([
-  'android',
-  'apple',
-  'bun',
-  'dart',
-  'deno',
-  'dotnet',
-  'electron',
-  'go',
-  'godot',
-  'java',
-  'javascript',
-  'native',
-  'nintendo-switch',
-  'node',
-  'playstation',
-  'python',
-  'php',
-  'react-native',
-  'ruby',
-  'flutter',
-  'unity',
-  'unreal',
-  'xbox',
-]);
-
 export const profiling: PlatformKey[] = [
   'android',
   'apple',
@@ -843,14 +817,22 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 const platformKeys = platforms.map(p => p.id);
 
 // Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
-export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = platformKeys.filter(
-  id => id.startsWith('javascript') || id.startsWith('python')
-);
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
+  ...platformKeys.filter(
+    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+  ),
+  'bun',
+  'deno',
+];
 
 // Feature flag platforms to show the issue details distribution drawer for.
-export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.filter(
-  id => id.startsWith('javascript') || id.startsWith('python')
-);
+export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
+  ...platformKeys.filter(
+    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+  ),
+  'bun',
+  'deno',
+];
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('javascript')),

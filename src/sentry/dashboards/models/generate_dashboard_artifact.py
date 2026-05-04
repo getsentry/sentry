@@ -15,6 +15,7 @@ DISPLAY_TYPE_BLOCKLIST: set[str] = {
     "rage_and_dead_clicks",
     "wheel",
     "agents_traces_table",
+    "stacked_area",
 }
 
 # Most of these are deprecated, not selectable in the UI, or don't make sense for generated dashboards.
@@ -78,6 +79,36 @@ class GeneratedWidgetQuery(BaseModel):
         return v
 
 
+Polarity = Literal["+", "-"]
+
+
+class GeneratedWidgetThresholds(BaseModel):
+    """Color-coded thresholds for big_number, line, and area chart widgets. max1 and max2 define thresholds for three zones whose color meaning depends on preferred_polarity."""
+
+    max_values: dict[str, float] = Field(
+        ...,
+        description="Threshold boundaries. Must contain keys 'max1' and 'max2' where max1 < max2. Both values must be non-negative.",
+    )
+    unit: str | None = Field(
+        default=None,
+        description="Display unit for threshold values (e.g. 'millisecond', 'percent'). Null means use the widget's default unit.",
+    )
+    preferred_polarity: Polarity = Field(
+        description="Determines color meaning: '+' means higher is better (green above max2), '-' means lower is better (green below max1). Must be '+' or '-'.",
+    )
+
+    @validator("max_values")
+    def validate_max_values(cls, v: dict[str, float]) -> dict[str, float]:
+        allowed_keys = {"max1", "max2"}
+        if set(v.keys()) != allowed_keys:
+            raise ValueError("max_values must contain exactly 'max1' and 'max2'")
+        if v["max1"] < 0 or v["max2"] < 0:
+            raise ValueError("Threshold values must be non-negative")
+        if v["max1"] >= v["max2"]:
+            raise ValueError("max1 must be less than max2")
+        return v
+
+
 class GeneratedWidgetLayout(BaseModel):
     """Layout position and size on a 6-column grid. Widget widths in each row should sum to 6 to fill the grid completely."""
 
@@ -126,7 +157,7 @@ class GeneratedWidgetLayout(BaseModel):
 
 
 class GeneratedWidget(BaseModel):
-    """A single dashboard widget. Default sizes by display type: big_number 2w x 1h (3 per row), line/area/bar/stacked_area/top_n 3w x 2h (2 per row), table 6w x 2h (full row)."""
+    """A single dashboard widget. Default sizes by display type: big_number 2w x 1h (3 per row), line/area/bar/top_n 3w x 2h (2 per row), table 6w x 2h (full row)."""
 
     title: str = Field(..., max_length=255)  # Matches serializer
     description: str = Field(
@@ -138,7 +169,10 @@ class GeneratedWidget(BaseModel):
         ...,
         description="Dataset to query. Use 'spans' as the default — it covers most use cases. Use 'error-events' for error-specific data, 'issue' for issue tracking, 'logs' for log data, 'tracemetrics' for trace metrics. Text widgets do not have a widget_type and should be set to None. Required for non-text widgets.",
     )
-    queries: list[GeneratedWidgetQuery]
+    queries: list[GeneratedWidgetQuery] = Field(
+        ...,
+        description="One query per series/filter on the widget. All queries must share the same `aggregates`, `columns`, and `orderby` — they should only differ by `conditions` and `name`. To plot multiple aggregates (e.g. p50 and p95), put them all in a single query's `aggregates` array rather than creating a query per aggregate.",
+    )
     layout: GeneratedWidgetLayout
     limit: int = Field(
         default=5,
@@ -147,6 +181,10 @@ class GeneratedWidget(BaseModel):
         description="For charts with group by columns, the maximum number series that can be displayed. For table widgets, the maximum number of rows that can be displayed. Categorical bar charts have a maximum limit of 25. For any other chart type, the maximum limit is 10. Default value is 5.",
     )
     interval: Intervals = Field(default="1h")
+    thresholds: GeneratedWidgetThresholds | None = Field(
+        default=None,
+        description="Color-coded thresholds for big_number, line, and area chart widgets. Defines two boundaries (max1 < max2) that split the value into three color zones.",
+    )
 
     @root_validator
     def check_text_widget_constraints(cls, values: dict[str, Any]) -> dict[str, Any]:
@@ -166,6 +204,27 @@ class GeneratedWidget(BaseModel):
         if is_text and widget_type is not None:
             raise ValueError("widget_type is not allowed for text widgets")
 
+        return values
+
+    @root_validator
+    def check_query_consistency(cls, values: dict[str, Any]) -> dict[str, Any]:
+        queries = values.get("queries") or []
+        if len(queries) <= 1:
+            return values
+
+        first_query = queries[0]
+        for query in queries[1:]:
+            if (
+                query.aggregates != first_query.aggregates
+                or query.columns != first_query.columns
+                or query.orderby != first_query.orderby
+            ):
+                raise ValueError(
+                    "All queries in a widget must share the same aggregates, columns, "
+                    "and orderby; queries should only differ by `conditions` and `name`. "
+                    "To plot multiple aggregates (e.g. p50 and p95), put them all in a "
+                    "single query's `aggregates` array rather than creating a query per aggregate."
+                )
         return values
 
 
