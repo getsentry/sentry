@@ -1,6 +1,6 @@
 import {
   parseJsonWithFix,
-  tryParseJsonRecursive,
+  tryParseJsonRecursive as parseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export interface AIMessage {
@@ -26,6 +26,10 @@ type RawMessage = {
   role?: string;
   roleExplicit?: boolean;
 };
+
+// Keep this parser mirrored with src/sentry/utils/ai_message_normalizer.py.
+// AI SDKs emit inconsistent shapes and their specs keep changing, so update both
+// parsers together whenever adding or changing a supported format.
 
 /**
  * Normalizes AI attribute values into a list of messages.
@@ -233,6 +237,13 @@ function toRawMessage(item: unknown, defaultRole: string): RawMessage | null {
       content: item.content,
     };
   }
+  if (item.completion !== undefined) {
+    return {
+      role: role ?? defaultRole,
+      roleExplicit: role !== undefined,
+      content: item.completion,
+    };
+  }
   return null;
 }
 
@@ -240,7 +251,7 @@ function resolveMessageContent(msg: RawMessage, role: string): unknown {
   if (msg.parts) {
     return collapseParts(msg.parts);
   }
-  const parsed = tryParseJsonRecursive(msg.content);
+  const parsed = tryParseJsonContent(msg.content);
   return role === 'tool' ? parsed : renderTextContent(parsed);
 }
 
@@ -313,11 +324,11 @@ function collectOutputExtras(
     return;
   }
 
-  const content = msg.content;
+  const content = tryParseJsonContent(msg.content);
   if (content === undefined || content === null) {
     return;
   }
-  if (typeof content === 'string') {
+  if (typeof content === 'string' && content) {
     textParts.push(content);
   } else if (Array.isArray(content)) {
     const extracted = extractTextFromContentParts(content);
@@ -333,6 +344,17 @@ const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const FILE_CONTENT_PART_TYPES = new Set<string>(FILE_CONTENT_PARTS);
 type FileContentPartType = (typeof FILE_CONTENT_PARTS)[number];
 type UnknownRecord = Record<string, unknown>;
+
+function tryParseJsonContent(value: unknown): unknown {
+  const parsed = parseJsonRecursive(value);
+  if (
+    typeof value === 'string' &&
+    (parsed === null || typeof parsed === 'number' || typeof parsed === 'boolean')
+  ) {
+    return value;
+  }
+  return parsed;
+}
 
 function looksLikeJson(raw: string): boolean {
   const trimmed = raw.trim();
