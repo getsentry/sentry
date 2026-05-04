@@ -149,10 +149,9 @@ const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 const shouldWidgetCardChartMemo = (prevProps: any, props: any) => {
   const selectionMatches = props.selection === prevProps.selection;
-  const isNotTopNWidget =
-    props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
+  const isNotLimitWidget = !defined(props.widget.limit);
   const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
-  return selectionMatches && isNotTopNWidget && legendMatches;
+  return selectionMatches && isNotLimitWidget && legendMatches;
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
@@ -283,16 +282,11 @@ function DataWidgetViewerModal(props: Props) {
     selectedQueryIndex = 0;
   }
 
-  const resolvedWidget =
-    widget.displayType === DisplayType.TOP_N
-      ? {...widget, displayType: DisplayType.AREA}
-      : widget;
-
   // Widgets with limits rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
-  const primaryWidget = defined(resolvedWidget.limit)
-    ? {...resolvedWidget, queries: sortedQueries}
-    : resolvedWidget;
+  const primaryWidget = defined(widget.limit)
+    ? {...widget, queries: sortedQueries}
+    : widget;
   const api = useApi();
 
   // Create Table widget
