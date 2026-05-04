@@ -757,7 +757,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                     "rate_limited": "False",
                     "payload_size": p["payload_size"],
                 },
-            )
+            )  # type: ignore[arg-type]
             for i, p in enumerate(per_log)
         ]
         self.store_eap_items(logs)
@@ -803,7 +803,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 "downsampled_retention_days",
             }
         )
-        return start, end, expected_rows_by_agent, variable_keys
+        return start, end, expected_rows_by_agent, variable_keys  # type: ignore[return-value]
 
     def _assert_explore_logs_jsonl_rows_match_expected(
         self,
