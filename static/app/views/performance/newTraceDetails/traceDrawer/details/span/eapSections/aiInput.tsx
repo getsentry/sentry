@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -245,18 +246,36 @@ function MessagesArrayRenderer({
     }
   }, [messages.length, previousMessagesLength]);
 
+  const renderMessageContent = (message: AIMessage) =>
+    typeof message.content === 'string' ? (
+      <AIContentRenderer text={message.content} />
+    ) : (
+      <TraceDrawerComponents.MultilineJSON value={message.content} maxDefaultDepth={2} />
+    );
+
+  const renderSystemMessageContent = (message: AIMessage) => (
+    <SystemMessageClippedBox
+      clipHeight={150}
+      buttonProps={{priority: 'default', size: 'xs'}}
+    >
+      {renderMessageContent(message)}
+    </SystemMessageClippedBox>
+  );
+
   const renderMessage = (message: AIMessage, index: number) => {
+    if (message.role === 'system') {
+      return (
+        <Fragment key={index}>
+          <RoleLabel>{message.role}</RoleLabel>
+          {renderSystemMessageContent(message)}
+        </Fragment>
+      );
+    }
+
     return (
       <Fragment key={index}>
         <RoleLabel>{message.role}</RoleLabel>
-        {typeof message.content === 'string' ? (
-          <AIContentRenderer text={message.content} />
-        ) : (
-          <TraceDrawerComponents.MultilineJSON
-            value={message.content}
-            maxDefaultDepth={2}
-          />
-        )}
+        {renderMessageContent(message)}
       </Fragment>
     );
   };
@@ -324,6 +343,11 @@ const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
   &::first-letter {
     text-transform: capitalize;
   }
+`;
+
+const SystemMessageClippedBox = styled(ClippedBox)`
+  padding: 0;
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const ButtonDivider = styled('div')`

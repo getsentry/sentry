@@ -90,7 +90,7 @@ export function CreateFromSeerPrompt() {
               />
               <Container>
                 <Button
-                  priority="primary"
+                  variant="primary"
                   onClick={handleGenerate}
                   disabled={isGenerating || !prompt.trim()}
                 >

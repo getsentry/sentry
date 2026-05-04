@@ -6,10 +6,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
-import {
-  cmdkQueryOptions,
-  type CMDKQueryOptions,
-} from 'sentry/components/commandPalette/types';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   type CMDKResourceContext,
@@ -19,6 +16,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {IconBookmark, IconFilter, IconGroup, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -35,12 +33,14 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
+import {IssueListMarkAllCommandPaletteAction} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
@@ -49,10 +49,14 @@ import {
 import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
 interface IssueListCommandPaletteActionsProps {
+  groupIds: string[];
   onQueryChange: (query: string) => void;
   onSortChange: (sort: string) => void;
   query: string;
+  queryCount: number;
+  selection: PageFilters;
   sort: IssueSortOptions;
+  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 }
 
 /**
@@ -187,13 +191,15 @@ function FilterActions({
       keywords: [tag.key],
       prompt: t('Select a value...'),
       limit: 4,
-      resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+      resource: (_q: string, ctx: CMDKResourceContext) =>
         // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
           queryFn: async () => {
-            const values = hasPredefined ? predefined : await loadTagValues(tag.key);
-            return values.map(value => ({
+            return hasPredefined ? predefined : await loadTagValues(tag.key);
+          },
+          select: data =>
+            data.map(value => ({
               display: {
                 label: value,
                 icon:
@@ -202,24 +208,21 @@ function FilterActions({
                   ) : undefined,
               },
               onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
-            }));
-          },
+            })),
           enabled: hasPredefined || ctx.state === 'selected',
           staleTime: hasPredefined ? Infinity : 30_000,
         }),
     };
   };
 
-  const makeSectionResource =
-    (tags: Tag[], cacheKey: string): ((q: string) => CMDKQueryOptions) =>
-    _q =>
-      // Feed query in key ensures onAction closures reference the current query.
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
-      cmdkQueryOptions({
-        queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
-        queryFn: () => tags.map(makeFilterKeyItem),
-        staleTime: Infinity,
-      });
+  const makeSectionResource = (tags: Tag[], cacheKey: string) => (_q: string) =>
+    // Feed query in key ensures onAction closures reference the current query.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    cmdkQueryOptions({
+      queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
+      queryFn: () => tags.map(makeFilterKeyItem),
+      staleTime: Infinity,
+    });
 
   return (
     <CMDKAction
@@ -382,6 +385,10 @@ function SaveViewActions({
 }
 
 export function IssueListCommandPaletteActions({
+  groupIds,
+  queryCount,
+  selection,
+  onActionTaken,
   query,
   sort,
   onSortChange,
@@ -391,6 +398,13 @@ export function IssueListCommandPaletteActions({
     <CommandPaletteSlot name="page">
       <CMDKAction display={{label: t('Issues Feed'), icon: <IconIssues />}}>
         <FilterActions query={query} onQueryChange={onQueryChange} />
+        <IssueListMarkAllCommandPaletteAction
+          groupIds={groupIds}
+          query={query}
+          queryCount={queryCount}
+          selection={selection}
+          onActionTaken={onActionTaken}
+        />
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />
         <SaveViewActions query={query} sort={sort} />
       </CMDKAction>

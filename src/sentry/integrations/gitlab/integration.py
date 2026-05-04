@@ -35,6 +35,7 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -163,6 +164,21 @@ class GitlabIntegration(
             return data["message"]
         if "error" in data:
             return data["error"]
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        # GitLab's get_repositories does not wrap errors in IntegrationError,
+        # so plain ApiError bubbles up directly. 403/404 indicate a terminally
+        # broken integration (blocked account, revoked access, deleted group).
+        if isinstance(exc, ApiError):
+            if exc.code == 404:
+                return "configuration_error"
+            if exc.code == 403:
+                return "unauthorized"
+        # Self-hosted GitLab instances sometimes return HTML login/captcha
+        # pages instead of JSON. The response parser raises ValueError.
+        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
+            return "unsupported_response"
+        return super().is_broken_integration_error(exc)
 
     # RepositoryIntegration methods
 
@@ -352,6 +368,20 @@ class GitlabIntegration(
                     "Your organization does not have access to this feature"
                 )
 
+        # PR-comment toggle is self-serveable regardless of issue-sync
+        # entitlement, so it is appended after the gating loop.
+        config.append(
+            {
+                "name": "pr_comments",
+                "type": "boolean",
+                "label": _("Enable Comments on Suspect Pull Requests"),
+                "help": _(
+                    "Allow Sentry to comment on recent pull requests suspected of causing issues."
+                ),
+                "default": False,
+            }
+        )
+
         return config
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
@@ -466,7 +496,6 @@ The following issues were detected after merging:
 
 
 class GitlabPRCommentWorkflow(PRCommentWorkflow):
-    organization_option_key = "sentry:gitlab_pr_bot"
     referrer = Referrer.GITLAB_PR_COMMENT_BOT
     referrer_id = GITLAB_PR_BOT_REFERRER
 

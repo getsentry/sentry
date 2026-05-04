@@ -69,10 +69,12 @@ def _comparison_has_changes(
     comparison: PreprodSnapshotComparison,
     fail_on_added: bool = False,
     fail_on_removed: bool = True,
+    fail_on_changed: bool = True,
+    fail_on_renamed: bool = False,
 ) -> bool:
     return (
-        comparison.images_changed > 0
-        or comparison.images_renamed > 0
+        (fail_on_changed and comparison.images_changed > 0)
+        or (fail_on_renamed and comparison.images_renamed > 0)
         or (fail_on_added and comparison.images_added > 0)
         or (fail_on_removed and comparison.images_removed > 0)
     )
@@ -84,6 +86,8 @@ def build_changes_map(
     comparisons_map: dict[int, PreprodSnapshotComparison],
     fail_on_added: bool = False,
     fail_on_removed: bool = True,
+    fail_on_changed: bool = True,
+    fail_on_renamed: bool = False,
 ) -> dict[int, bool]:
     changes_map: dict[int, bool] = {}
     for artifact in artifacts:
@@ -94,6 +98,10 @@ def build_changes_map(
         if not comparison or comparison.state != PreprodSnapshotComparison.State.SUCCESS:
             continue
         changes_map[artifact.id] = _comparison_has_changes(
-            comparison, fail_on_added, fail_on_removed
+            comparison,
+            fail_on_added=fail_on_added,
+            fail_on_removed=fail_on_removed,
+            fail_on_changed=fail_on_changed,
+            fail_on_renamed=fail_on_renamed,
         )
     return changes_map

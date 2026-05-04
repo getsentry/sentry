@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {SeriesOption, YAXisComponentOption} from 'echarts';
+import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -46,6 +46,7 @@ import type {
   Release,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -129,10 +130,21 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Default: `auto`
    */
   showXAxis?: 'auto' | 'never';
+
+  /**
+   * Defines the Y axis visibility.
+   *
+   * - `auto`: Show the Y axis (or axes when multiple scales are used).
+   * - `never`: Hide the Y axis while keeping axes in the option so series
+   *   `yAxisIndex` references remain valid.
+   *
+   * Default: `auto`
+   */
+  showYAxis?: 'auto' | 'never';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
-  if (props.plottables.every(plottable => plottable.isEmpty)) {
+  if (!plottablesCanBeVisualized(props.plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
 
@@ -431,6 +443,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxes.push(releaseBubbleYAxis);
   }
 
+  const showYAxisProp = props.showYAxis ?? 'auto';
+  const showYAxis = showYAxisProp === 'auto';
+  const chartYAxes = showYAxis ? yAxes : yAxes.map(() => HIDDEN_AXIS);
+
   const releaseSeries =
     props.releases && props.showReleaseAs !== 'none'
       ? hasReleaseBubbles
@@ -495,7 +511,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         splitNumber: 5,
         ...releaseBubbleXAxis,
       }
-    : HIDDEN_X_AXIS;
+    : HIDDEN_AXIS;
 
   // Hiding the X axis removes all chart elements under the X axis line. This
   // will cut off the bottom of the lowest Y axis label. To create space for
@@ -725,7 +741,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             formatter: formatTooltip,
           }}
           xAxis={xAxis}
-          yAxes={yAxes}
+          yAxes={chartYAxes}
           {...chartZoomProps}
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
@@ -779,12 +795,12 @@ function getPlottableEventDataIndex(
 
 // Hide every part of the axis so ECharts will remove those elements and also
 // remove the visual space they would take up if they were there.
-const HIDDEN_X_AXIS = {
+const HIDDEN_AXIS = {
   show: false,
   splitLine: {show: false},
   axisLine: {show: false},
   axisTick: {show: false},
   axisLabel: {show: false},
-};
+} satisfies XAXisComponentOption | YAXisComponentOption;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;

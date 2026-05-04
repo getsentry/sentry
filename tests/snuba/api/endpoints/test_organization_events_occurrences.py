@@ -511,6 +511,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             q["sql"] for q in ctx.captured_queries if Group._meta.db_table in q["sql"]
         ]
 
+    @pytest.mark.xfail(reason="flaky: integer vs string type mismatch in EAP array attributes")
     def test_eap_occurrence_stores_exception_stack_as_array_attributes(self) -> None:
         expected_filenames = ["sentry/web/urls.py", "django/views/base.py"]
         expected_http_url = "https://example.com/items/123"

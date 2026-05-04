@@ -33,5 +33,5 @@ export function LogsStateQueryParamsProvider({
 }
 
 function defaultAggregateFields() {
-  return [...defaultGroupBys(), ...defaultVisualizes()];
+  return [...defaultGroupBys(), ...defaultVisualizes(true)];
 }

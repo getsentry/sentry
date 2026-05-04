@@ -1,3 +1,5 @@
+import {queryOptions, type QueryFunctionContext} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -6,8 +8,10 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
 type AttributeType = {
   attributeSource: {
@@ -69,7 +73,7 @@ export function traceItemAttributeKeysOptions({
     ...(substringMatch === undefined ? {} : {substringMatch}),
   };
 
-  return apiOptions.as<AttributeType[]>()(
+  const baseOptions = apiOptions.as<AttributeType[]>()(
     '/organizations/$organizationIdOrSlug/trace-items/attributes/',
     {
       path: {organizationIdOrSlug: organization.slug},
@@ -77,6 +81,23 @@ export function traceItemAttributeKeysOptions({
       query: options,
     }
   );
+
+  const originalQueryFn = baseOptions.queryFn;
+  if (typeof originalQueryFn !== 'function') {
+    return baseOptions;
+  }
+
+  return queryOptions({
+    ...baseOptions,
+    queryFn: (ctx: QueryFunctionContext<ApiQueryKey>) => {
+      return (
+        findFreshEmptyPrefixSearchCacheMatch({
+          client: ctx.client,
+          currentKey: ctx.queryKey,
+        }) ?? originalQueryFn(ctx)
+      );
+    },
+  });
 }
 
 type TraceItemTagCollections = {

@@ -28,6 +28,8 @@ import {fieldContext, formContext, useFormContext} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const InvalidInput = document.querySelector(
       `#${CSS.escape(formApi.formId)} [aria-invalid="true"]`
     ) as HTMLInputElement;
@@ -57,7 +59,7 @@ const fieldComponents = {
 
 export type BoundFieldComponents = typeof fieldComponents;
 
-const {useAppForm, withFieldGroup} = createFormHook({
+const {useAppForm, withFieldGroup, withForm} = createFormHook({
   fieldComponents,
   formComponents: {
     FieldGroup,
@@ -75,7 +77,7 @@ function SubmitButton(props: ButtonProps) {
       {isSubmitting => (
         <Button
           {...props}
-          priority="primary"
+          variant="primary"
           type="submit"
           form={form.formId}
           busy={isSubmitting}
@@ -113,7 +115,8 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 }
 
 export const useScrapsForm = useAppForm;
-export {withFieldGroup};
+/** @public */
+export {formOptions, withFieldGroup, withForm};
 
 /**
  * Type for field errors that can be set after form submission (e.g., from backend validation).

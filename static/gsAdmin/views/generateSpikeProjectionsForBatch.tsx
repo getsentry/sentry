@@ -120,7 +120,7 @@ export function GenerateSpikeProjectionsForBatch() {
           )
         </BatchRunTime>
         <Button
-          priority="primary"
+          variant="primary"
           type="submit"
           disabled={batchId === null || region === null}
         >

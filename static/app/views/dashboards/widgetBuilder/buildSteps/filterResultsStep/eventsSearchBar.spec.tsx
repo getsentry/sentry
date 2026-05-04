@@ -41,7 +41,7 @@ describe('EventsSearchBar', () => {
     });
   });
 
-  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
+  it('does not show function tags in has: dropdown', async () => {
     render(
       <EventsSearchBar
         onClose={jest.fn()}
@@ -113,7 +113,9 @@ describe('EventsSearchBar', () => {
     await userEvent.paste('count_uni', {delay: null});
 
     expect(
-      await within(await screen.findByRole('listbox')).findByText('count_unique(...)')
+      await within(await screen.findByRole('listbox')).findByRole('option', {
+        name: 'count_unique(...)',
+      })
     ).toBeInTheDocument();
 
     await waitFor(() => {

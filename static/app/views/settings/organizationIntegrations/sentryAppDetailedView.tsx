@@ -382,7 +382,7 @@ export default function SentryAppDetailedView() {
               disabledFromFeatures || integrationSlug === 'github-deployment-gates'
             }
             onClick={() => handleInstall()}
-            priority="primary"
+            variant="primary"
             size="sm"
             style={{marginLeft: theme.space.md}}
           >

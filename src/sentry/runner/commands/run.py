@@ -187,6 +187,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default="unknown",
 )
 @click.option(
+    "--pod-name",
+    help="The name of the pod running this worker",
+    default="unknown",
+)
+@click.option(
     "--health-check-file-path",
     help="Full path of the health check file if health check is to be enabled",
 )
@@ -219,6 +224,7 @@ def run_taskworker(
     result_queue_maxsize: int,
     rebalance_after: int,
     processing_pool_name: str,
+    pod_name: str,
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
     **options: Any,
@@ -241,6 +247,7 @@ def run_taskworker(
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
                 processing_pool_name=processing_pool_name,
+                pod_name=pod_name,
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,

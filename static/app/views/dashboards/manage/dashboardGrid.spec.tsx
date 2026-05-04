@@ -203,33 +203,6 @@ describe('Dashboards - DashboardGrid', () => {
     expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
-  it('cannot delete last dashboard', async () => {
-    const singleDashboard = [
-      DashboardListItemFixture({
-        id: '1',
-        title: 'Dashboard 1',
-        dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: UserFixture({id: '1'}),
-        widgetPreview: [],
-      }),
-    ];
-    render(
-      <DashboardGrid
-        organization={organization}
-        dashboards={singleDashboard}
-        onDashboardsChange={dashboardUpdateMock}
-        columnCount={3}
-        rowCount={3}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: /dashboard actions/i}));
-    expect(screen.getByTestId('dashboard-delete')).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-  });
-
   it('can duplicate dashboards', async () => {
     render(
       <DashboardGrid

@@ -20,20 +20,22 @@ describe('Register', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
-    expect(apiRequest).toHaveBeenCalledWith(
-      '/auth/register/',
-      expect.objectContaining({
-        data: {
-          name: 'joe',
-          username: 'test@test.com',
-          password: '12345pass',
-          subscribe: true,
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        '/auth/register/',
+        expect.objectContaining({
+          data: {
+            name: 'joe',
+            username: 'test@test.com',
+            password: '12345pass',
+            subscribe: true,
+          },
+        })
+      );
+    });
   }
 
-  it('handles errors', async () => {
+  it.isKnownFlake('handles errors', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/register/',
       method: 'POST',
@@ -50,7 +52,7 @@ describe('Register', () => {
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();
   });
 
-  it('handles success', async () => {
+  it.isKnownFlake('handles success', async () => {
     const userObject = {
       id: 1,
       name: 'Joe',

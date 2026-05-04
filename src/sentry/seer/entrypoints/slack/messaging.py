@@ -208,8 +208,13 @@ def update_existing_message(
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
+    autofix_button_prefixes = (
+        SlackAction.SEER_AUTOFIX_START.value,
+        SlackAction.SEER_AUTOFIX_HANDOFF.value,
+    )
+
     def remove_autofix_button_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
-        if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
+        if elem.get("action_id", "").startswith(autofix_button_prefixes):
             return None
         return elem
 
@@ -229,14 +234,14 @@ def update_existing_message(
             }
         )
 
+        transformer: Callable[[dict[str, Any]], dict[str, Any] | None]
         # The RCA button is on an issue alert, so we just remove the button from the list of actions.
         # Later updates only have autofix buttons (View, Start), so we remove the whole actions block.
         # This is because we add the View button back to the footer, along with some status text.
-        transformer = (
-            remove_autofix_button_transformer
-            if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
-            else remove_all_buttons_transformer
-        )
+        transformer = remove_all_buttons_transformer
+        if data.current_point == AutofixStoppingPoint.ROOT_CAUSE and data.handoff_target is None:
+            transformer = remove_autofix_button_transformer
+
         try:
             message_data = request.data["message"]
             original_blocks = message_data["blocks"]

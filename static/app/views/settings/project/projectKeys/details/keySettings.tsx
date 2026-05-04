@@ -185,7 +185,7 @@ export function KeySettings({
                     confirmText={t('Revoke Key')}
                     disabled={!hasAccess}
                   >
-                    <Button priority="danger">{t('Revoke Key')}</Button>
+                    <Button variant="danger">{t('Revoke Key')}</Button>
                   </Confirm>
                 </div>
               </FieldGroup>

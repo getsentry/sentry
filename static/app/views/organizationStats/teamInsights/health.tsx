@@ -100,19 +100,23 @@ export default function TeamStatsHealth() {
               />
             </DescriptionCard>
 
-            <DescriptionCard
-              title={t('Metric Alerts Triggered')}
-              description={t('Alerts triggered from the Alert Rules your team created.')}
-            >
-              <TeamAlertsTriggered
-                organization={organization}
-                projects={projects}
-                teamSlug={currentTeam!.slug}
-                period={period}
-                start={start?.toString()}
-                end={end?.toString()}
-              />
-            </DescriptionCard>
+            {!organization.features.includes('workflow-engine-ui') && (
+              <DescriptionCard
+                title={t('Metric Alerts Triggered')}
+                description={t(
+                  'Alerts triggered from the Alert Rules your team created.'
+                )}
+              >
+                <TeamAlertsTriggered
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                />
+              </DescriptionCard>
+            )}
 
             <DescriptionCard
               title={t('Number of Releases')}
