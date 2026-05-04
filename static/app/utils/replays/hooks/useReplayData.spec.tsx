@@ -37,6 +37,8 @@ function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
   };
 }
 
+jest.useFakeTimers();
+
 describe('useReplayData', () => {
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
@@ -455,6 +457,10 @@ describe('useReplayData', () => {
     expect(mockedSegmentsCall).not.toHaveBeenCalled();
     expect(result.current).toEqual(expectedReplayData);
 
+    // Advance past the replay asyncDelay (1ms) so it resolves,
+    // but segments (100ms) and errors (250ms) are still pending
+    await jest.advanceTimersByTimeAsync(2);
+
     // Afterwards we see the attachments & errors requests are made
     await waitFor(() => expect(mockedReplayCall).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(1));
@@ -473,6 +479,9 @@ describe('useReplayData', () => {
       )
     );
 
+    // Advance past the segments asyncDelay (100ms) so rrweb data arrives
+    await jest.advanceTimersByTimeAsync(100);
+
     // Next we see that some rrweb data has arrived
     await waitFor(() =>
       expect(result.current).toStrictEqual(
@@ -483,6 +492,9 @@ describe('useReplayData', () => {
         })
       )
     );
+
+    // Advance past the errors asyncDelay (250ms) so error data arrives
+    await jest.advanceTimersByTimeAsync(250);
 
     // Finally we see fetching is complete, errors are here too
     await waitFor(() =>
