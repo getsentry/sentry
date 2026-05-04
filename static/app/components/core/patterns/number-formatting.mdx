@@ -54,7 +54,7 @@ Sentry supports several types of data, and they have slightly different concerns
 
 ### Number
 
-A `number` is the most basic type of numeric data that Sentry can display. A `number` is any numeric value with unknown meaning. The `number` type is used as a fallback when we can't determine the meaning of a value, or if a value has no semantic meaning. Sentry does not apply multipliers or obfuscation to numbers unless they are observably integers. Numbers above one trillion and below 0.0001 use scientific notation.
+A `number` is the most basic type of numeric data that Sentry can display. A `number` is any numeric value with unknown meaning. The `number` type is used as a fallback when we can't determine the meaning of a value, or if a value has no semantic meaning. Sentry does not apply multipliers to numbers unless they are observably integers. Numbers above one trillion and below 0.0001 use scientific notation.
 
 e.g., `"5.4E-35"`, `"0.0321"`, `"1.32"`, `"1,223,123.23"`, `"1.32E23"`.
 
@@ -71,9 +71,9 @@ TODO: See if we want to support higher integer multipliers
 
 ### Percentage
 
-A percentage is a unitless positive value, similar to the `number` type, but it represents a proportion of something. For example, CPU capacity may be a percentage, but it can exceed 100%. Percentages are treated identically to the `number` type, with a trailing "%" sign. Percentages lower than 0.1% are obfuscated, shown as "&lt;0.1%".
+A percentage is a unitless positive value, similar to the `number` type, but it represents a proportion of something. For example, CPU capacity may be a percentage, but it can exceed 100%. Percentages are treated identically to the `number` type, with a trailing "%" sign.
 
-e.g., `"0%"`, `"&lt;0.1%"`, `"12.1%"`, `"12,323.5%"`, `"1.23E17%"`
+e.g., `"0%"`, `"12.1%"`, `"12,323.5%"`, `"1.23E17%"`
 
 ### Percent Change
 
@@ -83,7 +83,7 @@ Percent change follows the same formatting rules as percentages, but always incl
 
 ### Duration
 
-A `duration` represents elapsed time. Many parts of Sentry's UI measure the durations of various operations. A duration is always specified with the corresponding unit. The unit is always chosen based on which multiplier is the most appropriate. Small numbers are never obfuscated.
+A `duration` represents elapsed time. Many parts of Sentry's UI measure the durations of various operations. A duration is always specified with the corresponding unit. The unit is always chosen based on which multiplier is the most appropriate.
 
 #### Units
 
@@ -166,9 +166,9 @@ e.g., `"0"`, `"17"`, `"100"`
 
 ### Rate
 
-A `rate` is a measurement of a number over time. Throughput measurements like "spans per minute" are a `rate`. Rates use one of three multiplier units (per second, per minute, per hour), but they are not chosen automatically based on the quantity. Rate units must be chosen based on what is semantically valid. For example, the metric `epm()` is "events per minute", therefore it must _always_ be represented using the "per minute" unit. Rates also have minimum obfuscation. The numeric value of a rate does not use multipliers. Any value below 0.0001 is shown as "&lt;0.0001"
+A `rate` is a measurement of a number over time. Throughput measurements like "spans per minute" are a `rate`. Rates use one of three multiplier units (per second, per minute, per hour), but they are not chosen automatically based on the quantity. Rate units must be chosen based on what is semantically valid. For example, the metric `epm()` is "events per minute", therefore it must _always_ be represented using the "per minute" unit. The numeric value of a rate does not use multipliers.
 
-e.g., `"0 per minute"`, `"0/sec"`, `"&lt;0.0001/min"`, `"1,200,121.23/min"`
+e.g., `"0 per minute"`, `"0/sec"`, `"1.5E-3/min"`, `"1,200,121.23/min"`
 
 TODO: Confirm whether this formatting makes sense.
 
@@ -177,4 +177,4 @@ TODO: Confirm whether this formatting makes sense.
 > [!WARNING]
 > This section is under construction.
 
-Sentry displays currency information in a few UIs: AI model usage costs, and user billing information. The only supported currency right now is US Dollars. Sentry generally renders costs with a much higher level of precision than just two decimal points. Both Sentry and many AI providers price their spans by fractional cents (e.g., `"0.000125 cents per run"`), which makes normal rounding rules inappropriate. Currency values should never be obfuscated, and should not be rounded.
+Sentry displays currency information in a few UIs: AI model usage costs, and user billing information. The only supported currency right now is US Dollars. Sentry generally renders costs with a much higher level of precision than just two decimal points. Both Sentry and many AI providers price their spans by fractional cents (e.g., `"0.000125 cents per run"`), which makes normal rounding rules inappropriate.
