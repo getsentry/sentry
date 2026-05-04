@@ -13,6 +13,7 @@ import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {FieldValueType} from 'sentry/utils/fields';
 
 const FILTER_VALUE_NUMERIC = /^-?\d+(\.\d+)?[kmb]?$/i;
+const FILTER_VALUE_CURRENCY = /^-?\d+(\.\d+)?$/;
 const FILTER_VALUE_INT = /^-?\d+[kmb]?$/i;
 
 export function getValueSuggestions({
@@ -28,7 +29,7 @@ export function getValueSuggestions({
     case FieldValueType.NUMBER:
     case FieldValueType.CURRENCY:
     case FieldValueType.INTEGER:
-      return getNumericSuggestions(filterValue);
+      return getNumericSuggestions(filterValue, valueType);
     case FieldValueType.DURATION:
       return getDurationSuggestions(filterValue, token);
     case FieldValueType.SIZE:
@@ -63,8 +64,12 @@ export function cleanFilterValue({
 
   switch (valueType) {
     case FieldValueType.NUMBER:
-    case FieldValueType.CURRENCY:
       if (FILTER_VALUE_NUMERIC.test(value)) {
+        return value;
+      }
+      return null;
+    case FieldValueType.CURRENCY:
+      if (FILTER_VALUE_CURRENCY.test(value)) {
         return value;
       }
       return null;

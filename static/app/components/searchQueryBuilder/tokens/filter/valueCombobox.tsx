@@ -994,14 +994,18 @@ export function SearchQueryBuilderValueCombobox({
     };
   }, [showDatePicker]);
 
+  const valueType = getFilterValueType(token, fieldDefinition);
   const placeholder =
     token.filter === FilterType.HAS
       ? prettifyTagKey(token.value.text)
       : canSelectMultipleValues
         ? ''
-        : formatFilterValue({
-            token: token.value,
-          });
+        : valueType === FieldValueType.CURRENCY
+          ? '$0.00'
+          : formatFilterValue({
+              token: token.value,
+              valueType,
+            });
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>

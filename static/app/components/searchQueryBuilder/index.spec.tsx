@@ -36,6 +36,7 @@ import {
 } from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -3931,6 +3932,18 @@ describe('SearchQueryBuilder', () => {
         filterKeySections: [],
         fieldDefinitionGetter,
       };
+      const spanCurrencyProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: {
+          [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: {
+            key: SpanFields.GEN_AI_COST_TOTAL_TOKENS,
+            name: SpanFields.GEN_AI_COST_TOTAL_TOKENS,
+            kind: FieldKind.FIELD,
+          },
+        },
+        filterKeySections: [],
+        fieldDefinitionGetter: key => getFieldDefinition(key, 'span'),
+      };
 
       it('new currency filters start with greater than operator and default value', async () => {
         render(<SearchQueryBuilder {...currencyProps} />);
@@ -3992,8 +4005,66 @@ describe('SearchQueryBuilder', () => {
         await userEvent.clear(combobox);
         await userEvent.keyboard('7k{Enter}');
 
-        // Should accept "7k" as a valid value
-        expect(await screen.findByRole('row', {name: 'cost:>7k'})).toBeInTheDocument();
+        // Should keep the same value because "7k" is not supported for currency values
+        expect(screen.getByRole('row', {name: 'cost:>100'})).toBeInTheDocument();
+      });
+
+      it('currency filter values render with a $ prefix', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+
+        expect(await screen.findByText('$100')).toBeInTheDocument();
+      });
+
+      it('currency value combobox uses $0.00 placeholder when empty', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: cost'})
+        );
+        const combobox = await screen.findByRole('combobox', {
+          name: 'Edit filter value',
+        });
+        await userEvent.clear(combobox);
+
+        expect(combobox).toHaveAttribute('placeholder', '$0.00');
+      });
+
+      it('currency value suggestions do not include k/m/b shorthand', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: cost'})
+        );
+        const combobox = await screen.findByRole('combobox', {
+          name: 'Edit filter value',
+        });
+        await userEvent.clear(combobox);
+
+        await waitFor(() => {
+          expect(screen.queryByRole('option', {name: '$100k'})).not.toBeInTheDocument();
+        });
+        expect(screen.queryByRole('option', {name: '$100m'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('option', {name: '$100b'})).not.toBeInTheDocument();
+      });
+
+      it('span GenAI cost filters render with a $ prefix', async () => {
+        render(
+          <SearchQueryBuilder
+            {...spanCurrencyProps}
+            initialQuery={`${SpanFields.GEN_AI_COST_TOTAL_TOKENS}:>100`}
+          />
+        );
+
+        expect(await screen.findByText('$100')).toBeInTheDocument();
+      });
+
+      it('span GenAI cost aggregate filters render with a $ prefix', async () => {
+        render(
+          <SearchQueryBuilder
+            {...spanCurrencyProps}
+            initialQuery={`sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS}):>100`}
+          />
+        );
+
+        expect(await screen.findByText('$100')).toBeInTheDocument();
       });
     });
 

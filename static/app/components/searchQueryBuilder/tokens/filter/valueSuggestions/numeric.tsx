@@ -1,30 +1,55 @@
 import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
+import {FieldValueType} from 'sentry/utils/fields';
 
 const NUMERIC_REGEX = /^-?\d+(\.\d+)?$/;
 const NUMERIC_UNITS = ['k', 'm', 'b'] as const;
-const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
-  {
-    sectionText: '',
-    suggestions: [{value: '100'}, {value: '100k'}, {value: '100m'}, {value: '100b'}],
-  },
-];
+const DEFAULT_NUMERIC_VALUES = ['100', '100k', '100m', '100b'] as const;
+const DEFAULT_CURRENCY_VALUES = ['100'] as const;
 
 function isNumeric(value: string) {
   return NUMERIC_REGEX.test(value);
 }
 
-export function getNumericSuggestions(inputValue: string): SuggestionSection[] {
+function labelForValue(value: string, valueType?: FieldValueType) {
+  return valueType === FieldValueType.CURRENCY ? `$${value}` : undefined;
+}
+
+export function getNumericSuggestions(
+  inputValue: string,
+  valueType?: FieldValueType
+): SuggestionSection[] {
   if (!inputValue) {
-    return DEFAULT_NUMERIC_SUGGESTIONS;
+    const defaultValues =
+      valueType === FieldValueType.CURRENCY
+        ? DEFAULT_CURRENCY_VALUES
+        : DEFAULT_NUMERIC_VALUES;
+
+    return [
+      {
+        sectionText: '',
+        suggestions: defaultValues.map(value => ({
+          value,
+          label: labelForValue(value, valueType),
+        })),
+      },
+    ];
+  }
+
+  if (valueType === FieldValueType.CURRENCY) {
+    return [];
   }
 
   if (isNumeric(inputValue)) {
     return [
       {
         sectionText: '',
-        suggestions: NUMERIC_UNITS.map(unit => ({
-          value: `${inputValue}${unit}`,
-        })),
+        suggestions: NUMERIC_UNITS.map(unit => {
+          const value = `${inputValue}${unit}`;
+          return {
+            value,
+            label: labelForValue(value, valueType),
+          };
+        }),
       },
     ];
   }
