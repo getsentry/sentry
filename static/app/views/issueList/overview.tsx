@@ -29,6 +29,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
+import {
+  indexMembersByProject,
+  useOrganizationMembers,
+} from 'sentry/utils/members/useOrganizationMembers';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
@@ -42,10 +46,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  indexMembersByProject,
-  useOrganizationMembers,
-} from 'sentry/utils/useOrganizationMembers';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {IssueListTable} from 'sentry/views/issueList/issueListTable';

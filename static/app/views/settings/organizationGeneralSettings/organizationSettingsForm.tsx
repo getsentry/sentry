@@ -31,15 +31,15 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import {
+  selectUsersFromMembers,
+  useOrganizationMembers,
+} from 'sentry/utils/members/useOrganizationMembers';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  selectUsersFromMembers,
-  useOrganizationMembers,
-} from 'sentry/utils/useOrganizationMembers';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 

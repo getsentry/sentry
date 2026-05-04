@@ -16,7 +16,7 @@ import type {User} from 'sentry/types/user';
 import {
   selectUsersFromMembers,
   useOrganizationMembers,
-} from 'sentry/utils/useOrganizationMembers';
+} from 'sentry/utils/members/useOrganizationMembers';
 import {
   useAssignIssueMutation,
   type AssignedBy,

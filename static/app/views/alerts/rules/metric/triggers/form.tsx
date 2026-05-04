@@ -280,6 +280,4 @@ const StyledField = styled(FieldGroup)`
   }
 `;
 
-const TriggerFormContainerWithConfig = withConfig(TriggerFormContainer);
-// eslint-disable-next-line @sentry/no-default-exports
-export default TriggerFormContainerWithConfig;
+export default withConfig(TriggerFormContainer);

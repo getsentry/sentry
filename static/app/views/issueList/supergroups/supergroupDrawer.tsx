@@ -38,10 +38,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import type {IndexedMembersByProject} from 'sentry/utils/members/useOrganizationMembers';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {IndexedMembersByProject} from 'sentry/utils/useOrganizationMembers';
 import {ActionSet} from 'sentry/views/issueList/actions/actionSet';
 import {COLUMN_BREAKPOINTS, ConfirmAction} from 'sentry/views/issueList/actions/utils';
 import {

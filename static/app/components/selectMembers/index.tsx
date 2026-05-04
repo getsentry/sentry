@@ -11,11 +11,11 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {memberUsersQueryOptions} from 'sentry/utils/members/shared';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   selectUsersFromMembers,
   useOrganizationMembers,
-} from 'sentry/utils/useOrganizationMembers';
+} from 'sentry/utils/members/useOrganizationMembers';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const getSearchKeyForUser = (user: User) =>
   `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;

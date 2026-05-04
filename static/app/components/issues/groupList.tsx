@@ -19,14 +19,14 @@ import {
 import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {
+  indexMembersByProject,
+  useOrganizationMembers,
+} from 'sentry/utils/members/useOrganizationMembers';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  indexMembersByProject,
-  useOrganizationMembers,
-} from 'sentry/utils/useOrganizationMembers';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 

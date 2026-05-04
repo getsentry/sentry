@@ -17,13 +17,13 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {buildTeamId} from 'sentry/utils';
-import {useCommitters} from 'sentry/utils/useCommitters';
-import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   selectUsersFromMembers,
   useOrganizationMembers,
-} from 'sentry/utils/useOrganizationMembers';
+} from 'sentry/utils/members/useOrganizationMembers';
+import {useCommitters} from 'sentry/utils/useCommitters';
+import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getOwnerList} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
 

@@ -9,7 +9,7 @@ import {
   organizationMembersQueryOptions,
   selectUsersFromMembers,
   useOrganizationMembers,
-} from 'sentry/utils/useOrganizationMembers';
+} from 'sentry/utils/members/useOrganizationMembers';
 
 describe('useOrganizationMembers', () => {
   const organization = OrganizationFixture();
