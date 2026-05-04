@@ -190,6 +190,7 @@ export function hasPullRequest(autofixData: AutofixData | null | undefined): boo
 const BASE_SUPPORTED_PROVIDERS = [
   'github',
   'integrations:github',
+  'github_enterprise',
   'integrations:github_enterprise',
 ];
 
