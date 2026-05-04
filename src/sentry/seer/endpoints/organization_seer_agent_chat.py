@@ -214,7 +214,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         page_name = validated_data.get("page_name")
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
-        ui_tools = validated_data.get("ui_tools")
+        ui_tools = (
+            validated_data.get("ui_tools")
+            if features.has(
+                "organizations:seer-explorer-ui-tools", organization, actor=request.user
+            )
+            else None
+        )
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
