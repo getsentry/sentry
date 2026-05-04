@@ -182,7 +182,7 @@ export function SnapshotHeaderActions({
             </Tag>
             <Button
               size="sm"
-              priority="primary"
+              variant="primary"
               icon={<IconThumb />}
               onClick={handleApprove}
               disabled={isApproving}
