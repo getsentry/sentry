@@ -137,7 +137,7 @@ export function BreadcrumbsDrawer({
         maxMenuHeight={400}
         trigger={props => (
           <OverlayTrigger.Button
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
@@ -153,7 +153,7 @@ export function BreadcrumbsDrawer({
         size="xs"
         trigger={props => (
           <OverlayTrigger.IconButton
-            priority="transparent"
+            variant="transparent"
             icon={<IconSort />}
             aria-label={t('Sort All Breadcrumbs')}
             title={t('Sort')}
@@ -176,7 +176,7 @@ export function BreadcrumbsDrawer({
         size="xs"
         trigger={props => (
           <OverlayTrigger.IconButton
-            priority="transparent"
+            variant="transparent"
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
                 <IconClock size="xs" />

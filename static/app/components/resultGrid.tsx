@@ -39,7 +39,7 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
   const selector = (
     <CompactSelect
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} size="sm" priority="transparent">
+        <OverlayTrigger.Button {...triggerProps} size="sm" variant="transparent">
           {currentLabel}
         </OverlayTrigger.Button>
       )}
@@ -101,7 +101,7 @@ function SortBy({options, path, value}: SortByProps) {
     <div className="sort-options">
       <CompactSelect
         trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} size="sm" priority="transparent">
+          <OverlayTrigger.Button {...triggerProps} size="sm" variant="transparent">
             {currentSortLabel ?? triggerProps.children}
           </OverlayTrigger.Button>
         )}

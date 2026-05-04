@@ -226,7 +226,7 @@ export function IntervalSelector({displayMode, eventView, onIntervalChange}: Pro
         <OverlayTrigger.Button
           {...triggerProps}
           prefix={t('Interval')}
-          priority="transparent"
+          variant="transparent"
         >
           {interval}
         </OverlayTrigger.Button>
