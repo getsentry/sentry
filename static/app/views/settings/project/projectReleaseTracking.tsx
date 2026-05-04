@@ -2,6 +2,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
 import {FieldGroup as FormFieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -9,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -150,10 +150,10 @@ export default function ProjectReleaseTracking() {
         )}
 
         <FormFieldGroup title={t('Client Configuration')}>
-          <Stack gap="md">
+          <Stack gap="xl">
             <Text as="p">
               {tct(
-                'Start by binding the [code:release] attribute in your application. See [link:our docs] for instructions on configuring this in your SDK.',
+                'Start by binding the [code:release] attribute in your application, take a look at [link:our docs] to see how to configure this for the SDK you are using.',
                 {
                   code: <code />,
                   link: (
@@ -179,7 +179,6 @@ export default function ProjectReleaseTracking() {
           <FieldGroup
             label={t('Token')}
             help={t('A unique secret which is used to generate deploy hook URLs')}
-            inline={false}
             flexibleControlStateSize
           >
             <TextCopyInput aria-label={t('Token')}>
@@ -192,7 +191,6 @@ export default function ProjectReleaseTracking() {
             help={t(
               'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
             )}
-            inline={false}
             flexibleControlStateSize
           >
             <Container>
@@ -232,16 +230,14 @@ export default function ProjectReleaseTracking() {
             inline={false}
             flexibleControlStateSize
           >
-            <AutoSelectText>
-              <pre>{getReleaseWebhookInstructions()}</pre>
-            </AutoSelectText>
+            <CodeBlock language="bash">{getReleaseWebhookInstructions()}</CodeBlock>
           </FieldGroup>
         </FormFieldGroup>
 
         <PluginList project={project} pluginList={pluginList} />
 
         <FormFieldGroup title={t('API')}>
-          <Stack gap="md">
+          <Stack gap="xl">
             <Text as="p">
               {t(
                 'You can notify Sentry when you release new versions of your application via our HTTP API.'
