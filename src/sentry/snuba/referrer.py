@@ -138,6 +138,8 @@ class Referrer(StrEnum):
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
         "api.explore.tracemetrics.raw-count.high-accuracy"
     )
+    API_EXPLORE_HEATMAP_FIND_Y_BOUNDS = "api.explore.heatmap.find-y-bounds"
+    API_EXPLORE_HEATMAP_QUERY_DATA = "api.explore.heatmap.query-data"
     DATA_EXPORT_TASKS_EXPLORE = "data_export.tasks.explore"
 
     # ** Insights **
