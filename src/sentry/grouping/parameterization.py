@@ -94,7 +94,11 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         raw_pattern=r"""
             [a-zA-Z][a-zA-Z0-9+\-.]*
             ://
-            [^\s/$.?#].[^\s]*
+            [^'"`\\<>{}|\^\s$.?#]
+            (
+                [^'"`\\<>{}|\^\s]*
+                [^'"`\\<>{}|\^\s.,;]
+            )?
         """,
     ),
     ParameterizationRegex(
