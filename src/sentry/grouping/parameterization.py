@@ -92,7 +92,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="url",
         raw_pattern=r"""
-            \b(wss?|https?|ftp)
+            [a-zA-Z][a-zA-Z0-9+\-.]*
             ://
             [^\s/$.?#].[^\s]*
         """,
