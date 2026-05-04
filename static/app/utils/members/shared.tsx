@@ -69,7 +69,7 @@ export function memberUsersQueryOptions(options: MembersQueryOptions) {
     ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
       path: {organizationIdOrSlug: options.orgSlug},
       query: getMembersQuery(options),
-      staleTime: Infinity,
+      staleTime: 10 * 60 * 1000,
     }),
     select: selectUsersFromResponse,
   };
