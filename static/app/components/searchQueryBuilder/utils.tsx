@@ -15,7 +15,11 @@ import {
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
 
-function getFilterKeysFromQuery(value: string): string[] {
+function getFilterKeysFromQuery(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
   const keys = new Set<string>();
   const filterKeyPattern = /(?:^|[\s(])!?([^\s():]+):/g;
 
