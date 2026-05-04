@@ -18,7 +18,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
-from sentry.integrations.utils.external_issues import generate_external_issue_details
+from sentry.integrations.utils.external_issues import maybe_generate_external_issue_details
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -165,10 +165,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         default_title = self.get_group_title(group, event, **kwargs)
         default_description = self.get_group_description(group, event, **kwargs)
 
-        llm_title, llm_description = generate_external_issue_details(group, user)
-        title = f"{llm_title} ({group.qualified_short_id})" if llm_title else default_title
+        llm_title, llm_description = maybe_generate_external_issue_details(group, user)
+        title = llm_title if llm_title else default_title
         description = (
-            f"{llm_description}\n\n---\n\n*{default_title}*\n{default_description}"
+            f"**{default_title}**\n\n{llm_description}\n\n---\n\n{default_description}"
             if llm_description
             else default_description
         )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from sentry import features
 from sentry.models.group import Group
@@ -12,6 +12,7 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import json
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
@@ -19,8 +20,8 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = """You are a helpful assistant that generates concise titles and descriptions for issue tickets in external project management tools like Jira, GitHub Issues, and Linear.
 
 Given information about a Sentry error (title and stack trace / error details), generate:
-1. A short, actionable title (5-10 words) suitable for a ticket. Describe the problem clearly.
-2. A brief description (2-4 sentences) summarizing the error, its likely cause, and potential impact.
+1. A short, actionable title (3-8 words) suitable for a ticket. Describe the problem clearly.
+2. A brief description (1-3 sentences) summarizing the error, its likely cause, and potential impact.
 
 Do not include Sentry-specific formatting, links, or markdown. Keep the description in plain text.
 Return a JSON object with "title" and "description" keys. Return only the JSON, nothing else."""
@@ -57,16 +58,17 @@ def _build_event_context(group: Group) -> str:
 def _make_generate_external_issue_details_request(
     group: Group, viewer_context: SeerViewerContext | None = None
 ) -> dict[str, str] | None:
+    logging_ctx: dict[str, Any] = {"group_id": group.id, "viewer_context": viewer_context}
     context = _build_event_context(group)
 
     body = LlmGenerateRequest(
         provider="gemini",
         model="flash",
-        referrer="sentry.external-issue.description-generate",
+        referrer="sentry.external-issue.details-generate",
         prompt=f"Generate a title and description for this Sentry error:\n\n{context}",
         system_prompt=SYSTEM_PROMPT,
         temperature=0.3,
-        max_tokens=300,
+        max_tokens=500,
         response_schema={
             "type": "object",
             "properties": {
@@ -77,11 +79,17 @@ def _make_generate_external_issue_details_request(
         },
     )
     response = make_llm_generate_request(body, timeout=10, viewer_context=viewer_context)
+    logging_ctx["status_code"] = response.status
     if response.status >= 400:
+        logger.warning("external_issues.seer_request_failed", extra=logging_ctx)
         return None
+
     data = response.json()
     content = data.get("content")
-    if not content or not isinstance(content, dict):
+    try:
+        content = json.loads(content)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        logger.warning("external_issues.seer_response_parse_failed", extra=logging_ctx)
         return None
 
     title = content.get("title")
@@ -89,6 +97,9 @@ def _make_generate_external_issue_details_request(
     if title and description:
         return {"title": title.strip(), "description": description.strip()}
 
+    logging_ctx["title"] = title
+    logging_ctx["description"] = description
+    logger.warning("external_issues.invalid_shape", extra=logging_ctx)
     return None
 
 
@@ -97,7 +108,9 @@ class GeneratedIssueDetails(NamedTuple):
     description: str | None = None
 
 
-def generate_external_issue_details(group: Group, user: User | RpcUser) -> GeneratedIssueDetails:
+def maybe_generate_external_issue_details(
+    group: Group, user: User | RpcUser
+) -> GeneratedIssueDetails:
     organization = group.organization
     if organization.get_option("sentry:hide_ai_features", False):
         return GeneratedIssueDetails()
@@ -107,8 +120,8 @@ def generate_external_issue_details(group: Group, user: User | RpcUser) -> Gener
     try:
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user.id)
         result = _make_generate_external_issue_details_request(group, viewer_context=viewer_context)
+    # Open except block is wide but allows us to fallback to default title/description if anything fails.
     except Exception:
-        logger.exception("Failed to generate AI text for external issue")
         return GeneratedIssueDetails()
 
     if not result:

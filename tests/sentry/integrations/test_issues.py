@@ -741,7 +741,7 @@ class IssueDefaultTest(TestCase):
 
         assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}
 
-    @patch("sentry.integrations.mixins.issues.generate_external_issue_details")
+    @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
     def test_ai_text_replaces_defaults(self, mock_generate: MagicMock) -> None:
         mock_generate.return_value = GeneratedIssueDetails(
             title="LLM Title",
@@ -753,13 +753,12 @@ class IssueDefaultTest(TestCase):
         title_field = next(f for f in config if f["name"] == "title")
         desc_field = next(f for f in config if f["name"] == "description")
 
-        assert title_field["default"] == (f"LLM Title ({self.group.qualified_short_id})")
-        assert desc_field["default"].startswith("LLM Description\n\n---\n\n")
+        assert title_field["default"] == "LLM Title"
+        assert desc_field["default"].startswith("**")
+        assert "LLM Description" in desc_field["default"]
 
-    @patch("sentry.integrations.mixins.issues.generate_external_issue_details")
+    @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
     def test_falls_back_when_ai_returns_empty(self, mock_generate: MagicMock) -> None:
-        from sentry.integrations.utils.external_issues import GeneratedIssueDetails
-
         mock_generate.return_value = GeneratedIssueDetails()
 
         config = self.installation.get_create_issue_config(self.group, self.user)
