@@ -90,7 +90,12 @@ class DataForwarderSerializer(Serializer):
             "provider": obj.provider,
             "config": obj.config if include_config else None,
             "projectConfigs": [
-                serialize(project_config, user=user, include_config=include_config)
+                serialize(
+                    project_config,
+                    user=user,
+                    include_config=include_config,
+                    access=kwargs.get("access"),
+                )
                 for project_config in project_configs
             ],
             "dateAdded": obj.date_added,
@@ -108,6 +113,10 @@ class DataForwarderProjectSerializer(Serializer):
         **kwargs: Any,
     ) -> DataForwarderProjectResponse:
         include_config = kwargs.get("include_config", False)
+        access = kwargs.get("access")
+        has_project_write = include_config or (
+            access is not None and access.has_project_scope(obj.project, "project:write")
+        )
         return {
             "id": str(obj.id),
             "isEnabled": obj.is_enabled,
@@ -117,7 +126,7 @@ class DataForwarderProjectSerializer(Serializer):
                 "slug": obj.project.slug,
                 "platform": obj.project.platform,
             },
-            "overrides": obj.overrides if include_config else {},
+            "overrides": obj.overrides if has_project_write else {},
             "effectiveConfig": obj.get_config() if include_config else {},
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,

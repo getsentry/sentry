@@ -64,7 +64,9 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            on_results=lambda x: serialize(x, request.user, include_config=include_config),
+            on_results=lambda x: serialize(
+                x, request.user, include_config=include_config, access=request.access
+            ),
             paginator_cls=OffsetPaginator,
         )
 

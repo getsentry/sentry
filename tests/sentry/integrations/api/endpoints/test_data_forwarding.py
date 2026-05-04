@@ -150,6 +150,34 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         assert response.data[0]["projectConfigs"][0]["overrides"] == {}
         assert response.data[0]["projectConfigs"][0]["effectiveConfig"] == {}
 
+    def test_get_shows_overrides_for_team_admin(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        self.create_data_forwarder_project(
+            data_forwarder=data_forwarder,
+            project=project,
+            is_enabled=True,
+            overrides={"write_key": "override_key"},
+        )
+
+        team_admin_user = self.create_user()
+        member = self.create_member(
+            user=team_admin_user,
+            organization=self.organization,
+            role="member",
+        )
+        self.create_team_membership(team=self.team, member=member, role="admin")
+        self.login_as(user=team_admin_user)
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 1
+        assert response.data[0]["config"] is None
+        assert response.data[0]["projectConfigs"][0]["overrides"] == {"write_key": "override_key"}
+        assert response.data[0]["projectConfigs"][0]["effectiveConfig"] == {}
+
     def test_get_includes_config_for_manager_role(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
