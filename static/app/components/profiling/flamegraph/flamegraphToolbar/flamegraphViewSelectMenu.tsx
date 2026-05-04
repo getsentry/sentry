@@ -24,7 +24,7 @@ function FlamegraphViewSelectMenu({
         aria-label={t('Sorting')}
         size="xs"
         value={sorting}
-        priority="primary"
+        variant="primary"
         onChange={onSortingChange}
       >
         <SegmentedControl.Item key="call order">{t('Call Order')}</SegmentedControl.Item>
@@ -38,7 +38,7 @@ function FlamegraphViewSelectMenu({
         size="xs"
         value={view}
         onChange={onViewChange}
-        priority="primary"
+        variant="primary"
       >
         <SegmentedControl.Item key="bottom up">{t('Bottom Up')}</SegmentedControl.Item>
         <SegmentedControl.Item key="top down">{t('Top Down')}</SegmentedControl.Item>
