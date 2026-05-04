@@ -72,7 +72,7 @@ class TestUnpackSlackApiError:
         exc = _make_slack_api_error("invalid_auth")
         result = unpack_slack_api_error(exc)
         assert result is INVALID_AUTH
-        assert result not in SLACK_SDK_HALT_ERROR_CATEGORIES
+        assert result in SLACK_SDK_HALT_ERROR_CATEGORIES
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
@@ -149,7 +149,7 @@ class TestUnpackSlackApiError:
             (INTERNAL_ERROR, True),
             (INVALID_BLOCKS, False),
             (INVALID_ATTACHMENTS, False),
-            (INVALID_AUTH, False),
+            (INVALID_AUTH, True),
             (NON_JSON_RESPONSE, True),
         ],
     )
