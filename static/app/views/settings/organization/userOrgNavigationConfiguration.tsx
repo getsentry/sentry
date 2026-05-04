@@ -16,6 +16,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/details/`,
           title: t('Account Details'),
+          keywords: ['user settings', 'account settings'],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
@@ -28,6 +29,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/notifications/`,
           title: t('Notifications'),
+          keywords: ['weekly report', 'report'],
           description: t('Configure what email notifications to receive'),
         },
         {
@@ -73,12 +75,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
           index: true,
+          keywords: ['slug', 'org slug', 'organization slug'],
           description: t('Configure general settings for an organization'),
           id: 'general',
         },
         {
           path: `${organizationSettingsPathPrefix}/stats/`,
           title: t('Stats & Usage'),
+          keywords: ['data retention', 'event retention', 'quota'],
           description: t('View organization stats and usage'),
           id: 'stats',
         },
@@ -103,7 +107,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
-          keywords: ['data scrubbing', 'privacy', 'pii', 'attachments'],
+          keywords: [
+            'data scrubbing',
+            'privacy',
+            'pii',
+            'attachments',
+            'advanced',
+            'advanced data scrubbing',
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
           ),
@@ -195,7 +206,34 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/integrations/`,
           title: t('Integrations'),
-          keywords: ['slack', 'github', 'bitbucket', 'jira', 'azure devops', 'vercel'],
+          keywords: [
+            'slack',
+            'github',
+            'github enterprise',
+            'gitlab',
+            'bitbucket',
+            'bitbucket server',
+            'jira',
+            'jira server',
+            'azure devops',
+            'vercel',
+            'pagerduty',
+            'opsgenie',
+            'discord',
+            'microsoft teams',
+            'msteams',
+            'aws lambda',
+            'perforce',
+            'heroku',
+            'splunk',
+            'trello',
+            'asana',
+            'twilio',
+            'victorops',
+            'segment',
+            'code mapping',
+            'code mappings',
+          ],
           description: t(
             'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
           ),
@@ -212,7 +250,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/developer-settings/`,
           title: t('Custom Integrations'),
-          keywords: ['integration', 'developer', 'vercel'],
+          keywords: [
+            'integration',
+            'developer',
+            'vercel',
+            'internal integration',
+            'developer settings',
+          ],
           description: t('Manage custom integrations'),
           id: 'developer-settings',
         },

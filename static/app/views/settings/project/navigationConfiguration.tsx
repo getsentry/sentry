@@ -51,7 +51,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
-          keywords: ['environment', 'env'],
+          keywords: ['environment', 'env', 'staging'],
           description: t('Manage environments in a project'),
         },
         {
@@ -159,7 +159,7 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
-          keywords: [t('dsn'), 'auth', 'token', 'client key'],
+          keywords: [t('dsn'), 'auth', 'token', 'client key', 'dsn key', 'copy'],
         },
         {
           path: `${pathPrefix}/loader-script/`,

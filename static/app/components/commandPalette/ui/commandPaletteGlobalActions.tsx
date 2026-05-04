@@ -296,7 +296,11 @@ export function GlobalCommandPaletteActions() {
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
         <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}} limit={4}>
-          <CMDKAction display={{label: t('Feed')}} to={`${prefix}/issues/`} />
+          <CMDKAction
+            display={{label: t('Feed')}}
+            keywords={[t('issues')]}
+            to={`${prefix}/issues/`}
+          />
           {Object.values(ISSUE_TAXONOMY_CONFIG)
             .filter(
               ({featureFlag}) =>
@@ -401,7 +405,10 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
             />
           )}
-          <CMDKAction display={{label: t('Starred Dashboards'), icon: <IconStar />}}>
+          <CMDKAction
+            display={{label: t('Starred Dashboards'), icon: <IconStar />}}
+            keywords={[t('bookmark'), t('bookmarked'), t('favorites')]}
+          >
             {starredDashboards.map(dashboard => (
               <CMDKAction
                 key={dashboard.id}
@@ -428,6 +435,7 @@ export function GlobalCommandPaletteActions() {
               {!hasInsightsRollout && (
                 <CMDKAction
                   display={{label: t('Frontend')}}
+                  keywords={[t('apdex'), t('web vitals'), t('performance score')]}
                   to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
                 />
               )}
@@ -458,12 +466,14 @@ export function GlobalCommandPaletteActions() {
               {!hasWorkflowEngineUI && (
                 <CMDKAction
                   display={{label: t('Crons')}}
+                  keywords={[t('jobs'), t('job'), t('cron jobs')]}
                   to={`${prefix}/insights/crons/`}
                 />
               )}
               {organization.features.includes('uptime') && !hasWorkflowEngineUI && (
                 <CMDKAction
                   display={{label: t('Uptime')}}
+                  keywords={[t('uptime monitors'), t('monitors')]}
                   to={`${prefix}/insights/uptime/`}
                 />
               )}
@@ -491,10 +501,15 @@ export function GlobalCommandPaletteActions() {
               display={{label: t('Metrics')}}
               to={`${prefix}/monitors/metrics/`}
             />
-            <CMDKAction display={{label: t('Crons')}} to={`${prefix}/monitors/crons/`} />
+            <CMDKAction
+              display={{label: t('Crons')}}
+              keywords={[t('jobs'), t('job'), t('cron jobs')]}
+              to={`${prefix}/monitors/crons/`}
+            />
             {organization.features.includes('uptime') && (
               <CMDKAction
                 display={{label: t('Uptime')}}
+                keywords={[t('uptime monitors'), t('monitors')]}
                 to={`${prefix}/monitors/uptime/`}
               />
             )}
@@ -608,7 +623,13 @@ export function GlobalCommandPaletteActions() {
                 icon: <ProjectAvatar project={project} size={16} />,
                 trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
               }}
-              keywords={[t('dsn'), t('client keys'), project.slug]}
+              keywords={[
+                t('dsn'),
+                t('client keys'),
+                t('dsn key'),
+                t('copy'),
+                project.slug,
+              ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}
@@ -710,6 +731,7 @@ export function GlobalCommandPaletteActions() {
               t('explorer'),
               t('nightshift'),
               t('autofix'),
+              t('claude'),
             ]}
             limit={10}
             resource={() => {
@@ -870,7 +892,13 @@ export function GlobalCommandPaletteActions() {
 
       <CMDKAction
         display={{label: t('Open Project'), icon: <IconAllProjects />}}
-        keywords={[t('project'), t('switch project'), t('go to project')]}
+        keywords={[
+          t('project'),
+          t('switch project'),
+          t('go to project'),
+          t('subproject'),
+          t('subdomain'),
+        ]}
         prompt={t('Search for a project...')}
         limit={4}
         resource={(_query, {state}) =>
@@ -907,6 +935,7 @@ export function GlobalCommandPaletteActions() {
       <CMDKAction
         id="cmdk:supplementary:help"
         display={{label: t('Help')}}
+        keywords={[t('support'), t('contact')]}
         limit={4}
         resource={query => {
           return cmdkQueryOptions({
