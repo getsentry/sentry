@@ -89,7 +89,28 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         name="email",
         raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
     ),
-    ParameterizationRegex(name="url", raw_pattern=r"""\b(wss?|https?|ftp)://[^\s/$.?#].[^\s]*"""),
+    ParameterizationRegex(
+        name="url",
+        raw_pattern=r"""
+            # Scheme - by spec, must start with a letter, but after that can contain anything
+            # alphanumeric in addition to plus, minus (has to be escaped so it's clear it's not part
+            # of a range), and dot
+            [a-zA-Z][a-zA-Z0-9+\-.]*
+            # The normal separator
+            ://
+            # First character of the domain (or path, if the domain is empty) - must be a valid URL
+            # character (so no quotes, backticks, backslashes, angle brackets, sqiggly brackets,
+            # pipes, carets, or whitespace) and must be allowable in the first spot (no starting the
+            # querystring right away, for example)
+            [^'"`\\<>{}|\^\s$.?#]
+            # The rest of the URL is technically optional
+            (
+                [^'"`\\<>{}|\^\s]* # Any number of copies of anything not globally invalid
+                [^'"`\\<>{}|\^\s.,;] # Final character - must be both valid in general and allowable
+                                     # in the last spot (so no trailing punctuation)
+            )?
+        """,
+    ),
     ParameterizationRegex(
         name="hostname",
         raw_pattern=r"""
