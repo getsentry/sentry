@@ -69,7 +69,7 @@ export function TroubleshootingSection({
               <div>
                 <LinkButton
                   size="sm"
-                  priority="primary"
+                  variant="primary"
                   icon={<IconSettings />}
                   to={settingsUrl}
                 >

@@ -296,7 +296,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <LinkButton
                     href={`/settings/${organization.slug}/integrations/?category=source%20code%20management&search=github`}
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Set Up Integration')}
                   </LinkButton>
@@ -336,7 +336,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <LinkButton
                     to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Configure Repos')}
                   </LinkButton>
@@ -373,7 +373,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <LinkButton
                     to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Enable Automation')}
                   </LinkButton>
@@ -505,7 +505,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       <Button
                         onClick={handleSetupCursorHandoff}
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                       >
                         {t('Set Seer to hand off to Cursor')}
                       </Button>
@@ -513,7 +513,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       <LinkButton
                         href={`/settings/${organization.slug}/integrations/cursor/`}
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                       >
                         {t('Install Cursor Integration')}
                       </LinkButton>
