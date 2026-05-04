@@ -107,7 +107,7 @@ export function AutofixRepositoriesItem({
           onClick={() => setIsExpanded(!isExpanded)}
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
           size="zero"
-          priority="transparent"
+          variant="transparent"
         >
           <Text size="md">
             {[repository.owner, repository.name].filter(Boolean).join('/')}
@@ -150,13 +150,13 @@ export function AutofixRepositoriesItem({
               {t('Disconnect')}
             </Flex>
           }
-          priority="danger"
+          variant="danger"
         >
           <Button
             aria-label={t('Disconnect Repository')}
             icon={<IconDelete />}
             size="xs"
-            priority="transparent"
+            variant="transparent"
           />
         </Confirm>
       </Flex>

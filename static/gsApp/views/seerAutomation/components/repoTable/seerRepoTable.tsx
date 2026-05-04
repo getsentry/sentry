@@ -189,7 +189,7 @@ export function SeerRepoTable() {
         {isFetchingNextPage ? <LoadingIndicator mini /> : null}
 
         <LinkButton
-          priority="primary"
+          variant="primary"
           size="sm"
           to={`/settings/${organization.slug}/repos/`}
           icon={<IconOpen />}
