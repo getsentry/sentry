@@ -7,7 +7,7 @@ import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
+import {IconCopy, IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -24,6 +24,7 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   borderless?: boolean;
   children?: React.ReactNode;
   noVisualizationPadding?: boolean;
+  onCopyUrlClick?: () => void;
   onFullScreenViewClick?: () => void | Promise<void>;
   revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
@@ -51,6 +52,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
 
   const shouldShowFullScreenViewButton =
     Boolean(props.onFullScreenViewClick) && !props.error;
+
+  const shouldShowCopyUrlButton = Boolean(props.onCopyUrlClick) && !props.error;
 
   const shouldShowActions = actions && actions.length > 0;
 
@@ -136,6 +139,20 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 />
               ) : null}
             </TitleActionsWrapper>
+          )}
+
+          {shouldShowCopyUrlButton && (
+            <Tooltip title={t('Copy Widget URL')}>
+              <Button
+                size="xs"
+                aria-label={t('Copy Widget URL')}
+                variant="transparent"
+                icon={<IconCopy />}
+                onClick={() => {
+                  props.onCopyUrlClick?.();
+                }}
+              />
+            </Tooltip>
           )}
 
           {shouldShowFullScreenViewButton && (
