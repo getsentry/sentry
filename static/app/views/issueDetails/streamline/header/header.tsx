@@ -17,7 +17,6 @@ import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFee
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
-import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {HookStore} from 'sentry/stores/hookStore';
 import type {Event} from 'sentry/types/event';
@@ -27,6 +26,7 @@ import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -59,15 +59,16 @@ interface GroupHeaderProps {
 export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const defaultMaxPickableDays = useDefaultMaxPickableDays();
   const {baseUrl} = useGroupDetailsRoute();
 
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
   const useGetMaxRetentionDays =
     HookStore.get('react-hook:use-get-max-retention-days')[0] ??
-    (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
-  const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
+    (() => defaultMaxPickableDays);
+  const maxRetentionDays = useGetMaxRetentionDays() ?? defaultMaxPickableDays;
+  const userCountPeriod = `(${maxRetentionDays}d)`;
   const {title: primaryTitle, subtitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';

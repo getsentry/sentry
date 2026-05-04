@@ -5,9 +5,9 @@ import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {HookStore} from 'sentry/stores/hookStore';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -17,6 +17,7 @@ import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 export function EventMissingBanner() {
   const location = useLocation();
   const organization = useOrganization();
+  const defaultMaxPickableDays = useDefaultMaxPickableDays();
   const defaultEventId = useDefaultIssueEvent();
   const {groupId, eventId: eventIdParam} = useParams<{
     eventId: string;
@@ -25,9 +26,9 @@ export function EventMissingBanner() {
   const eventId = eventIdParam ?? defaultEventId;
 
   const retentionHook = HookStore.get('react-hook:use-get-max-retention-days')[0];
-  const useGetMaxRetentionDays = retentionHook ?? (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
-  const statsPeriod = maxRetentionDays ? `${maxRetentionDays}d` : '30d';
+  const useGetMaxRetentionDays = retentionHook ?? (() => defaultMaxPickableDays);
+  const maxRetentionDays = useGetMaxRetentionDays() ?? defaultMaxPickableDays;
+  const statsPeriod = `${maxRetentionDays}d`;
 
   const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
@@ -44,7 +45,7 @@ export function EventMissingBanner() {
             to={{
               pathname: `${baseUrl}/recommended/`,
               query: {
-                statsPeriod: `${MAX_PICKABLE_DAYS}d`,
+                statsPeriod,
                 ...(location.query.project ? {project: location.query.project} : {}),
               },
             }}

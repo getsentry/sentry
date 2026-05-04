@@ -3,7 +3,9 @@ import {MonitorFixture} from 'sentry-fixture/monitor';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import MonitorDetails from 'sentry/views/alerts/rules/crons/details';
 
@@ -21,6 +23,7 @@ describe('Monitor Details', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ConfigStore.set('isSelfHosted', false);
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/`,
       body: {...monitor},
@@ -87,5 +90,21 @@ describe('Monitor Details', () => {
         'Errors were encountered while ingesting check-ins for this monitor'
       )
     ).toBeInTheDocument();
+  });
+
+  it('shows a 180-day filter option for self-hosted flagged organizations', async () => {
+    ConfigStore.set('isSelfHosted', true);
+
+    render(<MonitorDetails />, {
+      organization: OrganizationFixture({
+        features: ['visibility-increased-max-pickable-days'],
+      }),
+      initialRouterConfig,
+    });
+
+    await screen.findByText(monitor.slug, {exact: false});
+    await userEvent.click(screen.getByTestId('page-filter-timerange-selector'));
+
+    expect(screen.getByRole('option', {name: 'Last 180 days'})).toBeInTheDocument();
   });
 });

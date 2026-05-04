@@ -24,6 +24,7 @@ export function useDatePageFilterProps({
       [14, '14d', t('Last 14 days')],
       [30, '30d', t('Last 30 days')],
       [90, '90d', t('Last 90 days')],
+      [180, '180d', t('Last 180 days')],
     ];
 
     // find the relative options that should be enabled based on the maxPickableDays

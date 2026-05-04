@@ -270,6 +270,7 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
   '90d': t('Last 90 days'),
+  '180d': t('Last 180 days'),
 };
 
 const DEFAULT_STATS_INFO = {

@@ -16,6 +16,7 @@ import {
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -28,7 +29,6 @@ import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttr
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
-import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -38,9 +38,10 @@ const DISABLE_AGGREGATES: never[] = [];
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
+  const maxPickableDays = useDefaultMaxPickableDays();
   const datePageFilterProps = useDatePageFilterProps({
-    maxPickableDays: MAX_PICKABLE_DAYS,
-    maxUpgradableDays: MAX_PICKABLE_DAYS,
+    maxPickableDays,
+    maxUpgradableDays: maxPickableDays,
   });
   useDefaultToAllProjects();
   const {

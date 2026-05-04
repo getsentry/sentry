@@ -4,10 +4,15 @@ import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {HookStore} from 'sentry/stores/hookStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+export const INCREASED_MAX_PICKABLE_DAYS = 180;
+export const INCREASED_MAX_PICKABLE_DAYS_FEATURE =
+  'visibility-increased-max-pickable-days';
 
 /**
  * This returns the default max pickable days for the current organization.
@@ -22,7 +27,27 @@ export function useDefaultMaxPickableDays(): number {
 }
 
 function useDefaultMaxPickableDaysImpl() {
+  const organization = useOrganization({allowNull: true});
+  return getDefaultMaxPickableDays(organization);
+}
+
+export function getDefaultMaxPickableDays(
+  organization: Organization | null | undefined
+): number {
+  if (isIncreasedMaxPickableDaysEnabled(organization)) {
+    return INCREASED_MAX_PICKABLE_DAYS;
+  }
+
   return MAX_PICKABLE_DAYS;
+}
+
+export function isIncreasedMaxPickableDaysEnabled(
+  organization: Organization | null | undefined
+): boolean {
+  return Boolean(
+    ConfigStore.get('isSelfHosted') &&
+      organization?.features.includes(INCREASED_MAX_PICKABLE_DAYS_FEATURE)
+  );
 }
 
 export interface MaxPickableDaysOptions {
@@ -97,17 +122,25 @@ export function getMaxPickableDays(
   dataCategory: DataCategory,
   organization: Organization
 ): MaxPickableDaysOptions {
+  const defaultMaxPickableDays = getDefaultMaxPickableDays(organization);
+  const hasIncreasedMaxPickableDays = isIncreasedMaxPickableDaysEnabled(organization);
+
   switch (dataCategory) {
     case DataCategory.SPANS:
     case DataCategory.SPANS_INDEXED: {
-      const maxPickableDays = organization.features.includes(
-        'visibility-explore-range-high'
-      )
-        ? MAX_PICKABLE_DAYS
-        : 30;
+      let maxPickableDays = 30;
+
+      if (hasIncreasedMaxPickableDays) {
+        maxPickableDays = defaultMaxPickableDays;
+      } else if (organization.features.includes('visibility-explore-range-high')) {
+        maxPickableDays = MAX_PICKABLE_DAYS;
+      }
+
       return {
         maxPickableDays,
-        maxUpgradableDays: MAX_PICKABLE_DAYS,
+        maxUpgradableDays: hasIncreasedMaxPickableDays
+          ? defaultMaxPickableDays
+          : MAX_PICKABLE_DAYS,
         upsellFooter: SpansUpsellFooter,
       };
     }
@@ -115,8 +148,8 @@ export function getMaxPickableDays(
     case DataCategory.LOG_BYTE:
     case DataCategory.LOG_ITEM:
       return {
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
+        maxPickableDays: hasIncreasedMaxPickableDays ? defaultMaxPickableDays : 30,
+        maxUpgradableDays: hasIncreasedMaxPickableDays ? defaultMaxPickableDays : 30,
         defaultPeriod: '24h',
       };
     case DataCategory.PROFILE_CHUNKS:
@@ -126,8 +159,8 @@ export function getMaxPickableDays(
     case DataCategory.TRANSACTIONS:
     case DataCategory.REPLAYS:
       return {
-        maxPickableDays: MAX_PICKABLE_DAYS,
-        maxUpgradableDays: MAX_PICKABLE_DAYS,
+        maxPickableDays: defaultMaxPickableDays,
+        maxUpgradableDays: defaultMaxPickableDays,
       };
     default:
       throw new Error(

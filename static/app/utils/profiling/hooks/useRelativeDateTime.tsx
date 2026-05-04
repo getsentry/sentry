@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import type {PageFilters} from 'sentry/types/core';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -17,13 +18,14 @@ export function useRelativeDateTime({
   retentionDays,
 }: UseRelativeDateTimeOptions) {
   const timezone = useTimezone();
+  const defaultMaxPickableDays = useDefaultMaxPickableDays();
 
   const anchorTime = anchor * 1000;
 
   // Make sure to memo this. Otherwise, each re-render will have
   // a different min/max date time, causing the query to refetch.
   const maxDateTime = useMemo(() => Date.now(), []);
-  const minDateTime = maxDateTime - (retentionDays ?? 90) * DAY;
+  const minDateTime = maxDateTime - (retentionDays ?? defaultMaxPickableDays) * DAY;
 
   const beforeTime = anchorTime - relativeDays * DAY;
   const beforeDateTime =

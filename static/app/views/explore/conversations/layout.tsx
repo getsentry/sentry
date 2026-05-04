@@ -12,6 +12,7 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -19,7 +20,6 @@ import {
   CONVERSATIONS_LANDING_SUB_PATH,
   CONVERSATIONS_LANDING_TITLE,
   CONVERSATIONS_SIDEBAR_LABEL,
-  MAX_PICKABLE_DAYS,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -45,6 +45,7 @@ function ConversationsLayout() {
 
 function ConversationsLayoutContent() {
   const organization = useOrganization();
+  const maxPickableDays = useDefaultMaxPickableDays();
 
   return (
     <SentryDocumentTitle title={CONVERSATIONS_LANDING_TITLE} orgSlug={organization.slug}>
@@ -52,7 +53,7 @@ function ConversationsLayoutContent() {
         <Stack flex={1}>
           <ConversationsHeader />
           <NoProjectMessage organization={organization}>
-            <PageFiltersContainer maxPickableDays={MAX_PICKABLE_DAYS}>
+            <PageFiltersContainer maxPickableDays={maxPickableDays}>
               <Outlet />
             </PageFiltersContainer>
           </NoProjectMessage>

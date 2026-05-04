@@ -1,12 +1,40 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 
-import {useMaxPickableDays} from './useMaxPickableDays';
+import {
+  getDefaultMaxPickableDays,
+  INCREASED_MAX_PICKABLE_DAYS,
+  useMaxPickableDays,
+} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
+  beforeEach(() => {
+    ConfigStore.loadInitialData(ConfigFixture());
+  });
+
+  it('returns 180 for self-hosted flagged organizations', () => {
+    ConfigStore.set('isSelfHosted', true);
+
+    expect(
+      getDefaultMaxPickableDays(
+        OrganizationFixture({features: ['visibility-increased-max-pickable-days']})
+      )
+    ).toBe(INCREASED_MAX_PICKABLE_DAYS);
+  });
+
+  it('returns 90 for SaaS organizations even with the flag', () => {
+    expect(
+      getDefaultMaxPickableDays(
+        OrganizationFixture({features: ['visibility-increased-max-pickable-days']})
+      )
+    ).toBe(90);
+  });
+
   it('returns 90/90 for transactions', () => {
     const {result} = renderHookWithProviders(() =>
       useMaxPickableDays({
@@ -76,6 +104,28 @@ describe('useMaxPickableDays', () => {
       defaultPeriod: '24h',
       maxPickableDays: 30,
       maxUpgradableDays: 30,
+    });
+  });
+
+  it('returns 180/180 days for trace metrics on self-hosted with the flag', () => {
+    ConfigStore.set('isSelfHosted', true);
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useMaxPickableDays({
+          dataCategories: [DataCategory.TRACE_METRICS],
+        }),
+      {
+        organization: OrganizationFixture({
+          features: ['visibility-increased-max-pickable-days'],
+        }),
+      }
+    );
+
+    expect(result.current).toEqual({
+      defaultPeriod: '24h',
+      maxPickableDays: 180,
+      maxUpgradableDays: 180,
     });
   });
 

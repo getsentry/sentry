@@ -33,6 +33,7 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -54,6 +55,7 @@ const CronsListPageHeader = HookOrDefault({
 
 function CronsOverview() {
   const organization = useOrganization();
+  const maxPickableDays = useDefaultMaxPickableDays();
   const navigate = useNavigate();
   const location = useLocation();
   const {guideVisible} = useCronsUpsertGuideState();
@@ -174,7 +176,7 @@ function CronsOverview() {
             <PageFilterBar>
               <ProjectPageFilter resetParamsOnChange={['cursor']} />
               <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-              <DatePageFilter maxPickableDays={30} />
+              <DatePageFilter maxPickableDays={maxPickableDays} />
             </PageFilterBar>
             <SearchBar
               query={decodeScalar(qs.parse(location.search)?.query, '')}

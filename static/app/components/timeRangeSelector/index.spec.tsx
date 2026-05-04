@@ -254,6 +254,32 @@ describe('TimeRangeSelector', () => {
     expect(screen.queryByRole('option', {name: 'Last 90 days'})).not.toBeInTheDocument();
   });
 
+  it('shows a 180-day default option for self-hosted flagged organizations', async () => {
+    ConfigStore.set('isSelfHosted', true);
+
+    render(getComponent(), {
+      organization: OrganizationFixture({
+        features: ['open-membership', 'visibility-increased-max-pickable-days'],
+      }),
+    });
+
+    await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+    expect(screen.getByRole('option', {name: 'Last 180 days'})).toBeInTheDocument();
+  });
+
+  it('does not show a 180-day default option on SaaS', async () => {
+    render(getComponent(), {
+      organization: OrganizationFixture({
+        features: ['open-membership', 'visibility-increased-max-pickable-days'],
+      }),
+    });
+
+    await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+    expect(screen.queryByRole('option', {name: 'Last 180 days'})).not.toBeInTheDocument();
+  });
+
   it('respects maxPickableDays for arbitrary time ranges', async () => {
     renderComponent({maxPickableDays: 30});
 

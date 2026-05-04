@@ -19,6 +19,7 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
@@ -43,6 +44,7 @@ function hasLastCheckIn(monitor: Monitor) {
 export default function MonitorDetails() {
   const api = useApi();
   const organization = useOrganization();
+  const maxPickableDays = useDefaultMaxPickableDays();
   const queryClient = useQueryClient();
   const params = useParams<{monitorSlug: string; projectId: string}>();
   const location = useLocation();
@@ -127,7 +129,7 @@ export default function MonitorDetails() {
           <Layout.Main>
             <Flex justify="between" align="center" gap="md">
               <StyledPageFilterBar condensed>
-                <DatePageFilter maxPickableDays={30} />
+                <DatePageFilter maxPickableDays={maxPickableDays} />
                 <EnvironmentPageFilter />
               </StyledPageFilterBar>
               <TimezoneOverride
