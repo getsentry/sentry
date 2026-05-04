@@ -649,11 +649,13 @@ def run_post_process_job(job: PostProcessJob) -> None:
         )
         return
 
-    if issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
-        # specific pipelines for issue types
+    issue_type_id = group_event.group.issue_type.type_id if group_event.group else None
+    if (
+        issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE
+        and issue_type_id not in _REGRESSION_TYPE_IDS_USE_GENERIC_PIPELINE
+    ):
         pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[issue_category]
     else:
-        # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE
 
     for pipeline_step in pipeline:
@@ -1656,3 +1658,14 @@ GENERIC_POST_PROCESS_PIPELINE: list[Callable[[PostProcessJob], None]] = [
     process_resource_change_bounds,
     process_data_forwarding,
 ]
+
+# These regression group types were migrated from GroupCategory.PERFORMANCE to
+# GroupCategory.METRIC but should still use the generic pipeline rather than the
+# metric-alert-specific one.
+_REGRESSION_TYPE_IDS_USE_GENERIC_PIPELINE: frozenset[int] = frozenset(
+    {
+        1018,  # PerformanceP95EndpointRegressionGroupType
+        1019,  # PerformanceStreamedSpansGroupTypeExperimental
+        2011,  # ProfileFunctionRegressionType
+    }
+)

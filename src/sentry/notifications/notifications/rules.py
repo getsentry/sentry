@@ -100,7 +100,14 @@ class AlertRuleNotification(ProjectNotification):
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
 
-        if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+        if (
+            event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
+            or event.group.issue_type.type_id
+            in (
+                PerformanceP95EndpointRegressionGroupType.type_id,
+                ProfileFunctionRegressionType.type_id,
+            )
+        ):
             # profile issues use the generic template for now
             if (
                 isinstance(event, GroupEvent)

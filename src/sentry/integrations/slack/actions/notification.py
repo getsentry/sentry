@@ -43,6 +43,7 @@ from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_au
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils import metrics
 from sentry.workflow_engine.models.action import Action
 
@@ -328,7 +329,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         )
 
         open_period_start: datetime | None = None
-        if event.group.issue_category == GroupCategory.OUTAGE:
+        if event.group.issue_type.type_id == UptimeDomainCheckFailure.type_id:
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
 
@@ -414,8 +415,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         open_period_start: datetime | None = None
         if (
-            event.group.issue_category == GroupCategory.OUTAGE
-            or event.group.issue_category == GroupCategory.METRIC_ALERT
+            event.group.issue_type.type_id == UptimeDomainCheckFailure.type_id
+            or event.group.issue_category == GroupCategory.METRIC
         ):
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
