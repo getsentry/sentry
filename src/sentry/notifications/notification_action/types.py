@@ -207,7 +207,7 @@ class BaseIssueAlertHandler(ABC):
         action: Action,
         detector: Detector,
         event_data: WorkflowEventData,
-        workflow_id: WorkflowId | None = None,
+        workflow_id: WorkflowId | None,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.

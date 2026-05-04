@@ -129,7 +129,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         self,
         event_data: WorkflowEventData,
         notification_uuid: str,
-        workflow_id: WorkflowId | None = None,
+        workflow_id: WorkflowId,
     ) -> None:
         from sentry.workflow_engine.processors.detector import get_preferred_detector
 
