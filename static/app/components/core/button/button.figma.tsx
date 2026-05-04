@@ -14,8 +14,8 @@ figma.connect(
   'https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=384-2119&t=pFp9KphF6dQ7XjDm-0',
   {
     props: {
-      priority: figma.enum('priority', {
-        default: 'default',
+      variant: figma.enum('variant', {
+        secondary: 'secondary',
         primary: 'primary',
         danger: 'danger',
         warning: 'warning',
