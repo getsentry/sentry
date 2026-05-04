@@ -79,6 +79,7 @@ import {
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -294,6 +295,18 @@ class DashboardDetail extends Component<Props, State> {
     } = this.props;
     const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
+      // When the releases drawer is triggered from within the full-screen widget viewer modal, close the modal by navigating away from the widget path.
+      if (location.query[ReleasesDrawerFields.DRAWER] === 'show') {
+        const query = omit(location.query, Object.values(WidgetViewerQueryField));
+        navigate(
+          {
+            pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
+            query,
+          },
+          {preventScrollReset: true}
+        );
+        return;
+      }
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
