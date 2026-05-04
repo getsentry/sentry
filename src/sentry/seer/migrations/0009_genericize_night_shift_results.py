@@ -56,6 +56,50 @@ def restore_action_from_extras(apps: StateApps, schema_editor: BaseDatabaseSchem
         row.save(update_fields=["action"])
 
 
+def backfill_error_message_to_extras(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
+    """Move SeerNightShiftRun.error_message into extras["error_message"]. Idempotent."""
+    SeerNightShiftRun = apps.get_model("seer", "SeerNightShiftRun")
+
+    total_processed = 0
+    total_updated = 0
+
+    for run in RangeQuerySetWrapperWithProgressBarApprox(
+        SeerNightShiftRun.objects.exclude(error_message__isnull=True)
+    ):
+        total_processed += 1
+        existing = run.extras or {}
+        if "error_message" in existing:
+            continue
+        existing["error_message"] = run.error_message
+        run.extras = existing
+        run.save(update_fields=["extras"])
+        total_updated += 1
+
+    logger.info(
+        "backfill_error_message_to_extras: complete, processed %d rows, updated %d",
+        total_processed,
+        total_updated,
+    )
+
+
+def restore_error_message_from_extras(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
+    """Reverse: copy extras["error_message"] back into the error_message column."""
+    SeerNightShiftRun = apps.get_model("seer", "SeerNightShiftRun")
+
+    for run in RangeQuerySetWrapperWithProgressBarApprox(SeerNightShiftRun.objects.all()):
+        if not run.extras:
+            continue
+        error_message = run.extras.get("error_message")
+        if error_message is None:
+            continue
+        run.error_message = error_message
+        run.save(update_fields=["error_message"])
+
+
 class Migration(CheckedMigration):
     # This flag is used to mark that a migration shouldn't be automatically run in production.
     # This should only be used for operations where it's safe to run the migration after your
@@ -145,6 +189,12 @@ class Migration(CheckedMigration):
             model_name="seernightshiftrun",
             name="triage_strategy",
             deletion_action=DeletionAction.MOVE_TO_PENDING,
+        ),
+        migrations.RunPython(
+            backfill_error_message_to_extras,
+            restore_error_message_from_extras,
+            elidable=True,
+            hints={"tables": ["seer_nightshiftrun"]},
         ),
         SafeRemoveField(
             model_name="seernightshiftrun",

@@ -29,11 +29,22 @@ class GenericizeNightShiftResultsMigrationTest(TestMigrations):
             action="root_cause_only",
             seer_run_id="seer-2",
         )
+        self.run_id = run.id
         self.autofix_row_id = autofix_row.id
         self.root_cause_row_id = root_cause_row.id
 
+        # A second run that recorded a failure on the legacy error_message
+        # column, to verify the per-row error_message backfill into extras.
+        self.failed_error_message = "No Seer quota available"
+        failed_run = SeerNightShiftRun.objects.create(
+            organization_id=self.organization.id,
+            triage_strategy="agentic_triage",
+            error_message=self.failed_error_message,
+        )
+        self.failed_run_id = failed_run.id
+
     def test(self) -> None:
-        from sentry.seer.models.night_shift import SeerNightShiftRunResult
+        from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
 
         autofix_row = SeerNightShiftRunResult.objects.get(id=self.autofix_row_id)
         assert autofix_row.kind == "agentic_triage"
@@ -44,3 +55,11 @@ class GenericizeNightShiftResultsMigrationTest(TestMigrations):
         assert root_cause_row.kind == "agentic_triage"
         assert root_cause_row.extras == {"action": "root_cause_only"}
         assert root_cause_row.seer_run_id == "seer-2"
+
+        # Run with no error_message keeps an empty (or near-empty) extras.
+        ok_run = SeerNightShiftRun.objects.get(id=self.run_id)
+        assert "error_message" not in (ok_run.extras or {})
+
+        # Run with a recorded error has it preserved in extras.
+        failed_run = SeerNightShiftRun.objects.get(id=self.failed_run_id)
+        assert failed_run.extras["error_message"] == self.failed_error_message
