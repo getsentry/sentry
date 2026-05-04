@@ -9,6 +9,7 @@ import {
   useTraceItemAttributes,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 describe('extractBaseKey', () => {
   const testCases = [
@@ -137,6 +138,32 @@ describe('useTraceItemAttributes number filtering', () => {
 
     expect('is_transaction' in result.current.attributes).toBe(false);
     expect('custom_metric' in result.current.attributes).toBe(true);
+  });
+
+  it('includes GenAI cost fields even when selected projects have not seen them', async () => {
+    const organization = OrganizationFixture();
+
+    addAttributeMock([]);
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useTraceItemAttributes(
+          {
+            traceItemType: TraceItemDataset.SPANS,
+            enabled: true,
+          },
+          'number'
+        ),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.attributes[SpanFields.GEN_AI_COST_INPUT_TOKENS]).toBeDefined();
+    expect(result.current.attributes[SpanFields.GEN_AI_COST_OUTPUT_TOKENS]).toBeDefined();
+    expect(result.current.attributes[SpanFields.GEN_AI_COST_TOTAL_TOKENS]).toBeDefined();
   });
 
   it('filters tags[key,number] format when boolean version exists', async () => {

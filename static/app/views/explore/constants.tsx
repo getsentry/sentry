@@ -41,6 +41,9 @@ export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
 ];
 
 export const SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS: string[] = [
+  SpanFields.GEN_AI_COST_INPUT_TOKENS,
+  SpanFields.GEN_AI_COST_OUTPUT_TOKENS,
+  SpanFields.GEN_AI_COST_TOTAL_TOKENS,
   SpanFields.SPAN_DURATION,
   SpanFields.SPAN_SELF_TIME,
 ];

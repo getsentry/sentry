@@ -559,6 +559,12 @@ function getDynamicFieldValueType(parameters: Array<string | null>): FieldValueT
   return fieldDef?.valueType ?? FieldValueType.NUMBER;
 }
 
+function getSpanDynamicFieldValueType(parameters: Array<string | null>): FieldValueType {
+  const column = parameters[0];
+  const fieldDef = column ? _getFieldFromMappings('span', column) : null;
+  return fieldDef?.valueType ?? FieldValueType.NUMBER;
+}
+
 function validateAndDenyListColumns(
   validColumnTypes: FieldValueType[],
   deniedColumns: string[]
@@ -1339,6 +1345,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.MIN]: {
     ...AGGREGATION_FIELDS[AggregationKey.MIN],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1349,6 +1356,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.DATE,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1357,6 +1365,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.MAX]: {
     ...AGGREGATION_FIELDS[AggregationKey.MAX],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1367,6 +1376,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.DATE,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1375,6 +1385,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.SUM]: {
     ...AGGREGATION_FIELDS[AggregationKey.SUM],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1383,6 +1394,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         required: true,
         defaultValue: 'span.duration',
@@ -1391,6 +1403,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.AVG]: {
     ...AGGREGATION_FIELDS[AggregationKey.AVG],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1399,6 +1412,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1407,6 +1421,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P50]: {
     ...AGGREGATION_FIELDS[AggregationKey.P50],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1415,6 +1430,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1423,6 +1439,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P75]: {
     ...AGGREGATION_FIELDS[AggregationKey.P75],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1431,6 +1448,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1439,6 +1457,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P90]: {
     ...AGGREGATION_FIELDS[AggregationKey.P90],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1447,6 +1466,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1455,6 +1475,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P95]: {
     ...AGGREGATION_FIELDS[AggregationKey.P95],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1463,6 +1484,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1471,6 +1493,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P99]: {
     ...AGGREGATION_FIELDS[AggregationKey.P99],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1479,6 +1502,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1487,6 +1511,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P100]: {
     ...AGGREGATION_FIELDS[AggregationKey.P100],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1495,6 +1520,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -2513,10 +2539,29 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
   },
 };
 
+const GEN_AI_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  [SpanFields.GEN_AI_COST_INPUT_TOKENS]: {
+    desc: t('The cost of the input tokens'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.CURRENCY,
+  },
+  [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: {
+    desc: t('The cost of the output tokens'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.CURRENCY,
+  },
+  [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: {
+    desc: t('The total cost of the input and output tokens'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.CURRENCY,
+  },
+};
+
 const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
   ...SPAN_HTTP_FIELD_DEFINITIONS,
+  ...GEN_AI_FIELD_DEFINITIONS,
   [SpanFields.NAME]: {
     desc: t(
       'The span name. A short, human-readable identifier for the operation being performed by the span.'
