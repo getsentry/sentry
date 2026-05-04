@@ -19,9 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
-import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -178,9 +176,7 @@ export function getMenuOptions(
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void,
-  timeseriesResults?: Series[],
-  dashboardId?: string,
-  widgetIndex?: string
+  timeseriesResults?: Series[]
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -398,21 +394,6 @@ export function getMenuOptions(
         : undefined,
       disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
     });
-
-    if (dashboardId && widgetIndex !== undefined) {
-      menuOptions.push({
-        key: 'copy-widget-url',
-        label: t('Copy Widget URL'),
-        onAction: () => {
-          const widgetUrl = `${window.location.origin}${normalizeUrl(
-            `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/`
-          )}`;
-          copyToClipboard(widgetUrl, {
-            successMessage: t('Widget URL copied to clipboard'),
-          });
-        },
-      });
-    }
 
     menuOptions.push({
       key: 'edit-widget',

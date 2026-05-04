@@ -31,6 +31,7 @@ import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/featu
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -260,6 +261,18 @@ function WidgetCard(props: Props) {
     };
   }, [timeoutRef]);
 
+  const onCopyUrlClick =
+    currentDashboardId && props.index !== undefined
+      ? () => {
+          const widgetUrl = `${window.location.origin}${normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`
+          )}`;
+          copyToClipboard(widgetUrl, {
+            successMessage: t('Widget URL copied to clipboard'),
+          });
+        }
+      : undefined;
+
   const onFullScreenViewClick = () => {
     if (isWidgetViewerPath(location.pathname)) {
       return;
@@ -335,9 +348,7 @@ function WidgetCard(props: Props) {
         props.onDelete,
         props.onDuplicate,
         props.onEdit,
-        data?.timeseriesResults,
-        currentDashboardId,
-        props.index
+        data?.timeseriesResults
       )
     : [];
 
@@ -393,6 +404,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             noVisualizationPadding={canUseTimeseriesVisualization}
+            onCopyUrlClick={onCopyUrlClick}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
@@ -437,6 +449,7 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
+          onCopyUrlClick={onCopyUrlClick}
           onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
