@@ -8,7 +8,6 @@ import {useUser} from 'sentry/utils/useUser';
 
 // Single replayRef across the whole app, even if this hook is called multiple times
 let replayRef: ReturnType<typeof replayIntegration> | null;
-const readyListeners = new Set<() => void>();
 
 /**
  * Load the Sentry Replay integration based on the feature flag.
@@ -21,18 +20,6 @@ const readyListeners = new Set<() => void>();
 export function useReplayInit(): boolean {
   const user = useUser();
   const [ready, setReady] = useState(() => replayRef !== null);
-
-  useEffect(() => {
-    if (replayRef) {
-      setReady(true);
-      return;
-    }
-    const listener = () => setReady(true);
-    readyListeners.add(listener);
-    return () => {
-      readyListeners.delete(listener);
-    };
-  }, []);
 
   useEffect(() => {
     async function init(sessionSampleRate: number, errorSampleRate: number) {
@@ -86,8 +73,8 @@ export function useReplayInit(): boolean {
         });
 
         client.addIntegration(replayRef);
-        readyListeners.forEach(l => l());
       }
+      setReady(true);
     }
 
     if (process.env.NODE_ENV !== 'production' || process.env.IS_ACCEPTANCE_TEST) {
