@@ -45,6 +45,7 @@ describe('useReplayData', () => {
   });
 
   afterEach(() => {
+    jest.runOnlyPendingTimers();
     jest.useRealTimers();
   });
 
