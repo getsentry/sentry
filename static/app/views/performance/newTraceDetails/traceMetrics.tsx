@@ -3,10 +3,19 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import {
+  TraceItemSearchQueryBuilder,
+  useTraceItemSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {HiddenTraceMetricTraceViewSearchFields} from 'sentry/views/explore/metrics/constants';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
-import type {TracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
+import {
+  useMetricsFrozenSearch,
+  type TracePeriod,
+} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsSearch,
@@ -14,6 +23,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type UseTraceViewMetricsDataProps = {
@@ -98,17 +108,69 @@ export function TraceViewMetricsSection() {
 function MetricsSectionContent() {
   const setMetricsQuery = useSetQueryParamsQuery();
   const metricsSearch = useQueryParamsSearch();
+  const frozenSearch = useMetricsFrozenSearch();
+  const initialQuery = metricsSearch.formatString();
+  const placeholder = t('Search application metrics for this trace');
+  const attributeQuery = frozenSearch?.formatString();
+
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceMetricItemAttributes(
+      {query: attributeQuery},
+      'string',
+      HiddenTraceMetricTraceViewSearchFields
+    );
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceMetricItemAttributes(
+      {query: attributeQuery},
+      'number',
+      HiddenTraceMetricTraceViewSearchFields
+    );
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceMetricItemAttributes(
+      {query: attributeQuery},
+      'boolean',
+      HiddenTraceMetricTraceViewSearchFields
+    );
+
+  const traceMetricsSearchQueryBuilderProps = useMemo(
+    () => ({
+      itemType: TraceItemDataset.TRACEMETRICS,
+      booleanAttributes,
+      numberAttributes,
+      stringAttributes,
+      booleanSecondaryAliases,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      initialQuery,
+      placeholder,
+      searchSource: 'tracemetrics',
+      onSearch: (query: string) => setMetricsQuery(query),
+      hiddenAttributeKeys: HiddenTraceMetricTraceViewSearchFields,
+      attributeQuery,
+    }),
+    [
+      attributeQuery,
+      booleanAttributes,
+      booleanSecondaryAliases,
+      initialQuery,
+      numberAttributes,
+      numberSecondaryAliases,
+      placeholder,
+      setMetricsQuery,
+      stringAttributes,
+      stringSecondaryAliases,
+    ]
+  );
+
+  const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps(
+    traceMetricsSearchQueryBuilderProps
+  );
 
   return (
     <Fragment>
-      <SearchQueryBuilder
-        placeholder={t('Search application metrics for this trace')}
-        filterKeys={{}}
-        getTagValues={() => new Promise<string[]>(() => [])}
-        initialQuery={metricsSearch.formatString()}
-        searchSource="tracemetrics"
-        onSearch={query => setMetricsQuery(query)}
-      />
+      <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+        <TraceItemSearchQueryBuilder {...traceMetricsSearchQueryBuilderProps} />
+      </SearchQueryBuilderProvider>
       <TableContainer>
         <MetricsSamplesTable embedded />
       </TableContainer>
