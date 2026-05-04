@@ -906,7 +906,7 @@ export function GlobalCommandPaletteActions() {
               projects.map(p => p.slug).join(','),
             ],
             queryFn: () =>
-              projects
+              [...projects]
                 .sort((a, b) => a.slug.localeCompare(b.slug))
                 .map(project => ({
                   display: {
