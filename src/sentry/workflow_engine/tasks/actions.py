@@ -1,6 +1,5 @@
 from dataclasses import asdict
 
-from django.db.models import Value
 from taskbroker_client.retry import Retry
 
 from sentry.eventstream.base import GroupState
@@ -113,7 +112,7 @@ def trigger_action(
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
-    action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
+    action = Action.objects.get(id=action_id)
 
     if event_id is not None:
         event_data = build_workflow_event_data_from_event(
@@ -152,7 +151,7 @@ def trigger_action(
         # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
         # in this scope is grouped properly.
         with timeout_grouping_context(action.type):
-            action.trigger(event_data, notification_uuid=notification_uuid)
+            action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)
     else:
         logger.info(
             "workflow_engine.triggered_actions.dry-run",

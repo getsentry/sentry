@@ -115,6 +115,11 @@ class ActionInvocation:
     action: Action
     detector: Detector
     notification_uuid: str
+    #: The workflow that triggered this action. An action may be associated
+    #: with multiple workflows; this is an arbitrary choice among them. None
+    #: only for test-fire notifications (the "send test" endpoint), which
+    #: fire an action outside of any workflow context.
+    workflow_id: WorkflowId | None = None
 
 
 class WorkflowEvaluationSnapshot(TypedDict):
