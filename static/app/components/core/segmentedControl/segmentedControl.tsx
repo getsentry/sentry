@@ -17,7 +17,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
-type Priority = 'default' | 'primary';
+type Priority = 'default' | 'primary' | 'secondary';
 
 const getChildTransforms = (count: number) => {
   return Array.from(
@@ -41,7 +41,7 @@ function getTextColor({
   isDisabled?: boolean;
 }) {
   if (isSelected) {
-    return priority === 'default'
+    return priority === 'default' || priority === 'secondary'
       ? theme.tokens.interactive.chonky.embossed.neutral.content.accent
       : undefined;
   }

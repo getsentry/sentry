@@ -268,7 +268,7 @@ export function GroupBySelector({
       {columns.length < GROUP_BY_LIMIT && (
         <Button
           size="sm"
-          priority="link"
+          variant="link"
           onClick={handleAdd}
           aria-label={t('Add Group')}
           disabled={disable}
@@ -313,7 +313,7 @@ function LinkToDashboardAction({column}: {column: QueryFieldValue}) {
   return (
     <Tooltip title={LINK_FIELD_TOOLTIP}>
       <Button
-        priority="transparent"
+        variant="transparent"
         icon={<IconLink />}
         aria-label={t('Link field')}
         size="zero"

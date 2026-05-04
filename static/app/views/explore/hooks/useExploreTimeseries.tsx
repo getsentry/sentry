@@ -82,7 +82,7 @@ function useExploreTimeseriesImpl({
 
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {
-      return undefined;
+      return;
     }
 
     return sortBys.map(formatSort);

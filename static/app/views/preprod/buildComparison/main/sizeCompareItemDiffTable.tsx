@@ -164,7 +164,7 @@ export function SizeCompareItemDiffTable({
                 {t('No results found')}
               </Text>
               {originalItemCount > 0 && (
-                <Button priority="primary" onClick={disableHideSmallChanges}>
+                <Button variant="primary" onClick={disableHideSmallChanges}>
                   {t('Show all changes')}
                 </Button>
               )}

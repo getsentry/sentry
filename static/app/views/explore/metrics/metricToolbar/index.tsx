@@ -20,7 +20,7 @@ import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggr
 import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
 import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
 import {GroupBySelector} from 'sentry/views/explore/metrics/metricToolbar/groupBySelector';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {

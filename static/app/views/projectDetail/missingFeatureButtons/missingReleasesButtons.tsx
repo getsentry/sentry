@@ -55,7 +55,7 @@ export function MissingReleasesButtons({
     <Grid flow="column" align="center" gap="md">
       <LinkButton
         size="sm"
-        priority="primary"
+        variant="primary"
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
         disabled={setupDisabled}

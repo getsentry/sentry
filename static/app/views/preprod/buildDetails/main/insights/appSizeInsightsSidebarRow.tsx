@@ -146,7 +146,7 @@ export function AppSizeInsightsSidebarRow({
           {insight.description}
         </Text>
         {shouldShowTooltip && (
-          <Button priority="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
+          <Button variant="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
             {t('How to fix this locally')}
           </Button>
         )}

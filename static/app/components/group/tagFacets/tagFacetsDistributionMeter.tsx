@@ -75,7 +75,7 @@ export function TagFacetsDistributionMeter({
           <TitleDescription>{topSegments[0]!.name || t('n/a')}</TitleDescription>
         </Tooltip>
         <ExpandToggleButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
           aria-label={t(
@@ -205,7 +205,7 @@ export function TagFacetsDistributionMeter({
                       <StyledButton
                         aria-label={linkLabel}
                         onClick={() => onTagValueClick?.(title, segment)}
-                        priority="link"
+                        variant="link"
                       >
                         {legend}
                       </StyledButton>

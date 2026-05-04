@@ -170,7 +170,7 @@ function collectRawMessages(items: any[], defaultRole: string): RawMessage[] {
  */
 function unwrapMessagesField(value: any, defaultRole: string): RawMessage[] {
   const result: RawMessage[] = [];
-  if (typeof value.system === 'string' && value.system.length > 0) {
+  if (value.system !== undefined && value.system !== null && value.system !== '') {
     result.push({role: 'system', content: value.system});
   }
 
@@ -197,7 +197,7 @@ function unwrapMessagesField(value: any, defaultRole: string): RawMessage[] {
  */
 function unwrapSystemPrompt(value: any): RawMessage[] {
   const result: RawMessage[] = [];
-  if (typeof value.system === 'string' && value.system.length > 0) {
+  if (value.system !== undefined && value.system !== null && value.system !== '') {
     result.push({role: 'system', content: value.system});
   }
   if (value.prompt) {

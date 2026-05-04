@@ -306,7 +306,7 @@ export function NumericFilterSelector({
               <StyledButton
                 aria-label={t('Remove Filter')}
                 size="xs"
-                priority="transparent"
+                variant="transparent"
                 onClick={() => onRemoveFilter(globalFilter)}
               >
                 {t('Remove Filter')}

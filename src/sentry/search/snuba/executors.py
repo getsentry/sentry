@@ -41,8 +41,6 @@ from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, run_eap_group_search
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import (
@@ -159,9 +157,7 @@ def get_search_filter(
     return found_val
 
 
-def group_categories_from_search_filters(
-    search_filters: Sequence[SearchFilter], organization: Organization, actor: User | RpcUser
-) -> set[int]:
+def group_categories_from_search_filters(search_filters: Sequence[SearchFilter]) -> set[int]:
     group_categories = group_categories_from(search_filters)
 
     if not group_categories:
@@ -170,9 +166,6 @@ def group_categories_from_search_filters(
         group_categories.discard(GroupCategory.FEEDBACK.value)
         group_categories.discard(GroupCategory.INSTRUMENTATION.value)
         group_categories.discard(GroupCategory.CONFIGURATION.value)
-
-    if not features.has("organizations:performance-issues-search", organization):
-        group_categories.discard(GroupCategory.PERFORMANCE.value)
 
     return group_categories
 
@@ -463,7 +456,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        group_categories = group_categories_from_search_filters(search_filters, organization, actor)
+        group_categories = group_categories_from_search_filters(search_filters)
 
         query_params_for_categories = {}
 

@@ -1,6 +1,12 @@
-import {useState} from 'react';
+import {Activity, useState} from 'react';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  createEvent,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 
@@ -9,6 +15,8 @@ function Child({height}: {height: number}) {
 }
 
 class MockResizeObserver {
+  static disconnect = jest.fn();
+
   callback: ResizeObserverCallback;
   constructor(callback: ResizeObserverCallback) {
     this.callback = callback;
@@ -35,7 +43,9 @@ class MockResizeObserver {
       this
     );
   }
-  disconnect() {}
+  disconnect() {
+    MockResizeObserver.disconnect();
+  }
 }
 
 function mockGetBoundingClientRect({height}: {height: number}) {
@@ -58,6 +68,7 @@ function clearMockGetBoundingClientRect() {
 describe('clipped box', () => {
   describe.each([[true], [false]])('with resize observer = %s', enableResizeObserver => {
     beforeEach(() => {
+      MockResizeObserver.disconnect.mockClear();
       // @ts-expect-error override readonly property
       window.ResizeObserver = enableResizeObserver ? MockResizeObserver : undefined;
     });
@@ -121,6 +132,57 @@ describe('clipped box', () => {
 
       expect(onReveal).toHaveBeenCalledTimes(1);
       expect(container.firstChild).toHaveStyle('max-height: 9999px');
+      expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
+      if (enableResizeObserver) {
+        expect(MockResizeObserver.disconnect).toHaveBeenCalled();
+      }
+    });
+
+    it('preserves revealed max height when Activity hides and shows it', async () => {
+      if (!enableResizeObserver) {
+        mockGetBoundingClientRect({height: 100});
+      }
+
+      function ActivityToggledClippedBox() {
+        const [visible, setVisible] = useState(true);
+        return (
+          <div>
+            <button onClick={() => setVisible(value => !value)}>toggle activity</button>
+            <Activity mode={visible ? 'visible' : 'hidden'}>
+              <ClippedBox clipHeight={50} clipFlex={15}>
+                <div style={{height: 100}}>activity content</div>
+              </ClippedBox>
+            </Activity>
+          </div>
+        );
+      }
+
+      render(<ActivityToggledClippedBox />);
+
+      const showMoreButton = screen.getByRole('button', {name: 'Show More'});
+      const wrapper = screen.getByText('activity content').parentElement?.parentElement;
+      expect(wrapper).toBeInstanceOf(HTMLElement);
+
+      await userEvent.click(showMoreButton);
+      // React only clears max-height after the max-height transition ends. jsdom
+      // does not populate TransitionEvent.propertyName, so patch it onto the
+      // event to exercise the same branch a browser would use.
+      const transitionEndEvent = createEvent.transitionEnd(wrapper!);
+      Object.defineProperty(transitionEndEvent, 'propertyName', {
+        configurable: true,
+        value: 'max-height',
+      });
+      fireEvent(wrapper!, transitionEndEvent);
+
+      expect(wrapper).toHaveStyle('max-height: none');
+
+      await userEvent.click(screen.getByRole('button', {name: 'toggle activity'}));
+      await userEvent.click(screen.getByRole('button', {name: 'toggle activity'}));
+
+      const currentWrapper =
+        screen.getByText('activity content').parentElement?.parentElement;
+
+      expect(currentWrapper).toHaveStyle('max-height: none');
       expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
     });
 
