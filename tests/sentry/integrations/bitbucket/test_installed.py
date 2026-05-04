@@ -301,7 +301,10 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
             assert_halt_metric(
-                mock_record_event, AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
+                mock_record_event,
+                AtlassianConnectValidationError(
+                    AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
+                ),
             )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -318,7 +321,10 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
             assert_halt_metric(
-                mock_record_event, AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
+                mock_record_event,
+                AtlassianConnectValidationError(
+                    AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
+                ),
             )
 
     @patch(
@@ -359,7 +365,10 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
             assert_halt_metric(
-                mock_record_event, AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN
+                mock_record_event,
+                AtlassianConnectValidationError(
+                    AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN
+                ),
             )
 
     @patch(
@@ -383,7 +392,10 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
             assert_halt_metric(
-                mock_record_event, AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN
+                mock_record_event,
+                AtlassianConnectValidationError(
+                    AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN
+                ),
             )
 
     @patch(
@@ -407,7 +419,8 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
             assert_halt_metric(
-                mock_record_event, AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT
+                mock_record_event,
+                AtlassianConnectValidationError(AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT),
             )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -422,7 +435,10 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-            assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.MISSING_KEY_ID)
+            assert_halt_metric(
+                mock_record_event,
+                AtlassianConnectValidationError(AtlassianConnectFailureReason.MISSING_KEY_ID),
+            )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
@@ -444,7 +460,10 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-            assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.INVALID_KEY_ID)
+            assert_halt_metric(
+                mock_record_event,
+                AtlassianConnectValidationError(AtlassianConnectFailureReason.INVALID_KEY_ID),
+            )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
