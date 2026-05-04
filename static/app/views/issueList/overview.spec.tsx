@@ -940,4 +940,49 @@ describe('IssueList', () => {
       expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
     });
   });
+
+  describe('top-issues-ui (issues-with-supergroups endpoint)', () => {
+    it('uses the issues-with-supergroups endpoint and flattens supergroup members', async () => {
+      const memberA = GroupFixture({id: '101', project});
+      const memberB = GroupFixture({id: '102', project});
+      const standalone = GroupFixture({id: '103', project});
+      const supergroup = {
+        id: 7,
+        title: 'cluster',
+        summary: '',
+        error_type: '',
+        code_area: '',
+        group_ids: [101, 102],
+        created_at: '',
+        updated_at: '',
+      };
+
+      const newEndpointRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-with-supergroups/',
+        body: [
+          {
+            ...memberA,
+            supergroup,
+            matchingGroups: [memberA, memberB],
+          },
+          standalone,
+        ],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+      const legacyEndpointRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+
+      render(<IssueListOverview />, {
+        organization: OrganizationFixture({...organization, features: ['top-issues-ui']}),
+        initialRouterConfig,
+      });
+
+      await waitFor(() => expect(newEndpointRequest).toHaveBeenCalled());
+      expect(legacyEndpointRequest).not.toHaveBeenCalled();
+    });
+  });
 });

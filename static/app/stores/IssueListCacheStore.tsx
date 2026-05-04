@@ -2,6 +2,7 @@ import isEqual from 'lodash/isEqual';
 import {createStore} from 'reflux';
 
 import type {Group} from 'sentry/types/group';
+import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 
 import type {StrictStoreDefinition} from './types';
 
@@ -15,6 +16,7 @@ interface IssueListCache {
   pageLinks: string;
   queryCount: number;
   queryMaxCount: number;
+  supergroupLookup?: SupergroupLookup;
 }
 
 interface IssueListCacheState {

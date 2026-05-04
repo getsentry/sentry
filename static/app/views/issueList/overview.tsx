@@ -49,8 +49,9 @@ import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
+import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
-import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
+import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -160,6 +161,8 @@ function IssueListOverviewInner({
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
 
+  const [supergroupLookup, setSupergroupLookup] = useState<SupergroupLookup>({});
+
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
     const storeGroupIds = groups.map(group => group.id).slice(0, MAX_ISSUES_COUNT);
@@ -171,8 +174,7 @@ function IssueListOverviewInner({
 
   useIssuesINPObserver();
 
-  const {data: supergroupLookup, isLoading: supergroupsLoading} =
-    useSuperGroups(groupIds);
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
 
   useSupergroupDrawer({lookup: supergroupLookup, memberList});
 
@@ -287,6 +289,7 @@ function IssueListOverviewInner({
     setQueryCount(cache.queryCount);
     setQueryMaxCount(cache.queryMaxCount);
     setPageLinks(cache.pageLinks);
+    setSupergroupLookup(cache.supergroupLookup ?? {});
 
     GroupStore.add(cache.groups);
 
@@ -392,7 +395,11 @@ function IssueListOverviewInner({
     api.clear();
     pollerRef.current?.disable();
 
-    api.request(`/organizations/${organization.slug}/issues/`, {
+    const endpoint = hasTopIssuesUI
+      ? `/organizations/${organization.slug}/issues-with-supergroups/`
+      : `/organizations/${organization.slug}/issues/`;
+
+    api.request(endpoint, {
       method: 'GET',
       data: qs.stringify(requestParams),
       success: async (data, _, resp) => {
@@ -424,12 +431,15 @@ function IssueListOverviewInner({
           return;
         }
 
-        if (undoRef.current) {
-          GroupStore.loadInitialData(data);
-        }
-        GroupStore.add(data);
+        const {groups: parsedGroups, supergroupLookup: parsedLookup} =
+          processIssuesResponse(data, hasTopIssuesUI);
 
-        if (data.length === 0) {
+        if (undoRef.current) {
+          GroupStore.loadInitialData(parsedGroups);
+        }
+        GroupStore.add(parsedGroups);
+
+        if (parsedGroups.length === 0) {
           trackAnalytics('issue_search.empty', {
             organization,
             search_type: 'issues',
@@ -451,14 +461,16 @@ function IssueListOverviewInner({
         setQueryCount(newQueryCount);
         setQueryMaxCount(newQueryMaxCount);
         setPageLinks(newPageLinks === null ? '' : newPageLinks);
+        setSupergroupLookup(parsedLookup);
 
         // Need to wait for stats request to finish before saving to cache
-        await fetchStats(data.map((group: BaseGroup) => group.id));
+        await fetchStats(parsedGroups.map((group: BaseGroup) => group.id));
         IssueListCacheStore.save(requestParams, {
           groups: GroupStore.getState() as Group[],
           queryCount: newQueryCount,
           queryMaxCount: newQueryMaxCount,
           pageLinks: newPageLinks ?? '',
+          supergroupLookup: parsedLookup,
         });
       },
       error: err => {
@@ -494,6 +506,7 @@ function IssueListOverviewInner({
     location.query,
     query,
     resumePolling,
+    hasTopIssuesUI,
   ]);
 
   useDisableRouteAnalytics(issuesLoading);
@@ -961,7 +974,7 @@ function IssueListOverviewInner({
               displayReprocessingActions={displayReprocessingActions}
               memberList={memberList}
               selectedProjectIds={selection.projects}
-              issuesLoading={issuesLoading || supergroupsLoading}
+              issuesLoading={issuesLoading}
               statsLoading={statsLoading}
               supergroupLookup={supergroupLookup}
               error={error}
@@ -993,6 +1006,47 @@ function IssueListOverviewInner({
       </Stack>
     </IssueSelectionProvider>
   );
+}
+
+type SupergroupRow = BaseGroup & {
+  matchingGroups: BaseGroup[];
+  supergroup: SupergroupDetail;
+};
+
+function isSupergroupRow(
+  row: BaseGroup | SupergroupRow
+): row is SupergroupRow {
+  return (
+    'supergroup' in row &&
+    row.supergroup !== undefined &&
+    Array.isArray(row.matchingGroups)
+  );
+}
+
+function processIssuesResponse(
+  rows: Array<BaseGroup | SupergroupRow>,
+  topIssuesEnabled: boolean
+): {groups: BaseGroup[]; supergroupLookup: SupergroupLookup} {
+  if (!topIssuesEnabled) {
+    return {groups: rows as BaseGroup[], supergroupLookup: {}};
+  }
+
+  const groups: BaseGroup[] = [];
+  const supergroupLookup: SupergroupLookup = {};
+
+  for (const row of rows) {
+    if (isSupergroupRow(row)) {
+      const {supergroup, matchingGroups} = row;
+      for (const member of matchingGroups) {
+        groups.push(member);
+        supergroupLookup[member.id] = supergroup;
+      }
+    } else {
+      groups.push(row);
+    }
+  }
+
+  return {groups, supergroupLookup};
 }
 
 const IssueListOverview = registerLLMContext('issue-list', IssueListOverviewInner);
