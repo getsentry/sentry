@@ -58,6 +58,8 @@ export const PairCard = memo(function PairCard({
   snapshotKey,
   onSelectSnapshot,
   onOpenSnapshot,
+  onCopyLink,
+  onCopyMetadata,
 }: {
   copyUrl: string;
   diffMode: DiffMode;
@@ -67,6 +69,8 @@ export const PairCard = memo(function PairCard({
   snapshotKey: string;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
+  onCopyLink?: () => void;
+  onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
@@ -139,6 +143,8 @@ export const PairCard = memo(function PairCard({
           copyUrl={copyUrl}
           onDoubleClick={handleOpen}
           showBottomBorder={false}
+          onCopyLink={onCopyLink}
+          onCopyMetadata={onCopyMetadata}
         />
         <Container padding="0 xl xl">{body}</Container>
       </SnapshotVariantFrame>
@@ -156,6 +162,8 @@ export const ImageCard = memo(function ImageCard({
   snapshotKey,
   onSelectSnapshot,
   onOpenSnapshot,
+  onCopyLink,
+  onCopyMetadata,
 }: {
   cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
   copyUrl: string;
@@ -164,6 +172,8 @@ export const ImageCard = memo(function ImageCard({
   isSelected: boolean;
   snapshotKey: string;
   copyData?: unknown;
+  onCopyLink?: () => void;
+  onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
 }) {
@@ -207,6 +217,8 @@ export const ImageCard = memo(function ImageCard({
           copyUrl={copyUrl}
           onDoubleClick={handleOpen}
           showBottomBorder={false}
+          onCopyLink={onCopyLink}
+          onCopyMetadata={onCopyMetadata}
         />
         <Container padding="0 xl xl">
           <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
@@ -227,6 +239,8 @@ export const CardHeader = memo(function CardHeader({
   copyUrl,
   onDoubleClick,
   showBottomBorder = true,
+  onCopyLink,
+  onCopyMetadata,
 }: {
   copyData: unknown;
   copyUrl: string;
@@ -235,6 +249,8 @@ export const CardHeader = memo(function CardHeader({
   onToggleDark: () => void;
   diffPercent?: number | null;
   displayName?: string | null;
+  onCopyLink?: () => void;
+  onCopyMetadata?: () => void;
   onDoubleClick?: () => void;
   showBottomBorder?: boolean;
   status?: DiffStatus | null;
@@ -270,11 +286,12 @@ export const CardHeader = memo(function CardHeader({
           aria-label={t('Copy link to this snapshot')}
           tooltip={t('Copy link')}
           icon={<IconLink size="sm" />}
-          onClick={() =>
-            copy(copyUrl, {successMessage: t('Copied link to this snapshot')})
-          }
+          onClick={() => {
+            copy(copyUrl, {successMessage: t('Copied link to this snapshot')});
+            onCopyLink?.();
+          }}
         />
-        <MetadataInfoButton copyData={copyData} />
+        <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
       </Flex>
     </CardHeaderRow>
   );
@@ -291,7 +308,13 @@ function MetadataTooltip({json}: {json: string}) {
   );
 }
 
-function MetadataInfoButton({copyData}: {copyData: unknown}) {
+function MetadataInfoButton({
+  copyData,
+  onCopy,
+}: {
+  copyData: unknown;
+  onCopy?: () => void;
+}) {
   const {copy} = useCopyToClipboard();
   const json = JSON.stringify(copyData, null, 2);
 
@@ -300,7 +323,10 @@ function MetadataInfoButton({copyData}: {copyData: unknown}) {
       <InfoIconButton
         type="button"
         aria-label={t('Copy metadata as JSON')}
-        onClick={() => copy(json, {successMessage: t('Copied metadata as JSON')})}
+        onClick={() => {
+          copy(json, {successMessage: t('Copied metadata as JSON')});
+          onCopy?.();
+        }}
       >
         <IconInfo size="sm" />
       </InfoIconButton>
