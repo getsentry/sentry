@@ -523,6 +523,199 @@ describe('Modals -> DataWidgetViewerModal', () => {
       });
     });
 
+    describe('TopN Chart Widget', () => {
+      let mockQuery!: Widget['queries'][number];
+      let mockWidget!: Widget;
+
+      function mockEventsStats() {
+        return MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          body: {
+            data: [
+              [[1646100000], [{count: 1}]],
+              [[1646120000], [{count: 1}]],
+            ],
+            start: 1646100000,
+            end: 1646120000,
+            isMetricsData: false,
+          },
+        });
+      }
+
+      const eventsMockData = [
+        {
+          'error.type': ['Test Error 1a', 'Test Error 1b', 'Test Error 1c'],
+          count: 10,
+        },
+        {
+          'error.type': ['Test Error 2'],
+          count: 6,
+        },
+        {
+          'error.type': ['Test Error 3'],
+          count: 5,
+        },
+        {
+          'error.type': ['Test Error 4'],
+          count: 4,
+        },
+        {
+          'error.type': ['Test Error 5'],
+          count: 3,
+        },
+        {
+          'error.type': ['Test Error 6'],
+          count: 2,
+        },
+      ];
+
+      function mockEvents() {
+        return MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({cursor: undefined})],
+          headers: {
+            Link:
+              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+          },
+          body: {
+            data: eventsMockData,
+            meta: {
+              fields: {
+                'error.type': 'array',
+                count: 'integer',
+              },
+            },
+          },
+        });
+      }
+
+      beforeEach(() => {
+        mockQuery = {
+          conditions: 'title:/organizations/:orgId/insights/summary/',
+          fields: ['error.type', 'count()'],
+          aggregates: ['count()'],
+          columns: ['error.type'],
+          name: 'Query Name',
+          orderby: '',
+        };
+        mockWidget = {
+          title: 'Test Widget',
+          displayType: DisplayType.TOP_N,
+          interval: '5m',
+          queries: [mockQuery],
+          widgetType: WidgetType.DISCOVER,
+        };
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({cursor: '0:10:0'})],
+          headers: {
+            Link:
+              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:20:0>; rel="next"; results="true"; cursor="0:20:0"',
+          },
+          body: {
+            data: [
+              {
+                'error.type': ['Next Page Test Error'],
+                count: 1,
+              },
+            ],
+            meta: {
+              fields: {
+                'error.type': 'array',
+                count: 'integer',
+              },
+            },
+          },
+        });
+      });
+
+      it('renders pagination buttons', async () => {
+        mockEventsStats();
+        mockEvents();
+        await renderModal({initialData, widget: mockWidget});
+        expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+      });
+
+      it('does not render pagination buttons', async () => {
+        mockEventsStats();
+        mockEvents();
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          headers: {
+            Link:
+              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
+          },
+          body: {
+            data: [
+              {
+                'error.type': ['No Pagination'],
+                count: 1,
+              },
+            ],
+            meta: {
+              'error.type': 'array',
+              count: 'integer',
+            },
+          },
+        });
+        await renderModal({initialData, widget: mockWidget});
+        expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
+      });
+
+      it('paginates to the next page', async () => {
+        mockEventsStats();
+        mockEvents();
+        const {router} = await renderModal({initialData, widget: mockWidget});
+        expect(await screen.findByText('Test Error 1c')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+        await waitForMetaToHaveBeenCalled();
+        await waitFor(() =>
+          expect(router.location.query).toEqual(
+            expect.objectContaining({cursor: '0:10:0', page: '1'})
+          )
+        );
+        expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
+      });
+
+      it('appends the orderby to the query if it is not already selected as an aggregate', async () => {
+        const eventsStatsMock = mockEventsStats();
+        mockEvents();
+
+        const widget = WidgetFixture({
+          widgetType: WidgetType.TRANSACTIONS,
+          queries: [
+            {
+              orderby: '-epm()',
+              aggregates: ['count()'],
+              columns: ['country'],
+              conditions: '',
+              name: '',
+            },
+          ],
+        });
+
+        await renderModal({initialData, widget});
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalledWith(
+            '/organizations/org-slug/events-stats/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                field: ['country', 'count()', 'epm()'],
+              }),
+            })
+          );
+        });
+
+        expect(await screen.findByText('epm()')).toBeInTheDocument();
+      });
+    });
+
     describe('Table Widget', () => {
       const mockQuery = {
         conditions: 'title:/organizations/:orgId/insights/summary/',

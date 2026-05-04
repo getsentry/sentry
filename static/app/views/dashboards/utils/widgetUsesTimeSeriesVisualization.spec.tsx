@@ -6,7 +6,7 @@ function makeWidget(widgetType: WidgetType | undefined, displayType: DisplayType
 }
 
 describe('widgetUsesTimeSeriesVisualization', () => {
-  it.each([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR])(
+  it.each([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR, DisplayType.TOP_N])(
     'returns true for %s display type',
     displayType => {
       expect(

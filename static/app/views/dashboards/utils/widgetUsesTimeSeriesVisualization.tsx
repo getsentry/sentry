@@ -4,6 +4,7 @@ const SUPPORTED_DISPLAY_TYPES = new Set<DisplayType>([
   DisplayType.LINE,
   DisplayType.AREA,
   DisplayType.BAR,
+  DisplayType.TOP_N,
 ]);
 
 export function widgetUsesTimeSeriesVisualization(widget: Widget): boolean {
