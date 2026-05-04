@@ -38,7 +38,7 @@ class SeerNightShiftRunResponse(TypedDict):
     errorMessage: str | None
     results: list[SeerNightShiftRunResultResponse]
     issues: list[SeerNightShiftRunIssueResponse]
-    triageStrategy: str | None
+    triageStrategy: str
 
 
 @register(SeerNightShiftRun)
@@ -69,9 +69,10 @@ class SeerNightShiftRunSerializer(Serializer):
             "errorMessage": extras.get("error_message"),
             "results": [_serialize_result(r) for r in all_results],
             "issues": [_serialize_legacy_issue(r) for r in triage_results],
-            "triageStrategy": (
-                NightShiftRunResultKind.AGENTIC_TRIAGE.value if triage_results else None
-            ),
+            # Match the pre-migration column behavior: always "agentic_triage"
+            # in this PR. The multi-kind feature PR will refine this once
+            # other kinds can produce runs.
+            "triageStrategy": NightShiftRunResultKind.AGENTIC_TRIAGE.value,
         }
 
 
