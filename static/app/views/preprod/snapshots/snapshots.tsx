@@ -49,7 +49,7 @@ import {
 } from './sidebar/snapshotSidebarContent';
 
 function imageGroupKey(img: SnapshotImage): string {
-  return img.group ?? img.image_file_name;
+  return img.group ?? img.display_name ?? img.image_file_name;
 }
 
 function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
