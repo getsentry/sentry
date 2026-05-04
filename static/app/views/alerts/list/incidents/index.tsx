@@ -193,7 +193,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
           organization={organization}
           iconProps={{size: 'xs'}}
           size="sm"
-          priority="primary"
+          variant="primary"
           referrer="alert_stream"
         >
           {t('Create Alert')}

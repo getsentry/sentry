@@ -135,7 +135,7 @@ function SamplingModeSwitchModal({
           <Button disabled={isPending} onClick={closeModal}>
             {t('Cancel')}
           </Button>
-          <form.SubmitButton priority="primary">
+          <form.SubmitButton variant="primary">
             {samplingMode === 'organization' ? t('Deactivate') : t('Activate')}
           </form.SubmitButton>
         </Flex>
