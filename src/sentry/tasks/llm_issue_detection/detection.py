@@ -163,6 +163,19 @@ def create_issue_occurrence_from_detection(
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
     group_type = get_group_type_for_title(detected_issue.title)
+
+    if group_type == AIDetectedGeneralGroupType:
+        logger.info(
+            "Detected General AI Issue",
+            extra={
+                "title": detected_issue.title,
+                "explanation": detected_issue.explanation,
+                "impact": detected_issue.impact,
+                "evidence": detected_issue.evidence,
+            },
+        )
+        return None
+
     setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
     if setting_key:
         perf_settings = project.get_option("sentry:performance_issue_settings", default={})
