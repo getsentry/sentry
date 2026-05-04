@@ -26,7 +26,7 @@ from sentry.web.decorators import set_referrer_policy
 
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:write"],
+        "GET": ["org:read"],
         "POST": ["org:write"],
     }
 
@@ -59,10 +59,12 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         """
         queryset = DataForwarder.objects.filter(organization_id=organization.id)
 
+        include_config = request.access.has_scope("org:write")
+
         return self.paginate(
             request=request,
             queryset=queryset,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, include_config=include_config),
             paginator_cls=OffsetPaginator,
         )
 
@@ -97,5 +99,6 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
             return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         return self.respond(
-            serialize(serializer.save(), request.user), status=status.HTTP_201_CREATED
+            serialize(serializer.save(), request.user, include_config=True),
+            status=status.HTTP_201_CREATED,
         )

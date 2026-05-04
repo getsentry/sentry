@@ -23,6 +23,7 @@ class DataForwarderProjectResponse(TypedDict):
     isEnabled: bool
     dataForwarderId: str
     project: ProjectResponse
+    # The overrides + effectiveConfig fields are omitted unless request has `org:write`, since the values are sensitive.
     overrides: dict[str, str]
     effectiveConfig: dict[str, str]
     dateAdded: datetime
@@ -36,7 +37,8 @@ class DataForwarderResponse(TypedDict):
     enrollNewProjects: bool
     enrolledProjects: list[ProjectResponse]
     provider: str
-    config: dict[str, str]
+    # The config is omitted unless request has `org:write`, since the values are sensitive.
+    config: dict[str, str] | None
     projectConfigs: list[DataForwarderProjectResponse]
     dateAdded: datetime
     dateUpdated: datetime
@@ -69,6 +71,7 @@ class DataForwarderSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> DataForwarderResponse:
+        include_config = kwargs.get("include_config", False)
         project_configs = attrs.get("project_configs", set())
 
         return {
@@ -85,9 +88,10 @@ class DataForwarderSerializer(Serializer):
                 for project_config in project_configs
             ],
             "provider": obj.provider,
-            "config": obj.config,
+            "config": obj.config if include_config else None,
             "projectConfigs": [
-                serialize(project_config, user=user) for project_config in project_configs
+                serialize(project_config, user=user, include_config=include_config)
+                for project_config in project_configs
             ],
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -103,6 +107,7 @@ class DataForwarderProjectSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> DataForwarderProjectResponse:
+        include_config = kwargs.get("include_config", False)
         return {
             "id": str(obj.id),
             "isEnabled": obj.is_enabled,
@@ -112,8 +117,8 @@ class DataForwarderProjectSerializer(Serializer):
                 "slug": obj.project.slug,
                 "platform": obj.project.platform,
             },
-            "overrides": obj.overrides,
-            "effectiveConfig": obj.get_config(),
+            "overrides": obj.overrides if include_config else {},
+            "effectiveConfig": obj.get_config() if include_config else {},
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
