@@ -207,7 +207,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -244,7 +244,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}

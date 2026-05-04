@@ -257,7 +257,7 @@ export function NightShift({canWrite, project}: Props) {
       >
         <Flex gap="sm">
           <Button
-            priority="primary"
+            variant="primary"
             disabled={!canWrite || isTriggering}
             busy={isTriggering}
             onClick={() => triggerRun({dryRun: false})}

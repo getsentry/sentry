@@ -201,7 +201,7 @@ function FeatureListBase(props: FeatureListProps) {
                 size="xs"
                 subscription={subscription}
                 organization={organization}
-                priority="primary"
+                variant="primary"
                 extraAnalyticsParams={{
                   integration: provider.key,
                   integration_type: getIntegrationType(provider as IntegrationProvider),
