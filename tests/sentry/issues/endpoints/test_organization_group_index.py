@@ -524,7 +524,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert group_info is not None
         perf_group = group_info.group
         self.login_as(user=self.user)
-        response = self.get_success_response(query="issue.category:performance")
+        response = self.get_success_response(
+            query=f"issue.type:{PerformanceNPlusOneGroupType.slug}"
+        )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(perf_group.id)
 
