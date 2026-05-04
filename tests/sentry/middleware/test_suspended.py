@@ -104,23 +104,6 @@ class SuspendedUserMiddlewareUnitTest(TestCase):
         result = self.middleware.process_request(request)
         assert result is None
 
-    @patch("sentry.middleware.suspended.sentry_sdk")
-    def test_sentry_sdk_capture_called(self, mock_sentry_sdk):
-        mock_scope = MagicMock()
-        mock_sentry_sdk.isolation_scope.return_value.__enter__ = MagicMock(return_value=mock_scope)
-        mock_sentry_sdk.isolation_scope.return_value.__exit__ = MagicMock(return_value=False)
-
-        request = self._make_suspended_request(path="/organizations/foo/")
-        self.middleware.process_request(request)
-
-        mock_sentry_sdk.capture_message.assert_called_once_with(
-            "Suspended user bypassed auth guards",
-            level="error",
-        )
-        mock_scope.set_extra.assert_any_call("user_id", self.user.id)
-        mock_scope.set_extra.assert_any_call("path", "/organizations/foo/")
-        mock_scope.set_extra.assert_any_call("method", "GET")
-
     @patch("sentry.middleware.suspended.logger")
     def test_logger_error_called(self, mock_logger):
         request = self._make_suspended_request(path="/api/0/organizations/")
@@ -135,9 +118,6 @@ class SuspendedUserMiddlewareUnitTest(TestCase):
                 "ip_address": "127.0.0.1",
             },
         )
-
-
-# --- E2E Test Infrastructure ---
 
 
 class SuspendedTestEndpoint(Endpoint):

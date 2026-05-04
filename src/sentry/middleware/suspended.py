@@ -2,19 +2,16 @@ from __future__ import annotations
 
 import logging
 
-import sentry_sdk
 from django.http import HttpRequest, HttpResponseForbidden, JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
 logger = logging.getLogger("sentry.auth.suspended")
 
-SUSPENDED_EXEMPT_PATHS = frozenset(
-    {
-        "/auth/reactivate/",
-        "/auth/login/",
-        "/auth/logout/",
-        "/api/0/auth/",
-    }
+SUSPENDED_EXEMPT_PATHS = (
+    "/auth/reactivate/",
+    "/auth/login/",
+    "/auth/logout/",
+    "/api/0/auth/",
 )
 
 
@@ -35,9 +32,8 @@ class SuspendedUserMiddleware(MiddlewareMixin):
         if not getattr(user, "is_suspended", False):
             return None
 
-        for exempt_path in SUSPENDED_EXEMPT_PATHS:
-            if request.path.startswith(exempt_path):
-                return None
+        if any(request.path.startswith(p) for p in SUSPENDED_EXEMPT_PATHS):
+            return None
 
         logger.error(
             "suspended_user.safety_net_triggered",
@@ -48,14 +44,6 @@ class SuspendedUserMiddleware(MiddlewareMixin):
                 "ip_address": request.META.get("REMOTE_ADDR"),
             },
         )
-        with sentry_sdk.isolation_scope() as scope:
-            scope.set_extra("user_id", user.id)
-            scope.set_extra("path", request.path)
-            scope.set_extra("method", request.method)
-            sentry_sdk.capture_message(
-                "Suspended user bypassed auth guards",
-                level="error",
-            )
 
         if request.path.startswith("/api/"):
             return JsonResponse(
