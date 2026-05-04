@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import type {User} from 'sentry/types/user';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {getRequestError, memberUsersQueryOptions, type MemberResult} from './shared';
+import {memberUsersQueryOptions, type MemberResult} from './shared';
 
 interface UseMembersByEmailOptions {
   /**
@@ -74,6 +75,6 @@ export function useMembers({ids, emails}: UseMembersOptions): MemberResult {
     members,
     isPending: hasFilters && query.isPending,
     isFetched: !hasFilters || query.isFetched,
-    error: getRequestError(query.error),
+    error: query.error instanceof RequestError ? query.error : null,
   };
 }

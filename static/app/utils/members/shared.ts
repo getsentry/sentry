@@ -2,7 +2,7 @@ import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface MemberResult {
   /**
@@ -72,17 +72,13 @@ export function membersQueryOptions({orgSlug, ...options}: MembersQueryOptions) 
   });
 }
 
-function selectUsersFromMembers(members: Member[]) {
-  return members.map(m => m.user).filter((user): user is User => user !== null);
+function selectUsersFromResponse({json}: ApiResponse<Member[]>) {
+  return json.map(m => m.user).filter((user): user is User => user !== null);
 }
 
 export function memberUsersQueryOptions(options: MembersQueryOptions) {
   return {
     ...membersQueryOptions(options),
-    select: ({json}: ApiResponse<Member[]>) => selectUsersFromMembers(json),
+    select: selectUsersFromResponse,
   };
-}
-
-export function getRequestError(error: Error | null): RequestError | null {
-  return error instanceof RequestError ? error : null;
 }

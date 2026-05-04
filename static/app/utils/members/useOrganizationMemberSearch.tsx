@@ -3,9 +3,10 @@ import {useQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import type {User} from 'sentry/types/user';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {getRequestError, memberUsersQueryOptions, type MemberResult} from './shared';
+import {memberUsersQueryOptions, type MemberResult} from './shared';
 import {useOrganizationMemberUsers} from './useOrganizationMemberUsers';
 
 interface MemberSearchResult extends MemberResult {
@@ -40,14 +41,18 @@ export function useOrganizationMemberSearch(): MemberSearchResult {
     setSearch(searchTerm);
     return Promise.resolve();
   }, []);
+  const error =
+    searchMembersQuery.error instanceof RequestError
+      ? searchMembersQuery.error
+      : defaultMembersQuery.error instanceof RequestError
+        ? defaultMembersQuery.error
+        : null;
 
   return {
     members,
     isPending: defaultMembersQuery.isPending || searchMembersQuery.isFetching,
     isFetched: defaultMembersQuery.isFetched,
-    error:
-      getRequestError(searchMembersQuery.error) ??
-      getRequestError(defaultMembersQuery.error),
+    error,
     onSearch: handleSearch,
   };
 }
