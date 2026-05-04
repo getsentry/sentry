@@ -132,7 +132,7 @@ function IdentifierField() {
     return (
       <Container width="200px">
         <SelectMembers
-          ariaLabel={t('User')}
+          aria-label={t('User')}
           organization={organization}
           projectIds={projectIds}
           key={`${actionId}.config.targetIdentifier`}
