@@ -4047,6 +4047,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enforce is_disabled field on sentry app endpoints and webhooks.
+register(
+    "sentry-apps.disabled-enforcement",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Disable paranoia for sentry apps
 register(
     "sentry-apps.hard-delete",

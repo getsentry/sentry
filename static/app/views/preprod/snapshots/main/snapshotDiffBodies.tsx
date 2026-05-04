@@ -14,6 +14,7 @@ import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import {useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
 import {computeMaskSize} from './computeMaskSize';
+import {DiffOverlay} from './diffOverlay';
 
 export const MAX_IMAGE_HEIGHT = 480;
 
@@ -309,15 +310,16 @@ function LazyImage({
   return (
     <Container position="relative" display="inline-block" maxWidth="100%">
       {!loaded && (
-        <Placeholder
-          width={width ? `${width}px` : '100%'}
-          height={width && height ? 'auto' : `${MAX_IMAGE_HEIGHT}px`}
+        <PlaceholderSizer
           style={{
+            width: width ? `${width}px` : '100%',
             maxWidth: '100%',
             maxHeight: `${MAX_IMAGE_HEIGHT}px`,
-            aspectRatio: aspectRatio(width, height),
+            aspectRatio: width && height ? `${width} / ${height}` : undefined,
           }}
-        />
+        >
+          <Placeholder width="100%" height="100%" />
+        </PlaceholderSizer>
       )}
       <HiddenUntilLoaded
         ref={refCallback}
@@ -334,33 +336,16 @@ function LazyImage({
   );
 }
 
+const PlaceholderSizer = styled('div')`
+  overflow: hidden;
+`;
+
 const HiddenUntilLoaded = styled('img')`
   display: block;
   width: auto;
   height: auto;
   max-width: 100%;
   max-height: ${MAX_IMAGE_HEIGHT}px;
-`;
-
-const DiffOverlay = styled('span')<{
-  $maskSize: string;
-  $maskUrl: string;
-  $overlayColor: string;
-}>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  background-color: ${p => p.$overlayColor};
-  mask-image: url(${p => p.$maskUrl});
-  mask-size: ${p => p.$maskSize};
-  mask-position: top left;
-  mask-mode: luminance;
-  -webkit-mask-image: url(${p => p.$maskUrl});
-  -webkit-mask-size: ${p => p.$maskSize};
-  -webkit-mask-position: top left;
 `;
 
 const ZoomViewport = styled('div')`

@@ -1,0 +1,97 @@
+name: '[NOT REQUIRED] type coverage diff'
+
+on:
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  NODE_OPTIONS: '--max-old-space-size=5120'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for frontend file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  type-coverage-diff:
+    if: needs.files-changed.outputs.frontend_all == 'true'
+    needs: files-changed
+    name: type coverage diff
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          # Full history: the script checks out the merge-base commit
+          # and runs type-coverage there, so it needs access to old commits.
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Get merge base
+        id: merge_base
+        run: |
+          MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
+          if [ -z "$MERGE_BASE" ]; then
+            echo "Could not compute merge base"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "commit=$MERGE_BASE" >> "$GITHUB_OUTPUT"
+            echo "Merge base: $MERGE_BASE"
+          fi
+
+      - name: Run type-coverage-diff
+        if: steps.merge_base.outputs.skip != 'true'
+        id: coverage
+        continue-on-error: true
+        run: |
+          pnpm run type-coverage-diff \
+            --commit ${{ steps.merge_base.outputs.commit }} \
+            --output /tmp/type-coverage-report.json \
+            --verbose
+
+      - name: Format comment
+        if: steps.merge_base.outputs.skip != 'true'
+        id: comment
+        env:
+          REPORT_PATH: /tmp/type-coverage-report.json
+          COVERAGE_OUTCOME: ${{ steps.coverage.outcome }}
+        run: node .github/workflows/scripts/format-type-coverage-comment.ts
+
+      - name: Find existing comment
+        if: steps.merge_base.outputs.skip != 'true' && steps.comment.outputs.body
+        uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- TYPE_COVERAGE_DIFF -->'
+
+      - name: Create or update comment
+        if: steps.merge_base.outputs.skip != 'true' && steps.comment.outputs.body
+        uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: ${{ steps.comment.outputs.body }}
+          edit-mode: replace

@@ -1,8 +1,9 @@
+import type {ModalTypes} from '@sentry/scraps/modal';
+
 import type {
   CommandPaletteState,
   CommandPaletteDispatch,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import type {DataWidgetViewerModalOptions} from 'sentry/components/modals/dataWidgetViewerModal';

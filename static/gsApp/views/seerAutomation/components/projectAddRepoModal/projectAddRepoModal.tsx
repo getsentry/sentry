@@ -233,7 +233,7 @@ export function ProjectAddRepoModal({
                             <Button
                               aria-label={t('Remove repository')}
                               size="sm"
-                              priority="transparent"
+                              variant="transparent"
                               icon={<IconDelete size="xs" />}
                               onClick={() => field.removeValue(i)}
                             />
@@ -243,7 +243,7 @@ export function ProjectAddRepoModal({
                       <Flex>
                         <Button
                           size="sm"
-                          priority="transparent"
+                          variant="transparent"
                           icon={<IconAdd />}
                           onClick={() => field.pushValue({repoId: '', branch: ''})}
                         >

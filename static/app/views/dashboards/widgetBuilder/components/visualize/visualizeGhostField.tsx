@@ -200,7 +200,7 @@ export function VisualizeGhostField({
             />
           )}
           <Button
-            priority="transparent"
+            variant="transparent"
             icon={<IconDelete />}
             size="zero"
             disabled

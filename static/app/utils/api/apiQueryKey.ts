@@ -7,6 +7,7 @@ export type RequestMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
 type ApiUrl = ReturnType<typeof getApiUrl>;
 
 export type QueryKeyEndpointOptions = {
+  allowAuthError?: boolean;
   data?: Record<string, unknown>;
   headers?: Record<string, string>;
   host?: string;

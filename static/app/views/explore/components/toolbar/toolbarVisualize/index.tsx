@@ -116,7 +116,7 @@ export function ToolbarVisualizeDropdown({
       )}
       {onDelete ? (
         <Button
-          priority="transparent"
+          variant="transparent"
           icon={<IconDelete />}
           size="zero"
           onClick={onDelete}
@@ -147,7 +147,7 @@ export function ToolbarVisualizeAddChart({
       size={display === 'link' ? 'zero' : size}
       icon={<IconAdd />}
       onClick={add}
-      priority={display === 'link' ? 'link' : undefined}
+      variant={display === 'link' ? 'link' : undefined}
       aria-label={label ?? t('Add Chart')}
       disabled={disabled}
     >
@@ -162,7 +162,7 @@ export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAdd
       size="zero"
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      variant="link"
       aria-label={t('Add Equation')}
       disabled={disabled}
     >
