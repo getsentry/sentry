@@ -67,7 +67,7 @@ def unpack_slack_api_error(exc: SlackApiError | SlackRequestError) -> SlackSdkEr
             ):
                 return NON_JSON_RESPONSE
             return _CATEGORIES_BY_MESSAGE[error_attr]
-        except (KeyError, TypeError):
+        except KeyError:
             pass
 
     dump = str(exc)
