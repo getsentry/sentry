@@ -404,6 +404,7 @@ def _resolve_linked_messages(
             limit=1,
         )
 
+        # If the parent message is also included, ignore that
         message = next((m for m in messages if m.get("ts") == link.ts), None)
         if message is None:
             unresolved.add(link.channel_id)
