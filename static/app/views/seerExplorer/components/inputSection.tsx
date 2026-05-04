@@ -81,7 +81,7 @@ export function InputSection({
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
     if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
-      return undefined;
+      return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,7 +109,7 @@ export function InputSection({
   // Handle keyboard shortcuts for questions
   useEffect(() => {
     if (!enabled || !questionActions || !isVisible || isMinimized) {
-      return undefined;
+      return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -267,7 +267,7 @@ export function InputSection({
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={t('Ask seer a question, or press / for commands.')}
+            placeholder={t('Ask Seer a question, or press / for commands.')}
             rows={1}
             maxRows={5}
             autosize

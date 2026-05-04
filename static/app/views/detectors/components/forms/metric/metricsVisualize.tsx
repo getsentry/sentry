@@ -23,27 +23,26 @@ import {
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
-import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {NONE_UNIT, OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import {
+  hasDisplayMetricUnit,
+  makeMetricSelectValue,
+  makeMetricsAggregate,
+} from 'sentry/views/explore/metrics/utils';
 
 interface MetricSelectOption extends SelectOption<string> {
   metricName: string;
   metricType: TraceMetricTypeValue;
   trailingItems: ReactNode;
   metricUnit?: string;
-}
-
-function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
 /**
@@ -78,7 +77,7 @@ export function MetricsVisualize() {
   );
   const optionFromTraceMetric: MetricSelectOption = useMemo(
     () => ({
-      label: traceMetric.name || t('Select a metric'),
+      label: traceMetric.name || t('Select an application metric'),
       value: metricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricName: traceMetric.name,
@@ -86,12 +85,9 @@ export function MetricsVisualize() {
       trailingItems: (
         <Fragment>
           <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
-          {hasMetricUnitsUI &&
-            traceMetric.unit &&
-            traceMetric.unit !== '-' &&
-            traceMetric.unit !== NONE_UNIT && (
-              <Tag variant="promotion">{traceMetric.unit}</Tag>
-            )}
+          {hasDisplayMetricUnit(hasMetricUnitsUI, traceMetric.unit) ? (
+            <Tag variant="promotion">{traceMetric.unit}</Tag>
+          ) : null}
         </Fragment>
       ),
     }),
@@ -129,13 +125,14 @@ export function MetricsVisualize() {
         trailingItems: (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI &&
-              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
-              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
-                <Tag variant="promotion">
-                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-                </Tag>
-              )}
+            {hasDisplayMetricUnit(
+              hasMetricUnitsUI,
+              option[TraceMetricKnownFieldKey.METRIC_UNIT]
+            ) ? (
+              <Tag variant="promotion">
+                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+              </Tag>
+            ) : null}
           </Fragment>
         ),
       })) ?? []),
@@ -214,10 +211,7 @@ export function MetricsVisualize() {
     }
   }, [metricOptions, updateFormAggregate, traceMetric.name, hasMetricUnitsUI]);
 
-  const traceMetricSelectValue = makeMetricSelectValue(
-    hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
-  );
-  const previousOptions = usePrevious(metricOptions ?? []);
+  const previousOptions = usePrevious(metricOptions);
   const hasNoMetrics = isMetricOptionsEmpty && !search;
 
   return (
@@ -226,23 +220,23 @@ export function MetricsVisualize() {
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
             <Tooltip
-              title={t('Select the metric to monitor for this detector.')}
+              title={t('Select the application metric to monitor for this detector.')}
               showUnderline
             >
-              <SectionLabel>{t('Metric')}</SectionLabel>
+              <SectionLabel>{t('Application Metric')}</SectionLabel>
             </Tooltip>
           </div>
           <Tooltip
-            title={t('No metrics found for this project')}
+            title={t('No application metrics found for this project')}
             disabled={!hasNoMetrics}
           >
             <div>
               <StyledSelect
                 search={{onChange: debouncedSetSearch, filter: false}}
-                options={isFetching ? previousOptions : (metricOptions ?? [])}
-                value={traceMetricSelectValue}
+                options={isFetching ? previousOptions : metricOptions}
+                value={metricSelectValue}
                 loading={isFetching}
-                menuTitle={t('Metrics')}
+                menuTitle={t('Application Metrics')}
                 onChange={(option: SelectOption<SelectKey>) => {
                   if ('metricType' in option) {
                     handleMetricChange(option as MetricSelectOption);
@@ -251,7 +245,7 @@ export function MetricsVisualize() {
                 disabled={hasNoMetrics}
                 trigger={triggerProps => (
                   <OverlayTrigger.Button {...triggerProps}>
-                    {traceMetric.name || t('Select a metric')}
+                    {traceMetric.name || t('Select an application metric')}
                   </OverlayTrigger.Button>
                 )}
               />
@@ -261,7 +255,7 @@ export function MetricsVisualize() {
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
             <Tooltip
-              title={t('The aggregation operation to apply to the metric.')}
+              title={t('The aggregation operation to apply to the application metric.')}
               showUnderline
             >
               <SectionLabel>{t('Operation')}</SectionLabel>

@@ -29,6 +29,7 @@ export function UserFixture(params: Partial<User> = {}): User {
     isManaged: false,
     isStaff: false,
     isSuperuser: false,
+    isSuspended: false,
     lastActive: '2020-01-01T00:00:00.000Z',
     lastLogin: '2020-01-01T00:00:00.000Z',
     permissions: new Set(),

@@ -48,7 +48,7 @@ export function ThemeAndStyleProvider({children}: Props) {
   const themeToggleHotkey = useMemo(
     () => [
       {
-        match: ['command+shift+1', 'ctrl+shift+1'],
+        match: 'mod+shift+1',
         includeInputs: true,
         callback: () => {
           removeBodyTheme();

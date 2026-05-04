@@ -149,7 +149,7 @@ export function DrawerHeader({
       {!hideCloseButton && (
         <Fragment>
           <Button
-            priority="transparent"
+            variant="transparent"
             size="xs"
             aria-label={t('Close Drawer')}
             icon={<IconClose />}
@@ -211,10 +211,7 @@ export const DrawerBody = styled('aside')`
 const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
   position: fixed;
   inset: 0;
-  /* Passive drawers have no backdrop, so elevate above tooltip to keep
-     behind-page tooltips from rendering over the drawer. */
-  z-index: ${p =>
-    p.mode === 'passive' ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.drawer};
+  z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -228,6 +225,14 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   position: relative;
   pointer-events: auto;
   height: 100%;
+
+  /* Extend the panel's background 20px past its right edge so the bounce-in
+     overshoot doesn't briefly expose the page beneath. A box-shadow is used
+     (vs. a pseudo-element) because the panel's own overflow: auto would clip
+     anything positioned outside its bounds. */
+  box-shadow:
+    20px 0 0 ${p => p.theme.tokens.background.overlay},
+    ${p => p.theme.shadow.high};
 
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
   --drawer-min-width: ${MIN_WIDTH_PERCENT}%;

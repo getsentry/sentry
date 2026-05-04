@@ -68,6 +68,8 @@ import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidg
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ADOPTION_STAGE_LABELS} from 'sentry/views/explore/releases/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
@@ -83,8 +85,6 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {ArrayValue} from './arrayValue';
 import {
@@ -684,8 +684,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
-      let slugs: string[] | undefined = undefined;
-      let projectIds: number[] | undefined = undefined;
+      let slugs: string[] | undefined;
+      let projectIds: number[] | undefined;
       if (typeof data.project === 'number') {
         projectIds = [data.project];
       } else {
@@ -1394,8 +1394,8 @@ export function getFieldRenderer(
   field: string,
   meta: MetaType,
   isAlias = true,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   const baseRenderer = getFieldRendererBase(field, meta, isAlias);
   return wrapFieldRendererInDashboardLink(baseRenderer, field, widget, dashboardFilters);
@@ -1454,8 +1454,8 @@ function getFieldRendererBase(
 function wrapFieldRendererInDashboardLink(
   renderer: FieldFormatterRenderFunctionPartial,
   field: string,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
     const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
@@ -1470,17 +1470,17 @@ function getDashboardUrl(
   data: EventData,
   field: string,
   baggage: RenderFunctionBaggage,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ) {
   const {organization, location, projects} = baggage;
   if (!widget?.widgetType || !dashboardFilters) {
-    return undefined;
+    return;
   }
 
   const linkedDashboard = findLinkedDashboardForField(widget.queries[0], field);
   if (!linkedDashboard) {
-    return undefined;
+    return;
   }
 
   // Get project ID override from data if available

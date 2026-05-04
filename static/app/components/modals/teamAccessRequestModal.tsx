@@ -53,7 +53,7 @@ function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) 
       <Footer>
         <ButtonGroup>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" onClick={handleClick} busy={createBusy} autoFocus>
+          <Button variant="primary" onClick={handleClick} busy={createBusy} autoFocus>
             {t('Continue')}
           </Button>
         </ButtonGroup>

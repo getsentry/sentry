@@ -2,18 +2,39 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
+from requests.exceptions import TooManyRedirects
 from taskbroker_client.retry import RetryTaskError
 
 from sentry import audit_log
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
+from sentry.integrations.source_code_management.sync_repos import (
+    sync_repos_for_org,
+)
+from sentry.locks import locks
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import (
+    ApiConnectionResetError,
+    ApiError,
+    ApiForbiddenError,
+    ApiHostError,
+    ApiPaginationTruncated,
+    ApiRateLimitedError,
+    ApiTimeoutError,
+    ApiUnauthorized,
+    IntegrationConfigurationError,
+    IntegrationError,
+    UnsupportedResponseType,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.users.models.identity import Identity
 
 
 @control_silo_test
@@ -70,12 +91,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             )
             assert entries.count() == 2
 
-    @patch(
-        "sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request",
-        return_value=MagicMock(status=200),
-    )
     @responses.activate
-    def test_disables_removed_repos(self, _: MagicMock, __: MagicMock) -> None:
+    def test_disables_removed_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -117,6 +134,44 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
                 organization_id=self.organization.id,
                 event=audit_log.get_event_id("REPO_ADDED"),
             ).exists()
+
+    @responses.activate
+    def test_skips_disable_for_repo_with_recent_activity(self, _: MagicMock) -> None:
+        # A repo that's missing from the provider's listing AND has a recent
+        # commit row should NOT be disabled — the activity says it's still
+        # live, so the provider listing is more likely wrong than the repo
+        # being deleted. Used as a final safety guard before disable.
+        with assume_test_silo_mode(SiloMode.CELL):
+            still_active_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-but-active-repo",
+                external_id="99",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+            Commit.objects.create(
+                organization_id=self.organization.id,
+                repository_id=still_active_repo.id,
+                key="abc123",
+            )
+
+        # Provider isn't returning the active repo
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.feature(
+            [
+                "organizations:github-repo-auto-sync",
+                "organizations:github-repo-auto-sync-apply",
+                "organizations:scm-repo-auto-sync-removal",
+            ]
+        ):
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            still_active_repo.refresh_from_db()
+            assert still_active_repo.status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_re_enables_restored_repos(self, _: MagicMock) -> None:
@@ -268,7 +323,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert Repository.objects.count() == 0
 
     @responses.activate
-    def test_rate_limited_raises_for_retry(self, _: MagicMock) -> None:
+    def test_rate_limited_halts_without_retry(self, _: MagicMock) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -279,19 +334,69 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             },
         )
 
-        with self.feature("organizations:github-repo-auto-sync"), pytest.raises(RetryTaskError):
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_installation_suspended_halts_without_retry(
+        self, mock_get_repositories: MagicMock, _: MagicMock
+    ) -> None:
+        mock_get_repositories.side_effect = ApiForbiddenError(
+            '{"message":"This installation has been suspended"}'
+        )
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    def test_truncated_fetch_skips_disable(self, mock_get_repos: MagicMock, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-repo",
+                external_id="99",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        # Raw GitHub API response shape — the integration must transform this
+        # into RepositoryInfo before it reaches sync_repos.
+        mock_get_repos.side_effect = ApiPaginationTruncated(
+            partial_data=[
+                {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+            ]
+        )
+
+        with self.feature(
+            [
+                "organizations:github-repo-auto-sync",
+                "organizations:github-repo-auto-sync-apply",
+                "organizations:scm-repo-auto-sync-removal",
+            ]
+        ):
             with self.tasks():
                 sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE  # not disabled
+            # Creation still runs on the transformed partial list
+            assert Repository.objects.filter(
+                organization_id=self.organization.id, external_id="1"
+            ).exists()
 
 
 @control_silo_test
 class SyncReposForOrgGHETestCase(TestCase):
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_creates_new_repos_for_ghe(self, mock_get_repos: MagicMock) -> None:
-        from sentry.integrations.github_enterprise.integration import (
-            GitHubEnterpriseIntegrationProvider,
-        )
-
         GitHubEnterpriseIntegrationProvider().setup()
 
         integration = self.create_integration(
@@ -332,13 +437,73 @@ class SyncReposForOrgGHETestCase(TestCase):
         assert len(repos) == 2
         assert repos[0].provider == "integrations:github_enterprise"
 
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    def test_truncated_fetch_skips_disable_for_ghe(self, mock_get_repos: MagicMock) -> None:
+        # Same partial-data transformation as the GitHub path: when GHE's
+        # client raises ApiPaginationTruncated with raw API dicts, the
+        # integration must transform them to RepositoryInfo before re-raising
+        # so sync_repos doesn't KeyError on `external_id`.
+
+        GitHubEnterpriseIntegrationProvider().setup()
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="35.232.149.196:12345",
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "12345",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="testorg/old-repo",
+                external_id="99",
+                provider="integrations:github_enterprise",
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        # Raw GHE API dicts in partial_data — must be transformed by the
+        # integration before sync_repos sees them.
+        mock_get_repos.side_effect = ApiPaginationTruncated(
+            partial_data=[{"id": 1, "full_name": "testorg/repo1", "name": "repo1"}]
+        )
+
+        with self.feature(
+            [
+                "organizations:github_enterprise-repo-auto-sync",
+                "organizations:github_enterprise-repo-auto-sync-apply",
+                "organizations:scm-repo-auto-sync-removal",
+            ]
+        ):
+            with self.tasks():
+                sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE  # not disabled
+            # Creation still runs on the transformed partial list — fails
+            # if partial_data wasn't run through the transform.
+            assert Repository.objects.filter(
+                organization_id=self.organization.id, external_id="1"
+            ).exists()
+
 
 @control_silo_test
 class SyncReposForOrgGitLabTestCase(TestCase):
     @responses.activate
     def test_creates_new_repos_for_gitlab(self) -> None:
-        from sentry.users.models.identity import Identity
-
         integration = self.create_provider_integration(
             provider="gitlab",
             name="Example Gitlab",
@@ -472,8 +637,6 @@ class SyncReposForOrgBitbucketTestCase(TestCase):
 class SyncReposForOrgVstsTestCase(TestCase):
     @patch("sentry.integrations.vsts.integration.VstsIntegration.get_client")
     def test_creates_new_repos_for_vsts(self, mock_get_client: MagicMock) -> None:
-        from sentry.users.models.identity import Identity
-
         integration = self.create_provider_integration(
             provider="vsts",
             external_id="vsts-account-id",
@@ -527,3 +690,349 @@ class SyncReposForOrgVstsTestCase(TestCase):
 
         assert len(repos) == 2
         assert repos[0].provider == "integrations:vsts"
+
+    def _create_vsts_integration(self) -> OrganizationIntegration:
+        integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts-account-id",
+            name="MyVSTSAccount",
+            metadata={"domain_name": "https://myvstsaccount.visualstudio.com/"},
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="vsts"),
+            user=self.user,
+            external_id="vsts123",
+            data={
+                "access_token": "123456789",
+                "expires": 9999999999,
+                "refresh_token": "rxxx",
+                "token_type": "jwt-bearer",
+            },
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+        return OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+    @patch("sentry.integrations.vsts.integration.VstsIntegration.get_repositories")
+    def test_vsts_wrapped_unauthorized_halts_without_retry(
+        self, mock_get_repositories: MagicMock
+    ) -> None:
+        def _wrap_unauthorized(*args: object, **kwargs: object) -> None:
+            # Mirror VSTS's real wrapping: raise IntegrationError from inside the
+            # ApiUnauthorized except block so __context__ is populated.
+            try:
+                raise ApiUnauthorized("bad token")
+            except ApiUnauthorized:
+                raise IntegrationError(
+                    "Unauthorized: either your access token was invalid or you do not have access"
+                )
+
+        mock_get_repositories.side_effect = _wrap_unauthorized
+
+        oi = self._create_vsts_integration()
+        with self.feature("organizations:vsts-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.vsts.integration.VstsIntegration.get_repositories")
+    def test_vsts_wrapped_identity_not_valid_halts_without_retry(
+        self, mock_get_repositories: MagicMock
+    ) -> None:
+        # VSTS wraps IdentityNotValid in IntegrationError with ERR_INTERNAL,
+        # so the message does NOT contain "Unauthorized". The sync code must
+        # still halt by detecting the original via __context__.
+
+        def _wrap_identity_not_valid(*args: object, **kwargs: object) -> None:
+            try:
+                raise IdentityNotValid()
+            except IdentityNotValid:
+                raise IntegrationError(
+                    "An internal error occurred with the integration and the Sentry team has been notified"
+                )
+
+        mock_get_repositories.side_effect = _wrap_identity_not_valid
+
+        oi = self._create_vsts_integration()
+        with self.feature("organizations:vsts-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+
+@control_silo_test
+class SyncReposForOrgBrokenIdentityTestCase(TestCase):
+    @patch("sentry.integrations.gitlab.integration.GitlabIntegration.get_repositories")
+    def test_identity_not_valid_halts_without_retry(self, mock_get_repositories: MagicMock) -> None:
+        integration = self.create_provider_integration(
+            provider="gitlab",
+            name="Example Gitlab",
+            external_id="example.gitlab.com:group-x",
+            metadata={
+                "instance": "example.gitlab.com",
+                "base_url": "https://example.gitlab.com",
+                "domain_name": "example.gitlab.com/group-x",
+                "verify_ssl": False,
+                "group_id": 1,
+                "webhook_secret": "secret123",
+            },
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="gitlab", config={}),
+            user=self.user,
+            external_id="gitlab123",
+            data={"access_token": "123456789"},
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        mock_get_repositories.side_effect = IdentityNotValid()
+
+        with self.feature("organizations:gitlab-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+
+@control_silo_test
+@patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+class SyncReposLockTestCase(IntegrationTestCase):
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+    key = "github"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=self.integration
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.source_code_management.sync_repos._sync_repos_for_org")
+    def test_skips_when_locked(self, mock_inner: MagicMock, _: MagicMock) -> None:
+        lock = locks.get(
+            f"repo-sync:{self.oi.id}",
+            duration=300,
+            name="sync_repos_for_org",
+        )
+        with lock.acquire():
+            sync_repos_for_org(self.oi.id)
+
+        mock_inner.assert_not_called()
+
+    @responses.activate
+    def test_lock_released_after_sync(self, _: MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            self.base_url + "/installation/repositories?per_page=100",
+            status=200,
+            json={"total_count": 0, "repositories": []},
+        )
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        # A second call should succeed (lock was released).
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+
+@control_silo_test
+class IsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for the RepositoryIntegration.is_broken_integration_error base implementation."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_provider_integration(
+            provider="github",
+            external_id="12345",
+            name="test-gh",
+            metadata={
+                "access_token": "xxx",
+                "expires_at": "",
+            },
+        )
+        self.integration.add_organization(self.organization, self.user)
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_identity_not_valid(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(IdentityNotValid())
+            == "identity_not_valid"
+        )
+
+    def test_identity_does_not_exist(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(Identity.DoesNotExist())
+            == "identity_not_found"
+        )
+
+    def test_api_unauthorized(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+
+    def test_api_forbidden_not_terminal(self) -> None:
+        assert self.installation.is_broken_integration_error(ApiForbiddenError("forbidden")) is None
+
+    def test_api_forbidden_suspended_returns_installation_suspended(self) -> None:
+        exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
+        assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
+
+    def test_api_host_error(self) -> None:
+        exc = ApiHostError.from_exception(Exception("host down"))
+        assert self.installation.is_broken_integration_error(exc) == "host_unreachable"
+
+    def test_api_timeout_error(self) -> None:
+        exc = ApiTimeoutError("timed out")
+        assert self.installation.is_broken_integration_error(exc) == "host_timeout"
+
+    def test_api_connection_reset(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(
+                ApiConnectionResetError("Connection reset")
+            )
+            == "connection_reset"
+        )
+
+    def test_unsupported_response_type(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(UnsupportedResponseType("text/html"))
+            == "unsupported_response"
+        )
+
+    def test_api_rate_limited(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiRateLimitedError("slow down"))
+            == "rate_limited"
+        )
+
+    def test_integration_configuration_error(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(
+                IntegrationConfigurationError("bad config")
+            )
+            == "configuration_error"
+        )
+
+    def test_integration_error_wrapping_terminal_cause(self) -> None:
+        exc = IntegrationError("wrapped")
+        exc.__context__ = IdentityNotValid()
+        assert self.installation.is_broken_integration_error(exc) == "identity_not_valid"
+
+    def test_integration_error_wrapping_non_terminal_cause(self) -> None:
+        exc = IntegrationError("wrapped")
+        exc.__context__ = ValueError("not terminal")
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_integration_error_without_context(self) -> None:
+        assert self.installation.is_broken_integration_error(IntegrationError("plain")) is None
+
+    def test_too_many_redirects(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(TooManyRedirects())
+            == "too_many_redirects"
+        )
+
+    def test_generic_api_error_not_terminal(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiError("server error", code=500))
+            is None
+        )
+
+    def test_unrelated_exception_not_terminal(self) -> None:
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+    def test_rate_limited_via_is_rate_limited_error(self) -> None:
+        exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
+        with patch.object(type(self.installation), "is_rate_limited_error", return_value=True):
+            assert self.installation.is_broken_integration_error(exc) == "rate_limited"
+
+
+@control_silo_test
+@patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
+    """Tests that sync_repos_for_org halts correctly for newly-handled error types."""
+
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+    key = "github"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=self.integration
+        )
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_api_host_error_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
+        mock_get_repositories.side_effect = ApiHostError.from_exception(
+            Exception("Unable to reach host")
+        )
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_api_timeout_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
+        mock_get_repositories.side_effect = ApiTimeoutError("timed out")
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_too_many_redirects_halts(self, mock_get_repositories: MagicMock, _: MagicMock) -> None:
+        mock_get_repositories.side_effect = TooManyRedirects("Exceeded 30 redirects")
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_integration_configuration_error_halts(
+        self, mock_get_repositories: MagicMock, _: MagicMock
+    ) -> None:
+        mock_get_repositories.side_effect = IntegrationConfigurationError("Identity not found.")
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_identity_does_not_exist_halts(
+        self, mock_get_repositories: MagicMock, _: MagicMock
+    ) -> None:
+        mock_get_repositories.side_effect = Identity.DoesNotExist()
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_generic_api_error_still_raises(
+        self, mock_get_repositories: MagicMock, _: MagicMock
+    ) -> None:
+        mock_get_repositories.side_effect = ApiError("Internal Server Error", code=500)
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            with pytest.raises((ApiError, RetryTaskError)):
+                sync_repos_for_org(self.oi.id)

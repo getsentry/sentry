@@ -28,6 +28,10 @@ describe('OrganizationLayout', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/saved/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [],
     });

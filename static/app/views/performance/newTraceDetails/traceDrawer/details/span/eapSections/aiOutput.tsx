@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
@@ -21,160 +22,15 @@ interface AIOutputData {
   toolCalls: string | null;
 }
 
-/**
- * Extracts content from the new parts-based format.
- * Handles text parts, tool calls, and structured objects.
- */
-function extractFromOutputMessages(outputMessages: string): AIOutputData {
-  const result: AIOutputData = {
-    responseText: null,
-    responseObject: null,
-    toolCalls: null,
-  };
+const OUTPUT_ATTRIBUTES = ['gen_ai.output.messages', 'gen_ai.response.text'] as const;
 
-  try {
-    const parsed = JSON.parse(outputMessages);
-    // Handle non-array format: extract "content" from the object directly
-    if (!Array.isArray(parsed)) {
-      if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
-        result.responseText = parsed.content;
-      }
-      return result;
-    }
-
-    const textParts: string[] = [];
-    const toolCallParts: any[] = [];
-    const objectParts: any[] = [];
-
-    for (const msg of parsed) {
-      if (msg.role !== 'assistant') {
-        continue;
-      }
-
-      if (!msg.parts || !Array.isArray(msg.parts)) {
-        // Old format - extract content directly
-        if (msg.content) {
-          if (typeof msg.content === 'string') {
-            textParts.push(msg.content);
-          } else if (typeof msg.content === 'object') {
-            objectParts.push(msg.content);
-          }
-        }
-        continue;
-      }
-
-      // New parts-based format
-      for (const part of msg.parts) {
-        if (part.type === 'text' && (part.content || part.text)) {
-          textParts.push(part.content || part.text);
-        } else if (part.type === 'tool_call') {
-          toolCallParts.push(part);
-        } else if (part.type === 'object') {
-          objectParts.push(part);
-        }
-      }
-    }
-
-    if (textParts.length > 0) {
-      result.responseText = textParts.join('\n');
-    }
-    if (toolCallParts.length > 0) {
-      result.toolCalls = JSON.stringify(toolCallParts);
-    }
-    if (objectParts.length > 0) {
-      result.responseObject = JSON.stringify(
-        objectParts.length === 1 ? objectParts[0] : objectParts
-      );
-    }
-  } catch {
-    // Parsing failed, return empty result
-  }
-
-  return result;
-}
-
-/**
- * Gets AI output content, checking attributes in priority order.
- * Priority: gen_ai.output.messages > gen_ai.response.text/object
- */
-function getAIOutputData(
-  node: EapSpanNode | SpanNode | TransactionNode,
-  attributes?: TraceItemResponseAttribute[],
-  event?: EventTransaction
-): AIOutputData {
-  const outputMessages = getTraceNodeAttribute(
-    'gen_ai.output.messages',
-    node,
-    event,
-    attributes
-  );
-  if (outputMessages) {
-    const extracted = extractFromOutputMessages(outputMessages.toString());
-    if (extracted.responseText || extracted.responseObject || extracted.toolCalls) {
-      return extracted;
-    }
-  }
-
-  const responseText = getTraceNodeAttribute(
-    'gen_ai.response.text',
-    node,
-    event,
-    attributes
-  );
-  const responseObject = getTraceNodeAttribute(
-    'gen_ai.response.object',
-    node,
-    event,
-    attributes
-  );
-  const toolCalls = getTraceNodeAttribute(
-    'gen_ai.response.tool_calls',
-    node,
-    event,
-    attributes
-  );
-
-  return {
-    responseText: responseText?.toString() ?? null,
-    responseObject: responseObject?.toString() ?? null,
-    toolCalls: toolCalls?.toString() ?? null,
-  };
-}
-
-export function hasAIOutputAttribute(
-  node: EapSpanNode | SpanNode | TransactionNode,
-  attributes?: TraceItemResponseAttribute[],
-  event?: EventTransaction
-) {
-  return (
-    getTraceNodeAttribute('gen_ai.output.messages', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.response.text', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.response.object', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.tool.call.result', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.response.tool_calls', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes)
-  );
-}
-
-/**
- * Gets AI tool output, checking gen_ai.tool.call.result first, falling back to gen_ai.tool.output.
- */
-function getAIToolOutput(
-  node: EapSpanNode | SpanNode | TransactionNode,
-  attributes?: TraceItemResponseAttribute[],
-  event?: EventTransaction
-) {
-  const toolCallResult = getTraceNodeAttribute(
-    'gen_ai.tool.call.result',
-    node,
-    event,
-    attributes
-  );
-  if (toolCallResult) {
-    return toolCallResult;
-  }
-  return getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes);
-}
+const OUTPUT_PRESENCE_ATTRIBUTES = [
+  ...OUTPUT_ATTRIBUTES,
+  'gen_ai.response.object',
+  'gen_ai.response.tool_calls',
+  'gen_ai.tool.call.result',
+  'gen_ai.tool.output',
+] as const;
 
 export function AIOutputSection({
   node,
@@ -238,5 +94,78 @@ export function AIOutputSection({
         <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={1} />
       ) : null}
     </FoldSection>
+  );
+}
+
+export function hasAIOutputAttribute(
+  node: EapSpanNode | SpanNode | TransactionNode,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return OUTPUT_PRESENCE_ATTRIBUTES.some(key =>
+    getTraceNodeAttribute(key, node, event, attributes)
+  );
+}
+
+/**
+ * Gets AI output data, checking attributes in priority order:
+ * `gen_ai.output.messages` > `gen_ai.response.text`.
+ *
+ * Every attribute runs through the same normalizer, so any supported shape
+ * (parts, content, {messages: ...}, plain string) works on any attribute.
+ * When neither structured attribute yields data, the dedicated
+ * `gen_ai.response.object` / `gen_ai.response.tool_calls` fields are used as
+ * supplementary fallbacks.
+ */
+function getAIOutputData(
+  node: EapSpanNode | SpanNode | TransactionNode,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+): AIOutputData {
+  for (const key of OUTPUT_ATTRIBUTES) {
+    const raw = getTraceNodeAttribute(key, node, event, attributes);
+    if (!raw) {
+      continue;
+    }
+    const extracted = extractAssistantOutput(raw.toString(), {
+      defaultRole: 'assistant',
+    });
+    if (extracted.responseText || extracted.responseObject || extracted.toolCalls) {
+      return {
+        responseText: extracted.responseText,
+        responseObject: extracted.responseObject,
+        toolCalls: extracted.toolCalls,
+      };
+    }
+  }
+
+  const responseObject = getTraceNodeAttribute(
+    'gen_ai.response.object',
+    node,
+    event,
+    attributes
+  );
+  const toolCalls = getTraceNodeAttribute(
+    'gen_ai.response.tool_calls',
+    node,
+    event,
+    attributes
+  );
+
+  return {
+    responseText: null,
+    responseObject: responseObject?.toString() ?? null,
+    toolCalls: toolCalls?.toString() ?? null,
+  };
+}
+
+function getAIToolOutput(
+  node: EapSpanNode | SpanNode | TransactionNode,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return (
+    getTraceNodeAttribute('gen_ai.tool.call.result', node, event, attributes) ??
+    getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes)
   );
 }

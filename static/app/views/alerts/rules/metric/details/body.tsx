@@ -22,6 +22,7 @@ import {
 import {IconClose} from 'sentry/icons';
 import {t, tct, tctCode} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -138,7 +139,7 @@ export function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
-  const formattedAggregate = aggregate;
+  const formattedAggregate = stripEquationPrefix(aggregate);
 
   const ruleType =
     rule &&
@@ -327,7 +328,7 @@ function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
             'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
             {
               FAQLink: (
-                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
               ),
             }
           )}

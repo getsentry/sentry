@@ -49,7 +49,7 @@ export function TraceViewMetricsProviderWrapper({
         period: queryParams.statsPeriod,
       };
     }
-    return undefined;
+    return;
   }, [
     queryParams.timestamp,
     queryParams.start,
@@ -102,7 +102,7 @@ function MetricsSectionContent() {
   return (
     <Fragment>
       <SearchQueryBuilder
-        placeholder={t('Search metrics for this trace')}
+        placeholder={t('Search application metrics for this trace')}
         filterKeys={{}}
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={metricsSearch.formatString()}

@@ -16,6 +16,7 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
+import type {ApiResult} from 'sentry/api';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -31,7 +32,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {
+  CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
+  SENTRY_APP_PERMISSIONS,
+} from 'sentry/constants';
 import {
   internalIntegrationForms,
   publicIntegrationForms,
@@ -49,8 +53,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -97,6 +104,15 @@ const getResourceFromScope = (scope: Scope): Resource | undefined => {
   return undefined;
 };
 
+const getPermissionFieldNameFromScope = (scope: Scope): string | undefined => {
+  if (scope === CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope) {
+    return CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName;
+  }
+
+  const resource = getResourceFromScope(scope);
+  return resource ? `${resource}--permission` : undefined;
+};
+
 /**
  * We need to map the API response errors to the actual form fields.
  * We do this by pulling out scopes and mapping each scope error to the correct input.
@@ -113,10 +129,9 @@ const mapFormErrors = (responseJSON?: any) => {
       const matches = message.match(/Requested permission of (\w+:\w+)/);
       if (matches) {
         const scope = matches[1];
-        const resource = getResourceFromScope(scope as Scope);
-        // should always match but technically resource can be undefined
-        if (resource) {
-          formErrors[`${resource}--permission`] = [message];
+        const fieldName = getPermissionFieldNameFromScope(scope as Scope);
+        if (fieldName) {
+          formErrors[fieldName] = [message];
         }
       }
     });
@@ -170,6 +185,8 @@ export default function SentryApplicationDetails() {
   const location = useLocation();
   const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
+  const routes = useRoutes();
+  const hasPageFrame = useHasPageFrameFeature();
   const [form] = useState<SentryAppFormModel>(() => new SentryAppFormModel());
 
   const isEditingApp = !!appSlug;
@@ -181,13 +198,32 @@ export default function SentryApplicationDetails() {
   const SENTRY_APP_API_TOKENS_QUERY_KEY = makeSentryAppApiTokensQueryKey(appSlug);
 
   const {
-    data: app = undefined,
+    data: app,
     isPending,
     isError,
     refetch,
   } = useApiQuery<SentryApp>(SENTRY_APP_QUERY_KEY, {
     staleTime: 30000,
     enabled: isEditingApp,
+    placeholderData: () => {
+      if (!appSlug) {
+        return;
+      }
+
+      // eslint-disable-next-line @sentry/no-query-data-type-parameters
+      const listData = queryClient.getQueryData<ApiResult<SentryApp[]>>([
+        getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ]);
+
+      if (!listData) {
+        return;
+      }
+
+      const found = listData[0].find(item => item.slug === appSlug);
+      return found ? [found, listData[1], listData[2]] : undefined;
+    },
   });
   const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
     SENTRY_APP_API_TOKENS_QUERY_KEY,
@@ -392,7 +428,14 @@ export default function SentryApplicationDetails() {
 
   return (
     <div>
-      <SettingsPageHeader title={headerTitle()} />
+      {hasPageFrame ? (
+        <BreadcrumbTitle
+          routes={routes}
+          title={isEditingApp ? (app?.name ?? '') : t('New')}
+        />
+      ) : (
+        <SettingsPageHeader title={headerTitle()} />
+      )}
       {isEditingApp && isPending ? (
         <LoadingIndicator />
       ) : isEditingApp && isError ? (
@@ -499,7 +542,7 @@ export default function SentryApplicationDetails() {
                             )}
                             errorMessage={t('Error rotating secret')}
                           >
-                            <Button priority="danger">Rotate client secret</Button>
+                            <Button variant="danger">Rotate client secret</Button>
                           </Confirm>
                         ) : undefined}
                       </ClientSecret>

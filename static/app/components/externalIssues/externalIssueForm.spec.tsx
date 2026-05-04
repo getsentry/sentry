@@ -20,7 +20,7 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
 
 describe('ExternalIssueForm', () => {
   const group = GroupFixture();

@@ -1,75 +1,54 @@
 import {useCallback} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {
-  makeProjectSeerPreferencesQueryKey,
-  type SeerPreferencesResponse,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Project} from 'sentry/types/project';
-import {
-  fetchDataQuery,
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from './useBulkAutofixAutomationSettings';
 
-type Context =
-  | {
-      previousPrefs: SeerPreferencesResponse;
-      error?: never;
-    }
-  | {
-      error: Error;
-      previousPrefs?: never;
-    };
-
 export function useFetchProjectSeerPreferences({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const queryKey = makeProjectSeerPreferencesQueryKey(organization.slug, project.slug);
 
   return useCallback(async () => {
-    const [data] = await queryClient.fetchQuery({
-      queryKey,
-      queryFn: fetchDataQuery<SeerPreferencesResponse>,
+    const data = await queryClient.fetchQuery({
+      ...projectSeerPreferencesApiOptions(organization.slug, project.slug),
       staleTime: 0,
     });
-    return data?.preference;
-  }, [queryClient, queryKey]);
+    return data?.json?.preference;
+  }, [queryClient, organization.slug, project.slug]);
 }
 
 export function useUpdateProjectSeerPreferences(project: Project) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const queryKey = makeProjectSeerPreferencesQueryKey(organization.slug, project.slug);
+  const prefsOptions = projectSeerPreferencesApiOptions(organization.slug, project.slug);
+  const queryKey = prefsOptions.queryKey;
 
-  return useMutation<unknown, Error, ProjectSeerPreferences, Context>({
+  return useMutation({
     onMutate: preference => {
-      const previousPrefs = getApiQueryData<SeerPreferencesResponse>(
-        queryClient,
-        queryKey
-      );
+      const previousPrefs = queryClient.getQueryData(queryKey);
       if (!previousPrefs) {
         return {error: new Error('Previous preferences not found')};
       }
-      const updatedPreferences: SeerPreferencesResponse = {
-        preference: {
-          ...(previousPrefs.preference ?? null),
-          ...preference,
+      queryClient.setQueryData(queryKey, {
+        ...previousPrefs,
+        json: {
+          preference: {
+            ...(previousPrefs.json.preference ?? null),
+            ...preference,
+          },
+          code_mapping_repos: previousPrefs.json.code_mapping_repos,
         },
-        code_mapping_repos: previousPrefs.code_mapping_repos,
-      };
-
-      setApiQueryData<SeerPreferencesResponse>(queryClient, queryKey, updatedPreferences);
+      });
 
       return {previousPrefs};
     },
-    mutationFn: preference => {
+    mutationFn: (preference: ProjectSeerPreferences) => {
       return fetchMutation<unknown>({
         method: 'POST',
         url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
@@ -78,11 +57,7 @@ export function useUpdateProjectSeerPreferences(project: Project) {
     },
     onError: (_error, _variables, context) => {
       if (context?.previousPrefs) {
-        setApiQueryData<SeerPreferencesResponse>(
-          queryClient,
-          queryKey,
-          context.previousPrefs
-        );
+        queryClient.setQueryData(queryKey, context.previousPrefs);
       }
     },
     onSettled: () => {

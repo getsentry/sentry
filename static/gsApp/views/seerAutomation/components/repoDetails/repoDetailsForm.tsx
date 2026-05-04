@@ -44,6 +44,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
     },
     onMutate: (data: {codeReviewTriggers?: string[]; enabledCodeReview?: boolean}) => {
       const previous =
+        // eslint-disable-next-line @sentry/no-query-data-type-parameters
         queryClient.getQueryData<
           [RepositoryWithSettings, string | undefined, Response | undefined]
         >(repoQueryKey);
@@ -88,7 +89,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
           )}
         </Alert>
       )}
-      <FieldGroup title={t('AI Code Review')}>
+      <FieldGroup>
         <AutoSaveForm
           name="enabledCodeReview"
           schema={schema}

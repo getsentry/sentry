@@ -15,7 +15,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
@@ -115,7 +114,7 @@ export default function ProjectCspReports() {
         data: {options: data},
       }),
     onSuccess: (updatedProject: Project) => {
-      queryClient.setQueryData<ApiResponse<Project>>(projectQueryKey, prev => {
+      queryClient.setQueryData(projectQueryKey, prev => {
         const previous = prev?.json;
         const merged = previous
           ? {

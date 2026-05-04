@@ -1,6 +1,7 @@
 import logging
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
     MAX_SUSPECT_COMMITS,
@@ -9,7 +10,6 @@ from sentry.integrations.source_code_management.commit_context import (
     _debounce_pr_comment_cache_key,
     _pr_comment_log,
 )
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
@@ -96,11 +96,20 @@ def pr_comment_workflow(pr_id: int, project_id: int) -> None:
     # cap to 1000 issues in which the merge commit is the suspect commit
     issue_ids = pr_comment_workflow.get_issue_ids_from_pr(pr=pr, limit=MAX_SUSPECT_COMMITS)
 
-    if not OrganizationOption.objects.get_value(
-        organization=organization,
-        key=pr_comment_workflow.organization_option_key,
-        default=False,
-    ):
+    try:
+        pr_comments_enabled = installation.org_integration.config.get("pr_comments", False)
+    except OrganizationIntegrationNotFound:
+        logger.info(
+            _pr_comment_log(integration_name=integration_name, suffix="org_integration_missing"),
+            extra={"organization_id": organization.id},
+        )
+        metrics.incr(
+            MERGED_PR_METRICS_BASE.format(integration=integration_name, key="error"),
+            tags={"type": "missing_org_integration"},
+        )
+        return
+
+    if not pr_comments_enabled:
         logger.info(
             _pr_comment_log(integration_name=integration_name, suffix="option_missing"),
             extra={"organization_id": organization.id},

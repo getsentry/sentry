@@ -1,71 +1,60 @@
-import logging
+from collections import defaultdict
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
-from sentry.constants import ObjectStatus
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
-logger = logging.getLogger(__name__)
+# Legacy OrganizationOption keys whose value=True needs to be carried onto
+# OrganizationIntegration.config. Mirrors _SCM_BACKFILL_PROVIDER_KEYS in
+# src/sentry/receivers/outbox/cell.py.
+_LEGACY_KEYS = (
+    "sentry:github_pr_bot",
+    "sentry:github_nudge_invite",
+    "sentry:gitlab_pr_bot",
+)
 
-# Maps OrganizationOption key -> (integration provider, OI config key).
-# Mirrors the mapping used by the live fan-out write in
-# src/sentry/core/endpoints/organization_details.py so a backfill and
-# any newly installed OI end up consistent.
-_PROVIDER_KEYS = {
-    "github": [
-        ("sentry:github_pr_bot", "pr_comments"),
-        ("sentry:github_nudge_invite", "nudge_invite"),
-    ],
-    "gitlab": [
-        ("sentry:gitlab_pr_bot", "pr_comments"),
-    ],
-}
+# Hardcoded values from sentry.hybridcloud.outbox.category at the time this
+# migration was authored. Pinned as integers so a future enum/scope rename
+# can't break replays on stale databases.
+_ORGANIZATION_SCOPE = 0
+_SCM_INTEGRATION_CONFIG_BACKFILL = 46
 
 
 def backfill_scm_integration_config(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
-    OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
+    """
+    Emit one cell outbox per org with at least one true-valued legacy SCM
+    toggle. The receiver (sentry.receivers.outbox.cell) drains each outbox
+    on the cell silo and fans out to every ACTIVE GitHub/GitLab
+    OrganizationIntegration via RPC.
+
+    The previous body did the RPC directly from the migration CLI and
+    failed in prod with 401 errors against the control silo. Outboxes
+    drain inside a worker that has a stable RPC auth context, retry on
+    transient failures, and run in current code -- so a replay against
+    drifted code is at worst a no-op (the receiver may be retired) rather
+    than a half-applied write.
+    """
     OrganizationOption = apps.get_model("sentry", "OrganizationOption")
+    CellOutbox = apps.get_model("sentry", "CellOutbox")
 
-    # Iterate the whole OI table — the approx wrapper needs an unfiltered
-    # queryset, and we don't have an index on (status, id) or
-    # (integration_id, id) for a filtered range scan. Filtering in Python
-    # is cheaper than either alternative.
-    queryset = OrganizationIntegration.objects.all().select_related("integration")
+    queryset = OrganizationOption.objects.filter(key__in=_LEGACY_KEYS, value=True)
 
-    for oi in RangeQuerySetWrapperWithProgressBarApprox(queryset):
-        if oi.status != ObjectStatus.ACTIVE:
-            continue
-        provider = oi.integration.provider
-        key_pairs = _PROVIDER_KEYS.get(provider)
-        if not key_pairs:
-            continue
+    opts_by_org: defaultdict[int, set[str]] = defaultdict(set)
+    for opt in queryset:
+        opts_by_org[opt.organization_id].add(opt.key)
 
-        option_keys = [opt_key for opt_key, _ in key_pairs]
-        opts = {
-            opt.key: opt.value
-            for opt in OrganizationOption.objects.filter(
-                organization_id=oi.organization_id,
-                key__in=option_keys,
-            )
-        }
-        if not opts:
-            continue
-
-        config = dict(oi.config or {})
-        changed = False
-        for opt_key, cfg_key in key_pairs:
-            if opt_key in opts and cfg_key not in config:
-                config[cfg_key] = bool(opts[opt_key])
-                changed = True
-
-        if changed:
-            oi.config = config
-            oi.save(update_fields=["config"])
+    for organization_id, opts in opts_by_org.items():
+        CellOutbox(
+            shard_scope=_ORGANIZATION_SCOPE,
+            shard_identifier=organization_id,
+            category=_SCM_INTEGRATION_CONFIG_BACKFILL,
+            object_identifier=organization_id,
+            payload={"keys": sorted(opts)},
+        ).save()
 
 
 class Migration(CheckedMigration):
@@ -91,6 +80,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_scm_integration_config,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_organizationintegration"]},
+            hints={"tables": ["sentry_organizationoptions"]},
         ),
     ]

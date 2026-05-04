@@ -1,10 +1,11 @@
-import {type ReactNode, useMemo} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 
 import {IconCompass} from 'sentry/icons/iconCompass';
 import {IconFile} from 'sentry/icons/iconFile';
+import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconIssues} from 'sentry/icons/iconIssues';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
@@ -14,30 +15,16 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
+import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 import type {ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 interface AutofixEvidenceProps {
-  toolCall: ToolCall;
-  toolLink?: ToolLink;
+  evidenceButtonProps: EvidenceButtonProps;
 }
 
-export function AutofixEvidence({toolCall, toolLink}: AutofixEvidenceProps) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-
-  const evidenceProps = useMemo(() => {
-    const resolver = autofixEvidencePropsResolvers[toolCall.function];
-    return resolver?.({organization, projects, toolCall, toolLink}) ?? null;
-  }, [organization, projects, toolCall, toolLink]);
-
-  if (!defined(evidenceProps)) {
-    return null;
-  }
-
-  const {label, icon, tooltip, ...rest} = evidenceProps;
+export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
+  const {label, icon, tooltip, ...rest} = evidenceButtonProps;
 
   if ('to' in rest && defined(rest.to)) {
     return (
@@ -45,6 +32,7 @@ export function AutofixEvidence({toolCall, toolLink}: AutofixEvidenceProps) {
         icon={icon}
         size="zero"
         to={rest.to}
+        openInNewTab
         tooltipProps={tooltip ? {title: tooltip} : undefined}
       >
         {label}
@@ -83,7 +71,9 @@ interface EvidenceButtonExternalProps {
   tooltip?: ReactNode;
 }
 
-type EvidenceButtonProps = EvidenceButtonInternalProps | EvidenceButtonExternalProps;
+export type EvidenceButtonProps =
+  | EvidenceButtonInternalProps
+  | EvidenceButtonExternalProps;
 
 interface GetEvidencePropsPayload {
   organization: Organization;
@@ -265,7 +255,7 @@ function getCodeSearchEvidenceProps({
     if (typeof path !== 'string') {
       return null;
     }
-    const filename = path.split('/').pop();
+    const filename = extractFileName(path);
     const {code_url} = toolLink?.params ?? {};
 
     if (!defined(filename) || !defined(code_url)) {
@@ -283,7 +273,49 @@ function getCodeSearchEvidenceProps({
   return null;
 }
 
-const autofixEvidencePropsResolvers: Record<
+function getGitSearchEvidenceProps({
+  toolLink,
+}: GetEvidencePropsPayload): EvidenceButtonProps | null {
+  const {repo_name, commit_url, sha, commits_url, start_date, end_date, file_path} =
+    toolLink?.params ?? {};
+
+  if (typeof commit_url === 'string' && typeof sha === 'string') {
+    return {
+      href: commit_url,
+      icon: <IconGithub />, // TODO: support other SCMs
+      label: t('Commit: %s', truncateText(getShortCommitHash(sha))),
+      tooltip: sha,
+    };
+  }
+
+  if (
+    typeof commits_url === 'string' &&
+    typeof repo_name === 'string' &&
+    typeof start_date === 'string' &&
+    typeof end_date === 'string'
+  ) {
+    const fileName =
+      typeof file_path === 'string' ? extractFileName(file_path) : undefined;
+    return {
+      href: commits_url,
+      icon: <IconGithub />, // TODO: support other SCMs
+      label: t('Commits: %s', fileName ? truncateText(fileName) : repo_name),
+      tooltip: (
+        <Fragment>
+          {typeof file_path === 'string' ? file_path : repo_name}
+          <br />
+          {start_date}
+          {'\u2014'}
+          {end_date}
+        </Fragment>
+      ),
+    };
+  }
+
+  return null;
+}
+
+export const AUTOFIX_EVIDENCE_PROPS_RESOLVER: Record<
   string,
   (payload: GetEvidencePropsPayload) => EvidenceButtonProps | null
 > = {
@@ -294,6 +326,7 @@ const autofixEvidencePropsResolvers: Record<
   get_replay_details: getReplayDetailsEvidenceProps,
   get_profile_flamegraph: getProfileFlamegraphEvidenceProps,
   code_search: getCodeSearchEvidenceProps,
+  git_search: getGitSearchEvidenceProps,
 };
 
 function parseArgs(toolCall: ToolCall): any {
@@ -303,6 +336,10 @@ function parseArgs(toolCall: ToolCall): any {
   } catch {
     return {};
   }
+}
+
+function extractFileName(filePath: string): string | undefined {
+  return filePath.split('/').pop();
 }
 
 function truncateText(text: string, maxLength = 16): string {

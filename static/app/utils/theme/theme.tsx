@@ -195,40 +195,14 @@ const commonTheme = {
     initial: 1,
     truncationFullValue: 10,
 
-    monitorCreationForms: {
-      schedulePreview: 2,
-    },
-
-    // @TODO(jonasbadalic) This should exist on traceView component
-    traceView: {
-      spanTreeToggler: 900,
-      dividerLine: 909,
-      rowInfoMessage: 910,
-      minimapContainer: 999,
-    },
-
     header: 1000,
-    errorMessage: 1000,
     dropdown: 1001,
 
-    dropdownAutocomplete: {
-      // needs to be below actor but above other page elements (e.g. pagination)
-      // (e.g. Issue Details "seen" dots on chart is 2)
-      // stream header is 1000
-      menu: 1007,
-      // needs to be above menu
-      // @TODO(jonasbadalic) why does it need to be above menu?
-      actor: 1008,
-    },
-
-    globalSelectionHeader: 1009,
-
-    // needs to be below sidebar
-    // @TODO(jonasbadalic) why does it need to be below sidebar?
+    // dashboard widget builder backdrop sits behind the sidebar
+    // because it renders on the right next to the sidebar
+    // @TODO(design-engineering): resolve this inconsistency
     widgetBuilderDrawer: 1016,
 
-    settingsSidebarNavMask: 1017,
-    settingsSidebarNav: 1018,
     sidebarPanel: 1019,
     sidebar: 1020,
 
@@ -244,19 +218,6 @@ const commonTheme = {
     // tooltips and hovercards can be inside modals sometimes.
     hovercard: 10002,
     tooltip: 10003,
-
-    tour: {
-      blur: 10100,
-      element: 10101,
-      overlay: 10102,
-    },
-
-    // On mobile views issue list dropdowns overlap
-    issuesList: {
-      stickyHeader: 2,
-      sortOptions: 3,
-      displayOptions: 4,
-    },
   },
 
   form: {
@@ -879,6 +840,8 @@ export const darkTheme: SentryTheme = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseDarkTheme,
+  // This sems to be a bug in the rule. baseShadow is optional.
+  // eslint-disable-next-line @typescript-eslint/no-useless-default-assignment
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,

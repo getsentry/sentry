@@ -177,7 +177,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         // Add new repositories that were selected
         const newRepos = Object.entries(newSelections)
           .filter(([repoId, isSelected]) => isSelected && repoId in repositoriesMap)
-          .map(([repoId]) => repositoriesMap[repoId] as RepositoryWithSettings);
+          .map(([repoId]) => repositoriesMap[repoId]!);
 
         return [...existingRepos, ...newRepos];
       });

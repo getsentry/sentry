@@ -10,13 +10,25 @@ import sentry_sdk
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.models.night_shift import SeerNightShiftRun
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
     fixability_score_strategy,
     priority_label,
+)
+from sentry.tasks.seer.night_shift.triage_tools import (
+    get_event_details_agentic_triage,
+    get_issue_details_agentic_triage,
+)
+from sentry.tasks.seer.night_shift.tweaks import (
+    DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
+    DEFAULT_INTELLIGENCE_LEVEL,
+    DEFAULT_REASONING_EFFORT,
+    IntelligenceLevel,
+    ReasoningEffort,
 )
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
@@ -36,9 +48,14 @@ def agentic_triage_strategy(
     projects: Sequence[Project],
     organization: Organization,
     max_candidates: int,
+    *,
+    intelligence_level: IntelligenceLevel = DEFAULT_INTELLIGENCE_LEVEL,
+    reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
+    extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
+    run: SeerNightShiftRun,
 ) -> tuple[list[TriageResult], int | None]:
     """
-    Select candidates via fixability scoring, then use the Seer Explorer agent
+    Select candidates via fixability scoring, then use the Seer Agent
     to investigate each candidate and decide the appropriate action.
 
     Returns a tuple of (triage_results, agent_run_id).
@@ -48,15 +65,27 @@ def agentic_triage_strategy(
     if not scored:
         return [], None
 
-    return _triage_candidates(scored, organization)
+    return _triage_candidates(
+        scored,
+        organization,
+        intelligence_level=intelligence_level,
+        reasoning_effort=reasoning_effort,
+        extra_triage_instructions=extra_triage_instructions,
+        run=run,
+    )
 
 
 def _triage_candidates(
     candidates: list[ScoredCandidate],
     organization: Organization,
+    *,
+    intelligence_level: IntelligenceLevel,
+    reasoning_effort: ReasoningEffort,
+    extra_triage_instructions: str,
+    run: SeerNightShiftRun,
 ) -> tuple[list[TriageResult], int | None]:
     """
-    Start a Seer Explorer run to investigate candidate issues and return
+    Start a Seer Agent run to investigate candidate issues and return
     triage verdicts. The agent can browse the repo, inspect stacktraces,
     and use its tools to make informed decisions.
 
@@ -65,20 +94,26 @@ def _triage_candidates(
     groups_by_id = {c.group.id: c.group for c in candidates}
 
     try:
-        client = SeerExplorerClient(
+        client = SeerAgentClient(
             organization,
             user=None,
             category_key="night_shift",
             category_value=f"org-{organization.id}",
-            intelligence_level="high",
-            reasoning_effort="high",
+            intelligence_level=intelligence_level,
+            reasoning_effort=reasoning_effort,
+            custom_tools=[
+                get_event_details_agentic_triage,
+                get_issue_details_agentic_triage,
+            ],
         )
 
         agent_run_id = client.start_run(
-            prompt=_build_triage_prompt(candidates),
+            prompt=_build_triage_prompt(candidates, extra_triage_instructions),
             artifact_key="triage_verdicts",
             artifact_schema=_TriageResponse,
         )
+
+        run.update(extras={**run.extras, "agent_run_id": agent_run_id})
 
         logger.info(
             "night_shift.explorer_run_started",
@@ -128,8 +163,36 @@ def _triage_candidates(
         },
     )
 
+    unknown_group_ids = [
+        v.group_id for v in triage_response.verdicts if v.group_id not in groups_by_id
+    ]
+    if unknown_group_ids:
+        logger.warning(
+            "night_shift.triage_unknown_group_ids",
+            extra={
+                "organization_id": organization.id,
+                "agent_run_id": agent_run_id,
+                "unknown_group_ids": unknown_group_ids,
+            },
+        )
+
+    fixability_by_group_id = {c.group.id: c.fixability for c in candidates}
+    for v in triage_response.verdicts:
+        if v.group_id not in fixability_by_group_id:
+            continue
+        sentry_sdk.metrics.count(
+            "night_shift.triage_action",
+            1,
+            attributes={
+                "action": v.action,
+                "threshold_action": TriageAction.from_fixability_score(
+                    fixability_by_group_id[v.group_id]
+                ),
+            },
+        )
+
     return [
-        TriageResult(group=groups_by_id[v.group_id], action=v.action)
+        TriageResult(group=groups_by_id[v.group_id], action=v.action, reason=v.reason)
         for v in triage_response.verdicts
         if v.group_id in groups_by_id and v.action != TriageAction.SKIP
     ], agent_run_id
@@ -139,11 +202,11 @@ POLL_INTERVAL = 2.0
 
 
 def _poll_with_logging(
-    client: SeerExplorerClient,
+    client: SeerAgentClient,
     agent_run_id: int,
     organization_id: int,
 ) -> SeerRunState:
-    """Poll an Explorer run, logging new non-loading blocks as they appear."""
+    """Poll an agent run, logging new non-loading blocks as they appear."""
     start_time = time.monotonic()
     seen_block_ids: set[str] = set()
 
@@ -201,6 +264,7 @@ def _poll_with_logging(
 
 def _build_triage_prompt(
     candidates: list[ScoredCandidate],
+    extra_triage_instructions: str,
 ) -> str:
     candidates_block = "\n".join(
         f"- group_id={c.group.id} | title={c.group.title or 'Unknown error'!r} "
@@ -211,6 +275,12 @@ def _build_triage_prompt(
         for c in candidates
     )
 
+    extras_block = (
+        f"\n\nAdditional instructions from project owners:\n{extra_triage_instructions}\n"
+        if extra_triage_instructions
+        else ""
+    )
+
     return textwrap.dedent(f"""\
         You are a triage agent for Sentry's Night Shift system. Your job is to review
         a batch of candidate issues and decide which ones are worth running automated
@@ -218,6 +288,22 @@ def _build_triage_prompt(
 
         Use your tools to investigate each issue — look at all relevant telemetry: the stacktraces,
         event logs, event details, breadcrumbs, metrics, and the relevant code in the repository.
+
+        When fetching event data for an issue, always use the `get_event_details_agentic_triage`
+        tool instead of `get_event_details`. It returns the same data in a cleaner,
+        more readable format tuned for triage.
+
+        Similarly, when fetching issue-level metadata, always use the
+        `get_issue_details_agentic_triage` tool instead of `get_issue_details`.
+        It returns the header, tag distribution, and recent human activity in a
+        compact markdown format. Do not rely on it for stacktraces — call
+        `get_event_details_agentic_triage` for that.
+
+        Before recording any verdict, you MUST read the relevant application code.
+        Surface reading of the error message and stacktrace is not enough — many
+        errors that look environmental (e.g. "file is not a database", "permission
+        denied") are actually code bugs once you inspect how the failing code is
+        called and what assumptions it makes about its inputs/environment.
 
         When evaluating each issue, consider whether an AI coding agent with full
         codebase access could fix the ROOT CAUSE of the issue — not just add try/except or defensive
@@ -244,8 +330,13 @@ def _build_triage_prompt(
         the issue is to be fixable (0.0 = not fixable, 1.0 = very fixable). Use it as
         a signal but verify with your own investigation.
 
-        Provide a brief reason for each decision.
+        For each verdict, fill the `reason` field. For `autofix` and `root_cause_only`
+        verdicts, the `reason` is handed off as context to the downstream autofix agent
+        — write it like a debugging note to the next agent. Include the suspected file
+        and function, the bug mechanism in one or two sentences, and a sketch of the
+        fix direction so the next agent can resume your investigation instead of
+        starting over. For `skip` verdicts, a brief justification is sufficient.
 
         Candidates:
-        {candidates_block}
+        {candidates_block}{extras_block}
     """)

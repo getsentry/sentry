@@ -14,8 +14,8 @@ import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
 type StaticReplayPreviewProps = {
   analyticsContext: string;
@@ -77,7 +77,7 @@ export function StaticReplayPreview({
               <LinkButton
                 {...fullReplayButtonProps}
                 icon={<IconPlay />}
-                priority="primary"
+                variant="primary"
                 to={fullReplayUrl}
               >
                 {t('Open Replay')}

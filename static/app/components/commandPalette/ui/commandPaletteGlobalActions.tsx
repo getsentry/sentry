@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -14,15 +14,16 @@ import type {
   CMDKQueryOptions,
   CommandPaletteAction,
 } from 'sentry/components/commandPalette/types';
+import Hook from 'sentry/components/hook';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
-import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {
   IconAdd,
   IconAllProjects,
+  IconBuilding,
   IconCompass,
   IconDashboard,
   IconDiscord,
@@ -47,13 +48,22 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {EventIdResponse} from 'sentry/types/event';
+import type {ShortIdResponse} from 'sentry/types/group';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
+import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -61,6 +71,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
@@ -68,7 +79,6 @@ import {
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -84,6 +94,7 @@ import type {NavigationGroupProps} from 'sentry/views/settings/types';
 import {CMDKAction} from './cmdk';
 import type {CMDKResourceContext} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
+import {useCommandPaletteState} from './commandPaletteStateContext';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -105,7 +116,10 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
-const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
+const helpSearch = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop']);
+const EVENT_ID_PATTERN =
+  /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
+const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
@@ -117,14 +131,114 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
   return null;
 }
 
+type ResolvedIdentifier =
+  | (ShortIdResponse & {
+      kind: 'issue';
+      project: AvatarProject;
+      details?: string;
+    })
+  | (EventIdResponse & {
+      kind: 'event';
+      project: AvatarProject;
+      details?: string;
+    });
+
+function ResolvedIdentifierCommandPaletteAction() {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {query} = useCommandPaletteState();
+  const isEventId = EVENT_ID_PATTERN.test(query);
+  const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
+
+  // `projects` is intentionally omitted from the queryKey:
+  // TanStack serializes the entire key for cache lookups, and
+  // including the full projects array would be too costly —
+  // some orgs have thousands of projects.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const {data} = useQuery<ResolvedIdentifier | null>({
+    queryKey: ['command-palette-identifier-lookup', organization.slug, query, isShortId],
+    queryFn: async () => {
+      try {
+        if (isShortId) {
+          const shortIdLookup: ShortIdResponse = await QUERY_API_CLIENT.requestPromise(
+            getApiUrl('/organizations/$organizationIdOrSlug/shortids/$issueId/', {
+              path: {organizationIdOrSlug: organization.slug, issueId: query},
+            })
+          );
+          const project =
+            projects.find(p => p.slug === shortIdLookup.projectSlug) ??
+            shortIdLookup.group.project;
+          return {
+            details: shortIdLookup.group.metadata?.value,
+            kind: 'issue' as const,
+            project,
+            ...shortIdLookup,
+          };
+        }
+
+        const eventIdLookup: EventIdResponse = await QUERY_API_CLIENT.requestPromise(
+          getApiUrl('/organizations/$organizationIdOrSlug/eventids/$eventId/', {
+            path: {organizationIdOrSlug: organization.slug, eventId: query},
+          })
+        );
+        const project =
+          projects.find(p => p.slug === eventIdLookup.projectSlug) ??
+          ({slug: eventIdLookup.projectSlug} as Project);
+        return {
+          details: eventIdLookup.event.metadata?.value,
+          kind: 'event' as const,
+          project,
+          ...eventIdLookup,
+        };
+      } catch {
+        return null;
+      }
+    },
+    enabled: isShortId || isEventId,
+    staleTime: 30_000,
+    meta: {cmdk: true},
+  });
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <CMDKAction
+      display={{
+        label:
+          data.kind === 'event'
+            ? t('Event %s', data.eventId)
+            : t('Issue %s', data.shortId),
+        details: data.details,
+        icon: <ProjectAvatar project={data.project} size={16} />,
+      }}
+    >
+      {data.kind === 'event' && (
+        <CMDKAction
+          display={{label: t('Go to event')}}
+          to={`/organizations/${organization.slug}/issues/${data.groupId}/events/${data.eventId}/`}
+        />
+      )}
+      <CMDKAction
+        display={{label: t('Go to issue')}}
+        to={`/organizations/${organization.slug}/issues/${data.groupId}/`}
+      />
+    </CMDKAction>
+  );
+}
+
 /**
  * Registers globally-available actions into the CMDK collection via JSX.
  * Must be mounted inside CMDKProvider (which requires CommandPaletteStateProvider).
  */
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const user = useUser();
   const {projects} = useProjects();
+  const {organizations} = useLegacyStore(OrganizationsStore);
+  const sentryConfig = useLegacyStore(ConfigStore);
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
@@ -168,7 +282,6 @@ export function GlobalCommandPaletteActions() {
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
 
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
@@ -177,15 +290,10 @@ export function GlobalCommandPaletteActions() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const hasMetricsSupportedPlatform = projects.some(project =>
-    Array.from(limitedMetricsSupportPrefixes).some(metricsPrefix =>
-      (project.platform || 'unknown').startsWith(metricsPrefix)
-    )
-  );
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
-        <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}}>
+        <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}} limit={4}>
           <CMDKAction display={{label: t('Feed')}} to={`${prefix}/issues/`} />
           {Object.values(ISSUE_TAXONOMY_CONFIG)
             .filter(
@@ -217,7 +325,7 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-          {organization.features.includes('seer-issue-view') && (
+          {organization.features.includes('autofix-on-explorer') && (
             <CMDKAction display={{label: t('Autofix')}}>
               <CMDKAction
                 display={{label: t('Recently Run')}}
@@ -227,18 +335,17 @@ export function GlobalCommandPaletteActions() {
           )}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}}>
+        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
           <CMDKAction display={{label: t('Traces')}} to={`${prefix}/explore/traces/`} />
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
           )}
-          {hasMetricsSupportedPlatform &&
-            organization.features.includes('tracemetrics-enabled') && (
-              <CMDKAction
-                display={{label: t('Metrics')}}
-                to={`${prefix}/explore/metrics/`}
-              />
-            )}
+          {organization.features.includes('tracemetrics-enabled') && (
+            <CMDKAction
+              display={{label: t('Application Metrics')}}
+              to={`${prefix}/explore/metrics/`}
+            />
+          )}
           {organization.features.includes('explore-errors') && (
             <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
           )}
@@ -281,7 +388,7 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}} limit={4}>
           <CMDKAction
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
@@ -314,6 +421,7 @@ export function GlobalCommandPaletteActions() {
                 label: t('Insights'),
                 icon: <IconGraph type="area" />,
               }}
+              limit={4}
             >
               {!hasInsightsRollout && (
                 <CMDKAction
@@ -367,7 +475,7 @@ export function GlobalCommandPaletteActions() {
           )}
 
         {hasWorkflowEngineUI && (
-          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}}>
+          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
             <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
             <CMDKAction
               display={{label: t('My Monitors')}}
@@ -401,7 +509,7 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         )}
 
-        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
+        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
           {getUserOrgNavigationConfiguration()
             .flatMap(section => section.items)
             .sort((a, b) => a.title.localeCompare(b.title))
@@ -409,9 +517,11 @@ export function GlobalCommandPaletteActions() {
               <CMDKAction
                 key={item.path}
                 display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+                keywords={item.keywords}
                 to={item.path}
               />
             ))}
+          <Hook name="cmdk:global-settings-actions" />
         </CMDKAction>
 
         <CMDKAction
@@ -419,7 +529,87 @@ export function GlobalCommandPaletteActions() {
           to={makeProjectsPathname({path: '/', organization})}
         />
 
-        <CMDKAction display={{label: t('Project Settings'), icon: <IconSettings />}}>
+        {!sentryConfig.singleOrganization && !isDemoModeActive() && (
+          <CMDKAction
+            display={{label: t('Switch Organization'), icon: <IconBuilding />}}
+            keywords={[t('organization'), t('change'), t('change organization')]}
+            prompt={t('Select an organization...')}
+            resource={(_query: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
+              // organization.slug and the org slugs list are the meaningful cache keys;
+              // including the full objects would be too costly to serialize.
+              // eslint-disable-next-line @tanstack/query/exhaustive-deps
+              cmdkQueryOptions({
+                queryKey: [
+                  'switch-organization',
+                  organization.slug,
+                  organizations.map(org => org.slug).join(','),
+                  location.pathname,
+                ],
+                queryFn: () => {
+                  const navigateToOrg = (org: (typeof organizations)[number]) => {
+                    const newPath = location.pathname
+                      .replace(
+                        `/organizations/${organization.slug}/`,
+                        `/organizations/${org.slug}/`
+                      )
+                      .replace(
+                        `/settings/${organization.slug}/`,
+                        `/settings/${org.slug}/`
+                      );
+                    const url = resolveRoute(newPath, null, org);
+                    if (url.startsWith('http')) {
+                      window.location.assign(url);
+                    } else {
+                      navigate(url);
+                    }
+                  };
+
+                  return [
+                    {
+                      display: {
+                        label: organization.name,
+                        icon: (
+                          <OrganizationAvatar organization={organization} size={16} />
+                        ),
+                        trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
+                      },
+                      onAction: () => navigateToOrg(organization),
+                    },
+                    ...organizations
+                      .filter(org => org.slug !== organization.slug)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(org => ({
+                        display: {
+                          label: org.name,
+                          icon: <OrganizationAvatar organization={org} size={16} />,
+                        },
+                        onAction: () => navigateToOrg(org),
+                      })),
+                  ];
+                },
+                enabled: state === 'selected',
+                staleTime: Infinity,
+              })
+            }
+          />
+        )}
+
+        <CMDKAction
+          display={{label: t('Project Settings'), icon: <IconSettings />}}
+          limit={4}
+        >
+          {currentProjects.map(project => (
+            <CMDKAction
+              key={`current-dsn-${project.slug}`}
+              display={{
+                label: t('Client Keys (DSN) - %s', project.slug),
+                icon: <ProjectAvatar project={project} size={16} />,
+                trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
+              }}
+              keywords={[t('dsn'), t('client keys'), project.slug]}
+              to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
+            />
+          ))}
           {visibleProjectSettingsNavItems.map(navItem => {
             const suffix = navItem.path.replace(
               '/settings/:orgId/projects/:projectId/',
@@ -431,6 +621,7 @@ export function GlobalCommandPaletteActions() {
                 display={{label: navItem.title, icon: PROJECT_SETTINGS_ICONS[suffix]}}
                 keywords={navItem.keywords}
                 prompt={t('Select a project...')}
+                limit={4}
                 resource={(
                   _query: string,
                   {state}: CMDKResourceContext
@@ -569,48 +760,49 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
-        {hasDsnLookup && (
-          <CMDKAction
-            display={{
-              label: t('Reverse DSN lookup'),
-              details: t(
-                'Paste a DSN into the search bar to find the project it belongs to.'
+        <CMDKAction
+          display={{
+            label: t('Reverse DSN lookup'),
+            details: t(
+              'Paste a DSN into the search bar to find the project it belongs to.'
+            ),
+            icon: <IconSearch />,
+          }}
+          prompt={t('Paste a DSN...')}
+          resource={(query: string): CMDKQueryOptions => {
+            return cmdkQueryOptions({
+              ...apiOptions.as<DsnLookupResponse>()(
+                '/organizations/$organizationIdOrSlug/dsn-lookup/',
+                {
+                  path: {organizationIdOrSlug: organization.slug},
+                  query: {dsn: query},
+                  staleTime: 30_000,
+                }
               ),
-              icon: <IconSearch />,
-            }}
-            prompt={t('Paste a DSN...')}
-            resource={(query: string): CMDKQueryOptions => {
-              return cmdkQueryOptions({
-                ...apiOptions.as<DsnLookupResponse>()(
-                  '/organizations/$organizationIdOrSlug/dsn-lookup/',
-                  {
-                    path: {organizationIdOrSlug: organization.slug},
-                    query: {dsn: query},
-                    staleTime: 30_000,
-                  }
-                ),
-                enabled: DSN_PATTERN.test(query),
-                select: data =>
-                  getDsnNavTargets(data.json).map((target, i) => ({
-                    to: target.to,
-                    display: {
-                      label: target.label,
-                      details: target.description,
-                      icon: DSN_ICONS[i],
-                    },
-                    keywords: [query],
-                  })),
-              });
-            }}
-          >
-            {data => data.map((item, i) => renderAsyncResult(item, i))}
-          </CMDKAction>
-        )}
+              enabled: DSN_PATTERN.test(query),
+              select: data =>
+                getDsnNavTargets(data.json).map((target, i) => ({
+                  to: target.to,
+                  display: {
+                    label: target.label,
+                    details: target.description,
+                    icon: DSN_ICONS[i],
+                  },
+                  keywords: [query],
+                })),
+            });
+          }}
+        >
+          {data => data.map((item, i) => renderAsyncResult(item, i))}
+        </CMDKAction>
       </CMDKAction>
+
+      <ResolvedIdentifierCommandPaletteAction />
 
       <CMDKAction
         id="cmdk:supplementary:help"
         display={{label: t('Help')}}
+        limit={4}
         resource={(query: string): CMDKQueryOptions => {
           return cmdkQueryOptions({
             queryKey: ['command-palette-help-search', query, helpSearch],
@@ -623,7 +815,7 @@ export function GlobalCommandPaletteActions() {
             select: data => {
               const results = [];
               for (const index of data) {
-                for (const hit of index.hits.slice(0, 3)) {
+                for (const hit of index.hits) {
                   results.push({
                     display: {
                       label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),
@@ -647,6 +839,7 @@ export function GlobalCommandPaletteActions() {
       >
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
+          keywords={['docs', 'documentation']}
           to="https://docs.sentry.io"
         />
         <CMDKAction

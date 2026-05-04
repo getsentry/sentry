@@ -38,7 +38,7 @@ import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDi
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
+import {LOADING_PROFILE_GROUP} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 interface EventDifferentialFlamegraphProps {
   event: Event;
@@ -308,14 +308,14 @@ function DifferentialFlamegraphChangedFunctions(
 
   const onPreviousPaginationClick = useMemo(() => {
     if (state.page === 0) {
-      return undefined;
+      return;
     }
     return () => dispatch({type: 'previous'});
   }, [state.page]);
 
   const onNextPaginationClick = useMemo(() => {
     if (state.page + 1 === state.pageCount) {
-      return undefined;
+      return;
     }
     return () => dispatch({type: 'next'});
   }, [state.page, state.pageCount]);

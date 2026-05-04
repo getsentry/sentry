@@ -9,6 +9,7 @@ import * as qs from 'query-string';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -36,8 +37,8 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -69,7 +70,7 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
@@ -175,7 +176,7 @@ function getReprocessingNewRoute({
     };
   }
 
-  return undefined;
+  return;
 }
 
 function useRefetchGroupForReprocessing({
@@ -211,14 +212,13 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
         defined(storeGroup.participants) &&
         defined(storeGroup.activity)
       ) {
-        setApiQueryData(
-          queryClient,
-          makeFetchGroupQueryKey({
+        queryClient.setQueryData(
+          groupApiOptions({
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-          }),
-          storeGroup
+          }).queryKey,
+          prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
     }, undefined) as () => void;
@@ -393,7 +393,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [group?.project.id, allProjectChanged, navigate]);
 
-  const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
+  const errorType =
+    groupError instanceof RequestError
+      ? getFetchDataRequestErrorType(groupError.status)
+      : null;
   useEffect(() => {
     if (isGroupError) {
       Sentry.captureException(groupError);
@@ -567,6 +570,7 @@ function GroupDetailsContent({
   project,
   event,
 }: GroupDetailsContentProps) {
+  const api = useApi();
   const organization = useOrganization();
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
@@ -589,6 +593,10 @@ function GroupDetailsContent({
   });
 
   const {hasAutofixQuota} = useAiConfig(group, project);
+
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug, [project.id]);
+  }, [api, organization.slug, project.id]);
 
   useEffect(() => {
     if (isAnyDrawerOpen) {

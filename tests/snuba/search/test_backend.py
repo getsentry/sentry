@@ -31,7 +31,6 @@ from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import snuba
@@ -3186,14 +3185,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
-    def test_performance_issue_search_feature_off(self) -> None:
-        with Feature({"organizations:performance-issues-search": False}):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
-            assert list(results) == []
-        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
-            assert list(results) == [self.perf_group_1, self.perf_group_2]
-
     def test_error_performance_query(self) -> None:
         with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="my_tag:1")
@@ -3533,12 +3524,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 )
                 assert group_info is not None
 
-            with self.feature(
-                [
-                    *group_type.build_visible_feature_name(),
-                    "organizations:performance-issues-search",
-                ]
-            ):
+            with self.feature(group_type.build_visible_feature_name()):
                 results = self.make_query(search_filter_query="issue.category:performance my_tag:3")
         assert list(results) == [group_info.group]
 
@@ -3823,12 +3809,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             group = Group.objects.get(id=group_info.group.id)
             assert "perfkeyword456" not in group.message
 
-            with self.feature(
-                [
-                    *group_type.build_visible_feature_name(),
-                    "organizations:performance-issues-search",
-                ]
-            ):
+            with self.feature(group_type.build_visible_feature_name()):
                 results = self.make_query(
                     search_filter_query="issue.category:performance perfkeyword456"
                 )

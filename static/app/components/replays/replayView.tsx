@@ -28,10 +28,10 @@ import {t, tct} from 'sentry/locale';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
-import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
-import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
-import {ReplayViewScale} from 'sentry/views/replays/detail/replayViewScale';
+import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
+import {BrowserOSIcons} from 'sentry/views/explore/replays/detail/browserOSIcons';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+import {ReplayViewScale} from 'sentry/views/explore/replays/detail/replayViewScale';
 
 type Props = {
   isLoading: boolean;

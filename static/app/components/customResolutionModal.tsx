@@ -19,7 +19,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isVersionInfoSemver} from 'sentry/views/releases/utils';
+import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 
 function makeReleaseOption(
   release: Release,
@@ -203,7 +203,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
       <Footer>
         <Flex gap="sm" align="center" justify="end">
           <Button onClick={props.closeModal}>{t('Cancel')}</Button>
-          <Button type="submit" priority="primary">
+          <Button type="submit" variant="primary">
             {t('Resolve')}
           </Button>
         </Flex>

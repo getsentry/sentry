@@ -242,7 +242,7 @@ function ActionButtons({
   return hasBillingAccess ? (
     <ButtonRow>
       <Button
-        priority="primary"
+        variant="primary"
         onClick={onUpdatePlan}
         disabled={isActionDisabled === true}
       >

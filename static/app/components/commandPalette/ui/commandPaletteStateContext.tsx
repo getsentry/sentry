@@ -2,13 +2,12 @@ import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
-import {
-  openCommandPaletteDeprecated,
-  toggleCommandPalette,
-} from 'sentry/actionCreators/modal';
+import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 /**
  * A stack entry for navigating into a CMDK group. Stores the group's
@@ -37,7 +36,7 @@ export type CommandPaletteState = {
 
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
 
-export type CommandPaletteAction =
+type CommandPaletteAction =
   | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
@@ -170,6 +169,7 @@ export function CommandPaletteHotkeys() {
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
   const location = useLocation();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   // When the route pathname changes, mark state for reset on the next open.
   // Skip the initial render — only react to actual route changes.
@@ -184,14 +184,20 @@ export function CommandPaletteHotkeys() {
 
   useHotkeys([
     {
-      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      match: ['mod+shift+p', 'mod+k'],
       includeInputs: true,
       callback: () => {
-        if (organization?.features.includes('cmd-k-supercharged')) {
-          toggleCommandPalette({}, organization, state, dispatch, 'keyboard');
-        } else {
-          openCommandPaletteDeprecated();
+        if (!organization) {
+          return;
         }
+        toggleCommandPalette(
+          {},
+          organization,
+          state,
+          dispatch,
+          'keyboard',
+          isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+        );
       },
     },
   ]);

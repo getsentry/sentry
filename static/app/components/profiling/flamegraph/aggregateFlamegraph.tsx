@@ -34,8 +34,8 @@ import {
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 interface AggregateFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   filter: 'application' | 'system' | 'all';
@@ -98,7 +98,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
   // when we register/unregister these top level listeners.
   useLayoutEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
-      return undefined;
+      return;
     }
 
     // This code below manages the synchronization of the config views between spans and flamegraph
