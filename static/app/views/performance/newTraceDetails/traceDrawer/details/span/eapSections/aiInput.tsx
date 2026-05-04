@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -245,18 +246,27 @@ function MessagesArrayRenderer({
     }
   }, [messages.length, previousMessagesLength]);
 
+  const renderMessageContent = (message: AIMessage) =>
+    typeof message.content === 'string' ? (
+      <AIContentRenderer text={message.content} />
+    ) : (
+      <TraceDrawerComponents.MultilineJSON value={message.content} maxDefaultDepth={2} />
+    );
+
   const renderMessage = (message: AIMessage, index: number) => {
+    if (message.role === 'system') {
+      return (
+        <SystemMessageDisclosure key={index} defaultExpanded={false} size="xs">
+          <Disclosure.Title>{t('System')}</Disclosure.Title>
+          <Disclosure.Content>{renderMessageContent(message)}</Disclosure.Content>
+        </SystemMessageDisclosure>
+      );
+    }
+
     return (
       <Fragment key={index}>
         <RoleLabel>{message.role}</RoleLabel>
-        {typeof message.content === 'string' ? (
-          <AIContentRenderer text={message.content} />
-        ) : (
-          <TraceDrawerComponents.MultilineJSON
-            value={message.content}
-            maxDefaultDepth={2}
-          />
-        )}
+        {renderMessageContent(message)}
       </Fragment>
     );
   };
@@ -324,6 +334,10 @@ const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
   &::first-letter {
     text-transform: capitalize;
   }
+`;
+
+const SystemMessageDisclosure = styled(Disclosure)`
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const ButtonDivider = styled('div')`
