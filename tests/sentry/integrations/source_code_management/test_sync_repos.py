@@ -1104,3 +1104,50 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
         with self.feature("organizations:github-repo-auto-sync"), self.tasks():
             with pytest.raises((ApiError, RetryTaskError)):
                 sync_repos_for_org(self.oi.id)
+
+
+@control_silo_test
+class VstsIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for VstsIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts-test-id",
+            name="test-vsts",
+            metadata={"domain_name": "https://test.visualstudio.com/"},
+        )
+        self.integration.add_organization(self.organization, self.user)
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_integration_error_wrapping_403(self) -> None:
+        exc = IntegrationError("Error Communicating with Azure DevOps (HTTP 403): unknown error")
+        exc.__context__ = ApiForbiddenError("Identity is Disabled")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_integration_error_wrapping_404(self) -> None:
+        exc = IntegrationError("Error Communicating with Azure DevOps (HTTP 404): unknown error")
+        exc.__context__ = ApiError("Not Found", code=404)
+        assert self.installation.is_broken_integration_error(exc) == "configuration_error"
+
+    def test_integration_error_wrapping_401(self) -> None:
+        exc = IntegrationError("wrapped")
+        exc.__context__ = ApiUnauthorized("bad token")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_integration_error_wrapping_500_not_terminal(self) -> None:
+        exc = IntegrationError("Error Communicating with Azure DevOps (HTTP 500): unknown error")
+        exc.__context__ = ApiError("Internal Server Error", code=500)
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_integration_error_wrapping_identity_not_valid_delegates_to_base(self) -> None:
+        exc = IntegrationError("wrapped")
+        exc.__context__ = IdentityNotValid()
+        assert self.installation.is_broken_integration_error(exc) == "identity_not_valid"
+
+    def test_non_integration_error_delegates_to_base(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
