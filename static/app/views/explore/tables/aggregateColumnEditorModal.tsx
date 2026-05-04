@@ -29,10 +29,14 @@ import {
 } from 'sentry/utils/discover/fields';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey,
   FieldKind,
   getFieldDefinition,
+  NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
@@ -43,6 +47,7 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
@@ -279,7 +284,41 @@ function GroupBySelector({
   stringTags,
   booleanTags,
 }: GroupBySelectorProps) {
-  const options = useGroupByFields({
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const hasSearch = debouncedSearch.length > 0;
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'string'
+    );
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'number'
+    );
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'boolean'
+    );
+
+  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+
+  const baseOptions = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,
@@ -287,10 +326,32 @@ function GroupBySelector({
     traceItemType: TraceItemDataset.SPANS,
   });
 
+  const searchedOptions = useGroupByFields({
+    groupBys: [],
+    numberTags: searchedNumberTags,
+    stringTags: searchedStringTags,
+    booleanTags: searchedBooleanTags,
+    traceItemType: TraceItemDataset.SPANS,
+    hideEmptyOption: true,
+  });
+
+  // Always feed baseOptions to CompactSelect so its built-in matcher can filter
+  // synchronously while the user types. Merge in any server-only matches once
+  // the debounced search returns.
+  const options = useMemo(() => {
+    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    const baseValues = new Set(baseOptions.map(o => o.value));
+    const additions = searchedOptions.filter(o => !baseValues.has(o.value));
+    if (additions.length === 0) return baseOptions;
+    return [...baseOptions, ...additions];
+  }, [hasSearch, baseOptions, searchedOptions]);
+
   const label = useMemo(() => {
-    const tag = options.find(option => option.value === groupBy.groupBy);
+    const tag =
+      options.find(option => option.value === groupBy.groupBy) ??
+      baseOptions.find(option => option.value === groupBy.groupBy);
     return <TriggerLabel>{tag?.label ?? groupBy.groupBy}</TriggerLabel>;
-  }, [groupBy.groupBy, options]);
+  }, [groupBy.groupBy, options, baseOptions]);
 
   const handleChange = useCallback(
     (option: SelectOption<SelectKey>) => {
@@ -305,7 +366,9 @@ function GroupBySelector({
       options={options}
       value={groupBy.groupBy}
       onChange={handleChange}
-      search
+      search={{onChange: setSearch}}
+      loading={isSearchLoading}
+      emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
@@ -362,14 +425,6 @@ function AggregateSelector({
     });
   }, []);
 
-  const argumentOptions = useVisualizeFields({
-    numberTags,
-    stringTags,
-    booleanTags,
-    parsedFunction,
-    traceItemType: TraceItemDataset.SPANS,
-  });
-
   const handleFunctionChange = useCallback(
     (option: SelectOption<SelectKey>) => {
       const newYAxis = updateVisualizeAggregate({
@@ -413,47 +468,170 @@ function AggregateSelector({
           />
         )}
       />
-      {aggregateDefinition?.parameters?.map((param, index) => {
-        return (
-          <DoubleWidthCompactSelect
-            key={param.name}
-            data-test-id="editor-visualize-argument"
-            options={argumentOptions}
-            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-            onChange={option => handleArgumentChange(index, option)}
-            search
-            disabled={argumentOptions.length === 1}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                style={{
-                  width: '100%',
-                }}
-              />
-            )}
-          />
-        );
-      })}
+      {aggregateDefinition?.parameters?.map((param, index) => (
+        <AttributeArgumentSelect
+          key={param.name}
+          numberTags={numberTags}
+          stringTags={stringTags}
+          booleanTags={booleanTags}
+          parsedFunction={parsedFunction}
+          value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+          onChange={option => handleArgumentChange(index, option)}
+        />
+      ))}
       {aggregateDefinition?.parameters?.length === 0 && (
-        <DoubleWidthCompactSelect
-          data-test-id="editor-visualize-argument"
-          options={argumentOptions}
+        <AttributeArgumentSelect
+          numberTags={numberTags}
+          stringTags={stringTags}
+          booleanTags={booleanTags}
+          parsedFunction={parsedFunction}
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => handleArgumentChange(0, option)}
-          search
-          disabled
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              style={{
-                width: '100%',
-              }}
-            />
-          )}
+          forceDisabled
         />
       )}
     </Fragment>
   );
+}
+
+interface AttributeArgumentSelectProps {
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
+  onChange: (option: SelectOption<SelectKey>) => void;
+  parsedFunction: ReturnType<typeof parseFunction>;
+  stringTags: TagCollection;
+  value: string;
+  forceDisabled?: boolean;
+}
+
+function AttributeArgumentSelect({
+  numberTags,
+  stringTags,
+  booleanTags,
+  parsedFunction,
+  value,
+  onChange,
+  forceDisabled,
+}: AttributeArgumentSelectProps) {
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const hasSearch = debouncedSearch.length > 0;
+
+  const supportedKinds = getSupportedAttributeKinds(parsedFunction?.name);
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('string'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'string'
+    );
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('number'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'number'
+    );
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('boolean'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'boolean'
+    );
+
+  const isSearchLoading =
+    hasSearch &&
+    ((supportedKinds.includes('string') && stringLoading) ||
+      (supportedKinds.includes('number') && numberLoading) ||
+      (supportedKinds.includes('boolean') && booleanLoading));
+
+  const baseOptions = useVisualizeFields({
+    numberTags,
+    stringTags,
+    booleanTags,
+    parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  const searchedOptions = useVisualizeFields({
+    numberTags: searchedNumberTags,
+    stringTags: searchedStringTags,
+    booleanTags: searchedBooleanTags,
+    parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  // Always feed baseOptions to CompactSelect so its built-in matcher can filter
+  // synchronously while the user types. Merge in any server-only matches once
+  // the debounced search returns.
+  const options = useMemo(() => {
+    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    const baseValues = new Set(baseOptions.map(o => o.value));
+    const additions = searchedOptions.filter(o => !baseValues.has(o.value));
+    if (additions.length === 0) return baseOptions;
+    return [...baseOptions, ...additions];
+  }, [hasSearch, baseOptions, searchedOptions]);
+
+  // CompactSelect's default trigger derives its label from the active option
+  // list, which can go blank when a search query doesn't match the current
+  // value. Match the sibling selectors and fall back to baseOptions, then to
+  // the raw value, so the trigger always reflects the current selection.
+  const label = useMemo(() => {
+    const tag =
+      options.find(option => option.value === value) ??
+      baseOptions.find(option => option.value === value);
+    return <TriggerLabel>{tag?.label ?? value}</TriggerLabel>;
+  }, [value, options, baseOptions]);
+
+  return (
+    <DoubleWidthCompactSelect
+      data-test-id="editor-visualize-argument"
+      options={options}
+      value={value}
+      onChange={onChange}
+      search={{onChange: setSearch}}
+      loading={isSearchLoading}
+      emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
+      // Stay enabled whenever the function supports server-side search so the
+      // user can type to pull additional attributes, even when baseOptions has
+      // a single entry (e.g. only one number tag fetched in the initial load).
+      disabled={
+        forceDisabled || (supportedKinds.length === 0 && baseOptions.length === 1)
+      }
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          style={{
+            width: '100%',
+          }}
+        >
+          {label}
+        </OverlayTrigger.Button>
+      )}
+    />
+  );
+}
+
+type AttributeKind = 'string' | 'number' | 'boolean';
+
+function getSupportedAttributeKinds(
+  functionName: string | undefined
+): readonly AttributeKind[] {
+  if (!functionName) return ['number'];
+  // COUNT renders a fixed SPAN_DURATION option and ignores tag collections.
+  if (functionName === AggregationKey.COUNT) return [];
+  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) return [];
+  if (functionName === AggregationKey.COUNT_UNIQUE)
+    return ['string', 'number', 'boolean'];
+  return ['number'];
 }
 
 function EquationSelector({
