@@ -473,7 +473,7 @@ export function GlobalCommandPaletteActions() {
               {organization.features.includes('uptime') && !hasWorkflowEngineUI && (
                 <CMDKAction
                   display={{label: t('Uptime')}}
-                  keywords={[t('uptime monitors'), t('monitors')]}
+                  keywords={[t('uptime monitors')]}
                   to={`${prefix}/insights/uptime/`}
                 />
               )}
@@ -623,13 +623,7 @@ export function GlobalCommandPaletteActions() {
                 icon: <ProjectAvatar project={project} size={16} />,
                 trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
               }}
-              keywords={[
-                t('dsn'),
-                t('client keys'),
-                t('dsn key'),
-                t('copy'),
-                project.slug,
-              ]}
+              keywords={[t('dsn'), t('client keys'), t('dsn key'), project.slug]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}
@@ -897,7 +891,6 @@ export function GlobalCommandPaletteActions() {
           t('switch project'),
           t('go to project'),
           t('subproject'),
-          t('subdomain'),
         ]}
         prompt={t('Search for a project...')}
         limit={4}

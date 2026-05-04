@@ -29,7 +29,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/notifications/`,
           title: t('Notifications'),
-          keywords: ['weekly report', 'report'],
+          keywords: ['weekly report'],
           description: t('Configure what email notifications to receive'),
         },
         {
