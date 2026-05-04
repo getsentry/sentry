@@ -37,6 +37,7 @@ class SentryAppSerializerResponse(TypedDict):
     events: set[str]
     featureData: list[str]
     isAlertable: bool
+    isDisabled: bool
     metadata: str
     name: str
     schema: str
@@ -131,6 +132,7 @@ class SentryAppSerializer(Serializer):
             events=consolidate_events(obj.events),
             featureData=[],
             isAlertable=obj.is_alertable,
+            isDisabled=obj.is_disabled,
             metadata=obj.metadata,
             name=obj.name,
             overview=obj.overview,
