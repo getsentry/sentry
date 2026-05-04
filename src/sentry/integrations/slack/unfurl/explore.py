@@ -114,11 +114,14 @@ def _build_timeseries_query(
     return out
 
 
-def _parse_traces_url(raw_query: QueryDict) -> tuple[QueryDict, int | None]:
+def _parse_traces_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
     """Traces visualizations are stored under aggregateField, falling back to the
     legacy visualize key."""
     entries = raw_query.getlist("aggregateField") or raw_query.getlist("visualize")
     y_axes, group_bys, chart_type = _parse_aggregate_field_entries(entries)
+
+    if not y_axes:
+        y_axes = [default_y_axis]
 
     query_values = raw_query.getlist("query")
     query = query_values[0] if query_values else None
@@ -130,13 +133,16 @@ def _parse_traces_url(raw_query: QueryDict) -> tuple[QueryDict, int | None]:
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-def _parse_logs_url(raw_query: QueryDict) -> tuple[QueryDict, int | None]:
+def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
     """Logs visualizations live in aggregateField; query/sort use logs-specific keys
     and sorts target table columns rather than aggregate fields, so they're not
     validated against yAxes/groupBys."""
     y_axes, group_bys, chart_type = _parse_aggregate_field_entries(
         raw_query.getlist("aggregateField")
     )
+
+    if not y_axes:
+        y_axes = [default_y_axis]
 
     query_values = raw_query.getlist("logsQuery")
     query = query_values[0] if query_values else None
@@ -146,25 +152,27 @@ def _parse_logs_url(raw_query: QueryDict) -> tuple[QueryDict, int | None]:
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-def _parse_metrics_url(raw_query: QueryDict) -> tuple[QueryDict, int | None]:
+def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
     """Metrics encodes the entire chart config in a single ``metric`` JSON param,
     including its own query and aggregateSortBys."""
     metric_list = raw_query.getlist("metric")
     if not metric_list:
-        return _build_timeseries_query(raw_query, [], [], None, []), None
+        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
 
     try:
         metric_parsed = json.loads(metric_list[0])
     except (json.JSONDecodeError, TypeError, AttributeError):
-        return _build_timeseries_query(raw_query, [], [], None, []), None
+        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
 
     if not isinstance(metric_parsed, dict):
-        return _build_timeseries_query(raw_query, [], [], None, []), None
+        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
 
     y_axes: list[str] = []
     group_bys: list[str] = []
     chart_type: int | None = None
-    for agg_field in metric_parsed.get("aggregateFields", []):
+    # `or []` so a present-but-null aggregateFields/aggregateSortBys field in
+    # the user-supplied metric JSON doesn't blow up iteration.
+    for agg_field in metric_parsed.get("aggregateFields") or []:
         if not isinstance(agg_field, dict):
             continue
         if agg_field.get("groupBy"):
@@ -174,8 +182,11 @@ def _parse_metrics_url(raw_query: QueryDict) -> tuple[QueryDict, int | None]:
             if isinstance(agg_field.get("chartType"), int):
                 chart_type = agg_field["chartType"]
 
+    if not y_axes:
+        y_axes = [default_y_axis]
+
     sort_values: list[str] = []
-    for sort_by in metric_parsed.get("aggregateSortBys", []):
+    for sort_by in metric_parsed.get("aggregateSortBys") or []:
         if not isinstance(sort_by, dict):
             continue
         sort_field = sort_by.get("field", "")
@@ -188,7 +199,7 @@ def _parse_metrics_url(raw_query: QueryDict) -> tuple[QueryDict, int | None]:
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-ExploreParserFn = Callable[[QueryDict], tuple[QueryDict, int | None]]
+ExploreParserFn = Callable[[QueryDict, str], tuple[QueryDict, int | None]]
 
 
 class ExploreDatasetConfig(TypedDict):
@@ -379,8 +390,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     """Extract explore arguments from the explore link's query string.
 
     Dispatches to the per-dataset parser registered on the dataset's config to
-    produce the timeseries query dict, then applies the dataset's default
-    y-axis if the URL didn't specify one.
+    produce the timeseries query dict.
     """
     # Slack uses HTML escaped ampersands in its Event Links
     url = html.unescape(url)
@@ -390,10 +400,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     explore_dataset = _get_explore_dataset(url)
     config = _get_explore_dataset_config(explore_dataset)
 
-    query, chart_type = config["parse_url_fn"](raw_query)
-
-    if not query.getlist("yAxis"):
-        query.setlist("yAxis", [config["default_y_axis"]])
+    query, chart_type = config["parse_url_fn"](raw_query, config["default_y_axis"])
 
     return dict(**args, query=query, chart_type=chart_type, dataset=explore_dataset)
 
