@@ -1068,6 +1068,45 @@ class GitHubIsBrokenIntegrationErrorTestCase(IntegrationTestCase):
 
 
 @control_silo_test
+class GHEIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for the GitHubEnterpriseIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        GitHubEnterpriseIntegrationProvider().setup()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="35.232.149.196:99999",
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "99999",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_forbidden_returns_unauthorized(self) -> None:
+        exc = ApiForbiddenError("IP allow list")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_forbidden_suspended_returns_installation_suspended(self) -> None:
+        exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
+        assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
+
+    def test_base_class_cases_still_work(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+
+@control_silo_test
 @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
 class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
     """Tests that sync_repos_for_org halts correctly for newly-handled error types."""

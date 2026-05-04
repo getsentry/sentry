@@ -220,8 +220,10 @@ class GitHubEnterpriseIntegration(
     # IntegrationInstallation methods
 
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
-        if isinstance(exc, ApiForbiddenError) and "suspended" in str(exc):
-            return "installation_suspended"
+        if isinstance(exc, ApiForbiddenError):
+            if "suspended" in str(exc):
+                return "installation_suspended"
+            return "unauthorized"
         return super().is_broken_integration_error(exc)
 
     def message_from_error(self, exc: Exception) -> str:
