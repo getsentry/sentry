@@ -8,7 +8,6 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
-import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -39,6 +38,7 @@ import {
   SnapshotListView,
   type SnapshotListViewHandle,
 } from './snapshotListView';
+import {SnapshotsToolbar} from './snapshotsToolbar';
 
 type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
@@ -513,48 +513,6 @@ function SingleViewLayout({
         </Flex>
       </SingleViewScroll>
     </Flex>
-  );
-}
-
-export function SnapshotsToolbar({
-  toggle,
-  sortDropdown,
-  progressIndicator,
-  diffControls,
-  soloDiffToggle,
-}: {
-  toggle: React.ReactNode;
-  diffControls?: React.ReactNode;
-  progressIndicator?: React.ReactNode;
-  soloDiffToggle?: React.ReactNode;
-  sortDropdown?: React.ReactNode;
-}) {
-  return (
-    <Fragment>
-      <Flex
-        align="center"
-        justify="between"
-        gap="md"
-        padding="md xl md 0"
-        background="primary"
-        onClick={e => e.stopPropagation()}
-      >
-        <Flex align="center" gap="md">
-          {toggle}
-          {sortDropdown}
-          {progressIndicator}
-        </Flex>
-        <Flex align="center" gap="md">
-          {diffControls && (
-            <Flex align="center" gap="sm">
-              {diffControls}
-            </Flex>
-          )}
-          {soloDiffToggle}
-        </Flex>
-      </Flex>
-      <Separator orientation="horizontal" />
-    </Fragment>
   );
 }
 
