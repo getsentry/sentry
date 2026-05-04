@@ -10,6 +10,11 @@ const DISPATCHES = [
   {
     workflow: 'backend.yml',
     pathFilterName: 'backend_all',
+    selectiveTesting: true,
+  },
+  {
+    workflow: 'acceptance.yml',
+    pathFilterName: 'gsapp',
   },
 ];
 
@@ -27,11 +32,17 @@ export async function dispatch({
 
   const dispatches =
     targetWorkflow !== undefined
-      ? [{workflow: targetWorkflow, pathFilterName: 'backend_all'}]
+      ? [
+          DISPATCHES.find(d => d.workflow === targetWorkflow) ?? {
+            workflow: targetWorkflow,
+            pathFilterName: 'backend_all',
+            selectiveTesting: true,
+          },
+        ]
       : DISPATCHES;
 
   await Promise.all(
-    dispatches.map(({workflow, pathFilterName}) => {
+    dispatches.map(({workflow, pathFilterName, selectiveTesting}) => {
       const inputs = {
         pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
         skip: `${fileChanges[pathFilterName] !== 'true'}`, // even though this is a boolean, it must be cast to a string
@@ -41,9 +52,12 @@ export async function dispatch({
         // prSHA is the sha actions should post commit statuses too.
         'sentry-pr-sha': context.payload.pull_request.head.sha,
 
-        // Changed files for selective testing. Empty string means full suite.
-        'sentry-changed-files': sentryChangedFiles || '',
-        'sentry-previous-filenames': sentryPreviousFilenames || '',
+        // Only forward to workflows that declare these inputs; dispatching
+        // a workflow with undeclared inputs returns a 422.
+        ...(selectiveTesting && {
+          'sentry-changed-files': sentryChangedFiles || '',
+          'sentry-previous-filenames': sentryPreviousFilenames || '',
+        }),
       };
 
       core.info(
