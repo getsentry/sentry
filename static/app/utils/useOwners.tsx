@@ -1,7 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import {useMembersById} from 'sentry/utils/members/useMembersById';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -26,7 +26,9 @@ export function useOwners({currentValue}: Options) {
         .map(user => user.replace(/^user:/, '')),
     [currentValue]
   );
-  const {members: ensuredMembers, isPending: isEnsuringMembers} = useMembersById({
+  const hasEnsureUserIds = (ensureUserIds?.length ?? 0) > 0;
+  const {data: ensuredMembers = [], isPending: isEnsuringMembers} = useMembers({
+    enabled: hasEnsureUserIds,
     ids: ensureUserIds ?? [],
   });
 
@@ -74,7 +76,8 @@ export function useOwners({currentValue}: Options) {
   return {
     members,
     teams,
-    fetching: isEnsuringMembers || isLoadingMembers || fetchingTeams,
+    fetching:
+      (hasEnsureUserIds && isEnsuringMembers) || isLoadingMembers || fetchingTeams,
     onMemberSearch,
     onTeamSearch,
   };

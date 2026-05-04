@@ -9,7 +9,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
-import type {IndexedMembersByProject} from 'sentry/utils/members/useOrganizationMembers';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';

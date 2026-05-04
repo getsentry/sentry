@@ -4,40 +4,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  indexMembersByProject,
-  organizationMembersQueryOptions,
-  selectUsersFromMembers,
-  useOrganizationMembers,
-} from 'sentry/utils/members/useOrganizationMembers';
+import {indexMembersByProject, selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
 
-describe('useOrganizationMembers', () => {
+describe('useProjectMembers', () => {
   const organization = OrganizationFixture();
-
-  it('normalizes project ids for the query key', () => {
-    const options = organizationMembersQueryOptions({
-      orgSlug: organization.slug,
-      projectIds: ['2', 1, '1', '2'],
-    });
-
-    expect(options.queryKey).toEqual([
-      {infinite: false, version: 'v2'},
-      `/organizations/${organization.slug}/users/`,
-      {query: {project: ['1', '2']}},
-    ]);
-  });
-
-  it('omits the project query for empty project ids', () => {
-    const options = organizationMembersQueryOptions({
-      orgSlug: organization.slug,
-      projectIds: [],
-    });
-
-    expect(options.queryKey).toEqual([
-      {infinite: false, version: 'v2'},
-      `/organizations/${organization.slug}/users/`,
-    ]);
-  });
 
   it('selects users from members', () => {
     const user = UserFixture();
@@ -70,11 +41,30 @@ describe('useOrganizationMembers', () => {
       body: [member],
     });
 
-    const {result} = renderHookWithProviders(() => useOrganizationMembers(), {
+    const {result} = renderHookWithProviders(() => useProjectMembers(), {
       organization,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual([member]);
+  });
+
+  it('fetches project-filtered organization users', async () => {
+    const user = UserFixture();
+    const member = MemberFixture({user});
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [member],
+      match: [MockApiClient.matchQuery({project: ['1', '2']})],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useProjectMembers({projectIds: ['2', 1, '1', '2']}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([member]);
+    expect(mockRequest).toHaveBeenCalled();
   });
 });

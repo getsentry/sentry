@@ -8,7 +8,7 @@ import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
 import {SupergroupRow} from 'sentry/components/stream/supergroups/supergroupRow';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import type {IndexedMembersByProject} from 'sentry/utils/members/useOrganizationMembers';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';

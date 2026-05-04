@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import type {Actor} from 'sentry/types/core';
-import {useMembersById} from 'sentry/utils/members/useMembersById';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 import {Avatar, type AvatarProps} from './avatar';
@@ -83,7 +83,10 @@ function AsyncMemberAvatar({actor, ...props}: AsyncMemberAvatarProps) {
     () => (canRenderActor ? [] : [actor.id]),
     [actor.id, canRenderActor]
   );
-  const {members, isPending} = useMembersById({ids});
+  const {data: members = [], isPending} = useMembers({
+    enabled: !canRenderActor,
+    ids,
+  });
   const member = members.find(u => u.id === actor.id);
 
   if (isPending) {

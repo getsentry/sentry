@@ -6,7 +6,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {IndexedMembersByProject} from 'sentry/utils/members/useOrganizationMembers';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';

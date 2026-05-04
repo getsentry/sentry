@@ -17,10 +17,8 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {buildTeamId} from 'sentry/utils';
-import {
-  selectUsersFromMembers,
-  useOrganizationMembers,
-} from 'sentry/utils/members/useOrganizationMembers';
+import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
 import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -107,7 +105,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     projectSlug: project.slug,
     group,
   });
-  const {data: members = []} = useOrganizationMembers({
+  const {data: members = []} = useProjectMembers({
     projectIds: [project.id],
     select: selectUsersFromMembers,
   });

@@ -19,7 +19,7 @@ import type {Actor} from 'sentry/types/core';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
-import {useMembersById} from 'sentry/utils/members/useMembersById';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
@@ -91,7 +91,10 @@ export function OwnershipRulesTable({
       ),
     [allActors]
   );
-  const {members} = useMembersById({ids: memberIds});
+  const {data: members = []} = useMembers({
+    enabled: memberIds.length > 0,
+    ids: memberIds,
+  });
 
   const myTeams = useMemo(() => {
     const memberTeamsIds = teams.filter(team => team.isMember).map(team => team.id);

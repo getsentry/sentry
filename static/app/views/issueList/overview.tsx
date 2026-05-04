@@ -29,10 +29,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
-import {
-  indexMembersByProject,
-  useOrganizationMembers,
-} from 'sentry/utils/members/useOrganizationMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
+import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
@@ -160,7 +158,7 @@ function IssueListOverviewInner({
     () => selection.projects.map(projectId => String(projectId)),
     [selection.projects]
   );
-  const {data: memberList = {}} = useOrganizationMembers({
+  const {data: memberList = {}} = useProjectMembers({
     projectIds: organizationUsersProjectIds,
     select: indexMembersByProject,
   });

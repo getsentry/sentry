@@ -14,7 +14,7 @@ import {StreamGroup} from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
-import {indexMembersByProject} from 'sentry/utils/members/useOrganizationMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 
 type Props = {
   error: string | null;

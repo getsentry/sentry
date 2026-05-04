@@ -3,11 +3,11 @@ import {useQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import type {User} from 'sentry/types/user';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {memberUsersQueryOptions, type MemberResult} from './shared';
-import {useOrganizationMemberUsers} from './useOrganizationMemberUsers';
+import {useMembers} from './useMembers';
 
 interface MemberSearchResult extends MemberResult {
   /**
@@ -23,7 +23,7 @@ function uniqueMembers(...memberLists: User[][]) {
 export function useOrganizationMemberSearch(): MemberSearchResult {
   const organization = useOrganization();
   const [search, setSearch] = useState('');
-  const defaultMembersQuery = useOrganizationMemberUsers();
+  const defaultMembersQuery = useMembers();
   const searchMembersQuery = useQuery({
     ...memberUsersQueryOptions({
       orgSlug: organization.slug,
@@ -41,12 +41,8 @@ export function useOrganizationMemberSearch(): MemberSearchResult {
     setSearch(searchTerm);
     return Promise.resolve();
   }, []);
-  const error =
-    searchMembersQuery.error instanceof RequestError
-      ? searchMembersQuery.error
-      : defaultMembersQuery.error instanceof RequestError
-        ? defaultMembersQuery.error
-        : null;
+  const error = (searchMembersQuery.error ??
+    defaultMembersQuery.error) as RequestError | null;
 
   return {
     members,

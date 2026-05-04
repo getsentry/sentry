@@ -3,25 +3,24 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Member} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ProjectId = number | string;
 
-type OrganizationMembersQueryOptions = {
+interface ProjectMembersQueryOptions {
   orgSlug: string;
   projectIds?: readonly ProjectId[] | null;
   staleTime?: number;
-};
+}
 
-type UseOrganizationMembersOptions<TData> = {
+interface UseProjectMembersOptions<TData> {
   enabled?: boolean;
   projectIds?: readonly ProjectId[] | null;
   select?: (members: Member[]) => TData;
   staleTime?: number;
-};
+}
 
 function normalizeProjectIds(projectIds: readonly ProjectId[] | null | undefined) {
   if (!projectIds?.length) {
@@ -33,42 +32,11 @@ function normalizeProjectIds(projectIds: readonly ProjectId[] | null | undefined
   return normalized.length ? normalized : undefined;
 }
 
-export function selectUsersFromMembers(members: Member[]): User[] {
-  return members
-    .filter((member): member is Member & {user: NonNullable<Member['user']>} =>
-      Boolean(member.user)
-    )
-    .map(member => ({
-      ...member.user,
-      role: member.role,
-    }));
-}
-
-export type IndexedMembersByProject = Record<string, User[]>;
-
-/**
- * Convert a list of members with user & project data into an object that maps
- * project slugs to users in that project.
- */
-export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
-  return members.reduce<IndexedMembersByProject>((acc, member) => {
-    for (const project of member.projects) {
-      if (!acc.hasOwnProperty(project)) {
-        acc[project] = [];
-      }
-      if (member.user) {
-        acc[project]!.push(member.user);
-      }
-    }
-    return acc;
-  }, {});
-}
-
-export function organizationMembersQueryOptions({
+function projectMembersQueryOptions({
   orgSlug,
   projectIds,
   staleTime = 30_000,
-}: OrganizationMembersQueryOptions) {
+}: ProjectMembersQueryOptions) {
   return apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/users/', {
     path: {organizationIdOrSlug: orgSlug},
     query: {project: normalizeProjectIds(projectIds)},
@@ -76,12 +44,12 @@ export function organizationMembersQueryOptions({
   });
 }
 
-export function useOrganizationMembers<TData = Member[]>({
+export function useProjectMembers<TData = Member[]>({
   enabled = true,
   projectIds,
   select,
   staleTime,
-}: UseOrganizationMembersOptions<TData> = {}): UseQueryResult<TData> {
+}: UseProjectMembersOptions<TData> = {}): UseQueryResult<TData> {
   const organization = useOrganization();
   const selectOrganizationMembers = useCallback(
     (response: ApiResponse<Member[]>) =>
@@ -90,7 +58,7 @@ export function useOrganizationMembers<TData = Member[]>({
   );
 
   return useQuery({
-    ...organizationMembersQueryOptions({
+    ...projectMembersQueryOptions({
       orgSlug: organization.slug,
       projectIds,
       staleTime,

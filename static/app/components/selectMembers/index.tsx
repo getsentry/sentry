@@ -10,11 +10,11 @@ import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {memberUsersQueryOptions} from 'sentry/utils/members/shared';
 import {
+  memberUsersQueryOptions,
   selectUsersFromMembers,
-  useOrganizationMembers,
-} from 'sentry/utils/members/useOrganizationMembers';
+} from 'sentry/utils/members/shared';
+import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const getSearchKeyForUser = (user: User) =>
@@ -73,7 +73,7 @@ function SelectMembers({
 }: Props) {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 250);
-  const {data: users = [], isPending: memberListLoading} = useOrganizationMembers({
+  const {data: users = [], isPending: memberListLoading} = useProjectMembers({
     projectIds,
     select: selectUsersFromMembers,
   });

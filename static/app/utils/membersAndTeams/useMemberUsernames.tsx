@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
-import {useOrganizationMemberUsers} from 'sentry/utils/members/useOrganizationMemberUsers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
 
 export function useMemberUsernames() {
-  const {data: members = []} = useOrganizationMemberUsers();
+  const {data: members = []} = useMembers();
   return useMemo(() => members.map(getUsername), [members]);
 }

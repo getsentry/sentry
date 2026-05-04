@@ -31,10 +31,8 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {
-  selectUsersFromMembers,
-  useOrganizationMembers,
-} from 'sentry/utils/members/useOrganizationMembers';
+import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -98,7 +96,7 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const {data: members = [], isPending: fetching} = useOrganizationMembers({
+  const {data: members = [], isPending: fetching} = useProjectMembers({
     select: selectUsersFromMembers,
   });
   const memberOptions = members.map(m => ({value: m.id, label: m.name}));

@@ -13,7 +13,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import * as Storybook from 'sentry/stories';
-import {useOrganizationMemberUsers} from 'sentry/utils/members/useOrganizationMemberUsers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import {
@@ -124,7 +124,7 @@ The `<DocIntegrationAvatar />` component displays an avatar for a doc integratio
 To display multiple avatars in a group, use the `AvatarList` component. It accepts `users` or `teams`.
 
 export function useLoadedMembers() {
-  const {data: members = [], isPending: fetching} = useOrganizationMemberUsers({limit: 50});
+  const {data: members = [], isPending: fetching} = useMembers({limit: 50});
 
 return {members, fetching};
 }

@@ -7,7 +7,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useOrganizationMembers} from 'sentry/utils/members/useOrganizationMembers';
+import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -45,7 +45,7 @@ export default function AlertBuilderProjectProvider() {
     ? (projects.find(p => p.isMember) ?? (projects.length && projects[0]))
     : projects.find(({slug}) => slug === projectId);
 
-  const {data: members} = useOrganizationMembers({
+  const {data: members} = useProjectMembers({
     enabled: Boolean(project),
     projectIds: project ? [project.id] : undefined,
   });

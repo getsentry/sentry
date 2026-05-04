@@ -38,7 +38,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {IndexedMembersByProject} from 'sentry/utils/members/useOrganizationMembers';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

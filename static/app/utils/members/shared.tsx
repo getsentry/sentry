@@ -23,6 +23,8 @@ export interface MemberResult {
   members: User[];
 }
 
+export type IndexedMembersByProject = Record<string, User[]>;
+
 interface FetchMemberOptions {
   ids?: string[];
   limit?: number;
@@ -37,19 +39,49 @@ export function normalizeMemberValues(values: string[] | undefined) {
   return values ? Array.from(new Set(values)).sort() : [];
 }
 
+export function selectUsersFromMembers(members: Member[]): User[] {
+  return members
+    .filter((member): member is Member & {user: NonNullable<Member['user']>} =>
+      Boolean(member.user)
+    )
+    .map(member => ({
+      ...member.user,
+      role: member.role,
+    }));
+}
+
+/**
+ * Convert a list of members with user & project data into an object that maps
+ * project slugs to users in that project.
+ */
+export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
+  return members.reduce<IndexedMembersByProject>((acc, member) => {
+    for (const project of member.projects) {
+      if (!acc.hasOwnProperty(project)) {
+        acc[project] = [];
+      }
+      if (member.user) {
+        acc[project]!.push(member.user);
+      }
+    }
+    return acc;
+  }, {});
+}
+
 function getMembersQuery({ids, search, limit}: FetchMemberOptions = {}) {
   const query: {
     per_page?: number;
     query?: string;
   } = {};
 
-  const queryTerms = [...normalizeMemberValues(ids).map(id => `user.id:${id}`)];
+  const normalizedIds = normalizeMemberValues(ids);
+  const queryTerms = [...normalizedIds.map(id => `user.id:${id}`)];
 
   if (search) {
     queryTerms.push(search);
   }
 
-  if (queryTerms.length > 0) {
+  if (ids !== undefined || queryTerms.length > 0) {
     query.query = queryTerms.join(' ');
   }
 
