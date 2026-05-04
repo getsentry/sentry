@@ -19,3 +19,5 @@ Keep policy docs small:
 - explain the intent briefly
 - state the default rule clearly
 - call out only the meaningful exceptions
+
+Use `policies/TEMPLATE.md` for new policies.

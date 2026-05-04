@@ -191,6 +191,7 @@ Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (
 
 - `policies/README.md` explains when a short repo policy doc should exist.
 - `policies/code-comments.md` is the repo default for comments, docstrings, and JSDoc.
+- `policies/TEMPLATE.md` is the template for adding new policy docs.
 
 ## Viewer/Organization Context
 
