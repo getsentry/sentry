@@ -3433,6 +3433,16 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Killswitch list of NotificationSource values that should be blocked from being
+# dispatched by the notification platform's NotificationService. Values must match
+# the string values of `sentry.notifications.platform.types.NotificationSource`.
+register(
+    "notifications.platform.killswitch.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 # List of organizations with increased rate limits for organization_events API
@@ -4044,6 +4054,14 @@ register(
     "sentry-apps.webhook.restricted-webhook-sending",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enforce is_disabled field on sentry app endpoints and webhooks.
+register(
+    "sentry-apps.disabled-enforcement",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -8,6 +8,7 @@ from uuid import uuid4
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.db.models import F
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
@@ -162,6 +163,19 @@ def create_issue_occurrence_from_detection(
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
     group_type = get_group_type_for_title(detected_issue.title)
+
+    if group_type == AIDetectedGeneralGroupType:
+        logger.info(
+            "Detected General AI Issue",
+            extra={
+                "title": detected_issue.title,
+                "explanation": detected_issue.explanation,
+                "impact": detected_issue.impact,
+                "evidence": detected_issue.evidence,
+            },
+        )
+        return None
+
     setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
     if setting_key:
         perf_settings = project.get_option("sentry:performance_issue_settings", default={})
@@ -272,6 +286,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         Project.objects.filter(
             organization_id=org_id,
             status=ObjectStatus.ACTIVE,
+            flags=F("flags").bitor(Project.flags.has_transactions),
         ).values_list("id", flat=True)
     )
     if not project_ids:

@@ -143,7 +143,7 @@ export function StarFixabilityViewButton({
     <Button
       onClick={handleStarFixabilityView}
       size="sm"
-      priority="primary"
+      variant="primary"
       disabled={isCompleted}
       aria-label={isCompleted ? t('View already starred') : t('Star recommended view')}
     >

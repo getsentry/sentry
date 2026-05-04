@@ -56,7 +56,7 @@ export function Broadcasts() {
               : "You don't have the broadcasts.admin permission",
           }}
           onClick={handleNewBroadcast}
-          priority="primary"
+          variant="primary"
           size="sm"
         >
           New Broadcast

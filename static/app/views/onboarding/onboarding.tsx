@@ -320,7 +320,7 @@ export function OnboardingWithoutContext() {
       <Button
         onClick={() => handleGoBack()}
         icon={<IconArrow direction="left" />}
-        priority="link"
+        variant="link"
       >
         {t('Back')}
       </Button>
@@ -428,7 +428,7 @@ export function OnboardingWithoutContext() {
             <Button
               onClick={() => handleGoBack()}
               icon={<IconArrow direction="left" />}
-              priority="link"
+              variant="link"
             >
               {t('Back')}
             </Button>

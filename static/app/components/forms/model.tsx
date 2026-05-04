@@ -400,7 +400,7 @@ export class FormModel {
     }
 
     if (typeof value === 'boolean') {
-      return value === true;
+      return value;
     }
 
     return value !== '' && defined(value);

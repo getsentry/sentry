@@ -76,7 +76,7 @@ export function GroupReplaysPlayer({
                     handleForwardClick={handleForwardClick}
                     overlayContent={overlayContent}
                     showNextAndPrevious
-                    playPausePriority="default"
+                    playPauseVariant="secondary"
                   />
                 </ReplayPlayerStateContextProvider>
               </ReplayReaderProvider>

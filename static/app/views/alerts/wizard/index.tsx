@@ -127,7 +127,7 @@ export default function AlertWizard() {
               organization={organization}
               projectSlug={projectSlug}
               disabled={!hasFeature || (isMetricAlert && !canCreateMetricAlert)}
-              priority="primary"
+              variant="primary"
               to={{
                 pathname: makeAlertsPathname({
                   organization,

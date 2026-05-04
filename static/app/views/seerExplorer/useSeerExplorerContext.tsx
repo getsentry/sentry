@@ -10,8 +10,8 @@ import {
 } from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useModal} from '@sentry/scraps/modal';
 
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
@@ -106,7 +106,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     ]
   );
 
-  const {visible: isModalOpen} = useGlobalModal();
+  const {visible: isModalOpen} = useModal();
 
   // Deep link effect while drawer closed (drawer content handles when open)
   const deepLinkCallback = useCallback(

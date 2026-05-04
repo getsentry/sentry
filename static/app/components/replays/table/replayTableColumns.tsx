@@ -405,7 +405,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
     if (rowIndex === selectedReplayIndex) {
       return (
         <PlayPauseButtonContainer>
-          <ReplayPlayPauseButton key="playPause-play" priority="transparent" size="sm" />
+          <ReplayPlayPauseButton key="playPause-play" variant="transparent" size="sm" />
         </PlayPauseButtonContainer>
       );
     }
@@ -420,7 +420,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
             pathname: location.pathname,
             query: {...location.query, selected_replay_index: rowIndex},
           }}
-          priority="default"
+          variant="secondary"
           size="sm"
           tooltipProps={{title: t('Play')}}
         />

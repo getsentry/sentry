@@ -113,7 +113,7 @@ export function Controls({
           message={t('Are you sure you want to delete this dashboard?')}
           onConfirm={onDelete}
         >
-          <Button size="sm" data-test-id="dashboard-delete" priority="danger">
+          <Button size="sm" data-test-id="dashboard-delete" variant="danger">
             {t('Delete')}
           </Button>
         </Confirm>
@@ -124,7 +124,7 @@ export function Controls({
             e.preventDefault();
             onCommit();
           }}
-          priority="primary"
+          variant="primary"
         >
           {t('Save and Finish')}
         </Button>
@@ -143,7 +143,7 @@ export function Controls({
             e.preventDefault();
             onCommit();
           }}
-          priority="primary"
+          variant="primary"
         >
           {t('Save and Finish')}
         </Button>
@@ -169,7 +169,7 @@ export function Controls({
                 e.preventDefault();
                 onCommit();
               }}
-              priority="primary"
+              variant="primary"
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
               tooltipProps={{
                 isHoverable: true,
@@ -232,7 +232,7 @@ export function Controls({
               {label: PREBUILT_DASHBOARD_LABEL}
             ),
           }}
-          priority="default"
+          variant="secondary"
           size="sm"
         />
       );
@@ -258,7 +258,7 @@ export function Controls({
           icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
           disabled={isDisabled}
           tooltipProps={{title: toolTipMessage}}
-          priority="default"
+          variant="secondary"
           size="sm"
         />
       </Tooltip>
@@ -314,7 +314,7 @@ export function Controls({
                     exportDashboard();
                   }}
                   icon={<IconDownload />}
-                  priority="default"
+                  variant="secondary"
                   size="sm"
                 />
               </Tooltip>
@@ -333,7 +333,7 @@ export function Controls({
                       {label: PREBUILT_DASHBOARD_LABEL}
                     ),
                   }}
-                  priority="default"
+                  variant="secondary"
                   size="sm"
                 />
               ) : (
@@ -357,7 +357,7 @@ export function Controls({
                           : t('You do not have permission to edit this dashboard')) ??
                       t('Edit Dashboard'),
                   }}
-                  priority="default"
+                  variant="secondary"
                   size="sm"
                 />
               ))}
@@ -387,7 +387,7 @@ export function Controls({
                     size: 'sm',
                     showChevron: true,
                     icon: <IconAdd size="sm" />,
-                    priority: 'primary',
+                    variant: 'primary',
                   }}
                   position="bottom-end"
                 />
@@ -423,7 +423,7 @@ export function Controls({
                         icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}
                         disabled={isLoading || hasReachedDashboardLimit}
                         tooltipProps={{title: limitMessage}}
-                        priority="default"
+                        variant="secondary"
                         size="sm"
                       >
                         {t('Duplicate Dashboard')}

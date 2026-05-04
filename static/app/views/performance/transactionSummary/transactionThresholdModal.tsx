@@ -244,7 +244,7 @@ function TransactionThresholdModal({
           </Button>
           <Button
             aria-label={t('Apply')}
-            priority="primary"
+            variant="primary"
             onClick={handleApply}
             data-test-id="apply-threshold"
           >

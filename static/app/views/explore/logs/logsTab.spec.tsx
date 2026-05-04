@@ -16,7 +16,6 @@ import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 function LogsTabContentHarness({
@@ -24,13 +23,7 @@ function LogsTabContentHarness({
 }: {
   datePageFilterProps: DatePageFilterProps;
 }) {
-  const tableExpando = useTableExpando();
-  return (
-    <LogsTabContent
-      datePageFilterProps={datePageFilterProps}
-      tableExpando={tableExpando}
-    />
-  );
+  return <LogsTabContent datePageFilterProps={datePageFilterProps} tableExpando />;
 }
 
 const datePageFilterProps: DatePageFilterProps = {

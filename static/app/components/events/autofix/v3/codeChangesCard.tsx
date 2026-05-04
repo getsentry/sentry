@@ -128,7 +128,7 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
           </Text>
           <div>
             <Button
-              priority="primary"
+              variant="primary"
               icon={<IconRefresh />}
               onClick={() => handleReset()}
             >

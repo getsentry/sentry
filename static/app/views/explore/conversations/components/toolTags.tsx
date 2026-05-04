@@ -67,7 +67,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
       {hiddenCount > 0 && !expanded && (
         <ToggleButtonWrapper>
           <ToggleButton
-            priority="link"
+            variant="link"
             size="xs"
             onClick={() => setExpanded(prev => !prev)}
           >
@@ -76,11 +76,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
         </ToggleButtonWrapper>
       )}
       {expanded && (
-        <ToggleButton
-          priority="link"
-          size="xs"
-          onClick={() => setExpanded(prev => !prev)}
-        >
+        <ToggleButton variant="link" size="xs" onClick={() => setExpanded(prev => !prev)}>
           {t('Show less')}
         </ToggleButton>
       )}
