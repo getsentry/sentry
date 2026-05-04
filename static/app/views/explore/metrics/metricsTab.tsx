@@ -118,7 +118,7 @@ function MetricsTabBodySection({
   onEquationLabelsChange,
 }: SectionProps) {
   const metricQueries = useMultiMetricsQueryParams();
-  const [interval] = useChartInterval();
+  const [interval] = useChartInterval({writeToUrl: true});
   const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
     enabled: true,
   });

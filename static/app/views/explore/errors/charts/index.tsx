@@ -38,7 +38,9 @@ export function ErrorsCharts() {
 
 function Chart() {
   const [chartVisible, setChartVisible] = useState(true);
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [interval, setInterval, intervalOptions] = useChartInterval({
+    writeToUrl: true,
+  });
 
   const chartRef = useRef<ReactEchartsRef>(null);
 

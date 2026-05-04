@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import type {Location} from 'history';
 
 import {
@@ -33,11 +33,16 @@ interface Options {
   navigate: ReturnType<typeof useNavigate>;
   pagefilters: ReturnType<typeof usePageFilters>;
   unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy;
+  writeToUrl?: boolean;
 }
 
 export function useChartInterval({
   unspecifiedStrategy = ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-}: {unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy} = {}): [
+  writeToUrl = false,
+}: {
+  unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy;
+  writeToUrl?: boolean;
+} = {}): [
   string,
   (interval: string) => void,
   intervalOptions: Array<{label: string; value: string}>,
@@ -51,6 +56,7 @@ export function useChartInterval({
     navigate,
     pagefilters,
     unspecifiedStrategy,
+    writeToUrl,
   });
 }
 
@@ -59,6 +65,7 @@ function useChartIntervalImpl({
   navigate,
   pagefilters,
   unspecifiedStrategy,
+  writeToUrl,
 }: Options): [
   string,
   (interval: string) => void,
@@ -104,6 +111,25 @@ function useChartIntervalImpl({
     },
     [location, navigate]
   );
+
+  useEffect(() => {
+    if (!writeToUrl) {
+      return;
+    }
+    if (decodeScalar(location.query.interval) === interval) {
+      return;
+    }
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          interval,
+        },
+      },
+      {replace: true}
+    );
+  }, [writeToUrl, interval, location, navigate]);
 
   return [interval, setInterval, intervalOptions];
 }

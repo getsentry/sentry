@@ -62,7 +62,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     },
   });
 
-  const [interval] = useChartInterval();
+  const [interval] = useChartInterval({writeToUrl: true});
 
   useCompareAnalytics({
     aggregatesTableResult,
