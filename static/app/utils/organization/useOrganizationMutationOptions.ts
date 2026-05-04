@@ -5,12 +5,7 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 
 interface Variables extends Partial<Organization> {}
 
@@ -29,7 +24,7 @@ export function useOrganizationMutationOptions(organization: Organization) {
     getApiUrl('/organizations/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
-  ] as ApiQueryKey;
+  ] as const;
   const queryOptions = apiOptions.as<Organization>()(
     '/organizations/$organizationIdOrSlug/',
     {
