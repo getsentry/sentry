@@ -257,6 +257,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (::[fF]{4}:)? # Optional prefix mapping the IPv4 address which follows to IPv6 format
             (
                 \b
+                # Negative lookbehind to ensure this isn't part of a longer set of dot-delimited
+                # ints (so, prevent 1.2.3.4.5 from matching as 1.<ip>)
+                (?<!\d\.)
                 # Three numbers from 0-255, each followed by a literal dot, no leading zeros allowed
                 (
                     (
@@ -270,6 +273,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 # Final number from 0-255 (same pattern alternatives as above)
                 (\d | [1-9]\d | 1\d{2} | 2[0-4]\d | 25[0-5])
                 (/\d{1,2})? # Optional CIDR suffix
+                # Negative lookahead to ensure this isn't part of a longer set of dot-delimited
+                # ints (so, prevent 1.2.3.4.5 from matching as <ip>.5)
+                (?!\.\d)
                 \b
             )
             |
@@ -402,7 +408,29 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             \b
         """,
     ),
-    ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
+    ParameterizationRegex(
+        name="float",
+        raw_pattern=r"""
+            (
+                # For positive values, in addition to the wordbreak, a negative lookbehind to ensure
+                # this isn't part of a longer set of dot-delimited ints (IOW, to prevent `1.2.3`
+                # from matching as `1.<float>`)
+                (
+                    \b
+                    (?<!\d\.)
+                ) |
+                # For negative values, no wordbreak or lookbehind needed, since the minus sign
+                # itself both creates a wordbreak and prevents the `1.2.3` case matching on `2.3`
+                -
+            )
+            # The value itself
+            \d+\.\d+
+            # Negative lookahead to ensure this isn't part of a longer set of dot-delimited ints
+            # (IOW, to prevent 1.2.3 from matching as <float>.3)
+            (?!\.\d)
+            \b
+        """,
+    ),
     ParameterizationRegex(
         name="int",
         raw_pattern=r"""
