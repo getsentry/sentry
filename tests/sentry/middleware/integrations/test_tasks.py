@@ -450,3 +450,21 @@ class UpdateLinkingMessageTest(TestCase):
         mock_warn.assert_called_once()
         assert mock_warn.call_args.args[0] == "update_linking_message.non_200"
         assert mock_warn.call_args.kwargs["extra"]["status_code"] == 404
+
+    @patch("sentry.middleware.integrations.tasks.logger.info")
+    @patch("slack_sdk.webhook.WebhookClient.send")
+    def test_swallows_slack_sdk_errors(self, mock_send: MagicMock, mock_info: MagicMock) -> None:
+        from slack_sdk.errors import SlackApiError
+
+        mock_send.side_effect = SlackApiError("network down", response=MagicMock())
+
+        update_linking_message(
+            response_url=self.response_url,
+            integration_id=42,
+            slack_user_id="U_SLACK",
+        )
+
+        error_calls = [
+            c for c in mock_info.call_args_list if c.args[0] == "update_linking_message.error"
+        ]
+        assert len(error_calls) == 1

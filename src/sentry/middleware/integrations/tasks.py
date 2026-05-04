@@ -296,6 +296,7 @@ def update_linking_message(
     Replace the original 'Connect to Sentry' ephemeral halt message with a
     'linked!' confirmation, using Slack's response_url + replace_original=true.
     """
+    from slack_sdk.errors import SlackApiError, SlackRequestError
     from slack_sdk.webhook import WebhookClient
 
     logging_ctx = {
@@ -304,10 +305,14 @@ def update_linking_message(
     }
 
     webhook_client = WebhookClient(response_url)
-    response = webhook_client.send(
-        text="Your Slack account was successfully linked!",
-        replace_original=True,
-    )
+    try:
+        response = webhook_client.send(
+            text="Your Slack account was successfully linked!",
+            replace_original=True,
+        )
+    except (SlackApiError, SlackRequestError) as e:
+        logger.info("update_linking_message.error", extra={**logging_ctx, "error": str(e)})
+        return
 
     if response.status_code != 200:
         logger.warning(
