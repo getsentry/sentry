@@ -1,7 +1,8 @@
 import {delay, invokeProvidesCallback} from './flakeStressUtils';
 
-const wallClockTickDelayMs = 3;
-const wallClockPaddingMs = 5;
+const wallClockTickDelayMs = 15;
+const wallClockPaddingMs = 15;
+const wallClockParallelLoops = 3;
 
 /**
  * Simulates a slow machine with many timers by continuously running no-op async delays.
@@ -10,12 +11,17 @@ export function withRealWallClockDelay(fn: jest.ProvidesCallback): jest.Provides
   return function wrapped(this: unknown) {
     return (async () => {
       const abortController = new AbortController();
+      const {signal} = abortController;
 
-      const background = (async () => {
-        while (!abortController.signal.aborted) {
+      const makeBackground = async () => {
+        while (!signal.aborted) {
           await delay(wallClockTickDelayMs);
         }
-      })();
+      };
+
+      const backgrounds = Promise.all(
+        Array.from({length: wallClockParallelLoops}, makeBackground)
+      );
 
       try {
         await delay(wallClockPaddingMs);
@@ -23,7 +29,7 @@ export function withRealWallClockDelay(fn: jest.ProvidesCallback): jest.Provides
         await delay(wallClockPaddingMs);
       } finally {
         abortController.abort();
-        await background.catch(() => {});
+        await backgrounds.catch(() => {});
       }
     })();
   };

@@ -1,7 +1,7 @@
 import {invokeProvidesCallback} from './flakeStressUtils';
 
-const mainThreadIntervalMs = 4;
-const mainThreadSpinIterations = 200_000;
+const mainThreadIntervalMs = 2;
+const mainThreadSpinIterations = 500_000;
 
 /**
  * Simulates an overloaded main thread by doing busy-work on a fixed interval.

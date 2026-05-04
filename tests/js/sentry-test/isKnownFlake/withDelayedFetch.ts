@@ -1,6 +1,6 @@
 import {delay, invokeProvidesCallback} from './flakeStressUtils';
 
-const fetchDelayMs = 5;
+const fetchDelayMs = 100;
 const originalFetch = globalThis.fetch;
 
 /**
