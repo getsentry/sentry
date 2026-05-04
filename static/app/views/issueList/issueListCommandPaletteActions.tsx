@@ -6,10 +6,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
-import {
-  cmdkQueryOptions,
-  type CMDKQueryOptions,
-} from 'sentry/components/commandPalette/types';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   type CMDKResourceContext,
@@ -194,13 +191,15 @@ function FilterActions({
       keywords: [tag.key],
       prompt: t('Select a value...'),
       limit: 4,
-      resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+      resource: (_q: string, ctx: CMDKResourceContext) =>
         // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
           queryFn: async () => {
-            const values = hasPredefined ? predefined : await loadTagValues(tag.key);
-            return values.map(value => ({
+            return hasPredefined ? predefined : await loadTagValues(tag.key);
+          },
+          select: data =>
+            data.map(value => ({
               display: {
                 label: value,
                 icon:
@@ -209,24 +208,21 @@ function FilterActions({
                   ) : undefined,
               },
               onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
-            }));
-          },
+            })),
           enabled: hasPredefined || ctx.state === 'selected',
           staleTime: hasPredefined ? Infinity : 30_000,
         }),
     };
   };
 
-  const makeSectionResource =
-    (tags: Tag[], cacheKey: string): ((q: string) => CMDKQueryOptions) =>
-    _q =>
-      // Feed query in key ensures onAction closures reference the current query.
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
-      cmdkQueryOptions({
-        queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
-        queryFn: () => tags.map(makeFilterKeyItem),
-        staleTime: Infinity,
-      });
+  const makeSectionResource = (tags: Tag[], cacheKey: string) => (_q: string) =>
+    // Feed query in key ensures onAction closures reference the current query.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    cmdkQueryOptions({
+      queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
+      queryFn: () => tags.map(makeFilterKeyItem),
+      staleTime: Infinity,
+    });
 
   return (
     <CMDKAction
