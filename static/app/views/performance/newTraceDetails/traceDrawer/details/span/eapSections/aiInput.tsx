@@ -4,10 +4,10 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -253,13 +253,28 @@ function MessagesArrayRenderer({
       <TraceDrawerComponents.MultilineJSON value={message.content} maxDefaultDepth={2} />
     );
 
+  const renderSystemMessageContent = (message: AIMessage) =>
+    typeof message.content === 'string' ? (
+      <AIContentRenderer text={message.content} />
+    ) : (
+      <SystemMessageClippedBox
+        clipHeight={150}
+        buttonProps={{priority: 'default', size: 'xs'}}
+      >
+        <TraceDrawerComponents.MultilineJSON
+          value={message.content}
+          maxDefaultDepth={2}
+        />
+      </SystemMessageClippedBox>
+    );
+
   const renderMessage = (message: AIMessage, index: number) => {
     if (message.role === 'system') {
       return (
-        <SystemMessageDisclosure key={index} defaultExpanded={false} size="xs">
-          <Disclosure.Title>{t('System')}</Disclosure.Title>
-          <Disclosure.Content>{renderMessageContent(message)}</Disclosure.Content>
-        </SystemMessageDisclosure>
+        <Fragment key={index}>
+          <RoleLabel>{message.role}</RoleLabel>
+          {renderSystemMessageContent(message)}
+        </Fragment>
       );
     }
 
@@ -336,7 +351,8 @@ const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
   }
 `;
 
-const SystemMessageDisclosure = styled(Disclosure)`
+const SystemMessageClippedBox = styled(ClippedBox)`
+  padding: 0;
   margin-bottom: ${p => p.theme.space.lg};
 `;
 
