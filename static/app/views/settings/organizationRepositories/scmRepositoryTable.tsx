@@ -97,6 +97,11 @@ export interface ScmInstallation {
    */
   reposLoading?: boolean;
   /**
+   * Props forwarded to the settings button. Use to disable or annotate it
+   * while per-integration config is still being fetched.
+   */
+  settingsButtonProps?: Omit<ButtonProps, 'onClick'>;
+  /**
    * Props forwarded to the uninstall button. Use to disable or annotate it
    * when the viewer lacks the required access.
    */
@@ -401,7 +406,8 @@ function InstallationActions({
   onUninstall,
   onSettings,
 }: InstallationActionsProps) {
-  const {manageUrl, overflowMenuItems, uninstallButtonProps} = installation;
+  const {manageUrl, overflowMenuItems, settingsButtonProps, uninstallButtonProps} =
+    installation;
   return (
     <Fragment>
       {manageUrl && (
@@ -436,6 +442,7 @@ function InstallationActions({
               size="xs"
               variant="transparent"
               icon={<IconSliders />}
+              {...settingsButtonProps}
               onClick={() => onSettings(installation)}
             />
           )}
