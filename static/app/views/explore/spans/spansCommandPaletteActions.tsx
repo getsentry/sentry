@@ -1,10 +1,7 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {
-  cmdkQueryOptions,
-  type CMDKQueryOptions,
-} from 'sentry/components/commandPalette/types';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   type CMDKResourceContext,
@@ -15,7 +12,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconFilter, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
-import {useApi} from 'sentry/utils/useApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -34,7 +31,6 @@ function capitalizeLabel(label: string): string {
 }
 
 function FilterActions() {
-  const api = useApi();
   const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
   const addSearchFilter = useAddSearchFilter();
@@ -68,34 +64,27 @@ function FilterActions() {
     display: {label: capitalizeLabel(tag.name ?? tag.key)},
     keywords: [tag.key],
     prompt: t('Select a value...'),
-    resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+    resource: (_q: string, ctx: CMDKResourceContext) =>
       // Include currentQuery in the key so onAction closures reference the
       // current filter state and don't overwrite previously applied filters.
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
       cmdkQueryOptions({
-        queryKey: [
-          'cmdk-span-filter-values',
-          tag.key,
-          pageFilterCacheKey,
-          organization.slug,
-          currentQuery,
-        ],
-        queryFn: async () => {
-          const result: SpanAttributeValue[] = await api.requestPromise(
-            `/organizations/${organization.slug}/trace-items/attributes/${tag.key}/values/`,
-            {
-              method: 'GET',
-              query: {
-                itemType: TraceItemDataset.SPANS,
-                attributeType: 'string',
-                ...(pageFilters.projects.length
-                  ? {project: pageFilters.projects.map(String)}
-                  : {}),
-                ...normalizeDateTimeParams(pageFilters.datetime),
-              },
-            }
-          );
-          return result
+        ...apiOptions.as<SpanAttributeValue[]>()(
+          '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
+          {
+            path: {organizationIdOrSlug: organization.slug, key: tag.key},
+            query: {
+              itemType: TraceItemDataset.SPANS,
+              attributeType: 'string',
+              ...(pageFilters.projects.length
+                ? {project: pageFilters.projects.map(String)}
+                : {}),
+              ...normalizeDateTimeParams(pageFilters.datetime),
+            },
+            staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+          }
+        ),
+        select: result => {
+          return result.json
             .filter(item => item.value)
             .map(item => ({
               display: {label: item.value},
@@ -103,27 +92,24 @@ function FilterActions() {
             }));
         },
         enabled: ctx.state === 'selected',
-        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
       }),
   });
 
-  const makeStringSectionResource =
-    (tags: Tag[], cacheKey: string) =>
-    (_q: string): CMDKQueryOptions =>
-      // Include tags.length so the section updates when attributes finish loading.
-      // Include currentQuery so the item closures capture fresh filter state.
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
-      cmdkQueryOptions({
-        queryKey: [
-          cacheKey,
-          organization.slug,
-          pageFilterCacheKey,
-          currentQuery,
-          tags.length,
-        ],
-        queryFn: () => tags.map(makeStringFilterItem),
-        staleTime: Infinity,
-      });
+  const makeStringSectionResource = (tags: Tag[], cacheKey: string) => () =>
+    // Include tags.length so the section updates when attributes finish loading.
+    // Include currentQuery so the item closures capture fresh filter state.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    cmdkQueryOptions({
+      queryKey: [
+        cacheKey,
+        organization.slug,
+        pageFilterCacheKey,
+        currentQuery,
+        tags.length,
+      ],
+      queryFn: () => tags.map(makeStringFilterItem),
+      staleTime: Infinity,
+    });
 
   return (
     <CMDKAction
