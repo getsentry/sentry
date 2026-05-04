@@ -10,6 +10,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
+from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.sync_repos import (
     sync_repos_for_org,
@@ -602,6 +603,7 @@ class SyncReposForOrgGitLabTestCase(TestCase):
             json={"status": "error", "error": "group not accessible"},
         )
 
+        assert isinstance(installation, GitlabIntegration)
         with pytest.raises(IntegrationError, match="Expected list of projects"):
             installation.get_repositories()
 
@@ -806,7 +808,7 @@ class SyncReposForOrgVstsTestCase(TestCase):
         installation = integration.get_installation(organization_id=self.organization.id)
 
         exc = ApiForbiddenError("ADO OAuth tokens disabled")
-        exc.json = "ADO OAuth tokens disabled"
+        exc.json = "ADO OAuth tokens disabled"  # type: ignore[assignment]
         msg = installation.message_from_error(exc)
         assert "unknown error" in msg
 
