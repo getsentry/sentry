@@ -580,21 +580,15 @@ const GroupContainer = memo(function GroupContainer({
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
-    const fileName =
-      card.type === 'pair-card'
-        ? card.pair.head_image.image_file_name
-        : card.image.image_file_name;
     const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
     const onCopyLink = () =>
       trackAnalytics('preprod.snapshots.details.image_link_copied', {
         organization,
-        image_file_name: fileName,
         diff_status: diffStatus === 'solo' ? null : diffStatus,
       });
     const onCopyMetadata = () =>
       trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
         organization,
-        image_file_name: fileName,
         diff_status: diffStatus === 'solo' ? null : diffStatus,
       });
     return card.type === 'pair-card' ? (

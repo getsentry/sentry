@@ -88,12 +88,10 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.snapshots.details.image_link_copied': {
     diff_status: string | null;
-    image_file_name: string;
     organization: Organization;
   };
   'preprod.snapshots.details.image_metadata_copied': {
     diff_status: string | null;
-    image_file_name: string;
     organization: Organization;
   };
   'preprod.snapshots.details.view_mode_changed': {

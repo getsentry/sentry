@@ -275,13 +275,11 @@ export function SnapshotMainContent({
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
-              image_file_name: image.image_file_name,
               diff_status: 'changed',
             }),
           onCopyMetadata: () =>
             trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
               organization,
-              image_file_name: image.image_file_name,
               diff_status: 'changed',
             }),
         }}
@@ -329,13 +327,11 @@ export function SnapshotMainContent({
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
-              image_file_name: image.image_file_name,
               diff_status: 'renamed',
             }),
           onCopyMetadata: () =>
             trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
               organization,
-              image_file_name: image.image_file_name,
               diff_status: 'renamed',
             }),
         }}
@@ -382,13 +378,11 @@ export function SnapshotMainContent({
         onCopyLink: () =>
           trackAnalytics('preprod.snapshots.details.image_link_copied', {
             organization,
-            image_file_name: currentImage.image_file_name,
             diff_status: status ? selectedItem.type : null,
           }),
         onCopyMetadata: () =>
           trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
             organization,
-            image_file_name: currentImage.image_file_name,
             diff_status: status ? selectedItem.type : null,
           }),
       }}
