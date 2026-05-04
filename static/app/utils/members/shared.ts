@@ -4,22 +4,21 @@ import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type MemberResult = {
   /**
-   * The error that occurred if fetching failed.
+   * The query error, if fetching failed.
    */
-  fetchError: null | RequestError;
+  error: null | RequestError;
   /**
-   * This is state for when fetching data from API.
+   * Reflects whether the query has resolved at least once.
    */
-  fetching: boolean;
+  isFetched: boolean;
   /**
-   * Reflects whether or not the initial fetch for the requested users was
-   * fulfilled.
+   * True while the query is waiting on its first response.
    */
-  initiallyLoaded: boolean;
+  isPending: boolean;
   /**
    * The loaded organization member users.
    */
@@ -91,6 +90,10 @@ function getMemberUsers(members: Member[]) {
 
 export function uniqueMembers(...memberLists: User[][]) {
   return uniqBy<User>(memberLists.flat(), ({id}) => id);
+}
+
+export function getRequestError(error: Error | null): RequestError | null {
+  return error instanceof RequestError ? error : null;
 }
 
 export function selectMemberUsersFromResponse(response: ApiResponse<Member[]>): User[] {

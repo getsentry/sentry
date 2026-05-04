@@ -1,10 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
+  getRequestError,
   membersQueryOptions,
   type MemberSearchResult,
   selectMemberUsersFromResponse,
@@ -37,11 +37,11 @@ export function useOrganizationMemberSearch(): MemberSearchResult {
 
   return {
     members,
-    fetching: defaultMembersQuery.isPending || searchMembersQuery.isFetching,
-    initiallyLoaded: defaultMembersQuery.isFetched,
-    fetchError:
-      (searchMembersQuery.error as RequestError | null) ??
-      (defaultMembersQuery.error as RequestError | null),
+    isPending: defaultMembersQuery.isPending || searchMembersQuery.isFetching,
+    isFetched: defaultMembersQuery.isFetched,
+    error:
+      getRequestError(searchMembersQuery.error) ??
+      getRequestError(defaultMembersQuery.error),
     onSearch: handleSearch,
   };
 }

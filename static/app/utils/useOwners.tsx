@@ -26,13 +26,13 @@ export function useOwners({currentValue}: Options) {
         .map(user => user.replace(/^user:/, '')),
     [currentValue]
   );
-  const {members: ensuredMembers, fetching: fetchingEnsuredMembers} = useMembers({
+  const {members: ensuredMembers, isPending: isEnsuringMembers} = useMembers({
     ids: ensureUserIds ?? [],
   });
 
   const {
     members: defaultMembers,
-    fetching: fetchingMembers,
+    isPending: isLoadingMembers,
     onSearch: onMemberSearch,
   } = useOrganizationMemberSearch();
   const members = useMemo(
@@ -74,7 +74,7 @@ export function useOwners({currentValue}: Options) {
   return {
     members,
     teams,
-    fetching: fetchingEnsuredMembers || fetchingMembers || fetchingTeams,
+    fetching: isEnsuringMembers || isLoadingMembers || fetchingTeams,
     onMemberSearch,
     onTeamSearch,
   };

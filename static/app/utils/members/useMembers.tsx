@@ -2,10 +2,10 @@ import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import type {User} from 'sentry/types/user';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
+  getRequestError,
   membersQueryOptions,
   type MemberResult,
   selectMemberUsersFromResponse,
@@ -14,19 +14,19 @@ import {
 type UseMembersOptions =
   | {
       /**
+       * Fetches specified members by id if necessary and only provides those
+       * members.
+       */
+      ids: string[];
+      emails?: never;
+    }
+  | {
+      /**
        * When provided, fetches specified members by email if necessary and only
        * provides those members.
        */
       emails: string[];
-      ids?: string[];
-    }
-  | {
-      /**
-       * When provided, fetches specified members by id if necessary and only
-       * provides those members.
-       */
-      ids: string[];
-      emails?: string[];
+      ids?: never;
     };
 
 function normalizeMemberValues(values: string[] | undefined) {
@@ -76,8 +76,8 @@ export function useMembers({ids, emails}: UseMembersOptions): MemberResult {
 
   return {
     members,
-    fetching: hasFilters && query.isPending,
-    initiallyLoaded: !hasFilters || query.isFetched,
-    fetchError: query.error as RequestError | null,
+    isPending: hasFilters && query.isPending,
+    isFetched: !hasFilters || query.isFetched,
+    error: getRequestError(query.error),
   };
 }

@@ -85,14 +85,14 @@ describe('useMembers', () => {
     const {result} = renderHookWithProviders(useOrganizationMemberSearch, {
       organization: org,
     });
-    await waitFor(() => expect(result.current.initiallyLoaded).toBe(true));
+    await waitFor(() => expect(result.current.isFetched).toBe(true));
     const {onSearch} = result.current;
 
     // Works with append
     await act(() => onSearch('test'));
 
     await waitFor(() => expect(result.current.members).toHaveLength(3));
-    expect(result.current.fetching).toBe(false);
+    expect(result.current.isPending).toBe(false);
 
     expect(initialRequest).toHaveBeenCalledTimes(1);
     expect(searchRequest).toHaveBeenCalled();
@@ -116,8 +116,8 @@ describe('useMembers', () => {
 
     const {result} = renderUseMembers({ids: []});
 
-    expect(result.current.initiallyLoaded).toBe(true);
-    expect(result.current.fetching).toBe(false);
+    expect(result.current.isFetched).toBe(true);
+    expect(result.current.isPending).toBe(false);
     expect(result.current.members).toEqual([]);
     expect(mockRequest).not.toHaveBeenCalled();
   });
@@ -132,7 +132,7 @@ describe('useMembers', () => {
 
     const {result} = renderUseMembers({emails: ['foo@test.com']});
 
-    expect(result.current.initiallyLoaded).toBe(false);
+    expect(result.current.isFetched).toBe(false);
 
     await waitFor(() => expect(result.current.members).toHaveLength(1));
 
@@ -151,33 +151,13 @@ describe('useMembers', () => {
 
     const {result} = renderUseMembers({ids: ['10']});
 
-    expect(result.current.initiallyLoaded).toBe(false);
+    expect(result.current.isFetched).toBe(false);
 
     await waitFor(() => expect(result.current.members).toHaveLength(1));
 
     expect(mockRequest).toHaveBeenCalled();
     const {members} = result.current;
     expect(members).toEqual(expect.arrayContaining([userFoo]));
-  });
-
-  it('combines id and email filters', async () => {
-    const userFoo = UserFixture({id: '10', email: 'foo@test.com'});
-    const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
-      method: 'GET',
-      body: [{user: userFoo}],
-    });
-
-    const {result} = renderUseMembers({ids: ['10'], emails: ['foo@test.com']});
-
-    await waitFor(() => expect(result.current.initiallyLoaded).toBe(true));
-
-    expect(mockRequest).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/members/`,
-      expect.objectContaining({
-        query: {query: 'user.id:10 email:foo@test.com'},
-      })
-    );
   });
 
   it('only provides emails that were requested', async () => {
@@ -191,11 +171,11 @@ describe('useMembers', () => {
 
     const {result} = renderUseMembers({emails: [mockUsers[0]!.email]});
 
-    await waitFor(() => expect(result.current.initiallyLoaded).toBe(true));
+    await waitFor(() => expect(result.current.isFetched).toBe(true));
 
-    const {members, initiallyLoaded} = result.current;
+    const {members, isFetched} = result.current;
     expect(mockRequest).toHaveBeenCalled();
-    expect(initiallyLoaded).toBe(true);
+    expect(isFetched).toBe(true);
     expect(members).toEqual([requestedUser]);
   });
 });

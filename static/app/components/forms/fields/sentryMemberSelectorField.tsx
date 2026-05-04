@@ -11,7 +11,7 @@ export function SentryMemberSelectorField({
   multiple = false,
   ...props
 }: InputFieldProps) {
-  const {members, fetching, onSearch} = useOrganizationMemberSearch();
+  const {members, isPending, onSearch} = useOrganizationMemberSearch();
   const memberOptions =
     members?.map(member => ({
       value: parseInt(member.id, 10),
@@ -23,7 +23,7 @@ export function SentryMemberSelectorField({
     <SelectField
       placeholder={placeholder}
       options={memberOptions}
-      isLoading={fetching}
+      isLoading={isPending}
       onInputChange={(value: any) => {
         onSearch(value);
       }}
