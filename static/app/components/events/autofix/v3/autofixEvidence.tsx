@@ -14,17 +14,34 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 interface AutofixEvidenceProps {
   evidenceButtonProps: EvidenceButtonProps;
+  groupId: string;
+  toolCall: ToolCall;
 }
 
-export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
+export function AutofixEvidence({
+  evidenceButtonProps,
+  groupId,
+  toolCall,
+}: AutofixEvidenceProps) {
+  const organization = useOrganization();
   const {label, icon, tooltip, ...rest} = evidenceButtonProps;
+
+  const handleClick = () => {
+    trackAnalytics('autofix.evidence.clicked', {
+      organization,
+      group_id: groupId,
+      tool_name: toolCall.function,
+    });
+  };
 
   if ('to' in rest && defined(rest.to)) {
     return (
@@ -33,6 +50,7 @@ export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
         size="zero"
         to={rest.to}
         openInNewTab
+        onClick={handleClick}
         tooltipProps={tooltip ? {title: tooltip} : undefined}
       >
         {label}
@@ -47,6 +65,7 @@ export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
         size="zero"
         href={rest.href}
         external
+        onClick={handleClick}
         tooltipProps={tooltip ? {title: tooltip} : undefined}
       >
         {label}
