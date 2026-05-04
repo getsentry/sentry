@@ -97,6 +97,13 @@ class SeerAgentChatSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Override code mode tools: 'off', 'on', 'only', or boolean for backwards compat.",
     )
+    ui_tools = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        help_text="JSON-encoded tool definitions for client-side UI tools.",
+    )
 
 
 class OrganizationSeerAgentChatPermission(OrganizationPermission):
@@ -207,6 +214,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         page_name = validated_data.get("page_name")
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
+        ui_tools = (
+            validated_data.get("ui_tools")
+            if features.has(
+                "organizations:seer-explorer-ui-tools", organization, actor=request.user
+            )
+            else None
+        )
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -248,6 +262,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     insert_index=insert_index,
                     on_page_context=on_page_context,
                     page_name=page_name,
+                    ui_tools=ui_tools,
                     request=request,
                 )
             else:
@@ -256,6 +271,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     prompt=query,
                     on_page_context=on_page_context,
                     page_name=page_name,
+                    ui_tools=ui_tools,
                     override_ce_enable=override_ce_enable,
                     request=request,
                 )

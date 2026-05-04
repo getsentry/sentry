@@ -3757,6 +3757,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Routes the seen-stats / TSDB conditions through `get_snuba_column_name`
+# so a column-name-vs-tag-name collision (e.g. user tag named `platform`)
+# resolves to the tag, matching the issue surfacing query. Without this,
+# `resolve_column`'s DATASET_FIELDS shortcut treats user-typed bare column
+# names as column references and the badge disagrees with surfacing.
+register(
+    "issues.search.use-tag-aware-condition-resolver",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rate limiting for the occurrence consumer
 register(
     "issues.occurrence-consumer.rate-limit.quota",
