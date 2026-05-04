@@ -89,7 +89,14 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         name="email",
         raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
     ),
-    ParameterizationRegex(name="url", raw_pattern=r"""\b(wss?|https?|ftp)://[^\s/$.?#].[^\s]*"""),
+    ParameterizationRegex(
+        name="url",
+        raw_pattern=r"""
+            \b(wss?|https?|ftp)
+            ://
+            [^\s/$.?#].[^\s]*
+        """,
+    ),
     ParameterizationRegex(
         name="hostname",
         raw_pattern=r"""
