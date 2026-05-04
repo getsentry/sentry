@@ -68,7 +68,7 @@ def _make_generate_external_issue_details_request(
         prompt=f"Generate a title and description for this Sentry error:\n\n{context}",
         system_prompt=SYSTEM_PROMPT,
         temperature=0.3,
-        max_tokens=500,
+        max_tokens=750,
         response_schema={
             "type": "object",
             "properties": {
