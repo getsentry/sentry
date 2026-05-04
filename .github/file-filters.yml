@@ -108,6 +108,12 @@ acceptance: &acceptance
   - '.github/workflows/acceptance.yml'
   - '.github/actions/collect-test-data/**'
 
+# Used in `getsentry-dispatch.js` to decide whether to run getsentry's
+# acceptance suite against a sentry PR. Scoped to gsApp and gsAdmin
+# frontend changes (both have acceptance tests in getsentry).
+gsapp: &gsapp
+  - added|deleted|modified: 'static/{gsApp,gsAdmin}/**/*.{ts,tsx}'
+
 api_docs: &api_docs
   - *backend_all
   - 'api-docs/**'
