@@ -7,6 +7,7 @@ import {
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from 'react';
 import {createPortal} from 'react-dom';
 import * as Sentry from '@sentry/react';
@@ -77,6 +78,10 @@ type SlotReducerAction<T extends Slot> =
       contextBridges: ContextBridge[];
       name: T;
       type: 'set context bridges';
+    }
+  | {
+      name: T;
+      type: 'remove context bridges';
     };
 
 type SlotReducer<T extends Slot> = React.Reducer<
@@ -153,6 +158,17 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
           },
         };
       }
+      case 'remove context bridges': {
+        const currentSlot = state[action.name];
+        return {
+          ...state,
+          [action.name]: {
+            contextBridges: [],
+            counter: currentSlot?.counter ?? 0,
+            element: currentSlot?.element ?? null,
+          },
+        };
+      }
       default:
         return state;
     }
@@ -184,20 +200,25 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
   useSlotOutletRef: () => React.RefObject<HTMLElement | null>;
 };
 
-function useContextBridges(contexts: Array<React.Context<any>>): ContextBridge[] {
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- safe: contexts is a module constant with stable length
-  const values = contexts.map(ctx => useContext(ctx));
-  const prevRef = useRef<ContextBridge[]>([]);
+function useContextBridges(): ContextBridge[] {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- safe: KNOWN_BRIDGED_CONTEXTS is a module constant with stable length
+  const values = KNOWN_BRIDGED_CONTEXTS.map(ctx => useContext(ctx));
+  const [prev, setPrev] = useState<ContextBridge[]>([]);
 
   const changed =
-    prevRef.current.length !== contexts.length ||
-    prevRef.current.some((bridge, i) => bridge.value !== values[i]);
+    prev.length !== KNOWN_BRIDGED_CONTEXTS.length ||
+    prev.some((bridge, i) => bridge.value !== values[i]);
 
   if (changed) {
-    prevRef.current = contexts.map((ctx, i) => ({context: ctx, value: values[i]}));
+    const next = KNOWN_BRIDGED_CONTEXTS.map((ctx, i) => ({
+      context: ctx,
+      value: values[i],
+    }));
+    setPrev(next);
+    return next;
   }
 
-  return prevRef.current;
+  return prev;
 }
 
 function makeSlotConsumer<T extends Slot>(options: {
@@ -281,11 +302,11 @@ function makeSlotOutlet<T extends Slot>(
     const [, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
     const {name} = props;
 
-    const contextBridges = useContextBridges(KNOWN_BRIDGED_CONTEXTS);
+    const contextBridges = useContextBridges();
 
     useLayoutEffect(() => {
       dispatch({type: 'set context bridges', name, contextBridges});
-      return () => dispatch({type: 'set context bridges', name, contextBridges: []});
+      return () => dispatch({type: 'remove context bridges', name});
     }, [dispatch, name, contextBridges]);
 
     const ref = useCallback(
