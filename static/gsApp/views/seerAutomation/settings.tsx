@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,13 +6,11 @@ import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
@@ -25,39 +22,13 @@ import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
-const schema = z.object({
-  defaultAutofixAutomationTuning: z.boolean(), // The API stores this as an enum, but it is displayed as a boolean toggle.
-  autoOpenPrs: z.boolean(),
-  autoEnableCodeReview: z.boolean(),
-  defaultCodeReviewTriggers: z.array(z.enum(['on_new_commit', 'on_ready_for_review'])),
-});
-
 export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
   const scmOverviewData = useSCMOverviewSection();
 
-  const orgEndpoint = `/organizations/${organization.slug}/`;
-  const orgMutationOpts = mutationOptions({
-    mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
-    onSuccess: updateOrganization,
-  });
-  const autofixTuningMutationOpts = mutationOptions({
-    mutationFn: (data: {defaultAutofixAutomationTuning: boolean}) =>
-      fetchMutation<Organization>({
-        method: 'PUT',
-        url: orgEndpoint,
-        data: {
-          // All values other than 'off' are converted to 'medium'
-          defaultAutofixAutomationTuning: data.defaultAutofixAutomationTuning
-            ? 'medium'
-            : 'off',
-        },
-      }),
-    onSuccess: updateOrganization,
-  });
+  const orgMutationOpts = useOrganizationMutationOptions(organization);
 
   return (
     <SeerSettingsPageWrapper>
@@ -109,12 +80,16 @@ export function SeerAutomationSettings() {
             >
               <AutoSaveForm
                 name="defaultAutofixAutomationTuning"
-                schema={schema}
-                initialValue={Boolean(
-                  organization.defaultAutofixAutomationTuning &&
-                  organization.defaultAutofixAutomationTuning !== 'off'
-                )}
-                mutationOptions={autofixTuningMutationOpts}
+                schema={z.object({
+                  defaultAutofixAutomationTuning: z.enum(['medium', 'off']), // The API stores this as an enum, but it is displayed as a boolean toggle.
+                })}
+                initialValue={
+                  !organization.defaultAutofixAutomationTuning ||
+                  organization.defaultAutofixAutomationTuning === 'off'
+                    ? 'off'
+                    : 'medium'
+                }
+                mutationOptions={orgMutationOpts}
               >
                 {field => (
                   <field.Layout.Row
@@ -129,8 +104,8 @@ export function SeerAutomationSettings() {
                     )}
                   >
                     <field.Switch
-                      checked={field.state.value}
-                      onChange={field.handleChange}
+                      checked={field.state.value === 'medium'}
+                      onChange={value => field.handleChange(value ? 'medium' : 'off')}
                       disabled={!canWrite}
                     />
                   </field.Layout.Row>
@@ -138,7 +113,9 @@ export function SeerAutomationSettings() {
               </AutoSaveForm>
               <AutoSaveForm
                 name="autoOpenPrs"
-                schema={schema}
+                schema={z.object({
+                  autoOpenPrs: z.boolean(),
+                })}
                 initialValue={organization.autoOpenPrs ?? false}
                 mutationOptions={orgMutationOpts}
               >
@@ -212,7 +189,9 @@ export function SeerAutomationSettings() {
             >
               <AutoSaveForm
                 name="autoEnableCodeReview"
-                schema={schema}
+                schema={z.object({
+                  autoEnableCodeReview: z.boolean(),
+                })}
                 initialValue={organization.autoEnableCodeReview ?? true}
                 mutationOptions={orgMutationOpts}
               >
@@ -233,7 +212,11 @@ export function SeerAutomationSettings() {
               </AutoSaveForm>
               <AutoSaveForm
                 name="defaultCodeReviewTriggers"
-                schema={schema}
+                schema={z.object({
+                  defaultCodeReviewTriggers: z.array(
+                    z.enum(['on_new_commit', 'on_ready_for_review'])
+                  ),
+                })}
                 initialValue={
                   organization.defaultCodeReviewTriggers ?? DEFAULT_CODE_REVIEW_TRIGGERS
                 }
