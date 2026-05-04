@@ -13,6 +13,7 @@ from sentry.middleware.integrations.tasks import (
     convert_to_async_discord_response,
     convert_to_async_slack_response,
     route_slack_seer_event,
+    update_linking_message,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
@@ -372,6 +373,8 @@ class RouteSlackSeerEventTest(TestCase):
         assert cached["event_type"] == "app_mention"
         assert cached["message_text"] == "hello"
         assert cached["payload"] == self.payload
+        # response_url is populated later by the LINK_IDENTITY click handler.
+        assert cached["response_url"] is None
 
     @patch("sentry.middleware.integrations.tasks.send_halt_message")
     @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
@@ -400,3 +403,50 @@ class RouteSlackSeerEventTest(TestCase):
     def test_missing_integration_is_noop(self, mock_resolve: MagicMock) -> None:
         self._run_task(integration_id=99999)
         mock_resolve.assert_not_called()
+
+
+@control_silo_test
+class UpdateLinkingMessageTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.response_url = (
+            "https://hooks.slack.com/actions/T47563693/6204672533/x7ZLaiVMoECAW50Gw1ZYAXEM"
+        )
+
+    @patch("slack_sdk.webhook.WebhookClient.send")
+    def test_replaces_original_via_response_url(self, mock_send: MagicMock) -> None:
+        from slack_sdk.webhook import WebhookResponse
+
+        mock_send.return_value = WebhookResponse(
+            url=self.response_url, body='{"ok":true}', headers={}, status_code=200
+        )
+
+        update_linking_message(
+            response_url=self.response_url,
+            integration_id=42,
+            slack_user_id="U_SLACK",
+        )
+
+        mock_send.assert_called_once()
+        kwargs = mock_send.call_args.kwargs
+        assert kwargs["replace_original"] is True
+        assert "text" in kwargs and kwargs["text"]
+
+    @patch("sentry.middleware.integrations.tasks.logger.warning")
+    @patch("slack_sdk.webhook.WebhookClient.send")
+    def test_logs_warning_on_non_200(self, mock_send: MagicMock, mock_warn: MagicMock) -> None:
+        from slack_sdk.webhook import WebhookResponse
+
+        mock_send.return_value = WebhookResponse(
+            url=self.response_url, body="expired", headers={}, status_code=404
+        )
+
+        update_linking_message(
+            response_url=self.response_url,
+            integration_id=42,
+            slack_user_id="U_SLACK",
+        )
+
+        mock_warn.assert_called_once()
+        assert mock_warn.call_args.args[0] == "update_linking_message.non_200"
+        assert mock_warn.call_args.kwargs["extra"]["status_code"] == 404

@@ -7,7 +7,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.utils.notifications import SlackCommandResponse
 from sentry.integrations.slack.views.linkage import SlackIdentityLinkageView
-from sentry.middleware.integrations.tasks import route_slack_seer_event
+from sentry.middleware.integrations.tasks import route_slack_seer_event, update_linking_message
 from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
 from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
 from sentry.seer.entrypoints.types import SeerEntrypointKey
@@ -73,6 +73,15 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
         )
         if cached is None:
             return
+
+        if cached["response_url"]:
+            update_linking_message.apply_async(
+                kwargs={
+                    "response_url": cached["response_url"],
+                    "integration_id": cached["integration_id"],
+                    "slack_user_id": cached["slack_user_id"],
+                }
+            )
 
         route_slack_seer_event.apply_async(
             kwargs={

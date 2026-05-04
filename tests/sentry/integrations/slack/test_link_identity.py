@@ -137,8 +137,11 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
 
+    @patch("sentry.integrations.slack.views.link_identity.update_linking_message.apply_async")
     @patch("sentry.integrations.slack.views.link_identity.route_slack_seer_event.apply_async")
-    def test_replays_cached_pending_mention_on_link(self, mock_apply_async: MagicMock) -> None:
+    def test_replays_cached_pending_mention_on_link(
+        self, mock_apply_async: MagicMock, mock_update_linking: MagicMock
+    ) -> None:
         from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
         from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
         from sentry.seer.entrypoints.types import SeerEntrypointKey
@@ -152,6 +155,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
             message_ts="123.456",
             event_type="app_mention",
             message_text="hello",
+            response_url=None,
         )
         SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
             entrypoint_key=str(SeerEntrypointKey.SLACK),
@@ -165,7 +169,11 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
         self.client.post(linking_url)
 
-        mock_apply_async.assert_called_once_with(kwargs=dict(cached_payload))
+        # route_slack_seer_event gets the original mention kwargs (no response_url).
+        expected_kwargs = {k: v for k, v in cached_payload.items() if k != "response_url"}
+        mock_apply_async.assert_called_once_with(kwargs=expected_kwargs)
+        # No response_url cached, so no message-update task is dispatched.
+        mock_update_linking.assert_not_called()
         # Cache is popped after replay.
         assert (
             SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
@@ -176,14 +184,60 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
             is None
         )
 
+    @patch("sentry.integrations.slack.views.link_identity.update_linking_message.apply_async")
     @patch("sentry.integrations.slack.views.link_identity.route_slack_seer_event.apply_async")
-    def test_no_replay_when_cache_empty(self, mock_apply_async: MagicMock) -> None:
+    def test_dispatches_update_linking_when_response_url_present(
+        self, mock_apply_async: MagicMock, mock_update_linking: MagicMock
+    ) -> None:
+        from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
+        from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
+        from sentry.seer.entrypoints.types import SeerEntrypointKey
+
+        click_response_url = "https://hooks.slack.com/actions/T1/2/click-token"
+        cached_payload = SlackPendingMentionPayload(
+            payload={"method": "POST", "path": "/extensions/slack/event/"},
+            integration_id=self.integration.id,
+            slack_user_id=self.external_id,
+            channel_id="C1",
+            thread_ts="100.000",
+            message_ts="123.456",
+            event_type="app_mention",
+            message_text="hello",
+            response_url=click_response_url,
+        )
+        SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
+            entrypoint_key=str(SeerEntrypointKey.SLACK),
+            integration_id=self.integration.id,
+            user_ext_id=self.external_id,
+            cache_payload=cached_payload,
+        )
+
+        linking_url = build_linking_url(
+            self.integration, self.external_id, self.channel_id, self.response_url
+        )
+        self.client.post(linking_url)
+
+        mock_update_linking.assert_called_once_with(
+            kwargs={
+                "response_url": click_response_url,
+                "integration_id": self.integration.id,
+                "slack_user_id": self.external_id,
+            }
+        )
+        mock_apply_async.assert_called_once()
+
+    @patch("sentry.integrations.slack.views.link_identity.update_linking_message.apply_async")
+    @patch("sentry.integrations.slack.views.link_identity.route_slack_seer_event.apply_async")
+    def test_no_replay_when_cache_empty(
+        self, mock_apply_async: MagicMock, mock_update_linking: MagicMock
+    ) -> None:
         linking_url = build_linking_url(
             self.integration, self.external_id, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 
         mock_apply_async.assert_not_called()
+        mock_update_linking.assert_not_called()
 
     def test_overwrites_existing_identities_with_sdk(self) -> None:
         external_id_2 = "slack-id2"

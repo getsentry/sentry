@@ -744,9 +744,11 @@ class SlackActionEndpoint(Endpoint):
         if action_id in {
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-            SlackAction.LINK_IDENTITY.value,
         }:
             return self.respond()
+
+        if action_id == SlackAction.LINK_IDENTITY.value:
+            return self.handle_link_identity(slack_request)
 
         if action_option in UNFURL_ACTION_OPTIONS:
             return self.handle_unfurl(slack_request, action_option)
@@ -885,6 +887,41 @@ class SlackActionEndpoint(Endpoint):
         )
 
         webhook_client.send(text=message, replace_original=False, response_type="in_channel")
+        return self.respond()
+
+    def handle_link_identity(self, slack_request: SlackActionRequest) -> Response:
+        """
+        Stash the response_url from the LINK_IDENTITY button click on the existing
+        pending-mention cache entry, so the post-link flow can update the original
+        ephemeral halt message via response_url + replace_original=true.
+        """
+        from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
+        from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
+        from sentry.seer.entrypoints.types import SeerEntrypointKey
+
+        entrypoint_key = str(SeerEntrypointKey.SLACK)
+        integration_id = slack_request.integration.id
+        user_ext_id = slack_request.user_id
+        response_url = slack_request.response_url
+
+        if not user_ext_id or not response_url:
+            return self.respond()
+
+        pending = SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
+            entrypoint_key=entrypoint_key,
+            integration_id=integration_id,
+            user_ext_id=user_ext_id,
+        )
+        if pending is None:
+            return self.respond()
+
+        pending["response_url"] = response_url
+        SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
+            entrypoint_key=entrypoint_key,
+            integration_id=integration_id,
+            user_ext_id=user_ext_id,
+            cache_payload=pending,
+        )
         return self.respond()
 
 

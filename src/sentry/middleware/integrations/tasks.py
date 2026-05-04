@@ -256,6 +256,7 @@ def route_slack_seer_event(
                     message_ts=message_ts,
                     event_type=event_type,
                     message_text=message_text,
+                    response_url=None,
                 ),
             )
         send_halt_message(
@@ -277,3 +278,42 @@ def route_slack_seer_event(
         logger.exception("route_slack_seer_event.cell_resolution_error", extra=logging_ctx)
         return
     _AsyncSlackSeerDispatcher(payload, response_url="").dispatch([cell.name])
+
+
+@instrumented_task(
+    name="sentry.middleware.integrations.tasks.update_linking_message",
+    namespace=integrations_control_tasks,
+    retry=Retry(times=2, delay=5),
+    silo_mode=SiloMode.CONTROL,
+)
+def update_linking_message(
+    *,
+    response_url: str,
+    integration_id: int,
+    slack_user_id: str,
+) -> None:
+    """
+    Replace the original 'Connect to Sentry' ephemeral halt message with a
+    'linked!' confirmation, using Slack's response_url + replace_original=true.
+    """
+    from slack_sdk.webhook import WebhookClient
+
+    logging_ctx = {
+        "integration_id": integration_id,
+        "slack_user_id": slack_user_id,
+    }
+
+    webhook_client = WebhookClient(response_url)
+    response = webhook_client.send(
+        text="Your Slack account was successfully linked!",
+        replace_original=True,
+    )
+
+    if response.status_code != 200:
+        logger.warning(
+            "update_linking_message.non_200",
+            extra={**logging_ctx, "status_code": response.status_code, "body": response.body},
+        )
+        return
+
+    logger.info("update_linking_message.success", extra=logging_ctx)
