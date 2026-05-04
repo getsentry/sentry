@@ -86,11 +86,15 @@ describe('mobile vitals prebuilt dashboards', () => {
       'total-warm-start-count-big-number',
     ]) {
       const query = getQuery(MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG, widgetId);
+      const expectedSpanOp =
+        widgetId === 'total-cold-start-count-big-number'
+          ? 'app.start.cold'
+          : 'app.start.warm';
 
       expect(query.fields).toEqual([TRANSACTION_COUNT]);
       expect(query.aggregates).toEqual([TRANSACTION_COUNT]);
       expect(query.conditions).toContain(`${SpanFields.IS_TRANSACTION}:true`);
-      expect(query.conditions).toContain(`${SpanFields.SPAN_OP}:app.start`);
+      expect(query.conditions).toContain(`${SpanFields.SPAN_OP}:${expectedSpanOp}`);
     }
   });
 
