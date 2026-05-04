@@ -111,6 +111,25 @@ class WebhookCircuitBreakerTest(TestCase):
         # Webhook is blocked — no HTTP call made
         mock_safe_urlopen.assert_not_called()
 
+    @with_feature(
+        [
+            "organizations:sentry-app-webhook-circuit-breaker",
+            "organizations:sentry-app-webhook-circuit-breaker-live-run",
+        ]
+    )
+    @override_options(
+        {**CIRCUIT_BREAKER_OPTIONS, "sentry-apps.webhook.circuit-breaker.dry-run": True}
+    )
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_live_run_flag_overrides_dry_run_and_blocks(self, MockBreaker, mock_safe_urlopen):
+        """Live-run flag takes precedence over dry-run option, blocking the webhook."""
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = False
+
+        send_and_save_webhook_request(self.sentry_app, self._make_event())
+        mock_safe_urlopen.assert_not_called()
+
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -271,6 +290,31 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
         MockService.return_value.notify_async.assert_not_called()
+
+    @with_feature(
+        [
+            "organizations:sentry-app-webhook-circuit-breaker",
+            "organizations:sentry-app-webhook-circuit-breaker-live-run",
+        ]
+    )
+    @override_options(
+        {**CIRCUIT_BREAKER_OPTIONS, "sentry-apps.webhook.circuit-breaker.dry-run": True}
+    )
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_live_run_flag_sends_email_despite_dry_run_option(
+        self, MockBreaker, mock_safe_urlopen, MockService
+    ):
+        """Live-run flag takes precedence over dry-run option, sending the real email."""
+        self._configure_breaker(MockBreaker, is_open=True)
+        MockService.has_access.return_value = True
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        MockService.return_value.notify_async.assert_called_once()
 
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
