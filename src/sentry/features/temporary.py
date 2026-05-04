@@ -497,6 +497,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-equations-in-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable equations in trace metrics explore
     manager.add("organizations:tracemetrics-equations-in-explore", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable equations for trace metrics in dashboards
+    manager.add("organizations:tracemetrics-equations-in-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics multi-metric selection in dashboards

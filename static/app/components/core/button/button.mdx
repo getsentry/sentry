@@ -70,25 +70,25 @@ To create a basic button, wrap text in a `<Button>` and pass an `onClick` callba
 
 ## Priorities
 
-Buttons come in a few different styles: `muted`, `primary`, `warning`, `danger`, `transparent` and `link`.
+Buttons come in a few different styles: `primary`, `secondary` (default), `warning`, `danger`, `transparent`, and `link`.
 
 <Storybook.Demo>
-  <Button priority="default">Default</Button>
-  <Button priority="primary">Primary</Button>
-  <Button priority="warning">Warning</Button>
-  <Button priority="danger">Danger</Button>
-  <Button priority="transparent">Transparent</Button>
+  <Button variant="transparent">Default</Button>
+  <Button variant="primary">Primary</Button>
+  <Button variant="warning">Warning</Button>
+  <Button variant="danger">Danger</Button>
+  <Button variant="transparent">Transparent</Button>
   <div style={{alignSelf: 'center'}}>
-    <Button priority="link">Link</Button>
+    <Button variant="link">Link</Button>
   </div>
 </Storybook.Demo>
 ```jsx
-<Button priority="default">Default (default)</Button>
-<Button priority="primary">Primary</Button>
-<Button priority="warning">Warning</Button>
-<Button priority="danger">Danger</Button>
-<Button priority="transparent">Transparent</Button>
-<Button priority="link">Link</Button>
+<Button variant="transparent">Default (default)</Button>
+<Button variant="primary">Primary</Button>
+<Button variant="warning">Warning</Button>
+<Button variant="danger">Danger</Button>
+<Button variant="transparent">Transparent</Button>
+<Button variant="link">Link</Button>
 ```
 
 ## Sizes
@@ -118,12 +118,12 @@ Buttons support an optional leading icon.
 > button size.
 
 <Storybook.Demo>
-  <Button icon={<IconAdd />} priority="primary">
+  <Button icon={<IconAdd />} variant="primary">
     Add
   </Button>
 </Storybook.Demo>
 ```jsx
-<Button icon={<IconAdd />} priority="primary">
+<Button icon={<IconAdd />} variant="primary">
   Add
 </Button>
 ```
@@ -167,13 +167,13 @@ Disabled buttons should be used to indicate that an action is not available.
 
 <Storybook.Demo>
   <Button disabled>Cancel</Button>
-  <Button disabled priority="primary">
+  <Button disabled variant="primary">
     Submit
   </Button>
 </Storybook.Demo>
 ```jsx
 <Button disabled>Cancel</Button>
-<Button disabled priority="primary">
+<Button disabled variant="primary">
   Submit
 </Button>
 ```
@@ -193,10 +193,14 @@ export function BusyDemo() {
   };
   return (
     <Flex gap="md">
-      <Button busy={busy.cancel} priority="default" onClick={() => handleClick('cancel')}>
+      <Button
+        busy={busy.cancel}
+        variant="transparent"
+        onClick={() => handleClick('cancel')}
+      >
         Cancel
       </Button>
-      <Button busy={busy.submit} priority="primary" onClick={() => handleClick('submit')}>
+      <Button busy={busy.submit} variant="primary" onClick={() => handleClick('submit')}>
         Submit
       </Button>
     </Flex>
@@ -209,14 +213,14 @@ export function BusyDemo() {
 ```jsx
 <Flex gap="md">
   <Button
-    priority="secondary"
+    variant="secondary"
     busy={cancelMutation.isPending}
     onClick={cancelMutation.mutateAsync}
   >
     Cancel
   </Button>
   <Button
-    priority="primary"
+    variant="primary"
     busy={submitMutation.isPending}
     onClick={submitMutation.mutateAsync}
   >
