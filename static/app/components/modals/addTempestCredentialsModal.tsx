@@ -38,8 +38,8 @@ export default function AddCredentialsModal({
 }: Props) {
   const {invalidateCredentialsCache} = useFetchTempestCredentials(organization, project);
 
-  const mutation = useMutation<unknown, RequestError, FormValues>({
-    mutationFn: data =>
+  const mutation = useMutation({
+    mutationFn: (data: FormValues) =>
       fetchMutation({
         url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/`,
         method: 'POST',
