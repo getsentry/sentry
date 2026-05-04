@@ -30,8 +30,8 @@ ARGS:
 - max_segment_bytes -- int -- Maximum allowed ingested bytes for a segment. 0 means no limit.
 - salt -- str -- Unique identifier for this subsegment. When the segment exceeds max_segment_bytes, this subsegment
                  is detached into its own segment keyed by salt.
-- flush_lock_ttl -- int -- TTL of the per-segment flush lock. When > 0, this script checks for the lock
-                           and detaches the subsegment under salt if the segment is currently being flushed.
+- check_flush_lock -- "true" or "false" -- When true, this script checks for the per-segment flush lock and detaches
+                                           the subsegment if the target segment is currently being flushed.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:
@@ -74,7 +74,7 @@ local set_timeout = tonumber(ARGV[4])
 local byte_count = tonumber(ARGV[5])
 local max_segment_bytes = tonumber(ARGV[6])
 local salt = ARGV[7] or ""
-local flush_lock_ttl = tonumber(ARGV[8]) or 0
+local check_flush_lock = ARGV[8] == "true"
 local NUM_ARGS = 8
 
 local function get_time_ms()
@@ -147,7 +147,7 @@ end
 -- this subsegment its own segment with salt as the identifier.
 local segment_too_large = max_segment_bytes > 0 and tonumber(ingested_byte_count) + byte_count > max_segment_bytes
 local segment_locked = false
-if flush_lock_ttl > 0 then
+if check_flush_lock then
     local flush_lock_key = string.format("span-buf:fl:%s", set_key)
     segment_locked = redis.call("exists", flush_lock_key) == 1
 end

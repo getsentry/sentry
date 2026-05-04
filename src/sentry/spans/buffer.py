@@ -301,6 +301,7 @@ class SpansBuffer:
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         flush_lock_ttl = options.get("spans.buffer.flusher.flush-lock-ttl")
+        check_flush_lock = "true" if flush_lock_ttl > 0 else "false"
         result_meta = []
         is_root_span_count = 0
 
@@ -373,7 +374,7 @@ class SpansBuffer:
                             byte_count,
                             max_segment_bytes,
                             salt,
-                            flush_lock_ttl,
+                            check_flush_lock,
                             *span_ids,
                         )
 
