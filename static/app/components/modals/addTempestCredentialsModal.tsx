@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -67,6 +67,8 @@ export default function AddCredentialsModal({
         .catch(error => {
           if (error instanceof RequestError) {
             setFieldErrors(formApi, error);
+          } else {
+            addErrorMessage(t('Unable to add credentials'));
           }
         }),
   });
