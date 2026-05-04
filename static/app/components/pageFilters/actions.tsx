@@ -32,7 +32,16 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 type EnvironmentId = Environment['id'];
 
+type AdditionalParams = Record<string, string | string[] | null | undefined>;
+
 type Options = {
+  /**
+   * Extra query params to merge into the URL alongside the page-filter
+   * params. Useful when a callsite needs to write a sibling param (e.g. a
+   * chart interval that derives from the datetime) in the same navigate so
+   * other URL-watching effects don't see an intermediate state.
+   */
+  additionalParams?: AdditionalParams;
   /**
    * Do not reset the `cursor` query parameter when updating page filters
    */
@@ -102,6 +111,10 @@ function mergeDatetime(
   return datetime;
 }
 
+export type GetAdditionalUrlParams = (
+  datetime: PageFilters['datetime']
+) => Record<string, string | string[] | null | undefined> | undefined;
+
 export type InitializeUrlStateParams = {
   location: Location;
   memberProjects: Project[];
@@ -110,6 +123,12 @@ export type InitializeUrlStateParams = {
   organization: Organization;
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
+  /**
+   * Compute additional URL params that should be written alongside the
+   * page-filter params on initialization. Called with the resolved datetime
+   * so the caller can derive params (e.g. chart interval) from it.
+   */
+  getAdditionalUrlParams?: GetAdditionalUrlParams;
   /**
    * When set, the stats period will fallback to the `maxPickableDays` days if the stored selection exceeds the limit.
    */
@@ -164,6 +183,7 @@ export function initializeUrlState({
   showAbsolute = true,
   skipInitializeUrlParams = false,
   storageNamespace,
+  getAdditionalUrlParams,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
   const queryParams = location.query;
@@ -360,9 +380,17 @@ export function initializeUrlState({
       };
 
   if (!skipInitializeUrlParams) {
+    const resolvedDatetime: PageFilters['datetime'] = {
+      start: newDatetime.start ?? null,
+      end: newDatetime.end ?? null,
+      period: newDatetime.period ?? null,
+      utc: newDatetime.utc ?? null,
+    };
+    const additionalParams = getAdditionalUrlParams?.(resolvedDatetime);
     updateParams({project, environment, ...newDatetime}, location, navigate, {
       replace: true,
       keepCursor: true,
+      additionalParams,
     });
   }
 }
@@ -510,7 +538,7 @@ function getNewQueryParams(
   currentQuery: Location['query'],
   options: Options = {}
 ) {
-  const {resetParams, keepCursor} = options;
+  const {resetParams, keepCursor, additionalParams} = options;
 
   const cleanCurrentQuery = resetParams?.length
     ? omit(currentQuery, resetParams)
@@ -545,6 +573,9 @@ function getNewQueryParams(
     utc: utc ? 'true' : null,
     statsPeriod,
     ...extraParams,
+    // additionalParams take precedence; allows callers to override sibling
+    // params they own (e.g. interval keyed off the new datetime).
+    ...additionalParams,
   };
 
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));

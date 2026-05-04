@@ -70,6 +70,7 @@ export function PageFiltersContainer({
     skipInitializeUrlParams,
     disablePersistence,
     storageNamespace,
+    getAdditionalUrlParams,
   } = props;
   const location = useLocation();
   const navigate = useNavigate();
@@ -112,6 +113,7 @@ export function PageFiltersContainer({
       showAbsolute,
       skipInitializeUrlParams,
       storageNamespace,
+      getAdditionalUrlParams,
     });
   };
 
@@ -182,8 +184,21 @@ export function PageFiltersContainer({
       environment: [],
       project: [],
     });
-    updateDateTime(newDateState, location, navigate);
-  }, [maxPickableDays, location, navigate, selection.datetime.utc, shouldResetDateTime]);
+    const additionalParams = getAdditionalUrlParams?.({
+      start: null,
+      end: null,
+      period: `${maxPickableDays}d`,
+      utc: selection.datetime.utc,
+    });
+    updateDateTime(newDateState, location, navigate, {additionalParams});
+  }, [
+    maxPickableDays,
+    location,
+    navigate,
+    selection.datetime.utc,
+    shouldResetDateTime,
+    getAdditionalUrlParams,
+  ]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);

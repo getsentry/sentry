@@ -261,7 +261,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
-  const [interval] = useChartInterval({writeToUrl: true});
+  const [interval] = useChartInterval();
   const visualizes = useQueryParamsVisualizes();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);

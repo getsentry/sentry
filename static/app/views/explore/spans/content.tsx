@@ -25,6 +25,7 @@ import {
   MAX_DAYS_FOR_CROSS_EVENTS,
   MAX_PERIOD_FOR_CROSS_EVENTS,
 } from 'sentry/views/explore/constants';
+import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   useQueryParamsCrossEvents,
@@ -80,12 +81,17 @@ function ExploreContentInner() {
     ? CROSS_EVENTS_DATE_OVERRIDE
     : dataCategoryMaxPickableDays;
 
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const baseDatePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const getAdditionalUrlParams = useExploreUrlIntervalParams();
+  const datePageFilterProps = {...baseDatePageFilterProps, getAdditionalUrlParams};
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <SpansCommandPaletteActions />
-      <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
+      <PageFiltersContainer
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        getAdditionalUrlParams={getAdditionalUrlParams}
+      >
         <AnalyticsArea name="explore.spans">
           <Stack flex={1}>
             <SpansTabWrapper>

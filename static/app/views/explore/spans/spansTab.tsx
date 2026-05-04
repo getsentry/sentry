@@ -283,7 +283,7 @@ function SpanTabContentSectionInner({
     [timeseriesResult.data, visualizes]
   );
 
-  const [interval] = useChartInterval({writeToUrl: true});
+  const [interval] = useChartInterval();
 
   useAnalytics({
     queryType,

@@ -17,16 +17,18 @@ import {
 } from 'sentry/views/explore/errors/body';
 import {ErrorsFilterSection} from 'sentry/views/explore/errors/filterContent';
 import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
+import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 export default function ErrorsContent() {
   const organization = useOrganization();
+  const getAdditionalUrlParams = useExploreUrlIntervalParams();
   // TODO: max pickable days logic for error occurences
 
   return (
     <SentryDocumentTitle title={t('Errors')} orgSlug={organization?.slug}>
       <ErrorsHeader />
-      <PageFiltersContainer>
+      <PageFiltersContainer getAdditionalUrlParams={getAdditionalUrlParams}>
         <ExploreBodySearch>
           <ErrorsFilterSection />
         </ExploreBodySearch>

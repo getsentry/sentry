@@ -10,10 +10,12 @@ import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schem
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {StyledPageFilterBar} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function ErrorsFilterSection() {
+  const getAdditionalUrlParams = useExploreUrlIntervalParams();
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
@@ -28,7 +30,7 @@ export function ErrorsFilterSection() {
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter />
+            <DatePageFilter getAdditionalUrlParams={getAdditionalUrlParams} />
           </StyledPageFilterBar>
 
           <TraceItemSearchQueryBuilder

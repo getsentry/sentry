@@ -33,6 +33,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
+import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
@@ -215,10 +216,15 @@ export function MultiQueryModeContent() {
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const baseDatePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const getAdditionalUrlParams = useExploreUrlIntervalParams();
+  const datePageFilterProps = {...baseDatePageFilterProps, getAdditionalUrlParams};
 
   return (
-    <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
+    <PageFiltersContainer
+      maxPickableDays={datePageFilterProps.maxPickableDays}
+      getAdditionalUrlParams={getAdditionalUrlParams}
+    >
       <Content datePageFilterProps={datePageFilterProps} />
     </PageFiltersContainer>
   );

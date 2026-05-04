@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
 import {
@@ -33,16 +33,11 @@ interface Options {
   navigate: ReturnType<typeof useNavigate>;
   pagefilters: ReturnType<typeof usePageFilters>;
   unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy;
-  writeToUrl?: boolean;
 }
 
 export function useChartInterval({
   unspecifiedStrategy = ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-  writeToUrl = false,
-}: {
-  unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy;
-  writeToUrl?: boolean;
-} = {}): [
+}: {unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy} = {}): [
   string,
   (interval: string) => void,
   intervalOptions: Array<{label: string; value: string}>,
@@ -56,7 +51,6 @@ export function useChartInterval({
     navigate,
     pagefilters,
     unspecifiedStrategy,
-    writeToUrl,
   });
 }
 
@@ -65,7 +59,6 @@ function useChartIntervalImpl({
   navigate,
   pagefilters,
   unspecifiedStrategy,
-  writeToUrl,
 }: Options): [
   string,
   (interval: string) => void,
@@ -73,22 +66,10 @@ function useChartIntervalImpl({
 ] {
   const {datetime} = pagefilters.selection;
 
-  const {intervalOptions, defaultInterval} = useMemo(() => {
-    const diffInMinutes = getDiffInMinutes(datetime);
-    const options = getIntervalOptionsForPageFilter(datetime);
-
-    // Compute the default from the ladder-derived options, before appending extras
-    const fallback =
-      unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_SMALLEST
-        ? options[0]!.value
-        : (options[options.length - 2]?.value ?? options[options.length - 1]!.value);
-
-    if (diffInMinutes >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
-      options.push(ONE_DAY_OPTION);
-    }
-
-    return {intervalOptions: options, defaultInterval: fallback};
-  }, [datetime, unspecifiedStrategy]);
+  const {intervalOptions, defaultInterval} = useMemo(
+    () => computeIntervalOptionsAndDefault(datetime, unspecifiedStrategy),
+    [datetime, unspecifiedStrategy]
+  );
 
   const interval = useMemo(() => {
     const decodedInterval = decodeScalar(location.query.interval);
@@ -112,40 +93,63 @@ function useChartIntervalImpl({
     [location, navigate]
   );
 
-  useEffect(() => {
-    if (!writeToUrl) {
-      return;
-    }
-    if (!pagefilters.isReady) {
-      return;
-    }
-    // PageFiltersContainer reacts to any location.query change and uses an
-    // asymmetric default (defaultStatsPeriod) when re-deriving datetime, which
-    // resets the store to the default if the URL has no datetime params. Wait
-    // until PageFilters has pinned its datetime into the URL before writing
-    // interval, so our navigate is a no-op for the datetime diff.
-    const hasDatetimeInUrl =
-      decodeScalar(location.query.statsPeriod) ||
-      (decodeScalar(location.query.start) && decodeScalar(location.query.end));
-    if (!hasDatetimeInUrl) {
-      return;
-    }
-    if (decodeScalar(location.query.interval) === interval) {
-      return;
-    }
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          interval,
-        },
-      },
-      {replace: true}
-    );
-  }, [writeToUrl, pagefilters.isReady, interval, location, navigate]);
-
   return [interval, setInterval, intervalOptions];
+}
+
+function computeIntervalOptionsAndDefault(
+  datetime: PageFilters['datetime'],
+  unspecifiedStrategy: ChartIntervalUnspecifiedStrategy = ChartIntervalUnspecifiedStrategy.USE_SMALLEST
+) {
+  const diffInMinutes = getDiffInMinutes(datetime);
+  const options = getIntervalOptionsForPageFilter(datetime);
+
+  // Compute the default from the ladder-derived options, before appending extras
+  const fallback =
+    unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_SMALLEST
+      ? options[0]!.value
+      : (options[options.length - 2]?.value ?? options[options.length - 1]!.value);
+
+  if (diffInMinutes >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
+    options.push(ONE_DAY_OPTION);
+  }
+
+  return {intervalOptions: options, defaultInterval: fallback};
+}
+
+/**
+ * Pure helper for the default interval given a page-filter datetime selection.
+ * Useful for callers (e.g. PageFiltersContainer / DatePageFilter) that need to
+ * write the default interval into the URL alongside the datetime so the URL
+ * always carries it without requiring a separate render to land it.
+ */
+export function getDefaultChartInterval(
+  datetime: PageFilters['datetime'],
+  unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy
+): string {
+  return computeIntervalOptionsAndDefault(datetime, unspecifiedStrategy).defaultInterval;
+}
+
+/**
+ * Returns the chart interval that should be used in the URL for a given
+ * datetime. Preserves a user-set `currentInterval` if it's still valid for the
+ * new datetime, otherwise falls back to the default.
+ */
+export function resolveChartIntervalForDatetime(
+  datetime: PageFilters['datetime'],
+  currentInterval: string | undefined,
+  unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy
+): string {
+  const {intervalOptions, defaultInterval} = computeIntervalOptionsAndDefault(
+    datetime,
+    unspecifiedStrategy
+  );
+  if (
+    currentInterval &&
+    intervalOptions.some(option => option.value === currentInterval)
+  ) {
+    return currentInterval;
+  }
+  return defaultInterval;
 }
 
 const ALL_INTERVAL_OPTIONS = [

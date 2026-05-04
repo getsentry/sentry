@@ -1,3 +1,4 @@
+import type {GetAdditionalUrlParams} from 'sentry/components/pageFilters/actions';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TimeRangeSelectorProps} from 'sentry/components/timeRangeSelector';
@@ -9,6 +10,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 export interface DatePageFilterProps extends Partial<
   Partial<Omit<TimeRangeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>>
 > {
+  /**
+   * Compute additional URL params to write alongside the datetime when the
+   * user changes the time range. The callback receives the new datetime so
+   * callers can derive sibling params (e.g. chart interval).
+   */
+  getAdditionalUrlParams?: GetAdditionalUrlParams;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -22,6 +29,7 @@ export function DatePageFilter({
   menuTitle,
   menuWidth,
   resetParamsOnChange,
+  getAdditionalUrlParams,
   ...selectProps
 }: DatePageFilterProps) {
   const location = useLocation();
@@ -43,9 +51,17 @@ export function DatePageFilter({
 
         onChange?.(timePeriodUpdate);
 
+        const additionalParams = getAdditionalUrlParams?.({
+          start: newTimePeriod.start ?? null,
+          end: newTimePeriod.end ?? null,
+          period: newTimePeriod.period ?? null,
+          utc: newTimePeriod.utc ?? null,
+        });
+
         updateDateTime(newTimePeriod, location, navigate, {
           save: true,
           resetParams: resetParamsOnChange,
+          additionalParams,
         });
       }}
       menuTitle={menuTitle ?? t('Filter Time Range')}

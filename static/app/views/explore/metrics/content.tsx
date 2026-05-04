@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
@@ -39,7 +40,9 @@ export default function MetricsContent() {
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.TRACE_METRICS],
   });
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const baseDatePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const getAdditionalUrlParams = useExploreUrlIntervalParams();
+  const datePageFilterProps = {...baseDatePageFilterProps, getAdditionalUrlParams};
   const hasEquations = canUseMetricsEquations(organization);
 
   return (
@@ -58,6 +61,7 @@ export default function MetricsContent() {
               }
             : undefined
         }
+        getAdditionalUrlParams={getAdditionalUrlParams}
       >
         <AnalyticsArea name="explore.metrics">
           <Stack flex={1}>

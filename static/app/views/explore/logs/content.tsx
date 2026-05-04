@@ -18,6 +18,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {useExploreUrlIntervalParams} from 'sentry/views/explore/hooks/useExploreUrlIntervalParams';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -36,7 +37,9 @@ export default function LogsContent() {
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const baseDatePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const getAdditionalUrlParams = useExploreUrlIntervalParams();
+  const datePageFilterProps = {...baseDatePageFilterProps, getAdditionalUrlParams};
   const tableExpando = useOurLogsTableExpando();
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
@@ -57,6 +60,7 @@ export default function LogsContent() {
               }
             : undefined
         }
+        getAdditionalUrlParams={getAdditionalUrlParams}
       >
         <AnalyticsArea name="explore.logs">
           <LogsPageStack
