@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {StreamGroup} from 'sentry/components/stream/group';
@@ -80,7 +81,7 @@ export function PreviewTable({
       return null;
     }
     const pageIssues = page * 5 + groups.length;
-    return tct(`Showing [pageIssues] of [issueCount] issues`, {pageIssues, issueCount});
+    return tct('Showing [pageIssues] of [issueCount] issues', {pageIssues, issueCount});
   };
 
   const renderPagination = () => {

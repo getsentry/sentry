@@ -51,7 +51,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
-import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {toPercent} from 'sentry/utils/number/toPercent';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -63,14 +63,13 @@ import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
-import {
-  NUMBER_MAX_FRACTION_DIGITS,
-  NUMBER_MIN_VALUE,
-} from 'sentry/views/dashboards/widgets/common/settings';
+import {NUMBER_MIN_VALUE} from 'sentry/views/dashboards/widgets/common/settings';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ADOPTION_STAGE_LABELS} from 'sentry/views/explore/releases/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
@@ -79,6 +78,7 @@ import {SpanDescriptionCell} from 'sentry/views/insights/common/components/table
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
@@ -86,8 +86,6 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {ArrayValue} from './arrayValue';
 import {
@@ -319,16 +317,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           </NumberContainer>
         );
       }
-      return (
-        <NumberContainer>
-          {formatFloat(data[field], NUMBER_MAX_FRACTION_DIGITS).toLocaleString(
-            undefined,
-            {
-              maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
-            }
-          )}
-        </NumberContainer>
-      );
+      return <NumberContainer>{formatNumber(data[field])}</NumberContainer>;
     },
   },
   percentage: {
@@ -438,6 +427,27 @@ const RightAlignedContainer = styled('span')`
   display: block;
   text-align: right;
 `;
+
+function renderAIOutputMessages(rawOutputMessages: unknown) {
+  if (!rawOutputMessages) {
+    return <Container>{emptyValue}</Container>;
+  }
+
+  const raw =
+    typeof rawOutputMessages === 'string'
+      ? rawOutputMessages
+      : JSON.stringify(rawOutputMessages);
+  if (!raw) {
+    return <Container>{emptyValue}</Container>;
+  }
+
+  const {responseText, responseObject, toolCalls} = extractAssistantOutput(raw, {
+    defaultRole: 'assistant',
+  });
+  const output = responseText ?? responseObject ?? toolCalls ?? raw;
+
+  return <Container>{output}</Container>;
+}
 
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
@@ -696,8 +706,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
-      let slugs: string[] | undefined = undefined;
-      let projectIds: number[] | undefined = undefined;
+      let slugs: string[] | undefined;
+      let projectIds: number[] | undefined;
       if (typeof data.project === 'number') {
         projectIds = [data.project];
       } else {
@@ -1060,6 +1070,10 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return <ModelName modelId={data[SpanFields.GEN_AI_RESPONSE_MODEL]} />;
     },
   },
+  [SpanFields.GEN_AI_OUTPUT_MESSAGES]: {
+    sortField: SpanFields.GEN_AI_OUTPUT_MESSAGES,
+    renderFunc: data => renderAIOutputMessages(data[SpanFields.GEN_AI_OUTPUT_MESSAGES]),
+  },
 };
 
 /**
@@ -1205,7 +1219,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       <TimeSpentCell
         percentage={data[fieldName]}
         total={data[`sum(${column})`]}
-        op={data[`span.op`]}
+        op={data['span.op']}
       />
     );
   },
@@ -1406,8 +1420,8 @@ export function getFieldRenderer(
   field: string,
   meta: MetaType,
   isAlias = true,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   const baseRenderer = getFieldRendererBase(field, meta, isAlias);
   return wrapFieldRendererInDashboardLink(baseRenderer, field, widget, dashboardFilters);
@@ -1466,8 +1480,8 @@ function getFieldRendererBase(
 function wrapFieldRendererInDashboardLink(
   renderer: FieldFormatterRenderFunctionPartial,
   field: string,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
     const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
@@ -1482,17 +1496,17 @@ function getDashboardUrl(
   data: EventData,
   field: string,
   baggage: RenderFunctionBaggage,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ) {
   const {organization, location, projects} = baggage;
   if (!widget?.widgetType || !dashboardFilters) {
-    return undefined;
+    return;
   }
 
   const linkedDashboard = findLinkedDashboardForField(widget.queries[0], field);
   if (!linkedDashboard) {
-    return undefined;
+    return;
   }
 
   // Get project ID override from data if available

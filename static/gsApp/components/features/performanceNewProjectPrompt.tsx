@@ -20,11 +20,11 @@ export function PerformanceNewProjectPrompt({organization}: Props) {
       <StyledAlert variant="info">
         <Container>
           {t(
-            `Performance is available for your platform, but your organization's plan does not include performance monitoring.`
+            "Performance is available for your platform, but your organization's plan does not include performance monitoring."
           )}
           <StyledButton
             size="sm"
-            priority="primary"
+            variant="primary"
             icon={<IconBusiness />}
             onClick={() =>
               openUpsellModal({

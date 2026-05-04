@@ -214,6 +214,7 @@ function useMobileAppSizeSearchBarDataProvider(
       searchSource: 'dashboards',
       initialQuery: props.widgetQuery?.conditions ?? '',
       projects,
+      hiddenAttributeKeys: HIDDEN_PREPROD_ATTRIBUTES,
     });
   return {
     getFilterKeySections: () => filterKeySections,

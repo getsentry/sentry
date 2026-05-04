@@ -27,7 +27,7 @@ export default function DocIntegrationDetailsView() {
 
   const {data: doc, isPending} = useApiQuery<DocIntegration>(
     [
-      getApiUrl(`/doc-integrations/$docIntegrationIdOrSlug/`, {
+      getApiUrl('/doc-integrations/$docIntegrationIdOrSlug/', {
         path: {docIntegrationIdOrSlug: integrationSlug},
       }),
     ],
@@ -65,6 +65,7 @@ export default function DocIntegrationDetailsView() {
             view: 'integrations_directory_integration_detail',
             integration: integrationSlug,
             integration_type: integrationType,
+            is_scm: false,
             already_installed: installationStatus !== 'Not Installed',
             organization,
           });
@@ -73,7 +74,7 @@ export default function DocIntegrationDetailsView() {
       >
         <LearnMoreButton
           size="sm"
-          priority="primary"
+          variant="primary"
           style={{marginLeft: theme.space.md}}
           icon={<StyledIconOpen />}
         >

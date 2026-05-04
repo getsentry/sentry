@@ -123,8 +123,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
     }
 
     permanent_project_features = {
-        # Enable data forwarding functionality for projects.
-        "projects:data-forwarding": True,
         # Enable functionality for rate-limiting events on projects.
         "projects:rate-limits": True,
         # Enable functionality to specify custom inbound filters on events.

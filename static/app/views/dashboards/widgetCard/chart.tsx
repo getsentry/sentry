@@ -77,7 +77,10 @@ import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widg
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
-import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
+import {
+  ALLOWED_CELL_ACTIONS,
+  MISSING_DATA_MESSAGE,
+} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
   TabularData,
@@ -94,6 +97,7 @@ import {
 import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
+import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -263,7 +267,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     return (
       <TableWrapper>
         <AgentsTracesTableWidgetVisualization
-          limit={widget.limit}
+          limit={widget.limit ?? undefined}
           tableWidths={widget.tableWidths}
           dashboardFilters={props.dashboardFilters}
           frameless
@@ -658,11 +662,6 @@ function TableComponent({
           tableData={tableData}
           frameless
           scrollable
-          fit={
-            widget?.tableWidths?.length && widget?.tableWidths?.length > 0
-              ? undefined
-              : 'max-content'
-          }
           aliases={aliases}
           onChangeSort={onWidgetTableSort}
           sort={sort}
@@ -713,7 +712,7 @@ function BigNumberComponent({
   tableResults,
   widget,
 }: TableComponentProps): React.ReactNode {
-  if (typeof tableResults === 'undefined' || loading) {
+  if (tableResults === undefined || loading) {
     return <BigNumber>{'\u2014'}</BigNumber>;
   }
 
@@ -824,15 +823,17 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 }
 
 function DetailsComponent(props: TableComponentProps): React.ReactNode {
-  const {tableResults} = props;
+  const {tableResults, loading} = props;
 
   const singleSpan = tableResults?.[0]?.data?.[0] as
     | Pick<SpanResponse, DefaultDetailWidgetFields>
     | undefined;
 
-  // TODO: Handle this case gracefully
   if (!singleSpan) {
-    return null;
+    if (loading) {
+      return null;
+    }
+    return <WidgetError error={MISSING_DATA_MESSAGE} />;
   }
 
   return <DetailsWidgetVisualization span={singleSpan} />;
@@ -964,7 +965,7 @@ const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   position: relative;
   padding: ${p =>
     p.noPadding
-      ? `0`
+      ? '0'
       : `${p.theme.space.md} ${p.theme.space['2xl']} ${p.theme.space['2xl']} ${p.theme.space['2xl']}`};
 `;
 
@@ -985,7 +986,7 @@ const BigNumber = styled('div')`
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
-  padding: ${p => (p.noPadding ? `0` : `0 ${p.theme.space.xl} ${p.theme.space.xl}`)};
+  padding: ${p => (p.noPadding ? '0' : `0 ${p.theme.space.xl} ${p.theme.space.xl}`)};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};

@@ -21,7 +21,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
+import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
@@ -56,7 +56,7 @@ export function TeamStability({
     refetch: refetchPeriodSessions,
   } = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -76,7 +76,7 @@ export function TeamStability({
     refetch: refetchWeekSessions,
   } = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -140,12 +140,16 @@ export function TeamStability({
     );
 
     const sumSessionsCount = Math.floor(sumSessions.length / 7);
-    const countSeriesWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
+    const countSeriesWeeklyTotals = Array.from<number>({length: sumSessionsCount}).fill(
+      0
+    );
     countSeries.forEach(
       (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)]! += s.value)
     );
 
-    const sumSessionsWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
+    const sumSessionsWeeklyTotals = Array.from<number>({length: sumSessionsCount}).fill(
+      0
+    );
     sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)]! += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({

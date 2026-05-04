@@ -45,7 +45,6 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
@@ -54,7 +53,11 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.utils.webhooks import MetricAlertActionType, SentryAppResourceType
+from sentry.sentry_apps.utils.webhooks import (
+    MetricAlertActionType,
+    SentryAppResourceType,
+    find_alert_rule_action_ui_component,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request

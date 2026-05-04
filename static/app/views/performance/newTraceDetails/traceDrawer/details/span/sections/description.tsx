@@ -14,7 +14,7 @@ import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
@@ -266,7 +266,7 @@ function ResourceImage(props: {
 }) {
   const [hasError, setHasError] = useState(false);
 
-  const {fileName, size, src, showImage = true} = props;
+  const {fileName, size, src, showImage} = props;
 
   return (
     <Stack align="center" gap="xs" width="100%">

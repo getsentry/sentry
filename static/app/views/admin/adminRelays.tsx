@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
@@ -24,17 +24,14 @@ export default function AdminRelays() {
   // TODO: Loading not hooked up to anything?
   const [, setLoading] = useState(false);
 
-  const onDelete = useCallback(
-    (key: string) => {
-      setLoading(true);
-      api.request(`/relays/${key}/`, {
-        method: 'DELETE',
-        success: () => setLoading(false),
-        error: () => setLoading(false),
-      });
-    },
-    [api]
-  );
+  const onDelete = (key: string) => {
+    setLoading(true);
+    api.request(`/relays/${key}/`, {
+      method: 'DELETE',
+      success: () => setLoading(false),
+      error: () => setLoading(false),
+    });
+  };
 
   const getRow = (row: RelayRow) => {
     return [
@@ -54,7 +51,7 @@ export default function AdminRelays() {
             message={t('Are you sure you wish to delete this relay?')}
             onConfirm={() => onDelete(row.id)}
           >
-            <Button priority="danger" size="sm" icon={<IconDelete />}>
+            <Button variant="danger" size="sm" icon={<IconDelete />}>
               {t('Remove Relay')}
             </Button>
           </Confirm>

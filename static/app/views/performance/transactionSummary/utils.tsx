@@ -1,7 +1,7 @@
+import type {UIMatch} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, Query} from 'history';
 
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -9,15 +9,15 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
-  generateProfileFlamechartRoute,
+  generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -181,14 +181,17 @@ export function generateProfileLink() {
     tableRow: TableDataRow,
     _location: Location | undefined
   ) => {
-    const projectSlug = tableRow['project.name'];
+    // The preferred attribute for EAP spans is `project`, but the old discover
+    // dataset rows use `project.name`.
+    const projectSlug = tableRow.project ?? tableRow['project.name'];
 
     const profileId = tableRow['profile.id'];
     if (projectSlug && profileId) {
-      return generateProfileFlamechartRoute({
+      return generateProfileFlamechartRouteWithQuery({
         organization,
-        projectSlug: String(tableRow['project.name']),
+        projectSlug: String(projectSlug),
         profileId: String(profileId),
+        query: {referrer: 'performance'},
       });
     }
 
@@ -202,11 +205,20 @@ export function generateProfileLink() {
       typeof tableRow['precise.finish_ts'] === 'number'
         ? getDateFromTimestamp(tableRow['precise.finish_ts'] * 1000)
         : null;
-    if (projectSlug && profilerId && threadId && start && finish) {
-      const query: Record<string, string> = {tid: String(threadId)};
+    const hasThreadId =
+      typeof threadId === 'number' ||
+      (typeof threadId === 'string' && threadId.length > 0);
+    if (projectSlug && profilerId && hasThreadId && start && finish) {
+      const query: Record<string, string> = {
+        tid: String(threadId),
+        referrer: 'performance',
+      };
       if (tableRow.id && tableRow.trace) {
         query.eventId = String(tableRow.id);
         query.traceId = String(tableRow.trace);
+      }
+      if (tableRow['transaction.span_id']) {
+        query.transactionId = String(tableRow['transaction.span_id']);
       }
 
       return generateContinuousProfileFlamechartRouteWithQuery({
@@ -223,8 +235,8 @@ export function generateProfileLink() {
   };
 }
 
-export function generateReplayLink(routes: Array<PlainRoute<any>>) {
-  const referrer = getRouteStringFromRoutes(routes);
+export function generateReplayLink(matches: Array<UIMatch<unknown, unknown>>) {
+  const referrer = getRouteStringFromRoutes({matches});
 
   return (
     organization: Organization,

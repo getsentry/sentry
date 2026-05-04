@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -31,7 +32,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
@@ -90,7 +90,7 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      priority="transparent"
+      variant="transparent"
       icon={
         <IconStar
           variant={favorited ? 'warning' : 'muted'}
@@ -283,7 +283,7 @@ function DashboardTable({
                       onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
                     });
                   }}
-                  priority="transparent"
+                  variant="transparent"
                   aria-label={t('Duplicate Dashboard')}
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
@@ -304,14 +304,12 @@ function DashboardTable({
                   onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
                 });
               }}
-              priority="transparent"
+              variant="transparent"
               aria-label={t('Delete Dashboard')}
               data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
-              disabled={
-                (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
-              }
+              disabled={defined(dataRow.prebuiltId)}
               tooltipProps={{
                 title: defined(dataRow.prebuiltId)
                   ? tct('[label] dashboards cannot be deleted', {

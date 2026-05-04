@@ -28,6 +28,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
@@ -516,11 +517,14 @@ class GitlabWebhookEndpoint(Endpoint):
                 organization = org_context.organization
                 event_handler = handler()
 
-                with IntegrationWebhookEvent(
-                    interaction_type=event_handler.event_type,
-                    domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-                    provider_key=event_handler.provider,
-                ).capture():
+                with (
+                    webhook_viewer_context(install.organization_id),
+                    IntegrationWebhookEvent(
+                        interaction_type=event_handler.event_type,
+                        domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                        provider_key=event_handler.provider,
+                    ).capture(),
+                ):
                     event_handler(event, integration=integration, organization=organization)
 
         return HttpResponse(status=204)

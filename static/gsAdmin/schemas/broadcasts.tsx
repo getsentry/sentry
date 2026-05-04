@@ -10,7 +10,7 @@ import {
   TRIALCHOICES,
 } from 'getsentry/utils/broadcasts';
 
-const mapChoices = <T extends readonly [string, string]>(choices: readonly T[]) =>
+const mapChoices = (choices: ReadonlyArray<readonly [string, string]>) =>
   choices.map(([value, label]) => ({value, label}));
 
 export function getBroadcastSchema(): Field[] {

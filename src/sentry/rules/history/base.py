@@ -50,7 +50,13 @@ class RuleHistoryBackend(Service):
         raise NotImplementedError
 
     def fetch_rule_groups_paginated(
-        self, target: Rule | Workflow, start: datetime, end: datetime, cursor: Cursor, per_page: int
+        self,
+        target: Rule | Workflow,
+        start: datetime,
+        end: datetime,
+        cursor: Cursor,
+        per_page: int,
+        project_id: int | None = None,
     ) -> CursorResult[RuleGroupHistory]:
         """
         Fetches groups that triggered a rule or workflow within a given timeframe, ordered by number of
@@ -59,7 +65,7 @@ class RuleHistoryBackend(Service):
         raise NotImplementedError
 
     def fetch_rule_hourly_stats(
-        self, target: Rule | Workflow, start: datetime, end: datetime
+        self, target: Rule | Workflow, start: datetime, end: datetime, project_id: int | None = None
     ) -> Sequence[TimeSeriesValue]:
         """
         Fetches counts of how often a rule has fired withing a given datetime range, bucketed by

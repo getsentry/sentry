@@ -1,12 +1,14 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
-import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -48,16 +50,15 @@ export function OrganizationFeatureFlagsAuditLogTable({
     };
   }, [locationQuery, pageSize]);
 
-  const {
-    data: flags,
-    isPending,
-    error,
-    getResponseHeader,
-  } = useOrganizationFlagLog({
-    organization,
-    query,
+  const {data, isPending, error} = useQuery({
+    ...organizationFlagLogOptions({
+      organization,
+      query,
+    }),
+    select: selectJsonWithHeaders,
   });
-  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const flags = data?.json;
+  const pageLinks = data?.headers.Link ?? null;
 
   const [activeRowKey, setActiveRowKey] = useState<number | undefined>();
 

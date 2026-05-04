@@ -61,8 +61,8 @@ export function SearchDropdown({
   visibleShortcuts,
   maxMenuHeight,
   onIconClick,
-  searchSubstring = '',
-  onClick = () => {},
+  searchSubstring,
+  onClick,
   supportedTags,
   customInvalidTagMessage,
   mergeItemsWith,
@@ -141,7 +141,7 @@ export function SearchDropdown({
           {runShortcut &&
             visibleShortcuts?.map(shortcut => (
               <Button
-                priority="transparent"
+                variant="transparent"
                 size="xs"
                 key={shortcut.text}
                 onClick={() => runShortcut(shortcut)}
@@ -367,7 +367,7 @@ function DropdownItem({
             onClick={e => {
               // stop propagation so the item-level onClick doesn't get called
               e.stopPropagation();
-              onIconClick(item.value as string);
+              onIconClick(item.value!);
             }}
           />
         )}
@@ -623,7 +623,7 @@ const Documentation = styled('span')`
   white-space: pre;
 `;
 
-const DropdownFooter = styled(`div`)`
+const DropdownFooter = styled('div')`
   width: 100%;
   min-height: 45px;
   background-color: ${p => p.theme.tokens.background.secondary};

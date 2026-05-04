@@ -24,7 +24,12 @@ export default function MyMonitorsList() {
         docsUrl={DOCS_URL}
       >
         <DetectorListHeader showAssigneeFilter={false} />
-        <DetectorListContent {...detectorListQuery} />
+        <DetectorListContent
+          isError={detectorListQuery.isError}
+          isLoading={detectorListQuery.isLoading}
+          isSuccess={detectorListQuery.isSuccess}
+          data={detectorListQuery.data}
+        />
       </WorkflowEngineListLayout>
     </SentryDocumentTitle>
   );

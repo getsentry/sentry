@@ -1,3 +1,4 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {
@@ -10,12 +11,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -32,7 +28,7 @@ export function PromoCodeDetails() {
   const {codeId} = useParams<{codeId: string}>();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const ENDPOINT = getApiUrl(`/promocodes/$code/`, {path: {code: codeId}});
+  const ENDPOINT = getApiUrl('/promocodes/$code/', {path: {code: codeId}});
 
   const {
     data: promoCode,

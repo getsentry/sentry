@@ -45,7 +45,7 @@ export function ProjectEventRedirect() {
   } = useApiQuery<Event>(
     [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
         {
           path: {
             organizationIdOrSlug: organization.slug,

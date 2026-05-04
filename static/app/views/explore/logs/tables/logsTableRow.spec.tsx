@@ -99,7 +99,7 @@ describe('logsTableRow', () => {
         [LOGS_SORT_BYS_KEY]: '-timestamp',
       },
     },
-    route: `/organizations/:orgId/explore/logs/`,
+    route: '/organizations/:orgId/explore/logs/',
   };
 
   const initialRouterConfigWithCodeFilePath = {
@@ -217,9 +217,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={
-          {current: null} as React.MutableRefObject<NodeJS.Timeout | null>
-        }
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -249,11 +247,9 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={
-          {
-            current: null,
-          } as React.MutableRefObject<NodeJS.Timeout | null>
-        }
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -349,11 +345,9 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithCodeFilePath}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithCodeFilePath)}
-        sharedHoverTimeoutRef={
-          {
-            current: null,
-          } as React.MutableRefObject<NodeJS.Timeout | null>
-        }
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
       />,
       {
         organization,
@@ -432,11 +426,9 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={
-          {
-            current: null,
-          } as React.MutableRefObject<NodeJS.Timeout | null>
-        }
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -499,11 +491,9 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={
-          {
-            current: null,
-          } as React.MutableRefObject<NodeJS.Timeout | null>
-        }
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -578,11 +568,9 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithScrubbedFields}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithScrubbedFields)}
-        sharedHoverTimeoutRef={
-          {
-            current: null,
-          } as React.MutableRefObject<NodeJS.Timeout | null>
-        }
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
       />,
       {
         organization,

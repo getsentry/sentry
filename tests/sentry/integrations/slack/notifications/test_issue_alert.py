@@ -174,7 +174,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             fallback_text
             == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
         )
-        assert len(blocks) == 5
+        assert len(blocks) == 4
 
     @patch(
         "sentry.services.eventstore.models.GroupEvent.occurrence",
@@ -493,9 +493,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             blocks[1]["text"]["text"]
             == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
-        assert blocks[6]["elements"][0]["text"] == f"Suggested Assignees: #{self.team.slug}"
+        # Verify suggested assignees are in the context block and footer is last
+        context_blocks = [b for b in blocks if b.get("type") == "context"]
+        assert any(f"#{self.team.slug}" in b["elements"][0]["text"] for b in context_blocks)
         assert (
-            blocks[7]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -644,7 +646,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(title_link)
         assert event.group
         assert (
-            blocks[-2]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -802,7 +804,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(title_link)
         assert event.group
         assert (
-            blocks[-2]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -898,7 +900,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(title_link)
         assert event.group
         assert (
-            blocks[-2]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
@@ -911,7 +913,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(title_link)
         assert event.group
         assert (
-            blocks[-2]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 

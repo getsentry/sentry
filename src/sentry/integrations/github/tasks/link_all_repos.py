@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 
 from taskbroker_client.retry import Retry
 
@@ -12,11 +12,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.organizations.services.organization import organization_service
-from sentry.plugins.providers.integration_repository import (
-    RepoExistsError,
-    RepositoryInputConfig,
-    get_integration_repository_provider,
-)
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -25,7 +21,13 @@ from sentry.taskworker.namespaces import integrations_control_tasks
 logger = logging.getLogger(__name__)
 
 
-def get_repo_config(repo: Mapping[str, Any], integration_id: int) -> RepositoryInputConfig:
+class GitHubRepoInputConfig(TypedDict):
+    external_id: str
+    integration_id: int
+    identifier: str
+
+
+def get_repo_config(repo: Mapping[str, Any], integration_id: int) -> GitHubRepoInputConfig:
     return {
         "external_id": str(repo["id"]),
         "integration_id": integration_id,
@@ -40,7 +42,7 @@ def get_repo_config(repo: Mapping[str, Any], integration_id: int) -> RepositoryI
     processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
 )
-@retry(exclude=(RepoExistsError, KeyError))
+@retry(exclude=(KeyError,))
 def link_all_repos(
     integration_key: str,
     integration_id: int,
@@ -79,7 +81,7 @@ def link_all_repos(
 
         integration_repo_provider = get_integration_repository_provider(integration)
 
-        repo_configs: list[RepositoryInputConfig] = []
+        repo_configs: list[GitHubRepoInputConfig] = []
         missing_repos = []
         for repo in repositories:
             try:
@@ -88,14 +90,15 @@ def link_all_repos(
                 missing_repos.append(repo)
                 continue
 
-        try:
+        _created_repos, _reactivated_repos, existing_repos = (
             integration_repo_provider.create_repositories(
                 configs=repo_configs, organization=rpc_org
             )
-        except RepoExistsError as e:
+        )
+        if existing_repos:
             lifecycle.record_halt(
                 str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED),
-                {"missing_repos": e.repos, "integration_id": integration_id},
+                {"missing_repos": existing_repos, "integration_id": integration_id},
             )
 
         if missing_repos:

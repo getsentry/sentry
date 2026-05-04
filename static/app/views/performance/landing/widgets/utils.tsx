@@ -75,7 +75,7 @@ export function getMEPParamsIfApplicable(
   widget: PerformanceWidgetSetting
 ) {
   if (WIDGET_MAP_DENY_LIST.includes(widget)) {
-    return undefined;
+    return;
   }
   return getMEPQueryParams(mepContext);
 }

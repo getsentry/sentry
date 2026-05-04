@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -16,6 +16,8 @@ import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -34,6 +36,7 @@ const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
 export default function TempestSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const navigate = useNavigate();
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
@@ -109,15 +112,26 @@ export default function TempestSettings() {
       <SettingsPageHeader
         title={getPageTitle()}
         action={
-          <Grid flow="column" align="center" gap="lg">
-            <FeedbackButton />
-            <RequestSdkAccessButton
-              gamingPlatform="playstation"
-              organization={organization}
-              projectId={project.id}
-              origin="project-settings"
-            />
-          </Grid>
+          hasPageFrameFeature ? (
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          ) : (
+            <Grid flow="column" align="center" gap="lg">
+              <FeedbackButton />
+              <RequestSdkAccessButton
+                gamingPlatform="playstation"
+                organization={organization}
+                projectId={project.id}
+                origin="project-settings"
+              />
+            </Grid>
+          )
         }
       />
 
@@ -128,7 +142,7 @@ export default function TempestSettings() {
               variant="warning"
               trailingItems={
                 <Button
-                  priority="link"
+                  variant="link"
                   icon={<IconClose />}
                   onClick={dismissPS5Warning}
                   aria-label={t('Dismiss Alert')}
@@ -138,14 +152,14 @@ export default function TempestSettings() {
               }
             >
               {t(
-                `Currently Sentry only supports PlayStation 5. If you're looking for PS4 support, please let us know!`
+                "Currently Sentry only supports PlayStation 5. If you're looking for PS4 support, please let us know!"
               )}
             </Alert>
           </Alert.Container>
         </div>
       )}
 
-      <div style={{marginBottom: '1rem'}}>
+      <Flex align="center" justify="between" style={{marginBottom: '1rem'}}>
         <Tabs value={tab} onChange={handleTabChange}>
           <TabList>
             {Object.entries(TAB_LABELS).map(([key, label]) => (
@@ -153,7 +167,15 @@ export default function TempestSettings() {
             ))}
           </TabList>
         </Tabs>
-      </div>
+        {hasPageFrameFeature && (
+          <RequestSdkAccessButton
+            gamingPlatform="playstation"
+            organization={organization}
+            projectId={project.id}
+            origin="project-settings"
+          />
+        )}
+      </Flex>
 
       {renderTabContent()}
     </Fragment>

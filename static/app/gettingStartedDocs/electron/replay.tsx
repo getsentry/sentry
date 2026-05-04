@@ -48,7 +48,7 @@ export const replay: OnboardingConfig = {
               language: 'javascript',
               label: 'JavaScript',
               code: getReplaySDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/electron/renderer";`,
+                importStatement: 'import * as Sentry from "@sentry/electron/renderer";',
                 dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,

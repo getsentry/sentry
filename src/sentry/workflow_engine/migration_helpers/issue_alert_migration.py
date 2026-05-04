@@ -77,7 +77,7 @@ class IssueAlertMigrator:
 
         return workflow
 
-    def _create_detector_lookups(self) -> list[Detector | None]:
+    def _create_detector_lookups(self) -> list[Detector]:
         if self.rule.source == RuleSource.CRON_MONITOR:
             # Find the cron detector that was created before the rule
             monitor_slug = None
@@ -87,7 +87,7 @@ class IssueAlertMigrator:
                     break
 
             if not monitor_slug:
-                return [None]
+                return []
 
             try:
                 with in_test_hide_transaction_boundary():
@@ -105,7 +105,7 @@ class IssueAlertMigrator:
             except (Monitor.DoesNotExist, Detector.DoesNotExist):
                 pass
 
-            return [None]
+            return []
 
         if self.is_dry_run:
             error_detector = Detector.objects.filter(
@@ -135,13 +135,30 @@ class IssueAlertMigrator:
                 defaults={"config": {}, "name": ISSUE_STREAM_DETECTOR_NAME},
             )
 
-        return [error_detector, issue_stream_detector]
+        # We are not returning the error_detector here to simplify
+        # _connect_default_detectors
+        return [issue_stream_detector]
 
     def _connect_default_detectors(self, workflow: Workflow) -> None:
         default_detectors = self._create_detector_lookups()
-        for detector in default_detectors:
-            if detector:
-                DetectorWorkflow.objects.get_or_create(detector=detector, workflow=workflow)
+
+        # do not add references to both issue stream and error group types
+        # it seems like other types might be relying on this as well,
+        # so this just says not to link the error groups.
+        # TODO - provide helpers to more easily create these classes
+        # and references in code, so we can remove the reliance on this code
+        references_to_create = [
+            DetectorWorkflow(
+                detector=detector,
+                workflow=workflow,
+            )
+            for detector in default_detectors
+        ]
+
+        DetectorWorkflow.objects.bulk_create(
+            references_to_create,
+            ignore_conflicts=True,
+        )
 
     def _bulk_create_data_conditions(
         self,

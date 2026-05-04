@@ -26,6 +26,7 @@ import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -34,6 +35,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
@@ -124,13 +126,26 @@ function DashboardInner({
   const organization = useOrganization();
   const api = useApi();
 
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+  const selectedProjectSlugs =
+    !selection.projects.length || selection.projects.includes(-1)
+      ? []
+      : projects.filter(p => selection.projects.includes(Number(p.id))).map(p => p.slug);
+
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
+    contextHint:
+      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. Use telemetry_live_search or telemetry_index_list_nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
+    queryHints: getQueryHintLegend(dashboard.widgets),
     filters: dashboard.filters,
+    isEditingDashboard,
+    dateRange: selection.datetime,
+    environments: selection.environments,
+    projectSlugs: selectedProjectSlugs,
   });
-  const {selection} = usePageFilters();
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
@@ -294,29 +309,26 @@ function DashboardInner({
     [organization, dashboard.widgets, onEditWidget]
   );
 
-  const handleChangeSplitDataset = useCallback(
-    (widget: Widget, index: number) => {
-      const widgetCopy = cloneDeep({
-        ...widget,
-        id: undefined,
-      });
+  const handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
 
-      const nextList = [...dashboard.widgets];
-      const nextWidgetData = {
-        ...widgetCopy,
-        widgetType: WidgetType.TRANSACTIONS,
-        datasetSource: DatasetSource.USER,
-        id: widget.id,
-      };
-      nextList[index] = nextWidgetData;
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
 
-      onUpdate(nextList);
-      if (!isEditingDashboard) {
-        handleUpdateWidgetList(nextList);
-      }
-    },
-    [dashboard.widgets, onUpdate, isEditingDashboard, handleUpdateWidgetList]
-  );
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
 
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
@@ -433,7 +445,7 @@ function DashboardInner({
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             icon={<IconResize />}
           />
         }
@@ -484,6 +496,7 @@ const AddWidgetWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
+// eslint-disable-next-line @sentry/no-calling-components-as-functions
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${p => p.theme.space.xl};
 

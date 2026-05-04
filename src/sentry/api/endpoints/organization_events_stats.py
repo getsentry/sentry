@@ -52,7 +52,9 @@ SENTRY_BACKEND_REFERRERS = [
     Referrer.API_ALERTS_CHARTCUTERIE.value,
     Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
     Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.DASHBOARDS_SLACK_UNFURL.value,
     Referrer.DISCOVER_SLACK_UNFURL.value,
+    Referrer.EXPLORE_SLACK_UNFURL.value,
 ]
 
 logger = logging.getLogger(__name__)
@@ -68,8 +70,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         self, organization: Organization, request: Request
     ) -> Mapping[str, bool | None]:
         feature_names = [
-            "organizations:performance-use-metrics",
-            "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
         ]

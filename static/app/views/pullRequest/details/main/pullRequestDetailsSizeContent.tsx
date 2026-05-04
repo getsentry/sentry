@@ -84,7 +84,7 @@ export function PullRequestDetailsSizeContent({
           </SelectContainer>
         </Flex>
       )}
-      <Grid areas={`"main sidebar"`} columns="1fr 325px" gap="3xl">
+      <Grid areas='"main sidebar"' columns="1fr 325px" gap="3xl">
         <Flex area="sidebar">
           {buildDetails.length > 0 && (
             <BuildDetailsSidebarContent

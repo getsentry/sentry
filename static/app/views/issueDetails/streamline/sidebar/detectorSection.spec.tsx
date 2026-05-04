@@ -200,9 +200,7 @@ describe('DetectorSection', () => {
       issueCategory: IssueCategory.METRIC,
       issueType: IssueType.METRIC_ISSUE,
     });
-    const orgWithOnlyMetricIssues = OrganizationFixture({
-      features: ['workflow-engine-metric-issue-ui'],
-    });
+    const orgWithOnlyMetricIssues = OrganizationFixture();
     const metricDetector = MetricDetectorFixture({
       id: detectorId,
       alertRuleId,

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import hmac
 import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -88,23 +86,19 @@ class TestGetEventSeverity(TestCase):
             override_settings(SEER_API_SHARED_SECRET="some-secret"),
         ):
             _get_severity_score(event)
-            viewer_context_bytes = orjson.dumps(
-                {"actor_type": "unknown", "organization_id": self.project.organization_id}
-            )
-            mock_urlopen.assert_called_with(
-                "POST",
-                "/v0/issues/severity-score",
-                body=orjson.dumps(payload),
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    "Authorization": f"Rpcsignature rpc0:{hmac.new(b'some-secret', orjson.dumps(payload), hashlib.sha256).hexdigest()}",
-                    "X-Viewer-Context": viewer_context_bytes.decode("utf-8"),
-                    "X-Viewer-Context-Signature": hmac.new(
-                        b"some-secret", viewer_context_bytes, hashlib.sha256
-                    ).hexdigest(),
-                },
-                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
-            )
+            call_kwargs = mock_urlopen.call_args
+            assert call_kwargs[0] == ("POST", "/v0/issues/severity-score")
+            assert call_kwargs[1]["body"] == orjson.dumps(payload)
+            headers = call_kwargs[1]["headers"]
+            assert headers["content-type"] == "application/json;charset=utf-8"
+            assert "Authorization" in headers
+            assert "X-Viewer-Context-Signature" not in headers
+            # ViewerContext is now a JWT
+            from sentry.viewer_context import decode_viewer_context
+
+            vc = decode_viewer_context(headers["X-Viewer-Context"], key="some-secret")
+            assert vc.organization_id == self.project.organization_id
+            assert vc.actor_type.value == "unknown"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",

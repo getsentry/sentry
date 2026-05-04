@@ -36,7 +36,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -58,6 +57,32 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
+from sentry.seer.agent.custom_tool_utils import call_custom_tool
+from sentry.seer.agent.index_data import (
+    rpc_get_issues_for_transaction,
+    rpc_get_profiles_for_trace,
+    rpc_get_trace_for_transaction,
+    rpc_get_transactions_for_project,
+)
+from sentry.seer.agent.on_completion_hook import call_on_completion_hook
+from sentry.seer.agent.tools import (
+    execute_table_query,
+    execute_timeseries_query,
+    execute_trace_table_query,
+    get_baseline_tag_distribution,
+    get_comparative_attribute_distributions,
+    get_dsn,
+    get_event_details,
+    get_issue_and_event_details_v2,
+    get_issue_details,
+    get_log_attributes_for_trace,
+    get_metric_attributes_for_trace,
+    get_replay_metadata,
+    get_repository_definition,
+    get_trace_item_attributes,
+    rpc_get_profile_flamegraph,
+    rpc_get_trace_waterfall,
+)
 from sentry.seer.assisted_query.discover_tools import (
     get_event_filter_key_values,
     get_event_filter_keys,
@@ -68,6 +93,7 @@ from sentry.seer.assisted_query.issues_tools import (
     get_issue_filter_keys,
     get_issues_stats,
 )
+from sentry.seer.assisted_query.metrics_tools import get_metric_metadata
 from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
@@ -82,41 +108,15 @@ from sentry.seer.autofix.coding_agent import (
 )
 from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
-    get_project_seer_preferences,
-    resolve_repository_ids,
-    write_preference_to_sentry_db,
+    bulk_read_preferences_from_sentry_db,
+    clear_preference_automation_handoff,
+    read_preference_from_sentry_db,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.custom_tool_utils import call_custom_tool
-from sentry.seer.explorer.index_data import (
-    rpc_get_issues_for_transaction,
-    rpc_get_profiles_for_trace,
-    rpc_get_trace_for_transaction,
-    rpc_get_transactions_for_project,
-)
-from sentry.seer.explorer.on_completion_hook import call_on_completion_hook
-from sentry.seer.explorer.tools import (
-    execute_table_query,
-    execute_timeseries_query,
-    execute_trace_table_query,
-    get_baseline_tag_distribution,
-    get_comparative_attribute_distributions,
-    get_event_details,
-    get_issue_and_event_details_v2,
-    get_issue_details,
-    get_log_attributes_for_trace,
-    get_metric_attributes_for_trace,
-    get_replay_metadata,
-    get_repository_definition,
-    get_trace_item_attributes,
-    rpc_get_profile_flamegraph,
-    rpc_get_trace_waterfall,
-)
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
-from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -269,13 +269,15 @@ class SeerRpcServiceEndpoint(Endpoint):
         except SnubaRPCRateLimitExceeded as e:
             sentry_sdk.capture_exception()
             raise Throttled(detail="Rate limit exceeded") from e
+        except APIException:
+            raise
         except Exception as e:
             if in_test_environment():
                 raise
             if settings.DEBUG:
                 raise Exception(f"Problem processing seer rpc endpoint {method_name}") from e
             sentry_sdk.capture_exception()
-            raise ValidationError from e
+            raise APIException from e
         return Response(data=result)
 
 
@@ -601,6 +603,8 @@ def trigger_coding_agent_launch(
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=AutofixTriggerSource(trigger_source),
+            initiator="automation.legacy",
+            referrer="seer_rpc.trigger_coding_agent_launch",
         )
         return {"success": True}
     except IntegrationNotFound:
@@ -614,16 +618,9 @@ def trigger_coding_agent_launch(
         )
         try:
             project = Project.objects.get_from_cache(id=project_id)
-            organization = Organization.objects.get_from_cache(id=organization_id)
-            if features.has("organizations:seer-project-settings-dual-write", organization):
-                preference_response = get_project_seer_preferences(project.id)
-                if preference_response and preference_response.preference:
-                    updated_preference = preference_response.preference.copy(
-                        update={"automation_handoff": None}
-                    )
-                    validated_pref = SeerProjectPreference.validate(updated_preference)
-                    resolved_pref = resolve_repository_ids(organization.id, [validated_pref])
-                    write_preference_to_sentry_db(project, resolved_pref[0])
+            if project.organization_id != organization_id:
+                raise Project.DoesNotExist
+            clear_preference_automation_handoff(project)
         except Exception:
             logger.exception(
                 "coding_agent.clear_handoff_preference_failed",
@@ -859,6 +856,28 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     return {"integration_ids": integration_ids}
 
 
+def get_project_preferences(*, organization_id: int, project_id: int) -> dict:
+    """Get Seer project preferences for a single project.
+
+    Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
+    """
+    project = Project.objects.get_from_cache(id=project_id)
+    if project.organization_id != organization_id:
+        raise Project.DoesNotExist
+
+    return read_preference_from_sentry_db(project).dict()
+
+
+def bulk_get_project_preferences(
+    *, organization_id: int, project_ids: list[int]
+) -> dict[str, dict]:
+    """Bulk get Seer project preferences, keyed by stringified project ID.
+
+    Projects not belonging to the given organization are silently skipped."""
+    preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
+    return {str(project_id): pref.dict() for project_id, pref in preferences.items()}
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
@@ -875,6 +894,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
+    "get_project_preferences": get_project_preferences,
+    "bulk_get_project_preferences": bulk_get_project_preferences,
     #
     # Bug prediction
     "has_repo_code_mappings": has_repo_code_mappings,
@@ -887,13 +908,14 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
+    "get_metric_metadata": get_metric_metadata,
     "get_issue_filter_keys": get_issue_filter_keys,
     "get_filter_key_values": get_filter_key_values,
     "get_issues_stats": get_issues_stats,
     "get_event_filter_keys": get_event_filter_keys,
     "get_event_filter_key_values": get_event_filter_key_values,
     #
-    # Explorer
+    # Agent
     "get_transactions_for_project": rpc_get_transactions_for_project,
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
@@ -915,6 +937,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
+    "get_dsn": get_dsn,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,

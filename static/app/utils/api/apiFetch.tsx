@@ -1,16 +1,16 @@
 import {useEffect} from 'react';
-import type {QueryFunctionContext} from '@tanstack/react-query';
+import type {QueryFunctionContext, UseInfiniteQueryResult} from '@tanstack/react-query';
 
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {QUERY_API_CLIENT, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
-    Link: string | undefined;
-    'X-Hits': number | undefined;
-    'X-Max-Hits': number | undefined;
+    Link?: string;
+    'X-Hits'?: number;
+    'X-Max-Hits'?: number;
   };
   json: TResponseData;
 };
@@ -22,6 +22,7 @@ export async function apiFetch<TQueryFnData = unknown>(
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
+    allowAuthError: options?.allowAuthError,
     host: options?.host,
     method: options?.method ?? 'GET',
     data: options?.data,
@@ -48,6 +49,7 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
+    allowAuthError: options?.allowAuthError,
     host: options?.host,
     method: options?.method ?? 'GET',
     data: options?.data,

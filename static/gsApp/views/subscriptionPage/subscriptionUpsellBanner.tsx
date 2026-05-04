@@ -37,7 +37,7 @@ const getSubscriptionBannerText = (
           ? t('Try Sentry Business for Free')
           : t('Try Performance for Free'),
         tct(
-          `Activate your trial to take advantage of Sentry's [featuresName] features.`,
+          "Activate your trial to take advantage of Sentry's [featuresName] features.",
           {featuresName}
         ),
       ];
@@ -145,7 +145,7 @@ export function SubscriptionUpsellBanner({
           {description}{' '}
           <Button
             size="zero"
-            priority="link"
+            variant="link"
             onClick={() =>
               openUpsellModal({organization, source: 'subscription_overview'})
             }
@@ -170,7 +170,7 @@ export function SubscriptionUpsellBanner({
       </div>
       <BannerImage src={subscription.canTrial ? businessTrial : businessUpgrade} />
       <CloseBannerButton
-        priority="link"
+        variant="link"
         aria-label={t('Dismiss')}
         icon={<IconClose variant="muted" />}
         size="xs"

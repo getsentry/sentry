@@ -7,13 +7,13 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
@@ -134,7 +134,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   const fetchSpendAllocations = useCallback(
     // Target timestamp allows us to specify a period
     // Periods allows us to specify how many periods we want to fetch
-    async (targetTimestamp: number | undefined = undefined, periods = 1) => {
+    async (targetTimestamp?: number, periods = 1) => {
       try {
         setIsLoading(true);
         // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
@@ -380,7 +380,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               )}
               <Button
                 aria-label={t('New Allocation')}
-                priority="primary"
+                variant="primary"
                 size="sm"
                 data-test-id="new-allocation"
                 icon={<IconAdd size="xs" />}
@@ -394,7 +394,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       />
       <div>
         {tct(
-          `Allocate a portion of your subscription's reserved quota to your projects and guarantee a minimum volume for them. Read the [docsLink: docs]`,
+          "Allocate a portion of your subscription's reserved quota to your projects and guarantee a minimum volume for them. Read the [docsLink: docs]",
           {
             docsLink: (
               <ExternalLink href="https://docs.sentry.io/pricing/quotas/spend-allocation/" />
@@ -514,7 +514,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           <Button
             aria-label={t('Disable Spend Allocations')}
             size="sm"
-            priority="danger"
+            variant="danger"
             data-test-id="disable"
             disabled={!orgEnabledFlag}
           >

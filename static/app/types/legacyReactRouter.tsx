@@ -1,3 +1,4 @@
+import type {UIMatch} from 'react-router-dom';
 /**
  * These are vendored from react-router v3
  *
@@ -71,6 +72,7 @@ export interface WithRouterProps<P = Record<string, string | undefined>, Q = any
 
 export interface RouteContextInterface<P = Record<string, string | undefined>, Q = any> {
   location: Location<Q>;
+  matches: Array<UIMatch<unknown, unknown>>;
   params: P;
   router: InjectedRouter<P, Q>;
   routes: PlainRoute[];

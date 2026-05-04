@@ -229,6 +229,22 @@ class OAuthAuthorizeCodeTest(TestCase):
             "Read, write, and admin access to organization members."
         ]
 
+    def test_org_ci_scope_has_its_own_permission_description(self) -> None:
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read org:ci"
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+        assert resp.context["scopes"] == ["org:read", "org:ci"]
+        assert resp.context["permissions"] == [
+            "Read access to organization details.",
+            "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ]
+
     def test_unauthenticated_basic_auth(self) -> None:
         full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
 

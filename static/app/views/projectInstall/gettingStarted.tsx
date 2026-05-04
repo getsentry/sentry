@@ -39,7 +39,7 @@ export default function GettingStarted() {
       ) : (
         <Redirect
           to={makeProjectsPathname({
-            path: `/new/`,
+            path: '/new/',
             organization,
           })}
         />

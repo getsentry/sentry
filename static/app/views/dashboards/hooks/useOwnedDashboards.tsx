@@ -1,7 +1,8 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 export function useOwnedDashboards({
   query,
@@ -15,25 +16,18 @@ export function useOwnedDashboards({
   sort: string;
 }) {
   const organization = useOrganization();
-  return useApiQuery<DashboardListItem[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          query,
-          cursor,
-          sort,
-          filter: 'owned',
-          pin: 'favorites',
-          per_page: 20,
-        },
+  return useQuery({
+    ...dashboardsApiOptions(organization, {
+      query: {
+        query,
+        cursor,
+        sort,
+        filter: 'owned',
+        pin: 'favorites',
+        per_page: 20,
       },
-    ],
-    {
-      staleTime: 0,
-      enabled,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+    enabled,
+  });
 }

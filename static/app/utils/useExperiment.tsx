@@ -1,4 +1,5 @@
 import {HookStore} from 'sentry/stores/hookStore';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface UseExperimentResult {
   /**
@@ -22,22 +23,26 @@ export interface UseExperimentOptions {
   feature: string;
   /**
    * Whether to report that the user has been exposed to this experiment.
-   * When true (the default), the hook will fire an exposure event on mount,
-   * recording that the user has "seen" the experiment. Set to false when you
-   * need to check the assignment without triggering exposure — for example,
-   * to conditionally render a feature only if other criteria are also met.
+   * Required so every call site is intentional: pass true only where the
+   * user is actually rendered one of the experiment variants, and false
+   * elsewhere (e.g. shared components whose surrounding flow may render
+   * something other than a variant).
    *
    * This option is reactive: changing it from false to true will report
    * exposure at that point.
    */
-  reportExposure?: boolean;
+  reportExposure: boolean;
 }
 
 /**
- * Open-source fallback: always returns control group with no exposure logging.
+ * Open-source fallback: gates on organization.features with no exposure logging.
  */
-function noopUseExperiment(_options: UseExperimentOptions): UseExperimentResult {
-  return {inExperiment: false, experimentAssignment: 'control'};
+function useNoopExperiment(options: UseExperimentOptions): UseExperimentResult {
+  const organization = useOrganization();
+  return {
+    inExperiment: organization.features.includes(options.feature),
+    experimentAssignment: 'control',
+  };
 }
 
 /**
@@ -50,13 +55,19 @@ function noopUseExperiment(_options: UseExperimentOptions): UseExperimentResult 
  *
  * @param options.feature - The experiment key, matching the flagpole flag name
  *   without the "organizations:" prefix (e.g. "my-experiment").
- * @param options.reportExposure - Whether to log an exposure event. Defaults
- *   to true. Set to false to check the assignment without exposing the user.
+ * @param options.reportExposure - Whether to log an exposure event.
+ *   Required: pass true at the call site where the user is actually
+ *   rendered one of the experiment variants, and false when the consuming
+ *   component may render something other than the control or active variant
+ *   (the user has not seen the experiment in that case).
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const {inExperiment} = useExperiment({feature: 'my-experiment'});
+ *   const {inExperiment} = useExperiment({
+ *     feature: 'my-experiment',
+ *     reportExposure: true,
+ *   });
  *   if (!inExperiment) return null;
  *   return <NewFeature />;
  * }
@@ -77,6 +88,6 @@ function noopUseExperiment(_options: UseExperimentOptions): UseExperimentResult 
  */
 export function useExperiment(options: UseExperimentOptions): UseExperimentResult {
   const useExperimentHook =
-    HookStore.get('react-hook:use-experiment')[0] ?? noopUseExperiment;
+    HookStore.get('react-hook:use-experiment')[0] ?? useNoopExperiment;
   return useExperimentHook(options);
 }

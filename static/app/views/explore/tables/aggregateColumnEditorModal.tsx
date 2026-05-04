@@ -89,7 +89,7 @@ export function AggregateColumnEditorModal({
     return columns.filter(isGroupBy).map(groupBy => groupBy.groupBy);
   }, [columns]);
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     const newColumns: WritableAggregateField[] = [];
 
     for (const col of tempColumns) {
@@ -102,7 +102,7 @@ export function AggregateColumnEditorModal({
 
     onColumnsChange(newColumns);
     closeModal();
-  }, [closeModal, onColumnsChange, tempColumns]);
+  };
 
   const groupByColumnss = tempColumns.filter(isGroupBy);
   const visualizeColumns = tempColumns.filter(isVisualize);
@@ -177,10 +177,10 @@ export function AggregateColumnEditorModal({
           </Body>
           <Footer data-test-id="editor-footer">
             <Grid flow="column" align="center" gap="md">
-              <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+              <LinkButton variant="secondary" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
-              <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
+              <Button aria-label={t('Apply')} variant="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
             </Grid>
@@ -252,7 +252,7 @@ function ColumnEditorRow({
       )}
       <StyledButton
         aria-label={t('Remove Column')}
-        priority="transparent"
+        variant="transparent"
         disabled={!canDelete}
         size="sm"
         icon={<IconDelete size="sm" />}
@@ -382,21 +382,18 @@ function AggregateSelector({
     [parsedFunction, onChange, visualize]
   );
 
-  const handleArgumentChange = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        let args = cloneDeep(parsedFunction?.arguments);
-        if (args) {
-          args[index] = option.value;
-        } else {
-          args = [option.value];
-        }
-        const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
-        onChange(visualize.replace({yAxis: newYAxis}));
+  const handleArgumentChange = (index: number, option: SelectOption<SelectKey>) => {
+    if (typeof option.value === 'string') {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = option.value;
+      } else {
+        args = [option.value];
       }
-    },
-    [parsedFunction, onChange, visualize]
-  );
+      const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
+      onChange(visualize.replace({yAxis: newYAxis}));
+    }
+  };
 
   return (
     <Fragment>

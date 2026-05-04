@@ -25,15 +25,15 @@ describe('SentryMemberTeamSelectorField', () => {
     OrganizationStore.onUpdate(org, {replace: true});
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/user-teams/`,
+      url: '/organizations/org-slug/user-teams/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/teams/`,
+      url: '/organizations/org-slug/teams/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       body: [],
     });
   });
@@ -147,15 +147,13 @@ describe('SentryMemberTeamSelectorField', () => {
 
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));
     expect(
-      within(
-        (await screen.findByText('My Teams')).parentElement as HTMLElement
-      ).getByText('#my-team')
+      within((await screen.findByText('My Teams')).parentElement!).getByText('#my-team')
     ).toBeInTheDocument();
 
     expect(
-      within(
-        (await screen.findByText('Disabled Teams')).parentElement as HTMLElement
-      ).getByText('#disabled-team')
+      within((await screen.findByText('Disabled Teams')).parentElement!).getByText(
+        '#disabled-team'
+      )
     ).toBeInTheDocument();
   });
 });

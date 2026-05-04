@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useMutation} from '@tanstack/react-query';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
@@ -15,7 +16,7 @@ import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseApiError} from 'sentry/utils/parseApiError';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -93,7 +94,7 @@ export function SizeCompareMainContent() {
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
       getApiUrl(
-        `/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/`,
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
         {
           path: {
             organizationIdOrSlug: organization.slug,
@@ -200,7 +201,7 @@ export function SizeCompareMainContent() {
         message={t("We don't have any comparison data available yet for these builds.")}
       >
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => {
             triggerComparison({
               baseArtifactId,
@@ -240,7 +241,7 @@ export function SizeCompareMainContent() {
         }
       >
         <Button
-          priority="default"
+          variant="secondary"
           onClick={() => {
             triggerComparison({
               baseArtifactId,
@@ -323,7 +324,7 @@ export function SizeCompareMainContent() {
             </Flex>
             <Flex align="center" gap="sm">
               <Button
-                priority="transparent"
+                variant="transparent"
                 size="sm"
                 onClick={() => setIsFilesExpanded(!isFilesExpanded)}
                 aria-label={isFilesExpanded ? t('Collapse items') : t('Expand items')}

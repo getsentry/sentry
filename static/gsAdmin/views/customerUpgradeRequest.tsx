@@ -49,7 +49,7 @@ export function CustomerUpgradeRequest() {
     isError,
   } = useApiQuery<Subscription>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/', {
         path: {organizationIdOrSlug: orgId},
       }),
     ],

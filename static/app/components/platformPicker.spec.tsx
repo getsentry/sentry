@@ -130,6 +130,6 @@ describe('PlatformPicker', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Filter Platforms'), 'play');
 
-    expect(screen.getByTestId(`platform-playstation`)).toBeInTheDocument();
+    expect(screen.getByTestId('platform-playstation')).toBeInTheDocument();
   });
 });

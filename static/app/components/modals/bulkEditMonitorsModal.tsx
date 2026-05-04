@@ -1,21 +1,22 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
 import {t, tct, tn} from 'sentry/locale';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -25,7 +26,7 @@ import {
   SortSelector,
 } from 'sentry/views/insights/crons/components/overviewTimeline/sortSelector';
 import type {Monitor} from 'sentry/views/insights/crons/types';
-import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {monitorListApiOptions} from 'sentry/views/insights/crons/utils';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 interface Props extends ModalRenderProps {}
@@ -46,10 +47,12 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
     sort: MonitorSortOption;
   }>({sort: MonitorSortOption.STATUS, order: MonitorSortOrder.ASCENDING});
 
-  const queryKey = makeMonitorListQueryKey(organization, {
-    ...location.query,
-    query: searchQuery,
+  const monitorListOptions = monitorListApiOptions(organization, {
     cursor,
+    query: searchQuery,
+    project: location.query.project,
+    environment: location.query.environment,
+    owner: location.query.owner,
     sort: sortSelection.sort,
     asc: sortSelection.order,
   });
@@ -84,24 +87,28 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
     setSelectedMonitors([]);
 
     if (resp?.updated) {
-      setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
-        return oldMonitorList?.map(
-          monitor =>
-            resp.updated.find(newMonitor => newMonitor.slug === monitor.slug) ?? monitor
-        );
+      queryClient.setQueryData(monitorListOptions.queryKey, previous => {
+        if (!previous) {
+          return previous;
+        }
+        return {
+          ...previous,
+          json: previous.json.map(
+            monitor =>
+              resp.updated.find(newMonitor => newMonitor.slug === monitor.slug) ?? monitor
+          ),
+        };
       });
     }
     setIsUpdating(false);
   };
 
-  const {
-    data: monitorList,
-    getResponseHeader: monitorListHeaders,
-    isPending,
-  } = useApiQuery<Monitor[]>(queryKey, {
-    staleTime: 0,
+  const {data, isPending} = useQuery({
+    ...monitorListOptions,
+    select: selectJsonWithHeaders,
   });
-  const monitorPageLinks = monitorListHeaders?.('Link');
+  const monitorList = data?.json;
+  const monitorPageLinks = data?.headers.Link;
 
   const headers = [t('Monitor'), t('State'), t('Muted'), t('Schedule')];
   const shouldDisable = selectedMonitors.every(monitor => monitor.status !== 'disabled');
@@ -178,7 +185,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
           emptyMessage={t('No monitors found')}
         >
           {isPending || !monitorList
-            ? [...new Array(NUM_PLACEHOLDER_ROWS)].map((_, i) => (
+            ? [...Array.from({length: NUM_PLACEHOLDER_ROWS})].map((_, i) => (
                 <RowPlaceholder key={i}>
                   <Placeholder height="20px" />
                 </RowPlaceholder>
@@ -211,7 +218,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <Pagination pageLinks={monitorPageLinks ?? ''} onCursor={setCursor} />
       </Body>
       <Footer>
-        <Button priority="primary" onClick={closeModal} aria-label={t('Done')}>
+        <Button variant="primary" onClick={closeModal} aria-label={t('Done')}>
           {t('Done')}
         </Button>
       </Footer>

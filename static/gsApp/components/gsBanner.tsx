@@ -202,7 +202,7 @@ function NoticeModal({
     case ModalType.USAGE_EXCEEDED:
       title = t('Usage exceeded');
       body = t(
-        `Your organization has depleted its event capacity for the current usage period and is currently not receiving new events.`
+        'Your organization has depleted its event capacity for the current usage period and is currently not receiving new events.'
       );
       link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
       primaryButtonMessage = t('Continue');
@@ -211,10 +211,10 @@ function NoticeModal({
       title = t('Unable to bill your account');
       body = billingPermissions
         ? t(
-            `There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.`
+            'There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.'
           )
         : t(
-            `There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.`
+            'There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.'
           );
       link = billingPermissions
         ? normalizeUrl(
@@ -249,7 +249,7 @@ function NoticeModal({
         : t('To ensure uninterrupted service, upgrade your subscription.');
     } else {
       subText = tct(
-        `To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.`,
+        'To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.',
         {
           budgetTerm: subscription.planDetails.budgetTerm,
         }
@@ -272,7 +272,7 @@ function NoticeModal({
       <Footer>
         <Button onClick={() => closeModalDoNotContinue()}>{t('Remind Me Later')}</Button>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => closeModalAndContinue(link)}
           style={{marginLeft: theme.space.xl}}
           data-test-id="modal-continue-button"
@@ -965,7 +965,7 @@ class GSBanner extends Component<Props, State> {
                       <LinkButton
                         to={billingUrl}
                         size="zero"
-                        priority="default"
+                        variant="secondary"
                         aria-label={t('Update payment information')}
                         onClick={addButtonAnalytics}
                       />
@@ -979,7 +979,7 @@ class GSBanner extends Component<Props, State> {
                       <LinkButton
                         to={membersPageUrl}
                         size="zero"
-                        priority="default"
+                        variant="secondary"
                         aria-label={t('Org Owner or Billing Member')}
                         onClick={addButtonAnalytics}
                       />
@@ -1022,14 +1022,14 @@ class GSBanner extends Component<Props, State> {
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
                     size="xs"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Upgrade')}
                   </LinkButton>
                   <Button
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"
-                    priority="default"
+                    variant="secondary"
                     tooltipProps={{
                       title: t(
                         'You can also resolve this warning by removing the deactivated members from your organization'
@@ -1042,7 +1042,7 @@ class GSBanner extends Component<Props, State> {
               }
             >
               {tct(
-                `[firstSentence] [middleSentence] Upgrade your plan to increase your limit.`,
+                '[firstSentence] [middleSentence] Upgrade your plan to increase your limit.',
                 {
                   firstSentence:
                     subscription.totalLicenses === 1

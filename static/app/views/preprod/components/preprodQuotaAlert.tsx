@@ -14,7 +14,7 @@ export function PreprodQuotaAlert({system}: {system?: boolean}) {
     hasSizeQuota: boolean;
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/preprod/quota/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/preprod/quota/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

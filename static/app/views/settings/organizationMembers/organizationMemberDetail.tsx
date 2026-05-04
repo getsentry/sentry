@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
@@ -32,19 +33,14 @@ import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {Teams} from 'sentry/utils/teams';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TeamSelect as TeamSelectForMember} from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
@@ -86,7 +82,7 @@ function MemberStatus({
 }
 
 const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
     path: {organizationIdOrSlug: orgSlug, memberId},
   }),
 ];
@@ -96,6 +92,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const [orgRole, setOrgRole] = useState<Member['orgRole']>(member.orgRole);
   const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>(member.teamRoles);
@@ -247,7 +244,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
   const memberDeactivated = isMemberDisabledFromLimit(member);
   const canEdit = organization.access.includes('org:write') && !memberDeactivated;
-  const isPartnershipUser = member.flags['partnership:restricted'] === true;
+  const isPartnershipUser = member.flags['partnership:restricted'];
 
   const {email, expired, pending} = member;
   const canResend = !expired;
@@ -260,10 +257,14 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       <SentryDocumentTitle title={t('%s Member Settings', member.name || member.email)} />
       <SettingsPageHeader
         title={
-          <Fragment>
-            <div>{member.name}</div>
-            <ExtraHeaderText>{t('Member Settings')}</ExtraHeaderText>
-          </Fragment>
+          hasPageFrameFeature ? (
+            member.name || t('Member Settings')
+          ) : (
+            <Fragment>
+              <div>{member.name}</div>
+              <ExtraHeaderText>{t('Member Settings')}</ExtraHeaderText>
+            </Fragment>
+          )
         }
       />
 
@@ -275,7 +276,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
             <Button
               data-test-id="resend-invite"
               size="xs"
-              priority="primary"
+              variant="primary"
               icon={<IconRefresh />}
               tooltipProps={{
                 title: t('Generate a new invite link and send a new email.'),
@@ -335,7 +336,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
                   )}
                   onConfirm={() => reset2fa()}
                 >
-                  <Button priority="danger" busy={isResetting2fa}>
+                  <Button variant="danger" busy={isResetting2fa}>
                     {t('Reset two-factor authentication')}
                   </Button>
                 </Confirm>
@@ -379,7 +380,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
       <Flex justify="end">
         <Button
-          priority="primary"
+          variant="primary"
           busy={isSaving}
           onClick={() => updatedMember()}
           disabled={!canEdit || !hasFormChanged()}

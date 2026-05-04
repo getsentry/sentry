@@ -2,6 +2,7 @@ import pytest
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -38,6 +39,21 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.validated_data["environment"] == self.environment
         assert validator.validated_data["event_types"] == [SnubaQueryEventType.EventType.ERROR]
         assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
+
+    def test_environment_get_or_create(self) -> None:
+        new_env_name = "new-test-environment"
+        assert not Environment.objects.filter(
+            name=new_env_name, organization_id=self.project.organization_id
+        ).exists()
+
+        self.valid_data["environment"] = new_env_name
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+
+        env = validator.validated_data["environment"]
+        assert isinstance(env, Environment)
+        assert env.name == new_env_name
+        assert env.organization_id == self.project.organization_id
 
     def test_invalid_query(self) -> None:
         unsupported_query = "release:latest"

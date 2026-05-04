@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -18,7 +18,7 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
 interface WidgetTemplatesListProps {
@@ -37,7 +37,7 @@ export function WidgetTemplatesList({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const widgets = getTopNConvertedDefaultWidgets(organization);
+  const widgets = getDefaultWidgets(organization);
 
   const widgetTemplateId = decodeScalar(location.query?.widgetTemplateId);
   const initialSelectedIndex = widgetTemplateId
@@ -75,18 +75,15 @@ export function WidgetTemplatesList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSave = useCallback(
-    async (widget: Widget) => {
-      try {
-        const newWidget = {...widget, id: undefined};
-        await validateWidget(api, organization.slug, newWidget);
-        onSave({index: Number(widgetIndex), widget: newWidget});
-      } catch (error) {
-        addErrorMessage(t('Unable to add widget'));
-      }
-    },
-    [api, organization.slug, widgetIndex, onSave]
-  );
+  const handleSave = async (widget: Widget) => {
+    try {
+      const newWidget = {...widget, id: undefined};
+      await validateWidget(api, organization.slug, newWidget);
+      onSave({index: Number(widgetIndex), widget: newWidget});
+    } catch (error) {
+      addErrorMessage(t('Unable to add widget'));
+    }
+  };
 
   return (
     <Fragment>

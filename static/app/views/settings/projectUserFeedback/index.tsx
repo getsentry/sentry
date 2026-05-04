@@ -3,11 +3,10 @@ import * as Sentry from '@sentry/react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
@@ -18,8 +17,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -34,6 +33,7 @@ type UserFeedbackSchema = z.infer<typeof userFeedbackSchema>;
 export default function ProjectUserFeedback() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasPageFrame = useHasPageFrameFeature();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasAiEnabled = areAiFeaturesAllowed;
 
@@ -83,24 +83,46 @@ export default function ProjectUserFeedback() {
       <SentryDocumentTitle title={t('User Feedback')} projectSlug={project.slug}>
         <SettingsPageHeader
           title={t('User Feedback')}
+          subtitle={
+            hasPageFrame ? (
+              <Flex justify="between" align="center" gap="md">
+                <span>
+                  {tct(
+                    `Don't rely on stack traces and graphs alone to understand
+            the cause and impact of errors. Enable the User Feedback Widget to collect
+            your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs. [link:Read the Docs]`,
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
+                      ),
+                    }
+                  )}
+                </span>
+                <Button variant="primary" size="md" onClick={handleClick}>
+                  {t('Open the Crash Report Modal')}
+                </Button>
+              </Flex>
+            ) : (
+              tct(
+                `Don't rely on stack traces and graphs alone to understand
+            the cause and impact of errors. Enable the User Feedback Widget to collect
+            your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs. [link:Read the Docs]`,
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
+                  ),
+                }
+              )
+            )
+          }
           action={
-            <Flex gap="md" align="center">
-              <LinkButton href="https://docs.sentry.io/product/user-feedback/" external>
-                {t('Read the Docs')}
-              </LinkButton>
-              <Button priority="primary" onClick={handleClick}>
+            hasPageFrame ? undefined : (
+              <Button variant="primary" size="sm" onClick={handleClick}>
                 {t('Open the Crash Report Modal')}
               </Button>
-            </Flex>
+            )
           }
         />
-        <TextBlock>
-          {t(
-            `Don't rely on stack traces and graphs alone to understand
-            the cause and impact of errors. Enable the User Feedback Widget to collect
-            your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs.`
-          )}
-        </TextBlock>
         <ProjectPermissionAlert project={project} />
 
         <Access access={['project:write']} project={project}>
@@ -137,29 +159,29 @@ export default function ProjectUserFeedback() {
                 mutationOptions={projectMutationOptions}
               >
                 {field => (
-                  <field.Layout.Stack label={t('Enable Crash Report Notifications')}>
+                  <field.Layout.Row
+                    label={t('Enable Crash Report Notifications')}
+                    hintText={tct(
+                      'Get notified on feedback submissions from the [crashReportModalDocsLink:Crash Report Modal], [webApiEndpointLink:web endpoint], and JS SDK (pre-v8). [feedbackWidgetDocsLink:Feedback widget] notifications are not affected by this setting and are on by default.',
+                      {
+                        crashReportModalDocsLink: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal" />
+                        ),
+                        feedbackWidgetDocsLink: (
+                          <ExternalLink href="https://docs.sentry.io/product/user-feedback/#user-feedback-widget" />
+                        ),
+                        webApiEndpointLink: (
+                          <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
+                        ),
+                      }
+                    )}
+                  >
                     <field.Switch
                       checked={field.state.value}
                       onChange={field.handleChange}
                       disabled={!hasAccess}
                     />
-                    <Text size="sm" variant="muted">
-                      {tct(
-                        'Get notified on feedback submissions from the [crashReportModalDocsLink:Crash Report Modal], [webApiEndpointLink:web endpoint], and JS SDK (pre-v8). [feedbackWidgetDocsLink:Feedback widget] notifications are not affected by this setting and are on by default.',
-                        {
-                          crashReportModalDocsLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal" />
-                          ),
-                          feedbackWidgetDocsLink: (
-                            <ExternalLink href="https://docs.sentry.io/product/user-feedback/#user-feedback-widget" />
-                          ),
-                          webApiEndpointLink: (
-                            <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
-                          ),
-                        }
-                      )}
-                    </Text>
-                  </field.Layout.Stack>
+                  </field.Layout.Row>
                 )}
               </AutoSaveForm>
 
@@ -171,19 +193,21 @@ export default function ProjectUserFeedback() {
                   mutationOptions={projectMutationOptions}
                 >
                   {field => (
-                    <field.Layout.Stack label={t('Enable Spam Detection')}>
+                    <field.Layout.Row
+                      label={t('Enable Spam Detection')}
+                      hintText={tct(
+                        'Toggles whether or not to enable auto spam detection in User Feedback. [privacyNotice]',
+                        {
+                          privacyNotice: <AiPrivacyNotice />,
+                        }
+                      )}
+                    >
                       <field.Switch
                         checked={field.state.value}
                         onChange={field.handleChange}
                         disabled={!hasAccess}
                       />
-                      <Text size="sm" variant="muted">
-                        {t(
-                          'Toggles whether or not to enable auto spam detection in User Feedback.'
-                        )}
-                      </Text>
-                      <AiPrivacyNotice />
-                    </field.Layout.Stack>
+                    </field.Layout.Row>
                   )}
                 </AutoSaveForm>
               )}

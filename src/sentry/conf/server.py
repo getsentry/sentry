@@ -543,6 +543,7 @@ CSP_CONNECT_SRC = [
     "*.algolia.net",
     "*.algolianet.com",
     "*.algolia.io",
+    "browser.sentry-cdn.com",
 ]
 CSP_FRAME_ANCESTORS = [
     "'none'",
@@ -771,10 +772,6 @@ SENTRY_CELLS: list[CellConfig] = []
 # Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
 SENTRY_LOCALITIES: list[LocalityConfig] = []
 
-# TODO(cells): Superceded by SENTRY_LOCAL_CELL and SENTRY_CELLS. Remove once migration is complete.
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: list[CellConfig] = []
-
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
 
@@ -786,6 +783,9 @@ RPC_TIMEOUT = 5.0
 SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
 SEER_API_SHARED_SECRET: str = ""
+
+# TTL in seconds for ViewerContext JWT tokens.
+VIEWER_CONTEXT_JWT_TTL: int = 900
 
 # Sign requests to the SCM RPC endpoint
 # First element is used to sign requests; request is accepted if signed with any element in the list.
@@ -868,7 +868,9 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.nodestore",
     "sentry.deletions.tasks.scheduled",
+    "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.per_org.tasks.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
@@ -882,7 +884,9 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.sync_repos",
     "sentry.integrations.github.tasks.sync_repos_on_install_change",
+    "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -911,6 +915,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.snapshots.tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.pr_comments.snapshot_tasks",
     "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.preprod.vcs.status_checks.snapshots.tasks",
@@ -972,7 +977,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scim.privilege_sync",
-    "sentry.tasks.seer.cleanup",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
     "sentry.tasks.summaries.weekly_reports",
@@ -993,6 +997,9 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.cleanup",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
+    "sentry.tasks.seer.lightweight_rca_cluster",
+    "sentry.tasks.seer.night_shift.cron",
+    "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1145,6 +1152,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
+    "dynamic-sampling-schedule-per-org-calculations": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
+        "schedule": crontab("*", "*", "*", "*", "*"),
+    },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         "schedule": crontab("0", "0", "*", "*", "*"),
@@ -1171,6 +1182,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run once a month at midnight
         "schedule": crontab("0", "0", "*", "1", "*"),
     },
+    "seer-night-shift": {
+        "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
+        # Run daily at 10:00 AM UTC (2/3 AM Pacific)
+        "schedule": crontab("0", "10", "*", "*", "*"),
+    },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
@@ -1191,13 +1207,9 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
-    "fetch-ai-model-costs": {
-        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+    "fetch-ai-model-metadata": {
+        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
-    },
-    "llm-issue-detection": {
-        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -1249,6 +1261,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "fetch-release-registry-data-control": {
         "task": "sdk.control:sentry.tasks.release_registry.fetch_release_registry_data_control",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "scm-repo-sync-beat": {
+        "task": "integrations.control:sentry.integrations.source_code_management.sync_repos.scm_repo_sync_beat",
+        "schedule": timedelta(minutes=1),
     },
 }
 
@@ -1886,6 +1902,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
 # for user roles.
 SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     [
+        "org:ci",  # CI workflows, releases, source maps, and code mappings
         "project:distribution",  # App distribution/preprod artifacts
     ]
 )
@@ -1895,6 +1912,12 @@ SENTRY_SCOPE_SETS = (
         ("org:admin", "Read, write, and admin access to organization details."),
         ("org:write", "Read and write access to organization details."),
         ("org:read", "Read access to organization details."),
+    ),
+    (
+        (
+            "org:ci",
+            "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ),
     ),
     (
         (
@@ -2217,7 +2240,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.3.1"
+SELF_HOSTED_STABLE_VERSION = "26.4.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2271,6 +2294,8 @@ if SENTRY_DEV_DSN:
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
     SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+
+SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
 # The sample rate to use for profiles. This is conditional on the usage of
 # traces_sample_rate. So that means the true sample rate will be approximately
@@ -2679,7 +2704,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "preprod-artifact-events": "default",
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
@@ -2805,7 +2829,7 @@ DEFAULT_GROUPING_CONFIG = FALL_2025_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
+SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 90 * 24 * 3600  # 90 days, until groups age out
 
 SENTRY_USE_GRANIAN = True
 
@@ -3013,8 +3037,6 @@ SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
-
-SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT: int | None = (

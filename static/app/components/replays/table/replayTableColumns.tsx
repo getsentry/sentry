@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -28,25 +29,27 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
-} from 'sentry/views/replays/types';
+} from 'sentry/views/explore/replays/types';
+import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
 interface HeaderProps {
   columnIndex: number;
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
   replays: ReplayListRecord[];
 }
 
@@ -110,12 +113,13 @@ export const ReplayActivityColumn: ReplayTableColumn = {
       return null;
     }
     const colors = theme.chart.getColorPalette(0);
-    const scoreBarPalette = new Array(10).fill([colors[0]]);
+    const scoreBarPalette = Array.from<string[]>({length: 10}).fill([colors[0]]);
     return (
       <DropdownContainer key="activity">
         <ScoreBar
           size={20}
           score={replay?.activity ?? 1}
+          // @ts-expect-error -- TODO: Resolve this mismatch
           palette={scoreBarPalette}
           radius={0}
         />
@@ -416,7 +420,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
             pathname: location.pathname,
             query: {...location.query, selected_replay_index: rowIndex},
           }}
-          priority="default"
+          variant="secondary"
           size="sm"
           tooltipProps={{title: t('Play')}}
         />
@@ -500,8 +504,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
   Component: ({replay, to, className}) => {
-    const routes = useRoutes();
-    const referrer = getRouteStringFromRoutes(routes);
+    const matches = useMatches();
+    const referrer = getRouteStringFromRoutes({matches});
 
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});

@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
+import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 import type {DistributedOmit} from 'type-fest';
 
@@ -112,7 +113,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         {...props}
       >
         {props.children}
-        {showSuperuserWarning && (
+        {/* page-frame renders a marquee for the visual superuser indicator */}
+        {!hasPageFrame && showSuperuserWarning && (
           <Container
             position="absolute"
             top={0}
@@ -253,7 +255,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
 }
 
 interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
-  label: string;
+  label: React.ReactNode;
   buttonProps?: Omit<ButtonProps, 'aria-label' | 'size'>;
   children?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
@@ -265,18 +267,24 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const hasPageFrame = useHasPageFrameFeature();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
+  const ariaLabel =
+    layout === 'mobile'
+      ? undefined
+      : typeof props.label === 'string'
+        ? props.label
+        : undefined;
+
   return (
     <Tooltip
       title={props.label}
       disabled={layout === 'mobile'}
       position="right"
       skipWrapper
-      delay={600}
     >
       <NavigationButton
         {...props.buttonProps}
         analyticsParams={props.analyticsParams}
-        aria-label={layout === 'mobile' ? undefined : props.label}
+        aria-label={ariaLabel}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           trackAnalytics('navigation.primary_item_clicked', {
             item: props.analyticsKey,
@@ -385,7 +393,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
               disabled={layout === 'mobile'}
               position="right"
               skipWrapper
-              delay={600}
             >
               <NavigationButton
                 {...triggerProps}
@@ -757,11 +764,19 @@ export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
  */
 function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayProps) {
   const theme = useTheme();
+  const {layout} = usePrimaryNavigation();
+  const isDesktop = layout !== 'mobile';
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.modal} {...props.overlayProps}>
-        <ScrollableOverlay>{props.children}</ScrollableOverlay>
+        <motion.div
+          initial={isDesktop ? {opacity: 0, scale: 0.98} : undefined}
+          animate={isDesktop ? {opacity: 1, scale: 1} : undefined}
+          transition={isDesktop ? theme.motion.framer.enter.moderate : undefined}
+        >
+          <ScrollableOverlay>{props.children}</ScrollableOverlay>
+        </motion.div>
       </PositionWrapper>
     </FocusScope>,
     document.body

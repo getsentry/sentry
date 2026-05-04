@@ -47,7 +47,7 @@ export function usePerformanceSubscriptionDetails({
 
   const {data: subscription, ...rest} = useApiQuery<Subscription>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

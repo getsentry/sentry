@@ -5,13 +5,13 @@ import debounce from 'lodash/debounce';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {EmptyStateWarning, EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -54,8 +54,8 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
   const query = useQueryParamsQuery();
 
   const {result} = tracesTableResult;
-
-  const {data, isPending, isError, getResponseHeader} = result;
+  const {isPending, isError} = result;
+  const data = result.data?.json;
 
   const showErrorState = !isPending && isError;
   const showEmptyState = !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
@@ -137,7 +137,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
         </Container>
       </StyledPanel>
       <Pagination
-        pageLinks={getResponseHeader?.('Link')}
+        pageLinks={result.data?.headers.Link}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
       />
     </Fragment>
@@ -207,7 +207,7 @@ function TraceRow({
           aria-label={t('Toggle trace details')}
           aria-expanded={expanded}
           size="zero"
-          priority="transparent"
+          variant="transparent"
           onClick={() =>
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,

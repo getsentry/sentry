@@ -1,5 +1,6 @@
 import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -27,14 +28,13 @@ import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimeli
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
-import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
-import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
+import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
+import {BrowserOSIcons} from 'sentry/views/explore/replays/detail/browserOSIcons';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function ReplayPreviewPlayer({
   query,
@@ -59,7 +59,7 @@ export function ReplayPreviewPlayer({
   query?: Query;
   showNextAndPrevious?: boolean;
 }) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const replay = useReplayReader();
@@ -73,7 +73,7 @@ export function ReplayPreviewPlayer({
   const isFullscreen = useIsFullscreen();
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
-  const referrer = getRouteStringFromRoutes(routes);
+  const referrer = getRouteStringFromRoutes({matches});
   const fromFeedback = referrer === '/issues/feedback/';
 
   const {groupId} = useParams<{groupId: string}>();
@@ -105,7 +105,7 @@ export function ReplayPreviewPlayer({
             pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
             query,
           }}
-          replay={replayRecord as ReplayListRecord}
+          replay={replayRecord}
           rowIndex={0}
           columnIndex={0}
           showDropdownFilters={false}
@@ -118,7 +118,7 @@ export function ReplayPreviewPlayer({
               organization,
             }),
             query: {
-              referrer: getRouteStringFromRoutes(routes),
+              referrer,
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
               t: (currentTime + startOffsetMs) / 1000,
               groupId,

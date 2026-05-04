@@ -21,7 +21,7 @@ describe('DetectorTransactionsConfig', () => {
         eventTypes: [EventTypes.TRANSACTION],
         statsPeriod: '6h',
         comparisonDelta: undefined,
-      });
+      }).queryKey;
 
       const {url, options} = parseQueryKey(key);
       expect(url).toBe(`/organizations/${organization.slug}/events-stats/`);
@@ -49,7 +49,7 @@ describe('DetectorTransactionsConfig', () => {
         eventTypes: [EventTypes.TRANSACTION],
         statsPeriod: '6h',
         comparisonDelta: undefined,
-      });
+      }).queryKey;
 
       const {options} = parseQueryKey(key);
       const params = options!.query!;

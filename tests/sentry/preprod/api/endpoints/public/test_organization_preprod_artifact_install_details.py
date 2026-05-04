@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.urls import reverse
 
 from sentry.preprod.models import PreprodArtifact
@@ -27,25 +29,12 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
             build_number=42,
         )
 
-        self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
-        self.feature_context.__enter__()
-
-    def tearDown(self):
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
     def _get_url(self, artifact_id=None):
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
             self.endpoint,
             args=[self.organization.slug, artifact_id],
         )
-
-    def test_feature_flag_disabled(self) -> None:
-        with self.feature({"organizations:preprod-frontend-routes": False}):
-            response = self.client.get(self._get_url())
-            assert response.status_code == 403
-            assert response.json()["detail"] == "Feature not enabled"
 
     def test_artifact_not_found(self) -> None:
         response = self.client.get(self._get_url(artifact_id=999999))
@@ -78,6 +67,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["buildConfiguration"] is None
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
+        assert data["installUrlExpiresAt"] is None
         assert data["downloadCount"] == 0
 
         app_info = data["appInfo"]
@@ -110,6 +100,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
+        assert data["installUrlExpiresAt"] is not None
+        datetime.fromisoformat(data["installUrlExpiresAt"])
         assert data["platform"] == "ANDROID"
         assert data["releaseNotes"] == "Bug fixes and improvements"
         assert data["isCodeSignatureValid"] is None
@@ -137,6 +129,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
+        assert data["installUrlExpiresAt"] is not None
+        datetime.fromisoformat(data["installUrlExpiresAt"])
         assert data["platform"] == "APPLE"
         assert data["isCodeSignatureValid"] is True
         assert data["profileName"] == "iOS Team Provisioning Profile"
@@ -161,4 +155,5 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
+        assert data["installUrlExpiresAt"] is None
         assert data["isCodeSignatureValid"] is False

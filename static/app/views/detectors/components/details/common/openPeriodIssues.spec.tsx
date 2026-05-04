@@ -35,12 +35,12 @@ describe('DetectorDetailsOpenPeriodIssues', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1234/`,
+      url: '/organizations/org-slug/issues/1234/',
       body: detector.latestGroup,
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/open-periods/`,
+      url: '/organizations/org-slug/open-periods/',
       body: [
         {
           start: '2025-06-01T10:00:00Z',

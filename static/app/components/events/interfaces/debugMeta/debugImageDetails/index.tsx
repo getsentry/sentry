@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
@@ -19,9 +20,9 @@ import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
@@ -218,15 +219,14 @@ export function DebugImageDetails({
     isPending,
     isError,
     refetch,
-  } = useApiQuery<DebugFile[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+  } = useQuery({
+    ...apiOptions.as<DebugFile[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projSlug,
         },
-      }),
-      {
         query: {
           debug_id: image?.debug_id,
           code_id: image?.code_id,
@@ -246,13 +246,11 @@ export function DebugImageDetails({
             'portablepdb',
           ],
         },
-      },
-    ],
-    {
-      enabled: hasUploadedDebugFiles,
-      staleTime: 0,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    enabled: hasUploadedDebugFiles,
+  });
 
   const {code_file, status} = image ?? {};
   const candidates = getCandidates({debugFiles, image, isLoading: isPending});

@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
-import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -19,10 +18,14 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
+import {
+  getProjectStoppingPointValueFromSettings,
+  type MutateStoppingPoint,
+  PROJECT_STOPPING_POINT_OPTIONS,
+} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  useAgentOptions,
-  useMutateCreatePr,
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
 } from 'sentry/views/settings/seer/seerAgentHooks';
@@ -30,23 +33,26 @@ import {
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
   autofixSettings: undefined | AutofixAutomationSettings;
   integrations: CodingAgentIntegration[];
   isPendingIntegrations: boolean;
+  mutateStoppingPoint: MutateStoppingPoint;
   project: Project;
 }
 
 export function SeerProjectTableRow({
+  agentOptions,
   autofixSettings,
-  isPendingIntegrations,
-  project,
   integrations,
+  isPendingIntegrations,
+  mutateStoppingPoint,
+  project,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  const options = useAgentOptions({integrations: integrations ?? []});
   const autofixAgent = useSelectedAgentFromBulkSettings({
     autofixSettings: autofixSettings ?? {
       autofixAutomationTuning: 'off',
@@ -59,14 +65,10 @@ export function SeerProjectTableRow({
   });
 
   const mutateSelectedAgent = useMutateSelectedAgent({project});
-  const mutateCreatePr = useMutateCreatePr({project});
 
-  const isCreatePrEnabled = autofixSettings
-    ? autofixAgent === 'seer'
-      ? organization.enableSeerCoding !== false &&
-        autofixSettings.automatedRunStoppingPoint !== 'code_changes'
-      : (autofixSettings.automationHandoff?.auto_create_pr ?? false)
-    : false;
+  const stoppingPointValue = autofixSettings
+    ? getProjectStoppingPointValueFromSettings(autofixSettings)
+    : 'off';
 
   return (
     <SimpleTable.Row key={project.id}>
@@ -85,97 +87,6 @@ export function SeerProjectTableRow({
           <ProjectBadge disableLink project={project} avatarSize={16} />
         </Link>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" align="stretch" overflow="visible">
-        {!autofixSettings || isPendingIntegrations ? (
-          <Placeholder height="28px" width="100%" />
-        ) : (
-          <Stack align="stretch" flex="1">
-            <Select
-              size="xs"
-              disabled={!canWrite}
-              name="autofixAgent"
-              options={options}
-              value={autofixAgent}
-              onChange={(option: ReturnType<typeof useAgentOptions>[number]) => {
-                mutateSelectedAgent(option.value, {
-                  onSuccess: () => {
-                    addSuccessMessage(
-                      option.value === 'none'
-                        ? t('Removed autofix agent from %s', project.name)
-                        : tct('Started using [name] for [project]', {
-                            name: <strong>{option.label}</strong>,
-                            project: project.name,
-                          })
-                    );
-                  },
-                  onError: () =>
-                    addErrorMessage(
-                      option.value === 'none'
-                        ? t('Failed to update autofix agent')
-                        : tct('Failed to set [name] for [project]', {
-                            name: <strong>{option.label}</strong>,
-                            project: project.name,
-                          })
-                    ),
-                });
-              }}
-            />
-          </Stack>
-        )}
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
-        {autofixSettings ? (
-          autofixAgent === 'none' ? (
-            <span>{'\u2014'}</span>
-          ) : (
-            <Flex align="center" gap="sm">
-              {organization.enableSeerCoding === false && autofixAgent === 'seer' ? (
-                <InfoTip
-                  title={tct(
-                    '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-                    {
-                      settings: (
-                        <Link
-                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
-                        />
-                      ),
-                    }
-                  )}
-                  size="xs"
-                />
-              ) : null}
-
-              <Switch
-                disabled={
-                  !canWrite ||
-                  (organization.enableSeerCoding === false && autofixAgent === 'seer')
-                }
-                checked={isCreatePrEnabled}
-                onChange={e => {
-                  const value = e.target.checked;
-                  mutateCreatePr(autofixAgent, value, {
-                    onSuccess: () =>
-                      addSuccessMessage(
-                        value
-                          ? t('Enabled auto create pull requests for %s', project.name)
-                          : t('Disabled auto create pull requests for %s', project.name)
-                      ),
-                    onError: () =>
-                      addErrorMessage(
-                        t(
-                          'Failed to update auto create pull requests setting for %s',
-                          project.name
-                        )
-                      ),
-                  });
-                }}
-              />
-            </Flex>
-          )
-        ) : (
-          <Placeholder height="28px" width="36px" />
-        )}
-      </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         {autofixSettings ? (
           autofixSettings.reposCount === 0 ? (
@@ -192,6 +103,72 @@ export function SeerProjectTableRow({
           )
         ) : (
           <Placeholder height="28px" width="36px" />
+        )}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" align="stretch" overflow="visible">
+        {!autofixSettings || isPendingIntegrations ? (
+          <Placeholder height="28px" width="100%" />
+        ) : (
+          <Stack align="stretch" flex="1">
+            <Select
+              size="xs"
+              disabled={!canWrite}
+              name="autofixAgent"
+              options={agentOptions.data ?? []}
+              value={autofixAgent ?? 'seer'}
+              onChange={option => {
+                mutateSelectedAgent(option.value, {
+                  onSuccess: () => {
+                    addSuccessMessage(
+                      tct('Selected [name] for [project]', {
+                        name: <strong>{option.label}</strong>,
+                        project: project.name,
+                      })
+                    );
+                  },
+                  onError: () =>
+                    addErrorMessage(
+                      tct('Failed to set [name] for [project]', {
+                        name: <strong>{option.label}</strong>,
+                        project: project.name,
+                      })
+                    ),
+                });
+              }}
+            />
+          </Stack>
+        )}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" align="stretch" overflow="visible">
+        {autofixSettings ? (
+          <Stack align="stretch" flex="1">
+            <Select
+              size="xs"
+              disabled={!canWrite}
+              name="stoppingPoint"
+              options={PROJECT_STOPPING_POINT_OPTIONS}
+              value={stoppingPointValue}
+              onChange={option => {
+                mutateStoppingPoint(
+                  {stoppingPoint: option.value, project},
+                  {
+                    onSuccess: () =>
+                      addSuccessMessage(
+                        tct('Updated automation steps for [project]', {
+                          project: project.name,
+                        })
+                      ),
+                    onError: () =>
+                      addErrorMessage(
+                        t('Failed to update automation steps for %s', project.name)
+                      ),
+                  }
+                );
+              }}
+            />
+          </Stack>
+        ) : (
+          <Placeholder height="28px" width="100%" />
         )}
       </SimpleTable.RowCell>
     </SimpleTable.Row>

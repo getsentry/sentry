@@ -15,6 +15,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     create_preprod_snapshot_status_check_task,
@@ -90,5 +91,13 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
             preprod_artifact_id=artifact.id,
             caller="approval_endpoint",
         )
+
+        if feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS:
+            create_preprod_snapshot_pr_comment_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact.id,
+                    "caller": "approval_endpoint",
+                },
+            )
 
         return Response({"detail": "Approved"}, status=201)

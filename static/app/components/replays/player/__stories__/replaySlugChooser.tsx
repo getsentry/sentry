@@ -1,5 +1,6 @@
 import {Fragment, useState, type ReactNode} from 'react';
 import {ClassNames} from '@emotion/react';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -11,13 +12,10 @@ import {EnvironmentPicker} from 'sentry/components/replays/player/__stories__/en
 import {ProjectPicker} from 'sentry/components/replays/player/__stories__/projectPicker';
 import {Providers} from 'sentry/components/replays/player/__stories__/providers';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {useReplayListQueryKey} from 'sentry/utils/replays/hooks/useReplayListQueryKey';
+import {replayListInfiniteApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
   children: ReactNode;
@@ -36,16 +34,13 @@ export function ReplaySlugChooser({children}: Props) {
     statsPeriod: '90d',
   };
 
-  const listQueryKey = useReplayListQueryKey({
-    options: {query},
-    organization,
-    queryReferrer: 'replayList',
-  });
-  const {url, options} = parseQueryKey(listQueryKey);
-  const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-    queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
-    enabled: Boolean(listQueryKey),
-  });
+  const queryResult = useInfiniteQuery(
+    replayListInfiniteApiOptions({
+      options: {query},
+      organization,
+      queryReferrer: 'replayList',
+    })
+  );
 
   const input = (
     <Flex direction="row" gap="sm">

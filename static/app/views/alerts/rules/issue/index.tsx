@@ -600,7 +600,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     router.push(
       makeAlertsPathname({
-        path: `/rules/`,
+        path: '/rules/',
         organization,
       })
     );
@@ -800,18 +800,6 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     if (conditions === null) {
       return null;
-    }
-
-    if (
-      !organization.features.includes(
-        'event-unique-user-frequency-condition-with-conditions'
-      )
-    ) {
-      conditions = conditions?.filter(
-        condition =>
-          condition.id !==
-          'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
-      );
     }
 
     conditions = conditions?.map(condition =>
@@ -1229,7 +1217,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   rule.name
                 )}
               >
-                <Button priority="danger">{t('Delete Rule')}</Button>
+                <Button variant="danger">{t('Delete Rule')}</Button>
               </Confirm>
             ) : null
           }
@@ -1593,7 +1581,7 @@ export const findIncompatibleRules = (
     if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
       return {
         conditionIndices: [firstSeen],
-        filterIndices: [...new Array(filters.length).keys()],
+        filterIndices: [...Array.from({length: filters.length}).keys()],
       };
     }
   }

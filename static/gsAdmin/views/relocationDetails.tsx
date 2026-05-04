@@ -187,7 +187,7 @@ export function RelocationDetails() {
 
   const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
     [
-      getApiUrl(`/relocations/$relocationUuid/`, {
+      getApiUrl('/relocations/$relocationUuid/', {
         path: {relocationUuid},
       }),
       {host: region ? region.url : ''},
@@ -226,8 +226,8 @@ export function RelocationDetails() {
     ) {
       actions.push({
         key: 'artifacts',
-        name: `Show Artifacts`,
-        help: `Show all artifacts (files, findings, etc) associated with this relocation for further review. You may need special admin privileges to use this feature.`,
+        name: 'Show Artifacts',
+        help: 'Show all artifacts (files, findings, etc) associated with this relocation for further review. You may need special admin privileges to use this feature.',
         skipConfirmModal: true,
         onAction: () => {
           // artifact state is either disabled or error

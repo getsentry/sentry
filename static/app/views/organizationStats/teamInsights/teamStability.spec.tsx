@@ -11,7 +11,7 @@ describe('TeamStability', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionsApi = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/sessions/`,
+      url: '/organizations/org-slug/sessions/',
       body: SessionStatusCountByProjectInPeriodFixture(),
     });
   });

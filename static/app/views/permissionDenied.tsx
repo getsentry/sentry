@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useMatches} from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -8,14 +9,13 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 const ERROR_NAME = 'Permission Denied';
 
 export function PermissionDenied() {
-  const routes = useRoutes();
+  const matches = useMatches();
   useEffect(() => {
-    const route = getRouteStringFromRoutes(routes);
+    const route = getRouteStringFromRoutes({matches});
     Sentry.addBreadcrumb({
       category: 'auth',
       message: `${ERROR_NAME}${route ? ` : ${route}` : ''}`,

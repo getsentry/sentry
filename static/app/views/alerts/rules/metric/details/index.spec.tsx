@@ -55,6 +55,10 @@ describe('MetricAlertDetails', () => {
       url: '/organizations/org-slug/issues/',
       body: [GroupFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rule-detector/',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -83,7 +87,7 @@ describe('MetricAlertDetails', () => {
       body: rule,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/incidents/`,
+      url: '/organizations/org-slug/incidents/',
       body: [incident],
     });
 
@@ -128,7 +132,7 @@ describe('MetricAlertDetails', () => {
       body: incident,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/incidents/`,
+      url: '/organizations/org-slug/incidents/',
       body: [incident],
     });
     // Related issues to the selected incident
@@ -168,7 +172,7 @@ describe('MetricAlertDetails', () => {
       body: rule,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/incidents/`,
+      url: '/organizations/org-slug/incidents/',
       body: [incident],
     });
     const promptResponse = {
@@ -219,7 +223,7 @@ describe('MetricAlertDetails', () => {
       body: rule,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/incidents/`,
+      url: '/organizations/org-slug/incidents/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -264,7 +268,7 @@ describe('MetricAlertDetails', () => {
       body: rule,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/incidents/`,
+      url: '/organizations/org-slug/incidents/',
       body: [],
     });
 
@@ -298,7 +302,7 @@ describe('MetricAlertDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/incidents/`,
+      url: '/organizations/org-slug/incidents/',
       body: [],
     });
 
@@ -343,7 +347,7 @@ describe('MetricAlertDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/incidents/`,
+      url: '/organizations/org-slug/incidents/',
       body: [],
     });
 

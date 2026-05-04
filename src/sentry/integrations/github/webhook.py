@@ -13,6 +13,7 @@ from typing import Any, Protocol
 import orjson
 import sentry_sdk
 from dateutil.parser import parse as parse_date
+from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
@@ -44,6 +45,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -263,14 +265,15 @@ class GitHubWebhook(SCMWebhook, ABC):
 
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
                 self.update_repo_data(repo, event)
-                self._handle(
-                    github_event=github_event,
-                    integration=integration,
-                    event=event,
-                    organization=orgs[repo.organization_id],
-                    repo=repo,
-                    github_delivery_id=github_delivery_id,
-                )
+                with webhook_viewer_context(repo.organization_id):
+                    self._handle(
+                        github_event=github_event,
+                        integration=integration,
+                        event=event,
+                        organization=orgs[repo.organization_id],
+                        repo=repo,
+                        github_delivery_id=github_delivery_id,
+                    )
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
@@ -1156,6 +1159,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 "type": IntegrationProviderSlug.GITHUB.value,
             },
             silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
+            is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)

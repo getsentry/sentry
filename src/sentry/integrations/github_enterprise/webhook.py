@@ -8,6 +8,7 @@ import time
 
 import orjson
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -21,11 +22,13 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
+    InstallationRepositoriesEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
     get_github_external_id,
 )
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
@@ -44,7 +47,7 @@ INVALID_SIGNATURE_ERROR = "Provided signature does not match the computed body s
 MALFORMED_SIGNATURE_ERROR = "Signature value does not match the expected format"
 UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR = "Signature algorithm is unsupported"
 MISSING_WEBHOOK_PAYLOAD_ERROR = "Webhook payload not found"
-MISSING_GITHUB_ENTERPRISE_HOST_ERROR = "Missing X-GitHub-Enterprise-Host header"
+MISSING_GITHUB_ENTERPRISE_HOST_ERROR = "Missing X-GitHub-Enterprise-Host header (GitHub Enterprise Server) or X-Github-Tenant header (GitHub Enterprise Cloud)"
 MISSING_GITHUB_EVENT_HEADER_ERROR = "Missing X-GitHub-Event header"
 MISSING_SIGNATURE_HEADERS_ERROR = "Missing headers X-Hub-Signature-256 or X-Hub-Signature"
 
@@ -72,7 +75,13 @@ class UnsupportedSignatureAlgorithmError(Exception):
 def get_host(request: HttpRequest) -> str | None:
     # XXX: There's lots of customers that are giving us an IP rather than a host name
     # Use HTTP_X_REAL_IP in a follow up PR (#42405)
-    return request.headers.get("x-github-enterprise-host")
+    host = request.headers.get("x-github-enterprise-host")
+    if host:
+        return host
+    tenant = request.headers.get("x-github-tenant")
+    if tenant:
+        return f"{tenant}.ghe.com"
+    return None
 
 
 def get_installation_metadata(event, host):
@@ -103,6 +112,12 @@ class GitHubEnterpriseWebhook:
 
 
 class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, InstallationEventWebhook):
+    pass
+
+
+class GitHubEnterpriseInstallationRepositoriesEventWebhook(
+    GitHubEnterpriseWebhook, InstallationRepositoriesEventWebhook
+):
     pass
 
 
@@ -292,6 +307,11 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sentry_sdk.capture_exception(e)
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
+        try:
+            webhook_type = GithubWebhookType(github_event)
+        except ValueError:
+            return HttpResponse(status=204)
+
         event_handler = handler()
 
         # Create a new transaction for each webhook event to ensure separate traces
@@ -308,7 +328,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture():
-                event_handler(event, host=host, github_event=github_event)
+                event_handler(event, host=host, github_event=webhook_type)
 
         # Publish the request to the unified SCM (source control management) subscription's
         # platform. This is a replacement for the handlers defined above. Handlers should be
@@ -333,6 +353,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             },
             silo="region",
+            is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)
@@ -348,6 +369,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         "push": GitHubEnterprisePushEventWebhook,
         "pull_request": GitHubEnterprisePullRequestEventWebhook,
         "installation": GitHubEnterpriseInstallationEventWebhook,
+        "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
         "issues": GitHubEnterpriseIssuesEventWebhook,
     }
 

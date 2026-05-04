@@ -16,8 +16,10 @@ import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {MemberListStore} from 'sentry/stores/memberListStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import type {Actor} from 'sentry/types/core';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
+import {defined} from 'sentry/utils';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
@@ -25,6 +27,7 @@ import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnersh
 interface OwnershipRulesTableProps {
   codeowners: CodeOwner[];
   projectRules: ParsedOwnershipRule[];
+  actions?: React.ReactNode;
 }
 
 /**
@@ -39,6 +42,7 @@ const PAGE_LIMIT = 25;
 export function OwnershipRulesTable({
   projectRules,
   codeowners,
+  actions,
 }: OwnershipRulesTableProps) {
   const user = useUser();
   const [search, setSearch] = useState<string>('');
@@ -84,6 +88,10 @@ export function OwnershipRulesTable({
   const myTeams = useMemo(() => {
     const memberTeamsIds = teams.filter(team => team.isMember).map(team => team.id);
     return allActors.filter(actor => {
+      if (!defined(actor.id)) {
+        return false;
+      }
+
       if (actor.type === 'user') {
         return actor.id === user.id;
       }
@@ -140,7 +148,7 @@ export function OwnershipRulesTable({
     <RulesTableWrapper data-test-id="ownership-rules-table">
       <Flex align="center" gap="xl">
         <OwnershipOwnerFilter
-          actors={allActors}
+          actors={allActors.filter((actor): actor is Actor => defined(actor.id))}
           selectedTeams={selectedActors ?? []}
           handleChangeFilter={handleChangeFilter}
           isMyTeams={
@@ -158,6 +166,7 @@ export function OwnershipRulesTable({
           query={search}
           onChange={handleSearch}
         />
+        {actions}
       </Flex>
 
       <StyledPanelTable
@@ -166,7 +175,11 @@ export function OwnershipRulesTable({
         emptyMessage={t('No ownership rules found')}
       >
         {chunkedRules[page]?.map((rule, index) => {
+          const hasUnknownOwners = rule.owners.some(owner => !defined(owner.id));
           const ownerNames = rule.owners.map(owner => {
+            if (!owner.id) {
+              return owner.name;
+            }
             if (owner.type === 'team') {
               const team = TeamStore.getById(owner.id);
               return team?.slug ? `#${team.slug}` : owner.name;
@@ -185,12 +198,15 @@ export function OwnershipRulesTable({
               <RowRule>{rule.matcher.pattern}</RowRule>
               <Flex align="center" gap="md">
                 <AvatarContainer numAvatars={Math.min(rule.owners.length, 3)}>
-                  <SuggestedAvatarStack
-                    owners={rule.owners}
-                    suggested={false}
-                    reverse={false}
-                    tooltip={ownerNames.join(', ')}
-                  />
+                  {/* Avoid attempting to render the avatar stack if there are broken owners */}
+                  {!hasUnknownOwners && (
+                    <SuggestedAvatarStack
+                      owners={rule.owners as Actor[]}
+                      suggested={false}
+                      reverse={false}
+                      tooltip={ownerNames.join(', ')}
+                    />
+                  )}
                 </AvatarContainer>
                 {name}
                 {rule.owners.length > 1 &&

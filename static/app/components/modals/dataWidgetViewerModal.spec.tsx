@@ -89,10 +89,10 @@ async function renderModal({
       Footer={stubEl as ModalRenderProps['Footer']}
       Body={stubEl as ModalRenderProps['Body']}
       CloseButton={stubEl}
-      closeModal={() => undefined}
+      closeModal={() => {}}
       organization={organization}
       widget={widget}
-      onEdit={() => undefined}
+      onEdit={() => {}}
       dashboardFilters={dashboardFilters}
       widgetLegendState={widgetLegendState}
     />,
@@ -1154,7 +1154,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
     beforeEach(() => {
       mockQuery = {
         conditions: '',
-        fields: [`sum(session)`],
+        fields: ['sum(session)'],
         columns: [],
         aggregates: ['sum(session)'],
         name: 'Query Name',
@@ -1253,7 +1253,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         widget: mockWidget,
       });
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(2));
-      await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
+      await userEvent.click(await screen.findByText('sum(session)'), {delay: null});
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(3));
       expect(router.location.query).toEqual(
         expect.objectContaining({sort: '-sum(session)'})
@@ -1263,7 +1263,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
     it('should add release column and call metrics API with groupBy release', async () => {
       mockQuery = {
         conditions: '',
-        fields: [`sum(session)`],
+        fields: ['sum(session)'],
         columns: [],
         aggregates: ['sum(session)'],
         name: 'Query Name',

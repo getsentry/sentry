@@ -28,6 +28,7 @@ export type MonitorsEventParameters = {
   };
   'monitor.created': DetectorCreateAnalyticsEventPayload;
   'monitor.updated': DetectorAnalyticsEventPayload;
+  'monitors.onboarding_modal_viewed': {step: number};
 };
 
 type MonitorsAnalyticsKey = keyof MonitorsEventParameters;
@@ -38,4 +39,5 @@ export const monitorsEventMap: Record<MonitorsAnalyticsKey, string> = {
   'monitor.updated': 'Detectors: Updated',
   'automation.created': 'Automations: Created',
   'automation.updated': 'Automations: Updated',
+  'monitors.onboarding_modal_viewed': 'Monitors: Onboarding Modal Viewed',
 };

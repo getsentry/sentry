@@ -1,19 +1,29 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {Global, css} from '@emotion/react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {IconCommit, IconPullRequest, IconShow, IconStack} from 'sentry/icons';
+import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {Theme} from 'sentry/utils/theme';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
+
+const TITLE_MARKER_ATTR = 'data-snapshot-header-title';
+
+const topBarShrinkOverride = css`
+  *:has(> [${TITLE_MARKER_ATTR}]) {
+    flex: 1;
+    min-width: 0;
+  }
+  *:has(> [${TITLE_MARKER_ATTR}]) + * {
+    flex-shrink: 0;
+  }
+`;
 
 interface VcsItemConfig {
   icon: React.ComponentType<SVGIconProps>;
@@ -26,32 +36,27 @@ interface VcsItemConfig {
 
 interface SnapshotHeaderContentProps {
   data: SnapshotDetailsApiResponse;
-  isSoloView: boolean;
-  onToggleView: () => void;
 }
 
-export function SnapshotHeaderContent({
-  data,
-  isSoloView,
-  onToggleView,
-}: SnapshotHeaderContentProps) {
-  const {vcs_info} = data;
+export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
+  const {vcs_info, app_id: appId} = data;
   const shortSha = vcs_info.head_sha?.slice(0, 7);
+  const project = ProjectsStore.getById(data.project_id);
 
   const vcsItems: VcsItemConfig[] = [
-    {
-      key: 'pr',
-      icon: IconPullRequest,
-      label: vcs_info.pr_number ? `#${vcs_info.pr_number}` : '',
-      href: getPrUrl(vcs_info),
-      requiresHref: true,
-    },
     {
       key: 'sha',
       icon: IconCommit,
       label: shortSha ?? '',
       href: getShaUrl(vcs_info, vcs_info.head_sha),
       monospace: true,
+      requiresHref: true,
+    },
+    {
+      key: 'pr',
+      icon: IconPullRequest,
+      label: vcs_info.pr_number ? `#${vcs_info.pr_number}` : '',
+      href: getPrUrl(vcs_info),
       requiresHref: true,
     },
     {
@@ -63,67 +68,56 @@ export function SnapshotHeaderContent({
   ].filter(item => item.label && (!item.requiresHref || item.href));
 
   return (
-    <Layout.HeaderContent>
-      <Layout.Title>{t('Snapshot')}</Layout.Title>
+    <Layout.HeaderContent unified>
+      <Global styles={topBarShrinkOverride} />
+      <Layout.Title>
+        <Flex
+          align="center"
+          gap="lg"
+          wrap="nowrap"
+          minHeight="1lh"
+          overflow="hidden"
+          minWidth={0}
+          {...{[TITLE_MARKER_ATTR]: ''}}
+        >
+          <Text size="lg" bold>
+            {t('Snapshot')}
+          </Text>
 
-      {vcsItems.length > 0 && (
-        <Flex align="center" gap="lg" wrap="wrap">
+          {project && <IdBadge project={project} avatarSize={16} />}
+
           {vcsItems.map(item => (
-            <Flex align="center" gap="xs" key={item.key}>
+            <Flex align="center" gap="xs" key={item.key} flexShrink={0}>
               <item.icon size="xs" />
               {item.href ? (
                 <ExternalLink href={item.href}>
-                  <Text size="sm" variant="accent" monospace={item.monospace}>
+                  <Text
+                    size="sm"
+                    variant="accent"
+                    monospace={item.monospace}
+                    wrap="nowrap"
+                  >
                     {item.label}
                   </Text>
                 </ExternalLink>
               ) : (
-                <Text size="sm">{item.label}</Text>
+                <Text size="sm" wrap="nowrap">
+                  {item.label}
+                </Text>
               )}
             </Flex>
           ))}
-        </Flex>
-      )}
 
-      {data.comparison_type === 'diff' && data.base_artifact_id && (
-        <Flex align="center" gap="sm" padding="sm 0">
-          <Text size="sm" variant="muted" bold>
-            {t('Comparing:')}
-          </Text>
-          <PillButton
-            size="xs"
-            icon={<IconShow variant={isSoloView ? undefined : 'accent'} />}
-            priority={isSoloView ? 'primary' : 'default'}
-            onClick={onToggleView}
-            aria-pressed={isSoloView}
-          >
-            {t('Head')}
-          </PillButton>
-          <Text size="sm" variant="muted" bold>
-            {t('vs')}
-          </Text>
-          <PillLinkButton
-            size="xs"
-            icon={<IconShow variant="accent" />}
-            priority="default"
-            to={normalizeUrl(`/preprod/snapshots/${data.base_artifact_id}/`)}
-          >
-            {t('Base')}
-          </PillLinkButton>
+          {appId && (
+            <Flex align="center" gap="xs" flexShrink={0}>
+              <IconCode size="xs" />
+              <Text size="sm" variant="muted" monospace wrap="nowrap">
+                {appId}
+              </Text>
+            </Flex>
+          )}
         </Flex>
-      )}
+      </Layout.Title>
     </Layout.HeaderContent>
   );
 }
-
-const pillStyle = (p: {theme: Theme}) => css`
-  border-radius: ${p.theme.radius.full};
-`;
-
-const PillButton = styled(Button)`
-  ${pillStyle}
-`;
-
-const PillLinkButton = styled(LinkButton)`
-  ${pillStyle}
-`;

@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
 
 import {crashReport} from './crashReport';
 import {logs} from './logs';
@@ -12,6 +13,9 @@ export const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
+  featureFlagOnboarding: featureFlag({
+    packageName: '@sentry/google-cloud-serverless',
+  }),
   logsOnboarding: logs,
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/google-cloud-serverless',

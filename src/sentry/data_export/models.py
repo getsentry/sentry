@@ -11,6 +11,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
+from sentry.data_export.writers import OutputMode, get_file_extension
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -31,8 +33,6 @@ from sentry.notifications.platform.types import (
 )
 from sentry.users.services.user.service import user_service
 
-from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
-
 logger = logging.getLogger(__name__)
 
 
@@ -52,6 +52,9 @@ class ExportedData(Model):
     date_expired = models.DateTimeField(null=True, db_index=True)
     query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
     query_info: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    export_format = models.CharField(
+        choices=OutputMode.as_choices(), null=True, default=OutputMode.CSV.value
+    )
 
     @property
     def status(self) -> ExportStatus:
@@ -72,8 +75,10 @@ class ExportedData(Model):
     def file_name(self) -> str:
         date = self.date_added.strftime("%Y-%B-%d")
         export_type = ExportQueryType.as_str(self.query_type)
+        output_mode = OutputMode.from_value(self.export_format)
+        extension = get_file_extension(output_mode)
         # Example: Discover_2020-July-21_27.csv
-        return f"{export_type}_{date}_{self.id}.csv"
+        return f"{export_type}_{date}_{self.id}.{extension}"
 
     @staticmethod
     def format_date(date: datetime | None) -> str | None:
@@ -89,12 +94,15 @@ class ExportedData(Model):
         self.delete_file()
         return super().delete(*args, **kwargs)
 
-    def finalize_upload(self, file: File, expiration: timedelta = DEFAULT_EXPIRATION) -> None:
+    def finalize_upload(
+        self, file: File, expiration: timedelta = DEFAULT_EXPIRATION, email_notif: bool = True
+    ) -> None:
         self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file_id=file.id, date_finished=current_time, date_expired=expire_time)
-        transaction.on_commit(lambda: self.email_success(), router.db_for_write(ExportedData))
+        if email_notif:
+            transaction.on_commit(lambda: self.email_success(), router.db_for_write(ExportedData))
 
     def email_success(self) -> None:
         from sentry.utils.email import MessageBuilder

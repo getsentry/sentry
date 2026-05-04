@@ -881,11 +881,11 @@ describe('CompactSelect', () => {
         expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
       });
       // Option Three is not reachable via keyboard, focus wraps back to Option One
-      await userEvent.keyboard(`{ArrowDown}`);
+      await userEvent.keyboard('{ArrowDown}');
       await waitFor(() => {
         expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
       });
-      await userEvent.keyboard(`{ArrowDown>2}`);
+      await userEvent.keyboard('{ArrowDown>2}');
       await waitFor(() => {
         expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
       });
@@ -1318,9 +1318,9 @@ describe('CompactSelect', () => {
         expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
       });
       // Option Three is not reachable via keyboard, focus wraps back to Option One
-      await userEvent.keyboard(`{ArrowDown}`);
+      await userEvent.keyboard('{ArrowDown}');
       expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
-      await userEvent.keyboard(`{ArrowDown>2}`);
+      await userEvent.keyboard('{ArrowDown>2}');
       expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
 
       // Option Three is still available via search

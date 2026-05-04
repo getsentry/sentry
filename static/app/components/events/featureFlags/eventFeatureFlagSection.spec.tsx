@@ -51,7 +51,7 @@ describe('EventFeatureFlagList', () => {
       body: {data: {dismissed_ts: null}},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: TagsFixture(),
     });
   });
@@ -135,7 +135,7 @@ describe('EventFeatureFlagList', () => {
   it('allows sort dropdown to affect displayed flags', async () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
 
-    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
+    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
 
     // the flags are reversed by default
     // expect enableReplay to be preceding webVitalsFlag

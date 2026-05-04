@@ -60,8 +60,18 @@ class GitlabIssuesTest(GitLabTestCase):
             "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[
-                {"name_with_namespace": "getsentry / sentry", "id": 1},
-                {"name_with_namespace": "getsentry / hello", "id": 22},
+                {
+                    "name_with_namespace": "getsentry / sentry",
+                    "id": 1,
+                    "path_with_namespace": "getsentry/sentry",
+                    "web_url": "https://example.gitlab.com/getsentry/sentry",
+                },
+                {
+                    "name_with_namespace": "getsentry / hello",
+                    "id": 22,
+                    "path_with_namespace": "getsentry/hello",
+                    "web_url": "https://example.gitlab.com/getsentry/hello",
+                },
             ],
         )
         assert self.installation.get_create_issue_config(self.group, self.user) == [
@@ -71,8 +81,8 @@ class GitlabIssuesTest(GitLabTestCase):
                 "required": True,
                 "type": "select",
                 "label": "GitLab Project",
-                "choices": [(1, "getsentry / sentry"), (22, "getsentry / hello")],
-                "defaultValue": 1,
+                "choices": [("1", "getsentry / sentry"), ("22", "getsentry / hello")],
+                "defaultValue": "1",
             },
             {
                 "name": "title",
@@ -98,8 +108,18 @@ class GitlabIssuesTest(GitLabTestCase):
             "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[
-                {"name_with_namespace": "getsentry / sentry", "id": 1},
-                {"name_with_namespace": "getsentry / hello", "id": 22},
+                {
+                    "name_with_namespace": "getsentry / sentry",
+                    "id": 1,
+                    "path_with_namespace": "getsentry/sentry",
+                    "web_url": "https://example.gitlab.com/getsentry/sentry",
+                },
+                {
+                    "name_with_namespace": "getsentry / hello",
+                    "id": 22,
+                    "path_with_namespace": "getsentry/hello",
+                    "web_url": "https://example.gitlab.com/getsentry/hello",
+                },
             ],
         )
         autocomplete_url = "/extensions/gitlab/search/baz/%d/" % self.installation.model.id
@@ -108,8 +128,8 @@ class GitlabIssuesTest(GitLabTestCase):
                 "name": "project",
                 "label": "GitLab Project",
                 "type": "select",
-                "default": 1,
-                "choices": [(1, "getsentry / sentry"), (22, "getsentry / hello")],
+                "default": "1",
+                "choices": [("1", "getsentry / sentry"), ("22", "getsentry / hello")],
                 "url": autocomplete_url,
                 "updatesForm": True,
                 "required": True,
@@ -234,9 +254,24 @@ class GitlabIssuesTest(GitLabTestCase):
             "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[
-                {"name_with_namespace": "getsentry / sentry", "id": 1},
-                {"name_with_namespace": project_name, "id": project_id},
-                {"name_with_namespace": "getsentry / hello", "id": 22},
+                {
+                    "name_with_namespace": "getsentry / sentry",
+                    "id": 1,
+                    "path_with_namespace": "getsentry/sentry",
+                    "web_url": "https://example.gitlab.com/getsentry/sentry",
+                },
+                {
+                    "name_with_namespace": project_name,
+                    "id": project_id,
+                    "path_with_namespace": "this_is/a_project",
+                    "web_url": "https://example.gitlab.com/this_is/a_project",
+                },
+                {
+                    "name_with_namespace": "getsentry / hello",
+                    "id": 22,
+                    "path_with_namespace": "getsentry/hello",
+                    "web_url": "https://example.gitlab.com/getsentry/hello",
+                },
             ],
         )
         responses.add(
@@ -250,11 +285,11 @@ class GitlabIssuesTest(GitLabTestCase):
                 "name": "project",
                 "required": True,
                 "choices": [
-                    (1, "getsentry / sentry"),
-                    (10, "This_is / a_project"),
-                    (22, "getsentry / hello"),
+                    ("1", "getsentry / sentry"),
+                    ("10", "This_is / a_project"),
+                    ("22", "getsentry / hello"),
                 ],
-                "defaultValue": project_id,
+                "defaultValue": str(project_id),
                 "type": "select",
                 "label": "GitLab Project",
             },
@@ -303,14 +338,29 @@ class GitlabIssuesTest(GitLabTestCase):
             "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[
-                {"name_with_namespace": "getsentry / sentry", "id": 1},
-                {"name_with_namespace": "getsentry / hello", "id": 22},
+                {
+                    "name_with_namespace": "getsentry / sentry",
+                    "id": 1,
+                    "path_with_namespace": "getsentry/sentry",
+                    "web_url": "https://example.gitlab.com/getsentry/sentry",
+                },
+                {
+                    "name_with_namespace": "getsentry / hello",
+                    "id": 22,
+                    "path_with_namespace": "getsentry/hello",
+                    "web_url": "https://example.gitlab.com/getsentry/hello",
+                },
             ],
         )
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s" % project_id,
-            json={"name_with_namespace": project_name, "id": project_id},
+            json={
+                "name_with_namespace": project_name,
+                "id": project_id,
+                "path_with_namespace": "this_is/a_project",
+                "web_url": "https://example.gitlab.com/this_is/a_project",
+            },
         )
         assert self.installation.get_create_issue_config(self.group, self.user) == [
             {
@@ -318,11 +368,11 @@ class GitlabIssuesTest(GitLabTestCase):
                 "name": "project",
                 "required": True,
                 "choices": [
-                    (10, "This_is / a_project"),
-                    (1, "getsentry / sentry"),
-                    (22, "getsentry / hello"),
+                    ("10", "This_is / a_project"),
+                    ("1", "getsentry / sentry"),
+                    ("22", "getsentry / hello"),
                 ],
-                "defaultValue": project_id,
+                "defaultValue": str(project_id),
                 "type": "select",
                 "label": "GitLab Project",
             },

@@ -13,4 +13,3 @@ breakdownsV2:
     - ui
     type: spanOperations
 metricConditionalTagging: null
-transactionMetrics: null

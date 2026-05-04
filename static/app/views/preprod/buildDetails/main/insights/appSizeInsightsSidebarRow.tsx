@@ -38,7 +38,7 @@ export function formatUpside(percentage: number): string {
     return `-${formatPercentage(percentage, 1)}`;
   }
   // Format smaller than 0.001 (so 0.1%) as "(~0%)"
-  return `~0%`;
+  return '~0%';
 }
 
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
@@ -146,7 +146,7 @@ export function AppSizeInsightsSidebarRow({
           {insight.description}
         </Text>
         {shouldShowTooltip && (
-          <Button priority="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
+          <Button variant="link" onClick={handleOpenModal} size="xs" icon={<IconInfo />}>
             {t('How to fix this locally')}
           </Button>
         )}

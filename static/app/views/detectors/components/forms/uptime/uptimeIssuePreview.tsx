@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
 import {ownerToActor} from 'sentry/views/detectors/components/forms/common/ownerToActor';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
+import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useUptimeDetectorFormField} from 'sentry/views/detectors/components/forms/uptime/fields';
 import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/formatUptimeUrl';
 
@@ -28,7 +28,7 @@ export function UptimeIssuePreview({step}: {step?: number}) {
   const owner = useUptimeDetectorFormField('owner');
   const issueTitle = useUptimeIssueTitle();
   const assignee = ownerToActor(owner);
-  const {project} = useDetectorFormContext();
+  const project = useDetectorFormProject();
 
   return (
     <IssuePreviewSection step={step}>

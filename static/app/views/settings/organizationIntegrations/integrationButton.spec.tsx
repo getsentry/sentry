@@ -1,4 +1,4 @@
-import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -17,7 +17,7 @@ describe('AddIntegrationButton', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    provider = GitHubIntegrationProviderFixture();
+    provider = IntegrationProviderFixture();
     org = OrganizationFixture();
     hasAccess = true;
     externalInstallText = undefined;

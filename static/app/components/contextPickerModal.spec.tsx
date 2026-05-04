@@ -7,12 +7,9 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {makeCloseButton, ModalBody, ModalFooter} from '@sentry/scraps/modal';
+
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
-import {
-  makeCloseButton,
-  ModalBody,
-  ModalFooter,
-} from 'sentry/components/globalModal/components';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -252,7 +249,7 @@ describe('ContextPickerModal', () => {
 
     const provider = {slug: 'github'};
     const configQueryKey = [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: org.slug},
       }),
       {query: {provider_key: provider.slug, includeConfig: 0}},
@@ -299,7 +296,7 @@ describe('ContextPickerModal', () => {
 
     const provider = {slug: 'github'};
     const configQueryKey = [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: org.slug},
       }),
       {query: {provider_key: provider.slug, includeConfig: 0}},
@@ -337,7 +334,7 @@ describe('ContextPickerModal', () => {
 
     const provider = {slug: 'github'};
     const configQueryKey = [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: org.slug},
       }),
       {query: {provider_key: provider.slug, includeConfig: 0}},

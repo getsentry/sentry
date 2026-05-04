@@ -65,7 +65,6 @@ from sentry.grouping.ingest.config import is_in_transition, update_or_set_groupi
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
     get_or_create_grouphashes,
-    maybe_run_background_grouping,
     maybe_run_secondary_grouping,
     run_primary_grouping,
 )
@@ -1358,11 +1357,6 @@ def assign_event_to_group(
 
     # From here on out, we're just doing housekeeping
 
-    # Background grouping is a way for us to get performance metrics for a new
-    # config without having it actually affect on how events are grouped. It runs
-    # either before or after the main grouping logic, depending on the option value.
-    maybe_run_background_grouping(project, job)
-
     record_hash_calculation_metrics(
         project, primary.config, primary.hashes, secondary.config, secondary.hashes, result
     )
@@ -2006,7 +2000,7 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
-    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
+    from sentry.workflow_engine.receivers.project_workflows import PLATFORMS_WITH_PRIORITY_ALERTS
 
     if killswitch_matches_context(
         "issues.severity.skip-seer-requests", {"project_id": event.project_id}

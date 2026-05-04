@@ -66,12 +66,12 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: t(
-            `One way to verify your setup is by intentionally causing an error that breaks your application.`
+            'One way to verify your setup is by intentionally causing an error that breaks your application.'
           ),
         },
         {
           type: 'text',
-          text: t(`Calling an undefined function will throw a JavaScript exception:`),
+          text: t('Calling an undefined function will throw a JavaScript exception:'),
         },
         {
           type: 'code',
@@ -81,7 +81,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: t(
-            `With Electron you can test native crash reporting by triggering a crash:`
+            'With Electron you can test native crash reporting by triggering a crash:'
           ),
         },
         {

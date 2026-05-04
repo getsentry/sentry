@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -23,7 +24,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
@@ -85,7 +85,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const routes = useRoutes();
+  const matches = useMatches();
   const {replayExists} = useReplayExists();
   const domainViewFilters = useDomainViewFilters();
 
@@ -93,7 +93,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const subregions = location.query[SpanFields.USER_GEO_SUBREGION] as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
 
-  const replayLinkGenerator = generateReplayLink(routes);
+  const replayLinkGenerator = generateReplayLink(matches);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -102,7 +102,7 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const transactionFromDashboard = useMemo(() => {
     if (!dashboardFilters?.globalFilter) {
-      return undefined;
+      return;
     }
     const transactionFilter = dashboardFilters.globalFilter.find(
       filter => filter.tag.key === 'transaction'
@@ -112,7 +112,7 @@ export function PageOverviewWebVitalsDetailPanel({
       const values = search.getFilterValues('transaction');
       return values?.[0];
     }
-    return undefined;
+    return;
   }, [dashboardFilters]);
 
   // Transaction filter can come from dashboard filters or URL (for insights module)

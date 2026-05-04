@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -49,7 +49,7 @@ function SaveQueryModal({
 
   const setQueryParamsSavedQuery = useSetQueryParamsSavedQuery();
 
-  const onSave = useCallback(async () => {
+  const onSave = async () => {
     try {
       setIsSaving(true);
       addLoadingMessage(t('Saving query...'));
@@ -82,17 +82,7 @@ function SaveQueryModal({
     } finally {
       setIsSaving(false);
     }
-  }, [
-    saveQuery,
-    name,
-    starred,
-    setQueryParamsSavedQuery,
-    closeModal,
-    organization,
-    initialName,
-    source,
-    traceItemDataset,
-  ]);
+  };
 
   return (
     <Fragment>
@@ -136,7 +126,7 @@ function SaveQueryModal({
           <Button onClick={closeModal} disabled={isSaving}>
             {t('Cancel')}
           </Button>
-          <Button onClick={onSave} disabled={!name || isSaving} priority="primary">
+          <Button onClick={onSave} disabled={!name || isSaving} variant="primary">
             {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
           </Button>
         </StyledButtonBar>

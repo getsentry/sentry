@@ -10,9 +10,9 @@ const JS_CODE = `function foo() {
   return 'bar';
 }`;
 
-const SINGLE_LINE_CODE = `const a='b'`;
+const SINGLE_LINE_CODE = "const a='b'";
 
-const NESTED_CODE = `<p class="hey">Test</p>`;
+const NESTED_CODE = '<p class="hey">Test</p>';
 
 describe('usePrismTokens', () => {
   beforeAll(async () => {

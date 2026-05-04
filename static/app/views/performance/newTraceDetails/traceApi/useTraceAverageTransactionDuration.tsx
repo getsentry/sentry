@@ -23,7 +23,7 @@ export const useTraceAverageTransactionDuration = ({
 
   const eventView = EventView.fromSavedQuery({
     id: undefined,
-    name: `Average durations of transactions in the trace`,
+    name: 'Average durations of transactions in the trace',
     fields: ['title', 'avg(transaction.duration)'],
     orderby: '-title',
     query: conditions.formatString(),

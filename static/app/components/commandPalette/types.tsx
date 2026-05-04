@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
+import {type UseQueryOptions} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
-
-import type {UseQueryOptions} from 'sentry/utils/queryClient';
 
 interface Action {
   display: {
@@ -14,99 +13,45 @@ interface Action {
   };
   /** Optional keywords to improve searchability */
   keywords?: string[];
+  /** Max results shown before a "See all" expansion item appears */
+  limit?: number;
 }
 
-/**
- * Actions that can be returned from an async resource query.
- * Async results cannot themselves carry a `resource` — chained async lookups
- * are not supported. Use CommandPaletteAction for registering top-level actions.
- */
-interface CommandPaletteAsyncResultGroup extends Action {
-  actions: CommandPaletteAsyncResult[];
-}
-
-export type CommandPaletteAsyncResult =
-  | CommandPaletteActionLink
-  | CommandPaletteActionCallback
-  | CommandPaletteAsyncResultGroup;
-
-export type CMDKQueryOptions = UseQueryOptions<
-  any,
-  Error,
-  CommandPaletteAsyncResult[],
-  any
+type BaseCMDKQueryOptions<TData = unknown> = Omit<
+  UseQueryOptions<TData, Error, CommandPaletteAction[], any>,
+  'meta'
 >;
 
-export interface CommandPaletteActionLink extends Action {
+export type CMDKQueryOptions<TData = unknown> = BaseCMDKQueryOptions<TData> & {
+  meta: {[key: string]: unknown; cmdk: true};
+};
+
+/**
+ * Wraps a query options object and injects the cmdk meta marker required for
+ * the command palette loading indicator to track this query via useIsFetching.
+ * All resource functions passed to CMDKAction must use this helper.
+ */
+export function cmdkQueryOptions<TData = unknown>(
+  options: BaseCMDKQueryOptions<TData>
+): CMDKQueryOptions<TData> {
+  return {...options, meta: {cmdk: true}};
+}
+
+interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
 }
 
 interface CommandPaletteActionCallback extends Action {
-  /**
-   * Execute a callback when the action is selected.
-   * Use the `to` prop if you want to navigate to a route.
-   */
   onAction: () => void;
-}
-
-interface CommandPaletteAsyncAction extends Action {
-  /**
-   * Execute a callback when the action is selected.
-   * Use the `to` prop if you want to navigate to a route.
-   */
-  resource: (query: string) => CMDKQueryOptions;
-}
-
-interface CommandPaletteAsyncActionGroup extends Action {
-  actions: CommandPaletteAction[];
-  resource: (query: string) => CMDKQueryOptions;
 }
 
 export type CommandPaletteAction =
   | CommandPaletteActionLink
   | CommandPaletteActionCallback
-  | CommandPaletteActionGroup
-  | CommandPaletteAsyncAction
-  | CommandPaletteAsyncActionGroup;
+  | CommandPaletteActionGroup;
 
 interface CommandPaletteActionGroup extends Action {
   /** Nested actions to show when this action is selected */
   actions: CommandPaletteAction[];
-}
-
-// Internally, a key is added to the actions in order to track them for registration and selection.
-type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
-type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
-  key: string;
-};
-type CommandPaletteAsyncActionWithKey = CommandPaletteAsyncAction & {
-  key: string;
-};
-type CommandPaletteAsyncActionGroupWithKey = Omit<
-  CommandPaletteAsyncActionGroup,
-  'actions'
-> & {
-  actions: CommandPaletteActionWithKey[];
-  key: string;
-};
-
-export type CommandPaletteActionWithKey =
-  // Sync actions (to, callback, group)
-  | CommandPaletteActionLinkWithKey
-  | CommandPaletteActionCallbackWithKey
-  | CommandPaletteActionGroupWithKey
-  // Async actions
-  | CommandPaletteAsyncActionWithKey
-  | CommandPaletteAsyncActionGroupWithKey;
-
-interface CommandPaletteActionGroupWithKey extends CommandPaletteActionGroup {
-  actions: Array<
-    | CommandPaletteActionLinkWithKey
-    | CommandPaletteActionCallbackWithKey
-    | CommandPaletteActionGroupWithKey
-    | CommandPaletteAsyncActionWithKey
-    | CommandPaletteAsyncActionGroupWithKey
-  >;
-  key: string;
 }

@@ -16,6 +16,8 @@ from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidati
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.viewer_context import ActorType, get_viewer_context
 
 TOKEN = "JWT anexampletoken"
 
@@ -163,6 +165,33 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                     },
                 },
             )
+
+    @override_options({"viewer-context.enabled": True})
+    def test_status_sync_sets_viewer_context(self) -> None:
+        captured_contexts: list = []
+
+        def capture_viewer_context(*args, **kwargs):
+            captured_contexts.append(get_viewer_context())
+
+        with (
+            patch(
+                "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+                return_value=self.integration,
+            ),
+            patch.object(
+                IssueSyncIntegration,
+                "sync_status_inbound",
+                side_effect=capture_viewer_context,
+            ),
+        ):
+            data = StubService.get_stub_data("jira", "edit_issue_status_payload.json")
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+        assert len(captured_contexts) == 1
+        ctx = captured_contexts[0]
+        assert ctx is not None
+        assert ctx.organization_id == self.organization.id
+        assert ctx.actor_type == ActorType.INTEGRATION
 
     @patch("sentry_sdk.set_tag")
     @patch("sentry.integrations.utils.scope.bind_organization_context")

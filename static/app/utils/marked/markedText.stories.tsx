@@ -64,7 +64,7 @@ export default Storybook.story('MarkedText', (story, _APIReference) => {
       <Fragment>
         <p>Markdown lists are supported:</p>
         <Storybook.SizingWindow display="block">
-          <MarkedText text={`- Item 1\n- Item 2\n- Item 3`} />
+          <MarkedText text={'- Item 1\n- Item 2\n- Item 3'} />
         </Storybook.SizingWindow>
       </Fragment>
     );
@@ -76,7 +76,9 @@ export default Storybook.story('MarkedText', (story, _APIReference) => {
         <p>Markdown code blocks are supported:</p>
         <Storybook.SizingWindow display="block">
           <MarkedText
-            text={`\`\`\`jsx\nconst example = "code block";\nconsole.log(example);\nconst el = <Component>Hello</Component>;\n\`\`\``}
+            text={
+              '```jsx\nconst example = "code block";\nconsole.log(example);\nconst el = <Component>Hello</Component>;\n```'
+            }
           />
         </Storybook.SizingWindow>
       </Fragment>

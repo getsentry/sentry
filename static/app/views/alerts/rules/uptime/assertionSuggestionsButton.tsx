@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
@@ -91,7 +91,7 @@ export function AssertionSuggestionsButton({
     [getCurrentAssertion, onApplySuggestion]
   );
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     const {url, timeoutMs, method, headers, body} = getFormData();
 
     if (!url) {
@@ -108,7 +108,7 @@ export function AssertionSuggestionsButton({
       ),
       {ariaLabel: t('AI Assertion Suggestions')}
     );
-  }, [getFormData, openDrawer, handleApplySuggestion]);
+  };
 
   return (
     <Button

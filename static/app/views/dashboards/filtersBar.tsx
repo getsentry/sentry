@@ -7,7 +7,10 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import Feature from 'sentry/components/acl/feature';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -18,14 +21,13 @@ import {
   RELEASES_SORT_OPTIONS,
   ReleasesSortOption,
 } from 'sentry/constants/releases';
-import {IconClock} from 'sentry/icons';
+import {IconAdd, IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -33,6 +35,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
+import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -40,6 +43,8 @@ import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -106,11 +111,13 @@ export type FiltersBarProps = {
   dashboard?: DashboardDetails;
   dashboardCreator?: User;
   dashboardPermissions?: DashboardPermissions;
+  onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onCancel?: () => void;
   onSave?: () => Promise<void>;
   prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
   storageNamespace?: string;
+  widgetLimitReached?: boolean;
 };
 
 export function FiltersBar({
@@ -122,16 +129,19 @@ export function FiltersBar({
   isEditingDashboard,
   isPreview,
   location,
+  onAddWidget,
   onCancel,
   onDashboardFilterChange,
   onSave,
   shouldBusySaveButton,
   prebuiltDashboardId,
   storageNamespace,
+  widgetLimitReached = false,
 }: FiltersBarProps) {
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const getSearchBarData = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
@@ -231,10 +241,31 @@ export function FiltersBar({
 
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
-  const hasIntervalSelection = organization.features.includes(
-    'dashboards-interval-selection'
-  );
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
+  const addWidgetDropdownItems: MenuItemProps[] = [
+    {
+      key: 'create-custom-widget',
+      label: t('Create Custom Widget'),
+      onAction: () => onAddWidget?.(DataSet.ERRORS, false),
+    },
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidget?.(DataSet.ERRORS, true),
+    },
+  ];
+  const addWidgetTooltipMessage = hasEditAccess
+    ? widgetLimitReached
+      ? t('Max widgets reached.')
+      : null
+    : t('You do not have permission to edit this dashboard');
+  const showAddWidgetButton =
+    hasPageFrameFeature &&
+    !isPrebuiltDashboard &&
+    !isEditingDashboard &&
+    !isPreview &&
+    defined(dashboard?.id) &&
+    defined(onAddWidget);
 
   return (
     <Wrapper>
@@ -336,7 +367,7 @@ export function FiltersBar({
                     !hasEditAccess &&
                     t('You do not have permission to edit this dashboard'),
                 }}
-                priority="primary"
+                variant="primary"
                 onClick={async () => {
                   await onSave?.();
                   invalidateStarredDashboards();
@@ -367,23 +398,43 @@ export function FiltersBar({
           )}
         <ToggleOnDemand />
       </FiltersRow>
-      {hasIntervalSelection && (
+      <Grid flow="column" align="center" gap="md">
         <CompactSelect
           value={interval}
           onChange={option => setInterval(option.value)}
           trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconClock />}
-              priority="transparent"
-              showChevron={false}
-              size="xs"
-            />
+            <OverlayTrigger.Button {...triggerProps} icon={<IconClock />} />
           )}
           menuTitle={t('Interval')}
           options={intervalOptions}
         />
-      )}
+        {showAddWidgetButton && (
+          <Feature features="organizations:dashboards-edit">
+            {({hasFeature}) =>
+              hasFeature ? (
+                <Tooltip
+                  title={addWidgetTooltipMessage}
+                  disabled={!widgetLimitReached && hasEditAccess}
+                >
+                  <DropdownMenu
+                    items={addWidgetDropdownItems}
+                    isDisabled={widgetLimitReached || !hasEditAccess}
+                    triggerLabel={t('Add Widget')}
+                    triggerProps={{
+                      'aria-label': t('Add Widget'),
+                      size: 'sm',
+                      showChevron: true,
+                      icon: <IconAdd size="sm" />,
+                      variant: 'primary',
+                    }}
+                    position="bottom-end"
+                  />
+                </Tooltip>
+              ) : null
+            }
+          </Feature>
+        )}
+      </Grid>
     </Wrapper>
   );
 }

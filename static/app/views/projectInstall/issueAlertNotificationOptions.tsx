@@ -93,7 +93,7 @@ export function useCreateNotificationAction({
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {integrationType: 'messaging'}},
@@ -187,7 +187,7 @@ export function useCreateNotificationAction({
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
       if (!shouldCreateRule || !isCreatingIntegrationNotification) {
-        return undefined;
+        return;
       }
 
       let integrationAction: IntegrationAction;
@@ -216,7 +216,7 @@ export function useCreateNotificationAction({
           };
           break;
         default:
-          return undefined;
+          return;
       }
 
       return createProjectRules.mutateAsync({

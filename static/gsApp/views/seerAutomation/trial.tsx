@@ -115,7 +115,7 @@ export default function SeerAutomationTrial() {
 
           <Text>
             {tct(
-              `With Seer, issues [em:almost] fix themselves. Choose your favorite coding agent and run Autofix on Issues as they're detected, and use Code Review to prevent bugs before they happen. [docs:Read the docs] for more.`,
+              "With Seer, issues [em:almost] fix themselves. Choose your favorite coding agent and run Autofix on Issues as they're detected, and use Code Review to prevent bugs before they happen. [docs:Read the docs] for more.",
               {
                 em: <em />,
                 docs: (

@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -23,8 +24,8 @@ import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
+import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
@@ -56,10 +57,10 @@ import {
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 const {fmt} = Sentry.logger;
 
@@ -71,6 +72,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
     TraceItemResponseAttribute['type'] | EventsMetaType['fields'][string]
   >;
   attributes: Record<string, string | number | boolean>;
+  caseSensitiveHighlighting: boolean;
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
@@ -146,7 +148,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-export function TimestampRenderer(props: LogFieldRendererProps) {
+function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
   const timestampToUse = preciseTimestamp
@@ -156,7 +158,7 @@ export function TimestampRenderer(props: LogFieldRendererProps) {
   return (
     <LogDate align={props.extra.align}>
       <LogsTimestampTooltip
-        timestamp={props.item.value as string | number}
+        timestamp={props.item.value!}
         attributes={props.extra.attributes}
         shouldRender={props.extra.shouldRenderHoverElements}
       >
@@ -203,7 +205,7 @@ function RelativeTimestampRenderer(props: LogFieldRendererProps) {
   return (
     <LogDate align={props.extra.align}>
       <LogsTimestampTooltip
-        timestamp={props.item.value as string | number}
+        timestamp={props.item.value!}
         attributes={props.extra.attributes}
         shouldRender={props.extra.shouldRenderHoverElements}
         relativeTimeToReplay={relativeTimestampMs}
@@ -240,10 +242,12 @@ function CodePathRenderer(props: LogFieldRendererProps) {
       : undefined;
   const filename = props.item.value;
 
-  const {data: release} = useRelease({
-    orgSlug: props.extra.organization.slug,
-    projectSlug: props.extra.projectSlug ?? '',
-    releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
+  const {data: release} = useQuery({
+    ...releaseApiOptions({
+      orgSlug: props.extra.organization.slug,
+      projectSlug: props.extra.projectSlug ?? '',
+      releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
+    }),
     enabled: shouldLoad,
   });
   const {data: codeLink} = useStacktraceLink(
@@ -353,7 +357,7 @@ function FilteredTooltip({
     return (
       <Tooltip
         title={tct(
-          `The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].`,
+          'The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].',
           {
             settings: (
               <Link
@@ -451,7 +455,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       isAppendingTemplate={!!templateText}
     >
       <WrappingText wrapText={props.extra.wrapBody}>
-        <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
+        <LogsHighlight
+          caseSensitive={props.extra.caseSensitiveHighlighting}
+          text={highlightTerm}
+        >
+          {stripAnsi(attribute_value)}
+        </LogsHighlight>
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             original={attribute_value}
@@ -631,17 +640,19 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function TimeStampRenderer(props: LogFieldRendererProps) {
+  if (props.extra.timestampRelativeTo) {
+    // Check if we should use relative timestamps (eg. in replay)
+    return <RelativeTimestampRenderer {...props} />;
+  }
+  return <TimestampRenderer {...props} />;
+}
+
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: LogFieldRendererProps) => React.ReactNode
 > = {
-  [OurLogKnownFieldKey.TIMESTAMP]: props => {
-    if (props.extra.timestampRelativeTo) {
-      // Check if we should use relative timestamps (eg. in replay)
-      return RelativeTimestampRenderer(props);
-    }
-    return TimestampRenderer(props);
-  },
+  [OurLogKnownFieldKey.TIMESTAMP]: TimeStampRenderer,
   [OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT]: InternalIngestedAtRenderer,
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,

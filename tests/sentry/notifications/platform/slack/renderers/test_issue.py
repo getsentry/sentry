@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 
@@ -47,7 +46,7 @@ class IssueAlertInvocationMixin(TestCase):
             name="Test Detector",
             type=ErrorGroupType.slug,
         )
-        workflow = self.create_workflow(organization=self.organization)
+        workflow = self.create_workflow(organization=self.organization, name="Test Workflow")
         action = self.create_action(
             type=Action.Type.SLACK,
             data={"tags": ", ".join(tags) if tags else "", "notes": notes},
@@ -99,7 +98,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.notification_uuid == "test-uuid-123"
         assert isinstance(result.rule, SerializableRuleProxy)
         assert result.rule.id == invocation.action.id
-        assert result.rule.label == invocation.detector.name
+        assert result.rule.label == "Test Workflow"
         assert result.tags == ["environment", "level"]
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
@@ -164,6 +163,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         workflow_id: int,
         event_id: str,
         title: str = "test event",
+        rule_label: str = "Test Workflow",
         notes: str | None = None,
         tags: list[str] | None = None,
     ) -> SlackRenderable:
@@ -256,7 +256,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
                         "type": "mrkdwn",
                         "text": (
                             f"Project: <{project_url}|{project_slug}>"
-                            f"    Alert: <{alert_url}|Test Detector>"
+                            f"    Alert: <{alert_url}|{rule_label}>"
                             f"    Short ID: {group.qualified_short_id}"
                         ),
                     }
@@ -264,18 +264,12 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             }
         )
 
-        blocks.append({"type": "divider"})
-
         return SlackRenderable(
             blocks=blocks,
             text=f"[{project_slug}] {title}",
         )
 
-    @patch(
-        "sentry.integrations.slack.message_builder.issues.fetch_issue_summary",
-        return_value=None,
-    )
-    def test_render_produces_blocks(self, mock_summary: Any) -> None:
+    def test_render_produces_blocks(self) -> None:
         invocation = self._create_invocation()
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
@@ -292,11 +286,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             event_id=invocation.event_data.event.event_id,
         )
 
-    @patch(
-        "sentry.integrations.slack.message_builder.issues.fetch_issue_summary",
-        return_value=None,
-    )
-    def test_render_with_notes(self, mock_summary: Any) -> None:
+    def test_render_with_notes(self) -> None:
         invocation = self._create_invocation(notes="important note")
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
@@ -314,11 +304,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             notes="important note",
         )
 
-    @patch(
-        "sentry.integrations.slack.message_builder.issues.fetch_issue_summary",
-        return_value=None,
-    )
-    def test_render_with_tags(self, mock_summary: Any) -> None:
+    def test_render_with_tags(self) -> None:
         invocation = self._create_invocation(
             tags=["level"],
             event_data={"message": "tagged event", "level": "error"},

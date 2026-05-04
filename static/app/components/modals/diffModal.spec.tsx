@@ -30,7 +30,7 @@ describe('DiffModal', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       body: {features: []},
     });
 

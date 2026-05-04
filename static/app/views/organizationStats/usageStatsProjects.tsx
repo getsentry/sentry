@@ -4,11 +4,11 @@ import * as Sentry from '@sentry/react';
 import type {LocationDescriptorObject} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {Pagination} from 'sentry/components/pagination';
 import {SearchBar} from 'sentry/components/searchBar';
 import type {
   Alignments,
@@ -119,7 +119,7 @@ export function UsageStatsProjects({
     isPending: loading,
   } = useApiQuery<UsageSeries>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

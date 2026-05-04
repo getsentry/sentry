@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import devkitCrashesStep1 from 'sentry-images/tempest/devkit-crashes-step1.png';
@@ -21,10 +22,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 
 interface Props {
   organization: Organization;
@@ -36,9 +37,13 @@ export function DevKitSettings({organization, project}: Props) {
   const location = useLocation();
   const [expandedAccordionIndex, setExpandedAccordionIndex] = useState<number>(-1);
 
-  const {data: projectKeys, isPending: isLoadingKeys} = useProjectKeys({
-    orgSlug: organization.slug,
-    projSlug: project.slug,
+  const {data: projectKeys, isPending: isLoadingKeys} = useQuery({
+    ...projectKeysApiOptions({
+      orgSlug: organization.slug,
+      projSlug: project.slug,
+    }),
+    staleTime: Infinity,
+    retry: false,
   });
 
   if (isLoadingKeys) {
@@ -117,7 +122,7 @@ export function DevKitSettings({organization, project}: Props) {
                                   <Stack gap="md">
                                     <p>
                                       {t(
-                                        `Using the Windows tool enter the URL as the 'Request Check URL' and 'Upload URL'.`
+                                        "Using the Windows tool enter the URL as the 'Request Check URL' and 'Upload URL'."
                                       )}
                                     </p>
                                   </Stack>
@@ -143,7 +148,7 @@ export function DevKitSettings({organization, project}: Props) {
                                   <Stack gap="md">
                                     <p>
                                       {t(
-                                        `If you haven't done it via the Windows tool, you can set up the 'Upload URL' and 'Request Check URL' directly in the DevKit. This can be done under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL' and 'Debug Settings' > 'Core Dump' > 'Data Request' > 'Request Check URL' respectively.`
+                                        "If you haven't done it via the Windows tool, you can set up the 'Upload URL' and 'Request Check URL' directly in the DevKit. This can be done under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL' and 'Debug Settings' > 'Core Dump' > 'Data Request' > 'Request Check URL' respectively."
                                       )}
                                     </p>
                                   </Stack>
@@ -204,7 +209,7 @@ export function DevKitSettings({organization, project}: Props) {
                     <GuidedSteps.StepButtons>
                       <Button
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                         onClick={() => {
                           navigate({
                             pathname: '/issues/',
@@ -292,7 +297,7 @@ const CardIllustration = styled('img')`
   object-fit: contain;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.shadow.low};
 `;
 
 const IntroText = styled('p')`

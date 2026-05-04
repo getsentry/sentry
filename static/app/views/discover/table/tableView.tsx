@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -48,16 +49,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   getExpandedResults,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
@@ -107,8 +107,8 @@ export function TableView(props: TableViewProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const {projects} = useProjects();
-  const routes = useRoutes();
-  const replayLinkGenerator = generateReplayLink(routes);
+  const matches = useMatches();
+  const replayLinkGenerator = generateReplayLink(matches);
 
   function _renderPrependColumns(
     isHeader: boolean,
@@ -139,7 +139,7 @@ export function TableView(props: TableViewProps) {
               title={t('event id')}
               direction={undefined}
               canSort={false}
-              generateSortLink={() => undefined}
+              generateSortLink={() => {}}
             />
           </PrependHeader>,
         ];

@@ -1,7 +1,7 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 
-import {Button} from '@sentry/scraps/button';
 import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -34,27 +34,24 @@ export function AutofixStepFeedback({
   const organization = useOrganization();
   const user = useUser();
 
-  const handleFeedback = useCallback(
-    (positive: boolean, e?: React.MouseEvent) => {
-      if (onFeedbackClick && e) {
-        onFeedbackClick(e);
-      }
+  const handleFeedback = (positive: boolean, e?: React.MouseEvent) => {
+    if (onFeedbackClick && e) {
+      onFeedbackClick(e);
+    }
 
-      const analyticsData = {
-        step_type: stepType,
-        positive,
-        group_id: groupId,
-        autofix_run_id: runId,
-        user_id: user.id,
-        organization,
-      };
+    const analyticsData = {
+      step_type: stepType,
+      positive,
+      group_id: groupId,
+      autofix_run_id: runId,
+      user_id: user.id,
+      organization,
+    };
 
-      trackAnalytics('seer.autofix.feedback_submitted', analyticsData);
+    trackAnalytics('seer.autofix.feedback_submitted', analyticsData);
 
-      setFeedbackSubmitted(true);
-    },
-    [stepType, groupId, runId, organization, user, onFeedbackClick]
-  );
+    setFeedbackSubmitted(true);
+  };
 
   if (feedbackSubmitted) {
     return (
@@ -78,14 +75,14 @@ export function AutofixStepFeedback({
     <Flex align="center" gap={gap}>
       <Button
         size={buttonSize}
-        priority={compact ? 'transparent' : undefined}
+        variant={compact ? 'transparent' : undefined}
         icon={<IconThumb direction="up" size={iconSize} />}
         onClick={e => handleFeedback(true, e)}
         aria-label={t('This was helpful')}
       />
       <Button
         size={buttonSize}
-        priority={compact ? 'transparent' : undefined}
+        variant={compact ? 'transparent' : undefined}
         icon={<IconThumb direction="down" size={iconSize} />}
         onClick={e => handleFeedback(false, e)}
         aria-label={t('This was not helpful')}

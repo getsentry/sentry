@@ -1,3 +1,5 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -18,16 +20,10 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type TokenResponse = {
@@ -47,7 +43,7 @@ function getReleaseTokenQueryKey(
   projectSlug: string
 ): ApiQueryKey {
   return [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/', {
       path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
     }),
   ];
@@ -74,7 +70,7 @@ export default function ProjectReleaseTracking() {
 
   const {data: fetchedPlugins = [], isPending: isPluginsLoading} = useApiQuery<Plugin[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],
@@ -136,12 +132,12 @@ export default function ProjectReleaseTracking() {
   return (
     <div>
       <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug} />
-      <SettingsPageHeader title={t('Release Tracking')} />
-      <TextBlock>
-        {t(
+      <SettingsPageHeader
+        title={t('Release Tracking')}
+        subtitle={t(
           'Configure release tracking for this project to automatically record new releases of your application.'
         )}
-      </TextBlock>
+      />
 
       {!hasWrite && (
         <Alert.Container>
@@ -206,7 +202,7 @@ export default function ProjectReleaseTracking() {
                   'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                 )}
               >
-                <Button priority="danger">{t('Regenerate Token')}</Button>
+                <Button variant="danger">{t('Regenerate Token')}</Button>
               </Confirm>
             </div>
           </FieldGroup>

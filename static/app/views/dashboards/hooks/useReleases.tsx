@@ -1,20 +1,14 @@
 import {useCallback, useMemo} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
+import {queryOptions, useQueries, useQuery} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
-import type {ApiResult} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_RELEASES_SORT, ReleasesSortOption} from 'sentry/constants/releases';
 import type {Release} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  fetchDataQuery,
-  useApiQuery,
-  useQueries,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -59,30 +53,24 @@ export function useReleases(
       : (sortBy ?? DEFAULT_RELEASES_SORT);
 
   // Fetch releases
-  const releaseResults = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project: projects,
-          per_page: 50,
-          environment: environments,
-          query: searchTerm,
-          sort: activeSort,
-          // flatten=1 groups releases across projects when sorting by non-date fields,
-          // flatten=0 keeps releases separate per project for date sorting
-          flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
-        },
+  const releaseResults = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: projects,
+        per_page: 50,
+        environment: environments,
+        query: searchTerm,
+        sort: activeSort,
+        // flatten=1 groups releases across projects when sorting by non-date fields,
+        // flatten=0 keeps releases separate per project for date sorting
+        flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
       },
-    ],
-    {
       staleTime: Infinity,
-      enabled: isReady,
-      retry: false,
-    }
-  );
+    }),
+    enabled: isReady,
+    retry: false,
+  });
 
   const allReleases = useMemo(() => releaseResults.data ?? [], [releaseResults.data]);
 
@@ -96,14 +84,14 @@ export function useReleases(
   // The result is structurally shared by TanStack Query, so it won't change
   // reference unless the underlying data changes.
   const combineMetricsResults = useCallback(
-    (results: Array<UseQueryResult<ApiResult<TableData>, Error>>) => {
+    (results: Array<UseQueryResult<TableData, Error>>) => {
       const isFetched = results.every(result => result.isFetched);
       if (!isFetched) {
         return {metricsStats: {}, metricsFetched: false};
       }
       const stats: Record<string, {count: number}> = {};
       results.forEach(result =>
-        result.data?.[0]?.data?.forEach(row => {
+        result.data?.data?.forEach(row => {
           const releaseVersion = row.release;
           if (typeof releaseVersion === 'string') {
             stats[releaseVersion] = {count: row['count()'] as number};
@@ -116,12 +104,10 @@ export function useReleases(
   );
 
   const {metricsStats, metricsFetched} = useQueries({
-    queries: chunks.map(releaseChunk => {
-      const queryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+    queries: chunks.map(releaseChunk =>
+      queryOptions({
+        ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
           path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
           query: {
             field: ['release', 'count()'],
             query: `release:[${releaseChunk.map(r => `"${escapeFilterValue(r.version)}"`).join(',')}]`,
@@ -133,16 +119,12 @@ export function useReleases(
             statsPeriod: datetime.period,
             referrer: 'api.dashboards-release-selector',
           },
-        },
-      ];
-      return {
-        queryKey,
-        queryFn: fetchDataQuery<TableData>,
-        staleTime: Infinity,
+          staleTime: Infinity,
+        }),
         enabled: isReady && !releaseResults.isPending && eventCountsEnabled,
         retry: false,
-      };
-    }),
+      })
+    ),
     combine: combineMetricsResults,
   });
 

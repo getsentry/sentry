@@ -106,6 +106,9 @@ class TestExtractFirstUserMessage:
         messages = "[]"
         assert _extract_first_user_message(messages) is None
 
+    def test_returns_filtered(self) -> None:
+        assert _extract_first_user_message("[Filtered]") == "[Filtered]"
+
 
 class TestGetFirstInputMessage:
     """Unit tests for _get_first_input_message helper function"""
@@ -131,6 +134,14 @@ class TestGetFirstInputMessage:
             "gen_ai.request.messages": '[{"role": "user", "content": "Old"}]',
         }
         assert _get_first_input_message(row) == "Old"
+
+    def test_returns_filtered_for_new_format(self) -> None:
+        row = {"gen_ai.input.messages": "[Filtered]"}
+        assert _get_first_input_message(row) == "[Filtered]"
+
+    def test_returns_filtered_for_old_format(self) -> None:
+        row = {"gen_ai.request.messages": "[Filtered]"}
+        assert _get_first_input_message(row) == "[Filtered]"
 
 
 class TestGetLastOutput:
@@ -164,12 +175,27 @@ class TestGetLastOutput:
         }
         assert _get_last_output(row) == "Last"
 
-    def test_skips_invalid_new_format(self) -> None:
+    def test_uses_plain_string_as_assistant_text(self) -> None:
         row = {
-            "gen_ai.output.messages": "invalid",
+            "gen_ai.output.messages": "Plain text response",
+            "gen_ai.response.text": "Fallback",
+        }
+        assert _get_last_output(row) == "Plain text response"
+
+    def test_extracts_json_encoded_string(self) -> None:
+        row = {"gen_ai.output.messages": '"Hello, world!"'}
+        assert _get_last_output(row) == "Hello, world!"
+
+    def test_falls_back_on_invalid_json(self) -> None:
+        row = {
+            "gen_ai.output.messages": "[broken json",
             "gen_ai.response.text": "Fallback",
         }
         assert _get_last_output(row) == "Fallback"
+
+    def test_returns_filtered(self) -> None:
+        row = {"gen_ai.output.messages": "[Filtered]"}
+        assert _get_last_output(row) == "[Filtered]"
 
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
@@ -637,7 +663,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_first_input_last_output(self) -> None:
         """Test firstInput and lastOutput are correctly populated from ai_client spans"""
-        now = before_now(days=90).replace(microsecond=0)
+        now = before_now(days=11).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -699,7 +725,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_no_ai_client_spans_filtered_out(self) -> None:
         """Test conversations without input/output are filtered out"""
-        now = before_now(days=91).replace(microsecond=0)
+        now = before_now(days=12).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -732,7 +758,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_query_filter(self) -> None:
         """Test that query parameter filters conversations"""
-        now = before_now(days=30).replace(microsecond=0)
+        now = before_now(days=25).replace(microsecond=0)
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
 
@@ -770,7 +796,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_conversation_with_user_data(self) -> None:
         """Test that user data is extracted from spans and returned in the response"""
-        now = before_now(days=100).replace(microsecond=0)
+        now = before_now(days=13).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -822,7 +848,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_conversation_with_partial_user_data(self) -> None:
         """Test that user is returned even with partial user data"""
-        now = before_now(days=101).replace(microsecond=0)
+        now = before_now(days=14).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -857,7 +883,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_new_format_input_output_messages(self) -> None:
         """Test that new format gen_ai.input.messages and gen_ai.output.messages are parsed correctly"""
-        now = before_now(days=102).replace(microsecond=0)
+        now = before_now(days=16).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -904,7 +930,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_new_format_with_multiple_text_parts(self) -> None:
         """Test that multiple text parts are concatenated correctly"""
-        now = before_now(days=103).replace(microsecond=0)
+        now = before_now(days=17).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -955,7 +981,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_new_format_priority_over_old_format(self) -> None:
         """Test that new format attributes take priority over old format when both exist"""
-        now = before_now(days=104).replace(microsecond=0)
+        now = before_now(days=18).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1010,7 +1036,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_new_format_parts_structure(self) -> None:
         """Test that new format with parts structure works correctly"""
-        now = before_now(days=105).replace(microsecond=0)
+        now = before_now(days=19).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1055,7 +1081,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_tool_names_populated(self) -> None:
         """Test that toolNames is populated with distinct tool names from tool spans"""
-        now = before_now(days=106).replace(microsecond=0)
+        now = before_now(days=21).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1128,7 +1154,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_tool_errors_counted(self) -> None:
         """Test that toolErrors counts only failed tool spans"""
-        now = before_now(days=107).replace(microsecond=0)
+        now = before_now(days=35).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1212,7 +1238,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_empty_tool_names_when_no_tool_calls(self) -> None:
         """Test that toolNames is empty when there are no tool calls"""
-        now = before_now(days=108).replace(microsecond=0)
+        now = before_now(days=23).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1257,7 +1283,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         This prevents double counting when both agent spans (invoke_agent) and their
         child ai_client spans have token/cost data.
         """
-        now = before_now(days=109).replace(microsecond=0)
+        now = before_now(days=24).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 

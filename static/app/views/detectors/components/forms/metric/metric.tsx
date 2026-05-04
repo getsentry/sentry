@@ -24,6 +24,7 @@ import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -33,7 +34,7 @@ import {
   TransactionsDatasetWarning,
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
-import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -64,6 +65,7 @@ import {
   getMetricDetectorSuffix,
   getStaticDetectorThresholdPlaceholder,
 } from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
@@ -79,7 +81,7 @@ function MetricDetectorForm() {
       <DetectSection step={4} />
       <IssueOwnershipSection step={5} />
       <MetricIssuePreview step={6} />
-      <AutomateSection step={7} />
+      <AutomateSectionDeprecated step={7} />
     </Stack>
   );
 }
@@ -395,6 +397,7 @@ function IntervalPicker() {
 }
 
 function CustomizeMetricSection({step}: {step?: number}) {
+  const organization = useOrganization();
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
@@ -475,15 +478,18 @@ function CustomizeMetricSection({step}: {step?: number}) {
             <Visualize />
           </DisabledSection>
         </Tooltip>
-        <Tooltip
-          title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-          isHoverable
-          disabled={!isTransactionsDataset}
-        >
-          <FilterRow disabled={isTransactionsDataset}>
-            <DetectorQueryFilterBuilder />
-          </FilterRow>
-        </Tooltip>
+        {canUseMetricsEquationsInAlerts(organization) &&
+        dataset === DetectorDataset.METRICS ? null : (
+          <Tooltip
+            title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+            isHoverable
+            disabled={!isTransactionsDataset}
+          >
+            <FilterRow disabled={isTransactionsDataset}>
+              <DetectorQueryFilterBuilder />
+            </FilterRow>
+          </Tooltip>
+        )}
       </FormSection>
     </Container>
   );
@@ -710,7 +716,7 @@ const DatasetRow = styled('div')`
 `;
 
 const FilterRow = styled('div')<{disabled: boolean}>`
-  ${p => (p.disabled ? `opacity: 0.6;` : '')}
+  ${p => (p.disabled ? 'opacity: 0.6;' : '')}
 `;
 
 const StyledSelectField = styled(SelectField)`
@@ -794,7 +800,7 @@ const IntervalField = styled(SelectField)`
 `;
 
 const DisabledSection = styled('div')<{disabled: boolean}>`
-  ${p => (p.disabled ? `opacity: 0.6;` : '')}
+  ${p => (p.disabled ? 'opacity: 0.6;' : '')}
 `;
 
 const PriorityLabel = styled('span')`

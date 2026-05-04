@@ -38,14 +38,14 @@ export function DataRequests() {
 
   const resultsQuery = useMemo<ResultQuery | undefined>(() => {
     if (!hasQuery) {
-      return undefined;
+      return;
     }
     return {orgSlug: queryFromRouterOrgSlug, email: queryFromRouterEmail};
   }, [hasQuery, queryFromRouterOrgSlug, queryFromRouterEmail]);
 
   const {data: eventsData = [], isLoading: isLoadingEvents} = useApiQuery<any[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
         path: {organizationIdOrSlug: queryFromRouterOrgSlug},
       }),
       {query: {query: 'user.email:' + queryFromRouterEmail}},

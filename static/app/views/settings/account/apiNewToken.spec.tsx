@@ -27,7 +27,7 @@ describe('ApiNewToken', () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
     });
 
     render(<ApiNewToken />);
@@ -80,7 +80,7 @@ describe('ApiNewToken', () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
     });
 
     render(<ApiNewToken />);
@@ -118,7 +118,7 @@ describe('ApiNewToken', () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
     });
 
     render(<ApiNewToken />);
@@ -197,5 +197,12 @@ describe('ApiNewToken', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
     await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalled());
+  });
+
+  it('does not render CI-only permissions for personal tokens', () => {
+    render(<ApiNewToken />);
+    expect(
+      screen.queryByRole('checkbox', {name: 'Continuous Integration (CI)'})
+    ).not.toBeInTheDocument();
   });
 });

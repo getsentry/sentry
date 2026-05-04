@@ -301,7 +301,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'bash',
-          code: `export SENTRY_UPLOAD_SYMBOLS_AUTOMATICALLY=True`,
+          code: 'export SENTRY_UPLOAD_SYMBOLS_AUTOMATICALLY=True',
         },
         {
           type: 'text',

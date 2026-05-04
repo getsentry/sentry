@@ -182,7 +182,7 @@ function NativeFrame({
       return t('Found by stack scanning');
     }
 
-    return undefined;
+    return;
   }
 
   function getFunctionName() {
@@ -200,7 +200,7 @@ function NativeFrame({
       };
     }
 
-    return undefined;
+    return;
   }
 
   // this is the status of image that belongs to this frame
@@ -222,7 +222,7 @@ function NativeFrame({
           return frame.instructionAddr === '0x0' ? 'success' : 'error';
         case SymbolicatorStatus.MISSING_SYMBOL:
         default:
-          return undefined;
+          return;
       }
     }
 
@@ -230,7 +230,7 @@ function NativeFrame({
 
     switch (combinedStatus) {
       case 'unused':
-        return undefined;
+        return;
       case 'found':
         return 'success';
       default:
@@ -468,8 +468,8 @@ export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-
 
 const AddressCell = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
-  ${p => p.onClick && `cursor: pointer`};
-  ${p => p.onClick && `color:` + p.theme.tokens.interactive.link.accent.rest};
+  ${p => p.onClick && 'cursor: pointer'};
+  ${p => p.onClick && 'color:' + p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FunctionNameCell = styled('div')`
@@ -549,7 +549,7 @@ const RowHeader = styled('span')<{
   padding: ${p => p.theme.space.md};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
-  ${p => p.expandable && `cursor: pointer;`};
+  ${p => p.expandable && 'cursor: pointer;'};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Matches the updated desktop layout */

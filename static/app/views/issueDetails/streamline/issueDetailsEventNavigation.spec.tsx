@@ -122,11 +122,11 @@ describe('IssueDetailsEventNavigation', () => {
 
     expect(await screen.findByRole('button', {name: 'Previous Event'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/group-id/events/prev-event-id/?referrer=previous-event`
+      '/organizations/org-slug/issues/group-id/events/prev-event-id/?referrer=previous-event'
     );
     expect(screen.getByRole('button', {name: 'Next Event'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event`
+      '/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event'
     );
   });
 
@@ -136,11 +136,11 @@ describe('IssueDetailsEventNavigation', () => {
       previousEventID: 'prev-event-id',
     });
     const mockNextEvent = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/group-id/events/next-event-id/`,
+      url: '/organizations/org-slug/issues/group-id/events/next-event-id/',
       body: EventFixture(),
     });
     const mockPreviousEvent = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/group-id/events/prev-event-id/`,
+      url: '/organizations/org-slug/issues/group-id/events/prev-event-id/',
       body: EventFixture(),
     });
     render(<IssueDetailsEventNavigation {...defaultProps} event={event} />, {

@@ -1,17 +1,18 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,
@@ -23,6 +24,7 @@ import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/u
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -30,7 +32,7 @@ import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -134,20 +136,24 @@ export function TracesTable({
 
   const {cursor, setCursor} = useTableCursor();
 
-  const tracesRequest = useTraces({
-    query: combinedQuery,
-    sort: `-timestamp`,
-    keepPreviousData: true,
-    cursor,
-    limit,
+  const tracesRequest = useQuery({
+    ...useTracesApiOptions({
+      query: combinedQuery,
+      sort: '-timestamp',
+      cursor,
+      limit,
+    }),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
   });
 
-  const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
+  const pageLinks = tracesRequest?.data?.headers.Link;
+  const tracesData = tracesRequest.data?.json?.data;
 
   const spansRequest = useSpans(
     {
       // Exclude agent runs as they include aggregated data which would lead to double counting e.g. token usage
-      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesData?.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
         'count_if(gen_ai.operation.type,equals,ai_client)',
@@ -155,8 +161,8 @@ export function TracesTable({
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.cost.total_tokens)',
       ],
-      limit: tracesRequest.data?.data.length ?? 0,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      limit: tracesData?.length ?? 0,
+      enabled: Boolean(tracesData && tracesData.length > 0),
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -165,11 +171,11 @@ export function TracesTable({
 
   const agentsRequest = useSpans(
     {
-      search: `${getAgentRunsFilter()} ${getHasAgentNameFilter()} trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
+      search: `${getAgentRunsFilter()} ${getHasAgentNameFilter()} trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}]`,
       fields: ['trace', 'gen_ai.agent.name', 'gen_ai.function_id', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      enabled: Boolean(tracesData && tracesData.length > 0),
     },
     Referrer.TRACES_TABLE
   );
@@ -191,10 +197,10 @@ export function TracesTable({
 
   const traceErrorRequest = useSpans(
     {
-      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
+      search: `span.status:internal_error trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
       fields: ['trace', 'count(span.duration)'],
-      limit: tracesRequest.data?.data.length ?? 0,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      limit: tracesData?.length ?? 0,
+      enabled: Boolean(tracesData && tracesData.length > 0),
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -206,26 +212,13 @@ export function TracesTable({
       return {};
     }
     // sum up the error spans for a trace
-    const errors = traceErrorRequest.data?.reduce(
-      (acc, span) => {
-        acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const errors = traceErrorRequest.data?.reduce<Record<string, number>>((acc, span) => {
+      acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
+      return acc;
+    }, {});
 
-    return spansRequest.data.reduce(
-      (acc, span) => {
-        acc[span.trace] = {
-          llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
-          toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
-          totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
-          totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
-          totalErrors: Number(errors[span.trace] ?? 0),
-        };
-        return acc;
-      },
-      {} as Record<
+    return spansRequest.data.reduce<
+      Record<
         string,
         {
           llmCalls: number;
@@ -235,15 +228,24 @@ export function TracesTable({
           totalTokens: number;
         }
       >
-    );
+    >((acc, span) => {
+      acc[span.trace] = {
+        llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
+        toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
+        totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
+        totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
+        totalErrors: Number(errors[span.trace] ?? 0),
+      };
+      return acc;
+    }, {});
   }, [spansRequest.data, traceErrorRequest.data]);
 
   const tableData = useMemo(() => {
-    if (!tracesRequest.data) {
+    if (!tracesData) {
       return [];
     }
 
-    return tracesRequest.data.data.map(span => ({
+    return tracesData.map(span => ({
       traceId: span.trace,
       transaction: span.name ?? '',
       duration: span.duration,
@@ -258,7 +260,7 @@ export function TracesTable({
       isSpanDataLoading: spansRequest.isLoading || traceErrorRequest.isLoading,
     }));
   }, [
-    tracesRequest.data,
+    tracesData,
     spanDataMap,
     spansRequest.isLoading,
     traceErrorRequest.isLoading,
@@ -368,7 +370,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <span>
           <TraceIdButton
-            priority="link"
+            variant="link"
             onClick={() =>
               openTraceViewDrawer?.(dataRow.traceId, undefined, dataRow.timestamp / 1000)
             }
@@ -444,7 +446,7 @@ function AgentTags({agents}: {agents: string[]}) {
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleShowAll = useCallback(() => {
+  const handleShowAll = () => {
     setShowAll(!showAll);
 
     if (!containerRef.current) return;
@@ -460,7 +462,7 @@ function AgentTags({agents}: {agents: string[]}) {
     });
     resizeObserverRef.current = observer;
     observer.observe(containerRef.current);
-  }, [showAll]);
+  };
 
   // Cleanup the resize observer when the component unmounts
   useEffect(() => {
@@ -521,7 +523,7 @@ function AgentTags({agents}: {agents: string[]}) {
         padding="2xs xs 0 xl"
         style={{bottom: '0', right: '0'}}
       >
-        <Button priority="link" size="xs" onClick={handleShowAll}>
+        <Button variant="link" size="xs" onClick={handleShowAll}>
           {showAll ? t('Show less') : t('Show all')}
         </Button>
       </Container>

@@ -23,6 +23,7 @@ from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDelete
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
 from .preprod_artifact_approve import OrganizationPreprodArtifactApproveEndpoint
 from .preprod_artifact_rerun_analysis import (
+    PreprodArtifactAdminBatchRerunAnalysisEndpoint,
     PreprodArtifactAdminRerunAnalysisEndpoint,
     PreprodArtifactRerunAnalysisEndpoint,
 )
@@ -54,6 +55,9 @@ from .public.organization_preprod_artifact_install_details import (
 from .public.organization_preprod_size_analysis import OrganizationPreprodPublicSizeAnalysisEndpoint
 from .public.project_preprod_build_distribution_latest import (
     ProjectPreprodBuildDistributionLatestEndpoint,
+)
+from .public.project_preprod_size_analysis_status_check_rules import (
+    ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint,
 )
 from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
@@ -94,7 +98,7 @@ preprod_project_urlpatterns = [
         name="sentry-api-0-installable-preprod-artifact-download",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/images/(?P<image_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/images/(?P<image_id>.+)/$",
         ProjectPreprodArtifactImageEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-image",
     ),
@@ -108,6 +112,11 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/build-distribution/latest/$",
         ProjectPreprodBuildDistributionLatestEndpoint.as_view(),
         name="sentry-api-0-project-preprod-public-builds",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/size-analysis/status-check-rules/$",
+        ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-size-analysis-status-check-rules",
     ),
 ]
 
@@ -218,6 +227,11 @@ preprod_internal_urlpatterns = [
         r"^preprod-artifact/rerun-analysis/$",
         PreprodArtifactAdminRerunAnalysisEndpoint.as_view(),
         name="sentry-admin-preprod-artifact-rerun-analysis",
+    ),
+    re_path(
+        r"^preprod-artifact/batch-rerun-analysis/$",
+        PreprodArtifactAdminBatchRerunAnalysisEndpoint.as_view(),
+        name="sentry-admin-preprod-artifact-batch-rerun-analysis",
     ),
     re_path(
         r"^preprod-artifact/(?P<head_artifact_id>[^/]+)/info/$",

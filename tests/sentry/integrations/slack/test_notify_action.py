@@ -388,8 +388,8 @@ class SlackNotifyActionTest(RuleTestCase):
             blocks = orjson.loads(blocks)
 
             assert event.title in blocks[0]["text"]["text"]
-            assert blocks[5]["text"]["text"] == self.organization.slug
-            assert blocks[6]["text"]["text"] == self.integration.id
+            assert blocks[4]["text"]["text"] == self.organization.slug
+            assert blocks[5]["text"]["text"] == self.integration.id
             assert_last_analytics_event(
                 mock_record,
                 AlertSentEvent(

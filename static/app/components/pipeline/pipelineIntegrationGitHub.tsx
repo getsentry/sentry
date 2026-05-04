@@ -55,7 +55,7 @@ function GitHubOAuthLoginStep({
 
   return (
     <OAuthLoginStep
-      oauthUrl={stepData.oauthUrl}
+      oauthUrl={stepData?.oauthUrl}
       isLoading={isAdvancing}
       serviceName="GitHub"
       onOAuthCallback={handleOAuthCallback}
@@ -137,8 +137,6 @@ function OrgSelectionStep({
   advance,
   isAdvancing,
 }: PipelineStepProps<OrgSelectionStepData, OrgSelectionAdvanceData>) {
-  const installations = stepData.installationInfo ?? [];
-
   const handleInstallCallback = useCallback(
     (data: Record<string, unknown>) => {
       advance({
@@ -149,9 +147,15 @@ function OrgSelectionStep({
   );
 
   const {openPopup, isWaitingForCallback, popupStatus} = useRedirectPopupStep({
-    redirectUrl: stepData.installAppUrl,
+    redirectUrl: stepData?.installAppUrl,
     onCallback: handleInstallCallback,
   });
+
+  if (stepData === null) {
+    return null;
+  }
+
+  const installations = stepData.installationInfo ?? [];
 
   if (installations.length === 0) {
     return (
@@ -239,7 +243,7 @@ function FreshInstallSteps({
         {t('Install the Sentry GitHub App on a GitHub organization to get started.')}
       </Text>
       {popupBlockedNotice}
-      <Button size="sm" priority="primary" onClick={onInstall} disabled={installDisabled}>
+      <Button size="sm" variant="primary" onClick={onInstall} disabled={installDisabled}>
         {t('Install GitHub App')}
       </Button>
     </Stack>
@@ -261,6 +265,7 @@ export const githubIntegrationPipeline = {
   provider: 'github',
   actionTitle: t('Installing GitHub Integration'),
   getCompletionData: pipelineComplete<IntegrationWithConfig>,
+  completionView: null,
   steps: [
     {
       stepId: 'oauth_login',

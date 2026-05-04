@@ -19,7 +19,7 @@ export function usePlanMigrations(): PlanMigrationsHook {
   const enabled = hasBillingAccess(organization) || user.isStaff;
   const {data: planMigrations, isPending} = useApiQuery<PlanMigration[]>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/plan-migrations/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/plan-migrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {scheduled: 1, applied: 0}},

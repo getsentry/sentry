@@ -12,18 +12,21 @@ from sentry.preprod.models import (
     PreprodComparisonApproval,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.size.tasks import (
-    GITHUB_STATUS_CHECK_STATUS_MAPPING,
-    get_status_check_client,
-    get_status_check_provider,
-    update_posted_status_check,
-)
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
+)
+from sentry.preprod.vcs.status_checks.status_check_provider import (
+    GITHUB_STATUS_CHECK_STATUS_MAPPING,
+)
+from sentry.preprod.vcs.status_checks.utils import (
+    get_status_check_client,
+    get_status_check_provider,
+    update_posted_status_check,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -38,6 +41,8 @@ APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 ENABLED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_enabled"
 FAIL_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_added"
 FAIL_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_removed"
+FAIL_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_changed"
+FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_renamed"
 
 
 @instrumented_task(
@@ -106,6 +111,8 @@ def create_preprod_snapshot_status_check_task(
 
     fail_on_added = preprod_artifact.project.get_option(FAIL_ON_ADDED_OPTION_KEY, default=False)
     fail_on_removed = preprod_artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=True)
+    fail_on_changed = preprod_artifact.project.get_option(FAIL_ON_CHANGED_OPTION_KEY, default=True)
+    fail_on_renamed = preprod_artifact.project.get_option(FAIL_ON_RENAMED_OPTION_KEY, default=False)
 
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
@@ -147,12 +154,14 @@ def create_preprod_snapshot_status_check_task(
     is_solo = not base_artifact_map
 
     if not is_solo:
-        changes_map = _build_changes_map(
+        changes_map = build_changes_map(
             all_artifacts,
             snapshot_metrics_map,
             comparisons_map,
             fail_on_added=fail_on_added,
             fail_on_removed=fail_on_removed,
+            fail_on_changed=fail_on_changed,
+            fail_on_renamed=fail_on_renamed,
         )
         for artifact in all_artifacts:
             if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
@@ -210,18 +219,21 @@ def create_preprod_snapshot_status_check_task(
             title, subtitle, summary = format_first_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
+                project=preprod_artifact.project,
             )
         elif commit_comparison.base_sha:
             status = StatusCheckStatus.FAILURE
             title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
+                project=preprod_artifact.project,
             )
         else:
             status = StatusCheckStatus.SUCCESS
             title, subtitle, summary = format_generated_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
+                project=preprod_artifact.project,
             )
     else:
         status = _compute_snapshot_status(
@@ -239,9 +251,14 @@ def create_preprod_snapshot_status_check_task(
             status,
             base_artifact_map,
             changes_map,
+            project=preprod_artifact.project,
             approvals_map=approvals_map,
         )
-        if any(changes_map.values()):
+        has_unapproved_changes = any(
+            has_changes and artifact_id not in approvals_map
+            for artifact_id, has_changes in changes_map.items()
+        )
+        if has_unapproved_changes:
             approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER
 
     completed_at: datetime | None = None
@@ -313,40 +330,6 @@ def create_preprod_snapshot_status_check_task(
             "organization_slug": preprod_artifact.project.organization.slug,
         },
     )
-
-
-def _comparison_has_changes(
-    comparison: PreprodSnapshotComparison,
-    fail_on_added: bool = False,
-    fail_on_removed: bool = True,
-) -> bool:
-    return (
-        comparison.images_changed > 0
-        or comparison.images_renamed > 0
-        or (fail_on_added and comparison.images_added > 0)
-        or (fail_on_removed and comparison.images_removed > 0)
-    )
-
-
-def _build_changes_map(
-    artifacts: list[PreprodArtifact],
-    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
-    comparisons_map: dict[int, PreprodSnapshotComparison],
-    fail_on_added: bool = False,
-    fail_on_removed: bool = True,
-) -> dict[int, bool]:
-    changes_map: dict[int, bool] = {}
-    for artifact in artifacts:
-        metrics = snapshot_metrics_map.get(artifact.id)
-        if not metrics:
-            continue
-        comparison = comparisons_map.get(metrics.id)
-        if not comparison or comparison.state != PreprodSnapshotComparison.State.SUCCESS:
-            continue
-        changes_map[artifact.id] = _comparison_has_changes(
-            comparison, fail_on_added, fail_on_removed
-        )
-    return changes_map
 
 
 def _compute_snapshot_status(

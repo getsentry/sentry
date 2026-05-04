@@ -76,7 +76,7 @@ export function Content({
     isError,
   } = useApiQuery<{data: ApiResult[]}>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: apiPayload},

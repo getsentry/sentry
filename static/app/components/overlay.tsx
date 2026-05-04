@@ -82,7 +82,7 @@ function computeOriginFromArrow(
     case 'right':
       return {originX: 0, originY: y ? `${y}px` : '50%'};
     default:
-      return {originX: `50%`, originY: '50%'};
+      return {originX: '50%', originY: '50%'};
   }
 }
 
@@ -136,7 +136,7 @@ const OverlayInner = styled(motion.div)<{
   placement?: OverlayProps['placement'];
 }>`
   position: relative;
-  background: ${p => p.theme.tokens.background.primary};
+  background: ${p => p.theme.tokens.background.overlay};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */

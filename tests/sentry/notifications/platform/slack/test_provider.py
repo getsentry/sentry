@@ -148,7 +148,12 @@ class SlackNotificationProviderSendTest(TestCase):
         assert isinstance(result, SendSuccessResult)
         assert result.provider_message_id is None
         mock_client_instance.chat_postMessage.assert_called_once_with(
-            channel="C1234567890", blocks=renderable["blocks"], text=renderable["text"]
+            channel="C1234567890",
+            blocks=renderable["blocks"],
+            text=renderable["text"],
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     def test_send_invalid_target_class(self) -> None:
@@ -185,7 +190,12 @@ class SlackNotificationProviderSendTest(TestCase):
         SlackNotificationProvider.send(target=target, renderable=renderable)
 
         mock_client_instance.chat_postMessage.assert_called_once_with(
-            channel="U1234567890", blocks=renderable["blocks"], text=renderable["text"]
+            channel="U1234567890",
+            blocks=renderable["blocks"],
+            text=renderable["text"],
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
 
@@ -278,6 +288,9 @@ class SlackNotificationProviderThreadingTest(TestCase):
             blocks=renderable["blocks"],
             text=renderable["text"],
             thread_ts="1111111111.111111",
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
@@ -316,6 +329,9 @@ class SlackNotificationProviderThreadingTest(TestCase):
             text=renderable["text"],
             thread_ts="1111111111.111111",
             reply_broadcast=True,
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
@@ -349,6 +365,9 @@ class SlackNotificationProviderThreadingTest(TestCase):
             channel="C1234567890",
             blocks=renderable["blocks"],
             text=renderable["text"],
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")

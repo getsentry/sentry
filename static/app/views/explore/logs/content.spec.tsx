@@ -16,10 +16,13 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 import LogsPage from './content';
+
+beforeEach(mockGetBoundingClientRect);
 
 describe('LogsPage', () => {
   let organization: Organization;
@@ -111,6 +114,32 @@ describe('LogsPage', () => {
     expect(table).not.toHaveTextContent(/auto refresh/i);
     expect(table).toHaveTextContent(/Error occurred in authentication service/);
     expect(table).toHaveTextContent(/User login successful/);
+  });
+
+  it('hides the footer when logs table is expanded', async () => {
+    const organizationWithExpando = {
+      ...organization,
+      features: [...organization.features, 'ourlogs-table-expando'],
+    };
+
+    render(
+      <div>
+        <LogsPage />
+        <footer data-test-id="global-footer" />
+      </div>,
+      {
+        organization: organizationWithExpando,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
+        },
+      }
+    );
+
+    await screen.findByTestId('logs-table');
+
+    expect(screen.getByTestId('global-footer')).toBe(
+      document.querySelector('[data-hide-footer] ~ footer')
+    );
   });
 
   it('should show onboarding when project is not onboarded', async () => {
@@ -214,7 +243,6 @@ describe('LogsPage', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'ourlogs',
             disableAggregateExtrapolation: '0',
             environment: [],

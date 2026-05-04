@@ -17,6 +17,7 @@ from sentry import analytics, nodestore
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
     AlertRuleUiComponentWebhookSentEvent,
 )
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.analytics.events.comment_webhooks import (
     CommentCreatedEvent,
     CommentDeletedEvent,
@@ -36,6 +37,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.rpc.caching import cell_caching_service
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -63,7 +65,12 @@ from sentry.sentry_apps.services.app.service import (
 )
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
-from sentry.sentry_apps.utils.webhooks import IssueAlertActionType, SentryAppResourceType
+from sentry.sentry_apps.utils.webhooks import (
+    IssueAlertActionType,
+    MetricAlertActionType,
+    SentryAppResourceType,
+    find_alert_rule_action_ui_component,
+)
 from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
@@ -72,7 +79,7 @@ from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_task
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request
@@ -173,7 +180,7 @@ def _webhook_issue_data(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    processing_deadline_duration=8,
+    processing_deadline_duration=12,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
@@ -274,35 +281,6 @@ def send_alert_webhook_v2(
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-
-
-@instrumented_task(
-    name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook",
-    namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
-    silo_mode=SiloMode.CELL,
-)
-@retry_decorator
-def send_alert_webhook(
-    rule: str,
-    sentry_app_id: int,
-    instance_id: str,
-    group_id: int,
-    occurrence_id: str,
-    additional_payload_key: str | None = None,
-    additional_payload: Mapping[str, Any] | None = None,
-    **kwargs: Any,
-):
-    send_alert_webhook_v2(
-        rule_label=rule,
-        sentry_app_id=sentry_app_id,
-        instance_id=instance_id,
-        group_id=group_id,
-        occurrence_id=occurrence_id,
-        additional_payload_key=additional_payload_key,
-        additional_payload=additional_payload,
-        **kwargs,
-    )
 
 
 def _process_resource_change(
@@ -543,6 +521,7 @@ def clear_cell_cache(sentry_app_id: int, cell_name: str) -> None:
     name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
+    processing_deadline_duration=15,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
@@ -697,7 +676,7 @@ def get_webhook_data(
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     compression_type=CompressionType.ZSTD,
-    processing_deadline_duration=8,
+    processing_deadline_duration=12,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
@@ -906,6 +885,113 @@ def regenerate_service_hooks_for_installation(
                 events=events,
                 url=webhook_url,
             )
+
+
+def _record_metric_alert_sent_analytics(
+    organization_id: int,
+    project_id: int,
+    alert_id: int,
+    sentry_app_id: int,
+    notification_uuid: str | None,
+) -> None:
+    try:
+        analytics.record(
+            AlertSentEvent(
+                organization_id=organization_id,
+                project_id=project_id,
+                alert_id=alert_id,
+                alert_type="metric_alert",
+                provider="sentry_app",
+                external_id=str(sentry_app_id),
+                notification_uuid=notification_uuid,
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+
+def _record_metric_alert_ui_component_analytics(
+    organization_id: int,
+    sentry_app_id: int,
+    app_platform_event: AppPlatformEvent,
+) -> None:
+    if not find_alert_rule_action_ui_component(app_platform_event):
+        return
+    try:
+        analytics.record(
+            AlertRuleUiComponentWebhookSentEvent(
+                organization_id=organization_id,
+                sentry_app_id=sentry_app_id,
+                event=f"{app_platform_event.resource}.{app_platform_event.action}",
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.send_metric_alert_webhook",
+    namespace=sentryapp_tasks,
+    retry=Retry(times=3, delay=60 * 5),
+    silo_mode=SiloMode.CELL,
+)
+@retry_decorator
+def send_metric_alert_webhook(
+    sentry_app_id: int,
+    new_status: int,
+    incident_attachment_json: str,
+    organization_id: int,
+    project_id: int,
+    alert_id: int,
+    notification_uuid: str | None = None,
+    **kwargs: Any,
+) -> None:
+    try:
+        new_status_str = INCIDENT_STATUS[IncidentStatus(new_status)].lower()
+        event = SentryAppEventType(
+            f"{SentryAppResourceType.METRIC_ALERT}.{MetricAlertActionType(new_status_str)}"
+        )
+    except ValueError as e:
+        sentry_sdk.capture_exception(e)
+        return
+
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event,
+    ).capture() as lifecycle:
+        sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
+        if sentry_app is None:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_SENTRY_APP)
+            return
+
+        installations = app_service.get_many(
+            filter=dict(
+                organization_id=organization_id,
+                app_ids=[sentry_app.id],
+                status=SentryAppInstallationStatus.INSTALLED,
+            )
+        )
+        if not installations:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            return
+
+        if len(installations) > 1:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MULTIPLE_INSTALLATIONS)
+            return
+
+        app_platform_event = AppPlatformEvent(
+            resource=SentryAppResourceType.METRIC_ALERT,
+            action=MetricAlertActionType(new_status_str),
+            install=installations[0],
+            data=json.loads(incident_attachment_json),
+        )
+
+    send_and_save_webhook_request(sentry_app, app_platform_event)
+
+    _record_metric_alert_sent_analytics(
+        organization_id, project_id, alert_id, sentry_app.id, notification_uuid
+    )
+    _record_metric_alert_ui_component_analytics(organization_id, sentry_app.id, app_platform_event)
 
 
 @instrumented_task(

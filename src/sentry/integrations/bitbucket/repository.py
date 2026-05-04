@@ -1,6 +1,10 @@
-from collections.abc import Mapping
-from typing import Any
+from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
+
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
 from sentry.models.apitoken import generate_token
@@ -12,8 +16,11 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.email import parse_email, parse_user_name
 from sentry.utils.http import absolute_uri
 
+if TYPE_CHECKING:
+    from sentry.integrations.bitbucket.integration import BitbucketIntegration  # NOQA
 
-class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
+
+class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegration"]):
     name = "Bitbucket"
     repo_provider = IntegrationProviderSlug.BITBUCKET.value
 
@@ -25,7 +32,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
         else:
-            config["external_id"] = str(repo["uuid"])
+            config["external_id"] = installation.get_repo_external_id(repo)
             config["name"] = repo["full_name"]
         return config
 
@@ -50,12 +57,23 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
     def build_repository_config(
         self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
-        installation = self.get_installation(data.get("installation"), organization.id)
+        return {
+            "name": data["identifier"],
+            "external_id": data["external_id"],
+            "url": "https://bitbucket.org/{}".format(data["name"]),
+            "config": {"name": data["name"]},
+            "integration_id": data["installation"],
+        }
+
+    def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
+        if repo.config.get("webhook_id"):
+            return
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
+        secret = installation.model.metadata.get("webhook_secret", "")
         try:
-            secret = installation.model.metadata.get("webhook_secret", "")
             resp = client.create_hook(
-                data["identifier"],
+                repo.config["name"],
                 {
                     "description": "sentry-bitbucket-repo-hook",
                     "url": absolute_uri(
@@ -68,14 +86,8 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
             )
         except Exception as e:
             installation.raise_error(e)
-        else:
-            return {
-                "name": data["identifier"],
-                "external_id": data["external_id"],
-                "url": "https://bitbucket.org/{}".format(data["name"]),
-                "config": {"name": data["name"], "webhook_id": resp["uuid"]},
-                "integration_id": data["installation"],
-            }
+        repo.config["webhook_id"] = resp["uuid"]
+        repository_service.update_repository(organization_id=organization.id, update=repo)
 
     def on_delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)

@@ -59,7 +59,6 @@ BASE_PROJECT = {
     "features": [
         "alert-filters",
         "custom-inbound-filters",
-        "data-forwarding",
         "discard-groups",
         "minidump",
         "rate-limits",
@@ -270,6 +269,7 @@ DETAILED_PROJECT = {
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
+    "seerNightshiftTweaks": None,
     "highlightTags": [],
     "highlightContext": {},
     "highlightPreset": {"tags": [], "context": {}},
@@ -315,7 +315,6 @@ PROJECT_SUMMARY = {
     "features": [
         "alert-filters",
         "custom-inbound-filters",
-        "data-forwarding",
         "discard-groups",
         "minidump",
         "rate-limits",

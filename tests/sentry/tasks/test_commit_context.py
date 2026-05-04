@@ -12,6 +12,7 @@ from sentry.analytics.events.integration_commit_context_all_frames import (
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
@@ -24,7 +25,6 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
@@ -1024,9 +1024,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
                 commitAuthorEmail="admin@localhost",
             ),
         )
-        OrganizationOption.objects.set_value(
-            organization=self.project.organization, key="sentry:github_pr_bot", value=True
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            oi = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id,
+                organization_id=self.project.organization.id,
+            )
+            oi.config = {"pr_comments": True}
+            oi.save(update_fields=["config"])
 
     def add_responses(self):
         responses.add(
@@ -1054,14 +1058,16 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             )
             assert not mock_comment_workflow.called
 
-    def test_gh_comment_org_option(
+    def test_gh_comment_oi_config_disabled_no_comment(
         self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
     ) -> None:
-        """No comments on org with organization option disabled"""
+        """No comments when the install's pr_comments config is disabled."""
         mock_get_commit_context.return_value = [self.blame]
-        OrganizationOption.objects.set_value(
-            organization=self.project.organization, key="sentry:github_pr_bot", value=False
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                integration_id=self.integration.id,
+                organization_id=self.project.organization.id,
+            ).update(config={"pr_comments": False})
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)

@@ -7,9 +7,9 @@ import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
 
 const ROUTER_CONFIG = {
   initialRouterConfig: {
-    route: `/api/auth-tokens/:tokenId/`,
+    route: '/api/auth-tokens/:tokenId/',
     location: {
-      pathname: `/api/auth-tokens/1/`,
+      pathname: '/api/auth-tokens/1/',
     },
   },
 };
@@ -19,7 +19,7 @@ describe('ApiTokenDetails', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/api-tokens/1/`,
+      url: '/api-tokens/1/',
       body: ApiTokenFixture({
         id: '1',
         name: 'My Token',
@@ -40,7 +40,7 @@ describe('ApiTokenDetails', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/api-tokens/1/`,
+      url: '/api-tokens/1/',
       statusCode: 500,
     });
 
@@ -55,7 +55,7 @@ describe('ApiTokenDetails', () => {
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/api-tokens/1/`,
+      url: '/api-tokens/1/',
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
@@ -65,7 +65,7 @@ describe('ApiTokenDetails', () => {
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/api-tokens/1/`,
+      url: '/api-tokens/1/',
     });
 
     await userEvent.type(await screen.findByRole('textbox', {name: /name/i}), ' new');
@@ -93,7 +93,7 @@ describe('ApiTokenDetails', () => {
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/api-tokens/1/`,
+      url: '/api-tokens/1/',
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
@@ -103,7 +103,7 @@ describe('ApiTokenDetails', () => {
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/api-tokens/1/`,
+      url: '/api-tokens/1/',
     });
 
     await userEvent.clear(await screen.findByRole('textbox', {name: /name/i}));
@@ -131,7 +131,7 @@ describe('ApiTokenDetails', () => {
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/api-tokens/1/`,
+      url: '/api-tokens/1/',
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
@@ -141,7 +141,7 @@ describe('ApiTokenDetails', () => {
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/api-tokens/1/`,
+      url: '/api-tokens/1/',
       statusCode: 400,
     });
 

@@ -80,7 +80,7 @@ const StyledLeadingItemsWrap = styled(InputItemsWrap)<{
   disablePointerEvents?: boolean;
 }>`
   left: ${p => p.theme.form[p.size].paddingLeft + 1}px;
-  ${p => p.disablePointerEvents && `pointer-events: none;`}
+  ${p => p.disablePointerEvents && 'pointer-events: none;'}
 `;
 
 const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
@@ -88,7 +88,7 @@ const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
   disablePointerEvents?: boolean;
 }>`
   right: ${p => p.theme.form[p.size].paddingRight + 1}px;
-  ${p => p.disablePointerEvents && `pointer-events: none;`}
+  ${p => p.disablePointerEvents && 'pointer-events: none;'}
 `;
 
 interface InputContext {

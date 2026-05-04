@@ -249,7 +249,9 @@ class BaseTeamSerializer(Serializer):
 
         if self._expand("projects"):
             project_teams = ProjectTeam.objects.get_for_teams_with_org_cache(item_list)
-            projects = [pt.project for pt in project_teams]
+
+            # A project can be on multiple teams, dedupe before serializing
+            projects = list({pt.project_id: pt.project for pt in project_teams}.values())
 
             projects_by_id = {
                 project.id: data

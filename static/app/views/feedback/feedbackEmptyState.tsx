@@ -64,7 +64,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       };
     };
 
-    if (hasAnyFeedback === false) {
+    if (!hasAnyFeedback) {
       // send to reload only due to higher event volume
       trackAnalytics('user_feedback.viewed', {
         organization,
@@ -84,7 +84,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   }
 
   // Show no user reports if waiting for projects to load or if there is no feedback
-  if (loadingProjects || hasAnyFeedback !== false) {
+  if (loadingProjects || hasAnyFeedback) {
     return (
       <EmptyStateWarning>
         <p>{t('Sorry, no user reports match your filters.')}</p>
@@ -101,12 +101,12 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       <h3>{t('What do users think?')}</h3>
       <p>
         {t(
-          `You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive.`
+          "You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive."
         )}
       </p>
       <ButtonList>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={activateSidebarIssueDetails}
           analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
           analyticsEventKey="feedback.issue-details-click-onboarding-setup"

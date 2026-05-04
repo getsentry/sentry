@@ -8,6 +8,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.environment import Environment
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import Monitor, ScheduleType, is_monitor_muted
@@ -98,7 +99,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 
 
 @cell_silo_test
-@with_feature("organizations:incidents")
+@with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
@@ -125,6 +126,43 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             status_code=400,
         )
         assert response.data == {"type": ["This field is required."]}
+
+    def test_invalid_comparison_delta(self) -> None:
+        data = {**self.valid_data}
+        data["config"]["comparisonDelta"] = 0
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"][0] == ErrorDetail(
+            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            code="invalid",
+        )
+
+        data["config"]["comparisonDelta"] = 2592001
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"][0] == ErrorDetail(
+            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            code="invalid",
+        )
+
+        data["config"]["comparisonDelta"] = 300
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=201,
+        )
+        assert response.data["config"]["comparisonDelta"] == 300
 
     def test_invalid_group_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
@@ -155,11 +193,41 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 self.organization.slug,
                 self.project.slug,
                 **self.valid_data,
-                status_code=404,
+                status_code=400,
             )
         assert response.data == {
-            "detail": ErrorDetail(string="The requested resource does not exist", code="error")
+            "detail": ErrorDetail(
+                string="Unable to process request, confirm payment options.", code="error"
+            )
         }
+
+    def test_create_blocked_when_dataset_not_allowed(self) -> None:
+        """
+        Creating a metric detector should be blocked when the org lacks
+        access to the dataset's required feature. Uses the EAP dataset
+        with visibility-explore-view disabled to trigger the validator
+        check (not the endpoint-level incidents gate).
+        """
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    **self.valid_data["dataSources"][0],
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "aggregate": "count()",
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                }
+            ],
+        }
+        with self.feature({"organizations:visibility-explore-view": False}):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=400,
+            )
+        assert "does not have access" in str(response.data)
 
     def test_project_not_found(self) -> None:
         self.get_error_response(
@@ -336,6 +404,145 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             status_code=400,
         )
         assert response.data == {"name": ["This field is required."]}
+
+    def test_eap_invalid_time_window_rejected(self) -> None:
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.EventsAnalyticsPlatform.value,
+                "query": "span.op:http.client",
+                "aggregate": "count()",
+                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert "Invalid Time Window" in str(response.data)
+
+        # 450 seconds is above the floor but not a valid granularity
+        data["dataSources"][0]["timeWindow"] = 450
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert "Invalid Time Window" in str(response.data)
+
+        # 300 seconds (5 minutes) is the smallest valid EAP window
+        data["dataSources"][0]["timeWindow"] = 300
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
+    def test_use_transactions_instead_of_generic_metrics_dataset(self) -> None:
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.PerformanceMetrics.value,
+                "query": "event.type:transaction",
+                "aggregate": "count()",
+                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            }
+        ]
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
+        assert (
+            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["dataset"]
+            == Dataset.Transactions.value
+        )
+        assert (
+            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["query"]
+            == "event.type:transaction"
+        )
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == "count()"
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        assert data_source.type == data_source_type_registry.get_key(
+            QuerySubscriptionDataSourceHandler
+        )
+        assert data_source.organization_id == self.organization.id
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert query_sub.project == self.project
+        assert query_sub.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+        assert query_sub.snuba_query.dataset == Dataset.Transactions.value
+        assert query_sub.snuba_query.query == "event.type:transaction"
+        assert query_sub.snuba_query.aggregate == "count()"
+        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
+
+    @with_feature(
+        [
+            "organizations:tracemetrics-alerts",
+            "organizations:tracemetrics-enabled",
+        ]
+    )
+    def test_use_metrics_equation_as_aggregate(self) -> None:
+        data = {**self.valid_data}
+        equation = 'equation|count_if(`agent_name:"Agent Run"`,value,request_duration,distribution,none) * 2'
+        data["dataSources"] = [
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.EventsAnalyticsPlatform.value,
+                "query": "",
+                "aggregate": equation,
+                "timeWindow": 300,
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.name.lower()],
+            }
+        ]
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
+        assert (
+            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["dataset"]
+            == Dataset.EventsAnalyticsPlatform.value
+        )
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["query"] == ""
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == equation
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        assert data_source.type == data_source_type_registry.get_key(
+            QuerySubscriptionDataSourceHandler
+        )
+        assert data_source.organization_id == self.organization.id
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert query_sub.project == self.project
+        assert query_sub.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+        assert query_sub.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert query_sub.snuba_query.query == ""
+        assert query_sub.snuba_query.aggregate == equation
+        assert query_sub.snuba_query.event_types == [
+            SnubaQueryEventType.EventType.TRACE_ITEM_METRIC
+        ]
 
 
 @cell_silo_test

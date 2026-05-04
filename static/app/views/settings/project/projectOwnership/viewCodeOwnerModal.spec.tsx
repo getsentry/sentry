@@ -10,7 +10,8 @@ describe('ViewCodeOwnerModal', () => {
   );
 
   it('should display parsed codeowners file', () => {
-    const ownershipSyntax = `codeowners:/src/sentry/migrations/ #developer-infrastructure\n`;
+    const ownershipSyntax =
+      'codeowners:/src/sentry/migrations/ #developer-infrastructure\n';
     render(
       <ViewCodeOwnerModal
         codeowner={CodeOwnerFixture({ownershipSyntax})}

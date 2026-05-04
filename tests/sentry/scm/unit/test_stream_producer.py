@@ -54,7 +54,7 @@ def test_produce_to_scm_stream_unsupported_provider() -> None:
         (
             "sentry.scm.produce_event_to_scm_stream.failed",
             1,
-            {"reason": "not-supported", "provider": event["type"]},
+            {"reason": "provider-not-supported", "provider": event["type"]},
         )
     ]
 

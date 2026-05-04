@@ -199,7 +199,7 @@ function MonitoringAndDataFeatures({
   planOptions: Plan[];
 }) {
   const activePlanTypeIndex = useMemo(
-    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase() as PlanType),
+    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase()),
     [activePlan]
   );
   const featureKeyToInfo: Partial<
@@ -384,7 +384,7 @@ function MonitoringAndDataFeatures({
 
 function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
   const activePlanTypeIndex = useMemo(
-    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase() as PlanType),
+    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase()),
     [activePlan]
   );
 
@@ -503,20 +503,19 @@ export function PlanFeatures({
     if (priorPlan && priorPlan?.basePrice > 0) {
       perPlanPriceDiffs[planOption.id] = {
         plan: planOption,
-        ...Object.entries(planOption.planCategories ?? {}).reduce(
-          (acc, [category, eventBuckets]) => {
-            const priorPlanEventBuckets =
-              priorPlan?.planCategories[category as DataCategory];
-            const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
-            const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
-            const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
-            if (perUnitPriceDiff > 0) {
-              acc[category as DataCategory] = perUnitPriceDiff;
-            }
-            return acc;
-          },
-          {} as Partial<Record<DataCategory, number>>
-        ),
+        ...Object.entries(planOption.planCategories ?? {}).reduce<
+          Partial<Record<DataCategory, number>>
+        >((acc, [category, eventBuckets]) => {
+          const priorPlanEventBuckets =
+            priorPlan?.planCategories[category as DataCategory];
+          const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
+          const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
+          const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
+          if (perUnitPriceDiff > 0) {
+            acc[category as DataCategory] = perUnitPriceDiff;
+          }
+          return acc;
+        }, {}),
       };
     }
   });
@@ -531,7 +530,7 @@ export function PlanFeatures({
         gap="xl"
         direction="column"
       >
-        <Grid columns={{xs: '1fr', sm: `repeat(2, 1fr)`}} gap="xl">
+        <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>
@@ -540,7 +539,7 @@ export function PlanFeatures({
             <Container paddingTop="xs">
               <IconLightning size="sm" variant="accent" />
             </Container>
-            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40444678490651-How-can-I-update-to-an-account-with-Logs">
+            <ExternalLink href="https://www.sentry.help/en/articles/13965029-how-to-upgrade-a-legacy-plan-to-include-logs">
               {t('Want the latest features? Learn more here')}
             </ExternalLink>
           </Flex>
