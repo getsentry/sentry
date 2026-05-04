@@ -215,8 +215,11 @@ class NotificationServiceTest(TestCase):
         assert_count_of_metric(mock_record, EventLifecycleOutcome.FAILURE, 1)
 
     @override_options({KILLSWITCH_OPTION_KEY: ["test"]})
+    @mock.patch("sentry.notifications.platform.service.logger")
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
-    def test_notify_target_blocked_by_killswitch(self, mock_send: mock.MagicMock) -> None:
+    def test_notify_target_blocked_by_killswitch(
+        self, mock_send: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
         service = NotificationService(data=MockNotification(message="test"))
         result = service.notify_target(target=self.target)
 
@@ -224,10 +227,17 @@ class NotificationServiceTest(TestCase):
         assert isinstance(result, SendFailure)
         assert result.status == SendFailureStatus.HALT
         assert isinstance(result.exception, NotificationKillswitchedError)
+        mock_logger.info.assert_called_with(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": "test", "method": "notify_target"},
+        )
 
     @override_options({KILLSWITCH_OPTION_KEY: ["test"]})
+    @mock.patch("sentry.notifications.platform.service.logger")
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
-    def test_notify_sync_blocked_by_killswitch(self, mock_send: mock.MagicMock) -> None:
+    def test_notify_sync_blocked_by_killswitch(
+        self, mock_send: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
         service = NotificationService(data=MockNotification(message="test"))
         errors = service.notify_sync(targets=[self.target])
 
@@ -236,20 +246,30 @@ class NotificationServiceTest(TestCase):
         failure = errors[NotificationProviderKey.EMAIL][0]
         assert failure.status == SendFailureStatus.HALT
         assert isinstance(failure.exception, NotificationKillswitchedError)
+        mock_logger.info.assert_called_with(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": "test", "method": "notify_target"},
+        )
 
     @override_options({KILLSWITCH_OPTION_KEY: ["test"]})
+    @mock.patch("sentry.notifications.platform.service.logger")
     @mock.patch("sentry.notifications.platform.service.notify_target_async.delay")
     def test_notify_async_blocked_by_killswitch_does_not_enqueue(
-        self, mock_delay: mock.MagicMock
+        self, mock_delay: mock.MagicMock, mock_logger: mock.MagicMock
     ) -> None:
         service = NotificationService(data=MockNotification(message="test"))
         service.notify_async(targets=[self.target])
 
         mock_delay.assert_not_called()
+        mock_logger.info.assert_called_with(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": "test", "method": "notify_async"},
+        )
 
+    @mock.patch("sentry.notifications.platform.service.logger")
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_notify_target_async_task_blocked_by_killswitch(
-        self, mock_send: mock.MagicMock
+        self, mock_send: mock.MagicMock, mock_logger: mock.MagicMock
     ) -> None:
         """
         Even when the killswitch is added after the task is enqueued, the task
@@ -266,6 +286,10 @@ class NotificationServiceTest(TestCase):
                 )
 
         mock_send.assert_not_called()
+        mock_logger.info.assert_called_with(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": "test", "method": "notify_target_async"},
+        )
 
     @override_options({KILLSWITCH_OPTION_KEY: ["data-export-success"]})
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
