@@ -79,12 +79,10 @@ export function MetricSelector({
   onChange,
   projectIds,
   environments,
-  inlineSidePanel,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   environments?: string[];
-  inlineSidePanel?: boolean;
   projectIds?: number[];
 }) {
   const triggerId = useId();
@@ -460,34 +458,20 @@ export function MetricSelector({
             <FocusScope contain>
               <Flex
                 minHeight="0"
-                direction={
-                  inlineSidePanel
-                    ? isOverlayAboveTrigger
-                      ? 'column-reverse'
-                      : 'column'
-                    : {
-                        xs: isOverlayAboveTrigger ? 'column-reverse' : 'column',
-                        md: 'row',
-                      }
-                }
+                direction={{
+                  xs: isOverlayAboveTrigger ? 'column-reverse' : 'column',
+                  md: 'row',
+                }}
               >
                 <Stack
                   minWidth="400px"
                   minHeight={`${METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT}px`}
                   maxHeight={`${METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT}px`}
                   borderBottom={
-                    isOverlayAboveTrigger
-                      ? undefined
-                      : inlineSidePanel
-                        ? 'primary'
-                        : {xs: 'primary', md: undefined}
+                    isOverlayAboveTrigger ? undefined : {xs: 'primary', md: undefined}
                   }
                   borderTop={
-                    isOverlayAboveTrigger
-                      ? inlineSidePanel
-                        ? 'primary'
-                        : {xs: 'primary', md: undefined}
-                      : undefined
+                    isOverlayAboveTrigger ? {xs: 'primary', md: undefined} : undefined
                   }
                 >
                   <Flex align="center" justify="between" padding="sm lg">
@@ -610,27 +594,25 @@ export function MetricSelector({
                   <Container
                     ref={setSidePanelRef}
                     top={
-                      inlineSidePanel || isOverlayAboveTrigger
+                      isOverlayAboveTrigger
                         ? undefined
                         : (sidePanelAnchorPosition ?? {md: 0})
                     }
                     bottom={
-                      inlineSidePanel
-                        ? undefined
-                        : isOverlayAboveTrigger
-                          ? (sidePanelAnchorPosition ?? {md: 0})
-                          : undefined
+                      isOverlayAboveTrigger
+                        ? (sidePanelAnchorPosition ?? {md: 0})
+                        : undefined
                     }
-                    width={inlineSidePanel ? '100%' : {xs: '100%', md: '280px'}}
+                    width={{xs: '100%', md: '280px'}}
                     padding="lg"
                     minHeight="0"
-                    position={inlineSidePanel ? undefined : {md: 'absolute'}}
-                    left={inlineSidePanel ? undefined : {md: '100%'}}
-                    maxHeight={inlineSidePanel ? undefined : {md: 'calc(100vh - 32px)'}}
-                    overflowY={inlineSidePanel ? undefined : {md: 'auto'}}
-                    background={inlineSidePanel ? undefined : {md: 'primary'}}
-                    border={inlineSidePanel ? undefined : {md: 'primary'}}
-                    radius={inlineSidePanel ? undefined : {md: 'md'}}
+                    position={{md: 'absolute'}}
+                    left={{md: '100%'}}
+                    maxHeight={{md: 'calc(100vh - 32px)'}}
+                    overflowY={{md: 'auto'}}
+                    background={{md: 'primary'}}
+                    border={{md: 'primary'}}
+                    radius={{md: 'md'}}
                   >
                     <MetricDetailPanel
                       metric={highlightedOption ?? optionFromTraceMetric}

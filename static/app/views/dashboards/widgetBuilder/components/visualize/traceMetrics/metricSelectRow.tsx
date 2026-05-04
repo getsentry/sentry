@@ -84,7 +84,6 @@ export function MetricSelectRow({
       <MetricSelectorWrapper>
         <MetricSelector
           traceMetric={traceMetric}
-          inlineSidePanel
           onChange={newTraceMetric => {
             if (field.kind !== 'function' || !newTraceMetric) {
               return;
