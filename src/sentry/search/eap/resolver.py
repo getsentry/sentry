@@ -306,8 +306,14 @@ class SearchResolver:
                 return self._resolve_terms([terms[0]])
             elif isinstance(terms[0], event_search.AggregateFilter):
                 return self._resolve_terms([terms[0]])
+            elif event_search.SearchBoolean.is_operator(terms[0]):
+                raise InvalidSearchQuery(
+                    f"Condition is missing on the left side of '{terms[0]}' operator"
+                )
             else:
-                raise NotImplementedError("Haven't handled all the search expressions yet")
+                raise InvalidSearchQuery(
+                    f"Unsupported search term: {terms[0]!r}"
+                )
 
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
