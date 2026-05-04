@@ -930,8 +930,11 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
             == "unauthorized"
         )
 
-    def test_api_forbidden_not_terminal(self) -> None:
-        assert self.installation.is_broken_integration_error(ApiForbiddenError("forbidden")) is None
+    def test_api_forbidden_returns_unauthorized(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiForbiddenError("forbidden"))
+            == "unauthorized"
+        )
 
     def test_api_forbidden_suspended_returns_installation_suspended(self) -> None:
         exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
@@ -1071,6 +1074,89 @@ class GitlabIsBrokenIntegrationErrorTestCase(TestCase):
         assert (
             self.installation.is_broken_integration_error(IdentityNotValid())
             == "identity_not_valid"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+
+@control_silo_test
+@patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+class GitHubIsBrokenIntegrationErrorTestCase(IntegrationTestCase):
+    """Tests for the GitHubIntegration.is_broken_integration_error override."""
+
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+    key = "github"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_forbidden_ip_allow_list_returns_unauthorized(self, _: MagicMock) -> None:
+        exc = ApiForbiddenError(
+            '{"message":"the org has an IP allow list enabled, '
+            'and your IP address is not permitted"}'
+        )
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_forbidden_suspended_returns_installation_suspended(self, _: MagicMock) -> None:
+        exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
+        assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
+
+    def test_forbidden_generic_returns_unauthorized(self, _: MagicMock) -> None:
+        exc = ApiForbiddenError("some other 403")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_rate_limited_forbidden_returns_rate_limited(self, _: MagicMock) -> None:
+        exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
+        assert self.installation.is_broken_integration_error(exc) == "rate_limited"
+
+    def test_base_class_cases_still_work(self, _: MagicMock) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+
+@control_silo_test
+class GHEIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for the GitHubEnterpriseIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        GitHubEnterpriseIntegrationProvider().setup()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="35.232.149.196:99999",
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "99999",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_forbidden_returns_unauthorized(self) -> None:
+        exc = ApiForbiddenError("IP allow list")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_forbidden_suspended_returns_installation_suspended(self) -> None:
+        exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
+        assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
+
+    def test_rate_limited_forbidden_returns_rate_limited(self) -> None:
+        exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
+        assert self.installation.is_broken_integration_error(exc) == "rate_limited"
+
+    def test_base_class_cases_still_work(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
         )
         assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
 
