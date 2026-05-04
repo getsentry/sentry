@@ -197,24 +197,24 @@ ExploreParserFn = Callable[[QueryDict], tuple[QueryDict, int | None]]
 class ExploreDatasetConfig(TypedDict):
     title_prefix: str
     default_y_axis: str
-    parse_url: ExploreParserFn
+    parse_url_fn: ExploreParserFn
 
 
 EXPLORE_DATASET_CONFIGS: dict[SupportedTraceItemType, ExploreDatasetConfig] = {
     SupportedTraceItemType.SPANS: {
         "title_prefix": "Explore Traces",
         "default_y_axis": "count(span.duration)",
-        "parse_url": _parse_traces_url,
+        "parse_url_fn": _parse_traces_url,
     },
     SupportedTraceItemType.LOGS: {
         "title_prefix": "Explore Logs",
         "default_y_axis": "count(message)",
-        "parse_url": _parse_logs_url,
+        "parse_url_fn": _parse_logs_url,
     },
     SupportedTraceItemType.TRACEMETRICS: {
         "title_prefix": "Explore Metrics",
         "default_y_axis": "sum(value)",
-        "parse_url": _parse_metrics_url,
+        "parse_url_fn": _parse_metrics_url,
     },
 }
 
@@ -393,7 +393,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     explore_dataset = _get_explore_dataset(url)
     config = _get_explore_dataset_config(explore_dataset)
 
-    query, chart_type = config["parse_url"](raw_query)
+    query, chart_type = config["parse_url_fn"](raw_query)
 
     if not query.getlist("yAxis"):
         query.setlist("yAxis", [config["default_y_axis"]])
