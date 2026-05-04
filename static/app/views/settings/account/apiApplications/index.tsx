@@ -130,7 +130,7 @@ export default function ApiApplications() {
         </SimpleTable.Header>
 
         {isEmpty ? (
-          <SimpleTable.Empty>
+          <SimpleTable.Empty data-test-id="empty-message">
             {t("You haven't created any applications yet.")}
           </SimpleTable.Empty>
         ) : (

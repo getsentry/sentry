@@ -31,6 +31,7 @@ describe('ApiApplications', () => {
     expect(
       screen.getByText("You haven't created any applications yet.")
     ).toBeInTheDocument();
+    expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('renders', async () => {
