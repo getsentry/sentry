@@ -898,7 +898,7 @@ export function GlobalCommandPaletteActions() {
           // TanStack serializes the entire key for cache lookups, and
           // including the full projects array would be too costly —
           // some orgs have thousands of projects.
-          // eslint-disable-next-line @tanstack/query/exhaustive-deps
+
           cmdkQueryOptions({
             queryKey: [
               'cmdk-project-nav',
