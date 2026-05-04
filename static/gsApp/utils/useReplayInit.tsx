@@ -8,6 +8,11 @@ import {useUser} from 'sentry/utils/useUser';
 
 // Single replayRef across the whole app, even if this hook is called multiple times
 let replayRef: ReturnType<typeof replayIntegration> | null;
+// Subscribers waiting for replayRef to become non-null. Needed because two
+// useReplayInit callers can be mounted around the same async init: the
+// initiator's `setReady` only updates its own component, so the other caller
+// has to subscribe to be notified when init resolves.
+const readyListeners = new Set<() => void>();
 
 /**
  * Load the Sentry Replay integration based on the feature flag.
@@ -19,7 +24,26 @@ let replayRef: ReturnType<typeof replayIntegration> | null;
  */
 export function useReplayInit(): boolean {
   const user = useUser();
+  // replayRef is assigned synchronously immediately before
+  // `client.addIntegration(replayRef)` (see below), with no await between
+  // them, so a non-null replayRef observed from any other render means the
+  // integration is registered and `Sentry.getReplay()` will return it.
   const [ready, setReady] = useState(() => replayRef !== null);
+
+  useEffect(() => {
+    if (replayRef) {
+      // Integration was registered before this caller mounted; flip now.
+      setReady(true);
+      return;
+    }
+    // No integration yet. Subscribe so we get notified when whichever
+    // caller is currently running init() finishes registration.
+    const listener = () => setReady(true);
+    readyListeners.add(listener);
+    return () => {
+      readyListeners.delete(listener);
+    };
+  }, []);
 
   useEffect(() => {
     async function init(sessionSampleRate: number, errorSampleRate: number) {
@@ -73,8 +97,10 @@ export function useReplayInit(): boolean {
         });
 
         client.addIntegration(replayRef);
+        // Notify any subscribers (other useReplayInit callers that mounted
+        // while this init was in flight) that the integration is ready.
+        readyListeners.forEach(l => l());
       }
-      setReady(true);
     }
 
     if (process.env.NODE_ENV !== 'production' || process.env.IS_ACCEPTANCE_TEST) {
