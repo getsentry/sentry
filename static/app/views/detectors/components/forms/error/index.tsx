@@ -21,7 +21,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {useSubmitEditDetector} from 'sentry/views/detectors/hooks/useSubmitEditDetector';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getNoPermissionToEditMonitorTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -157,6 +161,10 @@ export function EditExistingErrorDetectorForm({
                   {
                     label: t('Monitors'),
                     to: makeMonitorBasePathname(organization.slug),
+                  },
+                  {
+                    label: getDetectorTypeLabel(detector.type),
+                    to: makeMonitorTypePathname(organization.slug, detector.type),
                   },
                   {label: detector.name},
                 ]}
