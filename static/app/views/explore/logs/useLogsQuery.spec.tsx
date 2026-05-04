@@ -800,7 +800,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
         (_, options) => {
           const query = options?.query || {};
           // TODO: Fix space in query
-          return query.query === ' timestamp_precise:<=1508208040000000000';
+          return query.query === ' timestamp_precise:<=1699999960000000000';
         },
       ],
       headers: linkHeaders,
