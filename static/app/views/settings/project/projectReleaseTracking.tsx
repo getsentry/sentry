@@ -2,13 +2,14 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {Confirm} from 'sentry/components/confirm';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -181,31 +182,41 @@ export default function ProjectReleaseTracking() {
       <Panel>
         <PanelHeader>{t('Deploy Token')}</PanelHeader>
         <PanelBody>
-          <FieldGroup
-            label={t('Token')}
-            help={t('A unique secret which is used to generate deploy hook URLs')}
-          >
-            <TextCopyInput>{releaseTokenData.token}</TextCopyInput>
-          </FieldGroup>
-          <FieldGroup
-            label={t('Regenerate Token')}
-            help={t(
-              'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
-            )}
-          >
-            <div>
-              <Confirm
-                disabled={!hasWrite}
-                priority="danger"
-                onConfirm={handleRegenerateToken}
-                message={t(
-                  'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
-                )}
-              >
-                <Button variant="danger">{t('Regenerate Token')}</Button>
-              </Confirm>
-            </div>
-          </FieldGroup>
+          <Container padding="xl">
+            <Stack gap="md">
+              <Stack gap="xs">
+                <Text bold>{t('Token')}</Text>
+                <Text variant="muted" size="sm">
+                  {t('A unique secret which is used to generate deploy hook URLs')}
+                </Text>
+              </Stack>
+              <TextCopyInput>{releaseTokenData.token}</TextCopyInput>
+            </Stack>
+          </Container>
+          <Container padding="xl">
+            <Stack gap="md">
+              <Stack gap="xs">
+                <Text bold>{t('Regenerate Token')}</Text>
+                <Text variant="muted" size="sm">
+                  {t(
+                    'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
+                  )}
+                </Text>
+              </Stack>
+              <div>
+                <Confirm
+                  disabled={!hasWrite}
+                  priority="danger"
+                  onConfirm={handleRegenerateToken}
+                  message={t(
+                    'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
+                  )}
+                >
+                  <Button variant="danger">{t('Regenerate Token')}</Button>
+                </Confirm>
+              </div>
+            </Stack>
+          </Container>
         </PanelBody>
       </Panel>
 
