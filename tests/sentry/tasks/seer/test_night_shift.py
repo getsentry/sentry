@@ -500,15 +500,43 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project, "skip-me", seer_fixability_score=0.9, times_seen=5
         )
 
-        with self._patched_night_shift([(group.id, "skip")]) as (mock_trigger, mock_logger):
+        with (
+            self._patched_night_shift([(group.id, "skip")]) as (mock_trigger, mock_logger),
+            patch("sentry.tasks.seer.night_shift.agentic_triage.mark_skipped") as mock_mark_skipped,
+        ):
             run_night_shift_for_org(org.id)
 
             mock_trigger.assert_not_called()
             log_calls = [call.args[0] for call in mock_logger.info.call_args_list]
             assert "night_shift.no_fixable_candidates" in log_calls
+            mock_mark_skipped.assert_called_once_with(group.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+    def test_filters_recently_skipped_groups(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        skipped_group = self._store_event_and_update_group(
+            project, "already-skipped", seer_fixability_score=0.9, times_seen=5
+        )
+        other_group = self._store_event_and_update_group(
+            project, "fresh", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage.filter_recently_skipped",
+                return_value={skipped_group.id},
+            ),
+            self._patched_night_shift([(other_group.id, "autofix")]) as (mock_trigger, _),
+        ):
+            run_night_shift_for_org(org.id)
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["group"].id == other_group.id
 
     def test_skips_autofix_when_no_seer_quota(self) -> None:
         org = self.create_organization()
