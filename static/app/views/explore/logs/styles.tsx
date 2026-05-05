@@ -130,13 +130,14 @@ function ContentsTable(props: React.ComponentProps<typeof Table>) {
   return <Table contentsBody {...props} />;
 }
 
-export const LogTable = styled(ContentsTable)`
+export const LogTable = styled(ContentsTable)<{minWidth?: number}>`
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   margin-bottom: 0;
   overflow-x: hidden;
+  ${p => (p.minWidth ? `min-width: ${p.minWidth}px;` : ``)}
 `;
 
 export const LogTableBody = styled(TableBody)<{
