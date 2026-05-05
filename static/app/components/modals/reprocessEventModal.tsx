@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 export type ReprocessEventModalOptions = {
@@ -62,15 +63,19 @@ export function ReprocessingEventModal({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
-    onSubmit: ({value}) =>
+    onSubmit: ({value, formApi}) =>
       mutation
         .mutateAsync(value)
         .then(() => {
           closeModal();
           testableWindowLocation.reload();
         })
-        .catch(() => {
-          addErrorMessage(t('Failed to reprocess. Please check your input.'));
+        .catch(error => {
+          const handled =
+            error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+          if (!handled) {
+            addErrorMessage(t('Failed to reprocess. Please check your input.'));
+          }
         }),
   });
 
@@ -161,7 +166,7 @@ export function ReprocessingEventModal({
         </form.Subscribe>
       </Body>
       <Footer>
-        <Flex gap="sm" justify="end">
+        <Flex gap="md" justify="end">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <form.SubmitButton>{t('Reprocess Events')}</form.SubmitButton>
         </Flex>
