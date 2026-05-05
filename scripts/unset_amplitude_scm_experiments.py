@@ -9,8 +9,8 @@ as an Airflow DAG.
 Usage:
     AMPLITUDE_API_KEY=<key> python scripts/unset_amplitude_scm_experiments.py [--dry-run]
 
-Requires: google-cloud-bigquery, amplitude-analytics
-    pip install google-cloud-bigquery amplitude-analytics pandas db-dtypes
+Requires: google-cloud-bigquery, requests
+    pip install google-cloud-bigquery requests pandas db-dtypes
 """
 
 import argparse
@@ -22,6 +22,7 @@ from google.cloud import bigquery
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
+logging.getLogger("amplitude").setLevel(logging.WARNING)
 
 BIGQUERY_PROJECT = "super-big-data"
 
@@ -87,6 +88,12 @@ def main():
         default=None,
         help="Only process this specific organization ID (for testing)",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Only process the first N organizations",
+    )
     args = parser.parse_args()
 
     api_key = args.amplitude_api_key or os.environ.get("AMPLITUDE_API_KEY")
@@ -102,6 +109,10 @@ def main():
     if args.org_id:
         df = df[df["organization_id"] == int(args.org_id)]
         logger.info("Filtered to org %s: %d rows", args.org_id, len(df))
+
+    if args.limit:
+        df = df.head(args.limit)
+        logger.info("Limited to first %d orgs", args.limit)
 
     if df.empty:
         logger.info("Nothing to do")
@@ -131,8 +142,15 @@ def main():
 
     from amplitude import Amplitude, GroupIdentifyEvent
 
+    success_count = 0
+    error_count = 0
+
     def _on_event(event, code, message):
-        if code != 200:
+        nonlocal success_count, error_count
+        if code == 200:
+            success_count += 1
+        else:
+            error_count += 1
             logger.warning(
                 "Amplitude error code=%s message=%s event=%s",
                 code,
@@ -155,12 +173,19 @@ def main():
 
         if (i + 1) % batch_size == 0:
             for future in amplitude_client.flush() or []:
-                future.result()
+                if future is not None:
+                    future.result()
             logger.info("Flushed batch %d/%d", i + 1, len(groups))
 
     for future in amplitude_client.flush() or []:
-        future.result()
-    logger.info("Done — processed %d organizations", len(groups))
+        if future is not None:
+            future.result()
+    logger.info(
+        "Done — processed %d organizations (success=%d, errors=%d)",
+        len(groups),
+        success_count,
+        error_count,
+    )
 
 
 if __name__ == "__main__":
