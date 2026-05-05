@@ -3,16 +3,15 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  SCREEN_LOAD_CONDITION,
+  SCREEN_LOAD_SPAN_OPERATIONS_CONDITION,
+  TRANSACTION_COUNT,
+  TTFD_CONDITION,
+  TTID_CONDITION,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 import {SCREEN_LOADS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-
-const TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
-const TTID_CONDITION = `(${TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.initial_display has:${SpanFields.APP_VITALS_TTID_VALUE})`;
-const TTFD_CONDITION = `(${TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.full_display has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
-const SCREEN_LOAD_CONDITION = `(${TTID_CONDITION} OR ${TTFD_CONDITION})`;
-const TRANSACTION_COUNT = `count_unique(${SpanFields.TRANSACTION_SPAN_ID})`;
-const SPAN_NAME_OR_DESCRIPTION_CONDITION = `(has:${SpanFields.SPAN_DESCRIPTION} OR has:${SpanFields.NAME})`;
-const SPAN_OPERATIONS_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation] ${SPAN_NAME_OR_DESCRIPTION_CONDITION} ${SpanFields.SPAN_OP}:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]`;
 
 const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-ttid-big-number',
@@ -271,7 +270,7 @@ const SPAN_OPERATIONS_TABLE: Widget = {
         'Avg Self Time',
         'Total Time Spent',
       ],
-      conditions: SPAN_OPERATIONS_CONDITION,
+      conditions: SCREEN_LOAD_SPAN_OPERATIONS_CONDITION,
       orderby: '-sum(span.self_time)',
     },
   ],
@@ -322,8 +321,8 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'transaction',
-          name: 'transaction',
+          key: SpanFields.TRANSACTION,
+          name: SpanFields.TRANSACTION,
           kind: FieldKind.TAG,
         },
         value: '',

@@ -3,28 +3,20 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  APP_START_TABLE_CONDITION,
+  COLD_START_CONDITION,
+  SCREEN_LOAD_TABLE_CONDITION,
+  SCREEN_RENDERING_CONDITION,
+  SCREEN_RENDERING_TABLE_CONDITION,
+  TRANSACTION_COUNT,
+  TTFD_CONDITION,
+  TTID_CONDITION,
+  WARM_START_CONDITION,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-
-const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
-const ROOT_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${TRANSACTION_OP_CONDITION}`;
-const COLD_START_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_COLD_VALUE} OR ${SpanFields.SPAN_OP}:app.start.cold has:${SpanFields.APP_VITALS_START_COLD_VALUE})`;
-const WARM_START_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_WARM_VALUE} OR ${SpanFields.SPAN_OP}:app.start.warm has:${SpanFields.APP_VITALS_START_WARM_VALUE})`;
-const TTID_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.initial_display has:${SpanFields.APP_VITALS_TTID_VALUE})`;
-const TTFD_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.full_display has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
-const TRANSACTION_COUNT = `count_unique(${SpanFields.TRANSACTION_SPAN_ID})`;
-
-const APP_START_CONDITION = `(${COLD_START_CONDITION} OR ${WARM_START_CONDITION})`;
-const APP_START_TABLE_CONDITION = `${APP_START_CONDITION} has:${SpanFields.TRANSACTION}`;
-
-// TTFD can be absent while TTID is present because reportFullyDrawn() is opt-in.
-const SCREEN_LOAD_CONDITION = `(${TTID_CONDITION} OR ${TTFD_CONDITION})`;
-const SCREEN_LOAD_TABLE_CONDITION = `${SCREEN_LOAD_CONDITION} has:${SpanFields.TRANSACTION}`;
-
-// A single `has:` on the shared denominator keeps the frame-rate equations defined.
-const SCREEN_RENDERING_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT}`;
-const SCREEN_RENDERING_TABLE_CONDITION = `${SCREEN_RENDERING_CONDITION} has:${SpanFields.TRANSACTION}`;
 
 const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'cold-start-big-number',
@@ -305,7 +297,7 @@ const APP_START_TABLE: Widget = {
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
-          field: 'transaction',
+          field: SpanFields.TRANSACTION,
           dashboardId: '-1',
           staticDashboardId: 9,
         },
@@ -355,7 +347,7 @@ const SCREEN_RENDERING_TABLE: Widget = {
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
-          field: 'transaction',
+          field: SpanFields.TRANSACTION,
           dashboardId: '-1',
           staticDashboardId: 11,
         },
@@ -399,7 +391,7 @@ const SCREEN_LOAD_TABLE: Widget = {
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
-          field: 'transaction',
+          field: SpanFields.TRANSACTION,
           dashboardId: '-1',
           staticDashboardId: 10,
         },
@@ -454,8 +446,8 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'transaction',
-          name: 'transaction',
+          key: SpanFields.TRANSACTION,
+          name: SpanFields.TRANSACTION,
           kind: FieldKind.TAG,
         },
         value: '',
