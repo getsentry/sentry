@@ -7,16 +7,15 @@ import {
   isCompleteTraceMetric,
 } from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsCrossEvents} from 'sentry/views/explore/queryParams/context';
-import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
+import {
+  isCrossEventType,
+  type CrossEventQueryExtras,
+} from 'sentry/views/explore/queryParams/crossEvent';
 import type {CrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 
-const ALL_CROSS_EVENT_DATASETS_AVAILABLE: CrossEventDatasetAvailability = {
-  spans: true,
-  logs: true,
-  metrics: true,
-};
-
-export function useCrossEventQueries(availability = ALL_CROSS_EVENT_DATASETS_AVAILABLE) {
+export function useCrossEventQueries(
+  availability: CrossEventDatasetAvailability
+): CrossEventQueryExtras | undefined {
   const crossEvents = useQueryParamsCrossEvents();
 
   return useMemo(() => {

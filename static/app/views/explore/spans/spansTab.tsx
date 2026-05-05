@@ -294,6 +294,7 @@ function SpanTabContentSectionInner({
     tracesTableResult,
     timeseriesResult,
     interval,
+    crossEventQueries,
   });
 
   const error = defined(timeseriesResult.error)

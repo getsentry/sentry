@@ -16,8 +16,14 @@ import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import type {CrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 
 const mockSetQueryParams = jest.fn();
+const ALL_CROSS_EVENT_DATASETS_AVAILABLE: CrossEventDatasetAvailability = {
+  spans: true,
+  logs: true,
+  metrics: true,
+};
 
 function wrapper(crossEvents?: CrossEvent[]) {
   return function Wrapped({children}: {children: ReactNode}) {
@@ -57,6 +63,7 @@ describe('useCrossEventQueries', () => {
   it('returns undefined if there are no cross event queries', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper(),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     expect(result.current).toBeUndefined();
@@ -65,6 +72,7 @@ describe('useCrossEventQueries', () => {
   it('returns undefined if cross event queries array is empty', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     expect(result.current).toBeUndefined();
@@ -77,6 +85,7 @@ describe('useCrossEventQueries', () => {
         {type: 'spans', query: 'test:b'},
         {type: 'spans', query: 'test:c'},
       ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     // Since MAX_CROSS_EVENT_QUERIES is 2, the third query ('spans') will be dropped.
@@ -94,6 +103,7 @@ describe('useCrossEventQueries', () => {
         {type: 'spans', query: 'test:b'},
         {type: 'spans', query: 'test:c'},
       ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     // Only first 2 are kept
@@ -111,6 +121,7 @@ describe('useCrossEventQueries', () => {
         {type: 'invalid' as any, query: 'test:b'},
         {type: 'spans', query: 'test:c'},
       ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     expect(result.current).toStrictEqual({
@@ -121,20 +132,18 @@ describe('useCrossEventQueries', () => {
   });
 
   it('ignores queries for unavailable datasets', () => {
-    const {result} = renderHookWithProviders(
-      () => useCrossEventQueries({spans: true, logs: false, metrics: false}),
-      {
-        additionalWrapper: wrapper([
-          {type: 'logs', query: 'test:a'},
-          {type: 'spans', query: 'test:b'},
-          {
-            type: 'metrics',
-            query: 'env:prod',
-            metric: {name: 'my_metric', type: 'counter'},
-          },
-        ]),
-      }
-    );
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {type: 'logs', query: 'test:a'},
+        {type: 'spans', query: 'test:b'},
+        {
+          type: 'metrics',
+          query: 'env:prod',
+          metric: {name: 'my_metric', type: 'counter'},
+        },
+      ]),
+      initialProps: {spans: true, logs: false, metrics: false},
+    });
 
     expect(result.current).toStrictEqual({
       logQuery: [],
@@ -152,6 +161,7 @@ describe('useCrossEventQueries', () => {
           metric: {name: 'my_metric', type: 'distribution', unit: 'ms'},
         },
       ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     expect(result.current).toStrictEqual({
@@ -172,6 +182,7 @@ describe('useCrossEventQueries', () => {
           metric: {name: 'my_metric', type: 'counter'},
         },
       ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     expect(result.current).toStrictEqual({
@@ -190,6 +201,7 @@ describe('useCrossEventQueries', () => {
           metric: {name: 'my_metric', type: 'counter', unit: 'none'},
         },
       ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     expect(result.current).toStrictEqual({
@@ -210,6 +222,7 @@ describe('useCrossEventQueries', () => {
           metric: {name: 'my_metric', type: 'distribution', unit: 'ms'},
         },
       ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     expect(result.current).toStrictEqual({
@@ -226,6 +239,7 @@ describe('useCrossEventQueries', () => {
       additionalWrapper: wrapper([
         {type: 'metrics', query: 'env:prod', metric: {name: '', type: ''}},
       ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
     expect(result.current).toStrictEqual({
