@@ -8,8 +8,15 @@ import {
 } from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsCrossEvents} from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
+import type {CrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 
-export function useCrossEventQueries() {
+const ALL_CROSS_EVENT_DATASETS_AVAILABLE: CrossEventDatasetAvailability = {
+  spans: true,
+  logs: true,
+  metrics: true,
+};
+
+export function useCrossEventQueries(availability = ALL_CROSS_EVENT_DATASETS_AVAILABLE) {
   const crossEvents = useQueryParamsCrossEvents();
 
   return useMemo(() => {
@@ -20,7 +27,9 @@ export function useCrossEventQueries() {
     // We only want to include the first MAX_CROSS_EVENT_QUERIES cross events in the
     // actual API request to avoid overwhelming the backend.
     const slicedCrossEvents = crossEvents
-      .filter(crossEvent => isCrossEventType(crossEvent.type))
+      .filter(
+        crossEvent => isCrossEventType(crossEvent.type) && availability[crossEvent.type]
+      )
       .slice(0, MAX_CROSS_EVENT_QUERIES);
 
     const logQuery: string[] = [];
@@ -48,5 +57,5 @@ export function useCrossEventQueries() {
     }
 
     return {spanQuery, logQuery, metricQuery};
-  }, [crossEvents]);
+  }, [availability, crossEvents]);
 }

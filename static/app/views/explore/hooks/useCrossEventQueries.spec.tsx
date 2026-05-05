@@ -120,6 +120,29 @@ describe('useCrossEventQueries', () => {
     });
   });
 
+  it('ignores queries for unavailable datasets', () => {
+    const {result} = renderHookWithProviders(
+      () => useCrossEventQueries({spans: true, logs: false, metrics: false}),
+      {
+        additionalWrapper: wrapper([
+          {type: 'logs', query: 'test:a'},
+          {type: 'spans', query: 'test:b'},
+          {
+            type: 'metrics',
+            query: 'env:prod',
+            metric: {name: 'my_metric', type: 'counter'},
+          },
+        ]),
+      }
+    );
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: ['test:b'],
+      metricQuery: [],
+    });
+  });
+
   it('prepends metric identity fields to metric queries', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([

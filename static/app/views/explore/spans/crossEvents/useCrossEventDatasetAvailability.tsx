@@ -12,11 +12,19 @@ export type CrossEventDatasetAvailability = Record<CrossEventType, boolean>;
 export function useCrossEventDatasetAvailability(
   organization: Organization
 ): CrossEventDatasetAvailability {
-  const {projects} = useProjects();
+  const {initiallyLoaded, projects} = useProjects();
   const {selection} = usePageFilters();
   const canUseMetrics = canUseMetricsUI(organization);
 
   return useMemo(() => {
+    if (!initiallyLoaded) {
+      return {
+        spans: true,
+        logs: true,
+        metrics: canUseMetrics,
+      };
+    }
+
     const explicitlySelectedProjectIds = selection.projects.filter(
       projectId => projectId !== ALL_ACCESS_PROJECTS && projectId > 0
     );
@@ -33,5 +41,5 @@ export function useCrossEventDatasetAvailability(
       logs: selectedProjects.some(project => project.hasLogs),
       metrics: canUseMetrics && selectedProjects.some(project => project.hasTraceMetrics),
     };
-  }, [canUseMetrics, projects, selection.projects]);
+  }, [canUseMetrics, initiallyLoaded, projects, selection.projects]);
 }

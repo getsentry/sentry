@@ -677,6 +677,9 @@ describe('SpansTabContent', () => {
     });
 
     it('disables dropdown when there are 2 cross events', () => {
+      const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
+      setProjects([logsProject]);
+
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
@@ -723,6 +726,9 @@ describe('SpansTabContent', () => {
     });
 
     it('can remove a cross event query', async () => {
+      const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
+      setProjects([logsProject]);
+
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
@@ -779,6 +785,9 @@ describe('SpansTabContent', () => {
     });
 
     it('renders disabled cross event search bar when the limit is reached', () => {
+      const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
+      setProjects([logsProject]);
+
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
@@ -803,6 +812,9 @@ describe('SpansTabContent', () => {
     });
 
     it('disables Attribute Breakdowns tab when cross events are present', () => {
+      const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
+      setProjects([logsProject]);
+
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization: {
           ...organization,
@@ -824,6 +836,9 @@ describe('SpansTabContent', () => {
     });
 
     it('disables Trace Samples tab when cross events are present', async () => {
+      const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
+      setProjects([logsProject]);
+
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization: {
           ...organization,

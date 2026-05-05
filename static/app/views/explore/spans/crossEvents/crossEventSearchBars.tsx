@@ -51,11 +51,29 @@ export function SpansTabCrossEventSearchBars() {
     fireErrorToast();
   }, []);
 
-  if (!crossEvents || crossEvents.length === 0) {
+  useEffect(() => {
+    if (!crossEvents) {
+      return;
+    }
+
+    const availableCrossEvents = crossEvents.filter(
+      crossEvent => crossEventDatasetAvailability[crossEvent.type]
+    );
+
+    if (availableCrossEvents.length !== crossEvents.length) {
+      setCrossEvents(availableCrossEvents);
+    }
+  }, [crossEventDatasetAvailability, crossEvents, setCrossEvents]);
+
+  const visibleCrossEvents = crossEvents
+    ?.map((crossEvent, index) => ({crossEvent, index}))
+    .filter(({crossEvent}) => crossEventDatasetAvailability[crossEvent.type]);
+
+  if (!visibleCrossEvents || visibleCrossEvents.length === 0) {
     return null;
   }
 
-  return crossEvents.map((crossEvent, index) => {
+  return visibleCrossEvents.map(({crossEvent, index}, visibleIndex) => {
     let traceItemType = TraceItemDataset.SPANS;
     if (crossEvent.type === 'logs') {
       traceItemType = TraceItemDataset.LOGS;
@@ -63,7 +81,7 @@ export function SpansTabCrossEventSearchBars() {
       traceItemType = TraceItemDataset.TRACEMETRICS;
     }
 
-    const maxCrossEventQueriesReached = index >= MAX_CROSS_EVENT_QUERIES;
+    const maxCrossEventQueriesReached = visibleIndex >= MAX_CROSS_EVENT_QUERIES;
 
     return (
       <Fragment key={`${crossEvent.type}-${index}`}>
