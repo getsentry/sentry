@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -37,6 +38,10 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
     [aiAutofix.runState?.blocks]
   );
 
+  const {containerRef, onScrollHandler} = useAutoScroll({
+    key: aiAutofix.runState,
+  });
+
   return (
     <Flex
       className="seer-drawer-container"
@@ -51,7 +56,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
         onReset={handleRestart}
         referrer={referrer}
       />
-      <SeerDrawerBody>
+      <SeerDrawerBody ref={containerRef} onScroll={onScrollHandler}>
         {aiConfig.isAutofixSetupLoading ? (
           <Flex data-test-id="ai-setup-loading-indicator" direction="column" gap="xl">
             <Placeholder height="10rem" />

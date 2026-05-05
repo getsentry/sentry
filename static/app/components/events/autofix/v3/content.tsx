@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type UIEventHandler,
-} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -32,7 +24,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
@@ -46,8 +37,6 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
-
-  const {containerRef, bottomRef, onScrollHandler} = useAutoScroll(autofix);
 
   if (
     // autofix results are loading
@@ -67,7 +56,7 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
   }
 
   return (
-    <Flex ref={containerRef} onScroll={onScrollHandler} direction="column" gap="lg">
+    <Flex direction="column" gap="lg">
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
       {autofix.runState?.status === 'completed' && (
         <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
@@ -89,7 +78,6 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
           {message}
         </Alert>
       ))}
-      <div ref={bottomRef} />
     </Flex>
   );
 }
@@ -138,34 +126,4 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
       })}
     </Fragment>
   );
-}
-
-function useAutoScroll(autofix: ReturnType<typeof useExplorerAutofix>) {
-  const [canAutoScroll, setCanAutoScroll] = useState(true);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const bottom = bottomRef.current;
-    if (!canAutoScroll || !defined(container) || !defined(bottom)) {
-      return;
-    }
-
-    // only want to scroll when the run is in a completed state
-    if (autofix.runState?.status !== 'completed') {
-      return;
-    }
-
-    bottom.scrollIntoView({behavior: 'smooth', block: 'end'});
-  }, [autofix.runState?.status, canAutoScroll]);
-
-  const onScrollHandler: UIEventHandler = useCallback(event => {
-    const {scrollTop, scrollHeight, clientHeight} = event.currentTarget;
-    const atBottom = scrollHeight - scrollTop - clientHeight < 1;
-    setCanAutoScroll(atBottom);
-  }, []);
-
-  return {containerRef, bottomRef, onScrollHandler};
 }

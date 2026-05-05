@@ -1,4 +1,3 @@
-import {useCallback, useEffect, useRef, useState, type UIEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -8,7 +7,7 @@ import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerA
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {StyledMarkedText} from 'sentry/components/events/autofix/v3/styled';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {defined} from 'sentry/utils';
+import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 
 interface ArtifactLoadingDetailsProps {
   blocks: AutofixSection['blocks'];
@@ -19,7 +18,9 @@ export function ArtifactLoadingDetails({
   loadingMessage,
   blocks,
 }: ArtifactLoadingDetailsProps) {
-  const {containerRef, bottomRef, onScrollHandler} = useAutoScroll(blocks);
+  const {containerRef, onScrollHandler} = useAutoScroll({
+    key: blocks,
+  });
 
   return (
     <ArtifactDetails>
@@ -47,46 +48,13 @@ export function ArtifactLoadingDetails({
 
           return null;
         })}
-        <Flex ref={bottomRef} direction="row" gap="md">
+        <Flex direction="row" gap="md">
           <StyledLoadingIndicator size={16} />
           <Text variant="muted">{loadingMessage}</Text>
         </Flex>
       </Flex>
     </ArtifactDetails>
   );
-}
-
-function useAutoScroll(blocks: AutofixSection['blocks']) {
-  const [canAutoScroll, setCanAutoScroll] = useState(true);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const bottom = bottomRef.current;
-    if (!canAutoScroll || !defined(container) || !defined(bottom)) {
-      return;
-    }
-
-    if (container.scrollHeight <= container.clientHeight) {
-      return;
-    }
-
-    bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
-  }, [blocks, canAutoScroll]);
-
-  const onScrollHandler: UIEventHandler = useCallback(event => {
-    const {scrollTop, scrollHeight, clientHeight} = event.currentTarget;
-    const atBottom = scrollHeight - scrollTop - clientHeight < 1;
-    setCanAutoScroll(atBottom);
-  }, []);
-
-  return {
-    containerRef,
-    bottomRef,
-    onScrollHandler,
-  };
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
