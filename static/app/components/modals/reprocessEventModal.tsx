@@ -25,12 +25,7 @@ export type ReprocessEventModalOptions = {
 };
 
 const schema = z.object({
-  maxEvents: z
-    .string()
-    .refine(
-      v => v === '' || (/^\d+$/.test(v) && Number(v) >= 1),
-      t('Must be a positive integer')
-    ),
+  maxEvents: z.number().positive(t('Must be a positive integer')).nullable(),
   remainingEvents: z.enum(['keep', 'delete']),
 });
 
@@ -46,21 +41,15 @@ export function ReprocessingEventModal({
 }: ModalRenderProps & ReprocessEventModalOptions) {
   const mutation = useMutation({
     mutationFn: (data: FormValues) => {
-      const payload: {remainingEvents: 'keep' | 'delete'; maxEvents?: number} = {
-        remainingEvents: data.remainingEvents,
-      };
-      if (data.maxEvents !== '') {
-        payload.maxEvents = Number(data.maxEvents);
-      }
       return fetchMutation({
         url: `/organizations/${organization.slug}/issues/${groupId}/reprocessing/`,
         method: 'POST',
-        data: payload,
+        data,
       });
     },
   });
 
-  const defaultValues: FormValues = {maxEvents: '', remainingEvents: 'keep'};
+  const defaultValues: FormValues = {maxEvents: null, remainingEvents: 'keep'};
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -134,8 +123,7 @@ export function ReprocessingEventModal({
                   'If you set a limit, we will reprocess your most recent events.'
                 )}
               >
-                <field.Input
-                  type="number"
+                <field.Number
                   placeholder={t('Reprocess all events')}
                   value={field.state.value}
                   onChange={field.handleChange}
@@ -146,7 +134,7 @@ export function ReprocessingEventModal({
 
           <Separator orientation="horizontal" border="secondary" />
 
-          <form.Subscribe selector={state => state.values.maxEvents === ''}>
+          <form.Subscribe selector={state => state.values.maxEvents === null}>
             {isDisabled => (
               <form.AppField name="remainingEvents">
                 {field => (
