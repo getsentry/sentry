@@ -87,7 +87,7 @@ export function AssertionOpStatusCode({
               <OverlayTrigger.Button
                 {...triggerProps}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 showChevron={false}
               >
                 <Text monospace>{selectedOption?.symbol ?? ''}</Text>

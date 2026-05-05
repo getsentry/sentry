@@ -14,8 +14,23 @@ import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import {useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
 import {computeMaskSize} from './computeMaskSize';
+import {DiffOverlay} from './diffOverlay';
 
 export const MAX_IMAGE_HEIGHT = 480;
+
+function aspectRatio(
+  width: number | undefined,
+  height: number | undefined
+): string | undefined {
+  return width && height ? `${width} / ${height}` : undefined;
+}
+
+function imageSizerProps(image: SnapshotImage) {
+  return {
+    $naturalWidth: image.width || undefined,
+    $aspectRatio: aspectRatio(image.width || undefined, image.height || undefined),
+  };
+}
 
 export const SplitPairBody = memo(function SplitPairBody({
   baseUrl,
@@ -54,14 +69,16 @@ export const SplitPairBody = memo(function SplitPairBody({
             </Text>
           </Container>
           <ZoomViewport ref={zoom1.containerRef}>
-            <ZoomTransformLayer style={zoomTransformStyle(zoom1.transform)}>
-              <LazyImage
-                src={baseUrl}
-                alt={`${altPrefix} (base)`}
-                width={baseImage.width || undefined}
-                height={baseImage.height || undefined}
-              />
-            </ZoomTransformLayer>
+            <ImageSizer {...imageSizerProps(baseImage)}>
+              <ZoomTransformLayer style={zoomTransformStyle(zoom1.transform)}>
+                <LazyImage
+                  src={baseUrl}
+                  alt={`${altPrefix} (base)`}
+                  width={baseImage.width || undefined}
+                  height={baseImage.height || undefined}
+                />
+              </ZoomTransformLayer>
+            </ImageSizer>
           </ZoomViewport>
         </Stack>
         <Stack minWidth="0" borderLeft="secondary">
@@ -71,22 +88,24 @@ export const SplitPairBody = memo(function SplitPairBody({
             </Text>
           </Container>
           <ZoomViewport ref={zoom2.containerRef}>
-            <ZoomTransformLayer style={zoomTransformStyle(zoom2.transform)}>
-              <LazyImage
-                src={headUrl}
-                alt={`${altPrefix} (head)`}
-                width={headImage.width || undefined}
-                height={headImage.height || undefined}
-              >
-                {diffMaskUrl && (
-                  <DiffOverlay
-                    $overlayColor={overlayColor!}
-                    $maskUrl={diffMaskUrl}
-                    $maskSize={computeMaskSize(baseImage, headImage)}
-                  />
-                )}
-              </LazyImage>
-            </ZoomTransformLayer>
+            <ImageSizer {...imageSizerProps(headImage)}>
+              <ZoomTransformLayer style={zoomTransformStyle(zoom2.transform)}>
+                <LazyImage
+                  src={headUrl}
+                  alt={`${altPrefix} (head)`}
+                  width={headImage.width || undefined}
+                  height={headImage.height || undefined}
+                >
+                  {diffMaskUrl && (
+                    <DiffOverlay
+                      $overlayColor={overlayColor!}
+                      $maskUrl={diffMaskUrl}
+                      $maskSize={computeMaskSize(baseImage, headImage)}
+                    />
+                  )}
+                </LazyImage>
+              </ZoomTransformLayer>
+            </ImageSizer>
           </ZoomViewport>
         </Stack>
       </Grid>
@@ -288,16 +307,19 @@ function LazyImage({
       setLoaded(true);
     }
   }, []);
-  const displayHeight =
-    width && height ? `${Math.min(height, MAX_IMAGE_HEIGHT)}px` : `${MAX_IMAGE_HEIGHT}px`;
   return (
     <Container position="relative" display="inline-block" maxWidth="100%">
       {!loaded && (
-        <Placeholder
-          width={width ? `${width}px` : '100%'}
-          height={displayHeight}
-          style={{maxWidth: '100%', maxHeight: `${MAX_IMAGE_HEIGHT}px`}}
-        />
+        <PlaceholderSizer
+          style={{
+            width: width ? `${width}px` : '100%',
+            maxWidth: '100%',
+            maxHeight: `${MAX_IMAGE_HEIGHT}px`,
+            aspectRatio: width && height ? `${width} / ${height}` : undefined,
+          }}
+        >
+          <Placeholder width="100%" height="100%" />
+        </PlaceholderSizer>
       )}
       <HiddenUntilLoaded
         ref={refCallback}
@@ -314,33 +336,16 @@ function LazyImage({
   );
 }
 
+const PlaceholderSizer = styled('div')`
+  overflow: hidden;
+`;
+
 const HiddenUntilLoaded = styled('img')`
   display: block;
   width: auto;
   height: auto;
   max-width: 100%;
   max-height: ${MAX_IMAGE_HEIGHT}px;
-`;
-
-const DiffOverlay = styled('span')<{
-  $maskSize: string;
-  $maskUrl: string;
-  $overlayColor: string;
-}>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  background-color: ${p => p.$overlayColor};
-  mask-image: url(${p => p.$maskUrl});
-  mask-size: ${p => p.$maskSize};
-  mask-position: top left;
-  mask-mode: luminance;
-  -webkit-mask-image: url(${p => p.$maskUrl});
-  -webkit-mask-size: ${p => p.$maskSize};
-  -webkit-mask-position: top left;
 `;
 
 const ZoomViewport = styled('div')`
@@ -354,6 +359,16 @@ const ZoomViewport = styled('div')`
   &:active {
     cursor: grabbing;
   }
+`;
+
+const ImageSizer = styled('div')<{$aspectRatio?: string; $naturalWidth?: number}>`
+  width: ${p => (p.$naturalWidth ? `${p.$naturalWidth}px` : '100%')};
+  max-width: 100%;
+  max-height: ${MAX_IMAGE_HEIGHT}px;
+  ${p => (p.$aspectRatio ? `aspect-ratio: ${p.$aspectRatio};` : '')}
+  display: flex;
+  justify-content: center;
+  overflow: visible;
 `;
 
 const ZoomTransformLayer = styled('div')`

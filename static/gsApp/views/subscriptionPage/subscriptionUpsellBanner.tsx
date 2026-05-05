@@ -145,7 +145,7 @@ export function SubscriptionUpsellBanner({
           {description}{' '}
           <Button
             size="zero"
-            priority="link"
+            variant="link"
             onClick={() =>
               openUpsellModal({organization, source: 'subscription_overview'})
             }
@@ -170,7 +170,7 @@ export function SubscriptionUpsellBanner({
       </div>
       <BannerImage src={subscription.canTrial ? businessTrial : businessUpgrade} />
       <CloseBannerButton
-        priority="link"
+        variant="link"
         aria-label={t('Dismiss')}
         icon={<IconClose variant="muted" />}
         size="xs"

@@ -451,7 +451,7 @@ export class IssueActions extends PluginComponentBase<Props, State> {
         return (
           <div>
             <p>{t('Are you sure you want to unlink this issue?')}</p>
-            <Button onClick={this.unlinkIssue} priority="danger">
+            <Button onClick={this.unlinkIssue} variant="danger">
               {t('Unlink Issue')}
             </Button>
           </div>

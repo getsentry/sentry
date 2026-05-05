@@ -18,6 +18,9 @@ class ReactivateAccountView(BaseView):
         if not request.user.is_authenticated:
             return self.handle_auth_required(request)
 
+        if getattr(request.user, "is_suspended", False):
+            return self.respond("sentry/account-suspended.html")
+
         if request.POST.get("op") == "confirm":
             user_service.update_user(user_id=request.user.id, attrs=dict(is_active=True))
 

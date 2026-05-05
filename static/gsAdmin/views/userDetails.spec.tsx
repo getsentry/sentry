@@ -97,4 +97,100 @@ describe('User Details', () => {
       expect(screen.getByText('Revoke')).toBeInTheDocument();
     });
   });
+
+  describe('suspension', () => {
+    it('shows Suspend Account action for active users', async () => {
+      render(<UserDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${mockUser.id}/`,
+          },
+          route: '/admin/users/:userId/',
+        },
+      });
+
+      await userEvent.click(
+        (await screen.findAllByRole('button', {name: 'Users Actions'}))[0]!
+      );
+      expect(screen.getByText('Suspend Account')).toBeInTheDocument();
+      expect(screen.queryByText('Unsuspend Account')).not.toBeInTheDocument();
+    });
+
+    it('shows Unsuspend Account action and Suspended badge for suspended users', async () => {
+      const suspendedUser = UserFixture({
+        ...mockUser,
+        isSuspended: true,
+      });
+      MockApiClient.addMockResponse({
+        url: `/users/${suspendedUser.id}/`,
+        body: suspendedUser,
+      });
+
+      render(<UserDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${suspendedUser.id}/`,
+          },
+          route: '/admin/users/:userId/',
+        },
+      });
+
+      const suspendedElements = await screen.findAllByText('Suspended');
+      expect(suspendedElements).toHaveLength(2);
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Users Actions'})[0]!);
+      expect(screen.getByText('Unsuspend Account')).toBeInTheDocument();
+      expect(screen.queryByText('Suspend Account')).not.toBeInTheDocument();
+    });
+
+    it('hides Reactivate Account when user is suspended', async () => {
+      const suspendedInactiveUser = UserFixture({
+        ...mockUser,
+        isActive: false,
+        isSuspended: true,
+      });
+      MockApiClient.addMockResponse({
+        url: `/users/${suspendedInactiveUser.id}/`,
+        body: suspendedInactiveUser,
+      });
+
+      render(<UserDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${suspendedInactiveUser.id}/`,
+          },
+          route: '/admin/users/:userId/',
+        },
+      });
+
+      await userEvent.click(
+        (await screen.findAllByRole('button', {name: 'Users Actions'}))[0]!
+      );
+      expect(screen.getByText('Unsuspend Account')).toBeInTheDocument();
+      expect(screen.queryByText('Reactivate Account')).not.toBeInTheDocument();
+    });
+
+    it('shows Suspended status in user overview', async () => {
+      const suspendedUser = UserFixture({
+        ...mockUser,
+        isSuspended: true,
+      });
+      MockApiClient.addMockResponse({
+        url: `/users/${suspendedUser.id}/`,
+        body: suspendedUser,
+      });
+
+      render(<UserDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${suspendedUser.id}/`,
+          },
+          route: '/admin/users/:userId/',
+        },
+      });
+
+      const suspendedElements = await screen.findAllByText('Suspended');
+      expect(suspendedElements).toHaveLength(2);
+    });
+  });
 });

@@ -20,11 +20,6 @@ from sentry.spans.consumers.process_segments.types import (
 )
 from sentry.utils.dates import to_datetime
 
-# `sentry.profile_id` is Sentry's legacy transaction profile id. It is not part
-# of sentry-conventions 0.5.0, which defines `sentry.profiler_id` for continuous
-# profiling instead.
-SENTRY_PROFILE_ID_ATTRIBUTE = "sentry.profile_id"
-
 
 def make_compatible(span: SpanEvent) -> CompatibleSpan:
     # Creates attributes for EAP spans that are required by logic shared with the
@@ -99,7 +94,7 @@ def build_shim_event_data(
         "spans": [],
     }
 
-    if (profile_id := attribute_value(segment_span, SENTRY_PROFILE_ID_ATTRIBUTE)) is not None:
+    if (profile_id := attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PROFILE_ID)) is not None:
         event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
 
     # Add legacy span attributes required only by issue detectors. As opposed to

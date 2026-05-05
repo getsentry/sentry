@@ -229,24 +229,6 @@ class TestBuildStepPrompt(TestCase):
         assert "app.views.handler" in prompt
         assert "Implement the fix" in prompt
 
-    def test_impact_assessment_prompt_contains_issue_details(self) -> None:
-        prompt = build_step_prompt(AutofixStep.IMPACT_ASSESSMENT, self.group)
-
-        assert self.group.qualified_short_id in prompt
-        assert self.group.title in prompt
-        assert "app.views.handler" in prompt
-        assert "impact" in prompt.lower()
-        assert "impact_assessment artifact" in prompt
-
-    def test_triage_prompt_contains_issue_details(self) -> None:
-        prompt = build_step_prompt(AutofixStep.TRIAGE, self.group)
-
-        assert self.group.qualified_short_id in prompt
-        assert self.group.title in prompt
-        assert "app.views.handler" in prompt
-        assert "triage" in prompt.lower()
-        assert "suspect_commit" in prompt
-
     def test_prompt_with_missing_culprit_uses_default(self) -> None:
         self.group.culprit = None
         self.group.save()
@@ -285,8 +267,6 @@ class TestTriggerAutofixAgent(TestCase):
             AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
             AutofixStep.SOLUTION: SeerActionType.SOLUTION_STARTED,
             AutofixStep.CODE_CHANGES: SeerActionType.CODING_STARTED,
-            AutofixStep.IMPACT_ASSESSMENT: SeerActionType.IMPACT_ASSESSMENT_STARTED,
-            AutofixStep.TRIAGE: SeerActionType.TRIAGE_STARTED,
         }
 
         for step, expected_action in step_to_action.items():

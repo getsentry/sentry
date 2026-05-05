@@ -105,7 +105,7 @@ export function PlanList({
       onSubmit={onSubmit}
       onCancel={onCancel}
       submitLabel="Change Plan"
-      submitPriority="danger"
+      submitVariant="danger"
       model={formModel}
       onSubmitSuccess={onSubmitSuccess}
       onSubmitError={onSubmitError}

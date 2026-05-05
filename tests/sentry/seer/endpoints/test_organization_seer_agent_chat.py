@@ -123,6 +123,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             prompt="What is this error about?",
             on_page_context=None,
             page_name=None,
+            ui_tools=None,
             override_ce_enable=True,
             request=ANY,
         )
@@ -185,6 +186,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             insert_index=2,
             on_page_context=None,
             page_name=None,
+            ui_tools=None,
             request=ANY,
         )
 

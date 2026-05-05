@@ -77,7 +77,7 @@ function SubmitButton(props: ButtonProps) {
       {isSubmitting => (
         <Button
           {...props}
-          priority="primary"
+          variant="primary"
           type="submit"
           form={form.formId}
           busy={isSubmitting}
@@ -101,6 +101,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 
   return (
     <form
+      noValidate
       data-test-id={form.formId}
       id={form.formId}
       style={{width: '100%', flexGrow: 1}}
