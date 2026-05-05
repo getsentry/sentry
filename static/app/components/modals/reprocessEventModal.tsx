@@ -122,48 +122,50 @@ export function ReprocessingEventModal({
           })}
         </Introduction>
 
-        <form.AppField name="maxEvents">
-          {field => (
-            <field.Layout.Row
-              label={t('Number of events to be reprocessed')}
-              hintText={t(
-                'If you set a limit, we will reprocess your most recent events.'
-              )}
-            >
-              <field.Input
-                type="number"
-                min={1}
-                placeholder={t('Reprocess all events')}
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-            </field.Layout.Row>
-          )}
-        </form.AppField>
-
-        <form.Subscribe selector={state => state.values.maxEvents === ''}>
-          {isDisabled => (
-            <form.AppField name="remainingEvents">
-              {field => (
-                <field.Radio.Group
+        <FieldList>
+          <form.AppField name="maxEvents">
+            {field => (
+              <field.Layout.Row
+                label={t('Number of events to be reprocessed')}
+                hintText={t(
+                  'If you set a limit, we will reprocess your most recent events.'
+                )}
+              >
+                <field.Input
+                  type="number"
+                  min={1}
+                  placeholder={t('Reprocess all events')}
                   value={field.state.value}
-                  onChange={value => field.handleChange(value as 'keep' | 'delete')}
-                  disabled={isDisabled}
-                >
-                  <field.Layout.Row
-                    label={t('Remaining events')}
-                    hintText={t('What to do with the events that are not reprocessed.')}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+
+          <form.Subscribe selector={state => state.values.maxEvents === ''}>
+            {isDisabled => (
+              <form.AppField name="remainingEvents">
+                {field => (
+                  <field.Radio.Group
+                    value={field.state.value}
+                    onChange={value => field.handleChange(value as 'keep' | 'delete')}
+                    disabled={isDisabled}
                   >
-                    <Flex gap="lg">
-                      <field.Radio.Item value="keep">{t('Keep')}</field.Radio.Item>
-                      <field.Radio.Item value="delete">{t('Delete')}</field.Radio.Item>
-                    </Flex>
-                  </field.Layout.Row>
-                </field.Radio.Group>
-              )}
-            </form.AppField>
-          )}
-        </form.Subscribe>
+                    <field.Layout.Row
+                      label={t('Remaining events')}
+                      hintText={t('What to do with the events that are not reprocessed.')}
+                    >
+                      <Flex gap="lg">
+                        <field.Radio.Item value="keep">{t('Keep')}</field.Radio.Item>
+                        <field.Radio.Item value="delete">{t('Delete')}</field.Radio.Item>
+                      </Flex>
+                    </field.Layout.Row>
+                  </field.Radio.Group>
+                )}
+              </form.AppField>
+            )}
+          </form.Subscribe>
+        </FieldList>
       </Body>
       <Footer>
         <Flex gap="md" justify="end">
@@ -183,4 +185,12 @@ const StyledList = styled(List)`
   gap: ${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space['3xl']};
   font-size: ${p => p.theme.font.size.md};
+`;
+
+const FieldList = styled('div')`
+  > *:not(:last-child) {
+    padding-bottom: ${p => p.theme.space.xl};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+    margin-bottom: ${p => p.theme.space.xl};
+  }
 `;
