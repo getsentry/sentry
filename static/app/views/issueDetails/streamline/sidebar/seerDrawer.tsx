@@ -83,7 +83,15 @@ export const useOpenSeerDrawer = ({
         );
       },
     });
-  }, [openDrawer, event, group, project, navigate, organization]);
+
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        seerDrawer: true,
+      },
+    });
+  }, [openDrawer, event, group, project, navigate, organization, location]);
 
   return {openSeerDrawer};
 };
