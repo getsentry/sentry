@@ -10,6 +10,7 @@ import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstS
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding as AgentOnboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {Onboarding as MCPOnboarding} from 'sentry/views/insights/pages/mcp/onboarding';
+import {NodeRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/nodeRuntime/onboarding';
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
@@ -82,6 +83,10 @@ export function PrebuiltDashboardOnboardingGate({
   if (onboarding.type === 'custom') {
     if (onboarding.componentId === 'agent-monitoring') {
       return <AgentOnboarding />;
+    }
+
+    if (onboarding.componentId === 'node-runtime-metrics') {
+      return <NodeRuntimeMetricsOnboarding />;
     }
 
     return <MCPOnboarding />;
