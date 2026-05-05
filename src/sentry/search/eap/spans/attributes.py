@@ -140,9 +140,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=is_event_id_or_list,
         ),
+        # We can use sentry.segment.name here because EAP coalesces the deprecated
+        # sentry.transaction alias to it.
         ResolvedAttribute(
             public_alias="transaction",
-            internal_name="sentry.transaction",
+            internal_name="sentry.segment.name",
             search_type="string",
         ),
         ResolvedAttribute(
