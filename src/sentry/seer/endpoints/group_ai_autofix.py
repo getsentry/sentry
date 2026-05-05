@@ -34,6 +34,7 @@ from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_legacy_autofix
 from sentry.seer.autofix.autofix_agent import (
+    UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
     NoSeerQuotaException,
     get_autofix_agent_state,
@@ -58,6 +59,12 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+
+def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
+    return getattr(error, "message", None) == UNKNOWN_RUN_ID_FOR_GROUP
 
 
 class AutofixRequestSerializer(CamelSnakeSerializer):
@@ -255,14 +262,19 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            result = trigger_coding_agent_handoff(
-                group=group,
-                run_id=run_id,
-                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-                integration_id=integration_id,
-                provider=provider,
-                user_id=request.user.id if request.user else None,
-            )
+            try:
+                result = trigger_coding_agent_handoff(
+                    group=group,
+                    run_id=run_id,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    integration_id=integration_id,
+                    provider=provider,
+                    user_id=request.user.id if request.user else None,
+                )
+            except SeerPermissionError as e:
+                if _is_unknown_run_id_error(e):
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+                raise PermissionDenied(SEER_PERMISSION_DENIED)
             return Response(result, status=status.HTTP_202_ACCEPTED)
 
         if step == "open_pr":
@@ -298,7 +310,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         except NoSeerQuotaException:
             return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
         except SeerPermissionError as e:
-            raise PermissionDenied(str(e))
+            if _is_unknown_run_id_error(e):
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            raise PermissionDenied(SEER_PERMISSION_DENIED)
 
     def _post_legacy(self, request: Request, group: Group) -> Response:
         """Handle POST for legacy autofix."""

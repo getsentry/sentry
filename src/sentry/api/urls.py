@@ -172,10 +172,6 @@ from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
-from sentry.dashboards.endpoints.organization_dashboards_starred import (
-    OrganizationDashboardsStarredEndpoint,
-    OrganizationDashboardsStarredOrderEndpoint,
-)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -1591,16 +1587,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/widgets/$",
         OrganizationDashboardWidgetDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-widget-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/$",
-        OrganizationDashboardsStarredEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-starred",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
-        OrganizationDashboardsStarredOrderEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-starred-order",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/generate/$",

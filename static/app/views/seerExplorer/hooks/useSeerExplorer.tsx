@@ -53,9 +53,11 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
+  '/issues/',
+  '/issues/:groupId/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>(['/issues/', '/issues/:groupId/']);
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
 
 function supportsStructuredContext(
   referrer: string,
