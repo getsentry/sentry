@@ -27,7 +27,6 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 export default function SeerAutomationSCMRequired() {
   const organization = useOrganization();
 
-  const showSeatBasedSeer = showNewSeer(organization);
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
@@ -47,7 +46,7 @@ export default function SeerAutomationSCMRequired() {
         staleTime: 0,
       }
     ),
-    enabled: showSeatBasedSeer,
+    enabled: showNewSeer(organization),
     select: response =>
       response.json.filter(integration =>
         isSeerSupportedProvider({
@@ -57,7 +56,11 @@ export default function SeerAutomationSCMRequired() {
       ) ?? [],
   });
 
-  if (showSeatBasedSeer && !hasSeatBasedSeer) {
+  if (!showNewSeer(organization)) {
+    return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
+  }
+
+  if (!hasSeatBasedSeer) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/trial/`)} />;
   }
 
