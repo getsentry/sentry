@@ -894,7 +894,7 @@ class DashboardDetail extends Component<Props, State> {
                   Sentry.captureMessage('Generated dashboard failed to save', {
                     extra: {
                       dashboard_title: newModifiedDashboard.title,
-                      error_message: error?.message,
+                      error_message: error instanceof Error ? error.message : undefined,
                     },
                   });
                 });

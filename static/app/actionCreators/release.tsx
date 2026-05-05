@@ -6,6 +6,7 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ReleaseStatus} from 'sentry/types/release';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type ParamsGet = {
   orgSlug: string;
@@ -31,7 +32,14 @@ export function archiveRelease(api: Client, params: ParamsGet) {
       addSuccessMessage(t('Release was successfully archived.'));
     })
     .catch(error => {
-      addErrorMessage(error.responseJSON?.detail ?? t('Release could not be archived.'));
+      if (
+        error instanceof RequestError &&
+        typeof error.responseJSON?.detail === 'string'
+      ) {
+        addErrorMessage(error.responseJSON?.detail);
+      } else {
+        addErrorMessage(t('Release could not be archived.'));
+      }
       throw error;
     });
 }
@@ -54,7 +62,15 @@ export function restoreRelease(api: Client, params: ParamsGet) {
       addSuccessMessage(t('Release was successfully restored.'));
     })
     .catch(error => {
-      addErrorMessage(error.responseJSON?.detail ?? t('Release could not be restored.'));
+      if (
+        error instanceof RequestError &&
+        typeof error.responseJSON?.detail === 'string'
+      ) {
+        addErrorMessage(error.responseJSON?.detail);
+      } else {
+        addErrorMessage(t('Release could not be restored.'));
+      }
+
       throw error;
     });
 }

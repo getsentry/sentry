@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {EventView} from 'sentry/utils/discover/eventView';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
 
@@ -93,11 +94,13 @@ function TransactionThresholdModal({
       })
       .catch(err => {
         let errorMessage =
-          err.responseJSON?.threshold ?? err.responseJSON?.non_field_errors ?? null;
+          err instanceof RequestError
+            ? (err.responseJSON?.threshold ?? err.responseJSON?.non_field_errors)
+            : null;
         if (Array.isArray(errorMessage)) {
           errorMessage = errorMessage[0];
         }
-        addErrorMessage(errorMessage);
+        addErrorMessage(errorMessage as string);
       });
   };
 
@@ -141,8 +144,9 @@ function TransactionThresholdModal({
           });
       })
       .catch(err => {
-        const errorMessage = err.responseJSON?.threshold ?? null;
-        addErrorMessage(errorMessage);
+        const errorMessage =
+          err instanceof RequestError ? err.responseJSON?.threshold : null;
+        addErrorMessage(errorMessage as string);
       });
   };
 

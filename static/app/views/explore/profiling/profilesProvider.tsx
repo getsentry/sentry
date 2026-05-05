@@ -147,7 +147,7 @@ export function TransactionProfileProvider({
         setProfile({type: 'resolved', data: p});
       })
       .catch(err => {
-        const message = err.toString();
+        const message = String(err);
 
         setProfile({type: 'errored', error: message});
         Sentry.captureException(err);

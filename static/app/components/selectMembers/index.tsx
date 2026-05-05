@@ -141,7 +141,7 @@ class SelectMembers extends Component<Props, State> {
         })
         .then(
           data => cb(null, data),
-          err => cb(err)
+          err => cb(err as Error)
         );
     },
     250

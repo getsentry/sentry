@@ -20,6 +20,7 @@ import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/t
 import {Measurements} from 'sentry/utils/measurements/measurements';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
@@ -255,29 +256,33 @@ class Table extends PureComponent<TableProps, TableState> {
         }
       })
       .catch(err => {
-        metric.measure({
-          name: 'app.api.discover-query',
-          start: `discover-events-start-${apiPayload.query}`,
-          data: {
-            status: err.status,
-          },
-        });
+        if (err instanceof RequestError) {
+          metric.measure({
+            name: 'app.api.discover-query',
+            start: `discover-events-start-${apiPayload.query}`,
+            data: {
+              status: err.status,
+            },
+          });
 
-        const message = err?.responseJSON?.detail || t('An unknown error occurred.');
-        this.setState({
-          isLoading: false,
-          tableFetchID: undefined,
-          error: message,
-          pageLinks: null,
-          tableData: null,
-        });
-        trackAnalytics('discover_search.failed', {
-          organization: this.props.organization,
-          search_type: 'events',
-          search_source: 'discover_search',
-          error: message,
-        });
-        setError(message, err.status);
+          const message =
+            (err?.responseJSON?.detail as string | undefined) ||
+            t('An unknown error occurred.');
+          this.setState({
+            isLoading: false,
+            tableFetchID: undefined,
+            error: message,
+            pageLinks: null,
+            tableData: null,
+          });
+          trackAnalytics('discover_search.failed', {
+            organization: this.props.organization,
+            search_type: 'events',
+            search_source: 'discover_search',
+            error: message,
+          });
+          setError(message, err.status!);
+        }
       });
   };
 

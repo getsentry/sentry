@@ -158,7 +158,7 @@ export function EmailAddresses() {
     api
       .requestPromise(endpoint, requestParams)
       .catch(err => {
-        if (err?.responseJSON?.email) {
+        if (err instanceof RequestError && typeof err?.responseJSON?.email === 'string') {
           addErrorMessage(err.responseJSON.email);
         }
       })

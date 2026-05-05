@@ -532,7 +532,7 @@ export class FormModel {
           this.options.onSubmitSuccess(resp, this);
         }
       })
-      .catch(resp => {
+      .catch((resp: any) => {
         // should we revert field value to last known state?
         saveSnapshot = null;
         if (this.options.resetOnError) {
@@ -648,7 +648,7 @@ export class FormModel {
 
         return data;
       })
-      .catch(resp => {
+      .catch((resp: any) => {
         // should we revert field value to last known state?
         saveSnapshot = null;
 
