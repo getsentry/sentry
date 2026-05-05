@@ -1696,9 +1696,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widgets = self.get_widgets(self.dashboard.id)
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
 
-    def test_update_widget_with_deprecated_display_type_is_allowed(self) -> None:
-        # Existing widgets created via the API with deprecated display types
-        # should remain editable; the rejection only applies to new widgets.
+    def test_update_widget_with_deprecated_display_type_is_rejected(self) -> None:
         deprecated_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=4,
@@ -1729,10 +1727,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 200, response.data
+        assert response.status_code == 400, response.data
+        assert "stacked_area is no longer a supported display type" in str(response.data)
 
         deprecated_widget.refresh_from_db()
-        assert deprecated_widget.title == "Renamed stacked area"
+        assert deprecated_widget.title == "Stacked area"
         assert deprecated_widget.display_type == DashboardWidgetDisplayTypes.STACKED_AREA_CHART
 
     def test_update_widget_add_query(self) -> None:

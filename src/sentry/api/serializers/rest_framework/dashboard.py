@@ -1123,6 +1123,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     )
 
     def update_widget(self, widget, data):
+        if widget.display_type in DashboardWidgetDisplayTypes.DEPRECATED_TYPES:
+            raise serializers.ValidationError(
+                {
+                    "display_type": f"{DashboardWidgetDisplayTypes.get_type_name(widget.display_type)} is no longer a supported display type. Please delete and recreate this widget."
+                }
+            )
+
         prev_layout = widget.detail.get("layout") if widget.detail else None
         prev_axis_range = widget.detail.get("axis_range") if widget.detail else None
         prev_legend_type = widget.detail.get("legend_type") if widget.detail else None

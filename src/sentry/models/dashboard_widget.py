@@ -210,8 +210,8 @@ class DashboardWidgetDisplayTypes(TypesClass):
     # Display types that the frontend no longer exposes in either the widget
     # builder dropdown or the widget library. TOP_N is converted to AREA at
     # every UI entry point (widget library, builder URL deserialization). New
-    # widgets should not be created with these, but existing widgets remain
-    # editable.
+    # widgets cannot be created with these and existing widgets cannot be
+    # updated; clients must delete and recreate them with a supported type.
     DEPRECATED_TYPES: list[int] = [STACKED_AREA_CHART, TOP_N]
 
 
