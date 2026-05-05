@@ -119,7 +119,9 @@ def agentic_feedback_summary_strategy(
                 1,
                 attributes={"error_type": "no_artifact"},
             )
-            return agent_run_id
+            raise RuntimeError(
+                f"Feedback summary agent finished with status={state.status} but produced no artifact"
+            )
     except Exception:
         sentry_sdk.metrics.count(
             "night_shift.feedback_summary_error",
