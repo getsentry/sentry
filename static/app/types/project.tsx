@@ -97,6 +97,8 @@ export type Project = {
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
   preprodSnapshotPrCommentsEnabled?: boolean;
+  preprodSnapshotPrCommentsPostOnAdded?: boolean;
+  preprodSnapshotPrCommentsPostOnRemoved?: boolean;
   preprodSnapshotStatusChecksEnabled?: boolean;
   preprodSnapshotStatusChecksFailOnAdded?: boolean;
   preprodSnapshotStatusChecksFailOnChanged?: boolean;
