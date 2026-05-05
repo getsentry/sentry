@@ -133,9 +133,7 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "projects:servicehooks": False,
     }
 
-    # Permanent organization features that are controlled via flagpole rather than
-    # subscription plans. Typically backend-only debug/operational toggles
-    # (api_expose=False) that need to stick around long-term.
+    # Permanent organization features that are controlled via flagpole
     permanent_flagpole_organization_features = {
         # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
         "organizations:workflow-engine-log-evaluations": False,
