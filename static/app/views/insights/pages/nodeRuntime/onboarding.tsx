@@ -49,7 +49,7 @@ export function NodeRuntimeMetricsOnboarding() {
               )}
             </Text>
 
-            <LinkButton priority="primary" external href={DOCS_URL}>
+            <LinkButton variant="primary" external href={DOCS_URL}>
               {t('Read the Docs')}
             </LinkButton>
           </Flex>
