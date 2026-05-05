@@ -201,8 +201,8 @@ def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDic
 
 
 def _metric_chart_is_visible(metric_parsed: dict[str, Any]) -> bool:
-    """A metric renders the first aggregateField with ``yAxes``. That entry's
-    ``visible`` flag (defaulting to True) controls whether the chart is shown
+    """A metric renders the first aggregateField with `yAxes`. That entry's
+    `visible` flag (defaulting to True) controls whether the chart is shown
     in the UI; mirror that here so hidden charts are skipped during unfurl."""
     for agg_field in metric_parsed.get("aggregateFields") or []:
         if not isinstance(agg_field, dict):
@@ -216,10 +216,10 @@ def _metric_chart_is_visible(metric_parsed: dict[str, Any]) -> bool:
 def _parse_metrics_url(
     raw_query: QueryDict, default_y_axis: str
 ) -> tuple[QueryDict | None, int | None]:
-    """Metrics encodes each chart in its own ``metric`` JSON param. Multiple
+    """Metrics encodes each chart in its own `metric` JSON param. Multiple
     metric params represent multiple charts; pick the first whose visualization
-    is visible (matching the Explore UI's ``visible`` flag). If none are
-    visible, return ``None`` to signal no chart should be rendered."""
+    is visible (matching the Explore UI's `visible` flag). If none are
+    visible, return `None` to signal no chart should be rendered."""
     metric_list = raw_query.getlist("metric")
     if not metric_list:
         return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
