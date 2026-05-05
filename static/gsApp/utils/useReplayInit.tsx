@@ -24,10 +24,10 @@ const readyListeners = new Set<() => void>();
  */
 export function useReplayInit(): boolean {
   const user = useUser();
-  // replayRef is assigned synchronously immediately before
-  // `client.addIntegration(replayRef)` (see below), with no await between
-  // them, so a non-null replayRef observed from any other render means the
-  // integration is registered and `Sentry.getReplay()` will return it.
+  // replayRef is assigned synchronously and there is no `await` between the
+  // assignment and `client.addIntegration(replayRef)` (see below), so a
+  // non-null replayRef observed from any other render means the integration
+  // is registered and `Sentry.getReplay()` will return it.
   const [ready, setReady] = useState(() => replayRef !== null);
 
   useEffect(() => {

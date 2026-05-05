@@ -16,6 +16,11 @@ export function useReplayForCriticalFlow({
   // OrganizationContainerRoute, not OrganizationLayout). Calling it here
   // covers that gap; the singleton ref inside useReplayInit makes the
   // OrganizationHeader call a no-op later in the session.
+  //
+  // Called unconditionally even when `enabled` or `shouldForce` is false:
+  // useReplayInit is the same registration OrganizationHeader would do
+  // post-onboarding, so registering early is benign and avoids a hooks-
+  // ordering violation.
   const ready = useReplayInit();
 
   useEffect(() => {
