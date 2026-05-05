@@ -7,6 +7,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -53,6 +54,7 @@ interface FieldProps {
   meta: MetaType;
   allowActions?: Actions[];
   column?: TableColumn<keyof TableDataRow>;
+  extraMenuItems?: MenuItemProps[];
   unit?: string;
   usePortalOnDropdown?: boolean;
 }
@@ -63,6 +65,7 @@ export function FieldRenderer({
   unit,
   column,
   allowActions,
+  extraMenuItems,
   usePortalOnDropdown,
 }: FieldProps) {
   const userQuery = useQueryParamsQuery();
@@ -75,6 +78,7 @@ export function FieldRenderer({
       unit={unit}
       column={column}
       allowActions={allowActions}
+      extraMenuItems={extraMenuItems}
       userQuery={userQuery}
       setUserQuery={setUserQuery}
       usePortalOnDropdown={usePortalOnDropdown}
@@ -92,6 +96,7 @@ export function MultiQueryFieldRenderer({
   unit,
   column,
   index,
+  extraMenuItems,
 }: MultiQueryFieldProps) {
   const queries = useReadQueriesFromLocation();
   const userQuery = queries[index]?.query ?? '';
@@ -103,6 +108,7 @@ export function MultiQueryFieldRenderer({
       meta={meta}
       unit={unit}
       column={column}
+      extraMenuItems={extraMenuItems}
       userQuery={userQuery}
       setUserQuery={(query: string) => updateQuerySearch({query})}
     />
@@ -120,6 +126,7 @@ function BaseExploreFieldRenderer({
   unit,
   column,
   allowActions,
+  extraMenuItems,
   userQuery,
   setUserQuery,
   usePortalOnDropdown,
@@ -297,6 +304,7 @@ function BaseExploreFieldRenderer({
         setUserQuery(query.formatString());
       }}
       allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
+      extraMenuItems={extraMenuItems}
       usePortalOnDropdown={usePortalOnDropdown}
     >
       {rendered}
