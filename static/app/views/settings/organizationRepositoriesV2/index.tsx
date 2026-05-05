@@ -37,6 +37,7 @@ import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/o
 
 import {useDeleteIntegration} from './useDeleteIntegration';
 import {useInstallationSettings} from './useInstallationSettings';
+import {useSyncRepositories} from './useSyncRepositories';
 
 const SCM_PROVIDER_ORDER = [
   'github',
@@ -131,27 +132,34 @@ export function OrganizationRepositoriesV2() {
     hasAccess,
   });
 
+  const syncStateById = useSyncRepositories(scmIntegrations, {
+    onSynced: () => reposQuery.refetch(),
+  });
+
   const installationsByProviderKey = useMemo(() => {
+    const uninstallButtonProps = hasAccess
+      ? undefined
+      : {
+          disabled: true,
+          tooltipProps: {
+            title: t(
+              'You must be an organization owner, manager or admin to uninstall this provider'
+            ),
+          },
+        };
+
     const installations = scmIntegrations.map<ScmInstallation>(integration => ({
-      integration,
+      integration: configByIntegrationId[integration.id] ?? integration,
       repositories: reposByIntegrationId[integration.id] ?? [],
       reposLoading,
       manageUrl: getProviderConfigUrl(integration) ?? undefined,
       mappedProjectSlugsByRepoId,
       mappingsLoading,
+      isSyncing: syncStateById[integration.id]?.isSyncing ?? false,
       settingsButtonProps: {
         disabled: configByIntegrationId[integration.id] === undefined,
       },
-      uninstallButtonProps: hasAccess
-        ? undefined
-        : {
-            disabled: true,
-            tooltipProps: {
-              title: t(
-                'You must be an organization owner, manager or admin to uninstall this provider'
-              ),
-            },
-          },
+      uninstallButtonProps,
     }));
     return groupBy(installations, i => i.integration.provider.key);
   }, [
@@ -162,6 +170,7 @@ export function OrganizationRepositoriesV2() {
     mappingsLoading,
     configByIntegrationId,
     hasAccess,
+    syncStateById,
   ]);
 
   const handleAddIntegration = (_data: Integration) => {
@@ -249,6 +258,9 @@ export function OrganizationRepositoriesV2() {
                   repoMatches={repoMatches}
                   onUninstall={inst => handleDeleteIntegration(inst.integration)}
                   onSettings={inst => openInstallationSettings(inst.integration)}
+                  onInstallationSync={inst =>
+                    syncStateById[inst.integration.id]?.syncNow()
+                  }
                 />
               ))
           )}

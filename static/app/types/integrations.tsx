@@ -442,6 +442,18 @@ export interface Integration extends CommonIntegration {
 
 type ConfigData = Record<string, unknown> & {
   installationType?: string;
+  /**
+   * ISO timestamp of the last sync that actually changed the repo set
+   * (added, disabled, or restored repos). Stamped alongside `last_sync`
+   * only when the diff was non-empty.
+   */
+  last_repos_change?: string;
+  /**
+   * ISO timestamp of the most recent successful repository sync from the
+   * provider. Stamped by `bump_org_integration_last_sync` on SCM
+   * integrations.
+   */
+  last_sync?: string;
 };
 
 export interface OrganizationIntegration extends Integration {
