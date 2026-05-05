@@ -209,36 +209,44 @@ describe('logsTableRow', () => {
     });
   });
 
-  it('hovering the row causes prefetching of the row details', async () => {
-    jest.useFakeTimers();
-    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-    render(
-      <LogRowContent
-        dataRow={rowData}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{current: null}}
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
-
-    expect(screen.queryByLabelText('Toggle trace details')).not.toBeInTheDocument(); // Fake button
-    const row = screen.getByTestId('log-table-row');
-    await userEvent.hover(row, {delay: null});
-
-    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-    expect(screen.getByLabelText('Toggle trace details')).toBeInTheDocument(); // Real button immediately rendered
-
-    // Wrap timer advancement in act to avoid warnings
-    act(() => {
-      jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+  describe('with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
     });
 
-    await waitFor(() => {
-      // Prefetching is triggered after the hover timeout
-      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    it('hovering the row causes prefetching of the row details', async () => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
+
+      expect(screen.queryByLabelText('Toggle trace details')).not.toBeInTheDocument(); // Fake button
+      const row = screen.getByTestId('log-table-row');
+      await userEvent.hover(row, {delay: null});
+
+      expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+      expect(screen.getByLabelText('Toggle trace details')).toBeInTheDocument(); // Real button immediately rendered
+
+      // Wrap timer advancement in act to avoid warnings
+      act(() => {
+        jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+      });
+
+      await waitFor(() => {
+        // Prefetching is triggered after the hover timeout
+        expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+      });
     });
-    jest.useRealTimers();
   });
 
   it('renders row details', async () => {

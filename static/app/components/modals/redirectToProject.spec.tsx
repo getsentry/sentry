@@ -9,9 +9,15 @@ jest.mock('sentry/utils/recreateRoute', () => ({
 }));
 
 describe('RedirectToProjectModal', () => {
-  it('has timer to redirect to new slug after mounting', () => {
+  beforeEach(() => {
     jest.useFakeTimers();
+  });
+  afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
+    jest.useRealTimers();
+  });
 
+  it('has timer to redirect to new slug after mounting', () => {
     renderGlobalModal();
 
     act(() =>

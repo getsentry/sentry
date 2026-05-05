@@ -72,174 +72,179 @@ describe('WhatsNew', () => {
     expect(screen.queryByText(/No recent updates/)).not.toBeInTheDocument();
   });
 
-  it('displays the unread indicator when there are unseen broadcasts', async () => {
-    jest.useFakeTimers();
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
-      body: [
-        BroadcastFixture({
-          id: '1',
-          title: 'Test Broadcast 1',
-          category: 'blog',
-          hasSeen: false,
-        }),
-        BroadcastFixture({
-          id: '2',
-          title: 'Test Broadcast 2',
-          category: 'blog',
-          hasSeen: false,
-        }),
-        BroadcastFixture({
-          id: '3',
-          title: 'Test Broadcast 3',
-          category: 'blog',
-          hasSeen: true,
-        }),
-      ],
+  describe('with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    render(<PrimaryNavigationWhatsNew />);
-
-    await waitFor(() =>
-      expect(
-        screen
-          .getByRole('button', {name: "What's New"})
-          .querySelector('[data-unread-indicator]')
-      ).toBeInTheDocument()
-    );
-  });
-
-  it('does not call the mark-seen endpoint when all broadcasts are already seen', async () => {
-    jest.useFakeTimers();
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
-      body: [
-        BroadcastFixture({id: '1', title: 'Seen Broadcast 1', hasSeen: true}),
-        BroadcastFixture({id: '2', title: 'Seen Broadcast 2', hasSeen: true}),
-        BroadcastFixture({id: '3', title: 'Seen Broadcast 3', hasSeen: true}),
-      ],
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
     });
 
-    const putMock = MockApiClient.addMockResponse({
-      url: '/broadcasts/',
-      method: 'PUT',
-    });
+    it('displays the unread indicator when there are unseen broadcasts', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/broadcasts/',
+        match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
+        body: [
+          BroadcastFixture({
+            id: '1',
+            title: 'Test Broadcast 1',
+            category: 'blog',
+            hasSeen: false,
+          }),
+          BroadcastFixture({
+            id: '2',
+            title: 'Test Broadcast 2',
+            category: 'blog',
+            hasSeen: false,
+          }),
+          BroadcastFixture({
+            id: '3',
+            title: 'Test Broadcast 3',
+            category: 'blog',
+            hasSeen: true,
+          }),
+        ],
+      });
 
-    render(<PrimaryNavigationWhatsNew />);
+      render(<PrimaryNavigationWhatsNew />);
 
-    await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
-      delay: null,
-    });
-
-    await screen.findByText('Seen Broadcast 1');
-
-    act(() => jest.advanceTimersByTime(2000));
-
-    await waitFor(() => {
-      expect(putMock).not.toHaveBeenCalled();
-    });
-  });
-
-  it('marks unseen broadcasts as seen after opening the panel', async () => {
-    jest.useFakeTimers();
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
-      body: [
-        BroadcastFixture({
-          id: '1',
-          title: 'Test Broadcast 1',
-          category: 'blog',
-          hasSeen: false,
-        }),
-        BroadcastFixture({
-          id: '2',
-          title: 'Test Broadcast 2',
-          category: 'blog',
-          hasSeen: false,
-        }),
-        BroadcastFixture({
-          id: '3',
-          title: 'Test Broadcast 3',
-          category: 'blog',
-          hasSeen: true,
-        }),
-      ],
-    });
-
-    const putMock = MockApiClient.addMockResponse({
-      url: '/broadcasts/',
-      method: 'PUT',
-    });
-
-    render(<PrimaryNavigationWhatsNew />);
-
-    await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
-      delay: null,
-    });
-
-    await screen.findByText('Test Broadcast 1');
-
-    act(() => jest.advanceTimersByTime(2000));
-
-    await waitFor(() => {
-      expect(putMock).toHaveBeenCalledWith(
-        '/broadcasts/',
-        expect.objectContaining({
-          method: 'PUT',
-          query: {id: ['1', '2']},
-          data: {hasSeen: '1'},
-        })
+      await waitFor(() =>
+        expect(
+          screen
+            .getByRole('button', {name: "What's New"})
+            .querySelector('[data-unread-indicator]')
+        ).toBeInTheDocument()
       );
     });
-  });
 
-  it('hides the unread indicator after broadcasts are marked as seen', async () => {
-    jest.useFakeTimers();
+    it('does not call the mark-seen endpoint when all broadcasts are already seen', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/broadcasts/',
+        match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
+        body: [
+          BroadcastFixture({id: '1', title: 'Seen Broadcast 1', hasSeen: true}),
+          BroadcastFixture({id: '2', title: 'Seen Broadcast 2', hasSeen: true}),
+          BroadcastFixture({id: '3', title: 'Seen Broadcast 3', hasSeen: true}),
+        ],
+      });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
-      body: [
-        BroadcastFixture({
-          id: '1',
-          title: 'Test Broadcast 1',
-          category: 'blog',
-          hasSeen: false,
-        }),
-        BroadcastFixture({
-          id: '2',
-          title: 'Test Broadcast 2',
-          category: 'blog',
-          hasSeen: false,
-        }),
-      ],
+      const putMock = MockApiClient.addMockResponse({
+        url: '/broadcasts/',
+        method: 'PUT',
+      });
+
+      render(<PrimaryNavigationWhatsNew />);
+
+      await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
+        delay: null,
+      });
+
+      await screen.findByText('Seen Broadcast 1');
+
+      act(() => jest.advanceTimersByTime(2000));
+
+      await waitFor(() => {
+        expect(putMock).not.toHaveBeenCalled();
+      });
     });
 
-    render(<PrimaryNavigationWhatsNew />);
+    it('marks unseen broadcasts as seen after opening the panel', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/broadcasts/',
+        match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
+        body: [
+          BroadcastFixture({
+            id: '1',
+            title: 'Test Broadcast 1',
+            category: 'blog',
+            hasSeen: false,
+          }),
+          BroadcastFixture({
+            id: '2',
+            title: 'Test Broadcast 2',
+            category: 'blog',
+            hasSeen: false,
+          }),
+          BroadcastFixture({
+            id: '3',
+            title: 'Test Broadcast 3',
+            category: 'blog',
+            hasSeen: true,
+          }),
+        ],
+      });
 
-    const whatsNewButton = screen.getByRole('button', {name: "What's New"});
-    await waitFor(() =>
-      expect(whatsNewButton.querySelector('[data-unread-indicator]')).toBeInTheDocument()
-    );
+      const putMock = MockApiClient.addMockResponse({
+        url: '/broadcasts/',
+        method: 'PUT',
+      });
 
-    await userEvent.click(whatsNewButton, {
-      delay: null,
+      render(<PrimaryNavigationWhatsNew />);
+
+      await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
+        delay: null,
+      });
+
+      await screen.findByText('Test Broadcast 1');
+
+      act(() => jest.advanceTimersByTime(2000));
+
+      await waitFor(() => {
+        expect(putMock).toHaveBeenCalledWith(
+          '/broadcasts/',
+          expect.objectContaining({
+            method: 'PUT',
+            query: {id: ['1', '2']},
+            data: {hasSeen: '1'},
+          })
+        );
+      });
     });
 
-    await screen.findByText('Test Broadcast 1');
+    it('hides the unread indicator after broadcasts are marked as seen', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/broadcasts/',
+        match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
+        body: [
+          BroadcastFixture({
+            id: '1',
+            title: 'Test Broadcast 1',
+            category: 'blog',
+            hasSeen: false,
+          }),
+          BroadcastFixture({
+            id: '2',
+            title: 'Test Broadcast 2',
+            category: 'blog',
+            hasSeen: false,
+          }),
+        ],
+      });
 
-    act(() => jest.advanceTimersByTime(2000));
+      render(<PrimaryNavigationWhatsNew />);
 
-    await waitFor(() => {
-      expect(
-        whatsNewButton.querySelector('[data-unread-indicator]')
-      ).not.toBeInTheDocument();
+      const whatsNewButton = screen.getByRole('button', {name: "What's New"});
+      await waitFor(() =>
+        expect(
+          whatsNewButton.querySelector('[data-unread-indicator]')
+        ).toBeInTheDocument()
+      );
+
+      await userEvent.click(whatsNewButton, {
+        delay: null,
+      });
+
+      await screen.findByText('Test Broadcast 1');
+
+      act(() => jest.advanceTimersByTime(2000));
+
+      await waitFor(() => {
+        expect(
+          whatsNewButton.querySelector('[data-unread-indicator]')
+        ).not.toBeInTheDocument();
+      });
     });
   });
 
@@ -299,43 +304,52 @@ describe('WhatsNew', () => {
     expect(screen.getByText('Unique Title')).toBeInTheDocument();
   });
 
-  it('marks unseen duplicate broadcasts as seen when the panel is opened', async () => {
-    jest.useFakeTimers();
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
-      body: [
-        BroadcastFixture({id: '1', title: 'Duplicate Title', hasSeen: false}),
-        BroadcastFixture({id: '2', title: 'Duplicate Title', hasSeen: false}),
-        BroadcastFixture({id: '3', title: 'Unique Title', hasSeen: true}),
-      ],
+  describe('with fake timers (duplicate broadcasts)', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    const putMock = MockApiClient.addMockResponse({
-      url: '/broadcasts/',
-      method: 'PUT',
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
     });
 
-    render(<PrimaryNavigationWhatsNew />);
+    it('marks unseen duplicate broadcasts as seen when the panel is opened', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/broadcasts/',
+        match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
+        body: [
+          BroadcastFixture({id: '1', title: 'Duplicate Title', hasSeen: false}),
+          BroadcastFixture({id: '2', title: 'Duplicate Title', hasSeen: false}),
+          BroadcastFixture({id: '3', title: 'Unique Title', hasSeen: true}),
+        ],
+      });
 
-    await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
-      delay: null,
-    });
+      const putMock = MockApiClient.addMockResponse({
+        url: '/broadcasts/',
+        method: 'PUT',
+      });
 
-    await screen.findByText('Duplicate Title');
+      render(<PrimaryNavigationWhatsNew />);
 
-    act(() => jest.advanceTimersByTime(2000));
+      await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
+        delay: null,
+      });
 
-    await waitFor(() => {
-      expect(putMock).toHaveBeenCalledWith(
-        '/broadcasts/',
-        expect.objectContaining({
-          method: 'PUT',
-          query: {id: ['1', '2']},
-          data: {hasSeen: '1'},
-        })
-      );
+      await screen.findByText('Duplicate Title');
+
+      act(() => jest.advanceTimersByTime(2000));
+
+      await waitFor(() => {
+        expect(putMock).toHaveBeenCalledWith(
+          '/broadcasts/',
+          expect.objectContaining({
+            method: 'PUT',
+            query: {id: ['1', '2']},
+            data: {hasSeen: '1'},
+          })
+        );
+      });
     });
   });
 

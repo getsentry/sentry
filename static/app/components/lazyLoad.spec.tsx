@@ -1,6 +1,6 @@
 import {lazy} from 'react';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
 
@@ -24,6 +24,7 @@ describe('LazyLoad', () => {
   });
   afterEach(() => {
     jest.restoreAllMocks();
+    act(() => jest.runOnlyPendingTimers());
     jest.useRealTimers();
   });
 

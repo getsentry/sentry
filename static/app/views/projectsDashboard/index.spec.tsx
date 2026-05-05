@@ -551,77 +551,86 @@ describe('ProjectsDashboard', () => {
       TeamStore.loadInitialData(teamsWithStatTestProjects);
     });
 
-    it('uses ProjectsStatsStore to load stats', async () => {
-      ProjectsStore.loadInitialData(projects);
-
-      jest.useFakeTimers();
-      ProjectsStatsStore.onStatsLoadSuccess([
-        {...projects[0]!, stats: [[1517281200, 2]]},
-      ]);
-      const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
-      const mock = MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/projects/`,
-        body: projects.map(project => ({
-          ...project,
-          stats: [
-            [1517281200, 2],
-            [1517310000, 1],
-          ],
-        })),
+    describe('with fake timers', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
       });
 
-      const {unmount} = render(<ProjectsDashboard />);
-
-      expect(loadStatsSpy).toHaveBeenCalledTimes(6);
-      expect(mock).not.toHaveBeenCalled();
-
-      const projectSummary = screen.getAllByTestId('summary-links');
-      // Has 5 Loading Cards because 1 project has been loaded in store already
-      expect(
-        within(projectSummary[0]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-      expect(
-        within(projectSummary[1]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-      expect(
-        within(projectSummary[2]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-      expect(
-        within(projectSummary[3]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-      expect(within(projectSummary[4]!).getByText('Errors: 2')).toBeInTheDocument();
-      expect(
-        within(projectSummary[5]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-
-      // Advance timers so that batched request fires
-      act(() => jest.advanceTimersByTime(51));
-      expect(mock).toHaveBeenCalledTimes(1);
-      // query ids = 3, 2, 4 = bookmarked
-      // 1 - already loaded in store so shouldn't be in query
-      expect(mock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'id:3 id:2 id:4 id:5 id:6',
-          }),
-        })
-      );
-      jest.useRealTimers();
-
-      // All cards have loaded
-      await waitFor(() => {
-        expect(within(projectSummary[0]!).getByText('Errors: 3')).toBeInTheDocument();
+      afterEach(() => {
+        act(() => jest.runOnlyPendingTimers());
+        jest.useRealTimers();
       });
-      expect(within(projectSummary[1]!).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[2]!).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[3]!).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[4]!).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[5]!).getByText('Errors: 3')).toBeInTheDocument();
 
-      // Resets store when it unmounts
-      unmount();
-      expect(ProjectsStatsStore.getAll()).toEqual({});
+      it('uses ProjectsStatsStore to load stats', async () => {
+        ProjectsStore.loadInitialData(projects);
+
+        ProjectsStatsStore.onStatsLoadSuccess([
+          {...projects[0]!, stats: [[1517281200, 2]]},
+        ]);
+        const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
+        const mock = MockApiClient.addMockResponse({
+          url: `/organizations/${org.slug}/projects/`,
+          body: projects.map(project => ({
+            ...project,
+            stats: [
+              [1517281200, 2],
+              [1517310000, 1],
+            ],
+          })),
+        });
+
+        const {unmount} = render(<ProjectsDashboard />);
+
+        expect(loadStatsSpy).toHaveBeenCalledTimes(6);
+        expect(mock).not.toHaveBeenCalled();
+
+        const projectSummary = screen.getAllByTestId('summary-links');
+        // Has 5 Loading Cards because 1 project has been loaded in store already
+        expect(
+          within(projectSummary[0]!).getByTestId('loading-placeholder')
+        ).toBeInTheDocument();
+        expect(
+          within(projectSummary[1]!).getByTestId('loading-placeholder')
+        ).toBeInTheDocument();
+        expect(
+          within(projectSummary[2]!).getByTestId('loading-placeholder')
+        ).toBeInTheDocument();
+        expect(
+          within(projectSummary[3]!).getByTestId('loading-placeholder')
+        ).toBeInTheDocument();
+        expect(within(projectSummary[4]!).getByText('Errors: 2')).toBeInTheDocument();
+        expect(
+          within(projectSummary[5]!).getByTestId('loading-placeholder')
+        ).toBeInTheDocument();
+
+        // Advance timers so that batched request fires
+        act(() => jest.advanceTimersByTime(51));
+        expect(mock).toHaveBeenCalledTimes(1);
+        // query ids = 3, 2, 4 = bookmarked
+        // 1 - already loaded in store so shouldn't be in query
+        expect(mock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'id:3 id:2 id:4 id:5 id:6',
+            }),
+          })
+        );
+
+        // All cards have loaded
+        await waitFor(() => {
+          expect(within(projectSummary[0]!).getByText('Errors: 3')).toBeInTheDocument();
+        });
+        expect(within(projectSummary[1]!).getByText('Errors: 3')).toBeInTheDocument();
+        expect(within(projectSummary[2]!).getByText('Errors: 3')).toBeInTheDocument();
+        expect(within(projectSummary[3]!).getByText('Errors: 3')).toBeInTheDocument();
+        expect(within(projectSummary[4]!).getByText('Errors: 3')).toBeInTheDocument();
+        expect(within(projectSummary[5]!).getByText('Errors: 3')).toBeInTheDocument();
+
+        // Resets store when it unmounts
+        unmount();
+        expect(ProjectsStatsStore.getAll()).toEqual({});
+      });
     });
   });
 });

@@ -123,6 +123,7 @@ describe('CreateIssueViewModal', () => {
     });
 
     afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
       jest.useRealTimers();
     });
 
