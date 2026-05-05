@@ -1853,7 +1853,6 @@ module = [
     "tests.sentry.api.endpoints.test_organization_intercom_jwt",
     "tests.sentry.api.endpoints.test_organization_invite_request_details",
     "tests.sentry.api.endpoints.test_organization_invite_request_index",
-    "tests.sentry.api.endpoints.test_organization_member_reinvite",
     "tests.sentry.api.endpoints.test_organization_metrics",
     "tests.sentry.api.endpoints.test_organization_missing_org_members",
     "tests.sentry.api.endpoints.test_organization_on_demand_metrics_estimation_stats",
