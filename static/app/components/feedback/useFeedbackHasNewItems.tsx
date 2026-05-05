@@ -1,7 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
 import type {useFeedbackListApiOptions} from 'sentry/components/feedback/useFeedbackListApiOptions';
-import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 
 type FeedbackListApiOptions = ReturnType<typeof useFeedbackListApiOptions>;
 
@@ -16,8 +15,7 @@ export function useFeedbackHasNewItems({listPrefetchApiOptions}: Props) {
     ...listPrefetchApiOptions,
     refetchInterval: POLLING_INTERVAL_MS,
     staleTime: 0,
-    select: (queryData: FeedbackIssueListItem[]) => Boolean(queryData.length),
   });
 
-  return data ?? false;
+  return Boolean(data?.length);
 }
