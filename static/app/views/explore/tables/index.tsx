@@ -10,7 +10,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -46,7 +45,7 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 export function ExploreTables(props: ExploreTablesProps) {
   const {setTab, tab} = props;
   const crossEvents = useQueryParamsCrossEvents();
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+  const hasCrossEvents = !!crossEvents?.length;
 
   const aggregateFields = useQueryParamsAggregateFields();
   const setAggregateFields = useSetQueryParamsAggregateFields();
