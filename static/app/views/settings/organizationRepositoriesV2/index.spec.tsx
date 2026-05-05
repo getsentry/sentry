@@ -235,4 +235,59 @@ describe('OrganizationRepositoriesV2', () => {
       await screen.findByRole('button', {name: 'Integration settings'})
     ).toBeEnabled();
   });
+
+  it('opens a settings drawer with backend fields and POSTs changes to the integration endpoint', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      id: '1',
+      name: 'my-org',
+      provider: {
+        key: 'github',
+        slug: 'github',
+        name: 'GitHub',
+        canAdd: true,
+        canDisable: false,
+        features: [],
+        aspects: {},
+      },
+      configOrganization: [{type: 'boolean', name: 'sync_enabled', label: 'Enable Sync'}],
+      configData: {sync_enabled: false},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: {providers: [GITHUB_PROVIDER]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [integration],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/${integration.id}/`,
+      body: integration,
+    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/code-mappings/',
+      body: [],
+    });
+
+    const updateRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/${integration.id}/`,
+      method: 'POST',
+      body: integration,
+      match: [MockApiClient.matchData({sync_enabled: true})],
+    });
+
+    render(<OrganizationRepositoriesV2 />);
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Integration settings'})
+    );
+
+    expect(await screen.findByText('my-org Settings')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Enable Sync'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable Sync'}));
+    await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(1));
+  });
 });
