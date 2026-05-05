@@ -150,14 +150,16 @@ describe('DashboardRevisionsButton', () => {
     expect(screen.getAllByText('Edit')).toHaveLength(2);
   });
 
-  it('shows the empty state when no revisions exist', async () => {
+  it('shows Current Version and no-previous-revisions message when no revisions exist', async () => {
     MockApiClient.addMockResponse({url: REVISIONS_URL, body: []});
 
     renderButton();
     renderGlobalModal();
     await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
 
-    expect(await screen.findByText('No revisions found.')).toBeInTheDocument();
+    expect(await screen.findByText('Current Version')).toBeInTheDocument();
+    expect(screen.getAllByRole('radio')).toHaveLength(1);
+    expect(screen.getByText('Dashboard Owner')).toBeInTheDocument();
   });
 
   it('shows an error state when the revisions API request fails', async () => {

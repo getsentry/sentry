@@ -14,10 +14,6 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.vcs.pr_comments.snapshot_templates import format_snapshot_pr_comment
 from sentry.preprod.vcs.pr_comments.tasks import find_existing_comment_id, save_pr_comment_result
-from sentry.preprod.vcs.status_checks.snapshots.tasks import (
-    FAIL_ON_ADDED_OPTION_KEY,
-    FAIL_ON_REMOVED_OPTION_KEY,
-)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -26,7 +22,10 @@ from sentry.taskworker.namespaces import preprod_tasks
 logger = logging.getLogger(__name__)
 
 ENABLED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_enabled"
-ONLY_IF_DIFF_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_only_if_diff"
+POST_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_added"
+POST_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_removed"
+POST_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_changed"
+POST_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_renamed"
 FEATURE_FLAG = "organizations:preprod-snapshot-pr-comments"
 
 
@@ -156,30 +155,33 @@ def create_preprod_snapshot_pr_comment_task(
 
         base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
 
-        fail_on_added = artifact.project.get_option(FAIL_ON_ADDED_OPTION_KEY, default=False)
-        fail_on_removed = artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=True)
+        post_on_added = artifact.project.get_option(POST_ON_ADDED_OPTION_KEY, default=False)
+        post_on_removed = artifact.project.get_option(POST_ON_REMOVED_OPTION_KEY, default=True)
+        post_on_changed = artifact.project.get_option(POST_ON_CHANGED_OPTION_KEY, default=True)
+        post_on_renamed = artifact.project.get_option(POST_ON_RENAMED_OPTION_KEY, default=False)
         changes_map = build_changes_map(
             all_artifacts,
             snapshot_metrics_map,
             comparisons_map,
-            fail_on_added=fail_on_added,
-            fail_on_removed=fail_on_removed,
+            fail_on_added=post_on_added,
+            fail_on_removed=post_on_removed,
+            fail_on_changed=post_on_changed,
+            fail_on_renamed=post_on_renamed,
         )
 
-        if artifact.project.get_option(ONLY_IF_DIFF_OPTION_KEY):
-            has_changes = any(changes_map.values())
-            # Failed comparisons are absent from changes_map (which only tracks
-            # SUCCESS state), so check comparisons_map directly to avoid
-            # suppressing failure reports.
-            has_failures = any(
-                c.state == PreprodSnapshotComparison.State.FAILED for c in comparisons_map.values()
+        has_changes = any(changes_map.values())
+        # Failed comparisons are absent from changes_map (which only tracks
+        # SUCCESS state), so check comparisons_map directly to avoid
+        # suppressing failure reports.
+        has_failures = any(
+            c.state == PreprodSnapshotComparison.State.FAILED for c in comparisons_map.values()
+        )
+        if not has_changes and not has_failures:
+            logger.info(
+                "preprod.snapshot_pr_comments.create.skipped_no_diff",
+                extra={"artifact_id": artifact.id},
             )
-            if not has_changes and not has_failures:
-                logger.info(
-                    "preprod.snapshot_pr_comments.create.skipped_no_diff",
-                    extra={"artifact_id": artifact.id},
-                )
-                return
+            return
 
         comment_body = format_snapshot_pr_comment(
             all_artifacts,
