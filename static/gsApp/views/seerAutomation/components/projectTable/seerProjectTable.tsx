@@ -9,11 +9,15 @@ import {
 } from '@tanstack/react-query';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
+import SeerConfigConnect2 from 'sentry-images/spot/seer-config-connect-2.svg';
+
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {
@@ -55,13 +59,7 @@ import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/pro
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {
-    projects: allProjects,
-    fetching: fetchingProjects,
-    fetchError: projectFetchError,
-  } = useProjects();
-
-  const [isLoadingModal, setIsLoadingModal] = useState(false);
+  const {projects, fetching, fetchError} = useProjects();
 
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
@@ -83,19 +81,7 @@ export function SeerProjectTable() {
       ),
   });
   useFetchAllPages({result});
-  const {
-    data: autofixSettingsByProjectId,
-    isPending: isPendingSettings,
-    isFetchingNextPage,
-    isError: isErrorSettings,
-  } = result;
-
-  const projects = useMemo(() => {
-    return allProjects.filter(project => {
-      const setting = autofixSettingsByProjectId?.[project.id];
-      return setting?.reposCount;
-    });
-  }, [allProjects, autofixSettingsByProjectId]);
+  const {data: autofixSettingsByProjectId} = result;
 
   const {data: integrations, isPending: isPendingIntegrations} = useQuery({
     ...organizationIntegrationsCodingAgents(organization),
@@ -234,6 +220,33 @@ export function SeerProjectTable() {
     return filtered;
   }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
 
+  if (filteredProjects.length === 0) {
+    return (
+      <Container display="flex" padding="2xl" border="primary" radius="md">
+        <Flex flexGrow={1} justify="center">
+          <Flex align="center" justify="center" gap="2xl">
+            <Flex>
+              <Image src={SeerConfigConnect2} alt="" height="132px" />
+            </Flex>
+            <Stack gap="xl" maxWidth="330px">
+              <Heading as="h3" size="lg">
+                {t('Enable Autofix on a Project')}
+              </Heading>
+              <Text variant="muted" size="md">
+                {t(
+                  'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+                )}
+              </Text>
+              <Flex>
+                <AddProjectButton />
+              </Flex>
+            </Stack>
+          </Flex>
+        </Flex>
+      </Container>
+    );
+  }
+
   return (
     <ListItemCheckboxProvider
       hits={filteredProjects.length}
@@ -269,7 +282,7 @@ export function SeerProjectTable() {
             />
           </InputGroup>
 
-          <Button
+          {/* <Button
             variant="primary"
             size="md"
             onClick={async () => {
@@ -297,7 +310,8 @@ export function SeerProjectTable() {
             disabled={isLoadingModal}
           >
             {t('Add Project')}
-          </Button>
+          </Button> */}
+          <AddProjectButton />
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
@@ -308,11 +322,11 @@ export function SeerProjectTable() {
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
 
-          {fetchingProjects || isPendingSettings || isFetchingNextPage ? (
+          {fetching ? (
             <SimpleTable.Empty>
               <LoadingIndicator />
             </SimpleTable.Empty>
-          ) : projectFetchError || isErrorSettings ? (
+          ) : fetchError ? (
             <SimpleTable.Empty>
               <LoadingError />
             </SimpleTable.Empty>
@@ -356,3 +370,37 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: max-content 3fr max-content minmax(240px, 1fr) minmax(200px, 1fr);
   overflow: visible;
 `;
+
+function AddProjectButton() {
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
+
+  return (
+    <Button
+      variant="primary"
+      size="md"
+      onClick={async () => {
+        setIsLoadingModal(true);
+        try {
+          const {ProjectAddRepoModal} =
+            await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
+
+          openModal(
+            deps => <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />,
+            {
+              modalCss: css`
+                width: 700px;
+              `,
+            }
+          );
+        } finally {
+          setIsLoadingModal(false);
+        }
+      }}
+      icon={<IconAdd />}
+      busy={isLoadingModal}
+      disabled={isLoadingModal}
+    >
+      {t('Add Project')}
+    </Button>
+  );
+}
