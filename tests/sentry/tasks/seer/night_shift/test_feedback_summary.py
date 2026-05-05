@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import FeedbackGroup
@@ -117,7 +118,7 @@ class TestAgenticFeedbackSummaryStrategy(TestCase):
         mock_client.start_run.assert_not_called()
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
-    def test_no_artifact_returns_run_id_without_writing_row(self) -> None:
+    def test_no_artifact_raises_without_writing_row(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         _seed_feedbacks(self, project, MIN_FEEDBACKS_TO_SUMMARIZE)
@@ -145,13 +146,15 @@ class TestAgenticFeedbackSummaryStrategy(TestCase):
             def get_run(self, run_id, **kwargs):
                 return empty_state
 
-        with patch(
-            "sentry.tasks.seer.night_shift.feedback_summary.SeerAgentClient",
-            return_value=_StubClient(),
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.feedback_summary.SeerAgentClient",
+                return_value=_StubClient(),
+            ),
+            pytest.raises(RuntimeError, match="no artifact"),
         ):
-            agent_run_id = agentic_feedback_summary_strategy(org, run=run)
+            agentic_feedback_summary_strategy(org, run=run)
 
-        assert agent_run_id == 99
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
 

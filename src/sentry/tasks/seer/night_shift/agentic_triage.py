@@ -113,8 +113,6 @@ def _triage_candidates(
             artifact_schema=_TriageResponse,
         )
 
-        run.update(extras={**run.extras, "agent_run_id": agent_run_id})
-
         logger.info(
             "night_shift.explorer_run_started",
             extra={
