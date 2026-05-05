@@ -247,7 +247,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
 
   let setupButton = (
     <LinkButton
-      priority="primary"
+      variant="primary"
       href="https://docs.sentry.io/performance-monitoring/getting-started/"
       external
     >
@@ -258,7 +258,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   if (hasPerformanceOnboarding) {
     setupButton = (
       <Button
-        priority="primary"
+        variant="primary"
         onClick={event => {
           event.preventDefault();
           window.location.hash = 'performance-sidequest';
@@ -302,7 +302,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
         >
           {({showModal}) => (
             <Button
-              priority="link"
+              variant="link"
               onClick={() => {
                 trackAnalytics('performance_views.tour.start', {organization});
                 showModal();
@@ -629,7 +629,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
                     <GuidedSteps.BackButton size="md" />
                     {received ? (
                       <Button
-                        priority="primary"
+                        variant="primary"
                         busy={!traceId}
                         tooltipProps={{
                           title: traceId ? undefined : t('Processing trace\u2026'),

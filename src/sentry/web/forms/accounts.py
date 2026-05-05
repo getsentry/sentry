@@ -48,6 +48,7 @@ class AuthenticationForm(forms.Form):
             "enabled. Cookies are required for logging in."
         ),
         "inactive": _("This account is inactive."),
+        "suspended": _("Your account has been suspended."),
     }
 
     def __init__(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
@@ -124,6 +125,9 @@ class AuthenticationForm(forms.Form):
                 self.error_messages["invalid_login"]
                 % {"username": self.username_field.verbose_name}
             )
+
+        if getattr(self.user_cache, "is_suspended", False):
+            raise forms.ValidationError(self.error_messages["suspended"])
 
         self.check_for_test_cookie()
         return self.cleaned_data

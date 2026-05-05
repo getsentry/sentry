@@ -8,7 +8,7 @@ import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
-interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'priority'> {
+interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'variant'> {
   'aria-label': string;
   avatar: BaseAvatarProps;
   size?: Exclude<ButtonProps['size'], 'zero'>;

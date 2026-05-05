@@ -58,7 +58,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     // if previous status was loading, show loading icon for at least 500ms
     if (!statusRef.current && traceState.search.status) {
       setStatus([performance.now(), traceState.search.status[1]]);
-      return undefined;
+      return;
     }
 
     let cancel = false;
@@ -68,7 +68,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       const elapsed = performance.now() - nextStatus[0];
       if (elapsed > MIN_LOADING_TIME || nextStatus[1] === 'loading') {
         setStatus(nextStatus);
-        return undefined;
+        return;
       }
 
       const schedule = nextStatus[0] + MIN_LOADING_TIME - performance.now();
@@ -244,7 +244,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
           <Fragment>
             <StyledSearchBarTrailingButton
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
               disabled={status?.[1] === 'loading'}
@@ -252,7 +252,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconChevron size="xs" direction="down" />}
               aria-label={t('Previous')}
               disabled={status?.[1] === 'loading'}
@@ -260,7 +260,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              priority="transparent"
+              variant="transparent"
               disabled={status?.[1] === 'loading'}
               onClick={onSearchClear}
               icon={<IconClose size="xs" />}

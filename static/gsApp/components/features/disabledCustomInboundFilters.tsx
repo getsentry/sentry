@@ -42,7 +42,7 @@ function DisabledAlert({organization, features}: Props) {
             )}
             <Button
               size="sm"
-              priority="primary"
+              variant="primary"
               icon={<IconBusiness />}
               onClick={() =>
                 openUpsellModal({

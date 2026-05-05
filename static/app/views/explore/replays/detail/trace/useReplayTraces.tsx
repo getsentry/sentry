@@ -157,7 +157,7 @@ export function useReplayTraces({
   }, [api, listEventView, orgSlug, start, end]);
 
   useEffect(() => {
-    if (state.indexComplete === false) {
+    if (!state.indexComplete) {
       fetchTransactionData();
     }
   }, [fetchTransactionData, state.indexComplete]);

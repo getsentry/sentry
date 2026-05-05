@@ -163,7 +163,7 @@ export class Form<
           {this.props.children}
           <div className={this.props.footerClass} style={{marginTop: 25}}>
             <Button
-              priority="primary"
+              variant="primary"
               disabled={isSaving || this.props.submitDisabled || !hasChanges}
               type="submit"
               aria-label={this.props.submitLabel ?? t('Submit')}

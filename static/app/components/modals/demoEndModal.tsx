@@ -121,7 +121,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
       <ModalHeader>{body}</ModalHeader>
       <ButtonContainer>
         <LinkButton
-          priority="primary"
+          variant="primary"
           external
           href="https://sentry.io/signup/"
           onClick={() => {

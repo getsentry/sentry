@@ -78,11 +78,11 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
     Creates GroupLinks and Activity entries for commits that reference issues.
 
     With the "organizations:defer-commit-resolution" feature flag:
-    - Flag ON (new behavior): Creates GroupLinks and Activity but does NOT immediately
-      resolve issues. Resolution happens when a release is created that includes these
-      commits, via update_group_resolutions() in src/sentry/models/releases/set_commits.py.
-      This prevents issues from being resolved prematurely when commits are pushed to
-      feature branches.
+    - Flag ON (new behavior): Creates GroupLinks and REFERENCED_IN_COMMIT Activity but
+      does NOT immediately resolve issues. Resolution happens when a release is created
+      that includes these commits, via update_group_resolutions() in
+      src/sentry/models/releases/set_commits.py. This prevents issues from being resolved
+      prematurely when commits are pushed to feature branches.
     - Flag OFF (legacy behavior): Immediately resolves issues when commits are pushed.
     """
     groups = instance.find_referenced_groups()
@@ -174,10 +174,15 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                     group.substatus = None
                     remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
+                activity_type = (
+                    ActivityType.REFERENCED_IN_COMMIT
+                    if defer_resolution
+                    else ActivityType.SET_RESOLVED_IN_COMMIT
+                )
                 activity_kwargs = {
                     "project_id": group.project_id,
                     "group": group,
-                    "type": ActivityType.SET_RESOLVED_IN_COMMIT.value,
+                    "type": activity_type.value,
                     "ident": instance.id,
                     "data": {"commit": instance.id},
                 }
@@ -186,11 +191,12 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
 
                 Activity.objects.create(**activity_kwargs)
 
-                record_group_history_from_activity_type(
-                    group,
-                    ActivityType.SET_RESOLVED_IN_COMMIT.value,
-                    actor=acting_user if acting_user else None,
-                )
+                if not defer_resolution:
+                    record_group_history_from_activity_type(
+                        group,
+                        ActivityType.SET_RESOLVED_IN_COMMIT.value,
+                        actor=acting_user if acting_user else None,
+                    )
 
         except IntegrityError:
             pass

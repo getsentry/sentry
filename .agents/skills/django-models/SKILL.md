@@ -17,7 +17,7 @@ Before writing any fields, decide all four. They are coupled — getting one wro
 
 ### 1. Which silo does this data live in?
 
-Cell silo (`@cell_silo_model`) is the default. Use control silo (`@control_silo_model`) only when the data is shared across organizations or has to be strongly consistent with other control-silo resources (auth, billing, integration installs, API tokens, slug reservations).
+Cell silo (`@cell_silo_model`) is the default. Use control silo (`@control_silo_model`) only when the data is shared across organizations or has to be strongly consistent with other control-silo resources (auth, integration installs, API tokens, slug reservations).
 
 The wrong way to think about it: "this is a user-facing thing, so control." The right way: "what is the smallest silo where this can correctly live, and is that silo the same as everything that mutates it together?" If a cell never reads it, it does not belong in the cell.
 

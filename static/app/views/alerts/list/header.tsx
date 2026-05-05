@@ -95,7 +95,7 @@ export function AlertHeader({activeTab}: Props) {
               organization={organization}
               iconProps={{size: 'sm'}}
               size="sm"
-              priority="primary"
+              variant="primary"
               referrer="alert_stream"
               projectSlug={
                 selection.projects.length === 1

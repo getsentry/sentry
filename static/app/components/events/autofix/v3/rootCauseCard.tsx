@@ -14,8 +14,10 @@ import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
 import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
+import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {StyledMarkedText} from 'sentry/components/events/autofix/v3/styled';
 import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
+import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -24,10 +26,11 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface RootCauseCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
+  groupId: string;
   section: AutofixSection;
 }
 
-export function RootCauseCard({autofix, section}: RootCauseCardProps) {
+export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
@@ -38,7 +41,13 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
   );
-  const {startStep} = autofix;
+
+  const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
+    useResetAutofixStep({
+      autofix,
+      section,
+      step: 'root_cause',
+    });
 
   const evidence = useAutofixSectionEvidence({section});
 
@@ -51,6 +60,8 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
           : undefined
       }
+      allowReset
+      onReset={canReset ? () => setShouldShowReset(true) : undefined}
     >
       {section.status === 'processing' ? (
         <ArtifactLoadingDetails
@@ -59,7 +70,17 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
         />
       ) : artifact?.data ? (
         <Fragment>
-          <StyledMarkedText text={artifact.data.one_line_description} />
+          {shouldShowReset && (
+            <AutofixResetPrompt
+              onClosePrompt={() => setShouldShowReset(false)}
+              onReset={handleReset}
+              placeholder={t('Give seer additional context to improve this root cause.')}
+              prompt={t('How can this root cause be improved?')}
+            />
+          )}
+          <ArtifactDetails>
+            <StyledMarkedText text={artifact.data.one_line_description} />
+          </ArtifactDetails>
           {artifact.data.five_whys?.length ? (
             <Fragment>
               <ArtifactDetails>
@@ -94,6 +115,8 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
                   <AutofixEvidence
                     key={e.toolCall.id}
                     evidenceButtonProps={e.evidenceButtonProps}
+                    groupId={groupId}
+                    toolCall={e.toolCall}
                   />
                 ))}
               </Flex>
@@ -109,9 +132,9 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
           </Text>
           <div>
             <Button
-              priority="primary"
+              variant="primary"
               icon={<IconRefresh />}
-              onClick={() => startStep('root_cause')}
+              onClick={() => handleReset()}
             >
               {t('Re-run')}
             </Button>

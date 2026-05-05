@@ -50,7 +50,7 @@ function DemoSignUpModal({closeModal}: Props) {
         </TrialCheckInfo>
         <StyledButtonBar>
           <LinkButton
-            priority="primary"
+            variant="primary"
             href={signupUrl}
             onClick={() =>
               trackAnalytics('growth.demo_modal_clicked_signup', {
@@ -61,7 +61,7 @@ function DemoSignUpModal({closeModal}: Props) {
             {t('Start free trial')}
           </LinkButton>
           <LinkButton
-            priority="default"
+            variant="secondary"
             href={demoUrl}
             onClick={() =>
               trackAnalytics('growth.demo_modal_clicked_demo', {

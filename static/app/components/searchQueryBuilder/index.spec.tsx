@@ -108,6 +108,13 @@ const FILTER_KEYS: TagCollection = {
     name: 'bar',
     kind: FieldKind.MEASUREMENT,
   },
+  [FieldKey.RELEASE_VERSION]: {
+    key: FieldKey.RELEASE_VERSION,
+    name: 'Release Version',
+    kind: FieldKind.FIELD,
+    predefined: true,
+    values: ['1.0.0', '2.0.0'],
+  },
 };
 
 const FILTER_KEY_SECTIONS: FilterKeySection[] = [
@@ -324,6 +331,67 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
 
       expect(screen.getByRole('combobox')).toHaveFocus();
+    });
+
+    it.each([
+      ['Backspace', '{Control>}{Backspace}{/Control}'],
+      ['Delete', '{Control>}{Delete}{/Control}'],
+    ])(
+      'clears the query and reopens suggestions with Cmd+%s from an open token dropdown',
+      async (_key, keyboardInput) => {
+        const mockOnChange = jest.fn();
+        const mockOnSearch = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:Firefox"
+            onChange={mockOnChange}
+            onSearch={mockOnSearch}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        expect(await screen.findByRole('option', {name: 'Firefox'})).toBeInTheDocument();
+
+        await userEvent.keyboard(keyboardInput);
+
+        await waitFor(() => {
+          expect(
+            screen.queryByRole('row', {name: 'browser.name:Firefox'})
+          ).not.toBeInTheDocument();
+        });
+
+        const input = screen.getByRole('combobox', {name: 'Add a search term'});
+        expect(input).toHaveFocus();
+        expect(await screen.findByRole('option', {name: 'age'})).toBeInTheDocument();
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
+        });
+        expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
+      }
+    );
+
+    it('clears uncommitted free text repeatedly with Cmd+Delete', async () => {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+
+      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+
+      await userEvent.type(input, 'first');
+      await userEvent.keyboard('{Control>}{Delete}{/Control}');
+
+      await waitFor(() => {
+        expect(input).toHaveValue('');
+      });
+
+      await userEvent.type(input, 'second');
+      await userEvent.keyboard('{Control>}{Delete}{/Control}');
+
+      await waitFor(() => {
+        expect(input).toHaveValue('');
+      });
     });
 
     it('is hidden at small sizes', async () => {
@@ -1279,6 +1347,48 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('filter key suggestions', () => {
+    it('highlights typed substrings in filter key suggestions', async () => {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(getLastInput(), 'bro');
+
+      const browserNameOption = await screen.findByRole('option', {
+        name: 'browser.name',
+      });
+      expect(
+        within(browserNameOption).getByTestId('sqb-highlighted-match')
+      ).toHaveTextContent('bro');
+    });
+
+    it('highlights filter key suggestion matches case-insensitively', async () => {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(getLastInput(), 'BRO');
+
+      const browserNameOption = await screen.findByRole('option', {
+        name: 'browser.name',
+      });
+      expect(
+        within(browserNameOption).getByTestId('sqb-highlighted-match')
+      ).toHaveTextContent('bro');
+    });
+
+    it('does not highlight non-contiguous fuzzy filter key matches', async () => {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(getLastInput(), 'browsr');
+
+      const browserNameOption = await screen.findByRole('option', {
+        name: 'browser.name',
+      });
+      expect(
+        within(browserNameOption).queryByTestId('sqb-highlighted-match')
+      ).not.toBeInTheDocument();
+    });
+
     it('will suggest a filter key when typing its value', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(getLastInput());
@@ -3039,6 +3149,46 @@ describe('SearchQueryBuilder', () => {
         expect(options.indexOf('Edge')).toBeLessThan(options.indexOf('Firefox'));
       });
 
+      it('highlights typed substrings in value suggestions', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.keyboard('fir');
+
+        const firefoxOption = await screen.findByRole('option', {name: 'Firefox'});
+        expect(
+          within(firefoxOption).getByTestId('sqb-highlighted-match')
+        ).toHaveTextContent('Fir');
+      });
+
+      it('highlights multi-select value suggestions using the value at the cursor', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[Firefox,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.type(input, 'sa');
+
+        const safariOption = await screen.findByRole('option', {name: 'Safari'});
+        expect(
+          within(safariOption).getByTestId('sqb-highlighted-match')
+        ).toHaveTextContent('Sa');
+      });
+
       it('recomputes the initial ordering when reopened with new suggestion values', async () => {
         const {rerender} = render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
@@ -3295,6 +3445,49 @@ describe('SearchQueryBuilder', () => {
           name: 'does not end with',
         });
         expect(doesNotEndWithOption).toBeInTheDocument();
+      });
+
+      it('replaces the value for fields that do not allow multiple values', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="release.version:1.0.0" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: release.version'})
+        );
+
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
+        expect(
+          screen.queryByRole('checkbox', {name: 'Toggle 1.0.0'})
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(await screen.findByRole('option', {name: '2.0.0'}));
+
+        expect(
+          await screen.findByRole('row', {name: 'release.version:2.0.0'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('row', {name: 'release.version:[1.0.0,2.0.0]'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('keeps comma-separated input as one value for fields that do not allow multiple values', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="release.version:1.0.0" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: release.version'})
+        );
+
+        await userEvent.keyboard('1.0.0,2.0.0{enter}');
+
+        expect(
+          await screen.findByRole('row', {name: 'release.version:"1.0.0,2.0.0"'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('row', {name: 'release.version:[1.0.0,2.0.0]'})
+        ).not.toBeInTheDocument();
       });
     });
 

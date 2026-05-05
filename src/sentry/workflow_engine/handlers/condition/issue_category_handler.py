@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from typing import Any
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import PERFORMANCE_ISSUE_CATEGORIES, GroupCategory
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -39,14 +39,20 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         try:
             issue_category = group.issue_category
-            issue_category_v2 = group.issue_category_v2
         except ValueError:
             return False
 
-        if include:
-            return bool(value == issue_category or value == issue_category_v2)
+        # TODO(CEO): we're only temporarily handling GroupCategory.PERFORMANCE_ISSUE_CATEGORIES until we can migrate away from that data
+        # Until condition data is migrated, treat a stored PERFORMANCE value as matching any of the replacement categories too
+        if value == GroupCategory.PERFORMANCE:
+            category_matches = (
+                issue_category in PERFORMANCE_ISSUE_CATEGORIES
+                or issue_category == GroupCategory.PERFORMANCE
+            )
+        else:
+            category_matches = value == issue_category
 
-        return bool(value != issue_category and value != issue_category_v2)
+        return bool(category_matches if include else not category_matches)
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any]) -> str:

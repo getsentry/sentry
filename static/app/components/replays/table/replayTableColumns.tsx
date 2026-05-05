@@ -29,7 +29,10 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -46,7 +49,7 @@ type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
 interface HeaderProps {
   columnIndex: number;
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
   replays: ReplayListRecord[];
 }
 
@@ -402,7 +405,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
     if (rowIndex === selectedReplayIndex) {
       return (
         <PlayPauseButtonContainer>
-          <ReplayPlayPauseButton key="playPause-play" priority="transparent" size="sm" />
+          <ReplayPlayPauseButton key="playPause-play" variant="transparent" size="sm" />
         </PlayPauseButtonContainer>
       );
     }
@@ -417,7 +420,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
             pathname: location.pathname,
             query: {...location.query, selected_replay_index: rowIndex},
           }}
-          priority="default"
+          variant="secondary"
           size="sm"
           tooltipProps={{title: t('Play')}}
         />

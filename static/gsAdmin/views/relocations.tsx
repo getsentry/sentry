@@ -57,7 +57,7 @@ export function Relocations() {
   return (
     <div>
       <PageHeader title="Relocations">
-        <LinkButton priority="primary" to="/_admin/relocations/new/" size="sm">
+        <LinkButton variant="primary" to="/_admin/relocations/new/" size="sm">
           Create New Relocation
         </LinkButton>
       </PageHeader>

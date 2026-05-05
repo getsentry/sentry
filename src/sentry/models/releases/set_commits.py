@@ -7,6 +7,7 @@ from typing import TypedDict
 
 from django.db import IntegrityError, router
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
@@ -19,6 +20,7 @@ from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_
 from sentry.models.release import Release
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.signals import issue_resolved
+from sentry.types.activity import ActivityType
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -228,6 +230,9 @@ def update_group_resolutions(release, commit_author_by_commit):
     user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
     commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
+    create_resolution_activities = features.has(
+        "organizations:defer-commit-resolution", release.organization
+    )
 
     group_project_lookup = dict(
         Group.objects.filter(id__in=[group_id for group_id, _ in commits_and_prs]).values_list(
@@ -252,7 +257,7 @@ def update_group_resolutions(release, commit_author_by_commit):
                 router.db_for_write(Activity),
             )
         ):
-            GroupResolution.objects.update_or_create(
+            resolution, _ = GroupResolution.objects.update_or_create(
                 group_id=group_id,
                 defaults={
                     "release": release,
@@ -262,8 +267,20 @@ def update_group_resolutions(release, commit_author_by_commit):
                 },
             )
             group = Group.objects.get(id=group_id)
+            should_create_resolution_activity = (
+                create_resolution_activities and group.status != GroupStatus.RESOLVED
+            )
             group.update(status=GroupStatus.RESOLVED, substatus=None)
             remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
+            if should_create_resolution_activity:
+                Activity.objects.create(
+                    project_id=group.project_id,
+                    group=group,
+                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                    user_id=actor.id if actor is not None else None,
+                    ident=resolution.id,
+                    data={"version": release.version},
+                )
             record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 
             metrics.incr("group.resolved", instance="in_commit", skip_internal=True)

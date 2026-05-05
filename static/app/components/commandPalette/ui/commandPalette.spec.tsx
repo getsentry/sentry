@@ -23,6 +23,13 @@ jest.mock('@tanstack/react-virtual', () => ({
   },
 }));
 
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
+
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
@@ -39,12 +46,6 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {
-  makeCloseButton,
-  makeClosableHeader,
-  ModalBody,
-  ModalFooter,
-} from 'sentry/components/globalModal/components';
 
 function makeRenderProps(onClose: () => void) {
   return {

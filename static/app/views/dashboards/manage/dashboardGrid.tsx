@@ -130,8 +130,9 @@ function DashboardGrid({
     ];
 
     const disabledKeys = [];
-    if ((dashboards && dashboards.length <= 1) || disableDelete)
+    if (disableDelete) {
       disabledKeys.push('dashboard-delete');
+    }
     if (disableDuplicate) {
       disabledKeys.push('dashboard-duplicate');
     }
@@ -144,7 +145,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

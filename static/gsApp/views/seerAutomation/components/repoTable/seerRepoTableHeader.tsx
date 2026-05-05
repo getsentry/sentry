@@ -20,7 +20,10 @@ import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -80,7 +83,7 @@ export function SeerRepoTableHeader({
   const queryOptions = queryKeyRef.current
     ? parseQueryKey(queryKeyRef.current).options
     : undefined;
-  const queryString = queryOptions?.query?.query;
+  const queryString = queryOptions?.query?.query as string | undefined;
 
   const selectedRepos = useMemo(() => {
     if (selectedIds === 'all') {
@@ -95,7 +98,7 @@ export function SeerRepoTableHeader({
       repo => repo?.settings?.enabledCodeReview === false
     );
     if (someEnabled && someDisabled) {
-      return undefined;
+      return;
     }
     if (someEnabled) {
       return 'enabled_code_review:enabled';
@@ -103,7 +106,7 @@ export function SeerRepoTableHeader({
     if (someDisabled) {
       return 'enabled_code_review:disabled';
     }
-    return undefined;
+    return;
   }, [selectedRepos]);
 
   const currentTriggersValue = useMemo((): CodeReviewTrigger[] => {
@@ -391,7 +394,7 @@ function SelectAllCheckbox({
 }: {
   disabled: boolean;
   knownIds: string[];
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
 }) {
   return (
     <Checkbox

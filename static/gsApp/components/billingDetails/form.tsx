@@ -166,7 +166,7 @@ function BillingDetailsFormFields({
                   },
               allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
                 defined(code)
-              ).map(([code]) => code as string),
+              ).map(([code]) => code!),
               fields: {phone: 'never'}, // don't show phone number field
               defaultValues: {
                 name: initialData?.companyName,

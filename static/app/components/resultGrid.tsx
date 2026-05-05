@@ -5,9 +5,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {RequestOptions} from 'sentry/api';
-import {Pagination} from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
@@ -39,7 +39,7 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
   const selector = (
     <CompactSelect
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} size="sm" priority="transparent">
+        <OverlayTrigger.Button {...triggerProps} size="sm" variant="transparent">
           {currentLabel}
         </OverlayTrigger.Button>
       )}
@@ -101,7 +101,7 @@ function SortBy({options, path, value}: SortByProps) {
     <div className="sort-options">
       <CompactSelect
         trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} size="sm" priority="transparent">
+          <OverlayTrigger.Button {...triggerProps} size="sm" variant="transparent">
             {currentSortLabel ?? triggerProps.children}
           </OverlayTrigger.Button>
         )}
@@ -310,7 +310,7 @@ export function ResultGrid(props: Props) {
                 <Button
                   type="submit"
                   size="sm"
-                  priority="primary"
+                  variant="primary"
                   icon={<IconSearch size="xs" />}
                   aria-label={t('Search')}
                 />
@@ -325,7 +325,7 @@ export function ResultGrid(props: Props) {
             queryKey={filterKey}
             value={state.filters[filterKey]!}
             path={path ?? ''}
-            {...(filters?.[filterKey] as FilterConfig)}
+            {...filters?.[filterKey]!}
           />
         ))}
       </div>

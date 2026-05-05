@@ -38,7 +38,6 @@ from sentry.integrations.slack.threads.activity_notifications import (
 )
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
@@ -49,6 +48,9 @@ from sentry.notifications.notifications.activity.archive import ArchiveActivityN
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
+from sentry.notifications.notifications.activity.referenced_in_commit import (
+    ReferencedInCommitActivityNotification,
+)
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
 from sentry.notifications.notifications.activity.resolved_in_commit import (
@@ -80,6 +82,7 @@ DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
     ActivityType.SET_RESOLVED: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_BY_AGE: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_IN_COMMIT: ResolvedInCommitActivityNotification,
+    ActivityType.REFERENCED_IN_COMMIT: ReferencedInCommitActivityNotification,
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedInPullRequestActivityNotification,
     ActivityType.SET_RESOLVED_IN_RELEASE: ResolvedInReleaseActivityNotification,
     ActivityType.UNASSIGNED: UnassignedActivityNotification,
@@ -254,7 +257,7 @@ class SlackService:
             will_fire_workflow_actions = should_fire_workflow_actions(
                 group.organization, group.type
             )
-            if group.issue_category == GroupCategory.UPTIME:
+            if group.issue_type.type_id == UptimeDomainCheckFailure.type_id:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
                 if will_fire_workflow_actions:

@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
@@ -10,13 +10,16 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
-  addSentryAppToken,
-  removeSentryAppToken,
-} from 'sentry/actionCreators/sentryAppTokens';
-import type {ApiResult} from 'sentry/api';
+  sentryAppApiOptions,
+  sentryAppsApiOptions,
+} from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -46,9 +49,13 @@ import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {
+  type ApiQueryKey,
+  fetchMutation,
+  setApiQueryData,
+  useApiQuery,
+} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -164,20 +171,16 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-const makeSentryAppQueryKey = (appSlug: string): ApiQueryKey => {
-  return [
-    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-      path: {sentryAppIdOrSlug: appSlug},
-    }),
-  ];
-};
-
 const makeSentryAppApiTokensQueryKey = (appSlug: string): ApiQueryKey => {
   return [
     getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
       path: {sentryAppIdOrSlug: appSlug},
     }),
   ];
+};
+
+type RotateSecretResponse = {
+  clientSecret: string;
 };
 
 export default function SentryApplicationDetails() {
@@ -191,37 +194,33 @@ export default function SentryApplicationDetails() {
 
   const isEditingApp = !!appSlug;
 
-  const api = useApi();
   const queryClient = useQueryClient();
 
-  const SENTRY_APP_QUERY_KEY = makeSentryAppQueryKey(appSlug);
   const SENTRY_APP_API_TOKENS_QUERY_KEY = makeSentryAppApiTokensQueryKey(appSlug);
 
+  const sentryAppQueryOptions = sentryAppApiOptions({
+    appSlug: isEditingApp ? appSlug : null,
+  });
+
   const {
-    data: app = undefined,
+    data: app,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<SentryApp>(SENTRY_APP_QUERY_KEY, {
-    staleTime: 30000,
-    enabled: isEditingApp,
+  } = useQuery({
+    ...sentryAppQueryOptions,
+    staleTime: 30_000,
     placeholderData: () => {
       if (!appSlug) {
-        return undefined;
+        return;
       }
 
-      // eslint-disable-next-line @sentry/no-query-data-type-parameters
-      const listData = queryClient.getQueryData<ApiResult<SentryApp[]>>([
-        getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ]);
+      const listData = queryClient.getQueryData(
+        sentryAppsApiOptions({orgSlug: organization.slug}).queryKey
+      );
 
-      if (listData) {
-        const found = listData[0].find(item => item.slug === appSlug);
-        return found ? [found, listData[1], listData[2]] : undefined;
-      }
-      return undefined;
+      const found = listData?.json.find(item => item.slug === appSlug);
+      return found ? {json: found, headers: {}} : undefined;
     },
   });
   const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
@@ -232,6 +231,48 @@ export default function SentryApplicationDetails() {
     }
   );
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
+
+  const addTokenMutation = useMutation({
+    mutationFn: (sentryAppSlug: string) =>
+      fetchMutation<NewInternalAppApiToken>({
+        url: `/sentry-apps/${sentryAppSlug}/api-tokens/`,
+        method: 'POST',
+      }),
+    onMutate: () => {
+      addLoadingMessage();
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Token successfully added.'));
+    },
+    onError: () => {
+      addErrorMessage(t('Unable to create token'));
+    },
+  });
+
+  const removeTokenMutation = useMutation({
+    mutationFn: ({sentryAppSlug, tokenId}: {sentryAppSlug: string; tokenId: string}) =>
+      fetchMutation({
+        url: `/sentry-apps/${sentryAppSlug}/api-tokens/${tokenId}/`,
+        method: 'DELETE',
+      }),
+    onMutate: () => {
+      addLoadingMessage();
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Token successfully deleted.'));
+    },
+    onError: () => {
+      addErrorMessage(t('Unable to delete token'));
+    },
+  });
+
+  const rotateClientSecretMutation = useMutation({
+    mutationFn: (sentryAppSlug: string) =>
+      fetchMutation<RotateSecretResponse>({
+        url: `/sentry-apps/${sentryAppSlug}/rotate-secret/`,
+        method: 'POST',
+      }),
+  });
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
   const normalize = (events: any) => {
@@ -298,7 +339,7 @@ export default function SentryApplicationDetails() {
     if (!app) {
       return;
     }
-    const token = await addSentryAppToken(api, app);
+    const token = await addTokenMutation.mutateAsync(app.slug);
     const updatedNewTokens = newTokens.concat(token);
     setNewTokens(updatedNewTokens);
     displayNewToken(token.token, () => handleFinishNewToken(token));
@@ -316,7 +357,7 @@ export default function SentryApplicationDetails() {
       return;
     }
     const updatedTokens = tokens.filter(tok => tok.id !== token.id);
-    await removeSentryAppToken(api, app, token.id);
+    await removeTokenMutation.mutateAsync({sentryAppSlug: app.slug, tokenId: token.id});
     setApiQueryData(queryClient, SENTRY_APP_API_TOKENS_QUERY_KEY, updatedTokens);
   };
 
@@ -342,12 +383,11 @@ export default function SentryApplicationDetails() {
   };
 
   const rotateClientSecret = async () => {
-    const rotateResponse = await api.requestPromise(
-      `/sentry-apps/${appSlug}/rotate-secret/`,
-      {
-        method: 'POST',
-      }
-    );
+    if (!app) {
+      return;
+    }
+
+    const rotateResponse = await rotateClientSecretMutation.mutateAsync(app.slug);
 
     // Ensures that the modal is opened after the confirmation modal closes itself
     requestAnimationFrame(() => {
@@ -382,7 +422,10 @@ export default function SentryApplicationDetails() {
         app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
 
       avatars.push(avatar as SentryAppAvatar);
-      setApiQueryData(queryClient, SENTRY_APP_QUERY_KEY, {...app, avatars});
+      queryClient.setQueryData(sentryAppQueryOptions.queryKey, {
+        json: {...app, avatars},
+        headers: {},
+      });
     }
   };
 
@@ -541,7 +584,7 @@ export default function SentryApplicationDetails() {
                             )}
                             errorMessage={t('Error rotating secret')}
                           >
-                            <Button priority="danger">Rotate client secret</Button>
+                            <Button variant="danger">Rotate client secret</Button>
                           </Confirm>
                         ) : undefined}
                       </ClientSecret>

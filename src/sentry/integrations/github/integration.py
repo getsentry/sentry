@@ -47,6 +47,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -67,6 +68,7 @@ from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiInvalidRequestError,
     ApiPaginationTruncated,
     IntegrationError,
@@ -219,6 +221,15 @@ class GitHubIntegration(
             return True
 
         return False
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiForbiddenError):
+            if self.is_rate_limited_error(exc):
+                return "rate_limited"
+            if "suspended" in str(exc):
+                return "installation_suspended"
+            return "unauthorized"
+        return super().is_broken_integration_error(exc)
 
     def message_from_error(self, exc: Exception) -> str:
         if not isinstance(exc, ApiError):
@@ -541,6 +552,31 @@ class GitHubIntegration(
                     "Your organization does not have access to this feature"
                 )
 
+        # PR-comment and missing-member toggles are self-serveable regardless of
+        # issue-sync entitlement, so they are appended after the gating loop.
+        config.extend(
+            [
+                {
+                    "name": "pr_comments",
+                    "type": "boolean",
+                    "label": _("Enable Comments on Suspect Pull Requests"),
+                    "help": _(
+                        "Allow Sentry to comment on recent pull requests suspected of causing issues."
+                    ),
+                    "default": False,
+                },
+                {
+                    "name": "nudge_invite",
+                    "type": "boolean",
+                    "label": _("Enable Missing Member Detection"),
+                    "help": _(
+                        "Allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization."
+                    ),
+                    "default": False,
+                },
+            ]
+        )
+
         return config
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
@@ -610,7 +646,6 @@ This pull request was merged and Sentry observed the following issues:
 
 
 class GitHubPRCommentWorkflow(PRCommentWorkflow):
-    organization_option_key = "sentry:github_pr_bot"
     referrer = Referrer.GITHUB_PR_COMMENT_BOT
     referrer_id = GITHUB_PR_BOT_REFERRER
 

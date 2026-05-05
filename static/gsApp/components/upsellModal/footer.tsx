@@ -42,12 +42,12 @@ export function Footer({
       {canTrial && !showTrialResetContent ? (
         <UpgradeOrTrialButton
           data-test-id="upgrade-plan"
-          priority="default"
+          variant="secondary"
           action="upgrade"
           {...buttonProps}
         />
       ) : (
-        <Button data-test-id="maybe-later" priority="default" onClick={onCloseModal}>
+        <Button data-test-id="maybe-later" variant="secondary" onClick={onCloseModal}>
           {t('Maybe Later')}
         </Button>
       )}

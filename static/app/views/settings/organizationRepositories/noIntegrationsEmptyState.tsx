@@ -3,6 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSeer} from 'sentry/icons';
@@ -12,8 +13,6 @@ import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
-const SEER_COMPATIBLE_PROVIDERS = new Set(['github', 'gitlab']);
-
 interface Props {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   providers: IntegrationProvider[];
@@ -21,6 +20,7 @@ interface Props {
 
 export function NoIntegrationsEmptyState({providers, onAddIntegration}: Props) {
   const organization = useOrganization();
+  const isSeerSupported = useIsSeerSupportedProvider();
 
   return (
     <Panel>
@@ -29,7 +29,7 @@ export function NoIntegrationsEmptyState({providers, onAddIntegration}: Props) {
           <Flex align="center" gap="md" flex="1">
             {getIntegrationIcon(provider.key, 'md')}
             <Heading as="h4">{provider.name}</Heading>
-            {SEER_COMPATIBLE_PROVIDERS.has(provider.key) && (
+            {isSeerSupported({id: provider.key, name: provider.name}) && (
               <Tooltip title={t('Compatible with Seer.')}>
                 <Tag variant="promotion" icon={<IconSeer />}>
                   {t('Seer')}

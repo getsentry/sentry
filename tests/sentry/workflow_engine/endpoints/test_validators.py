@@ -127,8 +127,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
             type_id = 1
             slug = "test_type"
             description = "no handler"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(validator=MetricIssueDetectorValidator)
 
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
@@ -151,8 +150,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
             type_id = 1
             slug = "test_type"
             description = "no handler"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
 
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = TestGroupType

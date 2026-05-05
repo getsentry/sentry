@@ -63,7 +63,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
     return (
       <Flex
         direction="column"
-        padding="lg lg md md"
+        padding="lg md md md"
         background="secondary"
         minHeight="100%"
         width="100%"
@@ -76,7 +76,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   return (
     <Flex
       direction="column"
-      padding="lg lg md md"
+      padding="lg md md md"
       background="secondary"
       minHeight="100%"
       width="100%"
@@ -121,7 +121,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               )}
               <StyledClippedBox
                 clipHeight={200}
-                buttonProps={{priority: 'default', size: 'xs'}}
+                buttonProps={{variant: 'secondary', size: 'xs'}}
                 collapsible
               >
                 <Container padding="md">

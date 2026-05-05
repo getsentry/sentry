@@ -400,7 +400,7 @@ export class FormModel {
     }
 
     if (typeof value === 'boolean') {
-      return value === true;
+      return value;
     }
 
     return value !== '' && defined(value);
@@ -473,7 +473,6 @@ export class FormModel {
     errors = errors.length === 0 ? [[id, null]] : errors;
 
     errors.forEach(([field, errorMessage]) => this.setError(field, errorMessage));
-    return undefined;
   }
 
   updateShowSaveState(id: string, value: FieldValue) {
@@ -786,7 +785,7 @@ export class FormModel {
    * Returns true if there are no errors
    */
   validateForm(): boolean {
-    Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
+    Array.from(this.fieldDescriptor.keys()).forEach(id => this.validateField(id));
 
     return !this.isError;
   }

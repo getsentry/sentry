@@ -1,16 +1,16 @@
-import {useCallback, useMemo, useRef} from 'react';
-import {useQueries} from '@tanstack/react-query';
+import {useMemo, useRef} from 'react';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
-import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import type {ApiResult} from 'sentry/api';
+import {releaseHealthApiOptions} from 'sentry/actionCreators/metrics';
+import {sessionsApiOptions} from 'sentry/actionCreators/sessions';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import {useApi} from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
@@ -37,7 +37,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     widgetInterval,
   } = params;
 
-  const api = useApi();
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
@@ -53,10 +52,10 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     'visibility-dashboards-async-queue'
   );
 
-  // Compute validation error and query keys together
-  const {queryKeys, validationError} = useMemo(() => {
+  // Compute validation error and request options together
+  const {queryRequests, validationError} = useMemo(() => {
     try {
-      const keys = filteredWidget.queries.map((query, queryIndex) => {
+      const requests = filteredWidget.queries.map(query => {
         const {datetime} = pageFilters;
         const {start, end, period} = datetime;
 
@@ -70,7 +69,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           : (widgetInterval ??
             getWidgetInterval(filteredWidget, {start, end, period}, '5m'));
 
-        const requestData = getReleasesRequestData(
+        return getReleasesRequestData(
           1, // includeSeries
           includeTotals,
           query,
@@ -79,75 +78,49 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           interval,
           filteredWidget.limit ?? undefined
         );
-
-        return {
-          queryKey: [
-            `/organizations/${organization.slug}/sessions/`,
-            {method: 'GET' as const, query: requestData},
-          ],
-          queryIndex,
-          useSessionAPI: requestData.useSessionAPI,
-        };
       });
-      return {queryKeys: keys, validationError: undefined};
+      return {queryRequests: requests, validationError: undefined};
     } catch (error) {
       // Catch synchronous errors from getReleasesRequestData (e.g., date validation)
       const errorMessage = error instanceof Error ? error.message : String(error);
-      // Return empty array to prevent queries from running
-      return {queryKeys: [], validationError: errorMessage};
+      return {queryRequests: [], validationError: errorMessage};
     }
   }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
-  const createQueryFn = useCallback(
-    (useSessionAPI: boolean) =>
-      async (context: any): Promise<ApiResult<SessionApiResponse>> => {
-        const queryParams = context.queryKey[1].query;
-
-        const fetchFn = async () => {
-          if (useSessionAPI) {
-            return doSessionsRequest(api, queryParams);
-          }
-          return doReleaseHealthRequest(api, queryParams);
-        };
-
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchFn();
-                  resolve(result);
-                } catch (error) {
-                  reject(error instanceof Error ? error : new Error(String(error)));
-                }
-              },
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        return fetchFn();
-      },
-    [api, queue]
-  );
-
   const queryResults = useQueries({
-    queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
-      queryKey,
-      queryFn: createQueryFn(useSessionAPI),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+    queries: queryRequests.map(requestData => {
+      const baseOptions = requestData.useSessionAPI
+        ? sessionsApiOptions(requestData)
+        : releaseHealthApiOptions(requestData);
+
+      return queryOptions({
+        ...baseOptions,
+        staleTime: getWidgetStaleTime(pageFilters),
+        queryFn: (context): Promise<ApiResponse<SessionApiResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<SessionApiResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<SessionApiResponse>(context);
+        },
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
   const transformedData = (() => {
@@ -160,7 +133,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     }
 
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
     const errorMessage = error
       ? error.responseJSON?.detail
@@ -183,11 +156,11 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     const rawData: SessionApiResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = q.data.json;
       rawData[requestIndex] = responseData;
 
       const transformedResult = ReleasesConfig.transformSeries?.(
@@ -250,7 +223,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     skipDashboardFilterParens,
   } = params;
 
-  const api = useApi();
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
@@ -266,11 +238,11 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     'visibility-dashboards-async-queue'
   );
 
-  // Compute validation error and query keys together
-  const {queryKeys, validationError} = useMemo(() => {
+  // Compute validation error and request options together
+  const {queryRequests, validationError} = useMemo(() => {
     try {
-      const keys = filteredWidget.queries.map((query, queryIndex) => {
-        const requestData = getReleasesRequestData(
+      const requests = filteredWidget.queries.map(query =>
+        getReleasesRequestData(
           0, // includeSeries
           1, // includeTotals
           query,
@@ -279,76 +251,49 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
           undefined, // interval
           limit ?? filteredWidget.limit ?? undefined,
           cursor
-        );
-
-        return {
-          queryKey: [
-            `/organizations/${organization.slug}/sessions/`,
-            {method: 'GET' as const, query: requestData},
-          ],
-          queryIndex,
-          useSessionAPI: requestData.useSessionAPI,
-        };
-      });
-      return {queryKeys: keys, validationError: undefined};
+        )
+      );
+      return {queryRequests: requests, validationError: undefined};
     } catch (error) {
-      // Catch synchronous errors from getReleasesRequestData (e.g., date validation)
       const errorMessage = error instanceof Error ? error.message : String(error);
-      // Return empty array to prevent queries from running
-      return {queryKeys: [], validationError: errorMessage};
+      return {queryRequests: [], validationError: errorMessage};
     }
   }, [filteredWidget, organization, pageFilters, limit, cursor]);
 
-  const createQueryFn = useCallback(
-    (useSessionAPI: boolean) =>
-      async (context: any): Promise<ApiResult<SessionApiResponse>> => {
-        const queryParams = context.queryKey[1].query;
-
-        const fetchFn = async () => {
-          if (useSessionAPI) {
-            return doSessionsRequest(api, queryParams);
-          }
-          return doReleaseHealthRequest(api, queryParams);
-        };
-
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchFn();
-                  resolve(result);
-                } catch (error) {
-                  reject(error instanceof Error ? error : new Error(String(error)));
-                }
-              },
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        return fetchFn();
-      },
-    [api, queue]
-  );
-
   const queryResults = useQueries({
-    queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
-      queryKey,
-      queryFn: createQueryFn(useSessionAPI),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+    queries: queryRequests.map(requestData => {
+      const baseOptions = requestData.useSessionAPI
+        ? sessionsApiOptions(requestData)
+        : releaseHealthApiOptions(requestData);
+
+      return queryOptions({
+        ...baseOptions,
+        staleTime: getWidgetStaleTime(pageFilters),
+        queryFn: (context): Promise<ApiResponse<SessionApiResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<SessionApiResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<SessionApiResponse>(context);
+        },
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
   const transformedData = (() => {
@@ -361,7 +306,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     }
 
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
     const errorMessage = error
       ? error.responseJSON?.detail
@@ -385,12 +330,11 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = q.data.json;
       rawData[i] = responseData;
 
       const tableData = ReleasesConfig.transformTable?.(
@@ -411,8 +355,8 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
       tableResults.push(transformedDataItem);
 
-      // Get page links from response meta
-      responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
+      // Get page links from response headers
+      responsePageLinks = q.data.headers.Link ?? undefined;
     });
 
     // Memoize raw data to prevent unnecessary rerenders

@@ -44,7 +44,7 @@ export function BreadcrumbDropdown({
 
   if (!hasMenu) {
     return (
-      <Button priority="link">
+      <Button variant="link">
         <Flex gap="sm" align="center">
           <Text bold={false}>{name || route.name} </Text>
           {isLast ? null : <Divider />}
@@ -131,7 +131,7 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
       {flexProps => (
         <OverlayTrigger.Button
           {...mergeProps(props, flexProps)}
-          priority="link"
+          variant="link"
           showChevron={false}
           onPointerEnter={handleOpen}
           onPointerLeave={queueMenuClose}
