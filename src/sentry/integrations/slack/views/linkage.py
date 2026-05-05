@@ -51,7 +51,12 @@ class SlackIdentityLinkageView(SlackLinkageView, IdentityLinkageView, ABC):
                 'integration is required for linking (params must include "integration_id")'
             )
         respond_to_slack_command(
-            self.command_response, integration, external_id, params.get("response_url")
+            self.command_response,
+            integration,
+            external_id,
+            params.get("response_url"),
+            channel_id=params.get("channel_id"),
+            thread_ts=params.get("thread_ts"),
         )
 
     @property

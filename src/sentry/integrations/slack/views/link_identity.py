@@ -7,7 +7,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.utils.notifications import SlackCommandResponse
 from sentry.integrations.slack.views.linkage import SlackIdentityLinkageView
-from sentry.middleware.integrations.tasks import route_slack_seer_event, update_linking_message
+from sentry.middleware.integrations.tasks import route_slack_seer_event
 from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
 from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
 from sentry.seer.entrypoints.types import SeerEntrypointKey
@@ -27,6 +27,7 @@ def build_linking_url(
     slack_id: str | None,
     channel_id: str | None,
     response_url: str | None,
+    thread_ts: str | None = None,
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-link-identity",
@@ -34,6 +35,7 @@ def build_linking_url(
         slack_id=slack_id,
         channel_id=channel_id,
         response_url=response_url,
+        thread_ts=thread_ts,
     )
 
 
@@ -62,7 +64,6 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
-        super().notify_on_success(external_id, params, integration)
         if integration is None:
             return
 
@@ -71,17 +72,14 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
             integration_id=integration.id,
             user_ext_id=external_id,
         )
+
         if cached is None:
+            super().notify_on_success(external_id, params, integration)
             return
 
-        if response_url := cached.get("response_url"):
-            update_linking_message.apply_async(
-                kwargs={
-                    "response_url": response_url,
-                    "integration_id": cached["integration_id"],
-                    "slack_user_id": cached["slack_user_id"],
-                }
-            )
+        super().notify_on_success(
+            external_id, {**params, "response_url": cached.get("response_url")}, integration
+        )
 
         route_slack_seer_event.apply_async(
             kwargs={
@@ -93,5 +91,5 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
                 "message_ts": cached["message_ts"],
                 "event_type": cached["event_type"],
                 "message_text": cached["message_text"],
-            }
+            },
         )
