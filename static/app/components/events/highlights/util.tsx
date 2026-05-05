@@ -164,9 +164,7 @@ export function getHighlightTagData({
     subtree: {},
     meta: tagMap[tagKey]?.meta ?? {},
     value:
-      tagMap[tagKey] !== undefined &&
-      tagMap[tagKey] !== null &&
-      Object.hasOwn(tagMap[tagKey]!, 'value')
+      tagMap[tagKey] && Object.hasOwn(tagMap[tagKey], 'value')
         ? tagMap[tagKey]?.value
         : EMPTY_HIGHLIGHT_DEFAULT,
     originalTag: tagMap[tagKey] ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
