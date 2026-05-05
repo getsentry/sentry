@@ -88,6 +88,7 @@ export function SeerProjectTable() {
   const {
     data: autofixSettingsByProjectId,
     isPending: isPendingSettings,
+    hasNextPage: hasNextSettingsPage,
     isError: isErrorSettings,
   } = result;
 
@@ -235,15 +236,12 @@ export function SeerProjectTable() {
     return filtered;
   }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
 
-  if (fetchingProjects || isPendingSettings) {
-    return <LoadingIndicator />;
-  }
-
-  if (projectFetchError || isErrorSettings) {
-    return <LoadingError />;
-  }
-
-  if (projects.length === 0) {
+  if (
+    !fetchingProjects &&
+    !isPendingSettings &&
+    !hasNextSettingsPage &&
+    projects.length === 0
+  ) {
     return (
       <Container display="flex" padding="2xl" border="primary" radius="md">
         <Flex flexGrow={1} justify="center">
@@ -316,7 +314,15 @@ export function SeerProjectTable() {
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
 
-          {filteredProjects.length === 0 ? (
+          {fetchingProjects || isPendingSettings || !hasNextSettingsPage ? (
+            <SimpleTable.Empty>
+              <LoadingIndicator />
+            </SimpleTable.Empty>
+          ) : projectFetchError || isErrorSettings ? (
+            <SimpleTable.Empty>
+              <LoadingError />
+            </SimpleTable.Empty>
+          ) : filteredProjects.length === 0 ? (
             <SimpleTable.Empty>
               {searchTerm
                 ? agentFilter
