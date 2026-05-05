@@ -67,11 +67,11 @@ export default function SeerAutomationTrial() {
       return;
     }
 
-    // // If you've already got Seer, then go to settings and you should see the new ones.
-    // if (organization.features.includes('seat-based-seer-enabled')) {
-    //   navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
-    //   return;
-    // }
+    // If you've already got Seer, then go to settings and you should see the new ones.
+    if (organization.features.includes('seat-based-seer-enabled')) {
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
+      return;
+    }
 
     // Else you don't yet have the new seer plan, then stay here and click to start a trial.
   }, [navigate, organization.features, organization.slug, organization]);

@@ -17,6 +17,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/details/`,
           title: t('Account Details'),
+          keywords: [t('user settings'), t('account settings')],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
@@ -29,6 +30,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/notifications/`,
           title: t('Notifications'),
+          keywords: [t('weekly report')],
           description: t('Configure what email notifications to receive'),
         },
         {
@@ -73,6 +75,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
+          keywords: [t('slug'), t('org slug'), t('organization slug')],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -80,6 +83,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/stats/`,
           title: t('Stats & Usage'),
+          keywords: [t('data retention'), t('event retention'), t('quota')],
           description: t('View organization stats and usage'),
           id: 'stats',
         },
@@ -104,7 +108,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
-          keywords: ['data scrubbing', 'privacy', 'pii', 'attachments'],
+          keywords: [
+            t('data scrubbing'),
+            t('privacy'),
+            t('pii'),
+            t('attachments'),
+            t('advanced data scrubbing'),
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
           ),
@@ -113,7 +123,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/auth/`,
           title: t('Auth'),
-          keywords: ['sso', 'single sign-on', 'authentication', 'login'],
+          keywords: [t('sso'), t('single sign-on'), t('authentication'), t('login')],
           description: t('Configure single sign-on'),
           id: 'sso',
         },
@@ -226,7 +236,30 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/integrations/`,
           title: t('Integrations'),
-          keywords: ['slack', 'github', 'bitbucket', 'jira', 'azure devops', 'vercel'],
+          keywords: [
+            t('slack'),
+            t('github'),
+            t('gitlab'),
+            t('bitbucket'),
+            t('jira'),
+            t('azure devops'),
+            t('vercel'),
+            t('pagerduty'),
+            t('opsgenie'),
+            t('discord'),
+            t('microsoft teams'),
+            t('msteams'),
+            t('aws lambda'),
+            t('perforce'),
+            t('heroku'),
+            t('splunk'),
+            t('trello'),
+            t('asana'),
+            t('twilio'),
+            t('victorops'),
+            t('segment'),
+            t('code mappings'),
+          ],
           description: t(
             'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
           ),
@@ -243,7 +276,11 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/developer-settings/`,
           title: t('Custom Integrations'),
-          keywords: ['integration', 'developer', 'vercel'],
+          keywords: [
+            t('integration'),
+            t('internal integration'),
+            t('developer settings'),
+          ],
           description: t('Manage custom integrations'),
           id: 'developer-settings',
         },
@@ -257,12 +294,12 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
           title: t('Organization Tokens'),
           keywords: [
-            'auth',
-            'auth token',
-            'auth tokens',
-            'api token',
-            'token',
-            'credentials',
+            t('auth'),
+            t('auth token'),
+            t('auth tokens'),
+            t('api token'),
+            t('token'),
+            t('credentials'),
           ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
@@ -271,12 +308,12 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           path: `${userSettingsPathPrefix}/api/auth-tokens/`,
           title: t('Personal Tokens'),
           keywords: [
-            'auth',
-            'auth token',
-            'auth tokens',
-            'api token',
-            'token',
-            'credentials',
+            t('auth'),
+            t('auth token'),
+            t('auth tokens'),
+            t('api token'),
+            t('token'),
+            t('credentials'),
           ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
