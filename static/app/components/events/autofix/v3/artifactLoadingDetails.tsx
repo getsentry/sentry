@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef, useState, type UIEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -19,22 +19,7 @@ export function ArtifactLoadingDetails({
   loadingMessage,
   blocks,
 }: ArtifactLoadingDetailsProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const bottom = bottomRef.current;
-    if (!defined(container) || !defined(bottom)) {
-      return;
-    }
-
-    if (container.scrollHeight <= container.clientHeight) {
-      return;
-    }
-
-    bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
-  }, [blocks]);
+  const {containerRef, bottomRef, onScrollHandler} = useAutoScroll(blocks);
 
   return (
     <ArtifactDetails>
@@ -44,6 +29,7 @@ export function ArtifactLoadingDetails({
         ref={containerRef}
         maxHeight="200px"
         overflowY="auto"
+        onScroll={onScrollHandler}
       >
         {blocks.map((block, index) => {
           if (block.message.role === 'user') {
@@ -55,6 +41,10 @@ export function ArtifactLoadingDetails({
             return <StyledMarkedText key={index} text={block.message.content} />;
           }
 
+          if (block.message.thinking_content) {
+            return <StyledMarkedText key={index} text={block.message.thinking_content} />;
+          }
+
           return null;
         })}
         <Flex ref={bottomRef} direction="row" gap="md">
@@ -64,6 +54,39 @@ export function ArtifactLoadingDetails({
       </Flex>
     </ArtifactDetails>
   );
+}
+
+function useAutoScroll(blocks: AutofixSection['blocks']) {
+  const [canAutoScroll, setCanAutoScroll] = useState(true);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const bottom = bottomRef.current;
+    if (!canAutoScroll || !defined(container) || !defined(bottom)) {
+      return;
+    }
+
+    if (container.scrollHeight <= container.clientHeight) {
+      return;
+    }
+
+    bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
+  }, [blocks, canAutoScroll]);
+
+  const onScrollHandler: UIEventHandler = useCallback(event => {
+    const {scrollTop, scrollHeight, clientHeight} = event.currentTarget;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 1;
+    setCanAutoScroll(atBottom);
+  }, []);
+
+  return {
+    containerRef,
+    bottomRef,
+    onScrollHandler,
+  };
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
