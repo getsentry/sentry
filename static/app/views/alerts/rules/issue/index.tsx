@@ -157,7 +157,7 @@ type State = DeprecatedAsyncComponent['state'] & {
 };
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
-  return rule != null && Object.hasOwn(rule, 'id');
+  return Object.hasOwn(rule ?? {}, 'id');
 }
 
 /**
