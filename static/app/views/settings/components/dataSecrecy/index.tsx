@@ -2,10 +2,8 @@ import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const schema = z.object({
@@ -15,6 +13,7 @@ const schema = z.object({
 export function DataSecrecy() {
   const organization = useOrganization();
   const canEdit = organization.access.includes('org:write');
+  const mutationOptions = useOrganizationMutationOptions(organization);
 
   return (
     <FieldGroup title={t('Support Access')}>
@@ -22,24 +21,7 @@ export function DataSecrecy() {
         name="allowSuperuserAccess"
         schema={schema}
         initialValue={organization.allowSuperuserAccess}
-        mutationOptions={{
-          mutationFn: (data: Partial<Organization>) =>
-            fetchMutation({
-              url: `/organizations/${organization.slug}/`,
-              method: 'PUT',
-              data,
-            }),
-          onSuccess: (_data, variables) => {
-            addSuccessMessage(
-              variables.allowSuperuserAccess
-                ? t('Successfully allowed support access.')
-                : t('Successfully removed support access.')
-            );
-          },
-          onError: () => {
-            addErrorMessage(t('Unable to save changes.'));
-          },
-        }}
+        mutationOptions={mutationOptions}
       >
         {field => (
           <field.Layout.Row
