@@ -250,7 +250,7 @@ export default function SentryApplicationDetails() {
         method: 'POST',
       }),
     onMutate: () => {
-      addLoadingMessage();
+      addLoadingMessage(t('Adding token...'));
     },
     onSuccess: () => {
       addSuccessMessage(t('Token successfully added.'));
@@ -267,7 +267,7 @@ export default function SentryApplicationDetails() {
         method: 'DELETE',
       }),
     onMutate: () => {
-      addLoadingMessage();
+      addLoadingMessage(t('Removing token...'));
     },
     onSuccess: () => {
       addSuccessMessage(t('Token successfully deleted.'));
@@ -510,6 +510,7 @@ export default function SentryApplicationDetails() {
               Record<keyof SentryApplicationFormData, {message: string}>
             >
           );
+          return;
         }
 
         addErrorMessage(
