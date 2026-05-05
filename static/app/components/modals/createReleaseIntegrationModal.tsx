@@ -108,7 +108,7 @@ function CreateReleaseIntegrationModal({
         </form.AppField>
       </Body>
       <Footer>
-        <Flex gap="sm" justify="end">
+        <Flex gap="md" justify="end">
           <Button
             onClick={() => {
               onCancel();
