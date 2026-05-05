@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -103,9 +104,19 @@ function setupMocks() {
   ConfigStore.set('user', UserFixture());
   ConfigStore.set('customerDomain', null);
 
+  const project = ProjectFixture({hasAccess: false});
+
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/broadcasts/',
     body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
+    body: [project],
+  });
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/',
+    body: project,
   });
   MockApiClient.addMockResponse({
     url: '/assistant/',
