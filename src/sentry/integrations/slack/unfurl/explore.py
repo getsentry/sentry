@@ -4,6 +4,7 @@ import html
 import logging
 import re
 from collections.abc import Callable, Mapping
+from datetime import timedelta
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -30,6 +31,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
+from sentry.utils.dates import parse_stats_period, parse_timestamp
 
 _logger = logging.getLogger(__name__)
 
@@ -37,6 +39,46 @@ DEFAULT_PERIOD = "14d"
 TOP_N = 5
 
 EXPLORE_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
+
+# Mirrors the frontend's MINIMUM_INTERVAL ladder in
+# static/app/utils/useChartInterval.tsx. All Explore views call
+# `useChartInterval()` with the default `USE_SMALLEST` strategy, so the
+# interval the UI picks when none is in the URL is exactly the value this
+# ladder returns for the selected time range. Keep the thresholds and
+# intervals in sync with that file so unfurled charts bucket data the same
+# way as the live Explore UI.
+_DEFAULT_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
+    (timedelta(days=30), "3h"),
+    (timedelta(days=14), "1h"),
+    (timedelta(days=4), "30m"),
+    (timedelta(hours=48), "10m"),
+    (timedelta(hours=12), "5m"),
+    (timedelta(0), "1m"),
+)
+
+
+def _query_time_range(params: QueryDict) -> timedelta:
+    """Return the selected time range, mirroring the frontend's
+    `getDiffInMinutes`: prefer absolute start/end, otherwise parse statsPeriod."""
+    start = params.get("start")
+    end = params.get("end")
+    if start and end:
+        try:
+            return max(parse_timestamp(end) - parse_timestamp(start), timedelta(0))
+        except (ValueError, TypeError):
+            pass
+
+    period = params.get("statsPeriod") or DEFAULT_PERIOD
+    parsed = parse_stats_period(period)
+    return parsed if parsed is not None else timedelta(0)
+
+
+def _default_interval_for_query(params: QueryDict) -> str:
+    diff = _query_time_range(params)
+    for threshold, interval in _DEFAULT_INTERVAL_LADDER:
+        if diff >= threshold:
+            return interval
+    return "1m"
 
 
 def _aggregate_sorts_are_valid(
@@ -110,6 +152,12 @@ def _build_timeseries_query(
 
     if sort_values:
         out.setlist("sort", sort_values)
+
+    if not out.get("statsPeriod") and not out.get("start"):
+        out["statsPeriod"] = DEFAULT_PERIOD
+
+    if not out.get("interval"):
+        out["interval"] = _default_interval_for_query(out)
 
     return out
 
@@ -308,9 +356,6 @@ def _unfurl_explore(
                 # Default to descending by the first yAxis, matching Explore's
                 # defaultAggregateSortBys behavior
                 params.setlist("sort", [f"-{y_axes[0]}"])
-
-        if not params.get("statsPeriod") and not params.get("start"):
-            params["statsPeriod"] = DEFAULT_PERIOD
 
         params["dataset"] = explore_dataset.value
         params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
