@@ -66,12 +66,14 @@ from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .importchunk import *  # NOQA
+from .issuelabel import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
 from .organizationavatarreplica import *  # NOQA
 from .organizationcontributors import *  # NOQA
+from .organizationlabel import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmemberinvite import *  # NOQA
