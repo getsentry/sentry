@@ -61,7 +61,7 @@ describe('ReplayBulkViewedActions', () => {
       },
     }
   );
-  const queryKey: ApiQueryKey = [{infinite: false, version: 'v2'}, apiUrl];
+  const queryKey: ApiQueryKey = [apiUrl, {}, {infinite: false}];
   const queryKeyRef = {current: queryKey};
 
   const renderWithOrganization = (

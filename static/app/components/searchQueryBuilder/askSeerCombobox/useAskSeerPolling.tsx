@@ -93,7 +93,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
-        const sessionData = query.state.data?.[0]?.session ?? null;
+        const sessionData = query.state.data?.json?.session ?? null;
         if (isPolling(sessionData, waitingForResponse)) {
           return POLL_INTERVAL;
         }

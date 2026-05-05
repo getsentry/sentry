@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -43,30 +43,25 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
       });
     },
     onMutate: (data: {codeReviewTriggers?: string[]; enabledCodeReview?: boolean}) => {
-      const previous =
-        // eslint-disable-next-line @sentry/no-query-data-type-parameters
-        queryClient.getQueryData<
-          [RepositoryWithSettings, string | undefined, Response | undefined]
-        >(repoQueryKey);
+      const previous = getApiQueryData<RepositoryWithSettings>(queryClient, repoQueryKey);
       if (previous) {
-        const [repo, statusText, resp] = previous;
-        queryClient.setQueryData(repoQueryKey, [
-          {
-            ...repo,
-            settings: {
-              ...repo.settings,
-              ...data,
-            },
-          },
-          statusText,
-          resp,
-        ]);
+        setApiQueryData<RepositoryWithSettings>(queryClient, repoQueryKey, {
+          ...previous,
+          settings: {
+            ...previous.settings,
+            ...data,
+          } as RepositoryWithSettings['settings'],
+        });
       }
       return {previous};
     },
     onError: (_error, _data, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(repoQueryKey, context.previous);
+        setApiQueryData<RepositoryWithSettings>(
+          queryClient,
+          repoQueryKey,
+          context.previous
+        );
       }
     },
     onSettled: () => {

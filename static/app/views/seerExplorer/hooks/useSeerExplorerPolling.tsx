@@ -66,7 +66,7 @@ export const useSeerExplorerPolling = ({
       if (
         isPolling(
           runId,
-          query.state.data?.[0]?.session,
+          query.state.data?.json?.session,
           isMutatePending,
           query.state.status === 'error'
         )
