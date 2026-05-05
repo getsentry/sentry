@@ -139,7 +139,7 @@ def export_chunk_to_stored_blobs(
     batch_size: int = SNUBA_MAX_RESULTS,
 ) -> AssembleChunkResult:
     """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
-    with sentry_sdk.start_span(op="export.chunk", description=f"offset={offset}"):
+    with sentry_sdk.start_span(op="export.chunk", name=f"offset={offset}"):
         output_mode = OutputMode.from_value(data_export.export_format)
         processor = get_processor(
             data_export,
@@ -299,7 +299,7 @@ def assemble_download(
     # The API response to export the data contains the ID which you can use
     # to filter the GCP logs
     extra: dict[str, Any] = {"data_export_id": data_export_id}
-    with sentry_sdk.start_span(op="assemble", description="Async Export Data"):
+    with sentry_sdk.start_span(op="assemble", name="Async Export Data"):
         first_page = offset == 0
         data_export = _fetch_exported_data_req_obj(data_export_id, first_page, extra)
         if data_export is None:
@@ -393,7 +393,7 @@ def export_data_to_stored_blobs_sync(
     sentry_sdk.set_tag("download_type", "sync")
     sentry_sdk.set_context("data_export", extra)
     _set_data_on_scope(data_export)
-    with sentry_sdk.start_span(op="assemble", description="Sync Export Data"):
+    with sentry_sdk.start_span(op="assemble", name="Sync Export Data"):
         logger.info("dataexport.start", extra=extra)
         metrics.incr(
             "dataexport.start",

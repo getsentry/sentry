@@ -219,8 +219,8 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             token = PageToken()
             token.ParseFromString(self.page_token)
             request.page_token.CopyFrom(token)
-        with sentry_sdk.start_span(op="snuba.rpc", description="ExportTraceItems") as span:
-            span.set_data("dataset", "logs")
+        with sentry_sdk.start_span(op="snuba.rpc", name="ExportTraceItems") as span:
+            span.set_data("dataset", self.explore_query["dataset"])
             span.set_data("limit", limit)
             span.set_data("has_page_token", self.page_token is not None)
             http_resp = export_logs_rpc(request)
