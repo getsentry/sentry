@@ -14,7 +14,6 @@ from sentry.integrations.jira.webhooks.base import JiraWebhookBase
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.utils.atlassian_connect import (
-    AtlassianConnectNetworkError,
     AtlassianConnectTokenValidator,
     AtlassianConnectValidationError,
 )
@@ -60,12 +59,6 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 return self.respond(
                     {"detail": "Request Token Validation Failed"},
                     status=status.HTTP_400_BAD_REQUEST,
-                )
-            except AtlassianConnectNetworkError as e:
-                lifecycle.record_failure(e, create_issue=False)
-                return self.respond(
-                    {"detail": "Failed to verify installation with Atlassian Connect"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
             data = JiraIntegrationProvider().build_integration(state)
