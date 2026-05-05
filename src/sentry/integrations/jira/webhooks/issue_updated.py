@@ -14,10 +14,12 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
-from sentry.integrations.utils.scope import bind_org_context_from_integration
-from sentry.organizations.services.organization import organization_service
+from sentry.integrations.utils.scope import (
+    bind_org_context_from_integration,
+    get_org_integrations,
+)
+from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -35,17 +37,17 @@ def _payload_logging_enabled(integration_id: int) -> bool:
     `jira-issue-updated-payload-logging` feature enabled.
 
     A Jira integration can be shared by multiple Sentry orgs, and
-    `features.has` needs an `Organization`, so we have to walk the linked
-    `OrganizationIntegration` rows and look each org up.
+    `features.has` needs an `Organization`, so we walk the linked
+    `OrganizationIntegration` rows and batch the org lookup through the
+    region-silo cache (the endpoint is `@cell_silo_endpoint`, so the
+    region-cache path is always available) to avoid issuing N RPCs on every
+    webhook.
     """
-    contexts = integration_service.organization_contexts(integration_id=integration_id)
-    for oi in contexts.organization_integrations:
-        org = organization_service.get_organization_by_id(
-            id=oi.organization_id, include_teams=False, include_projects=False
-        )
-        if org and features.has(PAYLOAD_LOGGING_FEATURE, org.organization):
-            return True
-    return False
+    org_ids = [oi.organization_id for oi in get_org_integrations(integration_id)]
+    if not org_ids:
+        return False
+    organizations = Organization.objects.get_many_from_cache(org_ids)
+    return any(features.has(PAYLOAD_LOGGING_FEATURE, org) for org in organizations)
 
 
 @cell_silo_endpoint
