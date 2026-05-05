@@ -1126,7 +1126,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         if widget.display_type in DashboardWidgetDisplayTypes.DEPRECATED_TYPES:
             raise serializers.ValidationError(
                 {
-                    "display_type": f"{DashboardWidgetDisplayTypes.get_type_name(widget.display_type)} is no longer a supported display type. Please delete and recreate this widget."
+                    "display_type": f"{DashboardWidgetDisplayTypes.get_type_name(widget.display_type)} is no longer a supported display type. Please use `area` instead."
                 }
             )
 
