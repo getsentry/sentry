@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -40,14 +41,14 @@ export function SnapshotPrCommentsToggle() {
 
   const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
 
-  const mutationOptions = {
+  const projectMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Schema>) =>
       fetchMutation<Project>({
         url: projectEndpoint,
         method: 'PUT',
         data,
       }),
-    onMutate: (data: Partial<Schema>) => {
+    onMutate: data => {
       const previous = ProjectsStore.getById(project.id);
       ProjectsStore.onUpdateSuccess({id: project.id, ...data});
       return () => {
@@ -56,11 +57,11 @@ export function SnapshotPrCommentsToggle() {
         }
       };
     },
-    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
-    onError: (_error: unknown, _variables: Partial<Schema>, rollback?: () => void) => {
+    onSuccess: response => ProjectsStore.onUpdateSuccess(response),
+    onError: (_error, _variables, rollback) => {
       rollback?.();
     },
-  };
+  });
 
   const postConditionFields = [
     {
@@ -95,7 +96,7 @@ export function SnapshotPrCommentsToggle() {
         name="preprodSnapshotPrCommentsEnabled"
         schema={schema}
         initialValue={enabled}
-        mutationOptions={mutationOptions}
+        mutationOptions={projectMutationOptions}
       >
         {field => (
           <field.Layout.Row
@@ -117,7 +118,7 @@ export function SnapshotPrCommentsToggle() {
               name={name}
               schema={schema}
               initialValue={initialValue}
-              mutationOptions={mutationOptions}
+              mutationOptions={projectMutationOptions}
             >
               {field => (
                 <field.Layout.Row label={label} hintText={hintText}>
