@@ -158,6 +158,15 @@ function ManageDashboards() {
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
+  const isAllDashboards = hasPrebuiltDashboards && urlFilter === DashboardFilter.ALL;
+  const customDashboardsLabel = hasPrebuiltDashboards
+    ? t('Custom Dashboards')
+    : t('All Dashboards');
+  const pageTitle = isOnlyPrebuilt
+    ? PREBUILT_DASHBOARD_LABEL
+    : isAllDashboards
+      ? t('All Dashboards')
+      : customDashboardsLabel;
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
@@ -195,7 +204,9 @@ function ManageDashboards() {
           dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         ...(isOnlyPrebuilt
           ? {filter: DashboardFilter.ONLY_PREBUILT}
-          : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
+          : isAllDashboards
+            ? {}
+            : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
       },
     }),
     select: selectJsonWithHeaders,
@@ -601,10 +612,7 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <SentryDocumentTitle
-        title={isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
-        orgSlug={organization.slug}
-      >
+      <SentryDocumentTitle title={pageTitle} orgSlug={organization.slug}>
         <ErrorBoundary>
           {isError ? (
             <Stack flex={1} padding="2xl 3xl">
@@ -616,7 +624,7 @@ function ManageDashboards() {
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
                     <Layout.Title>
-                      {isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
+                      {pageTitle}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
                         title={

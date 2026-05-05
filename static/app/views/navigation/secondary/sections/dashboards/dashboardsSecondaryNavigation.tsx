@@ -31,6 +31,7 @@ export function DashboardsSecondaryNavigation() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = urlFilter === DashboardFilter.ONLY_PREBUILT;
+  const isAllDashboards = urlFilter === DashboardFilter.ALL;
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
     `${baseUrl}/`,
     location.pathname,
@@ -45,18 +46,29 @@ export function DashboardsSecondaryNavigation() {
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="dashboards-all">
           <SecondaryNavigation.List>
+            {hasPrebuiltDashboards ? (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/?filter=${DashboardFilter.ALL}`}
+                  isActive={isOnDashboardsList && isAllDashboards}
+                  analyticsItemName="dashboards_all_combined"
+                >
+                  {t('All Dashboards')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            ) : null}
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/`}
                 end
                 isActive={
                   hasPrebuiltDashboards
-                    ? isOnDashboardsList && !isOnlyPrebuilt
+                    ? isOnDashboardsList && !isOnlyPrebuilt && !isAllDashboards
                     : undefined
                 }
                 analyticsItemName="dashboards_all"
               >
-                {t('All Dashboards')}
+                {hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             {hasPrebuiltDashboards ? (
