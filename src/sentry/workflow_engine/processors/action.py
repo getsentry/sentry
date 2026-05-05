@@ -30,7 +30,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
+from sentry.workflow_engine.types import ActionId, WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context, scopedstats
 
 logger = log_context.get_logger(__name__)
@@ -260,7 +260,7 @@ def fire_actions(
     actions: BaseQuerySet[Action],
     event_data: WorkflowEventData,
     workflow_uuid_map: dict[WorkflowId, str],
-    action_to_workflow_id: dict[int, WorkflowId],
+    action_to_workflow_id: dict[ActionId, WorkflowId],
 ) -> None:
     deduped_actions = get_unique_active_actions(actions, event_data.group)
 
@@ -274,7 +274,7 @@ def fire_actions(
 
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> tuple[BaseQuerySet[Action], dict[int, WorkflowId]]:
+) -> tuple[BaseQuerySet[Action], dict[ActionId, WorkflowId]]:
     """
     Returns actions associated with the provided DataConditionGroups, excluding
     those that have been recently fired, along with a mapping of action_id to
@@ -323,7 +323,7 @@ def filter_recently_fired_workflow_actions(
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
     # Build a mapping of action_id -> workflow_id (pick one arbitrarily but deterministically)
-    action_to_workflow_id: dict[int, WorkflowId] = {
+    action_to_workflow_id: dict[ActionId, WorkflowId] = {
         action_id: min(wf_ids) for action_id, wf_ids in action_to_workflows_ids.items()
     }
 
