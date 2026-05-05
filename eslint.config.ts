@@ -416,7 +416,6 @@ export default typescript.config([
       'wrap-iife': ['error', 'any'],
       yoda: 'error',
       'no-cond-assign': ['error', 'always'],
-
       'no-prototype-builtins': 'error',
     },
   },
