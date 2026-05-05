@@ -6,7 +6,7 @@ describe('calculateLogsTableMinWidth', () => {
     ['576px', 4],
     ['704px', 6],
     ['832px', 8],
-  ])('returns length %d when given %d fields', (expected, fields) => {
+  ])('returns length %s when given %d fields', (expected, fields) => {
     expect(calculateLogsTableMinWidth(fields)).toBe(expected);
   });
 });
