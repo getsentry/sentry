@@ -366,6 +366,29 @@ class LLMIssueDetectionTest(TestCase):
             assert len(seer_request.traces) == expected
             assert seer_request.plan_tier == plan_tier
 
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
+    @patch(
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
+    )
+    def test_traces_per_invocation_option_override(
+        self, mock_get_transactions, mock_seer_request, mock_budget_request
+    ):
+        mock_budget_request.return_value = self._budget_ok_response()
+        mock_get_transactions.return_value = [
+            TraceMetadataWithSpanCount(trace_id=f"t{i}", span_count=50) for i in range(4)
+        ]
+        mock_seer_request.return_value = Mock(status=202)
+
+        with self.options(
+            {"issue-detection.llm-detection.traces-per-invocation": {"team": 2, "business": 4}}
+        ):
+            for plan_tier, expected in [("team", 2), ("business", 4)]:
+                detect_llm_issues_for_org(self.organization.id, plan_tier=plan_tier)
+                seer_request = mock_seer_request.call_args[0][0]
+                assert len(seer_request.traces) == expected
+
 
 class TestGetValidTraceIdsBySpanCount:
     @pytest.mark.parametrize(

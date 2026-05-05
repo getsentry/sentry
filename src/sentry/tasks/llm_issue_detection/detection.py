@@ -11,7 +11,7 @@ from django.conf import settings
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import VALID_PLATFORMS, ObjectStatus
 from sentry.issues.grouptype import (
     AIDetectedCodeHealthGroupType,
@@ -41,7 +41,7 @@ SEER_TIMEOUT_S = 10
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
 MAX_LLM_FIELD_LENGTH = 2000
-TRACES_PER_INVOCATION: dict[str, int] = {"team": 1, "business": 3}
+DEFAULT_TRACES_PER_INVOCATION = 1
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -316,7 +316,10 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     if not evidence_traces:
         return
 
-    traces_to_send = evidence_traces[: TRACES_PER_INVOCATION.get(plan_tier, 1)]
+    traces_per_invocation = options.get("issue-detection.llm-detection.traces-per-invocation")
+    traces_to_send = evidence_traces[
+        : traces_per_invocation.get(plan_tier, DEFAULT_TRACES_PER_INVOCATION)
+    ]
 
     sentry_sdk.metrics.count(
         "llm_issue_detection.seer_request",
