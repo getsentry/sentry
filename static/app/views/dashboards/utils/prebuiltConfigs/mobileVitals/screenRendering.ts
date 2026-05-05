@@ -3,13 +3,13 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {SCREEN_RENDERING_TABLE_CONDITION} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
+import {SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 import {SCREEN_RENDERING_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const SCREEN_RENDERING_TABLE: Widget = {
+const SPAN_OPERATIONS_TABLE: Widget = {
   id: 'span-operations-table',
-  title: t('Screen Rendering'),
+  title: t('Span Operations'),
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -18,7 +18,9 @@ const SCREEN_RENDERING_TABLE: Widget = {
     {
       name: '',
       fields: [
-        SpanFields.TRANSACTION,
+        SpanFields.SPAN_OP,
+        SpanFields.NAME,
+        SpanFields.SPAN_DESCRIPTION,
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_SLOW_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
         `avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`,
@@ -28,9 +30,16 @@ const SCREEN_RENDERING_TABLE: Widget = {
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
         `avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`,
       ],
-      columns: [SpanFields.TRANSACTION],
-      fieldAliases: [t('Transaction'), 'Slow Frame %', 'Frozen Frame %', 'Delay'],
-      conditions: SCREEN_RENDERING_TABLE_CONDITION,
+      columns: [SpanFields.SPAN_OP, SpanFields.NAME, SpanFields.SPAN_DESCRIPTION],
+      fieldAliases: [
+        t('Operation'),
+        t('Span Name'),
+        t('Span Description'),
+        'Slow Frame %',
+        'Frozen Frame %',
+        'Delay',
+      ],
+      conditions: SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION,
       orderby: `-avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`,
     },
   ],
@@ -47,7 +56,7 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
   dateCreated: '',
   title: SCREEN_RENDERING_DASHBOARD_TITLE,
   projects: [],
-  widgets: [SCREEN_RENDERING_TABLE],
+  widgets: [SPAN_OPERATIONS_TABLE],
   filters: {
     globalFilter: [
       {
