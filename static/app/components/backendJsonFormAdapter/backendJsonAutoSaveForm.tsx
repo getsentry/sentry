@@ -15,7 +15,7 @@ import {
 } from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
-import {getDefaultForField, getZodType, transformChoices} from './utils';
+import {getDefaultForField, getDisabledProp, getZodType, transformChoices} from './utils';
 
 interface BackendJsonFormAdapterProps<
   TField extends JsonFormAdapterFieldConfig,
@@ -66,7 +66,7 @@ export function BackendJsonAutoSaveForm<
                       fieldApi.handleChange(newValue);
                     }}
                     indicator={indicator}
-                    disabled={field.disabled || baseProps.disabled}
+                    disabled={!!getDisabledProp(field) || baseProps.disabled}
                   />
                 </fieldApi.Layout.Row>
                 <TableBody
@@ -74,7 +74,7 @@ export function BackendJsonAutoSaveForm<
                   value={fieldApi.state.value}
                   onUpdate={fieldApi.handleChange}
                   onSave={() => baseProps.onBlur()}
-                  disabled={field.disabled || baseProps.disabled}
+                  disabled={!!getDisabledProp(field) || baseProps.disabled}
                 />
               </Stack>
             )}
@@ -105,14 +105,14 @@ export function BackendJsonAutoSaveForm<
                     config={field}
                     value={fieldApi.state.value}
                     onDelete={handleChangeAndSave}
-                    disabled={field.disabled || baseProps.disabled}
+                    disabled={!!getDisabledProp(field) || baseProps.disabled}
                   />
                   <ProjectMapperAddRow
                     config={field}
                     value={fieldApi.state.value}
                     onAdd={handleChangeAndSave}
                     indicator={indicator}
-                    disabled={field.disabled || baseProps.disabled}
+                    disabled={!!getDisabledProp(field) || baseProps.disabled}
                   />
                   <ProjectMapperNextButton config={field} value={fieldApi.state.value} />
                 </Stack>
@@ -144,7 +144,7 @@ export function BackendJsonAutoSaveForm<
                       setLabels(prev => ({...prev, [key]: label}));
                     }}
                     onChange={fieldApi.handleChange}
-                    disabled={field.disabled || baseProps.disabled}
+                    disabled={!!getDisabledProp(field) || baseProps.disabled}
                     indicator={indicator}
                   />
                 </fieldApi.Layout.Row>
@@ -154,7 +154,7 @@ export function BackendJsonAutoSaveForm<
                   labels={labels}
                   onUpdate={fieldApi.handleChange}
                   onSave={() => baseProps.onBlur()}
-                  disabled={field.disabled || baseProps.disabled}
+                  disabled={!!getDisabledProp(field) || baseProps.disabled}
                 />
               </Stack>
             )}
@@ -179,7 +179,7 @@ export function BackendJsonAutoSaveForm<
                 <fieldApi.Switch
                   checked={fieldApi.state.value}
                   onChange={fieldApi.handleChange}
-                  disabled={field.disabled}
+                  disabled={getDisabledProp(field)}
                 />
               </fieldApi.Layout.Row>
             );
@@ -190,7 +190,7 @@ export function BackendJsonAutoSaveForm<
                   value={fieldApi.state.value}
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
-                  disabled={field.disabled}
+                  disabled={getDisabledProp(field)}
                 />
               </fieldApi.Layout.Row>
             );
@@ -201,7 +201,7 @@ export function BackendJsonAutoSaveForm<
                   value={fieldApi.state.value}
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
-                  disabled={field.disabled}
+                  disabled={getDisabledProp(field)}
                 />
               </fieldApi.Layout.Row>
             );
@@ -213,7 +213,7 @@ export function BackendJsonAutoSaveForm<
                   value={fieldApi.state.value}
                   onChange={fieldApi.handleChange}
                   options={transformChoices(field.choices)}
-                  disabled={field.disabled}
+                  disabled={getDisabledProp(field)}
                 />
               </fieldApi.Layout.Row>
             );
@@ -224,7 +224,7 @@ export function BackendJsonAutoSaveForm<
                   value={fieldApi.state.value}
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
-                  disabled={field.disabled}
+                  disabled={getDisabledProp(field)}
                 />
               </fieldApi.Layout.Row>
             );
@@ -238,7 +238,7 @@ export function BackendJsonAutoSaveForm<
                   value={fieldApi.state.value}
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
-                  disabled={field.disabled}
+                  disabled={getDisabledProp(field)}
                   type={
                     field.type === 'string' || field.type === 'text' ? 'text' : field.type
                   }

@@ -163,6 +163,35 @@ describe('BackendJsonSubmitForm', () => {
 
       expect(screen.getByRole('textbox', {name: /title/i})).toBeDisabled();
     });
+
+    it('converts disabledReason to disabled string', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'title',
+              type: 'string',
+              label: 'Title',
+              disabledReason: 'Not editable right now',
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Save"
+        />,
+        {organization: org}
+      );
+
+      expect(screen.getByRole('textbox', {name: /title/i})).toBeDisabled();
+
+      const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+      expect(lockIcon).toBeInTheDocument();
+
+      await userEvent.hover(lockIcon);
+
+      await waitFor(() => {
+        expect(screen.getByText('Not editable right now')).toBeInTheDocument();
+      });
+    });
   });
 
   describe('submission', () => {

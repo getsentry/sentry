@@ -134,4 +134,31 @@ describe('BackendJsonAutoSaveForm', () => {
 
     expect(screen.getByRole('checkbox')).toBeDisabled();
   });
+
+  it('converts disabledReason to disabled string', async () => {
+    render(
+      <BackendJsonAutoSaveForm
+        field={{
+          name: 'sync_enabled',
+          type: 'boolean',
+          label: 'Enable Sync',
+          disabledReason: 'Feature not available',
+        }}
+        initialValue={false}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    await userEvent.hover(lockIcon);
+
+    await waitFor(() => {
+      expect(screen.getByText('Feature not available')).toBeInTheDocument();
+    });
+  });
 });
