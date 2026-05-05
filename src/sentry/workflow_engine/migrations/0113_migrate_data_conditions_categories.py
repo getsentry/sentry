@@ -86,15 +86,6 @@ def migrate_data_condition_issue_category(
                 front_end_comparison: dict[str, object] = {"value": 14}
                 mobile_comparison: dict[str, object] = {"value": 15}
 
-                if logic_type == "none":
-                    DataConditionGroup.objects.filter(id=group_id).update(logic_type="all")
-                    dcg_logic_type_cache[group_id] = "all"
-
-                    comparison["include"] = False
-                    http_client_comparison["include"] = False
-                    front_end_comparison["include"] = False
-                    mobile_comparison["include"] = False
-
                 DataCondition.objects.create(
                     type="issue_category",
                     condition_result=True,

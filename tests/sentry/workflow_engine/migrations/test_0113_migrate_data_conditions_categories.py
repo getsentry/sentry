@@ -148,15 +148,13 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
         # (4 NOT DataConditions from 1)
         dc = DataCondition.objects.get(id=self.dc_performance_none.id)
         assert dc.type == "issue_category"
-        assert dc.comparison == {"value": 12, "include": False}
+        assert dc.comparison == {"value": 12}
         new_conditions = DataCondition.objects.filter(
             condition_group=self.dcg_none,
             type="issue_category",
         ).exclude(id=self.dc_performance_none.id)
         assert new_conditions.count() == 3
         assert {c.comparison["value"] for c in new_conditions} == {13, 14, 15}
-        for condition in new_conditions:
-            assert condition.comparison.get("include") is False
         dcg = DataConditionGroup.objects.get(id=self.dcg_none.id)
         assert dcg.logic_type == "all"
 
