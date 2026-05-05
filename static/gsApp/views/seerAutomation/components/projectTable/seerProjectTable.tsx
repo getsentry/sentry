@@ -89,6 +89,7 @@ export function SeerProjectTable() {
     data: autofixSettingsByProjectId,
     isPending: isPendingSettings,
     hasNextPage: hasNextSettingsPage,
+    isFetchingNextPage: isFetchingNextSettingsPage,
     isError: isErrorSettings,
   } = result;
 
@@ -314,8 +315,11 @@ export function SeerProjectTable() {
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
 
-          {fetchingProjects || isPendingSettings || !hasNextSettingsPage ? (
-            <SimpleTable.Empty>
+          {fetchingProjects ||
+          isPendingSettings ||
+          hasNextSettingsPage ||
+          isFetchingNextSettingsPage ? (
+            <SimpleTable.Empty key="loading">
               <LoadingIndicator />
             </SimpleTable.Empty>
           ) : projectFetchError || isErrorSettings ? (
