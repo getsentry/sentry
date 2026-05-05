@@ -3652,22 +3652,6 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Tuning knobs for the periodic open-period-activity cleanup task.
-# time_limit is a wall-clock budget checked *between* batches, so a single
-# batch that exceeds it will still run to completion. Setting it to 0
-# prevents any batches from running.
-register(
-    "workflow_engine.open_period_activity_cleanup.time_limit_seconds",
-    type=Float,
-    default=5.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "workflow_engine.open_period_activity_cleanup.batch_size",
-    type=Int,
-    default=10000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription

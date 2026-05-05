@@ -515,7 +515,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/pull-requests/size-analysis/$artifactId/'
   | '/organizations/$organizationIdOrSlug/pullrequest-details/$repoName/$prNumber/'
   | '/organizations/$organizationIdOrSlug/recent-searches/'
-  | '/organizations/$organizationIdOrSlug/region/'
   | '/organizations/$organizationIdOrSlug/related-issues/'
   | '/organizations/$organizationIdOrSlug/relay_usage/'
   | '/organizations/$organizationIdOrSlug/release-threshold-statuses/'

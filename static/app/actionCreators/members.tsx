@@ -63,7 +63,7 @@ export type IndexedMembersByProject = Record<string, User[]>;
 export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
   return members.reduce<IndexedMembersByProject>((acc, member) => {
     for (const project of member.projects) {
-      if (!acc.hasOwnProperty(project)) {
+      if (!Object.hasOwn(acc, project)) {
         acc[project] = [];
       }
       if (member.user) {
