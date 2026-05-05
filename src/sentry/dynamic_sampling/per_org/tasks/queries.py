@@ -7,7 +7,11 @@ from typing import Any
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.tasks.configuration import (
+    AutomaticDynamicSamplingConfiguration,
+    BaseDynamicSamplingConfiguration,
+    CustomDynamicSamplingProjectConfiguration,
+)
 from sentry.dynamic_sampling.rules.utils import DecisionDropCount, DecisionKeepCount, ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
@@ -105,7 +109,7 @@ def get_eap_organization_volume(
 
 
 def get_eap_project_volumes(
-    config: BaseDynamicSamplingConfiguration,
+    config: AutomaticDynamicSamplingConfiguration | CustomDynamicSamplingProjectConfiguration,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
 ) -> list[ProjectVolumes]:
     organization = config.organization

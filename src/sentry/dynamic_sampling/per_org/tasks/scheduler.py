@@ -106,10 +106,10 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> TelemetryStatus | N
 
     org_volume = get_eap_organization_volume(config)
     if org_volume is None:
-        return TelemetryStatus.NO_VOLUME
+        return TelemetryStatus.NO_ORG_VOLUME
 
     project_volumes = get_eap_project_volumes(config)
     if not project_volumes:
-        return TelemetryStatus.NO_VOLUME
+        return TelemetryStatus.NO_PROJECT_VOLUMES
 
     return None
