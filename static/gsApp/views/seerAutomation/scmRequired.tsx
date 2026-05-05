@@ -11,6 +11,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text, Heading} from '@sentry/scraps/text';
 
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import {Redirect} from 'sentry/components/redirect';
@@ -72,7 +73,11 @@ export default function SeerAutomationSCMRequired() {
     return <LoadingIndicator />;
   }
 
-  if (isError || !supportedIntegrations.length) {
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  if (!supportedIntegrations.length) {
     return (
       <Fragment>
         <SettingsPageHeader
