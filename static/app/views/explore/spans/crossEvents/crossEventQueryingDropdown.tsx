@@ -14,6 +14,7 @@ import {
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
+import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 import {
   getCrossEventDropdownItems,
   makeCrossEvent,
@@ -23,6 +24,7 @@ export function CrossEventQueryingDropdown() {
   const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents();
   const setCrossEvents = useSetQueryParamsCrossEvents();
+  const crossEventDatasetAvailability = useCrossEventDatasetAvailability(organization);
 
   const onAction = (key: Key) => {
     if (typeof key !== 'string' || !isCrossEventType(key)) {
@@ -52,7 +54,7 @@ export function CrossEventQueryingDropdown() {
       {triggerProps => (
         <DropdownMenu
           onAction={onAction}
-          items={getCrossEventDropdownItems(organization)}
+          items={getCrossEventDropdownItems(crossEventDatasetAvailability)}
           isDisabled={isDisabled}
           triggerProps={{
             ...triggerProps,

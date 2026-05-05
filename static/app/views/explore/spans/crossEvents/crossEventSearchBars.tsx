@@ -21,6 +21,7 @@ import {
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import {SpansTabCrossEventMetricsSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventMetricsSearchBar';
 import {SpansTabCrossEventSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBar';
+import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 import {
   getCrossEventDatasetOptions,
   makeCrossEvent,
@@ -31,6 +32,7 @@ export function SpansTabCrossEventSearchBars() {
   const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents();
   const setCrossEvents = useSetQueryParamsCrossEvents();
+  const crossEventDatasetAvailability = useCrossEventDatasetAvailability(organization);
 
   // Using an effect event here to make sure we're reading only the latest props and not
   // firing based off of the cross events changing
@@ -76,7 +78,7 @@ export function SpansTabCrossEventSearchBars() {
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} {...props} prefix={t('with')} />
               )}
-              options={getCrossEventDatasetOptions(organization)}
+              options={getCrossEventDatasetOptions(crossEventDatasetAvailability)}
               onChange={({value: newValue}) => {
                 if (!isCrossEventType(newValue)) return;
 
