@@ -40,7 +40,7 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
                 trace_metrics.append(
                     self.create_trace_metric(
                         "foo",
-                        100 * i,
+                        120 * (i + 1),
                         "counter",
                         timestamp=self.start + timedelta(hours=hour),
                     )
@@ -53,7 +53,7 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
                 "end": self.start + timedelta(hours=6),
                 "yAxis": "value",
                 "xBuckets": 6,
-                "yBuckets": 5,
+                "yBuckets": 6,
                 "query": "metric.name:foo metric.type:counter",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -62,11 +62,11 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
         assert response.status_code == 200, response.content
         expected_response = []
         for time in range(6):
-            for yAxis in range(5):
+            for yAxis in range(6):
                 expected_response.append(
                     {
                         "xAxis": (self.start.timestamp() + (3600 * time)) * 1000,
-                        "yAxis": 100 * yAxis,
+                        "yAxis": 120 + 100 * yAxis,
                         "zAxis": 1 if time in [0, 2] or (time in [3, 5] and yAxis < 3) else 0,
                     }
                 )
@@ -82,9 +82,9 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
             },
             "yAxis": {
                 "name": "value",
-                "start": 0,
-                "end": 500,
-                "bucketCount": 5,
+                "start": 120,
+                "end": 720,
+                "bucketCount": 6,
                 "bucketSize": 100,
             },
             "zAxis": {

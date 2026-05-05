@@ -143,9 +143,12 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 for current_bucket in range(y_buckets):
                     lower_bound = bucket_ranges[0] + current_bucket * bucket_size
                     upper_bound = bucket_ranges[0] + (current_bucket + 1) * bucket_size
-                    yAxes[lower_bound] = (
-                        f"{z_function}_if(`{yAxis}:>={lower_bound} and {yAxis}:<{upper_bound}`, {yAxis})"
-                    )
+                    if current_bucket == y_buckets - 1:
+                        yAxes[lower_bound] = f"{z_function}_if(`{yAxis}:>={lower_bound}`, {yAxis})"
+                    else:
+                        yAxes[lower_bound] = (
+                            f"{z_function}_if(`{yAxis}:>={lower_bound} AND {yAxis}:<{upper_bound}`, {yAxis})"
+                        )
             else:
                 # if max == min, then just have 1 bucket
                 bucket_size = 0
@@ -222,15 +225,16 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             query_string=query,
             y_axes=columns,
             referrer=Referrer.API_EXPLORE_HEATMAP_FIND_Y_BOUNDS.value,
-            config=SearchResolverConfig(),
+            # Don't zerofill so we don't autoinclude 0 as a minimum
+            config=SearchResolverConfig(zerofill_timeseries=False),
             sampling_mode=snuba_params.sampling_mode,
         )
         if len(result.data["data"]) == 0:
             return 0, 0
         min_value, max_value = result.data["data"][0][min_y], result.data["data"][0][max_y]
         for row in result.data["data"][1:]:
-            if row[min_y] < min_value:
+            if row[min_y] is not None and row[min_y] < min_value:
                 min_value = row[min_y]
-            if row[max_y] > max_value:
+            if row[max_y] is not None and row[max_y] > max_value:
                 max_value = row[max_y]
         return min_value, max_value
