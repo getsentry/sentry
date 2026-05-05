@@ -158,7 +158,7 @@ describe('useSeerExplorer', () => {
     });
 
     it('falls back to ASCII screenshot on non-structured-context page', async () => {
-      (usePageReferrer as jest.Mock).mockReturnValue({
+      jest.mocked(usePageReferrer).mockReturnValue({
         getPageReferrer: () => '/monitors/mobile-builds/',
       });
       const org = OrganizationFixture({
