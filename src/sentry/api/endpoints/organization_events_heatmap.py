@@ -148,6 +148,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                     )
             else:
                 # if max == min, then just have 1 bucket
+                bucket_size = 0
                 yAxes = {
                     bucket_ranges[0]: f"{z_function}_if(`{yAxis}:{bucket_ranges[0]}`, {yAxis})"
                 }
