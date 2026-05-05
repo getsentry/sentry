@@ -6,31 +6,46 @@ import responses
 from django.urls import reverse
 
 from fixtures.integrations.stub_service import StubService
+from sentry.integrations.project_management.metrics import ProjectManagementActionType
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.metrics import EventLifecycle, IntegrationEventLifecycleMetric
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.testutils.asserts import (
-    assert_count_of_metric,
-    assert_halt_metric,
-    assert_many_halt_metrics,
-    assert_middleware_metrics,
-    assert_slo_metric_calls,
-)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-def _assert_search_slo_metric(mock_record, outcome=EventLifecycleOutcome.SUCCESS):
+def _assert_search_outcome(
+    mock_record: mock.MagicMock,
+    interaction_type: ProjectManagementActionType,
+    outcome: EventLifecycleOutcome,
+    expected_exception: type[BaseException] | None = None,
+    count: int = 1,
+) -> None:
+    """Assert lifecycle (STARTED, outcome) pairs for a single interaction type.
+
+    The endpoint base class wraps every request with its own SLO middleware
+    lifecycles, so filtering ``mock_record.mock_calls`` by the search
+    ``interaction_type`` isolates the product event we actually care about.
+    Requires the ``record_event`` patch to use ``autospec=True`` so that
+    ``call.args[0]`` is the bound ``EventLifecycle`` instance.
     """
-    The IntegrationEndpoint base class records its own SLO middleware metrics
-    around every request, so per request `mock_record` receives:
-      4 middleware calls (2 starts + 2 successes) + 2 product calls (1 start + 1 outcome).
-    Slice out the product calls and assert the middleware bookends.
-    """
-    assert len(mock_record.mock_calls) == 6
-    middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
-    assert_middleware_metrics(middleware_calls)
-    product_calls = mock_record.mock_calls[3:-1]
-    assert_slo_metric_calls(product_calls, outcome)
+    calls = [
+        call
+        for call in mock_record.mock_calls
+        if call.args
+        and isinstance(call.args[0], EventLifecycle)
+        and isinstance(call.args[0].payload, IntegrationEventLifecycleMetric)
+        and call.args[0].payload.get_interaction_type() == str(interaction_type)
+    ]
+    assert len(calls) == 2 * count, (
+        f"Expected {2 * count} lifecycle calls for {interaction_type}, got {len(calls)}"
+    )
+    for i in range(count):
+        start, end = calls[2 * i], calls[2 * i + 1]
+        assert start.args[1] == EventLifecycleOutcome.STARTED
+        assert end.args[1] == outcome
+        if expected_exception is not None:
+            assert isinstance(end.args[2], expected_exception)
 
 
 @control_silo_test
@@ -51,7 +66,7 @@ class JiraSearchEndpointTest(APITestCase):
         return integration
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_issue_search_text(self, mock_record: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
@@ -67,10 +82,12 @@ class JiraSearchEndpointTest(APITestCase):
         resp = self.client.get(f"{path}?field=externalIssue&query=test")
         assert resp.status_code == 200
         assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
-        _assert_search_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+        _assert_search_outcome(
+            mock_record, ProjectManagementActionType.SEARCH_ISSUES, EventLifecycleOutcome.SUCCESS
+        )
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_issue_search_id(self, mock_record: mock.MagicMock) -> None:
         def responder(request):
             query = parse_qs(urlparse(request.url).query)
@@ -96,15 +113,15 @@ class JiraSearchEndpointTest(APITestCase):
                 {"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}
             ]
 
-        # 6 mock calls per request (4 middleware + 2 product) for 2 requests = 12.
-        assert mock_record.call_count == 12
-        # 6 STARTED (3 per request) + 6 SUCCESS (3 per request).
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 6)
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 6)
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.HALTED, 0)
+        _assert_search_outcome(
+            mock_record,
+            ProjectManagementActionType.SEARCH_ISSUES,
+            EventLifecycleOutcome.SUCCESS,
+            count=2,
+        )
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_issue_search_error(self, mock_record: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
@@ -122,16 +139,16 @@ class JiraSearchEndpointTest(APITestCase):
             assert resp.status_code == 400
             assert resp.data == {"detail": "Something went wrong while communicating with Jira"}
 
-        # 6 mock calls per request (4 middleware + 2 product) for 2 requests = 12.
-        assert mock_record.call_count == 12
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 6)
-        # 4 middleware successes (2 per request); product calls record halt.
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 4)
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.HALTED, 2)
-        assert_many_halt_metrics(mock_record, [IntegrationError(""), IntegrationError("")])
+        _assert_search_outcome(
+            mock_record,
+            ProjectManagementActionType.SEARCH_ISSUES,
+            EventLifecycleOutcome.HALTED,
+            expected_exception=IntegrationError,
+            count=2,
+        )
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_assignee_search(self, mock_record: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
@@ -160,10 +177,12 @@ class JiraSearchEndpointTest(APITestCase):
         resp = self.client.get(f"{path}?project=10000&field=assignee&query=bob")
         assert resp.status_code == 200
         assert resp.data == [{"value": "deadbeef123", "label": "Bobby - bob@example.org"}]
-        _assert_search_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+        _assert_search_outcome(
+            mock_record, ProjectManagementActionType.SEARCH_USERS, EventLifecycleOutcome.SUCCESS
+        )
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_assignee_search_error(self, mock_record: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
@@ -183,11 +202,15 @@ class JiraSearchEndpointTest(APITestCase):
 
         resp = self.client.get(f"{path}?project=10000&field=assignee&query=bob")
         assert resp.status_code == 400
-        _assert_search_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(mock_record, ApiError(""))
+        _assert_search_outcome(
+            mock_record,
+            ProjectManagementActionType.SEARCH_USERS,
+            EventLifecycleOutcome.HALTED,
+            expected_exception=ApiError,
+        )
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_customfield_search(self, mock_record: mock.MagicMock) -> None:
         def responder(request):
             query = parse_qs(urlparse(request.url).query)
@@ -209,10 +232,14 @@ class JiraSearchEndpointTest(APITestCase):
         resp = self.client.get(f"{path}?field=customfield_0123&query=sp")
         assert resp.status_code == 200
         assert resp.data == [{"label": "Sprint 1 (1)", "value": "1"}]
-        _assert_search_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+        _assert_search_outcome(
+            mock_record,
+            ProjectManagementActionType.SEARCH_FIELD_AUTOCOMPLETE,
+            EventLifecycleOutcome.SUCCESS,
+        )
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_customfield_search_error(self, mock_record: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
@@ -230,11 +257,15 @@ class JiraSearchEndpointTest(APITestCase):
         assert resp.data == {
             "detail": "Unable to fetch autocomplete for customfield_0123 from Jira"
         }
-        _assert_search_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(mock_record, ApiError(""))
+        _assert_search_outcome(
+            mock_record,
+            ProjectManagementActionType.SEARCH_FIELD_AUTOCOMPLETE,
+            EventLifecycleOutcome.HALTED,
+            expected_exception=ApiError,
+        )
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_project_search_with_pagination(self, mock_record: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
@@ -258,10 +289,12 @@ class JiraSearchEndpointTest(APITestCase):
         assert resp.data == [
             {"label": "EX - Example", "value": "10000"},
         ]
-        _assert_search_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+        _assert_search_outcome(
+            mock_record, ProjectManagementActionType.SEARCH_PROJECTS, EventLifecycleOutcome.SUCCESS
+        )
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_project_search_error_with_pagination(self, mock_record: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
@@ -279,5 +312,9 @@ class JiraSearchEndpointTest(APITestCase):
         resp = self.client.get(f"{path}?field=project&query=example")
         assert resp.status_code == 400
         assert resp.data == {"detail": "Unable to fetch projects from Jira"}
-        _assert_search_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(mock_record, ApiError(""))
+        _assert_search_outcome(
+            mock_record,
+            ProjectManagementActionType.SEARCH_PROJECTS,
+            EventLifecycleOutcome.HALTED,
+            expected_exception=ApiError,
+        )
