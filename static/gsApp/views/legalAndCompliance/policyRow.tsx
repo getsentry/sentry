@@ -48,7 +48,12 @@ export function PolicyRow({
   const activeSuperUser = isActiveSuperuser();
   const hasBillingAccess = organization.access.includes('org:billing');
 
-  const policyUrl = policy.url ? safeURL(policy.url) : null;
+  const rawPolicyUrl = policy.url ? safeURL(policy.url) : null;
+  // Only allow http/https URLs to prevent javascript: and data: URL injection
+  const policyUrl =
+    rawPolicyUrl?.protocol === 'http:' || rawPolicyUrl?.protocol === 'https:'
+      ? rawPolicyUrl
+      : null;
   // userCurrentVersion filters version select dropdown to only the current version + latest version
   if (policyUrl && policy.consent) {
     policyUrl.searchParams.set('userCurrentVersion', policy.consent.acceptedVersion);
@@ -61,7 +66,7 @@ export function PolicyRow({
     const name = 'sentryPolicy';
     const width = 600;
     const height = 600;
-    const url = policy.url;
+    const url = policyUrl?.toString() ?? null;
 
     // this attempts to center the dialog
     const innerWidth = window.innerWidth
@@ -226,7 +231,7 @@ export function PolicyRow({
               {t('Review and Accept')}
             </Button>
           ) : (
-            <LinkButton size="sm" external href={policy.url}>
+            <LinkButton size="sm" external href={policyUrl.toString()}>
               {t('Review')}
             </LinkButton>
           ))}

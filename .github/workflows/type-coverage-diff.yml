@@ -42,22 +42,27 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          # Full history: the script checks out the merge-base commit
-          # and runs type-coverage there, so it needs access to old commits.
+          # Needs enough depth for the script to check out HEAD^1
+          # (the base branch tip) and run type-coverage there.
           fetch-depth: 0
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: Get merge base
+      - name: Get base branch commit
         id: merge_base
+        # GHA pull_request checks out a merge commit (refs/pull/N/merge):
+        #   HEAD^1 = base branch tip (e.g. master)
+        #   HEAD^2 = PR branch tip
+        # HEAD^1 gives us the base branch tip, NOT one commit back on the PR.
+        # @see https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#how-the-merge-branch-affects-your-workflow
         run: |
-          MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
-          if [ -z "$MERGE_BASE" ]; then
-            echo "Could not compute merge base"
+          BASE_COMMIT=$(git rev-parse HEAD^1 2>/dev/null) || true
+          if [ -z "$BASE_COMMIT" ]; then
+            echo "Could not determine base branch commit"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            echo "commit=$MERGE_BASE" >> "$GITHUB_OUTPUT"
-            echo "Merge base: $MERGE_BASE"
+            echo "commit=$BASE_COMMIT" >> "$GITHUB_OUTPUT"
+            echo "Base branch commit: $BASE_COMMIT"
           fi
 
       - name: Run type-coverage-diff

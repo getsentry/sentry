@@ -177,7 +177,7 @@ export function AutofixInsightCard({
                 </Button>
                 <Button
                   type="submit"
-                  priority="primary"
+                  variant="primary"
                   size="sm"
                   tooltipProps={{title: t('Redo work from here')}}
                   aria-label={t('Redo work from here')}
@@ -218,7 +218,7 @@ export function AutofixInsightCard({
             {isExpandable && (
               <Button
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 tooltipProps={{
                   title: isExpanded ? t('Hide evidence') : t('Show evidence'),
                 }}
@@ -230,7 +230,7 @@ export function AutofixInsightCard({
             )}
             <EditButton
               size="zero"
-              priority="transparent"
+              variant="transparent"
               onClick={handleEdit}
               icon={<FlippedReturnIcon />}
               aria-label={t('Edit insight')}

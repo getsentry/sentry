@@ -19,7 +19,10 @@ from sentry.api.event_search import (
 )
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import GroupCategory, get_group_type_by_slug
+from sentry.issues.grouptype import (
+    GroupCategory,
+    get_group_type_by_slug,
+)
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES
@@ -59,7 +62,7 @@ issue_search_config = SearchConfig.create_from(
     default_config,
     allow_boolean=False,
     is_filter_translation=is_filter_translation,
-    numeric_keys=default_config.numeric_keys | {"times_seen"},
+    numeric_keys=default_config.numeric_keys | {"times_seen", "user_count"},
     date_keys=default_config.date_keys | {"date", "first_seen", "last_seen", "issue.seer_last_run"},
     key_mappings={
         "assigned_to": ["assigned"],
@@ -73,6 +76,7 @@ issue_search_config = SearchConfig.create_from(
         # on date_from and date_to explicitly
         "date": ["event.timestamp"],
         "times_seen": ["timesSeen"],
+        "user_count": ["userCount", "affectedUsers", "affected_users"],
         "sentry:dist": ["dist"],
     },
 )
@@ -283,7 +287,8 @@ value_converters: Mapping[str, ValueConverter] = {
     "device.class": convert_device_class_value,
     "substatus": convert_substatus_value,
     "issue.seer_actionability": convert_seer_actionability_value,
-    "detector": convert_detector_value,
+    "detector": convert_detector_value,  # TODO - delete this once the UI has been updated
+    "monitor": convert_detector_value,
 }
 
 

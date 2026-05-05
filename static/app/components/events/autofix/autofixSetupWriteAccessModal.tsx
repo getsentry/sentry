@@ -50,7 +50,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
       <DoneWrapper>
         <DoneIcon variant="success" size="2xl" />
         <p>{t("You've successfully configured write access!")}</p>
-        <Button onClick={closeModal} priority="primary">
+        <Button onClick={closeModal} variant="primary">
           {t("Let's go")}
         </Button>
       </DoneWrapper>
@@ -129,7 +129,7 @@ export function AutofixSetupWriteAccessModal({
             <LinkButton
               href="https://github.com/apps/seer-by-sentry/installations/new"
               external
-              priority="primary"
+              variant="primary"
             >
               {t('Install the Seer GitHub App')}
             </LinkButton>

@@ -67,8 +67,8 @@ import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/usePro
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
-  | {isBookmarked: boolean}
-  | {isSubscribed: boolean}
+  | {isBookmarked: boolean; inbox?: boolean}
+  | {isSubscribed: boolean; inbox?: boolean}
   | MarkReviewed
   | GroupStatusResolution;
 
@@ -92,7 +92,7 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
     }
   }
 
-  if ((data as {inbox: boolean}).inbox === false) {
+  if (data.inbox === false) {
     return t('Issue marked reviewed');
   }
 

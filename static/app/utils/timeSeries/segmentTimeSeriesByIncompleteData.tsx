@@ -22,19 +22,13 @@ export function segmentTimeSeriesByIncompleteData(
     }
 
     // The previous segment is complete, and the current segment is incomplete. Add the last complete datum from the previous segment to the beginning of the current segment to create a continuous visual line.
-    if (
-      previousSegment.predicateValue === false &&
-      currentSegment.predicateValue === true
-    ) {
+    if (!previousSegment.predicateValue && currentSegment.predicateValue) {
       const lastCompleteDatum = previousSegment.data.at(-1)!;
       currentSegment.data.unshift(lastCompleteDatum);
     }
 
     // The previous segment is incomplete, and the current segment is complete. Add the first complete datum from the current segment to the end of the previous segment to create a continuous visual line.
-    if (
-      previousSegment.predicateValue === true &&
-      currentSegment.predicateValue === false
-    ) {
+    if (previousSegment.predicateValue && !currentSegment.predicateValue) {
       const firstCompleteDatum = currentSegment.data.at(0)!;
       previousSegment.data.push(firstCompleteDatum);
     }
