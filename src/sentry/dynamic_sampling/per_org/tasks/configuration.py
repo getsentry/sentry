@@ -79,13 +79,13 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
 
 class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfiguration):
-    org_target_sample_rate: TargetSampleRate
+    sample_rate: TargetSampleRate
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
         self.measure = self._get_sampling_measure()
 
-        self.org_target_sample_rate = float(
+        self.sample_rate = float(
             self.organization.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
         )
 

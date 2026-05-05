@@ -122,7 +122,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 assert configuration.is_segment_based == (
                     measure_case.expected_measure == SamplingMeasure.SEGMENTS
                 )
-                assert configuration.org_target_sample_rate == 0.3
+                assert configuration.sample_rate == 0.3
                 with pytest.raises(AttributeError):
                     getattr(configuration, "project_target_sample_rates")
                 get_blended_sample_rate.assert_not_called()
