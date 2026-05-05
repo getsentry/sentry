@@ -93,7 +93,7 @@ describe('HighlightsDataSection', () => {
         .getByText(tagKey, {selector: 'div'})
         .closest('div[data-test-id=highlight-tag-row]') as HTMLElement;
       // If highlight is present on the event...
-      if (eventTagMap.hasOwnProperty(tagKey)) {
+      if (Object.hasOwn(eventTagMap, tagKey)) {
         expect(within(row).getByText(eventTagMap[tagKey]!)).toBeInTheDocument();
         const highlightTagDropdown = within(row).getByLabelText('Tag Actions Menu');
         expect(highlightTagDropdown).toBeInTheDocument();

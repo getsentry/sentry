@@ -157,7 +157,7 @@ type State = DeprecatedAsyncComponent['state'] & {
 };
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
-  return rule?.hasOwnProperty('id') ?? false;
+  return Object.hasOwn(rule ?? {}, 'id');
 }
 
 /**
@@ -611,7 +611,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       return false;
     }
 
-    return detailedError.hasOwnProperty(field);
+    return Object.hasOwn(detailedError, field);
   };
 
   handleEnvironmentChange = (val: string) => {

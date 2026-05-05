@@ -393,6 +393,27 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
+        # Errored repos are terminal — re-pushing would re-fire this hook in a loop.
+        diffs_by_repo = state.get_diffs_by_repo()
+        errored_repos = [
+            repo
+            for repo in diffs_by_repo
+            if (pr_state := state.repo_pr_states.get(repo)) is not None
+            and pr_state.pr_creation_status == "error"
+        ]
+        if errored_repos and all(
+            state._is_repo_synced(repo) or repo in errored_repos for repo in diffs_by_repo
+        ):
+            logger.info(
+                "autofix.on_completion_hook.skip_no_pushable_repos",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": group.organization.id,
+                    "errored_repos": errored_repos,
+                },
+            )
+            return
+
         logger.info(
             "autofix.on_completion_hook.pushing_changes",
             extra={"run_id": run_id, "organization_id": group.organization.id},

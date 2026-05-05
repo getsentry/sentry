@@ -55,6 +55,7 @@ import {
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
+import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {
@@ -484,6 +485,7 @@ export function LogsInfiniteTable({
         height="100%"
         hideBorder={embedded}
         data-test-id="logs-table"
+        minWidth={calculateLogsTableMinWidth(fields.length)}
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
       >
         {embedded ? null : (
