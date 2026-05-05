@@ -6,7 +6,7 @@ const POST_ON_REMOVED_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_removed
 const POST_ON_CHANGED_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_changed';
 const POST_ON_RENAMED_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_renamed';
 
-export function useSnapshotPrComments(project: Project) {
+export function getSnapshotPrComments(project: Project) {
   const enabled =
     project.preprodSnapshotPrCommentsEnabled ?? project.options?.[ENABLED_KEY] === true;
 

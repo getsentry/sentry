@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -10,9 +10,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import {useSnapshotPrComments} from './useSnapshotPrComments';
+import {getSnapshotPrComments} from './getSnapshotPrComments';
 
 const schema = z.object({
   preprodSnapshotPrCommentsEnabled: z.boolean(),
@@ -32,16 +33,12 @@ type PrCommentField = {
 
 export function SnapshotPrCommentsToggle() {
   const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const project = useProjectFromId({project_id: outletProject.id}) ?? outletProject;
   const {enabled, postOnAdded, postOnRemoved, postOnChanged, postOnRenamed} =
-    useSnapshotPrComments(project);
-  const [prCommentsEnabled, setPrCommentsEnabled] = useState(enabled);
+    getSnapshotPrComments(project);
 
   const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-
-  useEffect(() => {
-    setPrCommentsEnabled(enabled);
-  }, [enabled]);
 
   const mutationOptions = {
     mutationFn: (data: Partial<Schema>) =>
@@ -50,12 +47,19 @@ export function SnapshotPrCommentsToggle() {
         method: 'PUT',
         data,
       }),
+    onMutate: (data: Partial<Schema>) => {
+      const previous = ProjectsStore.getById(project.id);
+      ProjectsStore.onUpdateSuccess({id: project.id, ...data});
+      return () => {
+        if (previous) {
+          ProjectsStore.onUpdateSuccess(previous);
+        }
+      };
+    },
     onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
-  };
-
-  const enabledMutationOptions = {
-    ...mutationOptions,
-    onError: () => setPrCommentsEnabled(enabled),
+    onError: (_error: unknown, _variables: Partial<Schema>, rollback?: () => void) => {
+      rollback?.();
+    },
   };
 
   const postConditionFields = [
@@ -91,7 +95,7 @@ export function SnapshotPrCommentsToggle() {
         name="preprodSnapshotPrCommentsEnabled"
         schema={schema}
         initialValue={enabled}
-        mutationOptions={enabledMutationOptions}
+        mutationOptions={mutationOptions}
       >
         {field => (
           <field.Layout.Row
@@ -100,18 +104,12 @@ export function SnapshotPrCommentsToggle() {
               'Sentry will post snapshot comparison results as comments on pull requests.'
             )}
           >
-            <field.Switch
-              checked={field.state.value}
-              onChange={value => {
-                setPrCommentsEnabled(value);
-                field.handleChange(value);
-              }}
-            />
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
 
-      {prCommentsEnabled ? (
+      {enabled ? (
         <Fragment>
           {postConditionFields.map(({name, initialValue, label, hintText}) => (
             <AutoSaveForm

@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SnapshotPrCommentsToggle} from 'sentry/views/settings/project/preprod/snapshotPrCommentsToggle';
 
 describe('SnapshotPrCommentsToggle', () => {
@@ -162,6 +163,7 @@ describe('SnapshotPrCommentsToggle', () => {
       options: {},
       preprodSnapshotPrCommentsEnabled: true,
     });
+    ProjectsStore.loadInitialData([project]);
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
@@ -180,7 +182,7 @@ describe('SnapshotPrCommentsToggle', () => {
     );
 
     expect(
-      screen.getByText('Enable PR comments to configure post conditions')
+      await screen.findByText('Enable PR comments to configure post conditions')
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('checkbox', {name: 'Post on Changed Snapshots'})
