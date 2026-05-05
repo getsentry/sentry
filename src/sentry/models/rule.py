@@ -189,8 +189,8 @@ class RuleActivity(Model):
 class NeglectedRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    rule = FlexibleForeignKey("sentry.Rule")
-    organization = FlexibleForeignKey("sentry.Organization")
+    rule = FlexibleForeignKey("sentry.Rule", db_constraint=False)
+    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     disable_date = models.DateTimeField()
     opted_out = models.BooleanField(default=False)
     sent_initial_email_date = models.DateTimeField(null=True)
