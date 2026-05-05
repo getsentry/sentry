@@ -858,7 +858,7 @@ class RPCBase:
 
             if comp_rpc_response.result_timeseries:
                 timeseries = comp_rpc_response.result_timeseries[0]
-                processed = cls.process_timeseries_list([timeseries])
+                processed = cls.process_timeseries_list([timeseries], config)
                 for existing, new in zip(result.timeseries, processed.timeseries):
                     existing["comparisonCount"] = new[timeseries.label]
             else:
@@ -1073,7 +1073,7 @@ class RPCBase:
         for index, row in enumerate(top_events["data"]):
             result_key = create_result_key(row, groupby_columns, {})
             result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
-            result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key])
+            result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key], config)
             final_result[result_key] = SnubaTSResult(
                 {
                     "data": result.timeseries,
@@ -1089,7 +1089,7 @@ class RPCBase:
             )
         if include_other and other_response.result_timeseries:
             result = cls.process_timeseries_list(
-                [timeseries for timeseries in other_response.result_timeseries]
+                [timeseries for timeseries in other_response.result_timeseries], config
             )
             if check_timeseries_has_data(result.timeseries, y_axes):
                 final_result[OTHER_KEY] = SnubaTSResult(
