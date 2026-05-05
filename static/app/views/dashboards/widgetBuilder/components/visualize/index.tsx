@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css, useTheme} from '@emotion/react';
@@ -55,10 +55,7 @@ import {
   SelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
-import {
-  MetricsEquationVisualize,
-  useIsEquationMode,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
+import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {VisualizeGhostField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
@@ -297,11 +294,18 @@ export function parseAggregateFromValueKey(value: string) {
 }
 
 interface VisualizeProps {
+  isEquationMode: boolean;
+  onSetEquationMode: (isEquationMode: boolean) => void;
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
 }
 
-export function Visualize({error, setError}: VisualizeProps) {
+export function Visualize({
+  error,
+  setError,
+  isEquationMode,
+  onSetEquationMode,
+}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const theme = useTheme();
@@ -320,9 +324,6 @@ export function Visualize({error, setError}: VisualizeProps) {
   const canShowTraceMetricEquations =
     state.dataset === WidgetType.TRACEMETRICS &&
     canUseMetricsEquationsInDashboards(organization);
-  const isEquationModeFromUrl = useIsEquationMode();
-  const [isInEquationMode, setIsInEquationMode] = useState(isEquationModeFromUrl);
-  const exitEquationMode = useCallback(() => setIsInEquationMode(false), []);
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -641,8 +642,8 @@ export function Visualize({error, setError}: VisualizeProps) {
         title={isTableWidget ? t('Columns') : t('Visualize')}
         tooltipText={tooltipText}
       />
-      {isInEquationMode && canShowTraceMetricEquations ? (
-        <MetricsEquationVisualize onEquationRemoved={exitEquationMode} />
+      {isEquationMode && canShowTraceMetricEquations ? (
+        <MetricsEquationVisualize onEquationRemoved={() => onSetEquationMode(false)} />
       ) : (
         <Fragment>
           <StyledFieldGroup
@@ -1178,7 +1179,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                   disabled={disableTransactionWidget}
                   aria-label={t('Add Equation')}
                   onClick={() => {
-                    setIsInEquationMode(true);
+                    onSetEquationMode(true);
 
                     trackAnalytics('dashboards_views.widget_builder.change', {
                       builder_version: WidgetBuilderVersion.SLIDEOUT,

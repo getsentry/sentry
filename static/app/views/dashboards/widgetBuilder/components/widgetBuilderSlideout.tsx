@@ -59,6 +59,7 @@ import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder
 import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {useIsEquationMode} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -145,6 +146,11 @@ function WidgetBuilderSlideoutInner({
     convertBuilderStateToWidget(state)
   );
 
+  // Tracks whether the user has entered the metrics equation mode since we
+  // do not render the filter bar. The metrics equations UI has filters built in.
+  const isEquationModeFromUrl = useIsEquationMode();
+  const [isInEquationMode, setIsInEquationMode] = useState(isEquationModeFromUrl);
+
   useEffect(() => {
     if (!openWidgetTemplates) {
       trackAnalytics('dashboards_views.widget_builder.opened', {
@@ -172,6 +178,7 @@ function WidgetBuilderSlideoutInner({
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS && !isTextWidget;
   const showQueryFilterBuilder =
     !isTextWidget &&
+    !isInEquationMode &&
     !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
   // Group By is used by time-series chart widgets to break down data by a field.
@@ -478,7 +485,12 @@ function WidgetBuilderSlideoutInner({
                     )}
                     {showVisualizeSection && (
                       <Section>
-                        <Visualize error={error} setError={setError} />
+                        <Visualize
+                          error={error}
+                          setError={setError}
+                          isEquationMode={isInEquationMode}
+                          onSetEquationMode={setIsInEquationMode}
+                        />
                       </Section>
                     )}
                     {showQueryFilterBuilder && (

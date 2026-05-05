@@ -44,7 +44,7 @@ import {
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
 import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
 import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {
   LocalMultiMetricsQueryParamsProvider,
@@ -81,6 +81,13 @@ interface MetricsEquationVisualizeProps {
   onEquationRemoved: () => void;
 }
 
+/**
+ * TODO: The filter should propagate to all sub components automatically.
+ * - If the equation is removed we.. choose the first filter to set in the filter bar? Not sure.
+ * - Fix orderby with equation with widget builder
+ * - Fix responsiveness of the fields in the equation visulize
+ * - Filters aren't submitting when changed in the selected metric by radio button
+ */
 export function MetricsEquationVisualize({
   onEquationRemoved,
 }: MetricsEquationVisualizeProps) {
