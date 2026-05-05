@@ -17,9 +17,12 @@ from sentry.tasks.seer.night_shift.cron import (
 )
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
+from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
+from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.redis import redis_clusters
 
 
 class FakeExplorerClient:
@@ -526,14 +529,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project, "fresh", seer_fixability_score=0.9, times_seen=5
         )
 
-        with (
-            patch(
-                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
-                return_value={skipped_group.id},
-            ),
-            self._patched_night_shift([(other_group.id, "autofix")]) as (mock_trigger, _),
-        ):
-            run_night_shift_for_org(org.id)
+        mark_skipped(skipped_group.id)
+        try:
+            with self._patched_night_shift([(other_group.id, "autofix")]) as (mock_trigger, _):
+                run_night_shift_for_org(org.id)
+        finally:
+            redis_clusters.get("default").delete(skip_cache_key(skipped_group.id))
 
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args.kwargs["group"].id == other_group.id
