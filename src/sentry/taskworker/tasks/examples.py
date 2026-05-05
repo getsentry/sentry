@@ -117,6 +117,8 @@ def simple_task_with_random_duration(
     elif distribution == "gauss":
         sleep(max(0, random.normalvariate(mu=a, sigma=b)))  # random.gauss isn't threadsafe
     elif distribution == "exponential":
+        if a <= 0:
+            raise ValueError(f"Invalid parameter for exponential distribution: a={a}")
         sleep(random.expovariate(lambd=a))
     else:
         raise ValueError(f"Invalid distribution: {distribution}")
