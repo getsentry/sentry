@@ -1,16 +1,13 @@
-import {Fragment, lazy, useMemo, useRef} from 'react';
+import {Fragment, lazy, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-
-import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {GlobalStyles} from 'sentry/styles/global';
-import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
@@ -43,23 +40,6 @@ cache.compat = true;
  */
 export function ThemeAndStyleProvider({children}: Props) {
   const config = useLegacyStore(ConfigStore);
-
-  // Hotkey definition for toggling the current theme
-  const themeToggleHotkey = useMemo(
-    () => [
-      {
-        match: 'mod+shift+1',
-        includeInputs: true,
-        callback: () => {
-          removeBodyTheme();
-          ConfigStore.set('theme', config.theme === 'dark' ? 'light' : 'dark');
-        },
-      },
-    ],
-    [config.theme]
-  );
-
-  useHotkeys(themeToggleHotkey);
 
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 

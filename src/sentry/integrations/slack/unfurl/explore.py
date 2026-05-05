@@ -220,14 +220,16 @@ def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[Query
     chart_type: int | None = None
     # `or []` so a present-but-null aggregateFields/aggregateSortBys field in
     # the user-supplied metric JSON doesn't blow up iteration.
+    # Metrics renders multiple aggregates (e.g. p50 + p95) as multiple series on
+    # a single chart, so accumulate yAxes across every aggregateFields entry.
     for agg_field in metric_parsed.get("aggregateFields") or []:
         if not isinstance(agg_field, dict):
             continue
         if agg_field.get("groupBy"):
             group_bys.append(agg_field["groupBy"])
-        if not y_axes and isinstance(agg_field.get("yAxes"), list):
-            y_axes = list(agg_field["yAxes"])
-            if isinstance(agg_field.get("chartType"), int):
+        if isinstance(agg_field.get("yAxes"), list):
+            y_axes.extend(agg_field["yAxes"])
+            if chart_type is None and isinstance(agg_field.get("chartType"), int):
                 chart_type = agg_field["chartType"]
 
     if not y_axes:

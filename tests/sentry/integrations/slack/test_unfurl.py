@@ -1924,6 +1924,44 @@ class UnfurlTest(TestCase):
         assert args is not None
         assert args["query"].getlist("yAxis") == ["count(span.duration)"]
 
+    def test_unfurl_explore_metrics_collects_all_y_axes(self) -> None:
+        # Metrics encodes multiple aggregates as multiple `aggregateFields` entries
+        # but the FE renders them as multiple series on a single chart, so the
+        # unfurl must forward every yAxes entry to events-timeseries.
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22yAxes%22%3A%5B%22p50(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D%2C"
+            "%7B%22yAxes%22%3A%5B%22p95(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%7D&project=1&statsPeriod=14d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == [
+            "p50(value,my.metric,distribution,millisecond)",
+            "p95(value,my.metric,distribution,millisecond)",
+        ]
+
+    def test_unfurl_explore_metrics_multiple_metric_params_uses_first(self) -> None:
+        # When the URL has multiple `metric` params the FE renders one chart per
+        # metric. The unfurl is single-chart, so it sticks to the first metric
+        # and drops the rest rather than mashing axes from different metrics.
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p50(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D%5D%7D"
+            "&metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p95(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D%5D%7D"
+            "&project=1&statsPeriod=14d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == [
+            "p50(value,my.metric,distribution,millisecond)",
+        ]
+
     def test_unfurl_explore_aggregate_field_takes_precedence_over_visualize(self) -> None:
         url = (
             "https://sentry.io/organizations/org1/explore/traces/"
