@@ -5,7 +5,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -340,7 +347,7 @@ describe('logsTableRow', () => {
     );
   });
 
-  it('links expanded log details to similar spans with a logs cross-event query', async () => {
+  it('adds a similar spans action to the log message dropdown', async () => {
     const rowDataWithQuotedMessage = {
       ...rowData,
       [OurLogKnownFieldKey.MESSAGE]: 'test "quoted" log body',
@@ -360,13 +367,18 @@ describe('logsTableRow', () => {
     );
 
     const logTableRow = await screen.findByTestId('log-table-row');
-    await userEvent.click(logTableRow);
+    await userEvent.hover(logTableRow);
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
 
-    await waitFor(() => {
-      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
-    });
+    const link = (await screen.findByText('Explore similar spans')).closest('a')!;
+    for (const label of ['Copy to clipboard', 'Add to filter', 'Exclude from filter']) {
+      const menuItem = await screen.findByText(label);
+      expect(menuItem.compareDocumentPosition(link)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING
+      );
+    }
 
-    const link = await screen.findByRole('link', {name: 'Explore similar spans'});
     const href = link.getAttribute('href')!;
     expect(href.startsWith(`/organizations/${organization.slug}/explore/traces/?`)).toBe(
       true
