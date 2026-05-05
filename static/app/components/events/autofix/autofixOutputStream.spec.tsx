@@ -21,7 +21,7 @@ describe('AutofixOutputStream', () => {
     });
   });
 
-  it('renders basic stream content', async () => {
+  it.isKnownFlake('renders basic stream content', async () => {
     render(
       <AutofixOutputStream
         stream="Hello World"

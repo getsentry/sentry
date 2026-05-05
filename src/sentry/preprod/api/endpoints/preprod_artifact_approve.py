@@ -13,6 +13,7 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
@@ -58,6 +59,9 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
                 project__organization_id=organization.id,
             )
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "Artifact not found"}, status=404)
+
+        if not request.access.has_project_access(artifact.project) and not is_active_staff(request):
             return Response({"detail": "Artifact not found"}, status=404)
 
         # exists()+create() instead of get_or_create — no unique constraint on this model

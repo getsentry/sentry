@@ -101,6 +101,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 
   return (
     <form
+      noValidate
       data-test-id={form.formId}
       id={form.formId}
       style={{width: '100%', flexGrow: 1}}

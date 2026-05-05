@@ -37,21 +37,21 @@ interface CMDKActionDataOnAction extends CMDKActionDataBase {
   onAction: () => void;
 }
 
-interface CMDKActionDataResource extends CMDKActionDataBase {
+interface CMDKActionDataResource<TData = unknown> extends CMDKActionDataBase {
   prompt?: string;
-  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
+  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
 }
 
 /**
  * Single data shape for all CMDK nodes. A node becomes a group by virtue of
  * having children registered under it — there is no separate group type.
  */
-export type CMDKActionData =
+export type CMDKActionData<TData = unknown> =
   | CMDKActionDataTo
   | CMDKActionDataOnAction
-  | CMDKActionDataResource;
+  | CMDKActionDataResource<TData>;
 
-export const CMDKCollection = makeCollection<CMDKActionData>();
+export const CMDKCollection = makeCollection<CMDKActionData<any>>();
 
 /**
  * Root provider for the command palette. Wrap the component tree that
@@ -67,7 +67,7 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
   );
 }
 
-interface CMDKActionProps {
+interface CMDKActionProps<TData = unknown> {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
   /**
@@ -84,25 +84,25 @@ interface CMDKActionProps {
   limit?: number;
   onAction?: () => void;
   prompt?: string;
-  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
+  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
   to?: LocationDescriptor;
 }
 
-interface CMDKActionWithResourceProps {
+interface CMDKActionWithResourceProps<TData = unknown> {
   nodeKey: string;
   query: string;
-  resource: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
+  resource: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
   state: 'selected' | undefined;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
 }
 
-function CMDKActionWithResource({
+function CMDKActionWithResource<TData = unknown>({
   nodeKey,
   query,
   state,
   resource,
   children,
-}: CMDKActionWithResourceProps) {
+}: CMDKActionWithResourceProps<TData>) {
   const resourceOptions = resource(query, {state});
   const {data} = useQuery({
     ...resourceOptions,
@@ -140,7 +140,7 @@ function CMDKActionWithResource({
  * navigation, `onAction` for a callback, or `resource` with a render-prop
  * children function to fetch and populate async results.
  */
-export function CMDKAction({
+export function CMDKAction<TData = unknown>({
   display,
   keywords,
   children,
@@ -150,7 +150,7 @@ export function CMDKAction({
   prompt,
   resource,
   limit,
-}: CMDKActionProps) {
+}: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
 
   // For async-only resource nodes (function children), default limit to 4.
@@ -158,7 +158,7 @@ export function CMDKAction({
   const effectiveLimit =
     limit ?? (resource && typeof children === 'function' ? 4 : undefined);
 
-  const nodeData: CMDKActionData =
+  const nodeData: CMDKActionData<TData> =
     to === undefined
       ? onAction === undefined
         ? {display, keywords, ref, resource, prompt, limit: effectiveLimit}

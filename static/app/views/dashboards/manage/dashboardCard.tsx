@@ -39,7 +39,7 @@ export function DashboardCard({
   isFavorited = false,
   onFavorite,
 }: Props) {
-  const [favorited, setFavorited] = useState<boolean>(isFavorited);
+  const [favorited, setFavorited] = useState(isFavorited);
 
   function onClick() {
     onEventClick?.();

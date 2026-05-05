@@ -92,7 +92,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               tooltipProps={{title: t('Copy Event ID')}}
               onClick={handleCopyEventId}
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconCopy size="xs" variant="muted" />}
             />
           </EventIdWrapper>
@@ -127,7 +127,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                     'Sentry has detected configuration issues with this event. Click for more info.'
                   ),
                 }}
-                priority="transparent"
+                variant="transparent"
                 size="zero"
                 icon={<IconWarning variant="danger" />}
                 onClick={() => {

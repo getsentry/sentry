@@ -44,14 +44,6 @@ enum IssuesQuery {
   ALL = '',
 }
 
-type Count = {
-  all: number;
-  new: number;
-  regressed: number;
-  resolved: number;
-  unhandled: number;
-};
-
 type Props = {
   api: Client;
   location: Location;
@@ -67,7 +59,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
     ...parseAsStringLiteral(Object.values(IssuesType)),
     defaultValue: IssuesType.UNHANDLED,
   });
-  const [issuesCount, setIssuesCount] = useState<Count>({
+  const [issuesCount, setIssuesCount] = useState({
     all: 0,
     new: 0,
     regressed: 0,

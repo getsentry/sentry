@@ -15,6 +15,8 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -74,6 +76,7 @@ interface GroupRow {
   estimatedHeight: number;
   id: string;
   isUngrouped: boolean;
+  itemKey: string;
   name: string;
 }
 
@@ -157,6 +160,7 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
     groups.push({
       id: `g:${item.key}`,
       name: item.name,
+      itemKey: item.key,
       cards,
       isUngrouped: ungrouped,
       estimatedHeight:
@@ -170,7 +174,7 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
 }
 
 export interface SnapshotListViewHandle {
-  scrollToGroup: (name: string) => void;
+  scrollToGroup: (itemKey: string) => void;
 }
 
 export const SnapshotListView = memo(function SnapshotListView({
@@ -222,8 +226,8 @@ export const SnapshotListView = memo(function SnapshotListView({
   useImperativeHandle(
     ref,
     () => ({
-      scrollToGroup(name: string) {
-        const groupIdx = groups.findIndex(g => g.name === name);
+      scrollToGroup(itemKey: string) {
+        const groupIdx = groups.findIndex(g => g.itemKey === itemKey);
         if (groupIdx === -1) {
           return;
         }
@@ -254,7 +258,7 @@ export const SnapshotListView = memo(function SnapshotListView({
 
       const rows = el.querySelectorAll<HTMLElement>('[data-index]');
       const ROW_THRESHOLD = 100;
-      let visibleGroupName = groupsRef.current[0]?.name ?? null;
+      let visibleItemKey = groupsRef.current[0]?.itemKey ?? null;
       for (const row of rows) {
         const idx = parseInt(row.dataset.index ?? '', 10);
         if (isNaN(idx)) {
@@ -262,10 +266,10 @@ export const SnapshotListView = memo(function SnapshotListView({
         }
         const rowTop = row.getBoundingClientRect().top - containerTop;
         if (rowTop <= ROW_THRESHOLD) {
-          visibleGroupName = groupsRef.current[idx]?.name ?? null;
+          visibleItemKey = groupsRef.current[idx]?.itemKey ?? null;
         }
       }
-      onVisibleGroupChangeRef.current?.(visibleGroupName);
+      onVisibleGroupChangeRef.current?.(visibleItemKey);
 
       if (onScrollProgressRef.current) {
         const maxScroll = el.scrollHeight - el.clientHeight;
@@ -294,20 +298,15 @@ export const SnapshotListView = memo(function SnapshotListView({
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) {
+    if (!el || groups.length === 0) {
       return;
     }
     el.addEventListener('scroll', handleScroll, {passive: true});
+    handleScroll();
     return () => {
       el.removeEventListener('scroll', handleScroll);
       cancelAnimationFrame(rafId.current);
     };
-  }, [handleScroll]);
-
-  useEffect(() => {
-    if (groups.length > 0) {
-      handleScroll();
-    }
   }, [groups, handleScroll]);
 
   const initialSnapshotKey = useRef(selectedSnapshotKey ?? null).current;
@@ -576,10 +575,22 @@ const GroupContainer = memo(function GroupContainer({
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
 }) {
+  const organization = useOrganization();
   const cards = group.cards.map(card => {
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
+    const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
+    const onCopyLink = () =>
+      trackAnalytics('preprod.snapshots.details.image_link_copied', {
+        organization,
+        diff_status: diffStatus === 'solo' ? null : diffStatus,
+      });
+    const onCopyMetadata = () =>
+      trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+        organization,
+        diff_status: diffStatus === 'solo' ? null : diffStatus,
+      });
     return card.type === 'pair-card' ? (
       <PairCard
         key={card.id}
@@ -594,6 +605,8 @@ const GroupContainer = memo(function GroupContainer({
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
         onOpenSnapshot={onOpenSnapshot}
+        onCopyLink={onCopyLink}
+        onCopyMetadata={onCopyMetadata}
       />
     ) : (
       <ImageCard
@@ -607,6 +620,8 @@ const GroupContainer = memo(function GroupContainer({
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
         onOpenSnapshot={onOpenSnapshot}
+        onCopyLink={onCopyLink}
+        onCopyMetadata={onCopyMetadata}
       />
     );
   });

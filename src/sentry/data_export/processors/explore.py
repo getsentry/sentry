@@ -1,6 +1,7 @@
 import logging
 from typing import Any, cast
 
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
     ExportTraceItemsResponse,
@@ -179,15 +180,9 @@ class TraceItemFullExportProcessor(ExploreProcessor):
         *,
         output_mode: OutputMode = OutputMode.CSV,
         page_token: bytes | None = None,
-        last_emitted_item_id_hex: str | None = None,
     ):
         super().__init__(organization, explore_query, output_mode=output_mode)
         self.page_token = page_token
-        self._last_emitted_item_id_hex: str | None = last_emitted_item_id_hex
-
-    @property
-    def last_emitted_item_id_hex(self) -> str | None:
-        return self._last_emitted_item_id_hex
 
     def _create_logs_export_rpc_meta(self) -> RequestMeta:
         if self.snuba_params.organization_id is None:
@@ -200,6 +195,9 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             end_timestamp=self.snuba_params.rpc_end_date,
             referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
             trace_item_type=self.trace_item_type,
+            downsampled_storage_config=DownsampledStorageConfig(
+                mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
+            ),
         )
 
     def _sync_page_token_from_snuba_response(self, http_resp: ExportTraceItemsResponse) -> None:
@@ -223,16 +221,5 @@ class TraceItemFullExportProcessor(ExploreProcessor):
         http_resp = export_logs_rpc(request)
         rows = list(iter_export_trace_items_rows(http_resp, self._supported_trace_item_type))
 
-        if self._last_emitted_item_id_hex is not None:
-            while rows and rows[0].get("id") == self._last_emitted_item_id_hex:
-                rows = rows[1:]
-
         self._sync_page_token_from_snuba_response(http_resp)
-
-        if not rows:
-            return []
-
-        last_id = rows[-1].get("id")
-        if isinstance(last_id, str):
-            self._last_emitted_item_id_hex = last_id
-        return rows
+        return rows or []

@@ -58,9 +58,7 @@ function TransactionThresholdModal({
   const [threshold, setThreshold] = useState<number | string | undefined>(
     transactionThreshold
   );
-  const [metric, setMetric] = useState<TransactionThresholdMetric | undefined>(
-    transactionThresholdMetric
-  );
+  const [metric, setMetric] = useState(transactionThresholdMetric);
   const project = useEventViewProject(projects, eventView, projectId);
 
   const handleApply = (event: React.FormEvent) => {
@@ -239,12 +237,12 @@ function TransactionThresholdModal({
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">
-          <Button priority="default" onClick={handleReset} data-test-id="reset-all">
+          <Button variant="secondary" onClick={handleReset} data-test-id="reset-all">
             {t('Reset All')}
           </Button>
           <Button
             aria-label={t('Apply')}
-            priority="primary"
+            variant="primary"
             onClick={handleApply}
             data-test-id="apply-threshold"
           >

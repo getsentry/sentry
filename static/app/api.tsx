@@ -348,7 +348,7 @@ export class Client {
     return (...args: T) => {
       const req = this.activeRequests[id];
 
-      if (cleanup === true) {
+      if (cleanup) {
         delete this.activeRequests[id];
       }
 

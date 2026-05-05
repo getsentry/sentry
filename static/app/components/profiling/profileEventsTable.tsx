@@ -79,7 +79,7 @@ export function ProfileEventsTable<F extends FieldType>(
       isLoading={props.isLoading}
       error={props.error}
       data={props.data?.data ?? []}
-      columnOrder={props.columns.map(field => getColumnOrder<F>(field))}
+      columnOrder={props.columns.map(field => getColumnOrder(field))}
       columnSortBy={[props.sort]}
       grid={{
         renderHeadCell: renderTableHead<F>({

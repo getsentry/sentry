@@ -259,7 +259,7 @@ function NoViewsBanner({
       >
         {({hasFeature}) => (
           <BannerAddViewButton
-            priority="primary"
+            variant="primary"
             icon={<IconAdd />}
             size="sm"
             onClick={() => {
@@ -420,7 +420,7 @@ export default function IssueViewsList() {
                 >
                   {({hasFeature}) => (
                     <Button
-                      priority="primary"
+                      variant="primary"
                       icon={<IconAdd />}
                       size="sm"
                       disabled={!hasFeature || isCreatingView}
@@ -481,7 +481,7 @@ export default function IssueViewsList() {
                   >
                     {({hasFeature}) => (
                       <Button
-                        priority="primary"
+                        variant="primary"
                         icon={<IconAdd />}
                         disabled={!hasFeature || isCreatingView}
                         busy={isCreatingView}

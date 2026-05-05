@@ -33,7 +33,7 @@ import {
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>>;
   autofixSettings: undefined | AutofixAutomationSettings;
   integrations: CodingAgentIntegration[];
   isPendingIntegrations: boolean;
