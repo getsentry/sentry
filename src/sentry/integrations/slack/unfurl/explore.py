@@ -200,7 +200,7 @@ def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDic
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-def _metric_chart_is_visible(metric_parsed: dict) -> bool:
+def _metric_chart_is_visible(metric_parsed: dict[str, Any]) -> bool:
     """A metric renders the first aggregateField with ``yAxes``. That entry's
     ``visible`` flag (defaulting to True) controls whether the chart is shown
     in the UI; mirror that here so hidden charts are skipped during unfurl."""
@@ -224,7 +224,7 @@ def _parse_metrics_url(
     if not metric_list:
         return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
 
-    metric_parsed: dict | None = None
+    metric_parsed: dict[str, Any] | None = None
     for raw_metric in metric_list:
         try:
             parsed = json.loads(raw_metric)
