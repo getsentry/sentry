@@ -138,12 +138,14 @@ function getExploreSimilarSpansMenuItems({
   selection,
   showExploreSimilarSpansLink,
 }: {
-  message: string;
+  message: string | number | null | undefined;
   organization: Organization;
   selection: PageFilters;
   showExploreSimilarSpansLink?: boolean;
 }): MenuItemProps[] | undefined {
-  if (!showExploreSimilarSpansLink || message.length === 0) {
+  const messageString = String(message ?? '');
+
+  if (!showExploreSimilarSpansLink || messageString.length === 0) {
     return undefined;
   }
 
@@ -167,7 +169,7 @@ function getExploreSimilarSpansMenuItems({
         crossEvents: [
           {
             type: 'logs',
-            query: `${OurLogKnownFieldKey.MESSAGE}:"${escapeDoubleQuotes(message)}"`,
+            query: `${OurLogKnownFieldKey.MESSAGE}:"${escapeDoubleQuotes(messageString)}"`,
           },
         ],
       }),
@@ -462,7 +464,7 @@ export const LogRowContent = memo(function LogRowContent({
           const extraMenuItems =
             field === OurLogKnownFieldKey.MESSAGE
               ? getExploreSimilarSpansMenuItems({
-                  message: String(value),
+                  message: value,
                   organization,
                   selection,
                   showExploreSimilarSpansLink,
