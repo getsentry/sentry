@@ -567,3 +567,35 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         query = ExploreSavedQuery.objects.get(id=self.query.id)
         assert query.visits == 1
         assert query.last_visited == last_visited
+
+    def test_visit_query_without_project_access(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        member_user = self.create_user()
+        self.create_member(organization=self.org, user=member_user, role="member", teams=[])
+
+        restricted_team = self.create_team(organization=self.org, members=[])
+        restricted_project = self.create_project(organization=self.org, teams=[restricted_team])
+
+        restricted_query = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Restricted query",
+            query={"fields": ["span.op"], "mode": "samples"},
+        )
+        restricted_query.set_projects([restricted_project.id])
+
+        last_visited = restricted_query.last_visited
+        initial_visits = restricted_query.visits
+
+        self.login_as(user=member_user)
+
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url(restricted_query.id))
+
+        assert response.status_code == 403, response.content
+
+        refreshed = ExploreSavedQuery.objects.get(id=restricted_query.id)
+        assert refreshed.visits == initial_visits
+        assert refreshed.last_visited == last_visited

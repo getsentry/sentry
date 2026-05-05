@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0008_add_seer_run_models
+seer: 0009_genericize_night_shift_results
 
 sentry: 1080_backfill_deprecated_dashboard_widget_display_types
 
