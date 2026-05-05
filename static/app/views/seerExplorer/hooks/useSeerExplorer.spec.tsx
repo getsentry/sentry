@@ -122,7 +122,7 @@ describe('useSeerExplorer', () => {
     });
 
     it('sends structured JSON on dashboard page with feature flag', async () => {
-      (usePageReferrer as jest.Mock).mockReturnValue({
+      jest.mocked(usePageReferrer).mockReturnValue({
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
