@@ -264,7 +264,18 @@ class RateBasedTripStrategy(TripStrategy):
         if total_requests_counted == 0:
             return False
 
-        return (error_count / total_requests_counted) >= self.threshold
+        if (error_count / total_requests_counted) >= self.threshold:
+            logger.warning(
+                "circuit_breaker.rate_based.error_limit_hit",
+                extra={
+                    "key": key,
+                    "error_percentage": error_count / total_requests_counted,
+                    "error_count": error_count,
+                    "total_requests_counted": total_requests_counted,
+                },
+            )
+            return True
+        return False
 
 
 class CircuitBreaker:
