@@ -1,10 +1,13 @@
 import {useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 
+import type {ApiResult} from 'sentry/api';
 import type {Meta} from 'sentry/types/group';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -155,7 +158,7 @@ function traceItemDetailsQueryKey({
   ];
 }
 
-export function useFetchTraceItemDetailsOnHover({
+export function usePrefetchTraceItemDetailsOnHover({
   traceItemId,
   projectId,
   traceId,
@@ -179,15 +182,10 @@ export function useFetchTraceItemDetailsOnHover({
    */
   hoverPrefetchDisabled?: boolean;
 }) {
-  const [timeoutReached, setTimeoutReached] = useState(false);
-  const traceItemsResult = useTraceItemDetails({
-    projectId,
-    traceItemId,
-    traceId,
-    traceItemType,
-    referrer,
-    enabled: timeoutReached,
-  });
+  const organization = useOrganization();
+  const project = useProjectFromId({project_id: projectId});
+  const queryClient = useQueryClient();
+  const [traceItemMeta, setTraceItemMeta] = useState<TraceItemDetailsMeta | undefined>();
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
@@ -195,7 +193,35 @@ export function useFetchTraceItemDetailsOnHover({
         clearTimeout(sharedHoverTimeoutRef.current);
       }
       sharedHoverTimeoutRef.current = setTimeout(() => {
-        setTimeoutReached(true);
+        const queryKey = traceItemDetailsQueryKey({
+          urlParams: {
+            organizationSlug: organization.slug,
+            projectSlug: project?.slug ?? '',
+            traceItemId,
+          },
+          queryParams: {
+            traceItemType,
+            referrer,
+            traceId,
+          },
+        });
+        queryClient
+          .prefetchQuery({
+            queryKey,
+            queryFn: () => {
+              const {url, options} = parseQueryKey(queryKey);
+              return QUERY_API_CLIENT.requestPromise(url, {
+                includeAllArgs: true,
+                query: options?.query,
+              });
+            },
+            staleTime: Infinity,
+          })
+          .then(() => {
+            const cached = queryClient.getQueryData(queryKey);
+            const response = (cached as ApiResult<TraceItemDetailsResponse>)?.[0];
+            setTraceItemMeta(response?.meta);
+          });
       }, timeout);
     },
     onHoverEnd: () => {
@@ -206,8 +232,5 @@ export function useFetchTraceItemDetailsOnHover({
     isDisabled: hoverPrefetchDisabled,
   });
 
-  return {
-    hoverProps,
-    traceItemsResult,
-  };
+  return {hoverProps, traceItemMeta};
 }
