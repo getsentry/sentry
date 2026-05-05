@@ -26,8 +26,10 @@ export type ReprocessEventModalOptions = {
 const schema = z.object({
   maxEvents: z
     .string()
-    .refine(v => v === '' || /^\d+$/.test(v), t('Must be a positive integer'))
-    .refine(v => v === '' || Number(v) >= 1, t('Must be at least 1')),
+    .refine(
+      v => v === '' || (/^\d+$/.test(v) && Number(v) >= 1),
+      t('Must be a positive integer')
+    ),
   remainingEvents: z.enum(['keep', 'delete']),
 });
 
@@ -133,7 +135,6 @@ export function ReprocessingEventModal({
               >
                 <field.Input
                   type="number"
-                  min={1}
                   placeholder={t('Reprocess all events')}
                   value={field.state.value}
                   onChange={field.handleChange}
