@@ -18,6 +18,7 @@ import {
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
 import {
   SearchQueryBuilderCombobox,
   type CustomComboboxMenu,
@@ -189,7 +190,7 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
     return description;
   }
 
-  return undefined;
+  return;
 }
 
 export function getPredefinedValues({
@@ -263,6 +264,10 @@ export function tokenSupportsMultipleValues(
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null
 ): boolean {
+  if (fieldDefinition?.allowMultipleValues === false) {
+    return false;
+  }
+
   switch (token.filter) {
     case FilterType.TEXT: {
       // The search parser defaults to the text type, so we need to do further
@@ -408,8 +413,15 @@ function useFilterSuggestions({
 
   const createItem = useCallback(
     (suggestion: SuggestionItem) => {
+      const label = suggestion.label ?? suggestion.value;
+
       return {
-        label: suggestion.label ?? suggestion.value,
+        label:
+          typeof label === 'string' ? (
+            <HighlightText text={label} query={filterValue} />
+          ) : (
+            label
+          ),
         value: suggestion.value,
         details: suggestion.description,
         textValue: suggestion.value,
@@ -430,7 +442,7 @@ function useFilterSuggestions({
         },
       };
     },
-    [canSelectMultipleValues]
+    [canSelectMultipleValues, filterValue]
   );
 
   const suggestionGroups = useMemo(() => {

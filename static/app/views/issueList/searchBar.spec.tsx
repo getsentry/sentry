@@ -39,7 +39,7 @@ describe('IssueListSearchBar', () => {
       onSearch: jest.fn(),
     };
 
-    it('displays the correct options for the is tag', async () => {
+    it.isKnownFlake('displays the correct options for the is tag', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [],

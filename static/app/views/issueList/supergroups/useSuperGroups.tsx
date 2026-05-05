@@ -55,7 +55,7 @@ export function useSuperGroups(groupIds: string[]): {
       retry: false,
       placeholderData: previousData => {
         if (!previousData) {
-          return undefined;
+          return;
         }
         const prevSet = new Set(previousRequestedGroupIds);
         return groupIds.some(id => prevSet.has(id)) ? previousData : undefined;

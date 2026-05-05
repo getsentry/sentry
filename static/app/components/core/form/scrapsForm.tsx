@@ -59,7 +59,7 @@ const fieldComponents = {
 
 export type BoundFieldComponents = typeof fieldComponents;
 
-const {useAppForm, withFieldGroup} = createFormHook({
+const {useAppForm, withFieldGroup, withForm} = createFormHook({
   fieldComponents,
   formComponents: {
     FieldGroup,
@@ -77,7 +77,7 @@ function SubmitButton(props: ButtonProps) {
       {isSubmitting => (
         <Button
           {...props}
-          priority="primary"
+          variant="primary"
           type="submit"
           form={form.formId}
           busy={isSubmitting}
@@ -101,6 +101,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 
   return (
     <form
+      noValidate
       data-test-id={form.formId}
       id={form.formId}
       style={{width: '100%', flexGrow: 1}}
@@ -115,7 +116,8 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 }
 
 export const useScrapsForm = useAppForm;
-export {withFieldGroup};
+/** @public */
+export {formOptions, withFieldGroup, withForm};
 
 /**
  * Type for field errors that can be set after form submission (e.g., from backend validation).

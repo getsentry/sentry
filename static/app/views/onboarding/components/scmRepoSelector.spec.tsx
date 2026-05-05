@@ -159,7 +159,14 @@ describe('ScmRepoSelector', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
       body: {
-        repos: [{identifier: 'getsentry/sentry', name: 'sentry', isInstalled: false}],
+        repos: [
+          {
+            externalId: '1',
+            identifier: 'getsentry/sentry',
+            name: 'sentry',
+            isInstalled: false,
+          },
+        ],
       },
     });
 

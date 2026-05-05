@@ -348,19 +348,19 @@ export class Client {
     return (...args: T) => {
       const req = this.activeRequests[id];
 
-      if (cleanup === true) {
+      if (cleanup) {
         delete this.activeRequests[id];
       }
 
       if (!req?.alive) {
-        return undefined;
+        return;
       }
 
       // Check if API response is a 302 -- means project slug was renamed and user
       // needs to be redirected
       // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       if (hasProjectBeenRenamed(...args)) {
-        return undefined;
+        return;
       }
 
       // Call success callback

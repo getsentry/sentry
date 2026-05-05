@@ -127,6 +127,43 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         )
         assert response.data == {"type": ["This field is required."]}
 
+    def test_invalid_comparison_delta(self) -> None:
+        data = {**self.valid_data}
+        data["config"]["comparisonDelta"] = 0
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"][0] == ErrorDetail(
+            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            code="invalid",
+        )
+
+        data["config"]["comparisonDelta"] = 2592001
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"][0] == ErrorDetail(
+            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            code="invalid",
+        )
+
+        data["config"]["comparisonDelta"] = 300
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=201,
+        )
+        assert response.data["config"]["comparisonDelta"] == 300
+
     def test_invalid_group_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
         response = self.get_error_response(

@@ -14,6 +14,7 @@ import {
   getTargetWithReadableQueryParams,
   isDefaultFields,
 } from 'sentry/views/explore/logs/logsQueryParams';
+import {useOurLogsTableExpando} from 'sentry/views/explore/logs/tables/useOurLogsTableExpando';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
@@ -30,12 +31,13 @@ export function LogsLocationQueryParamsProvider({
 }: LogsLocationQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const ourlogsTableExpando = useOurLogsTableExpando();
 
   const [_, setPersistentParams] = usePersistedLogsPageParams();
 
   const _readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(location),
-    [location]
+    () => getReadableQueryParamsFromLocation(!ourlogsTableExpando, location),
+    [location, ourlogsTableExpando]
   );
 
   const readableQueryParams = useMemo(

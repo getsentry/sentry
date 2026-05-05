@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from unittest import mock
 
 import orjson
 import pytest
@@ -359,6 +360,32 @@ class TestTokenAuthentication(TestCase):
         assert user.is_anonymous is False
         assert user.id == self.user.id
         assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
+
+    def test_suspended_user_raises_authentication_failed(self) -> None:
+        self.user.update(is_suspended=True)
+
+        request = _drf_request()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+        request.META["REMOTE_ADDR"] = "10.0.0.1"
+
+        with (
+            mock.patch("sentry.api.authentication.logger") as mock_logger,
+            mock.patch("sentry.api.authentication.record_suspended_user_rejection") as mock_metric,
+        ):
+            with pytest.raises(AuthenticationFailed) as exc_info:
+                self.auth.authenticate(request)
+
+        assert exc_info.value.detail == "User account is suspended"
+
+        mock_logger.info.assert_any_call(
+            "api.token.suspended-user",
+            extra={
+                "user_id": self.user.id,
+                "token_id": self.api_token.id,
+                "ip_address": "10.0.0.1",
+            },
+        )
+        mock_metric.assert_called_once_with("token_auth")
 
 
 @control_silo_test
@@ -1072,6 +1099,20 @@ class TestViewerContextAuthentication(TestCase):
         token = encode_viewer_context(vc, key="wrong-key")
 
         request = self._make_request(viewer_context=token)
+        result = ViewerContextAuthentication().authenticate(request)
+
+        assert result is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_suspended_user_returns_none(self) -> None:
+        self.user.update(is_suspended=True)
+
+        context = encode_viewer_context(
+            ViewerContext(user_id=self.user.id, actor_type=ActorType.USER),
+            key=self.SHARED_SECRET,
+        )
+
+        request = self._make_request(viewer_context=context)
         result = ViewerContextAuthentication().authenticate(request)
 
         assert result is None

@@ -78,6 +78,7 @@ import {SpanDescriptionCell} from 'sentry/views/insights/common/components/table
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
@@ -427,6 +428,27 @@ const RightAlignedContainer = styled('span')`
   text-align: right;
 `;
 
+function renderAIOutputMessages(rawOutputMessages: unknown) {
+  if (!rawOutputMessages) {
+    return <Container>{emptyValue}</Container>;
+  }
+
+  const raw =
+    typeof rawOutputMessages === 'string'
+      ? rawOutputMessages
+      : JSON.stringify(rawOutputMessages);
+  if (!raw) {
+    return <Container>{emptyValue}</Container>;
+  }
+
+  const {responseText, responseObject, toolCalls} = extractAssistantOutput(raw, {
+    defaultRole: 'assistant',
+  });
+  const output = responseText ?? responseObject ?? toolCalls ?? raw;
+
+  return <Container>{output}</Container>;
+}
+
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
@@ -684,8 +706,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
-      let slugs: string[] | undefined = undefined;
-      let projectIds: number[] | undefined = undefined;
+      let slugs: string[] | undefined;
+      let projectIds: number[] | undefined;
       if (typeof data.project === 'number') {
         projectIds = [data.project];
       } else {
@@ -1047,6 +1069,10 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <ModelName modelId={data[SpanFields.GEN_AI_RESPONSE_MODEL]} />;
     },
+  },
+  [SpanFields.GEN_AI_OUTPUT_MESSAGES]: {
+    sortField: SpanFields.GEN_AI_OUTPUT_MESSAGES,
+    renderFunc: data => renderAIOutputMessages(data[SpanFields.GEN_AI_OUTPUT_MESSAGES]),
   },
 };
 
@@ -1475,12 +1501,12 @@ function getDashboardUrl(
 ) {
   const {organization, location, projects} = baggage;
   if (!widget?.widgetType || !dashboardFilters) {
-    return undefined;
+    return;
   }
 
   const linkedDashboard = findLinkedDashboardForField(widget.queries[0], field);
   if (!linkedDashboard) {
-    return undefined;
+    return;
   }
 
   // Get project ID override from data if available

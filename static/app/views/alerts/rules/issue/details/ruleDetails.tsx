@@ -329,7 +329,7 @@ export default function AlertRuleDetails() {
               'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
               {
                 keepAlive: (
-                  <BoldButton priority="link" size="sm" onClick={handleReEnable}>
+                  <BoldButton variant="link" size="sm" onClick={handleReEnable}>
                     {t('click here')}
                   </BoldButton>
                 ),
@@ -367,7 +367,7 @@ export default function AlertRuleDetails() {
               {
                 date: <TimeSince date={rule.disableDate} />,
                 keepAlive: (
-                  <BoldButton priority="link" size="sm" onClick={handleKeepAlertAlive}>
+                  <BoldButton variant="link" size="sm" onClick={handleKeepAlertAlive}>
                     {t('click here')}
                   </BoldButton>
                 ),

@@ -527,7 +527,7 @@ class IntegrationInstallation(abc.ABC):
         elif isinstance(exc, UnsupportedResponseType):
             return ERR_UNSUPPORTED_RESPONSE_TYPE.format(content_type=exc.content_type)
         elif isinstance(exc, ApiError):
-            if exc.json:
+            if exc.json and isinstance(exc.json, dict):
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
                 msg = "unknown error"

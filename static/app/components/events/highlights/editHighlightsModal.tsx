@@ -457,7 +457,7 @@ export function EditHighlightsModal({
                 }
               );
             }}
-            priority="primary"
+            variant="primary"
             size="sm"
           >
             {isPending ? t('Saving...') : t('Apply to Project')}

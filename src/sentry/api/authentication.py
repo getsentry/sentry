@@ -48,7 +48,8 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
+from sentry.utils.auth import record_suspended_user_rejection
 from sentry.utils.linksign import process_signature
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -99,10 +100,26 @@ def is_internal_relay(request, public_key):
 
     # check legacy whitelisted public_key settings
     # (we can't check specific relays but we can check public keys)
-    if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
+    if settings.DEBUG:
         return True
 
-    return is_internal_ip(request)
+    if public_key in settings.SENTRY_RELAY_WHITELIST_PK:
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "whitelist_pk"},
+            sample_rate=1.0,
+        )
+        return True
+
+    if is_internal_ip(request):
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "internal_ip"},
+            sample_rate=1.0,
+        )
+        return True
+
+    return False
 
 
 def is_static_relay(request):
@@ -524,6 +541,18 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if not isinstance(token, SystemToken) and user and not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
+        if not isinstance(token, SystemToken) and user and getattr(user, "is_suspended", False):
+            logger.info(
+                "api.token.suspended-user",
+                extra={
+                    "user_id": user.id,
+                    "token_id": getattr(token, "id", None),
+                    "ip_address": request.META.get("REMOTE_ADDR"),
+                },
+            )
+            record_suspended_user_rejection("token_auth")
+            raise AuthenticationFailed("User account is suspended")
+
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
@@ -815,18 +844,24 @@ class ViewerContextAuthentication(BaseAuthentication):
             return None
 
         user = user_service.get_user(user_id=vc.user_id)
-        if user is None or not user.is_active:
+        if user is None or not user.is_active or getattr(user, "is_suspended", False):
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
             # during X-Viewer-Context propagation (Seer code mode callbacks).
             # Remove once the auth issue is resolved.
             logger.warning(
                 "viewer_context_auth.failed",
                 extra={
-                    "reason": "user_not_found" if user is None else "user_inactive",
+                    "reason": "user_not_found"
+                    if user is None
+                    else "user_suspended"
+                    if getattr(user, "is_suspended", False)
+                    else "user_inactive",
                     "vc_user_id": vc.user_id,
                     "path": request.path,
                 },
             )
+            if user is not None and getattr(user, "is_suspended", False):
+                record_suspended_user_rejection("viewer_context_auth")
             return None
 
         sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)

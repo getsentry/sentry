@@ -226,6 +226,7 @@ jest.mock('@sentry/react', function sentryReact() {
     init: jest.fn(),
     setTag: jest.fn(),
     setTags: jest.fn(),
+    getReplay: jest.fn(),
     setExtra: jest.fn(),
     setExtras: jest.fn(),
     captureBreadcrumb: jest.fn(),

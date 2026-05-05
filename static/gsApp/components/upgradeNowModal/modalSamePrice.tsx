@@ -97,7 +97,7 @@ function UpgradeNowModal({
           <CTAPrimary>{t('500 replays')}</CTAPrimary>
           <CTASecondary>{t('at no additional cost')}</CTASecondary>
         </div>
-        <Button priority="primary" onClick={onUpdatePlan}>
+        <Button variant="primary" onClick={onUpdatePlan}>
           {t('Enable Now')}
         </Button>
       </CTAPanel>

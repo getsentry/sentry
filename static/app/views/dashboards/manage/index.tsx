@@ -12,6 +12,7 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
@@ -22,7 +23,6 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {Pagination} from 'sentry/components/pagination';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
@@ -83,7 +83,7 @@ function getDashboardsOverviewLayout(): DashboardsLayout {
 
   return dashboardsLayout === GRID || dashboardsLayout === TABLE
     ? dashboardsLayout
-    : GRID;
+    : TABLE;
 }
 
 function getSortOptions({
@@ -468,7 +468,7 @@ function ManageDashboards() {
                         <Button
                           {...triggerProps}
                           data-test-id="dashboard-create"
-                          priority="primary"
+                          variant="primary"
                           icon={<IconAdd />}
                         >
                           {t('Create Dashboard')}
@@ -490,7 +490,7 @@ function ManageDashboards() {
                         event.preventDefault();
                         onCreate();
                       }}
-                      priority="primary"
+                      variant="primary"
                       icon={<IconAdd />}
                       disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                       tooltipProps={{
@@ -643,7 +643,7 @@ function ManageDashboards() {
                                 location,
                               });
                             }}
-                            priority="primary"
+                            variant="primary"
                             icon={<IconAdd />}
                           >
                             {t('Import Dashboard from JSON')}
@@ -704,7 +704,7 @@ function ManageDashboards() {
                                         {...triggerProps}
                                         data-test-id="dashboard-create"
                                         size="sm"
-                                        priority="primary"
+                                        variant="primary"
                                         icon={<IconAdd />}
                                       >
                                         {t('Create Dashboard')}
@@ -727,7 +727,7 @@ function ManageDashboards() {
                                       onCreate();
                                     }}
                                     size="sm"
-                                    priority="primary"
+                                    variant="primary"
                                     icon={<IconAdd />}
                                     disabled={
                                       hasReachedDashboardLimit || isLoadingDashboardsLimit
@@ -754,7 +754,7 @@ function ManageDashboards() {
                               });
                             }}
                             size="sm"
-                            priority="primary"
+                            variant="primary"
                             icon={<IconAdd />}
                           >
                             {t('Import Dashboard from JSON')}

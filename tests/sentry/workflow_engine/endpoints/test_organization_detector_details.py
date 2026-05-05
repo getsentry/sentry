@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
+from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -376,6 +377,44 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 **data,
                 status_code=200,
             )
+
+    def test_update_comparison_delta_invalid(self) -> None:
+        data = {**self.valid_data}
+        data["config"]["comparisonDelta"] = 0
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"][0] == ErrorDetail(
+            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            code="invalid",
+        )
+
+        data["config"]["comparisonDelta"] = 2592001
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"][0] == ErrorDetail(
+            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            code="invalid",
+        )
+
+        data["config"]["comparisonDelta"] = 300
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+        assert response.data["config"]["comparisonDelta"] == 300
 
     def test_metric_detector_not_allowed_returns_404(self) -> None:
         """

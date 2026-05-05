@@ -9,6 +9,7 @@ import * as qs from 'query-string';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -80,6 +81,8 @@ import {
   useEnvironmentsFromUrl,
   useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -175,7 +178,7 @@ function getReprocessingNewRoute({
     };
   }
 
-  return undefined;
+  return;
 }
 
 function useRefetchGroupForReprocessing({
@@ -563,12 +566,13 @@ function GroupDetailsContentError({
   }
 }
 
-function GroupDetailsContent({
+function GroupDetailsContentInner({
   children,
   group,
   project,
   event,
 }: GroupDetailsContentProps) {
+  const api = useApi();
   const organization = useOrganization();
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
@@ -591,6 +595,10 @@ function GroupDetailsContent({
   });
 
   const {hasAutofixQuota} = useAiConfig(group, project);
+
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug, [project.id]);
+  }, [api, organization.slug, project.id]);
 
   useEffect(() => {
     if (isAnyDrawerOpen) {
@@ -634,6 +642,27 @@ function GroupDetailsContent({
 
   useEngagedViewTracking({group, project});
 
+  useLLMContext({
+    contextHint:
+      'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
+      'shortId is the human-readable issue identifier (e.g. PROJ-123). ' +
+      'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
+      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
+      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+    shortId: group.shortId,
+    title: group.title,
+    level: group.level,
+    status: group.status,
+    priority: group.priority,
+    issueType: group.issueType,
+    count: group.count,
+    userCount: group.userCount,
+    firstSeen: group.firstSeen,
+    lastSeen: group.lastSeen,
+    projectSlug: project.slug,
+    eventId: event?.id,
+  });
+
   const isDisplayingEventDetails = [
     Tab.DETAILS,
     Tab.DISTRIBUTIONS,
@@ -654,6 +683,8 @@ function GroupDetailsContent({
     </GroupDetailsLayout>
   );
 }
+
+const GroupDetailsContent = registerLLMContext('issue-detail', GroupDetailsContentInner);
 
 interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
   children: React.ReactNode;

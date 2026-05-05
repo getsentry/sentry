@@ -187,6 +187,7 @@ const VirtualOffset = styled('div')<{offset: number}>`
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
+  align-items: end;
 `;
 
 const TextBreak = styled('span')`

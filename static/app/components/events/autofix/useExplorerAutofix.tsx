@@ -43,12 +43,7 @@ interface CodingAgentError {
   message: string;
 }
 
-export type AutofixExplorerStep =
-  | 'root_cause'
-  | 'solution'
-  | 'code_changes'
-  | 'impact_assessment'
-  | 'triage';
+export type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes';
 
 /**
  * Artifact data types matching the backend Pydantic schemas.
@@ -436,14 +431,17 @@ export type AutofixArtifact =
 export function getAutofixArtifactFromSection(
   section: AutofixSection
 ): AutofixArtifact | null {
-  if (isRootCauseSection(section)) {
-    return section.artifacts.findLast(isRootCauseArtifact) ?? null;
-  }
-  if (isSolutionSection(section)) {
-    return section.artifacts.findLast(isSolutionArtifact) ?? null;
-  }
-  if (isCodeChangesSection(section)) {
-    return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+  if (section.status === 'completed') {
+    // these artifacts are only usable once the section has completed running
+    if (isRootCauseSection(section)) {
+      return section.artifacts.findLast(isRootCauseArtifact) ?? null;
+    }
+    if (isSolutionSection(section)) {
+      return section.artifacts.findLast(isSolutionArtifact) ?? null;
+    }
+    if (isCodeChangesSection(section)) {
+      return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+    }
   }
   if (isPullRequestsSection(section)) {
     return section.artifacts.findLast(isPullRequestsArtifact) ?? null;

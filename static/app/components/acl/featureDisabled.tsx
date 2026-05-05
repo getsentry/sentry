@@ -84,7 +84,7 @@ export function FeatureDisabled({
           )}
         </HelpText>
         <CopyButton
-          priority="transparent"
+          variant="transparent"
           icon={<IconCopy />}
           onClick={() => copy(snippet)}
           size="xs"
@@ -105,11 +105,7 @@ export function FeatureDisabled({
         <FeatureDisabledMessage>
           {message}
           {!hideHelpToggle && (
-            <ToggleButton
-              priority="link"
-              size="xs"
-              onClick={() => setShowHelp(!showHelp)}
-            >
+            <ToggleButton variant="link" size="xs" onClick={() => setShowHelp(!showHelp)}>
               {t('Help')}
               <StyledIconChevron direction={showDescription ? 'up' : 'down'} />
             </ToggleButton>

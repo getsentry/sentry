@@ -103,6 +103,15 @@ const DrawerContext = createContext<DrawerContextType>({
   panelRef: {current: null},
 });
 
+function shouldCloseOnInteractOutsideByDefault(element: Element) {
+  if (document.getElementById('modal-portal')?.contains(element)) {
+    return false;
+  }
+
+  const overlay = element.closest('[data-overlay]');
+  return !overlay || overlay.hasAttribute('data-drawer-backdrop');
+}
+
 export function GlobalDrawer({children}: any) {
   const location = useLocation();
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
@@ -170,11 +179,16 @@ export function GlobalDrawer({children}: any) {
   }, [currentDrawerConfig, handleClose]);
   const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
   useOnClickOutside(panelRef, e => {
-    if (
-      defined(shouldCloseOnInteractOutside) &&
-      defined(e?.target) &&
-      !shouldCloseOnInteractOutside(e.target as Element)
-    ) {
+    if (!defined(e?.target)) {
+      handleClickOutside();
+      return;
+    }
+
+    const shouldClose = shouldCloseOnInteractOutside
+      ? shouldCloseOnInteractOutside(e.target as Element)
+      : shouldCloseOnInteractOutsideByDefault(e.target as Element);
+
+    if (!shouldClose) {
       return;
     }
     handleClickOutside();
@@ -206,7 +220,7 @@ export function GlobalDrawer({children}: any) {
       >
         <AnimatePresence>
           {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
-            <Backdrop zIndex="drawer" key="backdrop" />
+            <Backdrop zIndex="drawer" key="backdrop" data-drawer-backdrop="" />
           ) : null}
           {isDrawerOpen && (
             <DrawerComponents.DrawerPanel

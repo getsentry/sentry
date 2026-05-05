@@ -176,10 +176,10 @@ export function ColumnEditModal(props: Props) {
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">
-          <LinkButton priority="default" href={DISCOVER2_DOCS_URL} external>
+          <LinkButton variant="secondary" href={DISCOVER2_DOCS_URL} external>
             {t('Read the Docs')}
           </LinkButton>
-          <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
+          <Button aria-label={t('Apply')} variant="primary" onClick={handleApply}>
             {t('Apply')}
           </Button>
         </Grid>
