@@ -7,14 +7,14 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
-from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 
 from . import AvatarBase
 
 
+# TODO(cells): Inherit from ReplicatedCellModel once RPC methods deployed
 @cell_silo_model
-class OrganizationAvatar(AvatarBase, ReplicatedCellModel):
+class OrganizationAvatar(AvatarBase):
     """
     An OrganizationAvatar associates an Organization with their avatar photo File
     and contains their preferences for avatar type.
