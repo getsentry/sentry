@@ -143,6 +143,9 @@ def verify_claims(
         raise AtlassianConnectValidationError(AtlassianConnectFailureReason.QUERY_HASH_MISMATCH)
 
 
+DEFAULT_TIMEOUT = 10.0
+
+
 def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str]:
     """
     Allows for Atlassian Connect installation lifecycle security improvements (i.e. verified senders)
@@ -152,7 +155,9 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
         raise AtlassianConnectValidationError(AtlassianConnectFailureReason.NO_TOKEN_PARAMETER)
     headers = jwt.peek_header(token)
     try:
-        key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
+        key_response = requests.get(
+            f"https://connect-install-keys.atlassian.com/{key_id}", timeout=DEFAULT_TIMEOUT
+        )
         key_response.raise_for_status()
     except requests.HTTPError as e:
         if key_response.status_code == 404:
