@@ -7,12 +7,12 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,
@@ -212,26 +212,13 @@ export function TracesTable({
       return {};
     }
     // sum up the error spans for a trace
-    const errors = traceErrorRequest.data?.reduce(
-      (acc, span) => {
-        acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const errors = traceErrorRequest.data?.reduce<Record<string, number>>((acc, span) => {
+      acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
+      return acc;
+    }, {});
 
-    return spansRequest.data.reduce(
-      (acc, span) => {
-        acc[span.trace] = {
-          llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
-          toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
-          totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
-          totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
-          totalErrors: Number(errors[span.trace] ?? 0),
-        };
-        return acc;
-      },
-      {} as Record<
+    return spansRequest.data.reduce<
+      Record<
         string,
         {
           llmCalls: number;
@@ -241,7 +228,16 @@ export function TracesTable({
           totalTokens: number;
         }
       >
-    );
+    >((acc, span) => {
+      acc[span.trace] = {
+        llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
+        toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
+        totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
+        totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
+        totalErrors: Number(errors[span.trace] ?? 0),
+      };
+      return acc;
+    }, {});
   }, [spansRequest.data, traceErrorRequest.data]);
 
   const tableData = useMemo(() => {
@@ -374,7 +370,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <span>
           <TraceIdButton
-            priority="link"
+            variant="link"
             onClick={() =>
               openTraceViewDrawer?.(dataRow.traceId, undefined, dataRow.timestamp / 1000)
             }
@@ -527,7 +523,7 @@ function AgentTags({agents}: {agents: string[]}) {
         padding="2xs xs 0 xl"
         style={{bottom: '0', right: '0'}}
       >
-        <Button priority="link" size="xs" onClick={handleShowAll}>
+        <Button variant="link" size="xs" onClick={handleShowAll}>
           {showAll ? t('Show less') : t('Show all')}
         </Button>
       </Container>

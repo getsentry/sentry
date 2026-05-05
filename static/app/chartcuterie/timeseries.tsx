@@ -58,10 +58,10 @@ export const makeTimeseriesCharts = (
       itemGap: 16,
       top: 6,
       left: 10,
-      truncate: 40,
+      truncate: 20,
       textStyle: {
-        fontSize: FONT_SIZE,
-        lineHeight: FONT_SIZE * 1.4,
+        fontSize: FONT_SIZE * 0.8,
+        lineHeight: FONT_SIZE * 1.1,
         fontFamily: DEFAULT_FONT_FAMILY,
       },
       pageTextStyle: {
@@ -106,15 +106,22 @@ export const makeTimeseriesCharts = (
       const hasGroups = timeSeries.some(ts => ts.groupBy && ts.groupBy.length > 0);
 
       if (!hasGroups) {
-        const ts = timeSeries[0]!;
-        const color = theme.chart.getColorPalette(0);
-        const plottingOptions: ContinuousTimeSeriesPlottingOptions = {
-          color: color?.[0] ?? '',
-          unit: ts.meta?.valueUnit ?? null,
-          yAxisPosition: 'left',
-        };
-        const plottable = createPlottableFromTimeSeries(displayType, ts);
-        const series = plottable?.toSeries(plottingOptions) ?? [];
+        const color = theme.chart
+          .getColorPalette(timeSeries.length - 1)
+          ?.slice() as string[];
+
+        const series = timeSeries.flatMap((ts, i) => {
+          const plottingOptions: ContinuousTimeSeriesPlottingOptions = {
+            color: color?.[i] ?? '',
+            unit: ts.meta?.valueUnit ?? null,
+            yAxisPosition: 'left',
+          };
+          const plottable = createPlottableFromTimeSeries(displayType, ts, {
+            name: formatTimeSeriesLabel(ts),
+            color: color?.[i],
+          });
+          return plottable?.toSeries(plottingOptions) ?? [];
+        });
 
         return {
           ...defaults,
@@ -146,6 +153,7 @@ export const makeTimeseriesCharts = (
         const plottable = createPlottableFromTimeSeries(displayType, ts, {
           name: formatTimeSeriesLabel(ts),
           color: color?.[i],
+          stack: 'all',
         });
         return plottable?.toSeries(plottingOptions) ?? [];
       });

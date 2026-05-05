@@ -250,7 +250,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
     .filter(team => team === 'myteams' || !isNaN(team));
 };
 
-export const decodeProjects = (location: Location): number[] => {
+const decodeProjects = (location: Location): number[] => {
   if (!location.query?.project) {
     return [];
   }
@@ -1092,17 +1092,14 @@ export class EventView {
   }
 
   getSorts(): Array<TableColumnSort<string | number>> {
-    return this.sorts.map(
-      sort =>
-        ({
-          key: sort.field,
-          order: sort.kind,
-        }) as TableColumnSort<string>
-    );
+    return this.sorts.map(sort => ({
+      key: sort.field,
+      order: sort.kind,
+    }));
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
+  getQuery(inputQuery?: string | string[] | null): string {
     const queryParts: string[] = [];
 
     if (this.query) {

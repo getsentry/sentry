@@ -190,6 +190,47 @@ Thread 2 name: background\n\
     )
 
 
+def _thread(thread_id):
+    return {
+        "id": thread_id,
+        "stacktrace": {
+            "frames": [
+                {
+                    "image_addr": "0x2c8000",
+                    "instruction_addr": "0x31c3e8",
+                    "symbol_addr": "0x31b9f8",
+                    "package": "/path/to/Lib.framework/Lib",
+                }
+            ]
+        },
+    }
+
+
+def _thread_order(output):
+    return [int(line.split()[1]) for line in output.splitlines() if line.startswith("Thread ")]
+
+
+def test_get_threads_apple_string_prioritized_thread_id() -> None:
+    threads = [_thread(965139), _thread(1874743)]
+
+    # Default: payload order.
+    default = AppleCrashReport(threads=threads).get_threads_apple_string()
+    assert _thread_order(default) == [965139, 1874743]
+
+    # Prioritized id moves to the top; accepts int or string.
+    for thread_id in (1874743, "1874743"):
+        output = AppleCrashReport(
+            threads=threads, prioritized_thread_id=thread_id
+        ).get_threads_apple_string()
+        assert _thread_order(output) == [1874743, 965139]
+
+    # Unknown id is a no-op.
+    unknown = AppleCrashReport(
+        threads=threads, prioritized_thread_id=999
+    ).get_threads_apple_string()
+    assert _thread_order(unknown) == [965139, 1874743]
+
+
 def test_get_threads_apple_string_symbolicated() -> None:
     acr = AppleCrashReport(
         symbolicated=True,

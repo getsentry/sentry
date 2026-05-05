@@ -32,7 +32,6 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     connect_detectors_to_workflows,
     get_unknown_detector_type_error,
     log_alerting_quota_hit,
-    toggle_detector,
     update_owner,
 )
 from sentry.workflow_engine.models import (
@@ -214,7 +213,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             if "enabled" in validated_data:
                 enabled = validated_data.get("enabled")
                 assert isinstance(enabled, bool)
-                toggle_detector(instance, enabled)
+                instance.enabled = enabled
 
             # Handle owner field update
             if "owner" in validated_data:

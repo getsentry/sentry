@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -27,7 +28,6 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerNextStepProps {
@@ -105,7 +105,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   });
 
   const handleYesClick = useCallback(() => {
-    startStep('solution', runId);
+    startStep('solution', {runId});
     trackAnalytics('autofix.root_cause.find_solution', {
       organization,
       group_id: group.id,
@@ -116,7 +116,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('root_cause', runId, userContext);
+      startStep('root_cause', {runId, userContext, insertIndex: section.index});
       trackAnalytics('autofix.root_cause.re_run', {
         organization,
         group_id: group.id,
@@ -124,7 +124,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
         referrer,
       });
     },
-    [organization, group, startStep, runId, referrer]
+    [organization, group, startStep, runId, referrer, section.index]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
@@ -156,7 +156,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const {isPolling, startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
-    startStep('code_changes', runId);
+    startStep('code_changes', {runId});
     trackAnalytics('autofix.solution.code', {
       organization,
       group_id: group.id,
@@ -167,7 +167,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('solution', runId, userContext);
+      startStep('solution', {runId, userContext, insertIndex: section.index});
       trackAnalytics('autofix.solution.re_run', {
         organization,
         group_id: group.id,
@@ -175,7 +175,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
         referrer,
       });
     },
-    [organization, group, startStep, runId, referrer]
+    [organization, group, startStep, runId, referrer, section.index]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
@@ -216,7 +216,7 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('code_changes', runId, userContext);
+      startStep('code_changes', {runId, userContext, insertIndex: section.index});
       trackAnalytics('autofix.code_changes.re_run', {
         organization,
         group_id: group.id,
@@ -224,7 +224,7 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
         referrer,
       });
     },
-    [organization, group, startStep, runId, referrer]
+    [organization, group, startStep, runId, referrer, section.index]
   );
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
@@ -320,7 +320,7 @@ function NextStepTemplate({
             {labelNevermind}
           </Button>
           <Button
-            priority="primary"
+            variant="primary"
             disabled={isProcessing}
             onClick={() => onClickNo(userContext)}
           >
@@ -339,7 +339,7 @@ function NextStepTemplate({
           {labelNo}
         </Button>
         <ButtonBar>
-          <Button priority="primary" disabled={isProcessing} onClick={onClickYes}>
+          <Button variant="primary" disabled={isProcessing} onClick={onClickYes}>
             {labelYes}
           </Button>
           {codingAgentIntegrations === undefined ? null : (
@@ -350,7 +350,7 @@ function NextStepTemplate({
                 <Button
                   {...triggerProps}
                   disabled={isProcessing}
-                  priority="primary"
+                  variant="primary"
                   icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   aria-label={t('More code fix options')}
                 />

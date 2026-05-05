@@ -1,4 +1,5 @@
 import {useEffect, useMemo} from 'react';
+import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
 
 import {organizationConfigIntegrationsQueryOptions} from 'sentry/components/repositories/scmIntegrationTree/organizationConfigIntegrationsQueryOptions';
 import type {
@@ -8,13 +9,12 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useInfiniteQuery, useQueries, useQuery} from 'sentry/utils/queryClient';
+import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
-
 type ScmIntegrationTreeData = {
-  connectedIdentifiers: Set<string>;
+  connectedExternalIds: Set<string>;
   connectedRepos: Repository[];
   isError: boolean;
   isPending: boolean;
@@ -39,7 +39,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   const scmProviders = useMemo(
     () =>
       (providersQuery.data?.providers ?? [])
-        .filter(p => p.metadata.features.some(f => f.featureGate.includes('commits')))
+        .filter(isScmProvider)
         .sort((a, b) => a.name.localeCompare(b.name)),
     [providersQuery.data]
   );
@@ -90,11 +90,12 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     [reposPages]
   );
 
-  // Use repo.name for matching, not externalSlug. For GitLab, externalSlug is a
-  // numeric project ID which never matches IntegrationRepository.identifier.
-  // repo.name is consistently "owner/repo" format across all SCM providers.
-  const connectedIdentifiers = useMemo(
-    () => new Set(connectedRepos.map(r => r.name)),
+  // Match on externalId, the same field the backend uses to compute
+  // IntegrationRepository.isInstalled. repo.name and repo.identifier diverge
+  // across providers (GitLab's identifier is a numeric project ID), but
+  // externalId is stable on both sides.
+  const connectedExternalIds = useMemo(
+    () => new Set(connectedRepos.map(r => r.externalId)),
     [connectedRepos]
   );
 
@@ -141,7 +142,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     scmProviders,
     scmIntegrations,
     connectedRepos,
-    connectedIdentifiers,
+    connectedExternalIds,
     refetchIntegrations: () => {
       providersQuery.refetch();
       integrationsQuery.refetch();

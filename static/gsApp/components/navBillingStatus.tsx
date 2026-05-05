@@ -159,7 +159,7 @@ function QuotaExceededContent({
           </Description>
           <Flex justify="between" align="center">
             <LinkButton
-              priority="primary"
+              variant="primary"
               href="mailto:sales@sentry.io"
               external
               size="xs"
@@ -204,7 +204,7 @@ function QuotaExceededContent({
           </Description>
           <Flex justify="start" align="center">
             <LinkButton
-              priority="primary"
+              variant="primary"
               href="mailto:sales@sentry.io"
               external
               size="xs"
@@ -370,7 +370,7 @@ export function PrimaryNavigationQuotaExceeded({
       ([category]) =>
         category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
     )
-    .reduce((acc, [category, currentHistory]) => {
+    .reduce<DataCategory[]>((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
         const designatedBudget =
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
@@ -390,7 +390,7 @@ export function PrimaryNavigationQuotaExceeded({
         acc.push(category);
       }
       return acc;
-    }, [] as DataCategory[]);
+    }, []);
   const promptsToCheck = exceededCategories
     .map(category => {
       return `${snakeCase(category)}_overage_alert`;

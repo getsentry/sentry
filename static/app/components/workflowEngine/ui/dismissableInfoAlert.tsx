@@ -14,7 +14,7 @@ export function DismissableInfoAlert({children}: {children: React.ReactNode}) {
         <Button
           aria-label="Dismiss banner"
           icon={<IconClose variant="accent" />}
-          priority="transparent"
+          variant="transparent"
           onClick={() => setDismissed(true)}
           size="zero"
         />

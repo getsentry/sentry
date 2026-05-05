@@ -1,15 +1,20 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
+import {
+  sentryAppApiOptions,
+  sentryAppsApiOptions,
+} from 'sentry/actionCreators/sentryApps';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -45,6 +50,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
@@ -109,14 +115,7 @@ function useIntegrationList() {
     data: orgOwnedApps = [],
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
-  } = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
-  );
+  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
   const {
     data: publishedApps = [],
     isPending: isPublishedAppsPending,
@@ -156,17 +155,7 @@ function useIntegrationList() {
   } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
-  const extraAppQuery = useApiQuery<SentryApp>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-        path: {sentryAppIdOrSlug: extraAppSlug ?? ''},
-      }),
-    ],
-    {
-      ...queryOptions,
-      enabled: isExtraAppEnabled,
-    }
-  );
+  const extraAppQuery = useQuery(sentryAppApiOptions({appSlug: extraAppSlug}));
   const {data: extraApp} = extraAppQuery;
   const isExtraAppPending = isExtraAppEnabled && extraAppQuery.isPending;
   const isExtraAppError = isExtraAppEnabled && extraAppQuery.isError;
@@ -505,6 +494,7 @@ function IntegrationSettingsHeader({
   search: string;
   title: string;
 }) {
+  const hasPageFrame = useHasPageFrameFeature();
   const getCategoryLabel = useCallback((c: string) => {
     return c === 'api' ? 'API' : startCase(c);
   }, []);
@@ -520,24 +510,55 @@ function IntegrationSettingsHeader({
     <SettingsPageHeader
       title={title}
       body={
-        <ActionContainer>
-          <Select
-            name="select-categories"
-            onChange={onChangeCategory}
-            value={category}
-            options={categoryOptions}
-          />
-          <SearchBar
-            query={search}
-            onSearch={onChangeSearch}
-            placeholder={t('Filter Integrations\u2026')}
-            aria-label={t('Filter')}
-            width="100%"
-            data-test-id="search-bar"
-          />
-        </ActionContainer>
+        hasPageFrame ? (
+          <Flex align="center" gap="md">
+            <Container width="240px">
+              <Select
+                name="select-categories"
+                onChange={onChangeCategory}
+                value={category}
+                options={categoryOptions}
+              />
+            </Container>
+            <Container flex={1}>
+              {({className}) => (
+                <SearchBar
+                  className={className}
+                  query={search}
+                  onSearch={onChangeSearch}
+                  placeholder={t('Filter Integrations\u2026')}
+                  aria-label={t('Filter')}
+                  width="100%"
+                  data-test-id="search-bar"
+                />
+              )}
+            </Container>
+            <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
+          </Flex>
+        ) : (
+          <ActionContainer>
+            <Select
+              name="select-categories"
+              onChange={onChangeCategory}
+              value={category}
+              options={categoryOptions}
+            />
+            <SearchBar
+              query={search}
+              onSearch={onChangeSearch}
+              placeholder={t('Filter Integrations\u2026')}
+              aria-label={t('Filter')}
+              width="100%"
+              data-test-id="search-bar"
+            />
+          </ActionContainer>
+        )
       }
-      action={<CreateIntegrationButton analyticsView="integrations_directory" />}
+      action={
+        hasPageFrame ? undefined : (
+          <CreateIntegrationButton analyticsView="integrations_directory" />
+        )
+      }
     />
   );
 }

@@ -10,6 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -258,9 +259,11 @@ export const LogRowContent = memo(function LogRowContent({
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
+  const [caseInsensitivity] = useCaseInsensitivity();
 
   const rendererExtra: RendererExtra = {
     highlightTerms,
+    caseSensitiveHighlighting: !caseInsensitivity,
     logColors,
     useFullSeverityText: false,
     location,
@@ -343,7 +346,7 @@ export const LogRowContent = memo(function LogRowContent({
                 aria-label={t('Toggle trace details')}
                 aria-expanded={expanded}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 onClick={() => toggleExpanded()}
               />
             ) : (
@@ -476,6 +479,7 @@ function LogRowDetails({
   const projectSlug = project?.slug ?? '';
   const fields = useQueryParamsFields();
   const getActions = useLogAttributesTreeActions({embedded});
+  const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
@@ -536,22 +540,23 @@ function LogRowDetails({
             <DetailsContent>
               <DetailsBody>
                 {isRegularLogResponseItem(dataRow) ? (
-                  LogBodyRenderer({
-                    item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
-                    extra: {
+                  <LogBodyRenderer
+                    item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
+                    extra={{
                       highlightTerms,
                       logColors,
                       wrapBody: true,
                       location,
                       organization,
+                      caseSensitiveHighlighting: !caseInsensitivity,
                       projectSlug,
                       attributes,
                       attributeTypes,
                       meta,
                       theme,
                       traceItemMeta: data?.meta,
-                    },
-                  })
+                    }}
+                  />
                 ) : (
                   <span>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</span>
                 )}
@@ -565,6 +570,7 @@ function LogRowDetails({
                   getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
+                    caseSensitiveHighlighting: !caseInsensitivity,
                     highlightTerms,
                     logColors,
                     location,
@@ -608,7 +614,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
   return (
     <LogDetailTableActionsButtonBar>
       <Button
-        priority="transparent"
+        variant="transparent"
         size="sm"
         icon={<IconAdd />}
         onClick={() => {
@@ -621,7 +627,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
         {t('Add to filter')}
       </Button>
       <Button
-        priority="transparent"
+        variant="transparent"
         size="sm"
         icon={<IconSubtract />}
         onClick={() => {
@@ -679,7 +685,7 @@ function LogRowDetailsActions({
       )}
       <LogDetailTableActionsButtonBar>
         <Button
-          priority="transparent"
+          variant="transparent"
           size="sm"
           icon={<IconJson />}
           onClick={betterCopyToClipboard}

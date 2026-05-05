@@ -202,7 +202,8 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         assert "`com.example.app`" in result
         # Zero counts are plain text, non-zero unchanged is linked
         assert "| 0 | 0 | 0 | 0 |" in result
-        assert "?section=unchanged" in result
+        assert "| 0 | ✅ Unchanged |" in result
+        assert "?selectedTypes=unchanged" in result
 
     def test_changes_show_needs_approval(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -228,10 +229,10 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         )
 
         assert "Needs approval" in result
-        assert "?section=added" in result
-        assert "?section=removed" in result
-        assert "?section=changed" in result
-        assert "?section=renamed" in result
+        assert "?selectedTypes=added" in result
+        assert "?selectedTypes=removed" in result
+        assert "?selectedTypes=changed" in result
+        assert "?selectedTypes=renamed" in result
 
     def test_approved_shows_approved_status(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -311,7 +312,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         )
 
         assert f"/preprod/snapshots/{head_artifact.id}" in result
-        assert "?section=changed" in result
+        assert "?selectedTypes=changed" in result
 
     def test_zero_counts_are_not_linked(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -335,7 +336,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
             project=self.project,
         )
 
-        assert "?section=" not in result
+        assert "?selectedTypes=" not in result
 
     def test_table_header_present(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -352,7 +353,10 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
             project=self.project,
         )
 
-        assert "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |" in result
+        assert (
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |"
+            in result
+        )
 
     def test_settings_link_included(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics()
@@ -387,7 +391,10 @@ class FormatSnapshotPrCommentNoBaseTest(SnapshotPrCommentTestBase):
             [artifact], {artifact.id: metrics}, {}, {}, {}, project=self.project
         )
 
-        assert "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |" in result
+        assert (
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |"
+            in result
+        )
 
     def test_no_base_multiple_artifacts(self) -> None:
         artifacts = []

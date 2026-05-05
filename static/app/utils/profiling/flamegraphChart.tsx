@@ -95,7 +95,8 @@ export class FlamegraphChart {
         name: measurement.name,
         lineColor: colorComponentsToRGBA(colors[j]!),
         fillColor: colorComponentsToRGBA(colors[j]!),
-        points: new Array(measurement?.values?.length ?? 0).fill(0),
+        // @ts-expect-error -- TODO: Figure out how to resolve this types mismatch?
+        points: Array.from({length: measurement?.values?.length ?? 0}).fill(0),
       };
 
       if (

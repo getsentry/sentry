@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {isScmProvider, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {computeCenteredWindow} from 'sentry/utils/window/computeCenteredWindow';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
@@ -32,6 +32,11 @@ export interface AddIntegrationParams {
       | 'test_analytics_org_selector';
   };
   modalParams?: Record<string, string>;
+  /**
+   * When true, the "%s added" success toast is not shown on install.
+   * Use when the surrounding UI already communicates the connected state.
+   */
+  suppressSuccessMessage?: boolean;
   urlParams?: Record<string, string>;
 }
 
@@ -41,9 +46,17 @@ export interface AddIntegrationParams {
 const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'aws_lambda',
   'bitbucket',
+  'claude_code',
+  'cursor',
+  'discord',
   'github',
   'gitlab',
+  'opsgenie',
+  'pagerduty',
+  'perforce',
   'slack',
+  'slack_staging',
+  'vsts',
 ] as const satisfies ReadonlyArray<ProvidersByType['integration']>;
 
 type UnconditionalApiPipelineProvider =
@@ -100,6 +113,7 @@ export function useAddIntegration() {
   const organizationRef = useRef<Organization | null>(null);
   const onInstallRef = useRef<((data: IntegrationWithConfig) => void) | null>(null);
   const analyticsParamsRef = useRef<AddIntegrationParams['analyticsParams']>(undefined);
+  const suppressSuccessMessageRef = useRef<boolean>(false);
 
   useEffect(() => {
     function handleMessage(message: MessageEvent) {
@@ -130,10 +144,13 @@ export function useAddIntegration() {
         trackIntegrationAnalytics('integrations.installation_complete', {
           integration: activeProviderRef.current.key,
           integration_type: 'first_party',
+          is_scm: isScmProvider(activeProviderRef.current),
           organization: organizationRef.current,
           ...analyticsParamsRef.current,
         });
-        addSuccessMessage(t('%s added', activeProviderRef.current.name));
+        if (!suppressSuccessMessageRef.current) {
+          addSuccessMessage(t('%s added', activeProviderRef.current.name));
+        }
       }
       onInstallRef.current?.(data);
     }
@@ -153,6 +170,7 @@ export function useAddIntegration() {
       account,
       analyticsParams,
       modalParams,
+      suppressSuccessMessage,
       urlParams,
     } = params;
 
@@ -161,13 +179,17 @@ export function useAddIntegration() {
     organizationRef.current = organization;
     onInstallRef.current = onInstall;
     analyticsParamsRef.current = analyticsParams;
+    suppressSuccessMessageRef.current = !!suppressSuccessMessage;
 
     const pipelineProvider = getApiPipelineProvider(organization, provider.key);
+
+    const is_scm = isScmProvider(provider);
 
     if (pipelineProvider !== null) {
       trackIntegrationAnalytics('integrations.installation_start', {
         integration: provider.key,
         integration_type: 'first_party',
+        is_scm,
         organization,
         ...analyticsParams,
       });
@@ -179,10 +201,13 @@ export function useAddIntegration() {
           trackIntegrationAnalytics('integrations.installation_complete', {
             integration: provider.key,
             integration_type: 'first_party',
+            is_scm,
             organization,
             ...analyticsParams,
           });
-          addSuccessMessage(t('%s added', provider.name));
+          if (!suppressSuccessMessage) {
+            addSuccessMessage(t('%s added', provider.name));
+          }
           onInstall(data);
         },
       });
@@ -193,6 +218,7 @@ export function useAddIntegration() {
     trackIntegrationAnalytics('integrations.installation_start', {
       integration: provider.key,
       integration_type: 'first_party',
+      is_scm,
       organization,
       ...analyticsParams,
     });

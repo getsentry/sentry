@@ -120,7 +120,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
         )}
         <StyledButtonBar>
           <Button
-            priority="primary"
+            variant="primary"
             onClick={() => {
               trackAnalytics('onboarding.take_me_to_issues_clicked', {
                 organization,

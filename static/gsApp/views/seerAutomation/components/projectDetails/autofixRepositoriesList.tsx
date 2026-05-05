@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery} from '@tanstack/react-query';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,7 +10,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {
   ProjectSeerPreferences,
@@ -22,6 +22,11 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 
@@ -58,15 +63,19 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
 export function AutofixRepositories({canWrite, preference, project}: Props) {
   const organization = useOrganization();
 
-  const {data: repositories, isFetching: isFetchingRepositories} =
-    useOrganizationRepositories();
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
+    select: selectUniqueRepos,
+  });
+  useFetchAllPages({result: repositoriesQuery});
+  const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
 
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   const tableHeaders = getTableHeaders(organization);
 
   const repoMap = useMemo(
-    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo]) ?? []),
+    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo])),
     [preference]
   );
 
@@ -140,7 +149,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
             </Flex>
             <Button
               disabled={!canWrite}
-              priority="primary"
+              variant="primary"
               icon={<IconAdd />}
               onClick={handleAddRepoClick}
             >
@@ -156,7 +165,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
       <Flex justify="end">
         <Button
           disabled={!canWrite}
-          priority="primary"
+          variant="primary"
           icon={<IconAdd />}
           onClick={handleAddRepoClick}
         >

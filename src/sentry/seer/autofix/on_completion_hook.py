@@ -5,15 +5,18 @@ from typing import TYPE_CHECKING
 
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.agent.client_models import Artifact
+from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
-    trigger_autofix_explorer,
+    trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
@@ -21,30 +24,20 @@ from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_project_seer_preferences,
+    clear_preference_automation_handoff,
     read_preference_from_sentry_db,
-    resolve_repository_ids,
-    set_project_seer_preference,
-    write_preference_to_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.client_models import Artifact
-from sentry.seer.explorer.client_utils import fetch_run_status
-from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.models import (
-    SeerApiError,
-    SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
-from sentry.seer.models.seer_api_models import SeerProjectPreference
-from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.seer.explorer.client_models import SeerRunState
+    from sentry.seer.agent.client_models import SeerRunState
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +56,9 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
 }
 
 
-class AutofixOnCompletionHook(ExplorerOnCompletionHook):
+class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
-    Hook called when an Explorer-based autofix run completes.
+    Hook called when an agent-based autofix run completes.
 
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
@@ -75,7 +68,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
         """
-        Execute the hook when the Explorer agent completes a step.
+        Execute the hook when the agent completes a step.
 
         Args:
             organization: The organization context
@@ -99,8 +92,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         # Send webhook for the completed step
         cls._send_step_webhook(organization, run_id, state, group)
-
-        cls._maybe_trigger_supergroups_embedding(organization, run_id, state, group)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
         cls._maybe_continue_pipeline(organization, run_id, state, group)
@@ -196,10 +187,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     ]
                     for repo, patches in diffs_by_repo.items()
                 }
-        elif current_step == AutofixStep.IMPACT_ASSESSMENT:
-            webhook_action_type = SeerActionType.IMPACT_ASSESSMENT_COMPLETED
-        elif current_step == AutofixStep.TRIAGE:
-            webhook_action_type = SeerActionType.TRIAGE_COMPLETED
 
         if not webhook_action_type:
             return
@@ -259,43 +246,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                         referrer=referrer,
                     )
                 )
-
-    @classmethod
-    def _maybe_trigger_supergroups_embedding(
-        cls,
-        organization: Organization,
-        run_id: int,
-        state: SeerRunState,
-        group: Group,
-    ) -> None:
-        """Trigger supergroups embedding if feature flag is enabled."""
-        current_step, _ = cls._get_current_step(state)
-        if current_step != AutofixStep.ROOT_CAUSE:
-            return
-
-        if not features.has("projects:supergroup-embeddings-explorer", group.project):
-            return
-
-        root_cause_artifact = cls.find_latest_artifact_for_step(state, AutofixStep.ROOT_CAUSE)
-        if not root_cause_artifact or not root_cause_artifact.data:
-            return
-
-        try:
-            trigger_supergroups_embedding(
-                organization_id=organization.id,
-                group_id=group.id,
-                project_id=group.project_id,
-                artifact_data=root_cause_artifact.data,
-            )
-        except Exception:
-            logger.exception(
-                "autofix.on_completion_hook.supergroups_embedding_failed",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group.id,
-                },
-            )
 
     @classmethod
     def _get_current_step(
@@ -419,7 +369,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "stopping_point": stopping_point,
             },
         )
-        trigger_autofix_explorer(
+        trigger_autofix_agent(
             group=group,
             step=next_step,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
@@ -488,65 +438,20 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         ]:
             return None
 
-        # Check project preferences
-        if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
-            preference = read_preference_from_sentry_db(group.project)
-        else:
-            try:
-                preference = get_project_seer_preferences(group.project_id).preference
-            except (SeerApiError, SeerApiResponseValidationError):
-                logger.exception(
-                    "autofix.on_completion_hook.get_preferences_failed",
-                    extra={"group_id": group.id, "project_id": group.project_id},
-                )
-                return None
-
-        if not preference:
-            return None
-        return preference.automation_handoff
+        return read_preference_from_sentry_db(group.project).automation_handoff
 
     @classmethod
     def _clear_handoff_preference(
         cls, project: Project, run_id: int, organization: Organization
     ) -> None:
         """Clear automation_handoff from project preferences after integration is not found."""
-        if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-            preference = read_preference_from_sentry_db(project)
-        else:
-            try:
-                preference = get_project_seer_preferences(project.id).preference
-            except (SeerApiError, SeerApiResponseValidationError):
-                logger.exception(
-                    "autofix.on_completion_hook.clear_handoff_preference_failed",
-                    extra={"run_id": run_id, "organization_id": organization.id},
-                )
-                return
-
-        if not preference or preference.automation_handoff is None:
-            return
-
-        updated_preference = preference.copy(update={"automation_handoff": None})
-
         try:
-            set_project_seer_preference(updated_preference)
-        except (SeerApiError, SeerApiResponseValidationError):
+            clear_preference_automation_handoff(project)
+        except Exception:
             logger.exception(
                 "autofix.on_completion_hook.clear_handoff_preference_failed",
                 extra={"run_id": run_id, "organization_id": organization.id},
             )
-            return
-
-        if features.has("organizations:seer-project-settings-dual-write", organization):
-            try:
-                resolved_preference = resolve_repository_ids(
-                    organization.id, [SeerProjectPreference.validate(updated_preference)]
-                )[0]
-                write_preference_to_sentry_db(project, resolved_preference)
-            except Exception:
-                logger.exception(
-                    "seer.write_preferences.failed",
-                    extra={"project_id": project.id, "organization_id": organization.id},
-                )
 
     @classmethod
     def _trigger_coding_agent_handoff(

@@ -6,12 +6,15 @@ import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGet
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 function mockTraceItemAttributeKeysByType({
-  attributeType,
   body,
   itemType = TraceItemDataset.LOGS,
 }: {
-  attributeType: 'string' | 'number' | 'boolean';
-  body: Array<{key: string; kind: FieldKind; name: string}>;
+  body: Array<{
+    attributeType: 'string' | 'number' | 'boolean';
+    key: string;
+    kind: FieldKind;
+    name: string;
+  }>;
   itemType?: TraceItemDataset;
 }) {
   return MockApiClient.addMockResponse({
@@ -20,7 +23,13 @@ function mockTraceItemAttributeKeysByType({
     match: [
       (_url, options) => {
         const query = options?.query || {};
-        return query.itemType === itemType && query.attributeType === attributeType;
+        return (
+          query.itemType === itemType &&
+          Array.isArray(query.attributeType) &&
+          query.attributeType.includes('string') &&
+          query.attributeType.includes('number') &&
+          query.attributeType.includes('boolean')
+        );
       },
     ],
   });
@@ -49,16 +58,26 @@ describe('useGetTraceItemAttributeTagKeys', () => {
 
   it('fetches and merges string, number, and boolean keys', async () => {
     mockTraceItemAttributeKeysByType({
-      attributeType: 'string',
-      body: [{key: 'log.field', name: 'log.field', kind: FieldKind.TAG}],
-    });
-    mockTraceItemAttributeKeysByType({
-      attributeType: 'number',
-      body: [{key: 'log.duration', name: 'log.duration', kind: FieldKind.MEASUREMENT}],
-    });
-    mockTraceItemAttributeKeysByType({
-      attributeType: 'boolean',
-      body: [{key: 'log.flag', name: 'log.flag', kind: FieldKind.BOOLEAN}],
+      body: [
+        {
+          attributeType: 'string',
+          key: 'log.field',
+          name: 'log.field',
+          kind: FieldKind.TAG,
+        },
+        {
+          attributeType: 'number',
+          key: 'log.duration',
+          name: 'log.duration',
+          kind: FieldKind.MEASUREMENT,
+        },
+        {
+          attributeType: 'boolean',
+          key: 'log.flag',
+          name: 'log.flag',
+          kind: FieldKind.BOOLEAN,
+        },
+      ],
     });
 
     const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
@@ -79,16 +98,26 @@ describe('useGetTraceItemAttributeTagKeys', () => {
 
   it('deduplicates extraTags when keys overlap fetched keys', async () => {
     mockTraceItemAttributeKeysByType({
-      attributeType: 'string',
-      body: [{key: 'log.field', name: 'log.field', kind: FieldKind.TAG}],
-    });
-    mockTraceItemAttributeKeysByType({
-      attributeType: 'number',
-      body: [{key: 'log.duration', name: 'log.duration', kind: FieldKind.MEASUREMENT}],
-    });
-    mockTraceItemAttributeKeysByType({
-      attributeType: 'boolean',
-      body: [{key: 'log.flag', name: 'log.flag', kind: FieldKind.BOOLEAN}],
+      body: [
+        {
+          attributeType: 'string',
+          key: 'log.field',
+          name: 'log.field',
+          kind: FieldKind.TAG,
+        },
+        {
+          attributeType: 'number',
+          key: 'log.duration',
+          name: 'log.duration',
+          kind: FieldKind.MEASUREMENT,
+        },
+        {
+          attributeType: 'boolean',
+          key: 'log.flag',
+          name: 'log.flag',
+          kind: FieldKind.BOOLEAN,
+        },
+      ],
     });
 
     const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
@@ -109,18 +138,63 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     expect(tags.filter(tag => tag.key === 'log.duration')).toHaveLength(1);
   });
 
+  it('short-circuits longer searches when a shorter prefix returned empty', async () => {
+    const mockEmpty = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
+      initialProps: {
+        itemType: TraceItemDataset.LOGS,
+      },
+    });
+
+    const firstTags = await result.current('met');
+    expect(firstTags).toHaveLength(0);
+    expect(mockEmpty).toHaveBeenCalledTimes(1);
+
+    const secondTags = await result.current('metrics');
+    expect(secondTags).toHaveLength(0);
+    expect(mockEmpty).toHaveBeenCalledTimes(1);
+  });
+
+  it('still fetches when the prefix search returned results', async () => {
+    const mockWithResults = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'meta.field',
+          name: 'meta.field',
+          kind: FieldKind.TAG,
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
+      initialProps: {
+        itemType: TraceItemDataset.LOGS,
+      },
+    });
+
+    await result.current('met');
+    expect(mockWithResults).toHaveBeenCalledTimes(1);
+
+    await result.current('metrics');
+    expect(mockWithResults).toHaveBeenCalledTimes(2);
+  });
+
   it('appends extraTags that are not in fetched results', async () => {
     mockTraceItemAttributeKeysByType({
-      attributeType: 'string',
-      body: [{key: 'log.field', name: 'log.field', kind: FieldKind.TAG}],
-    });
-    mockTraceItemAttributeKeysByType({
-      attributeType: 'number',
-      body: [],
-    });
-    mockTraceItemAttributeKeysByType({
-      attributeType: 'boolean',
-      body: [],
+      body: [
+        {
+          attributeType: 'string',
+          key: 'log.field',
+          name: 'log.field',
+          kind: FieldKind.TAG,
+        },
+      ],
     });
 
     const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {

@@ -38,7 +38,7 @@ const proxyLegacyBrowserHistory: ProxyHandler<History> = {
 
       return () => {};
     }
-    return undefined;
+    return;
   },
 };
 

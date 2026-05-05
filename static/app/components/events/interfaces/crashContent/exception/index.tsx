@@ -36,6 +36,7 @@ export function ExceptionContent({
           type={stackType}
           values={values}
           platform={event.platform}
+          threadId={threadId}
         />
       ) : (
         <LineCoverageProvider>

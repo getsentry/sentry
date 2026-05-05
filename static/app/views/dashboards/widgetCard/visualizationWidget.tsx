@@ -31,16 +31,15 @@ import {
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {
-  MISSING_DATA_MESSAGE,
-  NUMBER_MIN_VALUE,
-} from 'sentry/views/dashboards/widgets/common/settings';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
   TabularColumn,
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
 import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
@@ -103,6 +102,20 @@ export function VisualizationWidget({
 }: VisualizationWidgetProps) {
   const onWidgetError = useWidgetErrorCallback();
 
+  // WidgetLegendSelectionState persists legend selection to the URL with
+  // keys in `seriesName|~|widgetId` format so each widget's selection is
+  // tracked independently. TimeSeriesWidgetVisualization uses plain
+  // series names. Decode on the way in and encode on the way out.
+  const decodedLegendSelection = legendSelection
+    ? decodeLegendSelection(legendSelection)
+    : undefined;
+
+  const handleLegendSelectionChange = onLegendSelectionChange
+    ? (plain: LegendSelection) => {
+        onLegendSelectionChange(encodeLegendSelection(plain, widget.id));
+      }
+    : undefined;
+
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
   });
@@ -157,8 +170,8 @@ export function VisualizationWidget({
             isSampled={isSampled}
             sampleCount={sampleCount}
             onZoom={onZoom}
-            legendSelection={legendSelection}
-            onLegendSelectionChange={onLegendSelectionChange}
+            legendSelection={decodedLegendSelection}
+            onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
           />
         );
@@ -368,13 +381,6 @@ function VisualizationWidgetContent({
                 <NegativeCostWarning>
                   {formatBreakdownLegendValue(value, dataType, dataUnit)}
                 </NegativeCostWarning>
-              ) : dataType === 'number' &&
-                value !== null &&
-                value > 0 &&
-                value < NUMBER_MIN_VALUE ? (
-                <Tooltip title={value.toLocaleString()}>
-                  <span>{formatBreakdownLegendValue(value, dataType, dataUnit)}</span>
-                </Tooltip>
               ) : (
                 formatBreakdownLegendValue(value, dataType, dataUnit)
               )}
@@ -418,7 +424,7 @@ function VisualizationWidgetContent({
   // Check for empty plottables before rendering the visualization
   // This prevents TimeSeriesWidgetVisualization from throwing an error
   // that would get caught by ErrorBoundary and persist across filter changes
-  const hasNoPlottableData = plottables.every(plottable => plottable.isEmpty);
+  const hasNoPlottableData = !plottablesCanBeVisualized(plottables);
 
   if (hasNoPlottableData) {
     return <Widget.WidgetError error={MISSING_DATA_MESSAGE} />;
@@ -499,4 +505,33 @@ function renderBreakdownLabel(
   }
 
   return fallbackLabel;
+}
+
+/**
+ * Decodes legend selection keys from `seriesName|~|widgetId` format to
+ * plain `seriesName` keys used by `TimeSeriesWidgetVisualization`.
+ */
+function decodeLegendSelection(encoded: LegendSelection): LegendSelection {
+  const decoded: LegendSelection = {};
+  for (const key in encoded) {
+    decoded[WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(key, true)] =
+      encoded[key]!;
+  }
+  return decoded;
+}
+
+/**
+ * Encodes legend selection keys from plain `seriesName` format back to
+ * `seriesName|~|widgetId` format used by `WidgetLegendSelectionState`.
+ */
+function encodeLegendSelection(
+  plain: LegendSelection,
+  widgetId: string | undefined
+): LegendSelection {
+  const encoded: LegendSelection = {};
+  for (const key in plain) {
+    encoded[WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(key, widgetId)] =
+      plain[key]!;
+  }
+  return encoded;
 }

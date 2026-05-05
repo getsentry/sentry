@@ -23,7 +23,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
-import type {EventType} from 'getsentry/components/addEventsCTA';
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
@@ -158,7 +157,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     busy={autofixAcknowledgeMutation.isPending}
                     handleClick={() => autofixAcknowledgeMutation.mutate()}
                     size="md"
-                    priority="primary"
+                    variant="primary"
                     analyticsEventKey="seer_drawer.free_trial_clicked"
                     analyticsEventName="Seer Drawer: Clicked Free Trial"
                   >
@@ -177,7 +176,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     <Flex>
                       {userHasBillingAccess ? (
                         <AddBudgetButton
-                          priority="primary"
+                          variant="primary"
                           onClick={() => {
                             handleAddBudget();
                             autofixAcknowledgeMutation.mutate();
@@ -190,14 +189,12 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         </AddBudgetButton>
                       ) : (
                         <Button
-                          priority="primary"
+                          variant="primary"
                           onClick={async () => {
                             await sendAddEventsRequest({
                               api,
                               organization,
-                              eventTypes: [
-                                DATA_CATEGORY_INFO.seer_autofix.singular as EventType,
-                              ],
+                              eventTypes: [DATA_CATEGORY_INFO.seer_autofix.singular],
                             });
                             autofixAcknowledgeMutation.mutate();
                           }}
@@ -215,14 +212,14 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                           addSuccessMessage(t('Refreshed Seer quota'));
                         }}
                         size="md"
-                        priority="default"
+                        variant="secondary"
                         aria-label={t('Refresh')}
                       />
                     </Flex>
                   </Flex>
                 ) : (
                   <Button
-                    priority="primary"
+                    variant="primary"
                     onClick={() => {
                       autofixAcknowledgeMutation.mutate();
                       handlePurchaseSeer();
@@ -256,7 +253,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           <Fragment>
             <Flex align="center" gap="md">
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={() => autofixAcknowledgeMutation.mutate()}
                 disabled={autofixAcknowledgeMutation.isPending}
                 analyticsEventKey="gen_ai_consent.in_drawer_clicked"
@@ -308,7 +305,7 @@ const SingleCard = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-top: ${p => p.theme.space.xl};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
 `;
 
 const MeetSeerHeader = styled('div')`

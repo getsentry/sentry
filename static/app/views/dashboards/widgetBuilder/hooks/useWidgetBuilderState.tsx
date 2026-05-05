@@ -90,7 +90,7 @@ export type WidgetBuilderStateQueryParams = {
   yAxis?: string[];
 };
 
-export type WidgetBuilderStateLocalParams = {
+type WidgetBuilderStateLocalParams = {
   textContent?: string;
 };
 
@@ -788,9 +788,7 @@ export function useWidgetBuilderState(): {
                     ? [
                         {
                           kind: sort?.[0]?.kind ?? 'desc',
-                          field: generateFieldAsString(
-                            validSortOptions[0] as QueryFieldValue
-                          ),
+                          field: generateFieldAsString(validSortOptions[0]!),
                         },
                       ]
                     : [],
@@ -803,9 +801,7 @@ export function useWidgetBuilderState(): {
                   [
                     {
                       kind: sort?.[0]?.kind ?? 'desc',
-                      field: generateFieldAsString(
-                        action.payload[changedFieldIndex] as QueryFieldValue
-                      ),
+                      field: generateFieldAsString(action.payload[changedFieldIndex]!),
                     },
                   ],
                   options
@@ -819,9 +815,9 @@ export function useWidgetBuilderState(): {
             displayType !== DisplayType.BIG_NUMBER &&
             action.payload.length > 0
           ) {
-            const firstYAxisNotEquation = yAxis?.filter(
+            const firstYAxisNotEquation = yAxis?.find(
               field => field.kind !== FieldValueKind.EQUATION
-            )[0];
+            );
             const firstActionPayloadNotEquation = action.payload.find(
               field => field.kind !== FieldValueKind.EQUATION
             );
@@ -1292,7 +1288,7 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
           field: maybeLinkedDashboard.field,
         } satisfies LinkedDashboard;
       }
-      return undefined;
+      return;
     })
     .filter(defined);
 }

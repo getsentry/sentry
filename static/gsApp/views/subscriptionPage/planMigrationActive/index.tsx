@@ -93,7 +93,7 @@ export function PlanMigrationActive({subscription, migration}: Props) {
               'For more details please see our [faqLink:FAQ] or contact [zendeskLink:Support].',
               {
                 faqLink: (
-                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/29172070122651-How-is-my-legacy-plan-changing-September-12-2024" />
+                  <ExternalLink href="https://www.sentry.help/en/articles/13964853-how-is-my-legacy-plan-changing-september-12-2024" />
                 ),
                 zendeskLink: (
                   <ZendeskLink

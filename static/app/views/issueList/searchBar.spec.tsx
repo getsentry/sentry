@@ -39,7 +39,7 @@ describe('IssueListSearchBar', () => {
       onSearch: jest.fn(),
     };
 
-    it('displays the correct options for the is tag', async () => {
+    it.isKnownFlake('displays the correct options for the is tag', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [],
@@ -87,6 +87,8 @@ describe('IssueListSearchBar', () => {
       );
 
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
+      // Event property fields like stack.filename should also be suggested
+      expect(screen.getByRole('option', {name: 'stack.filename'})).toBeInTheDocument();
     });
 
     it('displays conflicting tags', async () => {

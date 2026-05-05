@@ -25,14 +25,6 @@ export const getToolSpansFilter = () => {
   return 'gen_ai.operation.type:tool';
 };
 
-export const getAgentAndAIClientFilter = () => {
-  return 'gen_ai.operation.type:[agent, ai_client]';
-};
-
-export const getAIGenerationsFilter = () => {
-  return 'gen_ai.operation.type:ai_client';
-};
-
 /**
  * Agent name fallback filters.
  *

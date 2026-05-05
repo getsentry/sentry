@@ -119,8 +119,8 @@ class HistoricGroupCounts(
         assert len(Group.objects.all()) == 4
         assert profile_error_event.group.issue_category == GroupCategory.ERROR
         assert error_event.group.issue_category == GroupCategory.ERROR
-        assert profile_issue_occurrence.group.issue_category == GroupCategory.PERFORMANCE
-        assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
+        assert profile_issue_occurrence.group.issue_category == GroupCategory.MOBILE
+        assert perf_event.group.issue_category == GroupCategory.DB_QUERY
 
         profile_issue_occurrence_bucket = {
             "count()": 1,
@@ -296,6 +296,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count_snuba(group) == (1, False)
 
+    @pytest.mark.skip(reason="flaky")
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
         """

@@ -23,7 +23,7 @@ AUTHORIZATIONS_DATA = {"authorizations": [{"user_id": "U0BOT", "is_bot": True}]}
 
 class DirectMessageTest(BaseEventTest):
     """
-    Tests for DM messages triggering the Seer Explorer agentic workflow.
+    Tests for DM messages triggering the Seer agentic workflow.
 
     These tests require the integration to have the assistant:write scope so
     that DMs are routed to on_direct_message instead of the help message handler.
@@ -73,18 +73,15 @@ class DirectMessageTest(BaseEventTest):
         assert kwargs["thread_ts"] == THREADED_MESSAGE_DM_EVENT["thread_ts"]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.integrations.slack.webhooks.event.send_identity_link_prompt")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_identity_not_linked(self, mock_apply_async, mock_send_link, mock_record):
-        """When no identity is linked, send a link prompt and halt."""
+    def test_dm_identity_not_linked(self, mock_apply_async, mock_record):
+        """When no identity is linked, halt without dispatching the mention task."""
         self.unlink_identity()
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=MESSAGE_DM_EVENT)
 
         assert resp.status_code == 200
         mock_apply_async.assert_not_called()
-        mock_send_link.assert_called_once()
-        assert mock_send_link.call_args[1]["slack_user_id"] == MESSAGE_DM_EVENT["user"]
         assert_halt_metric(mock_record, SeerSlackHaltReason.IDENTITY_NOT_LINKED)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -100,7 +97,7 @@ class DirectMessageTest(BaseEventTest):
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_dm_no_integration(self, mock_apply_async, mock_record):
         with patch(
-            "sentry.integrations.slack.webhooks.event.integration_service.get_organization_integrations",
+            "sentry.integrations.slack.requests.event.integration_service.get_organization_integrations",
             return_value=[],
         ):
             with self.feature(SEER_EXPLORER_FEATURES):

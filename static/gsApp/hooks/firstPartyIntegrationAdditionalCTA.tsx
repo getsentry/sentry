@@ -27,7 +27,7 @@ export function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
       <UpsellButton
         source={`integration-additional-cta-alert-hook-${alertType}-${provider}`}
         size="sm"
-        priority="primary"
+        variant="primary"
         extraAnalyticsParams={{
           integration: provider,
           integration_type: 'first-party',

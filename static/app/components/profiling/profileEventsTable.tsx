@@ -88,10 +88,12 @@ export function ProfileEventsTable<F extends FieldType>(
           rightAlignedColumns: getRightAlignedColumns(props.columns),
           sortableColumns: props.sortableColumns,
         }),
-        renderBodyCell: renderTableBody(
-          props.data?.meta ?? ({fields: {}, units: {}} as EventsResults<F>['meta']),
-          {location, organization, projects, view: domainViewFilters?.view}
-        ),
+        renderBodyCell: renderTableBody(props.data?.meta ?? {fields: {}, units: {}}, {
+          location,
+          organization,
+          projects,
+          view: domainViewFilters?.view,
+        }),
       }}
     />
   );
@@ -321,7 +323,7 @@ function getProjectForRow<F extends FieldType>(
   baggage: ProfileEventsCellProps<F>['baggage'],
   dataRow: ProfileEventsCellProps<F>['dataRow']
 ) {
-  let project: Project | undefined = undefined;
+  let project: Project | undefined;
 
   if (defined(dataRow['project.id'])) {
     const projectId = dataRow['project.id'].toString();

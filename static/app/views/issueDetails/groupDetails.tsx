@@ -2,13 +2,15 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -35,8 +37,8 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -68,7 +70,7 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
@@ -79,6 +81,8 @@ import {
   useEnvironmentsFromUrl,
   useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -174,7 +178,7 @@ function getReprocessingNewRoute({
     };
   }
 
-  return undefined;
+  return;
 }
 
 function useRefetchGroupForReprocessing({
@@ -210,14 +214,13 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
         defined(storeGroup.participants) &&
         defined(storeGroup.activity)
       ) {
-        setApiQueryData(
-          queryClient,
-          makeFetchGroupQueryKey({
+        queryClient.setQueryData(
+          groupApiOptions({
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-          }),
-          storeGroup
+          }).queryKey,
+          prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
     }, undefined) as () => void;
@@ -392,7 +395,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [group?.project.id, allProjectChanged, navigate]);
 
-  const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
+  const errorType =
+    groupError instanceof RequestError
+      ? getFetchDataRequestErrorType(groupError.status)
+      : null;
   useEffect(() => {
     if (isGroupError) {
       Sentry.captureException(groupError);
@@ -560,12 +566,13 @@ function GroupDetailsContentError({
   }
 }
 
-function GroupDetailsContent({
+function GroupDetailsContentInner({
   children,
   group,
   project,
   event,
 }: GroupDetailsContentProps) {
+  const api = useApi();
   const organization = useOrganization();
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
@@ -578,7 +585,7 @@ function GroupDetailsContent({
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
-  const {isDrawerOpen} = useDrawer();
+  const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
   const {seerDrawer} = useLocationQuery({
@@ -590,7 +597,11 @@ function GroupDetailsContent({
   const {hasAutofixQuota} = useAiConfig(group, project);
 
   useEffect(() => {
-    if (isDrawerOpen) {
+    fetchOrgMembers(api, organization.slug, [project.id]);
+  }, [api, organization.slug, project.id]);
+
+  useEffect(() => {
+    if (isAnyDrawerOpen) {
       return;
     }
 
@@ -611,7 +622,7 @@ function GroupDetailsContent({
     }
   }, [
     currentTab,
-    isDrawerOpen,
+    isAnyDrawerOpen,
     seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,
@@ -630,6 +641,27 @@ function GroupDetailsContent({
   });
 
   useEngagedViewTracking({group, project});
+
+  useLLMContext({
+    contextHint:
+      'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
+      'shortId is the human-readable issue identifier (e.g. PROJ-123). ' +
+      'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
+      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
+      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+    shortId: group.shortId,
+    title: group.title,
+    level: group.level,
+    status: group.status,
+    priority: group.priority,
+    issueType: group.issueType,
+    count: group.count,
+    userCount: group.userCount,
+    firstSeen: group.firstSeen,
+    lastSeen: group.lastSeen,
+    projectSlug: project.slug,
+    eventId: event?.id,
+  });
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
@@ -651,6 +683,8 @@ function GroupDetailsContent({
     </GroupDetailsLayout>
   );
 }
+
+const GroupDetailsContent = registerLLMContext('issue-detail', GroupDetailsContentInner);
 
 interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
   children: React.ReactNode;

@@ -70,7 +70,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
             'Connect a repository to see commit info, files changed, and authors involved in future releases.'
           )}
         </p>
-        <LinkButton to={`/settings/${orgSlug}/repos/`} priority="primary">
+        <LinkButton to={`/settings/${orgSlug}/repos/`} variant="primary">
           {t('Connect a repository')}
         </LinkButton>
       </ConnectRepo>
@@ -211,7 +211,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
       <Flex justify="end" align="center" gap="xs">
         <StyledVersion version={releaseVersion} truncate anchor={false} />
         <CopyToClipboardButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={releaseVersion}
           aria-label={t('Copy release version to clipboard')}

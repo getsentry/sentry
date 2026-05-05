@@ -89,7 +89,7 @@ export function WidgetPreview({
   }
 
   function handleWidgetTableResizeColumn(columns: TabularColumn[]) {
-    const widths = columns.map(column => column.width as number);
+    const widths = columns.map(column => column.width!);
     setTableWidths(widths);
   }
 
@@ -112,11 +112,7 @@ export function WidgetPreview({
       isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
-      widgetInterval={
-        organization.features.includes('dashboards-interval-selection')
-          ? chartInterval
-          : undefined
-      }
+      widgetInterval={chartInterval}
       onLegendSelectChanged={() => {}}
       legendOptions={
         widgetLegendState.widgetRequiresLegendUnselection(widget)

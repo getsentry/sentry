@@ -19,6 +19,7 @@ from sentry.api.bases.organization import (
     OrganizationReleasePermission,
 )
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.auth.staff import is_active_staff
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -80,6 +81,12 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
             "maxProperties": 50000,
         },
         "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
+        "selective": {"type": "boolean"},
+        "all_image_file_names": {
+            "type": "array",
+            "items": {"type": "string"},
+            "maxItems": 50000,
+        },
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
@@ -89,6 +96,8 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
 SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "app_id": "The app_id field is required and must be a string with maximum length of 255 characters.",
     "images": "The images field is required and must be an object mapping image names to image metadata.",
+    "selective": "The selective field must be a boolean.",
+    "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 50000 entries.",
     **VCS_ERROR_MESSAGES,
 }
 
@@ -130,6 +139,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 id=snapshot_id, project__organization_id=organization.id
             )
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "Snapshot not found"}, status=404)
+
+        if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
             return Response({"detail": "Snapshot not found"}, status=404)
 
         try:
@@ -180,10 +192,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
-            artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
+            artifact = PreprodArtifact.objects.select_related("commit_comparison", "project").get(
                 id=snapshot_id, project__organization_id=organization.id
             )
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "Snapshot not found"}, status=404)
+
+        if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
             return Response({"detail": "Snapshot not found"}, status=404)
 
         try:
@@ -280,16 +295,23 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         )
 
         first_class = SnapshotImageResponse.__fields__
+        global_threshold = manifest.diff_threshold
         image_list = [
             SnapshotImageResponse(
-                **{k: v for k, v in metadata.dict().items() if k not in first_class},
-                key=metadata.content_hash
-                or key,  # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+                **{
+                    k: v
+                    for k, v in metadata.dict().items()
+                    if k not in first_class and k != "diff_threshold"
+                },
+                key=metadata.content_hash,
                 display_name=metadata.display_name,
                 image_file_name=key,
                 group=metadata.group,
                 width=metadata.width,
                 height=metadata.height,
+                diff_threshold=metadata.diff_threshold
+                if metadata.diff_threshold is not None
+                else global_threshold,
             )
             for key, metadata in sorted(manifest.images.items())
         ]
@@ -420,6 +442,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
+                app_id=artifact.app_id,
                 images=image_list,
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
@@ -434,6 +457,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
+                skipped=categorized.skipped,
+                skipped_count=len(categorized.skipped),
                 comparison_run_info=run_info,
                 approval_info=approval_info,
                 diff_threshold=manifest.diff_threshold,
@@ -481,6 +506,35 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         base_ref = data.get("base_ref")
         pr_number = data.get("pr_number")
 
+        selective = data.get("selective", False)
+        all_image_file_names = data.get("all_image_file_names")
+
+        if all_image_file_names is not None and not selective:
+            return Response(
+                {"detail": "all_image_file_names requires selective to be true."},
+                status=400,
+            )
+
+        if selective and not base_sha:
+            return Response(
+                {"detail": "selective requires base_sha to be provided."},
+                status=400,
+            )
+
+        if all_image_file_names is not None:
+            if not all_image_file_names:
+                return Response(
+                    {"detail": "all_image_file_names must not be empty."},
+                    status=400,
+                )
+            all_image_file_names_set = set(all_image_file_names)
+            missing = set(images.keys()) - all_image_file_names_set
+            if missing:
+                return Response(
+                    {"detail": "Every image name must appear in all_image_file_names."},
+                    status=400,
+                )
+
         # has_vcs tag differentiates transactions that include a CommitComparison
         # lookup from those that skip it, so we can isolate their latency on dashboards.
         with (
@@ -522,13 +576,19 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             snapshot_metrics = PreprodSnapshotMetrics.objects.create(
                 preprod_artifact=artifact,
                 image_count=len(images),
+                is_selective=selective,
                 extras={"manifest_key": manifest_key},
             )
 
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest = SnapshotManifest(images=images, diff_threshold=diff_threshold)
+            manifest = SnapshotManifest(
+                images=images,
+                diff_threshold=diff_threshold,
+                selective=selective,
+                all_image_file_names=all_image_file_names,
+            )
             manifest_json = manifest.json(exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 
@@ -654,7 +714,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
-        if commit_comparison is not None:
+        if commit_comparison is not None and not selective:
             try:
                 waiting_heads = find_head_snapshot_artifacts_awaiting_base(
                     organization_id=project.organization_id,

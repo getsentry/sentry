@@ -67,7 +67,7 @@ export function InviteMissingMembersModal({
       const invites = prevInvites.map(i => ({...i}));
       invites[index]!.role = role;
       if (!allowedRolesMap[role]!.isTeamRolesAllowed) {
-        invites[index]!.teamSlugs = new Set([]);
+        invites[index]!.teamSlugs = new Set();
       }
       return invites;
     });
@@ -290,7 +290,7 @@ export function InviteMissingMembersModal({
           </Button>
           <Button
             size="sm"
-            priority="primary"
+            variant="primary"
             aria-label={t('Send Invites')}
             onClick={sendInvites}
             disabled={!canSend || selectedCount === 0}

@@ -62,6 +62,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (SentryAppDetailsEndpointPermission,)
+    allow_disabled_sentry_app_for_methods = {"DELETE", "PUT"}
 
     @extend_schema(
         operation_id="Retrieve a custom integration by ID or slug.",
@@ -142,6 +143,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             partial=True,
             access=request.access,
             active_staff=is_active_staff(request),
+            context={"request": request},
         )
 
         if serializer.is_valid():

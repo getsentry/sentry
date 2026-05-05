@@ -60,7 +60,7 @@ export function FirstPartyIntegrationAlertHook({
             <UpsellButton
               source={`integration-alert-hook-${alertType}-${provider}`}
               size="xs"
-              priority="default"
+              variant="secondary"
               extraAnalyticsParams={{
                 integration: provider,
                 integration_type: 'first-party',

@@ -79,7 +79,10 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: max-content max-content 1fr max-content max-content;
 `;
 
-function getErrorMessage(fetchError: Error) {
+function getErrorMessage(fetchError: Error | string) {
+  if (typeof fetchError === 'string') {
+    return fetchError;
+  }
   if (fetchError instanceof RequestError) {
     if (typeof fetchError?.responseJSON?.detail === 'string') {
       return fetchError.responseJSON.detail;

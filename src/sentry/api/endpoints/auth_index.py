@@ -14,7 +14,7 @@ from sentry import analytics
 from sentry.analytics.events.auth_v2 import AuthV2DeleteLogin
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import QuietBasicAuthentication
+from sentry.api.authentication import QuietBasicAuthentication, UserAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import serialize
@@ -134,6 +134,17 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     authentication methods from JS endpoints by relying on internal sessions
     and simple HTTP authentication.
     """
+
+    def initialize_request(self, request, *args, **kwargs):
+        rv = super().initialize_request(request, *args, **kwargs)
+        # Allow Bearer token authentication for GET (whoami) only.
+        # POST/PUT/DELETE are session-management operations where Bearer auth
+        # is inappropriate — the original restriction to QuietBasicAuthentication
+        # and SessionAuthentication is intentional for those methods.
+        if request.method == "GET":
+            rv.authenticators = [UserAuthTokenAuthentication(), *(rv.authenticators or [])]
+        return rv
+
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={

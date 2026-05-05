@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -8,11 +9,9 @@ import {TextareaField} from 'sentry/components/forms/fields/textareaField';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-
 type Props = {
   name: string;
   onSuccess: () => void;

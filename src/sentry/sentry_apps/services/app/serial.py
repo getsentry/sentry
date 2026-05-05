@@ -42,6 +42,7 @@ def serialize_sentry_app(
         events=app.events,
         webhook_url=app.webhook_url,
         is_alertable=app.is_alertable,
+        is_disabled=app.is_disabled,
         is_published=app.status == SentryAppStatus.PUBLISHED,
         is_unpublished=app.status == SentryAppStatus.UNPUBLISHED,
         is_internal=app.status == SentryAppStatus.INTERNAL,
@@ -49,6 +50,7 @@ def serialize_sentry_app(
         status=SentryAppStatus.as_str(app.status),
         metadata=app.metadata,
         avatars=[serialize_sentry_app_avatar(avatar) for avatar in avatars],
+        creator_label=app.creator_label,
     )
 
 

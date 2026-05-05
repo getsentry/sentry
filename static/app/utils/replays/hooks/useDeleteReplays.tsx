@@ -1,14 +1,11 @@
 import {useCallback} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {getUtcValue, normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
-import {
-  fetchMutation,
-  useMutation,
-  type QueryKeyEndpointOptions,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
@@ -56,9 +53,9 @@ export function useDeleteReplays({projectSlug}: Props) {
   const queryOptionsToPayload = useCallback(
     (
       selectedIds: 'all' | string[],
-      queryOptions: QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
+      queryOptions: QueryKeyEndpointOptions
     ): ReplayBulkDeletePayload => {
-      const environments = queryOptions?.query?.environment ?? [];
+      const environments = (queryOptions?.query?.environment as string | undefined) ?? [];
 
       const query = queryOptions?.query ?? {};
       const normalizedQuery = normalizeDateTimeParams(query);
@@ -73,7 +70,7 @@ export function useDeleteReplays({projectSlug}: Props) {
         environments: environments.length === 0 ? project?.environments : environments,
         query:
           selectedIds === 'all'
-            ? (queryOptions?.query?.query ?? '')
+            ? ((queryOptions?.query?.query as string | undefined) ?? '')
             : `id:[${selectedIds.join(',')}]`,
         rangeStart: getDateWithTimezoneInUtc(
           getDateFromTimestamp(start) ?? new Date(),

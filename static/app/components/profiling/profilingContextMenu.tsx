@@ -21,7 +21,7 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.shadow.high};
   width: auto;
   min-width: 164px;
   overflow: auto;

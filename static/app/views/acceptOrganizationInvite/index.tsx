@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -13,7 +14,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
@@ -58,7 +59,7 @@ function AcceptActions({
           {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
             <LinkButton
               data-test-id="sso-login"
-              priority="primary"
+              variant="primary"
               href={`/auth/login/${inviteDetails.orgSlug}/`}
             >
               {t('Join with %s', inviteDetails.ssoProvider)}
@@ -67,7 +68,7 @@ function AcceptActions({
 
           <Button
             data-test-id="join-organization"
-            priority="primary"
+            variant="primary"
             busy={isAccepting}
             disabled={isAccepting}
             onClick={acceptInvite}
@@ -121,7 +122,7 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
       <Flex justify="between" align="center" marginBottom="2xl">
         <LinkButton
           external
-          priority="primary"
+          variant="primary"
           href={`${sentryUrl}/settings/account/security/`}
         >
           {t('Configure Two-Factor Auth')}
@@ -172,7 +173,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
           {inviteDetails.hasAuthProvider && (
             <LinkButton
               data-test-id="sso-login"
-              priority="primary"
+              variant="primary"
               href={`/auth/login/${inviteDetails.orgSlug}/`}
             >
               {t('Join with %s', inviteDetails.ssoProvider)}
@@ -181,7 +182,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
           {!inviteDetails.requireSso && (
             <LinkButton
               data-test-id="create-account"
-              priority="primary"
+              variant="primary"
               href="/auth/register/"
             >
               {t('Create a new account')}

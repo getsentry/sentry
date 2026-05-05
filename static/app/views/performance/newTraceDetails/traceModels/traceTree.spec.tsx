@@ -12,8 +12,6 @@ import {
 } from './../traceGuards';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
-import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
-import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
@@ -1172,9 +1170,7 @@ describe('TraceTree', () => {
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      const parentAutogroupNode = tree.root.findChild(n =>
-        isParentAutogroupedNode(n)
-      ) as ParentAutogroupNode;
+      const parentAutogroupNode = tree.root.findChild(n => isParentAutogroupedNode(n))!;
 
       // Expand the chain and collapse an intermediary child
       parentAutogroupNode.expand(true, tree);
@@ -1623,9 +1619,7 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroup = tree.root.findChild(node =>
-        isParentAutogroupedNode(node)
-      ) as ParentAutogroupNode;
+      const parentAutogroup = tree.root.findChild(node => isParentAutogroupedNode(node))!;
 
       expect(parentAutogroup).not.toBeNull();
       expect(parentAutogroup.directVisibleChildren[0]).toBe(
@@ -1643,9 +1637,7 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroup = tree.root.findChild(node =>
-        isParentAutogroupedNode(node)
-      ) as ParentAutogroupNode;
+      const parentAutogroup = tree.root.findChild(node => isParentAutogroupedNode(node))!;
 
       parentAutogroup.expand(true, tree);
 
@@ -2241,7 +2233,7 @@ describe('TraceTree', () => {
 
         const parentAutogroup = tree.root.findChild(node =>
           isParentAutogroupedNode(node)
-        ) as ParentAutogroupNode;
+        )!;
         expect(parentAutogroup.tail.pathToNode()).toEqual([
           'span-tail-span-id',
           'txn-child-event-id',
@@ -2306,7 +2298,7 @@ describe('TraceTree', () => {
 
         const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
-        ) as SiblingAutogroupNode;
+        )!;
 
         const path = siblingAutogroup.pathToNode();
         expect(path).toEqual(['ag-child-event-id', 'txn-child-event-id']);
@@ -2326,7 +2318,7 @@ describe('TraceTree', () => {
 
         const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
-        ) as SiblingAutogroupNode;
+        )!;
 
         const path = siblingAutogroup.children[1]!.pathToNode();
         expect(path).toEqual(['span-1', 'txn-child-event-id']);

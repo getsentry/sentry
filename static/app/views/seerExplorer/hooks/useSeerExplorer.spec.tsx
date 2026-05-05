@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 import {useSeerExplorer} from './useSeerExplorer';
@@ -11,6 +12,11 @@ jest.mock('sentry/views/seerExplorer/utils', () => ({
   usePageReferrer: jest.fn(),
 }));
 
+jest.mock('sentry/views/seerExplorer/contexts/llmContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/contexts/llmContext'),
+  useLLMContext: jest.fn(),
+}));
+
 describe('useSeerExplorer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -18,11 +24,15 @@ describe('useSeerExplorer', () => {
     (usePageReferrer as jest.Mock).mockReturnValue({
       getPageReferrer: () => '/issues/',
     });
+    (useLLMContext as jest.Mock).mockReturnValue({
+      getLLMContext: () => ({version: 0, nodes: []}),
+    });
   });
 
   const organization = OrganizationFixture({
-    features: ['seer-explorer'],
+    features: ['seer-explorer', 'gen-ai-features'],
     hideAiFeatures: false,
+    openMembership: true,
   });
 
   describe('Initial State', () => {
@@ -34,7 +44,6 @@ describe('useSeerExplorer', () => {
       expect(result.current.sessionData).toBeNull();
       expect(result.current.isPolling).toBe(false);
       expect(result.current.runId).toBeNull();
-      expect(result.current.deletedFromIndex).toBeNull();
     });
   });
 
@@ -91,20 +100,25 @@ describe('useSeerExplorer', () => {
         organization,
       });
 
-      await act(async () => {
-        await result.current.sendMessage('Test query');
+      act(() => {
+        result.current.sendMessage('Test query');
       });
 
-      expect(postMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/seer/explorer-chat/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: expect.objectContaining({
-            query: 'Test query',
-            insert_index: 0,
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(postMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/seer/explorer-chat/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              query: 'Test query',
+              insert_index: 0,
+            }),
+          })
+        );
+
+        // Run ID is set to response.run_id
+        expect(result.current.runId).toBe(123);
+      });
     });
 
     it('sends structured JSON on dashboard page with feature flag', async () => {
@@ -112,7 +126,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'context-engine-structured-page-context'],
+        features: ['seer-explorer', 'seer-explorer-context-engine'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -133,17 +147,19 @@ describe('useSeerExplorer', () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization: org,
       });
-      await act(async () => {
-        await result.current.sendMessage('q');
+      act(() => {
+        result.current.sendMessage('q');
       });
 
-      const ctx = postMock.mock.calls[0][1].data.on_page_context;
-      expect(JSON.parse(ctx)).toHaveProperty('nodes');
+      await waitFor(() => {
+        const ctx = postMock.mock.calls[0][1].data.on_page_context;
+        expect(JSON.parse(ctx)).toHaveProperty('nodes');
+      });
     });
 
     it('falls back to ASCII screenshot on non-dashboard page', async () => {
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'context-engine-structured-page-context'],
+        features: ['seer-explorer', 'seer-explorer-context-engine'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -164,20 +180,22 @@ describe('useSeerExplorer', () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization: org,
       });
-      await act(async () => {
-        await result.current.sendMessage('q');
+      act(() => {
+        result.current.sendMessage('q');
       });
 
-      // usePageReferrer returns '/issues/' by default (from beforeEach) — not in STRUCTURED_CONTEXT_ROUTES
-      const ctx = postMock.mock.calls[0][1].data.on_page_context;
-      expect(() => JSON.parse(ctx)).toThrow();
+      await waitFor(() => {
+        // usePageReferrer returns '/issues/' by default (from beforeEach) — not in STRUCTURED_CONTEXT_ROUTES
+        const ctx = postMock.mock.calls[0][1].data.on_page_context;
+        expect(() => JSON.parse(ctx)).toThrow();
+      });
     });
 
     it('handles API errors gracefully', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'GET',
-        body: {session: null},
+        body: {session: {blocks: [], status: 'completed'}},
       });
 
       MockApiClient.addMockResponse({
@@ -192,8 +210,11 @@ describe('useSeerExplorer', () => {
       });
 
       // Should handle error without throwing
-      await act(async () => {
-        await expect(result.current.sendMessage('Test query')).resolves.not.toThrow();
+      act(() => {
+        result.current.sendMessage('Test query');
+      });
+      await waitFor(() => {
+        expect(result.current.isPolling).toBe(false);
       });
     });
   });
@@ -215,49 +236,101 @@ describe('useSeerExplorer', () => {
       });
 
       expect(result.current.runId).toBeNull();
-      expect(result.current.deletedFromIndex).toBeNull();
-    });
-  });
-
-  describe('deleteFromIndex', () => {
-    it('sets deleted from index', () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
-
-      act(() => {
-        result.current.deleteFromIndex(2);
-      });
-
-      expect(result.current.deletedFromIndex).toBe(2);
-    });
-
-    it('filters messages based on deleted index', () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
-
-      act(() => {
-        result.current.deleteFromIndex(1);
-      });
-
-      expect(result.current.deletedFromIndex).toBe(1);
     });
   });
 
   describe('Polling Logic', () => {
+    const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+    const runId = 999;
+
     it('returns false for polling when no session exists', () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
       });
 
       expect(result.current.isPolling).toBe(false);
+    });
+
+    it('returns true for polling when session exists with processing status', async () => {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {runId, session: {status: 'processing'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.isPolling).toBe(true);
+      });
+    });
+
+    it('returns true for polling when session exists with loading blocks', async () => {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {runId, session: {blocks: [{loading: true}]}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.isPolling).toBe(true);
+      });
+    });
+
+    it('returns true for polling when session exists with creating PR states', async () => {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          runId,
+          session: {repo_pr_states: {repo1: {pr_creation_status: 'creating'}}},
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.isPolling).toBe(true);
+      });
+    });
+
+    it('returns false for polling when session exists with completed status and no creating PRs', async () => {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          runId,
+          session: {
+            status: 'completed',
+            blocks: [],
+            repo_pr_states: {repo1: {pr_creation_status: 'completed'}},
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.isPolling).toBe(false);
+      });
     });
   });
 
@@ -287,66 +360,61 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
-
-      await act(async () => {
-        await result.current.sendMessage('Test');
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
-      await waitFor(() => (result.current.sessionData?.blocks ?? []).length > 0);
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect((result.current.sessionData?.blocks ?? []).length).toBeGreaterThan(0);
+      });
 
       const blocks = result.current.sessionData?.blocks ?? [];
       expect(blocks.some(b => b.message.role === 'assistant' && b.loading)).toBe(true);
     });
 
-    it('keeps optimistic state when rethinking with the same message', async () => {
+    it('clears optimistic state when session completes without an assistant response', async () => {
       const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
       const ts = '2024-01-01T00:00:00Z';
 
       MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 321}});
       MockApiClient.addMockResponse({
-        url: `${chatUrl}789/`,
+        url: `${chatUrl}321/`,
         method: 'GET',
         body: {
           session: {
             blocks: [
               {
-                id: 'u0',
-                message: {role: 'user', content: 'hello'},
-                timestamp: ts,
-                loading: false,
-              },
-              {
-                id: 'a1',
-                message: {role: 'assistant', content: 'Hi!'},
+                id: 'user-1',
+                message: {role: 'user', content: 'Test'},
                 timestamp: ts,
                 loading: false,
               },
             ],
-            run_id: 789,
+            run_id: 321,
             status: 'completed',
             updated_at: ts,
           },
         },
       });
-      MockApiClient.addMockResponse({
-        url: `${chatUrl}789/`,
-        method: 'POST',
-        body: {run_id: 789},
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
-
-      act(() => result.current.switchToRun(789));
-      await waitFor(() => result.current.sessionData?.blocks?.length === 2);
-
-      act(() => result.current.deleteFromIndex(0));
-      await act(async () => {
-        await result.current.sendMessage('hello');
+      act(() => {
+        result.current.sendMessage('Test');
       });
 
-      expect(result.current.sessionData?.blocks?.some(b => b.loading)).toBe(true);
-      expect(result.current.deletedFromIndex).toBe(0);
+      await waitFor(() => {
+        const blocks = result.current.sessionData?.blocks ?? [];
+        expect(blocks.some(b => b.loading)).toBe(false);
+        expect(blocks).toHaveLength(1);
+      });
     });
   });
 });

@@ -153,7 +153,7 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-export function prepareQueryForLandingPage(searchQuery: any, withStaticFilters: any) {
+function prepareQueryForLandingPage(searchQuery: any, withStaticFilters: any) {
   const conditions = new MutableSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search
@@ -207,8 +207,11 @@ export function generateGenericPerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -258,8 +261,12 @@ export function generateBackendPerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -326,8 +333,11 @@ export function generateMobilePerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -379,8 +389,12 @@ function generateFrontendPageloadPerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -430,8 +444,11 @@ export function generateFrontendOtherPerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {

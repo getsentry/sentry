@@ -32,7 +32,7 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ERRORS, t('Errors')],
   [WidgetType.SPANS, t('Spans')],
   [WidgetType.LOGS, t('Logs')],
-  [WidgetType.TRACEMETRICS, t('Metrics')],
+  [WidgetType.TRACEMETRICS, t('Application Metrics')],
   [WidgetType.RELEASE, t('Releases')],
   [WidgetType.ISSUE, t('Issues')],
 ]);
@@ -147,7 +147,7 @@ export function AddFilter({
                 <Flex gap="md" justify="end">
                   <Button
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     icon={<IconArrow direction="left" />}
                     onClick={() => {
                       resetSearch();

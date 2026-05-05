@@ -89,7 +89,28 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         name="email",
         raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
     ),
-    ParameterizationRegex(name="url", raw_pattern=r"""\b(wss?|https?|ftp)://[^\s/$.?#].[^\s]*"""),
+    ParameterizationRegex(
+        name="url",
+        raw_pattern=r"""
+            # Scheme - by spec, must start with a letter, but after that can contain anything
+            # alphanumeric in addition to plus, minus (has to be escaped so it's clear it's not part
+            # of a range), and dot
+            [a-zA-Z][a-zA-Z0-9+\-.]*
+            # The normal separator
+            ://
+            # First character of the domain (or path, if the domain is empty) - must be a valid URL
+            # character (so no quotes, backticks, backslashes, angle brackets, sqiggly brackets,
+            # pipes, carets, or whitespace) and must be allowable in the first spot (no starting the
+            # querystring right away, for example)
+            [^'"`\\<>{}|\^\s$.?#]
+            # The rest of the URL is technically optional
+            (
+                [^'"`\\<>{}|\^\s]* # Any number of copies of anything not globally invalid
+                [^'"`\\<>{}|\^\s.,;] # Final character - must be both valid in general and allowable
+                                     # in the last spot (so no trailing punctuation)
+            )?
+        """,
+    ),
     ParameterizationRegex(
         name="hostname",
         raw_pattern=r"""
@@ -179,9 +200,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # Date
             (\d{4}-[01]\d-[0-3]\d)
             |
-            # Time
-            ([0-2]\d:[0-5]\d:[0-5]\d)
-            |
             # Old Date Formats, TODO: possibly safe to remove?
             (
                 \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
@@ -203,6 +221,29 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    ParameterizationRegex(
+        name="mac_addr",
+        raw_pattern=r"""
+            (
+                # 6 sets of 2 hex characters, separated by colons, dashes, or spaces
+                \b
+                (
+                    ([0-9A-Fa-f]{2}:){5} | # 5 sets of two hex digits, each followed by a colon
+                    ([0-9A-Fa-f]{2}-){5} | # 5 sets of two hex digits, each followed by a dash
+                    ([0-9A-Fa-f]{2}\s){5} # 5 sets of two hex digits, each followed by a space
+                )
+                [0-9A-Fa-f]{2} # Final set of two hex digits
+                \b
+            )|
+            (
+                # 3 sets of 4 hex characters, separate by dots
+                \b
+                ([0-9A-Fa-f]{4}\.){2}  # 2 sets of four hex digits, each followed by a period
+                [0-9A-Fa-f]{4} # Final set of four hex digits
+                \b
+            )
+        """,
+    ),
     # The IP pattern has to come after the date pattern, because times like 12:31:12 are also valid
     # IPv6 addresses
     ParameterizationRegex(
@@ -216,9 +257,25 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (::[fF]{4}:)? # Optional prefix mapping the IPv4 address which follows to IPv6 format
             (
                 \b
-                (\d{1,3}\.){3} # Three sets of 1-3 digits, each followed by a literal dot
-                \d{1,3} # Final set of 1-3 digits
+                # Negative lookbehind to ensure this isn't part of a longer set of dot-delimited
+                # ints (so, prevent 1.2.3.4.5 from matching as 1.<ip>)
+                (?<!\d\.)
+                # Three numbers from 0-255, each followed by a literal dot, no leading zeros allowed
+                (
+                    (
+                        \d | # 0-9
+                        [1-9]\d | # 10-99
+                        1\d{2} | # 100-199
+                        2[0-4]\d | # 200-249
+                        25[0-5] # 250-255
+                    )\.
+                ){3}
+                # Final number from 0-255 (same pattern alternatives as above)
+                (\d | [1-9]\d | 1\d{2} | 2[0-4]\d | 25[0-5])
                 (/\d{1,2})? # Optional CIDR suffix
+                # Negative lookahead to ensure this isn't part of a longer set of dot-delimited
+                # ints (so, prevent 1.2.3.4.5 from matching as <ip>.5)
+                (?!\.\d)
                 \b
             )
             |
@@ -276,13 +333,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # and number if shorter than 8 characters, and either all uppercase or all lowercase -
             # we're more conservative here in order to reduce false positives).
             (
-                # Regular word boundary (for positive values)
-                \b
+                # For positive values, a negative lookbehind to create a word boundary but with
+                # underscores allowed (to permit things like `some_file_31d12.py`)
+                (?<![a-zA-Z0-9])
                 |
-                # Alphanumeric negative lookbehind before the dash in negative values to ensure it's
-                # only considered a minus sign if it doesn't connect two alphanumeric strings. (No
-                # word boundary here because the dash serves as the word boundary, since it's not a
-                # word character.)
+                # For negative values, an alphanumeric negative lookbehind before the dash to ensure
+                # it's only considered a minus sign if it doesn't connect two alphanumeric strings
                 (?<!\w)-
             )
             (
@@ -305,7 +361,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 [0-9a-f]{8,128} |
                 [0-9A-F]{8,128}
             )
-            \b
+            # Negative lookahead similar to the negative lookbehind for positive values above - \b,
+            # but with underscores allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(
@@ -319,20 +377,77 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
         """,
     ),
-    ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
+    # This pattern must come after the hex-based patterns so it doesn't catch strings which happen
+    # to contain only letters between A and F.
+    ParameterizationRegex(
+        name="random_id",
+        raw_pattern=r"""
+            \b
+            # Random nonsense alphanumeric id strings. To avoid false positives, we require the
+            # following:
+            #   - A mix of uppercase letters, lowercase letters, and numbers
+            #   - A minimum of 4 characters, with at least a certain level of "mixed-up-ness". For
+            #     our purposes, that means the string must switch back and forth between letters and
+            #     numbers at least 3 times. This rules out human-readable strings like `dogNumber1`
+            #     (1 switch) and `bball4lyfe` (2 switches), while catching strings like `aKj8XLr2`.
+            #
+            # Lookahead guaranteeing at least one uppercase letter
+            (?= [a-z0-9]* [A-Z])
+            # Lookahead guaranteeing at least one lowercase letter
+            (?= [A-Z0-9]* [a-z])
+            # Lookahead enforcing letter/number switches. Two versions depending on whether the
+            # string starts with a letter or number. This also takes care of the "contains a number"
+            # requirement.
+            (?=
+                \d+ [a-zA-Z]+ \d+ [a-zA-Z]+
+                |
+                [a-zA-Z]+ \d+ [a-zA-Z]+ \d+
+            )
+            # The pattern itself
+            [a-zA-Z0-9]{4,128}
+            \b
+        """,
+    ),
+    ParameterizationRegex(
+        name="float",
+        raw_pattern=r"""
+            (
+                # For positive values, in addition to the wordbreak, a negative lookbehind to ensure
+                # this isn't part of a longer set of dot-delimited ints (IOW, to prevent `1.2.3`
+                # from matching as `1.<float>`)
+                (
+                    \b
+                    (?<!\d\.)
+                ) |
+                # For negative values, no wordbreak or lookbehind needed, since the minus sign
+                # itself both creates a wordbreak and prevents the `1.2.3` case matching on `2.3`
+                -
+            )
+            # The value itself
+            \d+\.\d+
+            # Negative lookahead to ensure this isn't part of a longer set of dot-delimited ints
+            # (IOW, to prevent 1.2.3 from matching as <float>.3)
+            (?!\.\d)
+            \b
+        """,
+    ),
     ParameterizationRegex(
         name="int",
         raw_pattern=r"""
             (
-                # Regular word boundary for positive ints
-                \b
+                # For positive values, a negative lookbehind to create a word boundary but with
+                # underscores allowed (to permit things like `some_file_1121.py`)
+                (?<![a-zA-Z0-9])
                 |
-                # Alphanumeric negative lookbehind before the dash in negative ints (logic the same
-                # as in the hex pattern above)
+                # For negative values, an alphanumeric negative lookbehind before the dash to ensure
+                # it's only considered a minus sign if it doesn't connect two alphanumeric strings
                 (?<!\w)-
             )
-            \d{1,7} # Anything 8 digits and up is considered hex
-            \b
+            # The value itself (with a count limit because anything with 8+ digits is considered hex)
+            \d{1,7}
+            # Negative lookahead similar to the negative lookbehind for positive values above - \b,
+            # but with underscores allowed
+            (?![a-zA-Z0-9])
         """,
     ),
     ParameterizationRegex(

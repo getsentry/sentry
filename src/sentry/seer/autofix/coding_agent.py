@@ -54,14 +54,15 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     CodingAgentStatus,
     StoreCodingAgentStatesRequest,
+    extract_api_error_message,
     get_autofix_state,
     get_coding_agent_prompt,
-    get_project_seer_preferences,
     make_store_coding_agent_states_request,
     read_preference_from_sentry_db,
     update_coding_agent_state,
 )
-from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.imports import import_string
 
@@ -105,7 +106,9 @@ def sanitize_branch_name(branch_name: str) -> str:
 
 
 def store_coding_agent_states_to_seer(
-    run_id: int, coding_agent_states: list[CodingAgentState]
+    run_id: int,
+    coding_agent_states: list[CodingAgentState],
+    organization_id: int | None = None,
 ) -> None:
     """Store multiple coding agent states via Seer batch API."""
     if not coding_agent_states:
@@ -114,7 +117,12 @@ def store_coding_agent_states_to_seer(
         run_id=run_id,
         coding_agent_states=[state.dict() for state in coding_agent_states],
     )
-    response = make_store_coding_agent_states_request(body, timeout=30)
+    viewer_context: SeerViewerContext | None = None
+    if organization_id is not None:
+        viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_store_coding_agent_states_request(
+        body, timeout=30, viewer_context=viewer_context
+    )
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
@@ -233,35 +241,20 @@ def _launch_agents_for_repos(
 
     # Fetch project preferences to get auto_create_pr setting from automation_handoff
     auto_create_pr = False
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        try:
-            project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
-            preference = read_preference_from_sentry_db(project)
-            if preference and preference.automation_handoff:
-                auto_create_pr = preference.automation_handoff.auto_create_pr
-        except Project.DoesNotExist:
-            logger.exception(
-                "coding_agent.project_not_found",
-                extra={
-                    "organization_id": organization.id,
-                    "run_id": run_id,
-                    "project_id": autofix_state.request.project_id,
-                },
-            )
-    else:
-        try:
-            preference = get_project_seer_preferences(autofix_state.request.project_id).preference
-            if preference and preference.automation_handoff:
-                auto_create_pr = preference.automation_handoff.auto_create_pr
-        except (SeerApiError, SeerApiResponseValidationError):
-            logger.exception(
-                "coding_agent.get_project_seer_preferences_error",
-                extra={
-                    "organization_id": organization.id,
-                    "run_id": run_id,
-                    "project_id": autofix_state.request.project_id,
-                },
-            )
+    try:
+        project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
+        preference = read_preference_from_sentry_db(project)
+        if preference.automation_handoff:
+            auto_create_pr = preference.automation_handoff.auto_create_pr
+    except Project.DoesNotExist:
+        logger.exception(
+            "coding_agent.project_not_found",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "project_id": autofix_state.request.project_id,
+            },
+        )
 
     repos = set(
         _extract_repos_from_root_cause(autofix_state)
@@ -393,7 +386,10 @@ def _launch_agents_for_repos(
                 if status_code == 401:
                     error_message = "Authentication failed. Please check that your API credentials are correct and have access to the required API endpoints."
                 else:
-                    error_message = f"Failed to launch coding agent: {status_code} Error: {e}"
+                    error_message = (
+                        extract_api_error_message(e.response)
+                        or f"Failed to launch coding agent ({status_code})"
+                    )
 
             failure: dict = {
                 "repo_name": repo_name,
@@ -415,7 +411,11 @@ def _launch_agents_for_repos(
         )
 
     try:
-        store_coding_agent_states_to_seer(run_id=run_id, coding_agent_states=states_to_store)
+        store_coding_agent_states_to_seer(
+            run_id=run_id,
+            coding_agent_states=states_to_store,
+            organization_id=organization.id,
+        )
     except SeerApiError:
         logger.exception(
             "coding_agent.seer_storage_error",

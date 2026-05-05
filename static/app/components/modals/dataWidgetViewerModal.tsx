@@ -12,6 +12,7 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -19,7 +20,6 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {Pagination} from 'sentry/components/pagination';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -925,7 +925,7 @@ function OpenButton({
           <Tooltip
             title={t('Explore does not support multiple queries for this dataset')}
           >
-            <Button priority="primary" disabled>
+            <Button variant="primary" disabled>
               {openLabel}
             </Button>
           </Tooltip>
@@ -957,7 +957,7 @@ function OpenButton({
     <Tooltip title={disabledTooltip} disabled={!disabled}>
       <LinkButton
         to={path}
-        priority="primary"
+        variant="primary"
         disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
@@ -1231,10 +1231,6 @@ function ViewerTableV2({
 export const modalCss = css`
   width: 100%;
   max-width: 1200px;
-`;
-
-export const backdropCss = css`
-  z-index: 9998;
 `;
 
 const Container = styled('div')<{height?: number | null}>`

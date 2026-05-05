@@ -238,7 +238,7 @@ function EditContextHighlightSection({
   ).reduce(
     (disableMap, [contextType, contextKeys]) => ({
       ...disableMap,
-      [contextType]: new Set(contextKeys ?? []),
+      [contextType]: new Set(contextKeys),
     }),
     {}
   );
@@ -457,7 +457,7 @@ export function EditHighlightsModal({
                 }
               );
             }}
-            priority="primary"
+            variant="primary"
             size="sm"
           >
             {isPending ? t('Saving...') : t('Apply to Project')}

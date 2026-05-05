@@ -262,7 +262,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
         <CopyFrameLink event={event} frame={frame} />
         <Button
           size={DEFAULT_BUTTON_SIZE}
-          priority="transparent"
+          variant="transparent"
           icon={
             sourceCodeProviders.length === 1
               ? getIntegrationIcon(
@@ -410,7 +410,7 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
     <Tooltip title={t('Copy file path')} skipWrapper>
       <Button
         size={DEFAULT_BUTTON_SIZE}
-        priority="transparent"
+        variant="transparent"
         aria-label={t('Copy file path')}
         icon={<IconCopy />}
         onClick={handleClick}
@@ -450,6 +450,6 @@ function StacktraceLinkWrapper({
 
 function ProviderLink(props: LinkButtonProps) {
   return (
-    <LinkButton size={DEFAULT_BUTTON_SIZE} priority="transparent" external {...props} />
+    <LinkButton size={DEFAULT_BUTTON_SIZE} variant="transparent" external {...props} />
   );
 }

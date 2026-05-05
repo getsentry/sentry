@@ -34,7 +34,7 @@ function BitbucketAuthorizeStep({
   );
 
   const {openPopup, isWaitingForCallback, popupStatus} = useRedirectPopupStep({
-    redirectUrl: stepData.authorizeUrl,
+    redirectUrl: stepData?.authorizeUrl,
     onCallback: handleCallback,
   });
 
@@ -70,9 +70,9 @@ function BitbucketAuthorizeStep({
       ) : (
         <Button
           size="sm"
-          priority="primary"
+          variant="primary"
           onClick={openPopup}
-          disabled={!stepData.authorizeUrl}
+          disabled={!stepData?.authorizeUrl}
         >
           {t('Authorize Bitbucket')}
         </Button>

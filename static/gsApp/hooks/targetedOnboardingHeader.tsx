@@ -45,7 +45,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       <div>{tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}</div>
     </ActiveTrialWrapper>
   ) : (
-    <NeedHelpLink href="https://sentry.zendesk.com/hc/en-us" onClick={trackClickNeedHelp}>
+    <NeedHelpLink href="https://www.sentry.help" onClick={trackClickNeedHelp}>
       {t('Need help?')}
     </NeedHelpLink>
   );
@@ -59,7 +59,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
         external
         size="sm"
         icon={<IconBusiness />}
-        priority="default"
+        variant="secondary"
       >
         {t('Upgrade Now')}
       </LinkButton>
@@ -91,6 +91,7 @@ const ActiveTrialHeader = styled('div')`
   font-size: 14px;
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.accent};
+  white-space: nowrap;
 `;
 
 const ActiveTrialWrapper = styled('div')`

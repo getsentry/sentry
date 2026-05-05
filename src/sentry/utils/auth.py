@@ -314,6 +314,9 @@ def login(
 
     Returns boolean indicating if the user was logged in.
     """
+    if getattr(user, "is_suspended", False):
+        return False
+
     if passed_2fa is None:
         passed_2fa = request.session.get(MFA_SESSION_KEY, "") == str(user.id)
 
@@ -404,6 +407,13 @@ def is_user_signed_request(request: Request) -> bool:
         return False
 
 
+def is_user_from_viewer_context(request: Request) -> bool:
+    """
+    This function returns True if the request was authenticated via viewer context.
+    """
+    return bool(getattr(request, "user_from_viewer_context", False))
+
+
 def set_active_org(request: HttpRequest, org_slug: str) -> None:
     # even if the value being set is the same this will trigger a session
     # modification and reset the users expiry, so check if they are different first.
@@ -445,7 +455,10 @@ class EmailAuthBackend(ModelBackend):
         return True
 
     def get_user(self, user_id: int) -> RpcUser | None:  # type: ignore[override]  # XXX: HC "pretends" to be the user model
-        return user_service.get_user(user_id=user_id)
+        user = user_service.get_user(user_id=user_id)
+        if user is not None and user.is_suspended:
+            return None
+        return user
 
 
 def construct_link_with_query(path: str, query_params: Mapping[str, str | None]) -> str:
