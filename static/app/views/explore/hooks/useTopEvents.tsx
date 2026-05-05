@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 
-export const TOP_EVENTS_LIMIT = 5;
+export const TOP_EVENTS_LIMIT = 9;
 
 // TODO: There's a limitation with this hook when a top n query < 5 series.
 // This hook always returns 5, which can be misleading, but there's no simple way
