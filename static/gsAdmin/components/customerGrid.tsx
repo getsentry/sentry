@@ -163,7 +163,7 @@ export function CustomerGrid(props: Props) {
           ],
         },
         softCap: {
-          name: 'Soft Cap',
+          name: 'LEGACY Soft Cap',
           options: [
             ['0', 'No'],
             ['1', 'Yes'],
