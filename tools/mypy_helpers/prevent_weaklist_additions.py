@@ -7,12 +7,19 @@ from collections.abc import Sequence
 
 
 def _weaklist_modules(data: dict[str, object]) -> frozenset[str]:
-    overrides = data["tool"]["mypy"]["overrides"]  # type: ignore[index]
     try:
-        (weaklist,) = (cfg for cfg in overrides if "disallow_untyped_defs" in cfg)
-        return frozenset(weaklist["module"])
-    except ValueError:
+        overrides = data["tool"]["mypy"]["overrides"]  # type: ignore[index]
+    except KeyError:
         return frozenset()
+    weaklists = [cfg for cfg in overrides if "disallow_untyped_defs" in cfg]
+    if not weaklists:
+        return frozenset()
+    if len(weaklists) > 1:
+        raise SystemExit(
+            "pyproject.toml has multiple [tool.mypy.overrides] sections with "
+            "disallow_untyped_defs; expected exactly one weaklist."
+        )
+    return frozenset(weaklists[0]["module"])
 
 
 def main(argv: Sequence[str] | None = None) -> int:

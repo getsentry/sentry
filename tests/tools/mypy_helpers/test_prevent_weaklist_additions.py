@@ -3,6 +3,8 @@ from __future__ import annotations
 import contextlib
 import subprocess
 
+import pytest
+
 from tools.mypy_helpers.prevent_weaklist_additions import main
 
 
@@ -188,3 +190,44 @@ def test_no_filenames_passes(tmp_path) -> None:
 
     with contextlib.chdir(tmp_path):
         assert main(()) == 0
+
+
+def test_missing_overrides_section_treated_as_empty(tmp_path) -> None:
+    initial = """\
+[tool.mypy]
+strict = true
+"""
+    updated = """\
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        # HEAD has no overrides at all (treated as empty); staged adds one
+        # weaklist module — that's still a new addition relative to HEAD.
+        assert main(("pyproject.toml",)) == 1
+
+
+def test_multiple_weaklist_sections_fails_loudly(tmp_path) -> None:
+    src = """\
+[[tool.mypy.overrides]]
+module = ["a.b.c"]
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["d.e.f"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, src)
+
+    with contextlib.chdir(tmp_path):
+        with pytest.raises(SystemExit, match="multiple"):
+            main(("pyproject.toml",))
