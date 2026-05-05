@@ -13,6 +13,7 @@ describe('useScrollLock', () => {
   });
 
   afterEach(() => {
+    jest.runOnlyPendingTimers();
     jest.useRealTimers();
     document.body.removeChild(container);
   });

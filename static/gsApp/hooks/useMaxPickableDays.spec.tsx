@@ -11,7 +11,12 @@ import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
   describe('without subscription effective retentions', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
     afterEach(() => {
+      jest.runOnlyPendingTimers();
       jest.useRealTimers();
     });
 
@@ -42,7 +47,7 @@ describe('useMaxPickableDays', () => {
     });
 
     it('returns 30/90 for spans', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
+      jest.setSystemTime(new Date(2026, 0, 1));
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
           dataCategories: [DataCategory.SPANS],
@@ -85,7 +90,7 @@ describe('useMaxPickableDays', () => {
     });
 
     it('returns 30/90 for many', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
+      jest.setSystemTime(new Date(2026, 0, 1));
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
           dataCategories: [
@@ -139,11 +144,13 @@ describe('useMaxPickableDays', () => {
     });
 
     beforeEach(() => {
+      jest.useFakeTimers();
       SubscriptionStore.set(organization.slug, subscription);
     });
 
     afterEach(() => {
-      jest.clearAllTimers();
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
     });
 
     it('returns 30/90 for transactions', () => {
@@ -177,7 +184,7 @@ describe('useMaxPickableDays', () => {
     });
 
     it('returns 121/121 for spans on 2025/12/31', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2025, 11, 31));
+      jest.setSystemTime(new Date(2025, 11, 31));
       const {result} = renderHookWithProviders(
         () =>
           useMaxPickableDays({
@@ -194,7 +201,7 @@ describe('useMaxPickableDays', () => {
     });
 
     it('returns 396/396 for spans on 2027/01/01', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2027, 0, 1));
+      jest.setSystemTime(new Date(2027, 0, 1));
       const {result} = renderHookWithProviders(
         () =>
           useMaxPickableDays({
@@ -243,7 +250,7 @@ describe('useMaxPickableDays', () => {
     });
 
     it('returns 396/396 for many without flag', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2027, 0, 1));
+      jest.setSystemTime(new Date(2027, 0, 1));
       const {result} = renderHookWithProviders(
         () =>
           useMaxPickableDays({

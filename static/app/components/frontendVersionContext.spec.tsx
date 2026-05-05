@@ -33,6 +33,7 @@ describe('FrontendVersionProvider', () => {
   });
 
   afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
     jest.restoreAllMocks();
     jest.useRealTimers();
   });

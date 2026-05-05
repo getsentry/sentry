@@ -76,24 +76,34 @@ describe('GroupHeaderRow', () => {
     expect(screen.getByText('metadata value')).toBeInTheDocument();
   });
 
-  it('preloads group on hover', async () => {
-    jest.useFakeTimers();
-    const mockFetchGroup = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/`,
-      body: group,
+  describe('hover preloading', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    render(<GroupHeaderRow data={group} />);
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    });
 
-    const groupLink = screen.getByRole('link');
+    it('preloads group on hover', async () => {
+      const mockFetchGroup = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: group,
+      });
 
-    // Should not be called right away
-    await userEvent.hover(groupLink, {delay: null});
-    expect(mockFetchGroup).not.toHaveBeenCalled();
+      render(<GroupHeaderRow data={group} />);
 
-    // Called after 300ms
-    jest.advanceTimersByTime(301);
-    expect(mockFetchGroup).toHaveBeenCalled();
+      const groupLink = screen.getByRole('link');
+
+      // Should not be called right away
+      await userEvent.hover(groupLink, {delay: null});
+      expect(mockFetchGroup).not.toHaveBeenCalled();
+
+      // Called after 300ms
+      jest.advanceTimersByTime(301);
+      expect(mockFetchGroup).toHaveBeenCalled();
+    });
   });
 
   it('keeps sort in link when query has sort', () => {

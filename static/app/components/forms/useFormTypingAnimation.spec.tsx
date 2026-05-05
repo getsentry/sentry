@@ -14,6 +14,7 @@ describe('useFormTypingAnimation', () => {
   });
 
   afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
     jest.useRealTimers();
   });
 

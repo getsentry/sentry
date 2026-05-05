@@ -129,8 +129,16 @@ describe('Confirm', () => {
   });
 
   describe('async onConfirm', () => {
-    it('should not close the modal until the promise is resolved', async () => {
+    beforeEach(() => {
       jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
+
+    it('should not close the modal until the promise is resolved', async () => {
       const onConfirmAsync = jest.fn().mockImplementation(
         () =>
           new Promise(resolve => {
@@ -167,7 +175,6 @@ describe('Confirm', () => {
     });
 
     it('displays an error message if the promise is rejected', async () => {
-      jest.useFakeTimers();
       const onConfirmAsync = jest.fn().mockImplementation(
         () =>
           new Promise((_, reject) => {

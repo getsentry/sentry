@@ -108,8 +108,16 @@ describe('DeprecatedAsyncComponent', () => {
       }
     }
 
-    it('calls onLoadAllEndpointsSuccess when all endpoints have been loaded', () => {
+    beforeEach(() => {
       jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
+
+    it('calls onLoadAllEndpointsSuccess when all endpoints have been loaded', () => {
       jest
         .spyOn(MockApiClient.prototype, 'request')
         .mockImplementation((url, options) => {

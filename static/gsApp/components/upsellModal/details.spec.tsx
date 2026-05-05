@@ -152,41 +152,55 @@ describe('Upsell Modal Details', () => {
     expect(screen.getByTestId('tracing')).toHaveAttribute('aria-selected');
   });
 
-  it('cycles the list on a timer when no section is clicked', async () => {
-    jest.useFakeTimers();
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'mm2_a_100k',
-      canTrial: true,
-      isTrial: false,
-      isFree: false,
+  describe('cycling timer', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    render(
-      <Details
-        source="test"
-        subscription={sub}
-        organization={organization}
-        onCloseModal={jest.fn()}
-      />
-    );
+    afterEach(() => {
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } catch {
+        // test may have already restored real timers
+      }
+      jest.useRealTimers();
+    });
 
-    // First timeout is waiting for it to cycle to a feature
-    act(() => jest.advanceTimersByTime(10000));
+    it('cycles the list on a timer when no section is clicked', async () => {
+      const sub = SubscriptionFixture({
+        organization,
+        plan: 'mm2_a_100k',
+        canTrial: true,
+        isTrial: false,
+        isFree: false,
+      });
 
-    // First feature in the displayed list.
-    const tracing = screen.getByTestId('tracing');
-    expect(tracing).toHaveAttribute('aria-selected');
+      render(
+        <Details
+          source="test"
+          subscription={sub}
+          organization={organization}
+          onCloseModal={jest.fn()}
+        />
+      );
 
-    // Next timeout is for it to cycle to the _next_ feature
-    act(() => jest.advanceTimersByTime(8000));
+      // First timeout is waiting for it to cycle to a feature
+      act(() => jest.advanceTimersByTime(10000));
 
-    // Avoid act warning after state change
-    jest.useRealTimers();
-    await act(tick);
+      // First feature in the displayed list.
+      const tracing = screen.getByTestId('tracing');
+      expect(tracing).toHaveAttribute('aria-selected');
 
-    // Tracing should now not be highlighted.
-    expect(tracing).not.toHaveAttribute('aria-selected');
+      // Next timeout is for it to cycle to the _next_ feature
+      act(() => jest.advanceTimersByTime(8000));
+
+      // Switch to real timers so framer-motion exit animations complete
+      jest.useRealTimers();
+      await act(tick);
+
+      // Tracing should now not be highlighted.
+      expect(tracing).not.toHaveAttribute('aria-selected');
+    });
   });
 
   it('displays "Unlimited Custom Dashboards" feature name', async () => {
