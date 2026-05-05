@@ -5,7 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 
 describe('useProjectMembersQueryOptions', () => {
   const organization = OrganizationFixture();

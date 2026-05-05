@@ -14,8 +14,8 @@ import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
 import {
   useAssignIssueMutation,
   type AssignedBy,

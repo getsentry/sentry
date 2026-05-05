@@ -10,11 +10,11 @@ import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {
   memberUsersQueryOptions,
   selectUsersFromMembers,
 } from 'sentry/utils/members/shared';
-import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const getSearchKeyForUser = (user: User) =>
