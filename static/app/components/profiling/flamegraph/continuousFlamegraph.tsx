@@ -402,7 +402,9 @@ export function ContinuousFlamegraph(): ReactElement {
     sorting,
     flamegraphProfiles.threadId,
     view,
-    transactionResult,
+    transactionResult.data.transactionSpan,
+    transactionResult.isEnabled,
+    transactionResult.isPending,
     configSpaceQueryParam,
   ]);
 
@@ -682,14 +684,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      flamegraph,
-      flamegraphCanvas,
-      flamegraphTheme,
-      profile,
-      transactionResult,
-      configSpaceQueryParam,
-    ]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, profile, configSpaceQueryParam]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -901,7 +896,7 @@ export function ContinuousFlamegraph(): ReactElement {
       flamegraphTheme.SIZES,
       profileTimestamp,
       configSpaceQueryParam,
-      transactionResult,
+      transactionResult.data.transactionSpan,
     ]
   );
 
