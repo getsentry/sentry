@@ -181,7 +181,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
       items: [
         {
           path: `${organizationSettingsPathPrefix}/seer/`,
-          title: t('Autofix'),
+          title: t('Issue Scans & Fixes'),
           description: t("Manage Seer's automated issue analysis across your projects"),
           id: 'seer-autofix-legacy',
           index: true,
