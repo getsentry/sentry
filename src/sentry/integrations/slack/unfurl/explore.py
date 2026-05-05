@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -39,31 +39,190 @@ TOP_N = 5
 EXPLORE_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
 
 
+def _aggregate_sorts_are_valid(
+    sort_values: list[str], y_axes: list[str], group_bys: list[str]
+) -> bool:
+    # Mirrors the frontend's validateAggregateSort: drop sort if any entry
+    # references a field that isn't a current yAxis or groupBy, so the unfurl
+    # falls back to the default `-yAxes[0]` sort like the Explore UI does.
+    valid_targets = set(y_axes) | set(group_bys)
+    return all(sort_value.lstrip("-") in valid_targets for sort_value in sort_values)
+
+
+def _parse_aggregate_field_json(
+    field_json: str,
+) -> tuple[str | None, list[str], int | None]:
+    """Extract (groupBy, yAxes, chartType) from a single aggregateField/visualize entry."""
+    try:
+        parsed = json.loads(field_json)
+    except (json.JSONDecodeError, TypeError, AttributeError):
+        return None, [], None
+
+    if not isinstance(parsed, dict):
+        return None, [], None
+
+    group_by = parsed.get("groupBy") or None
+    raw_y_axes = parsed.get("yAxes")
+    y_axes = list(raw_y_axes) if isinstance(raw_y_axes, list) else []
+    chart_type = parsed.get("chartType") if isinstance(parsed.get("chartType"), int) else None
+    return group_by, y_axes, chart_type
+
+
+def _parse_aggregate_field_entries(
+    entries: list[str],
+) -> tuple[list[str], list[str], int | None]:
+    """Walk a list of aggregateField/visualize JSON entries and collect groupBys + first yAxes."""
+    y_axes: list[str] = []
+    group_bys: list[str] = []
+    chart_type: int | None = None
+    for field_json in entries:
+        group_by, parsed_y_axes, parsed_chart_type = _parse_aggregate_field_json(field_json)
+        if group_by:
+            group_bys.append(group_by)
+        if not y_axes and parsed_y_axes:
+            y_axes = parsed_y_axes
+            if parsed_chart_type is not None:
+                chart_type = parsed_chart_type
+    return y_axes, group_bys, chart_type
+
+
+def _build_timeseries_query(
+    raw_query: QueryDict,
+    y_axes: list[str],
+    group_bys: list[str],
+    query: str | None,
+    sort_values: list[str],
+) -> QueryDict:
+    """Assemble the QueryDict that will be sent to the events-timeseries API."""
+    out = QueryDict(mutable=True)
+    out.setlist("yAxis", y_axes)
+
+    if group_bys:
+        out.setlist("groupBy", group_bys)
+
+    for param in ("project", "statsPeriod", "start", "end", "environment", "interval"):
+        values = raw_query.getlist(param)
+        if values:
+            out.setlist(param, values)
+
+    if query:
+        out["query"] = query
+
+    if sort_values:
+        out.setlist("sort", sort_values)
+
+    return out
+
+
+def _parse_traces_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
+    """Traces visualizations are stored under aggregateField, falling back to the
+    legacy visualize key."""
+    entries = raw_query.getlist("aggregateField") or raw_query.getlist("visualize")
+    y_axes, group_bys, chart_type = _parse_aggregate_field_entries(entries)
+
+    if not y_axes:
+        y_axes = [default_y_axis]
+
+    query_values = raw_query.getlist("query")
+    query = query_values[0] if query_values else None
+
+    sort_values = raw_query.getlist("aggregateSort")
+    if sort_values and not _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
+        sort_values = []
+
+    return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
+
+
+def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
+    """Logs visualizations live in aggregateField; query/sort use logs-specific keys
+    and sorts target table columns rather than aggregate fields, so they're not
+    validated against yAxes/groupBys."""
+    y_axes, group_bys, chart_type = _parse_aggregate_field_entries(
+        raw_query.getlist("aggregateField")
+    )
+
+    if not y_axes:
+        y_axes = [default_y_axis]
+
+    query_values = raw_query.getlist("logsQuery")
+    query = query_values[0] if query_values else None
+
+    sort_values = raw_query.getlist("logsSortBys")
+
+    return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
+
+
+def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
+    """Metrics encodes the entire chart config in a single ``metric`` JSON param,
+    including its own query and aggregateSortBys."""
+    metric_list = raw_query.getlist("metric")
+    if not metric_list:
+        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+
+    try:
+        metric_parsed = json.loads(metric_list[0])
+    except (json.JSONDecodeError, TypeError, AttributeError):
+        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+
+    if not isinstance(metric_parsed, dict):
+        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+
+    y_axes: list[str] = []
+    group_bys: list[str] = []
+    chart_type: int | None = None
+    # `or []` so a present-but-null aggregateFields/aggregateSortBys field in
+    # the user-supplied metric JSON doesn't blow up iteration.
+    for agg_field in metric_parsed.get("aggregateFields") or []:
+        if not isinstance(agg_field, dict):
+            continue
+        if agg_field.get("groupBy"):
+            group_bys.append(agg_field["groupBy"])
+        if not y_axes and isinstance(agg_field.get("yAxes"), list):
+            y_axes = list(agg_field["yAxes"])
+            if isinstance(agg_field.get("chartType"), int):
+                chart_type = agg_field["chartType"]
+
+    if not y_axes:
+        y_axes = [default_y_axis]
+
+    sort_values: list[str] = []
+    for sort_by in metric_parsed.get("aggregateSortBys") or []:
+        if not isinstance(sort_by, dict):
+            continue
+        sort_field = sort_by.get("field", "")
+        kind = sort_by.get("kind", "desc")
+        if sort_field:
+            sort_values.append(f"-{sort_field}" if kind == "desc" else sort_field)
+
+    query = metric_parsed.get("query") or None
+
+    return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
+
+
+ExploreParserFn = Callable[[QueryDict, str], tuple[QueryDict, int | None]]
+
+
 class ExploreDatasetConfig(TypedDict):
     title_prefix: str
     default_y_axis: str
-    query_key: str
-    sort_key: str
+    parse_url_fn: ExploreParserFn
 
 
 EXPLORE_DATASET_CONFIGS: dict[SupportedTraceItemType, ExploreDatasetConfig] = {
     SupportedTraceItemType.SPANS: {
         "title_prefix": "Explore Traces",
         "default_y_axis": "count(span.duration)",
-        "query_key": "query",
-        "sort_key": "aggregateSort",
+        "parse_url_fn": _parse_traces_url,
     },
     SupportedTraceItemType.LOGS: {
         "title_prefix": "Explore Logs",
         "default_y_axis": "count(message)",
-        "query_key": "logsQuery",
-        "sort_key": "logsSortBys",
+        "parse_url_fn": _parse_logs_url,
     },
     SupportedTraceItemType.TRACEMETRICS: {
         "title_prefix": "Explore Metrics",
         "default_y_axis": "sum(value)",
-        "query_key": "query",
-        "sort_key": "aggregateSort",
+        "parse_url_fn": _parse_metrics_url,
     },
 }
 
@@ -227,20 +386,11 @@ def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
     return "line"
 
 
-def _aggregate_sorts_are_valid(
-    sort_values: list[str], y_axes: list[str], group_bys: list[str]
-) -> bool:
-    # Mirrors the frontend's validateAggregateSort: drop sort if any entry
-    # references a field that isn't a current yAxis or groupBy, so the unfurl
-    # falls back to the default `-yAxes[0]` sort like the Explore UI does.
-    valid_targets = set(y_axes) | set(group_bys)
-    return all(sort_value.lstrip("-") in valid_targets for sort_value in sort_values)
-
-
 def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
-    """
-    Extracts explore arguments from the explore link's query string.
-    Parses visualize, aggregateField, or metric JSON params to extract yAxes, groupBy, and chartType.
+    """Extract explore arguments from the explore link's query string.
+
+    Dispatches to the per-dataset parser registered on the dataset's config to
+    produce the timeseries query dict.
     """
     # Slack uses HTML escaped ampersands in its Event Links
     url = html.unescape(url)
@@ -248,90 +398,9 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     raw_query = QueryDict(parsed_url.query)
 
     explore_dataset = _get_explore_dataset(url)
-    dataset_config = _get_explore_dataset_config(explore_dataset)
+    config = _get_explore_dataset_config(explore_dataset)
 
-    # Parse visualization params from the URL.
-    # Each metric uses a "metric" JSON param with nested aggregateFields.
-    # Traces uses "visualize" and logs uses "aggregateField".
-    y_axes: list[str] = []
-    group_bys: list[str] = []
-    chart_type: int | None = None
-
-    metric_query: str | None = None
-    metric_sort_bys: list[str] = []
-    # Each metric param is a self-contained chart config. We only render one
-    # chart per unfurl, so process only the first metric entry.
-    metric_json = raw_query.getlist("metric")[0] if raw_query.getlist("metric") else None
-    if metric_json:
-        try:
-            metric_parsed = json.loads(metric_json)
-            for agg_field in metric_parsed.get("aggregateFields", []):
-                if "groupBy" in agg_field and agg_field["groupBy"]:
-                    group_bys.append(agg_field["groupBy"])
-                # yAxes and chartType are per-chart; take them from the first entry only.
-                if not y_axes and isinstance(agg_field.get("yAxes"), list):
-                    y_axes.extend(agg_field["yAxes"])
-                    if isinstance(agg_field.get("chartType"), int):
-                        chart_type = agg_field["chartType"]
-            for sort_by in metric_parsed.get("aggregateSortBys", []):
-                field = sort_by.get("field", "")
-                kind = sort_by.get("kind", "desc")
-                if field:
-                    metric_sort_bys.append(f"-{field}" if kind == "desc" else field)
-            metric_query = metric_parsed.get("query") or None
-        except (json.JSONDecodeError, TypeError, AttributeError):
-            pass
-
-    visualize_fields = raw_query.getlist("aggregateField") or raw_query.getlist("visualize")
-    for field_json in visualize_fields:
-        try:
-            parsed = json.loads(field_json)
-            if "groupBy" in parsed and parsed["groupBy"]:
-                group_bys.append(parsed["groupBy"])
-            # yAxes and chartType are per-chart; take them from the first entry only.
-            if not y_axes and isinstance(parsed.get("yAxes"), list):
-                y_axes.extend(parsed["yAxes"])
-                if isinstance(parsed.get("chartType"), int):
-                    chart_type = parsed["chartType"]
-        except (json.JSONDecodeError, TypeError, AttributeError):
-            continue
-
-    if not y_axes:
-        y_axes = [dataset_config["default_y_axis"]]
-
-    # Build query params
-    query = QueryDict(mutable=True)
-    query.setlist("yAxis", y_axes)
-
-    if group_bys:
-        query.setlist("groupBy", group_bys)
-
-    # Copy standard params (query and sort are handled separately per dataset)
-    for param in ("project", "statsPeriod", "start", "end", "environment", "interval"):
-        values = raw_query.getlist(param)
-        if values:
-            query.setlist(param, values)
-
-    # Each dataset stores query/sort under different URL param keys.
-    # Map the dataset-specific key to the API's standard "query"/"sort" params.
-    query_values = raw_query.getlist(dataset_config["query_key"])
-    if query_values:
-        query.setlist("query", query_values)
-
-    sort_values = raw_query.getlist(dataset_config["sort_key"])
-    if sort_values:
-        # Only aggregate sorts (spans, metrics) need to reference an active
-        # yAxis or groupBy. Log sorts target table columns like `timestamp`
-        # and shouldn't be validated against aggregate fields.
-        is_aggregate_sort = dataset_config["sort_key"] == "aggregateSort"
-        if not is_aggregate_sort or _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
-            query.setlist("sort", sort_values)
-
-    # Metrics stores query and sort inside the metric JSON param
-    if metric_query:
-        query["query"] = metric_query
-    if metric_sort_bys:
-        query.setlist("sort", metric_sort_bys)
+    query, chart_type = config["parse_url_fn"](raw_query, config["default_y_axis"])
 
     return dict(**args, query=query, chart_type=chart_type, dataset=explore_dataset)
 
