@@ -123,6 +123,7 @@ export enum FieldKey {
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
   TIMES_SEEN = 'timesSeen',
   TITLE = 'title',
+  USER_COUNT = 'userCount',
   TOTAL_COUNT = 'total.count',
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
@@ -212,6 +213,7 @@ type ErrorFieldKey =
   | FieldKey.STATUS
   | FieldKey.SYMBOLICATED_IN_APP
   | FieldKey.TIMES_SEEN
+  | FieldKey.USER_COUNT
   | FieldKey.TYPE
   | FieldKey.UNREAL_CRASH_TYPE;
 
@@ -2141,6 +2143,12 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     valueType: FieldValueType.NUMBER,
     keywords: ['count'],
   },
+  [FieldKey.USER_COUNT]: {
+    desc: t('Number of unique users affected'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+    keywords: ['users', 'affected'],
+  },
   [FieldKey.TYPE]: {
     desc: t('Type of event (Errors, transactions, csp and default)'),
     kind: FieldKind.FIELD,
@@ -2761,6 +2769,7 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.LAST_SEEN,
   FieldKey.RELEASE_STAGE,
   FieldKey.TIMES_SEEN,
+  FieldKey.USER_COUNT,
 ];
 
 // Should match Snuba columns defined in sentry/snuba/events.py
