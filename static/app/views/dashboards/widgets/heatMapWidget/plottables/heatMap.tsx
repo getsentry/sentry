@@ -1,7 +1,6 @@
 import type {SeriesOption} from 'echarts';
 
 import type {Theme} from 'sentry/utils/theme';
-import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
   HeatMapSeries,
@@ -9,10 +8,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
-import type {HeatMapPlottable} from './heatMapPlottable';
-
-export type PlottableTimeSeriesValueType =
-  (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number];
+import type {HeatMapPlottable, PlottableTimeSeriesValueType} from './heatMapPlottable';
 
 type HeatMapPlottingOptions = {
   theme: Theme;

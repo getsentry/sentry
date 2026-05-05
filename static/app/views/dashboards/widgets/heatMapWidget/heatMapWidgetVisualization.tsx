@@ -47,7 +47,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   const Zmin = heatMapPlottable.Zstart;
   const Zmax = heatMapPlottable.Zend;
-  const Zstep = (Zmin + Zmax) / HEATMAP_COLORS.length;
+  const Zstep = (Zmax - Zmin) / HEATMAP_COLORS.length;
 
   return (
     <Flex direction="column" height="100%">

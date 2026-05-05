@@ -1,5 +1,3 @@
-export const LOADING_PLACEHOLDER = '—';
-
 // Color scale interpolated across three design stops: #EEEFFF (low) → #7553FF
 // (mid) → #990056 (high) Steps 1–5: segment 1, steps 6–10: segment 2 N.B.
 // Missing values are not part of the palette here, they are filled in by the
