@@ -61,7 +61,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {fetchMutation, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -248,7 +248,10 @@ export function GlobalCommandPaletteActions() {
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
-      QUERY_API_CLIENT.requestPromise('/auth/superuser/', {method: 'DELETE'}),
+      fetchMutation({
+        url: '/auth/superuser/',
+        method: 'DELETE',
+      }),
     onSuccess: () => window.location.reload(),
   });
 
