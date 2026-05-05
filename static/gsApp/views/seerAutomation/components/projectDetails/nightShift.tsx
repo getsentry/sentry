@@ -108,7 +108,7 @@ export function NightShift({canWrite, project}: Props) {
         </Flex>
       }
     >
-      <Alert variant="warning">
+      <Alert variant="warning" system>
         {t(
           "Night Shift runs Seer Autofix on a nightly schedule. Instead of reacting to issues one occurrence at a time, it looks at your project's open issues holistically, prioritizes the ones most likely to benefit from a fix, and drafts pull requests overnight so they're ready for review when you start the next day. This is debug UI for experimenting with Night Shift by triggering manual runs. It is not intended to ever be user facing."
         )}
