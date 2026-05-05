@@ -4028,6 +4028,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "issue-detection.llm-detection.traces-per-invocation",
+    type=Dict,
+    default={"team": 1, "business": 1},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls whether deletion from EAP is enabled.
 register(
     "eventstream.eap.deletion-enabled",

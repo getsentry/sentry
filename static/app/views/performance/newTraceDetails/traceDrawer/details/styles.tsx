@@ -1202,7 +1202,7 @@ function MultilineText({
   children: string;
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
-  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
@@ -1315,7 +1315,7 @@ function MultilineJSON({
   value: any;
   maxDefaultDepth?: number;
 }) {
-  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 

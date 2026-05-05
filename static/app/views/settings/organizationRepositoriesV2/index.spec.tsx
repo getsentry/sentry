@@ -196,4 +196,43 @@ describe('OrganizationRepositoriesV2', () => {
 
     expect(await screen.findByRole('button', {name: 'Uninstall'})).toBeDisabled();
   });
+
+  it('shows the settings button as disabled while the integration config is loading', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: {providers: [GITHUB_PROVIDER]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [GITHUB_INTEGRATION],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+      body: GITHUB_INTEGRATION,
+      asyncDelay: 10_000,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/code-mappings/',
+      body: [],
+    });
+
+    render(<OrganizationRepositoriesV2 />);
+
+    await screen.findByText('my-org');
+    expect(screen.getByRole('button', {name: 'Integration settings'})).toBeDisabled();
+  });
+
+  it('enables the settings button once the integration config has loaded', async () => {
+    setupDefaultMocks();
+
+    render(<OrganizationRepositoriesV2 />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Integration settings'})
+    ).toBeEnabled();
+  });
 });

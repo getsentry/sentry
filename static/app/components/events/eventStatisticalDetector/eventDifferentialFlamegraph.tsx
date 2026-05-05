@@ -128,7 +128,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         ? systemFrameOnly
         : undefined;
 
-  const [negated, setNegated] = useState<boolean>(false);
+  const [negated, setNegated] = useState(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 

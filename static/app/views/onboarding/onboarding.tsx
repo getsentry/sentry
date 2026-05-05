@@ -265,7 +265,7 @@ export function OnboardingWithoutContext() {
     stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
 
   // Called onExitComplete
-  const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
+  const [containerHasFooter, setContainerHasFooter] = useState(false);
   const updateAnimationState = () => {
     if (!stepObj) {
       return;
