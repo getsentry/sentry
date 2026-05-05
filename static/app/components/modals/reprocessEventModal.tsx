@@ -159,7 +159,7 @@ export function ReprocessingEventModal({
                       label={t('Remaining events')}
                       hintText={t('What to do with the events that are not reprocessed.')}
                     >
-                      <Flex gap="lg">
+                      <Flex gap="2xl">
                         <field.Radio.Item value="keep">{t('Keep')}</field.Radio.Item>
                         <field.Radio.Item value="delete">{t('Delete')}</field.Radio.Item>
                       </Flex>
