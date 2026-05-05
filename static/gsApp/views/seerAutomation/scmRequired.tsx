@@ -50,6 +50,10 @@ export default function SeerAutomationSCMRequired() {
       ) ?? [],
   });
 
+  if (!hasSeatBasedSeer) {
+    return <Outlet />;
+  }
+
   if (isPending) {
     return <LoadingIndicator />;
   }

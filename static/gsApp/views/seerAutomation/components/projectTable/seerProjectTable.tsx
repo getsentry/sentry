@@ -236,6 +236,14 @@ export function SeerProjectTable() {
     return filtered;
   }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
 
+  if (fetchingProjects || isPendingSettings || isFetchingNextPage) {
+    return <LoadingIndicator />;
+  }
+
+  if (projectFetchError || isErrorSettings) {
+    return <LoadingError />;
+  }
+
   if (projects.length === 0) {
     return (
       <Container display="flex" padding="2xl" border="primary" radius="md">
