@@ -53,7 +53,7 @@ interface SCMOverviewSectionData {
 export function useSCMOverviewSection(): SCMOverviewSectionData {
   const {
     scmIntegrations,
-    connectedIdentifiers,
+    connectedExternalIds,
     refetchIntegrations,
     reposByIntegrationId,
     reposPendingByIntegrationId,
@@ -84,8 +84,8 @@ export function useSCMOverviewSection(): SCMOverviewSectionData {
   }, [reposByIntegrationId, supportedScmIntegrations]);
 
   const connectedRepos = useMemo(
-    () => seerRepos.filter(repo => connectedIdentifiers.has(repo.identifier)),
-    [connectedIdentifiers, seerRepos]
+    () => seerRepos.filter(repo => connectedExternalIds.has(repo.externalId)),
+    [connectedExternalIds, seerRepos]
   );
 
   const unconnectedRepos = useMemo(
@@ -93,10 +93,10 @@ export function useSCMOverviewSection(): SCMOverviewSectionData {
       supportedScmIntegrations.flatMap(integration => {
         const repos = reposByIntegrationId[integration.id] ?? [];
         return repos
-          .filter(repo => !connectedIdentifiers.has(repo.identifier))
+          .filter(repo => !connectedExternalIds.has(repo.externalId))
           .map(repo => ({repo, integration}));
       }),
-    [supportedScmIntegrations, reposByIntegrationId, connectedIdentifiers]
+    [supportedScmIntegrations, reposByIntegrationId, connectedExternalIds]
   );
 
   return {
@@ -152,7 +152,7 @@ export function SCMOverviewSection(props: Props) {
           variant="danger"
           data-test-id="loading-error"
           trailingItems={
-            <Alert.Button onClick={refetchIntegrations} priority="default">
+            <Alert.Button onClick={refetchIntegrations} variant="secondary">
               {t('Retry')}
             </Alert.Button>
           }
@@ -176,7 +176,7 @@ function NoIntegrations({refetchIntegrations}: {refetchIntegrations: () => void}
   return (
     <Stack align="center" justifySelf="center" gap="lg" maxWidth="360px">
       <Button
-        priority="primary"
+        variant="primary"
         size="sm"
         icon={<IconAdd />}
         onClick={async () => {
@@ -358,7 +358,7 @@ function AddAllReposButton({
   return (
     <Flex align="center">
       <Button
-        priority="primary"
+        variant="primary"
         size="xs"
         icon={<IconAdd />}
         disabled={disabled}

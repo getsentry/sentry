@@ -4,12 +4,11 @@ import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
 import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 describe('IntegrationDetailedView', () => {
-  const ENDPOINT = '/organizations/org-slug/';
   const organization = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
@@ -207,95 +206,22 @@ describe('IntegrationDetailedView', () => {
     expect(await screen.findByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
-  it('shows features tab for github only', async () => {
+  it('does not show features tab for github', async () => {
     render(<IntegrationDetailedView />, {
       initialRouterConfig: createRouterConfig('github'),
       organization,
     });
-    expect(await screen.findByText('features')).toBeInTheDocument();
+    expect(await screen.findByText('overview')).toBeInTheDocument();
+    expect(screen.queryByText('features')).not.toBeInTheDocument();
   });
 
-  it('cannot enable PR bot without GitHub integration', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/`,
-      match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
-      body: [],
-    });
-    render(<IntegrationDetailedView />, {
-      initialRouterConfig: createRouterConfig('github'),
-      organization,
-    });
-    await userEvent.click(await screen.findByText('features'));
-
-    expect(
-      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
-    ).toBeDisabled();
-  });
-
-  it('can enable github features', async () => {
-    render(<IntegrationDetailedView />, {
-      initialRouterConfig: createRouterConfig('github'),
-      organization,
-    });
-    await userEvent.click(await screen.findByText('features'));
-
-    const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'PUT',
-    });
-
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
-    );
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {githubPRBot: true},
-        })
-      );
-    });
-
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Missing Member Detection/})
-    );
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {githubNudgeInvite: true},
-        })
-      );
-    });
-  });
-
-  it('can enable gitlab features', async () => {
+  it('does not show features tab for gitlab', async () => {
     render(<IntegrationDetailedView />, {
       initialRouterConfig: createRouterConfig('gitlab'),
       organization,
     });
-
-    await userEvent.click(await screen.findByText('features'));
-
-    const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'PUT',
-    });
-
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
-    );
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {gitlabPRBot: true},
-        })
-      );
-    });
+    expect(await screen.findByText('overview')).toBeInTheDocument();
+    expect(screen.queryByText('features')).not.toBeInTheDocument();
   });
 
   it('renders alerts without crashing when variant is not provided', async () => {

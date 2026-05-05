@@ -479,6 +479,11 @@ export interface FieldDefinition {
    */
   allowComparisonOperators?: boolean;
   /**
+   * Allow multiple values to be selected for this field.
+   * This is only valid for string and default numeric filters and defaults to true.
+   */
+  allowMultipleValues?: boolean;
+  /**
    * Allow wildcard (*) matching for this field.
    * This is only valid for string fields and will default to true.
    * Note that the `disallowWildcardOperators` setting will override this.
@@ -2344,6 +2349,7 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowMultipleValues: false,
     disallowWildcardOperators: true,
   },
 };

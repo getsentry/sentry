@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ExportQueryType} from 'sentry/components/dataExport';
+import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import DataDownload, {DownloadStatus} from 'sentry/views/dataExport/dataDownload';
 
 describe('DataDownload', () => {
@@ -21,7 +21,10 @@ describe('DataDownload', () => {
   const getDataExportDetails = (body: any, statusCode = 200) =>
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/${dataExportId}/`,
-      body,
+      body: {
+        query: {type: ExportQueryType.ISSUES_BY_TAG},
+        ...body,
+      },
       statusCode,
     });
 

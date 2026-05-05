@@ -60,11 +60,11 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
         )
 
         self.assertPasses(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "false"}),
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "false"}),
             event,
         )
         self.assertPasses(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "false"}),
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "false"}),
             group_event,
         )
 
@@ -76,7 +76,7 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
             event,
         )
         self.assertDoesNotPass(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}),
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value}),
             event,
         )
 
@@ -88,7 +88,7 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
             event,
         )
         self.assertDoesNotPass(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "true"}),
+            self.get_rule(data={"value": GroupCategory.DB_QUERY.value, "include": "true"}),
             event,
         )
 
@@ -101,6 +101,8 @@ class IssueCategoryFilterPerformanceTest(
     rule_cls = IssueCategoryFilter
 
     def test_transaction_category(self) -> None:
+        # Rule data stored before PERFORMANCE was split still uses GroupCategory.PERFORMANCE (2).
+        # Ensure those rules continue to match until the data is migrated.
         tx_event = self.create_performance_issue()
         assert tx_event.group
         self.assertPasses(self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), tx_event)

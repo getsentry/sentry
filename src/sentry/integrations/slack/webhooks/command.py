@@ -10,6 +10,8 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.identity.services.identity.service import identity_service
+from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -18,7 +20,8 @@ from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.integrations.types import ExternalProviders
-from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 _logger = logging.getLogger("sentry.integration.slack.bot-commands")
@@ -42,6 +45,13 @@ INSUFFICIENT_ROLE_MESSAGE = (
 )
 NO_USER_ID_MESSAGE = "Could not identify your Slack user ID. Please try again."
 NO_CHANNEL_ID_MESSAGE = "Could not identify the Slack channel ID. Please try again."
+SET_DEFAULT_ORG_MISSING_SLUG_MESSAGE = "Which org? Try `/sentry set org <slug>`."
+SET_DEFAULT_ORG_NOT_FOUND_PREFIX = (
+    "Hmm, couldn't find an organization that you belong to with the slug"
+)
+SET_DEFAULT_ORG_NOT_FOUND_MESSAGE = SET_DEFAULT_ORG_NOT_FOUND_PREFIX + " `{slug}`."
+SET_DEFAULT_ORG_SUCCESS_MESSAGE = "Got it — your default organization is now `{slug}`."
+UNSET_DEFAULT_ORG_SUCCESS_MESSAGE = "All set — your default organization has been cleared."
 
 
 def get_orgs_with_teams_linked_to_channel(
@@ -188,6 +198,46 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         )
 
         return self.reply(slack_request, UNLINK_TEAM_MESSAGE.format(associate_url=associate_url))
+
+    def set_default_org(self, slack_request: SlackDMRequest, slug: str) -> Response:
+        identity = slack_request.get_identity()
+        identity_user = slack_request.get_identity_user()
+        if not identity or not identity_user:
+            return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
+
+        slug = slug.strip()
+        if not slug:
+            return self.reply(slack_request, SET_DEFAULT_ORG_MISSING_SLUG_MESSAGE)
+
+        membership = (
+            OrganizationMember.objects.get_for_integration(slack_request.integration, identity_user)
+            .filter(
+                organization__slug=slug,
+                organization__status=OrganizationStatus.ACTIVE,
+                invite_status=InviteStatus.APPROVED.value,
+            )
+            .first()
+        )
+        if membership is None:
+            return self.reply(slack_request, SET_DEFAULT_ORG_NOT_FOUND_MESSAGE.format(slug=slug))
+
+        new_data = {**identity.data, PREFERRED_ORGANIZATION_ID_KEY: membership.organization_id}
+        identity_service.update_data(identity_id=identity.id, data=new_data)
+
+        return self.reply(slack_request, SET_DEFAULT_ORG_SUCCESS_MESSAGE.format(slug=slug))
+
+    def unset_default_org(self, slack_request: SlackDMRequest) -> Response:
+        identity = slack_request.get_identity()
+        if not identity:
+            return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
+
+        if PREFERRED_ORGANIZATION_ID_KEY in identity.data:
+            new_data = {
+                k: v for k, v in identity.data.items() if k != PREFERRED_ORGANIZATION_ID_KEY
+            }
+            identity_service.update_data(identity_id=identity.id, data=new_data)
+
+        return self.reply(slack_request, UNSET_DEFAULT_ORG_SUCCESS_MESSAGE)
 
     def post(self, request: Request) -> Response:
         try:

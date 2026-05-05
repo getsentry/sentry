@@ -33,7 +33,7 @@ class ApiScopes(Sequence):
 
     event = (("event:read"), ("event:write"), ("event:admin"))
 
-    org = (("org:read"), ("org:write"), ("org:integrations"), ("org:admin"))
+    org = (("org:read"), ("org:write"), ("org:integrations"), ("org:admin"), ("org:ci"))
 
     member = (("member:read"), ("member:write"), ("member:admin"), ("member:invite"))
 
@@ -92,6 +92,7 @@ class HasApiScopes(models.Model):
             "alerts:write": bool,
             "member:invite": bool,
             "project:distribution": bool,
+            "org:ci": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())

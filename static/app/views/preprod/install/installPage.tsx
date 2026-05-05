@@ -1,7 +1,9 @@
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -56,7 +58,37 @@ export default function InstallPage() {
                     </Flex>
                   </Container>
                   <Container padding="2xl">
-                    <InstallDetailsContent artifactId={artifactId} size="lg" />
+                    {buildDetailsQuery.isPending ? (
+                      <Flex direction="column" align="center" gap="lg">
+                        <LoadingIndicator />
+                        <Text>{t('Loading build details...')}</Text>
+                      </Flex>
+                    ) : buildDetailsQuery.isError || !buildDetailsQuery.data ? (
+                      <Flex direction="column" align="center" gap="lg">
+                        <Text>
+                          {t(
+                            'Error: %s',
+                            buildDetailsQuery.error?.message ||
+                              'Failed to fetch build details'
+                          )}
+                        </Text>
+                        <Button onClick={() => buildDetailsQuery.refetch()}>
+                          {t('Retry')}
+                        </Button>
+                      </Flex>
+                    ) : (
+                      <InstallDetailsContent
+                        artifactId={artifactId}
+                        size="lg"
+                        projectSlug={buildDetailsQuery.data.project_slug}
+                        distributionErrorCode={
+                          buildDetailsQuery.data.distribution_info?.error_code
+                        }
+                        distributionErrorMessage={
+                          buildDetailsQuery.data.distribution_info?.error_message
+                        }
+                      />
+                    )}
                   </Container>
                 </Container>
                 {buildDetailsQuery.data && (

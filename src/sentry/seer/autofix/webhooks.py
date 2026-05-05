@@ -13,8 +13,8 @@ from sentry.analytics.events.ai_autofix_pr_events import (
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.utils import get_autofix_state_from_pr_id
-from sentry.seer.explorer.client_utils import get_explorer_state_from_pr_id
 from sentry.utils import metrics
 
 AnalyticAction = Literal["opened", "closed", "merged"]
@@ -74,13 +74,11 @@ def record_pr_action_analytic(
         metrics.incr(f"ai.autofix.pr.{analytic_action}")
         return
 
-    explorer_state = get_explorer_state_from_pr_id(
-        org.id, "integrations:github", pull_request["id"]
-    )
-    if explorer_state:
-        group_id = explorer_state.metadata.get("group_id") if explorer_state.metadata else None
+    agent_state = get_agent_state_from_pr_id(org.id, "integrations:github", pull_request["id"])
+    if agent_state:
+        group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
         if group_id is None:
-            raise ValueError(f"Missing group id in explorer run {explorer_state.run_id}")
+            raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
         group = Group.objects.get(id=group_id, project__organization_id=org.id)
 
         analytics.record(
@@ -89,11 +87,9 @@ def record_pr_action_analytic(
                 integration=IntegrationProviderSlug.GITHUB.value,
                 project_id=group.project.id,
                 group_id=group.id,
-                run_id=explorer_state.run_id,
+                run_id=agent_state.run_id,
                 github_app=github_app,
-                referrer=explorer_state.metadata.get("referrer")
-                if explorer_state.metadata
-                else None,
+                referrer=agent_state.metadata.get("referrer") if agent_state.metadata else None,
             )
         )
 

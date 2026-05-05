@@ -724,6 +724,11 @@ class Project(Model):
                 organization_id=organization.id
             )
 
+            # Null out detector owners — the owning team/user won't belong to the new org
+            Detector.objects.filter(id__in=detector_ids).exclude(
+                owner_team_id__isnull=True, owner_user_id__isnull=True
+            ).update(owner_team_id=None, owner_user_id=None)
+
         # Manually move over external issues to the new org
         linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
             "linked_id", flat=True

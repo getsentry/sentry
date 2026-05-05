@@ -28,3 +28,19 @@ class ReactivateAccountTest(TestCase):
 
         resp = self.client.post(self.path, data={"op": "confirm"})
         assert resp.status_code == 302
+
+    def test_suspended_user_cannot_reactivate(self) -> None:
+        user = self.create_user("suspended@example.com", is_active=False, is_suspended=True)
+
+        self.login_as(user)
+
+        # Suspended users are rejected by EmailAuthBackend.get_user(), so
+        # Django's auth middleware treats the session as unauthenticated and
+        # the view redirects to login.
+        resp = self.client.post(self.path, data={"op": "confirm"})
+        assert resp.status_code == 302
+
+        from sentry.users.models.user import User
+
+        user = User.objects.get(id=user.id)
+        assert not user.is_active

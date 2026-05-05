@@ -41,7 +41,7 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
             onDismiss?.();
           }}
           size="zero"
-          priority="link"
+          variant="link"
           aria-label={t('Dismiss')}
           icon={<IconClose size="xs" />}
         />

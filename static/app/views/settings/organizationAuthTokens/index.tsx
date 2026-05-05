@@ -152,7 +152,7 @@ export function OrganizationAuthTokensIndex({
 
   const createNewToken = (
     <LinkButton
-      priority="primary"
+      variant="primary"
       size={hasPageFrame ? 'md' : 'sm'}
       icon={<IconAdd />}
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}

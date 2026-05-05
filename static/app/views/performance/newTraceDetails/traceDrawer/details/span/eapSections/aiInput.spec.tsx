@@ -1,86 +1,110 @@
-import {transformPartsMessages} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import type {ComponentProps} from 'react';
 
-describe('transformPartsMessages', () => {
-  it('returns the transformed messages for a valid parts-format input', () => {
-    const input = JSON.stringify([
-      {
-        role: 'user',
-        parts: [{type: 'text', content: 'Hello, world!'}],
-      },
-      {
-        role: 'assistant',
-        parts: [{type: 'text', text: 'Hi there!'}],
-      },
-    ]);
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-    const {result, fixedInvalidJson} = transformPartsMessages(input);
+import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 
-    expect(fixedInvalidJson).toBe(false);
-    expect(JSON.parse(result!)).toEqual([
-      {role: 'user', content: 'Hello, world!'},
-      {role: 'assistant', content: 'Hi there!'},
-    ]);
+const originalResizeObserver = window.ResizeObserver;
+
+function makeAiNode(
+  messages: Array<{content: unknown; role: string}> | Record<string, unknown>
+): ComponentProps<typeof AIInputSection>['node'] {
+  return makeAiNodeWithAttributes({
+    'gen_ai.input.messages': JSON.stringify(messages),
+  });
+}
+
+function makeAiNodeWithAttributes(
+  attributes: Record<string, unknown>
+): ComponentProps<typeof AIInputSection>['node'] {
+  return {
+    id: 'span-id',
+    attributes: {
+      'gen_ai.operation.type': 'chat',
+      ...attributes,
+    },
+    value: {},
+  } as unknown as ComponentProps<typeof AIInputSection>['node'];
+}
+
+class MockResizeObserver {
+  callback: ResizeObserverCallback;
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+  }
+
+  observe(element: Element) {
+    this.callback(
+      [
+        {
+          target: element,
+          contentBoxSize: [{blockSize: 300, inlineSize: 0}],
+        } as unknown as ResizeObserverEntry,
+      ],
+      this
+    );
+  }
+
+  disconnect() {}
+
+  unobserve() {}
+}
+
+describe('AIInputSection', () => {
+  afterEach(() => {
+    window.ResizeObserver = originalResizeObserver;
   });
 
-  it('concatenates multiple text parts within a single message', () => {
-    const input = JSON.stringify([
-      {
-        role: 'user',
-        parts: [
-          {type: 'text', text: 'First part.'},
-          {type: 'text', text: 'Second part.'},
-        ],
-      },
-    ]);
+  it('renders system prompt without a nested disclosure while keeping user messages visible', () => {
+    render(
+      <AIInputSection
+        node={makeAiNode([
+          {role: 'system', content: 'System prompt'},
+          {role: 'user', content: 'User message'},
+        ])}
+      />
+    );
 
-    const {result} = transformPartsMessages(input);
-
-    expect(JSON.parse(result!)).toEqual([
-      {role: 'user', content: 'First part.\nSecond part.'},
-    ]);
+    expect(screen.getByText('User message')).toBeVisible();
+    expect(screen.getByText('System prompt')).toBeVisible();
+    expect(screen.queryByRole('button', {name: 'System'})).not.toBeInTheDocument();
   });
 
-  it('returns {result: undefined} when the top-level value is not an array', () => {
-    const input = JSON.stringify({role: 'user', content: 'not an array'});
-    const {result, fixedInvalidJson} = transformPartsMessages(input);
+  it('clips structured system prompts with show more', () => {
+    window.ResizeObserver = MockResizeObserver;
 
-    expect(result).toBeUndefined();
-    expect(fixedInvalidJson).toBe(false);
+    render(
+      <AIInputSection
+        node={makeAiNode([
+          {
+            role: 'system',
+            content: {instructions: ['Be concise'], priority: 'high'},
+          },
+        ])}
+      />
+    );
+
+    expect(screen.getByText('instructions')).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'System'})).not.toBeInTheDocument();
   });
 
-  it('does not throw when the entire value is [Filtered]', () => {
-    expect(() => transformPartsMessages('[Filtered]')).not.toThrow();
+  it('clips JSON system instructions with show more', () => {
+    window.ResizeObserver = MockResizeObserver;
 
-    const {result, fixedInvalidJson} = transformPartsMessages('[Filtered]');
-    expect(result).toBeUndefined();
-    expect(fixedInvalidJson).toBe(true);
-  });
+    render(
+      <AIInputSection
+        node={makeAiNodeWithAttributes({
+          'gen_ai.system_instructions': JSON.stringify([
+            {content: 'You are Seer, a powerful AI assistant built by Sentry.'},
+          ]),
+        })}
+      />
+    );
 
-  it('does not throw when [Filtered] appears inside a JSON message array', () => {
-    const input = '[{"role":"user","content":[Filtered]}]';
-    expect(() => transformPartsMessages(input)).not.toThrow();
-
-    const {result, fixedInvalidJson} = transformPartsMessages(input);
-    expect(result).toBeUndefined();
-    expect(fixedInvalidJson).toBe(true);
-  });
-
-  it('does not throw when [Filtered] appears in a nested field', () => {
-    const input = '[{"role":"assistant","parts":[{"type":"text","text":[Filtered]}]}]';
-    expect(() => transformPartsMessages(input)).not.toThrow();
-  });
-
-  it('does not throw when the JSON contains an invalid escape sequence', () => {
-    const input = '{"message":"contains bad \\p escape"}';
-    expect(() => transformPartsMessages(input)).not.toThrow();
-
-    const {result, fixedInvalidJson} = transformPartsMessages(input);
-    expect(result).toBeUndefined();
-    expect(fixedInvalidJson).toBe(true);
-  });
-
-  it('does not throw for a truncated JSON that fixJson cannot repair', () => {
-    const input = '[{"role":"user","content":"hello \\';
-    expect(() => transformPartsMessages(input)).not.toThrow();
+    expect(screen.getByText('content')).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'System'})).not.toBeInTheDocument();
   });
 });

@@ -414,7 +414,7 @@ function formatMetricsTimeseriesLabel({
     ? `${func.name}(${func.arguments[1] ?? '…'})`
     : timeSeries.yAxis;
 
-  const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
+  const multiYAxis = new Set(widgetQuery.aggregates).size > 1;
   const hasGroupings = new Set(widgetQuery.columns).size > 0;
 
   let baseName = formatTimeSeriesLabel({...timeSeries, yAxis: formattedYAxis});

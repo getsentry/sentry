@@ -6,6 +6,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.sync_repos_on_install_change import (
     sync_repos_on_install_change,
 )
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
@@ -195,6 +196,52 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
+
+    def test_stamps_last_sync_on_org_integration(self, _: MagicMock) -> None:
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=self.integration
+        )
+        oi.config = {
+            "last_sync": "2020-01-01T00:00:00+00:00",
+            "last_repos_change": "2020-01-01T00:00:00+00:00",
+        }
+        oi.save()
+
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="added",
+                repos_added=self._make_repos_added(),
+                repos_removed=[],
+                repository_selection="selected",
+            )
+
+        oi.refresh_from_db()
+        assert oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
+        assert oi.config["last_repos_change"] > "2020-01-01T00:00:00+00:00"
+
+    def test_does_not_stamp_last_repos_change_when_no_diff(self, _: MagicMock) -> None:
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=self.integration
+        )
+        oi.config = {
+            "last_sync": "2020-01-01T00:00:00+00:00",
+            "last_repos_change": "2020-01-01T00:00:00+00:00",
+        }
+        oi.save()
+
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="added",
+                repos_added=[],
+                repos_removed=[],
+                repository_selection="selected",
+            )
+
+        oi.refresh_from_db()
+        assert oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
+        assert oi.config["last_repos_change"] == "2020-01-01T00:00:00+00:00"
 
     def test_does_not_disable_already_disabled_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):

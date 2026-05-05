@@ -12,10 +12,14 @@ from rest_framework import status
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.requests.event import resolve_seer_organization_for_slack_user
+from sentry.integrations.slack.requests.event import resolve_seer_organization
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
+from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
 from sentry.seer.entrypoints.slack.messaging import send_halt_message
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
@@ -195,11 +199,10 @@ def route_slack_seer_event(
     thread_ts: str,
     message_ts: str,
     event_type: str,
-    # TODO(leander): Remove default after deployment, when active tasks are complete
-    message_text: str = "",
+    message_text: str,
 ) -> None:
     """
-    Use the algorithm in resolve_seer_organization_for_slack_user to resolve the target organization.
+    Use the algorithm in `resolve_seer_organization` to resolve the target organization.
     Since this can route to organizations sharing Slack across cells, we need to run it at the parser.
 
     We run this as a task because the algorithm will make calls to Slack, increasing the likelihood
@@ -224,7 +227,7 @@ def route_slack_seer_event(
         logger.warning("route_slack_seer_event.integration_not_found", extra=logging_ctx)
         return
 
-    organization_id, halt_reason = resolve_seer_organization_for_slack_user(
+    organization_id, halt_reason = resolve_seer_organization(
         integration=integration,
         slack_user_id=slack_user_id,
         channel_id=channel_id,
@@ -237,6 +240,24 @@ def route_slack_seer_event(
     logging_ctx["halt_reason"] = halt_reason
 
     if halt_reason:
+        # We set the cache here and pop it in the identity linking completion function to re-trigger this task
+        # to resume after halting, the cache will need to be popped, and the task will need to be re-triggered somewhere
+        if halt_reason == SeerSlackHaltReason.IDENTITY_NOT_LINKED:
+            SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
+                entrypoint_key=str(SeerEntrypointKey.SLACK),
+                integration_id=integration_id,
+                user_ext_id=slack_user_id,
+                cache_payload=SlackPendingMentionPayload(
+                    payload=payload,
+                    integration_id=integration_id,
+                    slack_user_id=slack_user_id,
+                    channel_id=channel_id,
+                    thread_ts=thread_ts,
+                    message_ts=message_ts,
+                    event_type=event_type,
+                    message_text=message_text,
+                ),
+            )
         send_halt_message(
             integration=integration,
             slack_user_id=slack_user_id,

@@ -176,7 +176,7 @@ function GroupPriorityLearnMore() {
       </LinkButton>
       <DismissButton
         size="zero"
-        priority="transparent"
+        variant="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}

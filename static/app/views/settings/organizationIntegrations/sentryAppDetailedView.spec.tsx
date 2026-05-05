@@ -54,7 +54,7 @@ describe('SentryAppDetailedView', () => {
         url: '/sentry-apps/clickup/',
         body: {
           status: 'published',
-          scopes: [],
+          scopes: ['org:ci'],
           isAlertable: false,
           clientSecret:
             '193583e573d14d61832de96a9efc32ceb64e59a494284f58b50328a656420a55',
@@ -123,6 +123,7 @@ describe('SentryAppDetailedView', () => {
       // Shows the Integration name and install status
       expect(await screen.findByText('ClickUp')).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
+      expect(screen.getByText(/Continuous Integration \(CI\)/)).toBeInTheDocument();
 
       // Shows the Accept & Install button
       expect(screen.getByRole('button', {name: 'Accept & Install'})).toBeEnabled();

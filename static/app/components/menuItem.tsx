@@ -241,7 +241,7 @@ function getChildStyles(props: MenuListItemProps & {theme: Theme}) {
 }
 
 const shouldForwardProp = (p: PropertyKey) =>
-  typeof p === 'string' && ['isActive', 'disabled', 'withBorder'].includes(p) === false;
+  typeof p === 'string' && !['isActive', 'disabled', 'withBorder'].includes(p);
 
 const MenuAnchor = styled('a', {shouldForwardProp})<MenuListItemProps>`
   ${getListItemStyles}

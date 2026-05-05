@@ -5,15 +5,14 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {Request} from 'sentry/components/events/interfaces/request';
-import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import {SharedIssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace/sharedIssueStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -88,28 +87,13 @@ function SharedEventEntry({
 
   switch (entry.type) {
     case EntryType.EXCEPTION:
-      return (
-        <Exception
-          event={event}
-          group={group}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-        />
-      );
+      return <SharedIssueStackTrace event={event} values={entry.data.values ?? []} />;
     case EntryType.MESSAGE:
       return <Message event={event} data={entry.data} />;
     case EntryType.REQUEST:
       return <Request event={event} data={entry.data} />;
     case EntryType.STACKTRACE:
-      return (
-        <StackTrace
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-        />
-      );
+      return <SharedIssueStackTrace event={event} stacktrace={entry.data} />;
     case EntryType.TEMPLATE:
       return <Template event={event} data={entry.data} />;
     case EntryType.CSP:

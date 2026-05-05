@@ -21,6 +21,19 @@
         "schema": {
           "type": "string"
         }
+      },
+      {
+        "name": "collapse",
+        "in": "query",
+        "description": "Fields to remove from the response to improve query performance.",
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["stats", "lifetime", "base", "unhandled", "filtered"]
+          }
+        }
       }
     ],
     "responses": {

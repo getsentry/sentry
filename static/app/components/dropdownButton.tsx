@@ -51,9 +51,7 @@ export function DropdownButton({
       {showChevron && (
         <ChevronWrap>
           <IconChevron
-            variant={
-              !props.priority || props.priority === 'default' ? 'muted' : undefined
-            }
+            variant={(props.variant ?? 'secondary') === 'secondary' ? 'muted' : undefined}
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />

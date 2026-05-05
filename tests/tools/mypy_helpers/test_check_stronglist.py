@@ -24,72 +24,75 @@ module = ["a.b.c", "d.e.f", "g.h.i"]
 disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
-module = ["j.k.*"]
-disallow_untyped_defs = true
+module = ["a.b.c", "d.e.f", "g.h.i", "j.k.*"]
+disallow_untyped_defs = false
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)
 
     tmp_path.joinpath("j/k").mkdir(parents=True)
     tmp_path.joinpath("j/k/l.py").touch()
+    tmp_path.joinpath("a/b").mkdir(parents=True)
+    tmp_path.joinpath("a/b/c.py").touch()
+    tmp_path.joinpath("d/e").mkdir(parents=True)
+    tmp_path.joinpath("d/e/f.py").touch()
+    tmp_path.joinpath("g/h").mkdir(parents=True)
+    tmp_path.joinpath("g/h/i.py").touch()
 
     assert main((str(f),)) == 0
 
 
-def test_errors_on_exact_module(tmp_path, capsys) -> None:
+def test_errors_on_allowlist_module_missing_from_weaklist(tmp_path, capsys) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "d.e.f", "g.h.i"]
 disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
-module = ["a.b.c", "d.e.f"]
-disallow_untyped_defs = true
+module = ["g.h.i"]
+disallow_untyped_defs = false
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)
 
-    tmp_path.joinpath("a/b").mkdir(parents=True)
-    tmp_path.joinpath("a/b/c.py").touch()
-    tmp_path.joinpath("d/e").mkdir(parents=True)
-    tmp_path.joinpath("d/e/f.py").touch()
+    tmp_path.joinpath("g/h").mkdir(parents=True)
+    tmp_path.joinpath("g/h/i.py").touch()
 
     assert main((str(f),)) == 1
 
     expected = f"""\
-{f}: a.b.c is in the typing errors allowlist *and* stronglist
-{f}: d.e.f is in the typing errors allowlist *and* stronglist
+{f}: a.b.c is in the typing errors allowlist but not in the weaklist
+{f}: d.e.f is in the typing errors allowlist but not in the weaklist
 """
     assert capsys.readouterr().out == expected
 
 
-def test_errors_on_globbed_module(tmp_path, capsys) -> None:
+def test_errors_on_globbed_module_missing_from_weaklist(tmp_path, capsys) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "a.b.c.d", "a.b.c.e"]
 disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
-module = ["a.b.c.*"]
-disallow_untyped_defs = true
+module = ["a.b.c"]
+disallow_untyped_defs = false
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)
 
-    tmp_path.joinpath("a/b/c").mkdir(parents=True)
-    tmp_path.joinpath("a/b/c/d.py").touch()
+    tmp_path.joinpath("a/b").mkdir(parents=True)
+    tmp_path.joinpath("a/b/c.py").touch()
 
     assert main((str(f),)) == 1
 
     expected = f"""\
-{f}: a.b.c is in the typing errors allowlist *and* stronglist
-{f}: a.b.c.d is in the typing errors allowlist *and* stronglist
-{f}: a.b.c.e is in the typing errors allowlist *and* stronglist
+{f}: a.b.c.d is in the typing errors allowlist but not in the weaklist
+{f}: a.b.c.e is in the typing errors allowlist but not in the weaklist
 """
     assert capsys.readouterr().out == expected
 
 
-def test_stronglist_existence_file_missing(tmp_path, capsys) -> None:
+def test_weaklist_existence_file_missing(tmp_path, capsys) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -97,7 +100,7 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = ["a.b"]
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)
@@ -105,12 +108,12 @@ disallow_untyped_defs = true
     assert main((str(f),)) == 1
 
     expected = f"""\
-{f}: a.b in stronglist does not match any files!
+{f}: a.b in weaklist does not match any files!
 """
     assert capsys.readouterr().out == expected
 
 
-def test_stronglist_existence_glob_missing(tmp_path, capsys) -> None:
+def test_weaklist_existence_glob_missing(tmp_path, capsys) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -118,7 +121,7 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = ["a.*"]
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)
@@ -126,12 +129,12 @@ disallow_untyped_defs = true
     assert main((str(f),)) == 1
 
     expected = f"""\
-{f}: a.* in stronglist does not match any files!
+{f}: a.* in weaklist does not match any files!
 """
     assert capsys.readouterr().out == expected
 
 
-def test_stronglist_redundant_wildcard(tmp_path, capsys) -> None:
+def test_weaklist_redundant_wildcard(tmp_path, capsys) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -139,7 +142,7 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = ["a.*", "a.b"]
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 """
 
     f = tmp_path.joinpath("f")
@@ -151,12 +154,12 @@ disallow_untyped_defs = true
     assert main((str(f),)) == 1
 
     expected = f"""\
-{f}: a.b in stronglist is redundant with a.*
+{f}: a.b in weaklist is redundant with a.*
 """
     assert capsys.readouterr().out == expected
 
 
-def test_stronglist_redundant_wildcard_same_module(tmp_path, capsys) -> None:
+def test_weaklist_redundant_wildcard_same_module(tmp_path, capsys) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -164,7 +167,7 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = ["a", "a.*"]
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 """
 
     f = tmp_path.joinpath("f")
@@ -177,7 +180,7 @@ disallow_untyped_defs = true
     assert main((str(f),)) == 1
 
     expected = f"""\
-{f}: a in stronglist is redundant with a.*
+{f}: a in weaklist is redundant with a.*
 """
     assert capsys.readouterr().out == expected
 
@@ -195,19 +198,19 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = ["a.b*"]
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 """
     f.write_text(src)
 
     assert main((str(f),)) == 1
 
     expected = f"""\
-{f}: a.b* in stronglist is malformatted; patterns must be fully-qualified module names, optionally with '*' in some components
+{f}: a.b* in weaklist is malformatted; patterns must be fully-qualified module names, optionally with '*' in some components
 """
     assert capsys.readouterr().out == expected
 
 
-def test_stronglist_existence_ok_src_layout(tmp_path) -> None:
+def test_weaklist_existence_ok_src_layout(tmp_path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -215,7 +218,7 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = ["a.b"]
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)
@@ -226,7 +229,7 @@ disallow_untyped_defs = true
     assert main((str(f),)) == 0
 
 
-def test_stronglist_existence_ok_glob(tmp_path) -> None:
+def test_weaklist_existence_ok_glob(tmp_path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -234,7 +237,7 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = ["a.*"]
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)
@@ -245,7 +248,7 @@ disallow_untyped_defs = true
     assert main((str(f),)) == 0
 
 
-def test_stronglist_existince_ok_init_py(tmp_path) -> None:
+def test_weaklist_existence_ok_init_py(tmp_path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -253,7 +256,7 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = ["a.b"]
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 """
     f = tmp_path.joinpath("f")
     f.write_text(src)

@@ -238,7 +238,6 @@ function GroupList({
             key={`sg-${supergroup.id}`}
             supergroup={supergroup}
             aggregatedStats={stats}
-            memberList={memberList}
           />
         );
       })}

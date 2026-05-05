@@ -270,7 +270,7 @@ function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
   const fieldConfig = formFields?.value;
 
   if (fieldConfig?.type !== 'choice') {
-    return undefined;
+    return;
   }
 
   return fieldConfig.choices?.find(

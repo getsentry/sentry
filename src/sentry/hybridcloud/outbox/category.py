@@ -66,6 +66,7 @@ class OutboxCategory(IntEnum):
     IDENTITY_UPDATE = 43
     SENTRY_APP_NORMALIZE_ACTIONS = 44
     PROJECT_KEY_UPDATE = 45
+    SCM_INTEGRATION_CONFIG_BACKFILL = 46
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -281,6 +282,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.SEND_VERCEL_INVOICE,
             OutboxCategory.FTC_CONSENT,
             OutboxCategory.PROJECT_KEY_UPDATE,
+            OutboxCategory.SCM_INTEGRATION_CONFIG_BACKFILL,
         },
     )
     USER_SCOPE = scope_categories(

@@ -12,8 +12,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 import type {EAPTraceMeta, TraceMeta} from './types';
 

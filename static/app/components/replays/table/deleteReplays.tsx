@@ -33,12 +33,10 @@ import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
-  queryOptions:
-    | QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
-    | undefined;
+  queryOptions: QueryKeyEndpointOptions | undefined;
   replays: ReplayListRecord[];
   selectedIds: 'all' | string[];
 }
@@ -116,7 +114,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
                   </ErrorBoundary>
                 ),
               renderConfirmButton: ({defaultOnClick}) => (
-                <Button onClick={defaultOnClick} priority="danger">
+                <Button onClick={defaultOnClick} variant="danger">
                   {t('Delete')}
                 </Button>
               ),
@@ -196,7 +194,7 @@ function ReplayPreviewTable({
         <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {selectedIds.map(id => {
-        const replay = replays.find(r => r.id === id) as ReplayListRecord;
+        const replay = replays.find(r => r.id === id)!;
         if (replay.is_archived) {
           return null;
         }

@@ -4,7 +4,7 @@ from sentry.integrations.slack.message_builder.types import SlackBody
 
 from .base.block import BlockSlackMessageBuilder
 
-LINK_IDENTITY_MESSAGE = "Link your Slack identity to Sentry to unfurl Discover charts."
+LINK_IDENTITY_MESSAGE = "Link your Slack identity to Sentry to unfurl charts."
 
 
 class SlackPromptLinkMessageBuilder(BlockSlackMessageBuilder):

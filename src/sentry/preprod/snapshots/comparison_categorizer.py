@@ -42,8 +42,7 @@ def _build_base_images(
     for key, meta in base_images.items():
         result[key] = SnapshotImageResponse(
             **{k: v for k, v in meta.dict().items() if k not in first_class},
-            key=meta.content_hash
-            or key,  # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+            key=meta.content_hash,
             display_name=meta.display_name,
             image_file_name=key,
             group=meta.group,

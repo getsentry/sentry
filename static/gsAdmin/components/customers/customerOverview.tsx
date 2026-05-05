@@ -770,7 +770,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                     (active)
                     <br />
                     <Button
-                      priority="link"
+                      variant="link"
                       onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
                     >
                       Deactivate Partner

@@ -415,11 +415,16 @@ class GitHubApiClientTest(TestCase):
         ) as cache_set:
             self.install.get_cached_repo_files(self.repo.name, "master", shifted_seconds)
 
-        cache_set.assert_called_once_with(
-            repo_key,
-            [],
-            self.install.CACHE_SECONDS + shifted_seconds,
-        )
+        matching_calls = [
+            call for call in cache_set.call_args_list if call.args and call.args[0] == repo_key
+        ]
+        assert matching_calls == [
+            mock.call(
+                repo_key,
+                [],
+                self.install.CACHE_SECONDS + shifted_seconds,
+            )
+        ]
 
     @responses.activate
     def test_get_cached_repo_files_raises_non_not_found_api_error(self) -> None:

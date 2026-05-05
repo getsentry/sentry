@@ -492,7 +492,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             is_internal=True,
             verify_install=False,
             overview=internal_integration_overview.strip(),
-            scopes=["project:releases", "project:read", "project:write"],
+            scopes=["org:ci"],
         ).run(user=user)
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         SentryAppInstallationForProvider.objects.create(

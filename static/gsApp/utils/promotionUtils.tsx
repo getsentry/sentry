@@ -58,6 +58,7 @@ export async function claimAvailablePromotion({
   }
 
   // note this does not work but but we avoid the problem by mutating the input state
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   queryClient.setQueryData<PromotionData>(
     createPromotionCheckQueryKey(organization.slug),
     {

@@ -8,7 +8,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconChevron,
@@ -155,7 +155,7 @@ export function GroupSummary({
   useEffect(() => {
     if (hasFixabilityScore && !isPending && aiConfig.hasAutofix) {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(organization.slug, group.id),
+        queryKey: autofixApiOptions(organization.slug, group.id).queryKey,
       });
     }
   }, [

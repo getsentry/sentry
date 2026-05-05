@@ -119,7 +119,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
  *
  * See also: fetchMutation
  */
-export function fetchDataQuery<TResponseData = unknown>(
+function fetchDataQuery<TResponseData = unknown>(
   context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResult<TResponseData>> {
   const {url, options} = parseQueryKey(context.queryKey);
@@ -148,6 +148,7 @@ export function getApiQueryData<TResponseData>(
   if (version !== 'v1') {
     return undefined;
   }
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
 }
 
@@ -165,6 +166,7 @@ export function setApiQueryData<TResponseData>(
   if (version !== 'v1') {
     return undefined;
   }
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   const updateResult = queryClient.setQueryData<ApiResult<TResponseData>>(
     queryKey,
     previous => {
@@ -189,15 +191,11 @@ export function setApiQueryData<TResponseData>(
   return updateResult?.[0];
 }
 
-type ApiMutationVariables<
-  Headers extends Record<string, unknown> = Record<string, string>,
-  Query extends Record<string, unknown> = Record<string, any>,
-  Data extends Record<string, unknown> = Record<string, unknown>,
-> = {
+type ApiMutationVariables = {
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
-  data?: Data;
-  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers' | 'host'>;
+  data?: Record<string, unknown>;
+  options?: Pick<QueryKeyEndpointOptions, 'query' | 'headers' | 'host'>;
 };
 
 /**

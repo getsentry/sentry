@@ -46,11 +46,8 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
     projectSlug: project.slug,
   });
 
-  const {
-    preference,
-    isPending: isLoadingPreferences,
-    codeMappingRepos,
-  } = useProjectSeerPreferences(project);
+  const {data, isPending: isLoadingPreferences} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   if (detailedProject.isPending || isLoadingPreferences) {
     return (
@@ -330,7 +327,7 @@ export function SeerAutomationProjectList() {
         </SearchBarWrapper>
         <Button
           size="md"
-          priority="primary"
+          variant="primary"
           onClick={() => navigate(`/settings/${organization.slug}/seer/onboarding`)}
         >
           {t('Open Setup Wizard')}

@@ -178,7 +178,7 @@ function ReplayOnboardingCTAUpsell({
           <LinkButton
             to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard-managed-cta`}
             onClick={onClickManageSubscription}
-            priority="primary"
+            variant="primary"
           >
             {t('Manage Subscription')}
           </LinkButton>
@@ -206,12 +206,12 @@ function ReplayOnboardingCTAUpsell({
             <LinkButton
               to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard_mmx-cta`}
               onClick={onClickManageSubscription}
-              priority="primary"
+              variant="primary"
             >
               {t('Manage Subscription')}
             </LinkButton>
           ) : (
-            <Button disabled={isDismissed} onClick={onEmailOwner} priority="primary">
+            <Button disabled={isDismissed} onClick={onEmailOwner} variant="primary">
               {t('Request to Update Plan')}
             </Button>
           )}
@@ -239,13 +239,13 @@ function ReplayOnboardingCTAUpsell({
         {hasBillingAccess ? (
           <Button
             onClick={handleOpenModal}
-            priority="primary"
+            variant="primary"
             disabled={didClickOpenModal && previewData.loading}
           >
             {t('Set Up Replays')}
           </Button>
         ) : (
-          <Button disabled={isDismissed} onClick={onEmailOwner} priority="primary">
+          <Button disabled={isDismissed} onClick={onEmailOwner} variant="primary">
             {t('Notify Owner')}
           </Button>
         )}

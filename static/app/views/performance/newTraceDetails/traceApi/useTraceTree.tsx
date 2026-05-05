@@ -4,9 +4,9 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {isEmptyTrace} from './utils';
 
@@ -22,7 +22,7 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
   const organization = useOrganization();
   const traceState = useTraceState();
 
-  const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
+  const [tree, setTree] = useState(TraceTree.Empty());
 
   useEffect(() => {
     if (trace.status === 'error') {

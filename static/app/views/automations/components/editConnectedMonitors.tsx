@@ -276,7 +276,7 @@ function SpecificMonitorsSection({
       ref={ref}
       size="sm"
       style={{width: 'min-content'}}
-      priority="primary"
+      variant="primary"
       icon={<IconAdd />}
       onClick={toggleDrawer}
     >

@@ -177,6 +177,11 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
 
+    def test_sends_digest_with_workflow_engine_ui(self) -> None:
+        with self.feature("organizations:workflow-engine-ui"):
+            self.run_test(event_count=2)
+        assert "new alerts since" in mail.outbox[0].subject
+
     def test_digest_email_uses_user_timezone(self) -> None:
         self.organization.member_set.exclude(user_id=self.user.id).delete()
 

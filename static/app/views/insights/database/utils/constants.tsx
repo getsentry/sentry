@@ -14,12 +14,3 @@ export enum SupportedDatabaseSystem {
   // NoSQL
   MONGODB = 'mongodb',
 }
-
-export const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystem, string> = {
-  [SupportedDatabaseSystem.SQLITE]: 'SQLite',
-  [SupportedDatabaseSystem.POSTGRESQL]: 'PostgreSQL',
-  [SupportedDatabaseSystem.MARIADB]: 'MariaDB',
-  [SupportedDatabaseSystem.MYSQL]: 'MySQL',
-  [SupportedDatabaseSystem.ORACLE]: 'Oracle',
-  [SupportedDatabaseSystem.MONGODB]: 'MongoDB',
-};

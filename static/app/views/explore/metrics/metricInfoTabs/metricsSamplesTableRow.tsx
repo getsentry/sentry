@@ -114,7 +114,7 @@ export function SampleTableRow({
         aria-label={t('Toggle trace details')}
         aria-expanded={isExpanded}
         size={embedded ? 'zero' : 'sm'}
-        priority="transparent"
+        variant="transparent"
         onClick={() => setIsExpanded(!isExpanded)}
       />
     );

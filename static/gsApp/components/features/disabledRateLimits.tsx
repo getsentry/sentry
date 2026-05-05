@@ -38,7 +38,7 @@ function DisabledAlert({organization, features}: Props) {
             </span>
             <Button
               size="sm"
-              priority="primary"
+              variant="primary"
               icon={<IconBusiness />}
               data-test-id="rate-limit-upsell"
               onClick={() =>

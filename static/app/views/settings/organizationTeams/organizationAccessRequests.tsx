@@ -114,7 +114,7 @@ class OrganizationAccessRequests extends Component<Props, State> {
                 </div>
                 <div>
                   <StyledButton
-                    priority="primary"
+                    variant="primary"
                     size="sm"
                     onClick={e => this.handleApprove(id, e)}
                     busy={accessRequestBusy[id]}

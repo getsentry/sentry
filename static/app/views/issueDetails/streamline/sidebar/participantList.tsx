@@ -31,7 +31,7 @@ export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps
 
   return (
     <div>
-      <Button priority="transparent" size="zero" {...triggerProps}>
+      <Button variant="transparent" size="zero" {...triggerProps}>
         <StyledAvatarList
           teams={teams}
           users={users}

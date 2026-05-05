@@ -67,6 +67,7 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
                   hasScmOnboarding ? setSelectedFeatures : undefined
                 }
                 newOrg
+                hasScmOnboarding={hasScmOnboarding}
               />
             )}
           </Fragment>

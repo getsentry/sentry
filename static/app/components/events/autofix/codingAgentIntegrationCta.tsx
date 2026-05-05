@@ -39,8 +39,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const organization = useOrganization();
     const user = useUser();
 
-    const {preference, isFetching: isLoadingPreferences} =
-      useProjectSeerPreferences(project);
+    const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
+    const preference = data?.preference;
     const {mutate: updateProjectSeerPreferences, isPending: isUpdatingPreferences} =
       useUpdateProjectSeerPreferences(project);
     const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
@@ -151,7 +151,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
             <div>
               <LinkButton
                 href={`/settings/${organization.slug}/integrations/${config.pluginId}/`}
-                priority="default"
+                variant="secondary"
                 size="sm"
                 onClick={handleInstallClick}
               >
@@ -194,7 +194,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
               )}
             </Text>
             <div>
-              <Button onClick={handleSetupClick} priority="default" size="sm">
+              <Button onClick={handleSetupClick} variant="secondary" size="sm">
                 {t('Set Seer to hand off to %s', config.displayName)}
               </Button>
             </div>

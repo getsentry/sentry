@@ -137,8 +137,8 @@ export function KeyRateLimitsForm({
                 validate={({form}: any) => {
                   // TODO(TS): is validate actually doing anything because it's an unexpected prop
                   const isValid =
-                    typeof form?.rateLimit?.count !== 'undefined' &&
-                    typeof form.rateLimit.window !== 'undefined';
+                    form?.rateLimit?.count !== undefined &&
+                    form.rateLimit.window !== undefined;
 
                   if (isValid) {
                     return [];
@@ -198,7 +198,7 @@ export function KeyRateLimitsForm({
                             }
                             return getExactDuration(rangeValue);
                           }
-                          return undefined;
+                          return;
                         }}
                         disabled={disabled || !hasFeature}
                         onChange={(rangeValue, event) =>

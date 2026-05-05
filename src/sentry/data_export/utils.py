@@ -7,10 +7,11 @@ from typing import Any, Iterator, Literal
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import ExportTraceItemsResponse
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.data_export.base import ExportError
 from sentry.search.eap.constants import PROTOBUF_TYPE_TO_SEARCH_TYPE
+from sentry.search.eap.rpc_utils import anyvalue_to_python
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
@@ -96,18 +97,6 @@ def handle_snuba_errors(
         return wrapped
 
     return wrapper
-
-
-def anyvalue_to_python(av: AnyValue) -> Any:
-    which = av.WhichOneof("value")
-    if which is None:
-        return None
-    val = getattr(av, which)
-    if which == "array_value":
-        return [anyvalue_to_python(x) for x in val.values]
-    if which == "kvlist_value":
-        return {kv.key: anyvalue_to_python(kv.value) for kv in val.values}
-    return val
 
 
 def _ts_to_epoch(ts: Timestamp) -> float:

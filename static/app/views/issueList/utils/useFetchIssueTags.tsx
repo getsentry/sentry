@@ -236,8 +236,8 @@ export const useFetchIssueTags = ({
 
 function builtInIssuesFields({
   currentTags,
-  assigneeFieldValues = [],
-  bookmarksValues = [],
+  assigneeFieldValues,
+  bookmarksValues,
   organization,
 }: {
   assigneeFieldValues: SearchGroup[] | string[];

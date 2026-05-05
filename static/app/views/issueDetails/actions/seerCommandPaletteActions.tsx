@@ -137,7 +137,7 @@ export function SeerCommandPaletteActions({
           keywords={['autofix', 'seer', 'ai', 'solution']}
           onAction={() => {
             openSeerDrawer();
-            autofix.startStep('solution', runId);
+            autofix.startStep('solution', {runId});
           }}
         />
       )}
@@ -148,7 +148,7 @@ export function SeerCommandPaletteActions({
           keywords={['autofix', 'seer', 'ai', 'code', 'changes']}
           onAction={() => {
             openSeerDrawer();
-            autofix.startStep('code_changes', runId);
+            autofix.startStep('code_changes', {runId});
           }}
         />
       )}

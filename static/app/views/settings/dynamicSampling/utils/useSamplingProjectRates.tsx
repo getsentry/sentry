@@ -82,6 +82,7 @@ export function useUpdateSamplingProjectRates() {
     },
     onSuccess: data => {
       const queryKey = getQueryKey(organization);
+      // eslint-disable-next-line @sentry/no-query-data-type-parameters
       const previous = queryClient.getQueryData<SamplingProjectRate[]>(queryKey);
       if (!previous) {
         return;

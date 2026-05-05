@@ -48,7 +48,7 @@ export function NoProjectMessage({
         title: canJoinTeam ? undefined : t('You do not have permission to join a team.'),
       }}
       disabled={!canJoinTeam}
-      priority={orgHasProjects ? 'primary' : 'default'}
+      variant={orgHasProjects ? 'primary' : 'secondary'}
       to={`/settings/${organization.slug}/teams/`}
     >
       {t('Join a Team')}
@@ -63,7 +63,7 @@ export function NoProjectMessage({
           : t('You do not have permission to create a project.'),
       }}
       disabled={!canUserCreateProject}
-      priority={orgHasProjects ? 'default' : 'primary'}
+      variant={orgHasProjects ? 'secondary' : 'primary'}
       to={makeProjectsPathname({path: '/new/', organization})}
     >
       {t('Create project')}

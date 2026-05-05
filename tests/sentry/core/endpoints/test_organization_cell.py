@@ -1,7 +1,6 @@
 from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_cells
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.types.cell import Cell, get_cell_by_name, get_global_directory
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -136,10 +135,7 @@ class OrganizationRegionTest(APITestCase):
 
     def test_user_auth_token_for_member(self) -> None:
         org_user = self.create_user()
-        with assume_test_silo_mode_of(OrganizationMember):
-            OrganizationMember.objects.create(
-                user_id=org_user.id, organization_id=self.org.id, role="member"
-            )
+        self.create_member(user=org_user, organization=self.org, role="member")
 
         user_auth_token = self.create_user_auth_token(user=org_user, scope_list=["org:read"])
         response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
@@ -148,6 +144,15 @@ class OrganizationRegionTest(APITestCase):
         us_locality = get_global_directory().get_locality_for_cell("us")
         assert us_locality is not None
         assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
+
+    def test_user_auth_token_for_member_with_org_ci_is_denied(self) -> None:
+        org_user = self.create_user()
+        self.create_member(user=org_user, organization=self.org, role="member")
+
+        user_auth_token = self.create_user_auth_token(user=org_user, scope_list=["org:ci"])
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
+
+        assert response.status_code == 403
 
     def test_user_auth_token_for_non_member(self) -> None:
         user_auth_token = self.create_user_auth_token(

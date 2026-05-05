@@ -238,15 +238,17 @@ class SlackRequestParser(BaseRequestParser):
             cmd_input = self.slack_request.get_command_input()
 
             # For both linking/unlinking teams, the organization slug is found in the same place
-            link_input = None
+            org_input = None
             if commands.LINK_TEAM.command_slug.does_match(cmd_input):
-                link_input = cmd_input.adjust(commands.LINK_TEAM.command_slug)
+                org_input = cmd_input.adjust(commands.LINK_TEAM.command_slug)
             elif commands.UNLINK_TEAM.command_slug.does_match(cmd_input):
-                link_input = cmd_input.adjust(commands.UNLINK_TEAM.command_slug)
-            if not link_input or not link_input.arg_values:
+                org_input = cmd_input.adjust(commands.UNLINK_TEAM.command_slug)
+            elif commands.SET_DEFAULT_ORG.command_slug.does_match(cmd_input):
+                org_input = cmd_input.adjust(commands.SET_DEFAULT_ORG.command_slug)
+            if not org_input or not org_input.arg_values:
                 return organizations
 
-            linking_organization_slug = link_input.arg_values[0]
+            linking_organization_slug = org_input.arg_values[0]
             linking_organization = next(
                 (org for org in organizations if org.slug == linking_organization_slug), None
             )

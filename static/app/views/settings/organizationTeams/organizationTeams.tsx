@@ -51,7 +51,7 @@ export function OrganizationTeams({
 
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       disabled={!canCreateTeams}
       tooltipProps={{

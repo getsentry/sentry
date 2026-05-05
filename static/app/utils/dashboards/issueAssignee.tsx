@@ -8,9 +8,8 @@ import {
 import {MemberListStore} from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group} from 'sentry/types/group';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface IssueAssigneeProps {
@@ -27,14 +26,13 @@ export function IssueAssignee({groupId}: IssueAssigneeProps) {
   // Update useGroup() query cache
   const onSuccess = useCallback(
     (assignedTo: Group['assignedTo']) => {
-      setApiQueryData<Group>(
-        queryClient,
-        makeFetchGroupQueryKey({
+      queryClient.setQueryData(
+        groupApiOptions({
           organizationSlug: organization.slug,
           groupId,
           environments,
-        }),
-        prev => (prev ? {...prev, assignedTo} : prev)
+        }).queryKey,
+        prev => (prev ? {...prev, json: {...prev.json, assignedTo}} : prev)
       );
     },
     [queryClient, organization.slug, groupId, environments]

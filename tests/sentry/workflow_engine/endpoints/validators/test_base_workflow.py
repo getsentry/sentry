@@ -155,6 +155,16 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.organization_id == self.organization.id
         assert workflow.created_by_id == self.user.id
 
+    def test_create__without_config(self) -> None:
+        del self.valid_data["config"]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+
+        assert workflow.id is not None
+        assert workflow.name == "test"
+        assert workflow.config == {}
+
     def test_create__without_action_filters(self) -> None:
         data_without_action_filters = {
             "name": "test",

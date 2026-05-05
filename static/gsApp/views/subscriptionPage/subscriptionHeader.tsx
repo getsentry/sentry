@@ -74,7 +74,7 @@ export function SubscriptionHeader(props: Props) {
                 size="md"
                 to={`/checkout/${organization.slug}/?referrer=manage_subscription`}
                 aria-label="Manage plan"
-                priority="primary"
+                variant="primary"
               >
                 {t('Manage plan')}
               </LinkButton>

@@ -72,50 +72,50 @@ describe('getQueryHintLegend', () => {
 
 describe('readableConditions', () => {
   it('replaces Contains operator with readable label', () => {
-    expect(readableConditions('span.name:\uf00dContains\uf00dfoo')).toBe(
+    expect(readableConditions('span.name:\uF00DContains\uF00Dfoo')).toBe(
       'span.name: contains foo'
     );
   });
 
   it('replaces Contains with IN list brackets', () => {
-    expect(readableConditions('span.name:\uf00dContains\uf00d[a,b,c]')).toBe(
+    expect(readableConditions('span.name:\uF00DContains\uF00D[a,b,c]')).toBe(
       'span.name: contains [a,b,c]'
     );
   });
 
   it('replaces DoesNotContain operator', () => {
-    expect(readableConditions('key:\uf00dDoesNotContain\uf00dval')).toBe(
+    expect(readableConditions('key:\uF00DDoesNotContain\uF00Dval')).toBe(
       'key: does not contain val'
     );
   });
 
   it('replaces StartsWith and EndsWith operators', () => {
-    expect(readableConditions('key:\uf00dStartsWith\uf00d/api')).toBe(
+    expect(readableConditions('key:\uF00DStartsWith\uF00D/api')).toBe(
       'key: starts with /api'
     );
-    expect(readableConditions('key:\uf00dEndsWith\uf00d.json')).toBe(
+    expect(readableConditions('key:\uF00DEndsWith\uF00D.json')).toBe(
       'key: ends with .json'
     );
   });
 
   it('replaces DoesNotStartWith and DoesNotEndWith operators', () => {
-    expect(readableConditions('key:\uf00dDoesNotStartWith\uf00d/api')).toBe(
+    expect(readableConditions('key:\uF00DDoesNotStartWith\uF00D/api')).toBe(
       'key: does not start with /api'
     );
-    expect(readableConditions('key:\uf00dDoesNotEndWith\uf00d.json')).toBe(
+    expect(readableConditions('key:\uF00DDoesNotEndWith\uF00D.json')).toBe(
       'key: does not end with .json'
     );
   });
 
   it('preserves negated filter prefix', () => {
-    expect(readableConditions('!path:\uf00dContains\uf00dfoo')).toBe(
+    expect(readableConditions('!path:\uF00DContains\uF00Dfoo')).toBe(
       '!path: contains foo'
     );
   });
 
   it('replaces multiple operators in one string', () => {
     const input =
-      'span.name:\uf00dContains\uf00dqueue.task !trigger_path:\uf00dContains\uf00dold_seer';
+      'span.name:\uF00DContains\uF00Dqueue.task !trigger_path:\uF00DContains\uF00Dold_seer';
     expect(readableConditions(input)).toBe(
       'span.name: contains queue.task !trigger_path: contains old_seer'
     );
@@ -145,7 +145,7 @@ describe('readableConditions', () => {
 
   it('handles real-world widget query', () => {
     const input =
-      'span.description:\uf00dContains\uf00d[sentry.tasks.autofix.generate_issue_summary_only,sentry.tasks.autofix.run_automation_only_task] span.name:\uf00dContains\uf00dqueue.task.taskworker !trigger_path:\uf00dContains\uf00dold_seer_automation';
+      'span.description:\uF00DContains\uF00D[sentry.tasks.autofix.generate_issue_summary_only,sentry.tasks.autofix.run_automation_only_task] span.name:\uF00DContains\uF00Dqueue.task.taskworker !trigger_path:\uF00DContains\uF00Dold_seer_automation';
     expect(readableConditions(input)).toBe(
       'span.description: contains [sentry.tasks.autofix.generate_issue_summary_only,sentry.tasks.autofix.run_automation_only_task] span.name: contains queue.task.taskworker !trigger_path: contains old_seer_automation'
     );
@@ -153,18 +153,18 @@ describe('readableConditions', () => {
 
   it('does not replace DoesNotContain partially as Contains', () => {
     // DoesNotContain must be replaced before Contains to avoid partial match
-    expect(readableConditions('key:\uf00dDoesNotContain\uf00dval')).toBe(
+    expect(readableConditions('key:\uF00DDoesNotContain\uF00Dval')).toBe(
       'key: does not contain val'
     );
     // Should NOT produce "key: does not contains val" or "key:DoesNot contains val"
-    expect(readableConditions('key:\uf00dDoesNotContain\uf00dval')).not.toContain(
-      '\uf00d'
+    expect(readableConditions('key:\uF00DDoesNotContain\uF00Dval')).not.toContain(
+      '\uF00D'
     );
   });
 
   it('handles mixed operator types in one query', () => {
     const input =
-      'url:\uf00dStartsWith\uf00d/api span.description:\uf00dContains\uf00dfoo !path:\uf00dDoesNotEndWith\uf00d.js';
+      'url:\uF00DStartsWith\uF00D/api span.description:\uF00DContains\uF00Dfoo !path:\uF00DDoesNotEndWith\uF00D.js';
     expect(readableConditions(input)).toBe(
       'url: starts with /api span.description: contains foo !path: does not end with .js'
     );
@@ -172,7 +172,7 @@ describe('readableConditions', () => {
 
   it('handles the same operator appearing multiple times', () => {
     const input =
-      'a:\uf00dContains\uf00dfoo b:\uf00dContains\uf00dbar c:\uf00dContains\uf00dbaz';
+      'a:\uF00DContains\uF00Dfoo b:\uF00DContains\uF00Dbar c:\uF00DContains\uF00Dbaz';
     expect(readableConditions(input)).toBe(
       'a: contains foo b: contains bar c: contains baz'
     );
@@ -180,7 +180,7 @@ describe('readableConditions', () => {
 
   it('preserves OR with wildcard operators inside parens', () => {
     const input =
-      '(span.name:\uf00dContains\uf00dfoo OR span.name:\uf00dContains\uf00dbar)';
+      '(span.name:\uF00DContains\uF00Dfoo OR span.name:\uF00DContains\uF00Dbar)';
     expect(readableConditions(input)).toBe(
       '(span.name: contains foo OR span.name: contains bar)'
     );

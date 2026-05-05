@@ -339,8 +339,7 @@ export function FormField(props: FormFieldProps) {
 
       const fieldProps = {...otherProps, ...resolvedObservedProps} as PassthroughProps;
 
-      const saveOnBlurFieldOverride =
-        typeof props.saveOnBlur !== 'undefined' && !props.saveOnBlur;
+      const saveOnBlurFieldOverride = props.saveOnBlur !== undefined && !props.saveOnBlur;
 
       return (
         <Fragment>
@@ -409,7 +408,7 @@ export function FormField(props: FormFieldProps) {
                         <Button onClick={handleCancelField} size="xs">
                           {t('Cancel')}
                         </Button>
-                        <Button priority="primary" size="xs" onClick={handleSaveField}>
+                        <Button variant="primary" size="xs" onClick={handleSaveField}>
                           {t('Save')}
                         </Button>
                       </Fragment>

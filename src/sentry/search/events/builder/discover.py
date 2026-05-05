@@ -412,8 +412,9 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
                 # Note that because orderby shouldn't be an array field its not included in the values
                 event_value = event.get(alias)
-                if isinstance(event_value, list) and event_value not in array_values:
-                    array_values.append(event_value)
+                if isinstance(event_value, list):
+                    if event_value not in array_values:
+                        array_values.append(event_value)
                 else:
                     values.add(event_value)
             values_list = list(values) + array_values

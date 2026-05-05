@@ -155,6 +155,7 @@ function useTrackAnalytics({
       gave_seer_consent: gaveSeerConsent,
       version: 2,
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
@@ -176,6 +177,7 @@ function useTrackAnalytics({
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
       cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
       cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `,
       {isAnalytics: true}
@@ -187,6 +189,7 @@ function useTrackAnalytics({
     aggregatesTableResult.result.isPending,
     aggregatesTableResult.result.meta?.dataScanned,
     crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
     hasExceededPerformanceUsageLimit,
@@ -249,6 +252,7 @@ function useTrackAnalytics({
       version: 2,
       attribute_breakdowns_mode: attributeBreakdownsMode,
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
@@ -269,11 +273,13 @@ function useTrackAnalytics({
       gave_seer_consent: ${gaveSeerConsent}
       attribute_breakdowns_mode: ${attributeBreakdownsMode}
       cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
       cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `);
   }, [
     attributeBreakdownsMode,
     crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
     fields,
@@ -338,6 +344,7 @@ function useTrackAnalytics({
       version: 2,
       attribute_breakdowns_mode: attributeBreakdownsMode,
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
 
@@ -358,11 +365,13 @@ function useTrackAnalytics({
       gave_seer_consent: ${gaveSeerConsent}
       attribute_breakdowns_mode: ${attributeBreakdownsMode}
       cross_event_log_query_count: ${crossEventQueries?.logQuery?.length ?? 0}
+      cross_event_metric_query_count: ${crossEventQueries?.metricQuery?.length ?? 0}
       cross_event_span_query_count: ${crossEventQueries?.spanQuery?.length ?? 0}
     `);
   }, [
     attributeBreakdownsMode,
     crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
     hasExceededPerformanceUsageLimit,
@@ -437,10 +446,12 @@ function useTrackAnalytics({
       gave_seer_consent: gaveSeerConsent,
       version: 2,
       cross_event_log_query_count: crossEventQueries?.logQuery?.length ?? 0,
+      cross_event_metric_query_count: crossEventQueries?.metricQuery?.length ?? 0,
       cross_event_span_query_count: crossEventQueries?.spanQuery?.length ?? 0,
     });
   }, [
     crossEventQueries?.logQuery,
+    crossEventQueries?.metricQuery,
     crossEventQueries?.spanQuery,
     dataset,
     hasExceededPerformanceUsageLimit,

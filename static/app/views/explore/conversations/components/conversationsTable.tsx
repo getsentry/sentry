@@ -1,0 +1,370 @@
+import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
+import styled from '@emotion/styled';
+
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Count} from 'sentry/components/count';
+import {
+  COL_WIDTH_UNDEFINED,
+  GridEditable,
+  type GridColumnHeader,
+  type GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconArrow, IconUser} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {MarkedText} from 'sentry/utils/marked/markedText';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {ToolTags} from 'sentry/views/explore/conversations/components/toolTags';
+import {
+  useConversations,
+  type Conversation,
+  type ConversationUser,
+} from 'sentry/views/explore/conversations/hooks/useConversations';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+
+function getConversationDetailUrl(orgSlug: string, conversation: Conversation): string {
+  const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
+  const params = new URLSearchParams();
+  if (conversation.startTimestamp) {
+    params.set('start', String(conversation.startTimestamp));
+  }
+  if (conversation.endTimestamp) {
+    params.set('end', String(conversation.endTimestamp));
+  }
+  const qs = params.toString();
+  return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
+}
+
+export function ConversationsTable() {
+  const organization = useOrganization();
+  const showTable = hasGenAiConversationsFeature(organization);
+
+  if (!showTable) {
+    return null;
+  }
+  return <ConversationsTableInner />;
+}
+
+const EMPTY_ARRAY: never[] = [];
+
+const defaultColumnOrder: Array<GridColumnOrder<string>> = [
+  {key: 'conversationId', name: t('Conv. ID'), width: 0},
+  {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
+  {key: 'user', name: t('User'), width: 120},
+  {key: 'steps', name: t('Steps'), width: 80},
+  {key: 'toolsUsed', name: t('Tools'), width: 200},
+  {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
+  {key: 'timestamp', name: t('Last Message'), width: 120},
+];
+
+const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
+
+function ConversationsTableInner() {
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: defaultColumnOrder,
+  });
+
+  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+
+  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
+    return (
+      <Flex
+        flex="1"
+        align="center"
+        gap="xs"
+        justify={rightAlignColumns.has(column.key) ? 'end' : 'start'}
+      >
+        {column.key === 'steps' ? (
+          <Tooltip title={t('LLM calls + Tool calls')}>
+            <DashedUnderline>{column.name}</DashedUnderline>
+          </Tooltip>
+        ) : (
+          column.name
+        )}
+        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
+        {column.key === 'inputOutput' && <CellExpander />}
+      </Flex>
+    );
+  }, []);
+
+  const renderBodyCell = useCallback(
+    (column: GridColumnOrder<string>, dataRow: Conversation) => {
+      return <BodyCell column={column} dataRow={dataRow} />;
+    },
+    []
+  );
+
+  return (
+    <Fragment>
+      <Container>
+        <GridEditable
+          isLoading={isLoading}
+          error={error}
+          data={data}
+          columnOrder={columnOrder}
+          columnSortBy={EMPTY_ARRAY}
+          stickyHeader
+          grid={{
+            renderBodyCell,
+            renderHeadCell,
+            onResizeColumn: handleResizeColumn,
+          }}
+        />
+      </Container>
+      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
+    </Fragment>
+  );
+}
+
+function getUserDisplayName(user: ConversationUser): string {
+  return user.email || user.username || user.ip_address || t('Unknown');
+}
+
+const TOOLTIP_MAX_CHARS = 2048;
+const CELL_MAX_CHARS = 256;
+
+function TooltipContent({text}: {text: string}) {
+  return (
+    <TooltipTextContainer>
+      <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
+    </TooltipTextContainer>
+  );
+}
+
+function cleanMarkdownForCell(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
+    .replace(/^#{1,6}\s+(.+)$/gm, '**$1**') // headings -> bold text
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+type CellContentProps = ComponentPropsWithRef<'div'> & {
+  text: string;
+};
+
+function CellContent({text, ref, ...props}: CellContentProps) {
+  const cleanedText = cleanMarkdownForCell(text);
+  return (
+    <SingleLineMarkdown ref={ref} {...props}>
+      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+    </SingleLineMarkdown>
+  );
+}
+
+export function InputOutputTooltipCell({text}: {text: string}) {
+  return (
+    <Tooltip
+      title={<TooltipContent text={text} />}
+      showOnlyOnOverflow
+      maxWidth={800}
+      isHoverable
+      skipWrapper
+      position="right"
+    >
+      <CellContent text={text} />
+    </Tooltip>
+  );
+}
+
+function UserNotInstrumentedTooltip() {
+  return (
+    <Text>
+      {tct(
+        'User data not found. Call [code:sentry.setUser()] in your SDK to track users. [link:Learn more]',
+        {
+          code: <code />,
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/apis/#setUser" />
+          ),
+        }
+      )}
+    </Text>
+  );
+}
+
+const BodyCell = memo(function BodyCell({
+  column,
+  dataRow,
+}: {
+  column: GridColumnHeader<string>;
+  dataRow: Conversation;
+}) {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+
+  const navigateToDetail = useCallback(() => {
+    navigate(getConversationDetailUrl(organization.slug, dataRow));
+  }, [navigate, organization.slug, dataRow]);
+
+  switch (column.key) {
+    case 'conversationId':
+      return (
+        <ConversationIdButton type="button" onClick={navigateToDetail}>
+          {dataRow.conversationId.slice(0, 8)}
+        </ConversationIdButton>
+      );
+    case 'user': {
+      if (!dataRow.user) {
+        return (
+          <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
+            <Text variant="muted">&mdash;</Text>
+          </Tooltip>
+        );
+      }
+      const displayName = getUserDisplayName(dataRow.user);
+      return (
+        <Tooltip title={displayName} showOnlyOnOverflow>
+          <Flex align="center" gap="xs" minWidth={0}>
+            <IconUser size="md" variant="muted" />
+            <Text ellipsis>{displayName}</Text>
+          </Flex>
+        </Tooltip>
+      );
+    }
+    case 'inputOutput': {
+      return (
+        <Stack width="100%">
+          <InputOutputRow type="button" onClick={navigateToDetail}>
+            <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
+            <Flex flex="1" minWidth="0">
+              {dataRow.firstInput ? (
+                <InputOutputTooltipCell text={dataRow.firstInput} />
+              ) : (
+                <Text variant="muted">&mdash;</Text>
+              )}
+            </Flex>
+          </InputOutputRow>
+          <InputOutputRow type="button" onClick={navigateToDetail}>
+            <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
+            <Flex flex="1" minWidth="0">
+              {dataRow.lastOutput ? (
+                <InputOutputTooltipCell text={dataRow.lastOutput} />
+              ) : (
+                <Text variant="muted">&mdash;</Text>
+              )}
+            </Flex>
+          </InputOutputRow>
+        </Stack>
+      );
+    }
+    case 'steps':
+      return (
+        <Text as="div" align="right">
+          <Count value={dataRow.llmCalls + dataRow.toolCalls} />
+        </Text>
+      );
+    case 'toolsUsed':
+      if (dataRow.toolNames.length === 0) {
+        return <Text variant="muted">&mdash;</Text>;
+      }
+      return <ToolTags toolNames={dataRow.toolNames} />;
+    case 'tokensAndCost':
+      return (
+        <Text as="div" align="right">
+          <Count value={dataRow.totalTokens} /> / <LLMCosts cost={dataRow.totalCost} />
+        </Text>
+      );
+    case 'timestamp':
+      return (
+        <Text as="div" align="right">
+          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
+        </Text>
+      );
+    default:
+      return null;
+  }
+});
+
+const TooltipTextContainer = styled('div')`
+  text-align: left;
+  max-width: min(800px, 60vw);
+  max-height: 50vh;
+  overflow: hidden;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: inherit;
+    font-weight: bold;
+    margin: 0;
+  }
+`;
+
+const SingleLineMarkdown = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  * {
+    display: inline;
+  }
+`;
+
+/**
+ * Used to force the cell to expand take as much width as possible in the table layout
+ * otherwise grid editable will let the last column grow
+ */
+const CellExpander = styled('div')`
+  width: 100vw;
+`;
+
+const ConversationIdButton = styled('button')`
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-weight: normal;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const InputOutputRow = styled('button')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+
+  &:hover {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+`;
+
+const InputOutputLabel = styled(Text)`
+  width: 4em;
+`;
+
+const DashedUnderline = styled('span')`
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+`;

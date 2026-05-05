@@ -32,9 +32,24 @@ const GITHUB_INTEGRATION: OrganizationIntegration = {
 };
 
 const REPOS: IntegrationRepository[] = [
-  {identifier: 'my-org/frontend', name: 'my-org/frontend', isInstalled: true},
-  {identifier: 'my-org/backend', name: 'my-org/backend', isInstalled: true},
-  {identifier: 'my-org/infra', name: 'my-org/infra', isInstalled: true},
+  {
+    externalId: '1',
+    identifier: 'my-org/frontend',
+    name: 'my-org/frontend',
+    isInstalled: true,
+  },
+  {
+    externalId: '2',
+    identifier: 'my-org/backend',
+    name: 'my-org/backend',
+    isInstalled: true,
+  },
+  {
+    externalId: '3',
+    identifier: 'my-org/infra',
+    name: 'my-org/infra',
+    isInstalled: true,
+  },
 ];
 
 const BASE_PROPS: ComponentProps<typeof SCMOverviewSection> = {

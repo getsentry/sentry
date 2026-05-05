@@ -13,8 +13,8 @@ import {usePollReplayRecord} from 'sentry/utils/replays/hooks/usePollReplayRecor
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
-import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {useReplaySummaryContext} from 'sentry/views/explore/replays/detail/ai/replaySummaryContext';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 const LIVE_TOOLTIP_MESSAGE = t('This replay is in progress.');
 

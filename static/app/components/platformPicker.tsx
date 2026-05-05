@@ -271,7 +271,7 @@ export function PlatformPicker({
               linkOther: (
                 <Button
                   aria-label={t("Select 'Other'")}
-                  priority="link"
+                  variant="link"
                   onClick={() => {
                     setFilter(otherPlatform.name);
                     setPlatform({...otherPlatform, category});
@@ -354,7 +354,7 @@ const PlatformCard = styled(
       {selected && visibleSelection && (
         <ClearButton
           icon={<IconClose />}
-          priority="transparent"
+          variant="transparent"
           size="xs"
           onClick={onClear}
           aria-label={t('Clear')}

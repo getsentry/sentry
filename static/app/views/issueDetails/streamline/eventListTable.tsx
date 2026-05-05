@@ -99,7 +99,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                 <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    priority="transparent"
+                    variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -113,7 +113,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    priority="transparent"
+                    variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{

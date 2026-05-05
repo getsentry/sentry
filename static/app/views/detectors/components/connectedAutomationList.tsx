@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 
 import {LoadingError} from 'sentry/components/loadingError';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';

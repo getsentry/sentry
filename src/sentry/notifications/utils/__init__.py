@@ -369,15 +369,15 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 
 
 def get_replay_id(event: Event | GroupEvent) -> str | None:
-    replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
+    contexts = event.data.get("contexts") or {}
+    replay_id = (contexts.get("replay") or {}).get("replay_id")
     if (
         isinstance(event, GroupEvent)
         and event.occurrence is not None
         and event.occurrence.evidence_data
     ):
-        evidence_replay_id = (
-            event.occurrence.evidence_data.get("contexts", {}).get("replay", {}).get("replay_id")
-        )
+        evidence_contexts = event.occurrence.evidence_data.get("contexts") or {}
+        evidence_replay_id = (evidence_contexts.get("replay") or {}).get("replay_id")
 
         if evidence_replay_id:
             return evidence_replay_id

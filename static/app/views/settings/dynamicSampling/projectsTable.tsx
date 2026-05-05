@@ -69,7 +69,7 @@ export function ProjectsTable({
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
   // We store the expanded items at list level to allow calculating item height
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState(new Set());
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const handleToggleItemExpanded = useCallback((id: string) => {
@@ -358,7 +358,7 @@ const TableRow = memo(function TableRow({
               tooltipProps={{title: t('Open Project Settings')}}
               aria-label={t('Open Project Settings')}
               size="xs"
-              priority="link"
+              variant="link"
               icon={<IconSettings />}
               to={`/settings/${organization.slug}/projects/${project.slug}/performance/`}
             />

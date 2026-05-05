@@ -47,7 +47,7 @@ INVALID_SIGNATURE_ERROR = "Provided signature does not match the computed body s
 MALFORMED_SIGNATURE_ERROR = "Signature value does not match the expected format"
 UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR = "Signature algorithm is unsupported"
 MISSING_WEBHOOK_PAYLOAD_ERROR = "Webhook payload not found"
-MISSING_GITHUB_ENTERPRISE_HOST_ERROR = "Missing X-GitHub-Enterprise-Host header"
+MISSING_GITHUB_ENTERPRISE_HOST_ERROR = "Missing X-GitHub-Enterprise-Host header (GitHub Enterprise Server) or X-Github-Tenant header (GitHub Enterprise Cloud)"
 MISSING_GITHUB_EVENT_HEADER_ERROR = "Missing X-GitHub-Event header"
 MISSING_SIGNATURE_HEADERS_ERROR = "Missing headers X-Hub-Signature-256 or X-Hub-Signature"
 
@@ -75,7 +75,13 @@ class UnsupportedSignatureAlgorithmError(Exception):
 def get_host(request: HttpRequest) -> str | None:
     # XXX: There's lots of customers that are giving us an IP rather than a host name
     # Use HTTP_X_REAL_IP in a follow up PR (#42405)
-    return request.headers.get("x-github-enterprise-host")
+    host = request.headers.get("x-github-enterprise-host")
+    if host:
+        return host
+    tenant = request.headers.get("x-github-tenant")
+    if tenant:
+        return f"{tenant}.ghe.com"
+    return None
 
 
 def get_installation_metadata(event, host):

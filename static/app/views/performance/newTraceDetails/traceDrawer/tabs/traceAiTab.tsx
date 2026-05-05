@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceAiConversations} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiConversations';

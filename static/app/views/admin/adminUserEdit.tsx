@@ -106,7 +106,7 @@ function RemoveUserModal({user, onRemove, closeModal}: RemoveModalProps) {
         ]}
       />
       <ModalFooter>
-        <Button priority="danger" onClick={handleRemove}>
+        <Button variant="danger" onClick={handleRemove}>
           {REMOVE_BUTTON_LABEL[deleteType]}
         </Button>
         <Button onClick={closeModal}>{t('Cancel')}</Button>
@@ -199,7 +199,7 @@ function AdminUserEdit() {
           <Button
             onClick={openDeleteModal}
             style={{marginLeft: theme.space.md}}
-            priority="danger"
+            variant="danger"
           >
             {t('Remove User')}
           </Button>
