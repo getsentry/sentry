@@ -63,7 +63,7 @@ function ListBoxSectionButton({
   return (
     <SectionButton
       size="zero"
-      priority="transparent"
+      variant="transparent"
       aria-selected={selected}
       onClick={onClick}
       tabIndex={-1}

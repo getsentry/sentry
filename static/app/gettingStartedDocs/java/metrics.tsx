@@ -67,7 +67,7 @@ export const metricsVerify = <
   ],
 });
 
-export const metrics: OnboardingConfig<BasePlatformOptions> = {
+export const metrics: OnboardingConfig = {
   install: params => {
     const docsPlatform = params.platformKey.split('java-')[1] ?? 'java';
 
@@ -98,7 +98,7 @@ export const metrics: OnboardingConfig<BasePlatformOptions> = {
     ];
   },
   configure: () => [],
-  verify: (params: DocsParams<BasePlatformOptions>) => {
+  verify: (params: DocsParams) => {
     const docsPlatform = params.platformKey.split('java-')[1] ?? 'java';
 
     return [

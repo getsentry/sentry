@@ -141,8 +141,8 @@ const INITIAL_STATE: LLMContextState = {
 export function LLMContextProvider({children}: LLMContextProviderProps) {
   // All state lives in refs — no re-renders needed. Consumers read
   // the latest data imperatively via getSnapshot().
-  const stateRef = useRef<LLMContextState>(INITIAL_STATE);
-  const nodeDataRef = useRef<Map<string, unknown>>(new Map());
+  const stateRef = useRef(INITIAL_STATE);
+  const nodeDataRef = useRef(new Map<string, unknown>());
 
   const getSnapshot = useCallback((fromNodeId?: string): LLMContextSnapshot => {
     return serializeState(stateRef.current, nodeDataRef.current, fromNodeId);
@@ -218,7 +218,7 @@ export function useLLMContext(
 ): void | {getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot} {
   const ctx = useLLMContextRegistry();
   const nodeId = useContext(LLMNodeContext);
-  const prevDataRef = useRef<string>('');
+  const prevDataRef = useRef('');
 
   // Write path: sync data into the nearest node whenever it changes.
   // JSON equality guard prevents redundant writes. updateNodeData writes

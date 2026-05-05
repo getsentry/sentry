@@ -9,10 +9,15 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {OrganizationRepositoriesV2} from 'sentry/views/settings/organizationRepositoriesV2';
 
 export default function OrganizationRepositories() {
   const organization = useOrganization();
   const {repoFilter, setRepoFilter, searchTerm, setSearchTerm} = useScmTreeFilters();
+
+  if (organization.features.includes('scm-repositories-v2')) {
+    return <OrganizationRepositoriesV2 />;
+  }
 
   return (
     <AnalyticsArea name="repositories">

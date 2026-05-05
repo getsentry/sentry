@@ -169,7 +169,7 @@ function CronEmptyState() {
             .map(({platform, label}) => (
               <Flex key={platform} direction="column" gap="xs" align="center">
                 <PlatformLinkButton
-                  priority="default"
+                  variant="secondary"
                   to={makeCreateUrl(platform)}
                   aria-label={t('Create %s Monitor', platform)}
                 >

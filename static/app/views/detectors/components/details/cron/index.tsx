@@ -282,7 +282,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                       text={dataSource.queryObj.slug}
                       aria-label={t('Copy monitor slug to clipboard')}
                       size="zero"
-                      priority="transparent"
+                      variant="transparent"
                     />
                   </Flex>
                 }

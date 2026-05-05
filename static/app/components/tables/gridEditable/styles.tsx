@@ -20,7 +20,7 @@ const Z_INDEX_STICKY_HEADER = 2;
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
 
-export function Header(props: FlexProps<'div'>) {
+export function Header(props: FlexProps) {
   return <Flex justify="between" align="center" marginBottom="md" {...props} />;
 }
 

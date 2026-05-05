@@ -122,6 +122,73 @@ describe('diffWidgets', () => {
     expect(result.find(r => r.status === 'added')).toBeDefined();
   });
 
+  it('matches widgets by content fingerprint when IDs differ and titles are non-unique (restore case)', () => {
+    // Simulates a dashboard restore where IDs are reassigned but widget content is identical.
+    // Both widgets share the same default title but have distinct queries.
+    const q1 = {
+      conditions: 'level:error',
+      aggregates: ['count()'],
+      columns: [],
+      orderby: '',
+      name: '',
+    } as any;
+    const q2 = {
+      conditions: 'level:warning',
+      aggregates: ['count()'],
+      columns: [],
+      orderby: '',
+      name: '',
+    } as any;
+    const base1 = makeWidget({id: '1', title: 'Custom Widget', queries: [q1]});
+    const base2 = makeWidget({id: '2', title: 'Custom Widget', queries: [q2]});
+    // After restore: new IDs, same titles, same queries
+    const snap1 = makeWidget({id: '10', title: 'Custom Widget', queries: [q1]});
+    const snap2 = makeWidget({id: '20', title: 'Custom Widget', queries: [q2]});
+    const result = diffWidgets(
+      makeDashboard([base1, base2]),
+      makeDashboard([snap1, snap2])
+    );
+    expect(result.find(r => r.status === 'added')).toBeUndefined();
+    expect(result.find(r => r.status === 'removed')).toBeUndefined();
+  });
+
+  it('matches text widgets by description fingerprint when IDs differ after restore', () => {
+    const base1 = makeWidget({
+      id: '1',
+      title: 'Custom Widget',
+      displayType: DisplayType.TEXT,
+      description: 'Hello world',
+      queries: [],
+    });
+    const base2 = makeWidget({
+      id: '2',
+      title: 'Custom Widget',
+      displayType: DisplayType.TEXT,
+      description: 'Another widget',
+      queries: [],
+    });
+    const snap1 = makeWidget({
+      id: '10',
+      title: 'Custom Widget',
+      displayType: DisplayType.TEXT,
+      description: 'Hello world',
+      queries: [],
+    });
+    const snap2 = makeWidget({
+      id: '20',
+      title: 'Custom Widget',
+      displayType: DisplayType.TEXT,
+      description: 'Another widget',
+      queries: [],
+    });
+    const result = diffWidgets(
+      makeDashboard([base1, base2]),
+      makeDashboard([snap1, snap2])
+    );
+    expect(result.find(r => r.status === 'added')).toBeUndefined();
+    expect(result.find(r => r.status === 'removed')).toBeUndefined();
+  });
+
   it('treats a snapshot widget as added when its title matches a base already claimed by id', () => {
     const base = makeWidget({id: '1', title: 'Widget A'});
     const snap1 = makeWidget({id: '1', title: 'Widget B'}); // claims base by id (rename)

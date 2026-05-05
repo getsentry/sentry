@@ -166,9 +166,7 @@ function useFilterKeySections({
     return customSections;
   }, [disallowLogicalOperators, filterKeySections, query, recentSearches?.length]);
 
-  const [selectedSection, setSelectedSection] = useState<string>(
-    sections[0]?.value ?? ''
-  );
+  const [selectedSection, setSelectedSection] = useState(sections[0]?.value ?? '');
 
   const numSections = sections.length;
   const previousNumSections = usePrevious(numSections);

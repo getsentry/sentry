@@ -122,7 +122,7 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
             aria-label={t('Close')}
             size="zero"
             onClick={() => setIsOpen(false)}
-            priority="transparent"
+            variant="transparent"
           />
         }
       >

@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectQuickLinks} from 'sentry/views/projectDetail/projectQuickLinks';
 
@@ -24,12 +24,16 @@ describe('ProjectDetail > ProjectQuickLinks', () => {
     const keyTransactions = screen.getByRole('link', {name: 'View Transactions'});
 
     await userEvent.click(userFeedback);
-    expect(router.location.pathname).toBe('/organizations/org-slug/issues/feedback/');
-    expect(router.location.query).toEqual({project: '2'});
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/feedback/');
+      expect(router.location.query).toEqual({project: '2'});
+    });
 
     await userEvent.click(keyTransactions);
-    expect(router.location.pathname).toBe('/organizations/org-slug/insights/backend/');
-    expect(router.location.query).toEqual({project: '2'});
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/org-slug/insights/backend/');
+      expect(router.location.query).toEqual({project: '2'});
+    });
   });
 
   it.isKnownFlake('disables link if feature is missing', async () => {
@@ -41,8 +45,6 @@ describe('ProjectDetail > ProjectQuickLinks', () => {
     );
 
     const keyTransactions = screen.getByText('View Transactions');
-
-    await userEvent.click(keyTransactions);
 
     await userEvent.hover(keyTransactions);
     expect(

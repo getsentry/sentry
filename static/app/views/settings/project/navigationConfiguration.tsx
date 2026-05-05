@@ -40,7 +40,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/alerts/`,
           title: t('Alert Settings'),
-          keywords: ['alert', 'alerts'],
+          keywords: [t('alert'), t('alerts')],
           description: t('Project alert settings'),
         },
         {
@@ -51,13 +51,13 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
-          keywords: ['environment', 'env'],
+          keywords: [t('environment'), t('env'), t('staging'), t('production')],
           description: t('Manage environments in a project'),
         },
         {
           path: `${pathPrefix}/ownership/`,
           title: t('Ownership Rules'),
-          keywords: ['ownership', 'codeowners', 'owners', 'owner rules'],
+          keywords: [t('ownership'), t('codeowners'), t('owners'), t('owner rules')],
           description: t('Manage ownership rules for a project'),
         },
         {
@@ -83,7 +83,14 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/filters/`,
           title: t('Inbound Filters'),
-          keywords: ['inbound', 'filter', 'filters', 'discard', 'ignore', 'attachments'],
+          keywords: [
+            t('inbound'),
+            t('filter'),
+            t('filters'),
+            t('discard'),
+            t('ignore'),
+            t('attachments'),
+          ],
           description: t(
             "Configure a project's inbound filters (e.g. browsers, messages)"
           ),
@@ -102,7 +109,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
-          keywords: ['debug file', 'debug files', 'symbols', 'dsyms'],
+          keywords: [t('debug file'), t('debug files'), t('symbols'), t('dsyms')],
           badge: debugFilesNeedsReview ? () => 'warning' : undefined,
         },
         {
@@ -112,7 +119,12 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
-          keywords: ['source map', 'source maps', 'sourcemap', 'artifact bundles'],
+          keywords: [
+            t('source map'),
+            t('source maps'),
+            t('sourcemap'),
+            t('artifact bundles'),
+          ],
         },
         {
           path: `${pathPrefix}/performance/`,
@@ -125,7 +137,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/replays/`,
           title: t('Replays'),
-          keywords: ['session', 'session replay', 'replay'],
+          keywords: [t('session'), t('session replay'), t('replay')],
           show: () =>
             !!organization?.features?.includes('session-replay-ui') &&
             !isSelfHostedErrorsOnly,
@@ -139,7 +151,7 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/mobile-builds/`,
           title: t('Mobile Builds'),
           badge: () => 'new',
-          keywords: ['size', 'size analysis', 'build size', 'app size'],
+          keywords: [t('size'), t('size analysis'), t('build size'), t('app size')],
           description: t('Size analysis and build distribution configuration.'),
         },
         {
@@ -159,7 +171,7 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
-          keywords: [t('dsn'), 'auth', 'token', 'client key'],
+          keywords: [t('dsn'), t('auth'), t('token'), t('client key'), t('dsn key')],
         },
         {
           path: `${pathPrefix}/loader-script/`,

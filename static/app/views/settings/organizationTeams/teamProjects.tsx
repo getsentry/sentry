@@ -35,7 +35,7 @@ export default function TeamProjects() {
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
-  const [query, setQuery] = useState<string>('');
+  const [query, setQuery] = useState('');
   const {team} = useTeamDetailsOutlet();
   const {
     data: linkedProjectsResponse,

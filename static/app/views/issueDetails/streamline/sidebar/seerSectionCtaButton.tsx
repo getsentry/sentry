@@ -230,7 +230,7 @@ export function SeerSectionCtaButton({
         has_coded_solution: Boolean(codeChangesDescription),
         has_pr: hasPr,
       }}
-      priority="primary"
+      variant="primary"
     >
       {getButtonText()}
       <Flex justify="center" align="center" marginLeft="xs" width="16px" height="16px">

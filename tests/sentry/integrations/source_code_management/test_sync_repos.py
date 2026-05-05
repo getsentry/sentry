@@ -10,6 +10,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
+from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.sync_repos import (
     sync_repos_for_org,
@@ -572,6 +573,40 @@ class SyncReposForOrgGitLabTestCase(TestCase):
         assert len(repos) == 2
         assert repos[0].provider == "integrations:gitlab"
 
+    @responses.activate
+    def test_error_dict_response_raises_integration_error(self) -> None:
+        integration = self.create_provider_integration(
+            provider="gitlab",
+            name="Example Gitlab 2",
+            external_id="example2.gitlab.com:group-y",
+            metadata={
+                "instance": "example.gitlab.com",
+                "base_url": "https://example.gitlab.com",
+                "domain_name": "example.gitlab.com/group-y",
+                "verify_ssl": False,
+                "group_id": 1,
+                "webhook_secret": "secret123",
+            },
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="gitlab", config={}),
+            user=self.user,
+            external_id="gitlab456",
+            data={"access_token": "123456789"},
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/groups/1/projects?search=&simple=True&include_subgroups=False&page=1&per_page=100&order_by=last_activity_at",
+            json={"status": "error", "error": "group not accessible"},
+        )
+
+        assert isinstance(installation, GitlabIntegration)
+        with pytest.raises(IntegrationError, match="Expected list of projects"):
+            installation.get_repositories()
+
 
 @control_silo_test
 class SyncReposForOrgBitbucketTestCase(TestCase):
@@ -762,6 +797,21 @@ class SyncReposForOrgVstsTestCase(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
 
+    def test_vsts_message_from_error_handles_string_json(self) -> None:
+        integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts-account-id-2",
+            name="MyVSTSAccount",
+            metadata={"domain_name": "https://myvstsaccount.visualstudio.com/"},
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        exc = ApiForbiddenError("ADO OAuth tokens disabled")
+        exc.json = "ADO OAuth tokens disabled"  # type: ignore[assignment]
+        msg = installation.message_from_error(exc)
+        assert "unknown error" in msg
+
 
 @control_silo_test
 class SyncReposForOrgBrokenIdentityTestCase(TestCase):
@@ -844,6 +894,57 @@ class SyncReposLockTestCase(IntegrationTestCase):
 
 
 @control_silo_test
+class BitbucketServerIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for the BitbucketServerIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_provider_integration(
+            provider="bitbucket_server",
+            name="Example Bitbucket",
+            metadata={"verify_ssl": False, "base_url": "https://bitbucket.example.com"},
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(
+                external_id="bitbucket.example.com:sentry-test", type="bitbucket_server"
+            ),
+            user=self.user,
+            external_id="bitbucket-server-123",
+            data={
+                "consumer_key": "sentry-test",
+                "private_key": "fake-key",
+                "access_token": "access-token",
+                "access_token_secret": "access-token-secret",
+            },
+        )
+        self.integration.add_organization(self.organization, self.user, identity.id)
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_api_error_403_returns_unauthorized(self) -> None:
+        exc = ApiError("forbidden", code=403)
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_api_error_404_returns_configuration_error(self) -> None:
+        exc = ApiError("not found", code=404)
+        assert self.installation.is_broken_integration_error(exc) == "configuration_error"
+
+    def test_api_error_500_not_terminal(self) -> None:
+        exc = ApiError("server error", code=500)
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_base_class_cases_still_work(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+        assert (
+            self.installation.is_broken_integration_error(IdentityNotValid())
+            == "identity_not_valid"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+
+@control_silo_test
 class IsBrokenIntegrationErrorTestCase(TestCase):
     """Tests for the RepositoryIntegration.is_broken_integration_error base implementation."""
 
@@ -879,8 +980,11 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
             == "unauthorized"
         )
 
-    def test_api_forbidden_not_terminal(self) -> None:
-        assert self.installation.is_broken_integration_error(ApiForbiddenError("forbidden")) is None
+    def test_api_forbidden_returns_unauthorized(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiForbiddenError("forbidden"))
+            == "unauthorized"
+        )
 
     def test_api_forbidden_suspended_returns_installation_suspended(self) -> None:
         exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
@@ -954,6 +1058,157 @@ class IsBrokenIntegrationErrorTestCase(TestCase):
         exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
         with patch.object(type(self.installation), "is_rate_limited_error", return_value=True):
             assert self.installation.is_broken_integration_error(exc) == "rate_limited"
+
+
+@control_silo_test
+class GitlabIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for the GitlabIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_provider_integration(
+            provider="gitlab",
+            name="Example Gitlab",
+            external_id="example.gitlab.com:group-x",
+            metadata={
+                "instance": "example.gitlab.com",
+                "base_url": "https://example.gitlab.com",
+                "domain_name": "example.gitlab.com/group-x",
+                "verify_ssl": False,
+                "group_id": 1,
+                "webhook_secret": "secret123",
+            },
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="gitlab", config={}),
+            user=self.user,
+            external_id="gitlab123",
+            data={"access_token": "123456789"},
+        )
+        self.integration.add_organization(self.organization, self.user, identity.id)
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_api_error_403_returns_unauthorized(self) -> None:
+        exc = ApiError("forbidden", code=403)
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_api_error_404_returns_configuration_error(self) -> None:
+        exc = ApiError("not found", code=404)
+        assert self.installation.is_broken_integration_error(exc) == "configuration_error"
+
+    def test_api_forbidden_error_returns_unauthorized(self) -> None:
+        exc = ApiForbiddenError("blocked")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_api_error_500_not_terminal(self) -> None:
+        exc = ApiError("server error", code=500)
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_api_error_no_code_not_terminal(self) -> None:
+        exc = ApiError("something")
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_valueerror_html_response_returns_unsupported_response(self) -> None:
+        exc = ValueError("Not a valid response type: <html><head><title>gitlab.support</title>")
+        assert self.installation.is_broken_integration_error(exc) == "unsupported_response"
+
+    def test_valueerror_unrelated_not_terminal(self) -> None:
+        exc = ValueError("some other value error")
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_base_class_cases_still_work(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+        assert (
+            self.installation.is_broken_integration_error(IdentityNotValid())
+            == "identity_not_valid"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+
+@control_silo_test
+@patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+class GitHubIsBrokenIntegrationErrorTestCase(IntegrationTestCase):
+    """Tests for the GitHubIntegration.is_broken_integration_error override."""
+
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+    key = "github"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_forbidden_ip_allow_list_returns_unauthorized(self, _: MagicMock) -> None:
+        exc = ApiForbiddenError(
+            '{"message":"the org has an IP allow list enabled, '
+            'and your IP address is not permitted"}'
+        )
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_forbidden_suspended_returns_installation_suspended(self, _: MagicMock) -> None:
+        exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
+        assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
+
+    def test_forbidden_generic_returns_unauthorized(self, _: MagicMock) -> None:
+        exc = ApiForbiddenError("some other 403")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_rate_limited_forbidden_returns_rate_limited(self, _: MagicMock) -> None:
+        exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
+        assert self.installation.is_broken_integration_error(exc) == "rate_limited"
+
+    def test_base_class_cases_still_work(self, _: MagicMock) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
+
+
+@control_silo_test
+class GHEIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for the GitHubEnterpriseIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        GitHubEnterpriseIntegrationProvider().setup()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="35.232.149.196:99999",
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "99999",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_forbidden_returns_unauthorized(self) -> None:
+        exc = ApiForbiddenError("IP allow list")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_forbidden_suspended_returns_installation_suspended(self) -> None:
+        exc = ApiForbiddenError('{"message":"This installation has been suspended"}')
+        assert self.installation.is_broken_integration_error(exc) == "installation_suspended"
+
+    def test_rate_limited_forbidden_returns_rate_limited(self) -> None:
+        exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
+        assert self.installation.is_broken_integration_error(exc) == "rate_limited"
+
+    def test_base_class_cases_still_work(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )
+        assert self.installation.is_broken_integration_error(RuntimeError("boom")) is None
 
 
 @control_silo_test
@@ -1036,3 +1291,50 @@ class SyncReposForOrgNewErrorHandlingTestCase(IntegrationTestCase):
         with self.feature("organizations:github-repo-auto-sync"), self.tasks():
             with pytest.raises((ApiError, RetryTaskError)):
                 sync_repos_for_org(self.oi.id)
+
+
+@control_silo_test
+class VstsIsBrokenIntegrationErrorTestCase(TestCase):
+    """Tests for VstsIntegration.is_broken_integration_error override."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts-test-id",
+            name="test-vsts",
+            metadata={"domain_name": "https://test.visualstudio.com/"},
+        )
+        self.integration.add_organization(self.organization, self.user)
+        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+
+    def test_integration_error_wrapping_403(self) -> None:
+        exc = IntegrationError("Error Communicating with Azure DevOps (HTTP 403): unknown error")
+        exc.__context__ = ApiForbiddenError("Identity is Disabled")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_integration_error_wrapping_404(self) -> None:
+        exc = IntegrationError("Error Communicating with Azure DevOps (HTTP 404): unknown error")
+        exc.__context__ = ApiError("Not Found", code=404)
+        assert self.installation.is_broken_integration_error(exc) == "configuration_error"
+
+    def test_integration_error_wrapping_401(self) -> None:
+        exc = IntegrationError("wrapped")
+        exc.__context__ = ApiUnauthorized("bad token")
+        assert self.installation.is_broken_integration_error(exc) == "unauthorized"
+
+    def test_integration_error_wrapping_500_not_terminal(self) -> None:
+        exc = IntegrationError("Error Communicating with Azure DevOps (HTTP 500): unknown error")
+        exc.__context__ = ApiError("Internal Server Error", code=500)
+        assert self.installation.is_broken_integration_error(exc) is None
+
+    def test_integration_error_wrapping_identity_not_valid_delegates_to_base(self) -> None:
+        exc = IntegrationError("wrapped")
+        exc.__context__ = IdentityNotValid()
+        assert self.installation.is_broken_integration_error(exc) == "identity_not_valid"
+
+    def test_non_integration_error_delegates_to_base(self) -> None:
+        assert (
+            self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
+            == "unauthorized"
+        )

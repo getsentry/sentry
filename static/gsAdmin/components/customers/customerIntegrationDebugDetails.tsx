@@ -41,7 +41,7 @@ function getStatusLabel(status: number): string {
 }
 
 export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [expandedRows, setExpandedRows] = useState(new Set());
 
   const toggleRow = (id: number) => {
     setExpandedRows(prev => {

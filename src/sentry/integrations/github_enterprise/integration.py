@@ -219,9 +219,23 @@ class GitHubEnterpriseIntegration(
 
     # IntegrationInstallation methods
 
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
+        if (
+            exc.json
+            and isinstance(exc.json, dict)
+            and RATE_LIMITED_MESSAGE in exc.json.get("message", "")
+        ):
+            metrics.incr("github_enterprise.link_all_repos.rate_limited_error")
+            return True
+        return False
+
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
-        if isinstance(exc, ApiForbiddenError) and "suspended" in str(exc):
-            return "installation_suspended"
+        if isinstance(exc, ApiForbiddenError):
+            if self.is_rate_limited_error(exc):
+                return "rate_limited"
+            if "suspended" in str(exc):
+                return "installation_suspended"
+            return "unauthorized"
         return super().is_broken_integration_error(exc)
 
     def message_from_error(self, exc: Exception) -> str:

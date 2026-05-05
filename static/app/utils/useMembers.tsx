@@ -171,8 +171,8 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   // Keep track of what queries we failed to find results for, otherwilse we'll
   // just keep trying to look those up since they'll never end up in the store
   // and {ids,emails}ToLoad will never be empty
-  const [idsFailedToLoad, setIdsFailedToLoad] = useState<Set<string>>(new Set());
-  const [emailsFailedToLoad, setEmailsFailedToLoad] = useState<Set<string>>(new Set());
+  const [idsFailedToLoad, setIdsFailedToLoad] = useState(new Set());
+  const [emailsFailedToLoad, setEmailsFailedToLoad] = useState(new Set());
 
   const storeIds = useMemo(() => new Set(store.members.map(u => u.id)), [store.members]);
 
