@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
@@ -192,7 +192,7 @@ export default function SentryApplicationDetails() {
   const SENTRY_APP_API_TOKENS_QUERY_KEY = makeSentryAppApiTokensQueryKey(appSlug);
 
   const sentryAppQueryOptions = sentryAppApiOptions({
-    appSlug: isEditingApp ? appSlug : skipToken,
+    appSlug: isEditingApp ? appSlug : null,
   });
 
   const {
