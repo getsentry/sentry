@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     BUCKET_COUNT,
     BUCKET_CURSOR_KEY,
@@ -16,6 +17,13 @@ from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
+
+
+def _assert_called_once_with_config(mock, organization_id: int) -> None:
+    mock.assert_called_once()
+    config = mock.call_args.args[0]
+    assert isinstance(config, BaseDynamicSamplingConfiguration)
+    assert config.organization.id == organization_id
 
 
 def _drain_dispatched_org_ids(burst) -> list[int]:
@@ -118,7 +126,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         org = self.create_organization()
 
         with (
-            self.feature("organizations:dynamic-sampling"),
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ),
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
                 return_value=None,
@@ -127,7 +138,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
             result = run_calculations_per_org_task(org.id)
 
         assert result == TelemetryStatus.NO_VOLUME
-        get_volume.assert_called_once_with(org)
+        _assert_called_once_with_config(get_volume, org.id)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_continues_with_traffic(self) -> None:
@@ -135,7 +146,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
         with (
-            self.feature("organizations:dynamic-sampling"),
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ),
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
                 return_value=org_volume,
@@ -144,15 +158,21 @@ class SchedulePerOrgCalculationsTest(TestCase):
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
-        get_volume.assert_called_once_with(org)
+        _assert_called_once_with_config(get_volume, org.id)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_dynamic_sampling(self) -> None:
         org = self.create_organization()
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
-        ) as get_volume:
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
+            ) as get_volume,
+        ):
             result = run_calculations_per_org_task(org.id)
 
         assert result == TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
@@ -165,7 +185,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ) as get_volume:
             result = run_calculations_per_org_task(99999999)
 
-        assert result == TelemetryStatus.ORG_NOT_FOUND
+        assert result == TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
         get_volume.assert_not_called()
 
 
