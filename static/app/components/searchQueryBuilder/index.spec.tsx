@@ -4087,8 +4087,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.clear(combobox);
         await userEvent.keyboard('7k{Enter}');
 
-        // Should keep the same value because "7k" is not supported for currency values
-        expect(screen.getByRole('row', {name: 'cost:>100'})).toBeInTheDocument();
+        expect(await screen.findByRole('row', {name: 'cost:>7k'})).toBeInTheDocument();
       });
 
       it('currency filter values render with a $ prefix', async () => {
@@ -4110,7 +4109,7 @@ describe('SearchQueryBuilder', () => {
         expect(combobox).toHaveAttribute('placeholder', '$0.00');
       });
 
-      it('currency value suggestions do not include k/m/b shorthand', async () => {
+      it('currency value suggestions include k/m/b shorthand', async () => {
         render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: cost'})
@@ -4121,10 +4120,10 @@ describe('SearchQueryBuilder', () => {
         await userEvent.clear(combobox);
 
         await waitFor(() => {
-          expect(screen.queryByRole('option', {name: '$100k'})).not.toBeInTheDocument();
+          expect(screen.getByRole('option', {name: '$100k'})).toBeInTheDocument();
         });
-        expect(screen.queryByRole('option', {name: '$100m'})).not.toBeInTheDocument();
-        expect(screen.queryByRole('option', {name: '$100b'})).not.toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$100m'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$100b'})).toBeInTheDocument();
       });
 
       it('span GenAI cost filters render with a $ prefix', async () => {

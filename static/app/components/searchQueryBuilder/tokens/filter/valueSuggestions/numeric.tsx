@@ -4,7 +4,6 @@ import {FieldValueType} from 'sentry/utils/fields';
 const NUMERIC_REGEX = /^-?\d+(\.\d+)?$/;
 const NUMERIC_UNITS = ['k', 'm', 'b'] as const;
 const DEFAULT_NUMERIC_VALUES = ['100', '100k', '100m', '100b'] as const;
-const DEFAULT_CURRENCY_VALUES = ['100'] as const;
 
 function isNumeric(value: string) {
   return NUMERIC_REGEX.test(value);
@@ -19,24 +18,15 @@ export function getNumericSuggestions(
   valueType?: FieldValueType
 ): SuggestionSection[] {
   if (!inputValue) {
-    const defaultValues =
-      valueType === FieldValueType.CURRENCY
-        ? DEFAULT_CURRENCY_VALUES
-        : DEFAULT_NUMERIC_VALUES;
-
     return [
       {
         sectionText: '',
-        suggestions: defaultValues.map(value => ({
+        suggestions: DEFAULT_NUMERIC_VALUES.map(value => ({
           value,
           label: labelForValue(value, valueType),
         })),
       },
     ];
-  }
-
-  if (valueType === FieldValueType.CURRENCY) {
-    return [];
   }
 
   if (isNumeric(inputValue)) {
