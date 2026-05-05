@@ -25,6 +25,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 from sentry.types.cell import get_local_cell
+from sentry.users.models.user import User
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -32,7 +34,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
     def setUp(self) -> None:
         self.provision_user = self.create_user()
         self.provisioning_args = self.generate_provisioning_args(
-            name="sentry", slug="sentry", user_id=self.provision_user.id, default_team=True
+            name="sentry", slug="sentry", user=self.provision_user, default_team=True
         )
 
         self.cell_name = (
@@ -45,15 +47,17 @@ class TestControlOrganizationProvisioningBase(TestCase):
         name: str,
         slug: str,
         default_team: bool,
-        user_id: int | None = None,
-        email: str | None = None,
+        user: User,
     ) -> OrganizationProvisioningOptions:
+        rpc_user = serialize_generic_user(user)
+        assert rpc_user
         return OrganizationProvisioningOptions(
             provision_options=OrganizationOptions(
                 name=name,
                 slug=slug,
-                owning_user_id=user_id,
-                owning_email=email,
+                owner=rpc_user,
+                owning_user_id=rpc_user.id,
+                owning_email=rpc_user.email,
                 create_default_team=default_team,
                 is_test=False,
             ),
@@ -103,17 +107,6 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         rpc_org_slug = self.provision_organization()
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=rpc_org_slug, user_id=self.provision_user.id
-        )
-
-    def test_organization_provisioning_before_user_provisioning(self) -> None:
-        provisioning_options = self.generate_provisioning_args(
-            name="sentry", slug="sentry", email="test-owner@sentry.io", default_team=True
-        )
-        slug = control_organization_provisioning_rpc_service.provision_organization(
-            cell_name="us", org_provision_args=provisioning_options
-        )
-        self.assert_slug_reservation_and_org_exist(
-            rpc_org_slug=slug,
         )
 
     def test_organization_already_provisioned_for_different_user(self) -> None:

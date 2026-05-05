@@ -1,9 +1,11 @@
 /** @public */
 export {
+  formOptions,
   useScrapsForm,
   defaultFormOptions,
   setFieldErrors,
   withFieldGroup,
+  withForm,
 } from './scrapsForm';
 export {AutoSaveForm} from './autoSaveForm';
 export {FieldGroup} from './layout/fieldGroup';

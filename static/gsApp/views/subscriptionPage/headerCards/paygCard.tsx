@@ -57,9 +57,7 @@ export function PaygCard({
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const paygInput = useRef<HTMLInputElement>(null);
-  const [newBudgetDollars, setNewBudgetDollars] = useState<number>(
-    Math.ceil(totalBudget / 100)
-  );
+  const [newBudgetDollars, setNewBudgetDollars] = useState(Math.ceil(totalBudget / 100));
   const [error, setError] = useState<string | null>(null);
 
   const {mutate: handleSubmit} = useMutation({
@@ -168,7 +166,7 @@ export function PaygCard({
                 </Currency>
                 <Flex justify="between" align="center" gap="xl sm" wrap="wrap">
                   <Flex gap="sm" align="center">
-                    <Button priority="primary" onClick={() => handleSubmit()}>
+                    <Button variant="primary" onClick={() => handleSubmit()}>
                       {t('Save')}
                     </Button>
                     <Button
@@ -183,7 +181,7 @@ export function PaygCard({
                     </Button>
                   </Flex>
                   <Button
-                    priority="link"
+                    variant="link"
                     onClick={() =>
                       openSpendLimitsPricingModal({organization, subscription, theme})
                     }

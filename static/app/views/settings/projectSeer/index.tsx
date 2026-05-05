@@ -557,7 +557,7 @@ function ProjectSeer({
       <Flex justify="center" marginTop="lg">
         <LinkButton
           to={`/settings/${organization.slug}/seer/onboarding/`}
-          priority="primary"
+          variant="primary"
         >
           {t('Set up my other projects')}
         </LinkButton>

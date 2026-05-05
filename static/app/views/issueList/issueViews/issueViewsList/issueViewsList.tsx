@@ -6,13 +6,13 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Pagination} from 'sentry/components/pagination';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconSort} from 'sentry/icons';
@@ -259,7 +259,7 @@ function NoViewsBanner({
       >
         {({hasFeature}) => (
           <BannerAddViewButton
-            priority="primary"
+            variant="primary"
             icon={<IconAdd />}
             size="sm"
             onClick={() => {
@@ -420,7 +420,7 @@ export default function IssueViewsList() {
                 >
                   {({hasFeature}) => (
                     <Button
-                      priority="primary"
+                      variant="primary"
                       icon={<IconAdd />}
                       size="sm"
                       disabled={!hasFeature || isCreatingView}
@@ -481,7 +481,7 @@ export default function IssueViewsList() {
                   >
                     {({hasFeature}) => (
                       <Button
-                        priority="primary"
+                        variant="primary"
                         icon={<IconAdd />}
                         disabled={!hasFeature || isCreatingView}
                         busy={isCreatingView}

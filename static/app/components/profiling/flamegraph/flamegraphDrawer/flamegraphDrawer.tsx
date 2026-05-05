@@ -21,12 +21,12 @@ import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flam
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {TransactionSpan} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {useProfileTransaction} from 'sentry/views/explore/profiling/profilesProvider';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
 import {ProfileDetails} from './profileDetails';
@@ -38,11 +38,11 @@ interface FlamegraphDrawerProps {
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
   profileGroup: ProfileGroup;
-  profileTransaction: ReturnType<typeof useProfileTransaction> | null;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
   onResize?: MouseEventHandler<HTMLElement>;
   onResizeReset?: MouseEventHandler<HTMLElement>;
+  transactionSpan?: TransactionSpan;
 }
 
 const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
@@ -120,7 +120,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <ProfilingDetailsListItem className={tab === 'bottom up' ? 'active' : undefined}>
           <Button
             data-title={t('Bottom Up')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onBottomUpClick}
           >
@@ -133,7 +133,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         >
           <Button
             data-title={t('Top Down')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onTopDownClick}
           >
@@ -144,7 +144,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <ProfilingDetailsListItem className={treeType === 'all' ? 'active' : undefined}>
           <Button
             data-title={t('All Frames')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onAllApplicationsClick}
           >
@@ -156,7 +156,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         >
           <Button
             data-title={t('Application Frames')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onApplicationsClick}
           >
@@ -169,7 +169,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         >
           <Button
             data-title={t('System Frames')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onSystemsClick}
           >
@@ -206,7 +206,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <ProfilingDetailsListItem margin="none">
             <ExportProfileButton
               size="zero"
-              priority="transparent"
+              variant="transparent"
               eventId={params.eventId}
               projectId={params.projectId}
               orgId={orgSlug}
@@ -219,7 +219,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <Flex align="center" gap="2xs" height="100%">
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
-                priority="transparent"
+                variant="transparent"
                 onClick={onTableLeftClick}
                 tooltipProps={{title: t('Table left')}}
                 aria-label={t('Table left')}
@@ -229,7 +229,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
-                priority="transparent"
+                variant="transparent"
                 onClick={onTableBottomClick}
                 tooltipProps={{title: t('Table bottom')}}
                 aria-label={t('Table bottom')}
@@ -239,7 +239,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
-                priority="transparent"
+                variant="transparent"
                 onClick={onTableRightClick}
                 tooltipProps={{title: t('Table right')}}
                 aria-label={t('Table right')}
@@ -265,11 +265,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       />
       {props.profileGroup.type === 'transaction' ? (
         <ProfileDetails
-          transaction={
-            props.profileTransaction?.type === 'resolved'
-              ? props.profileTransaction.data
-              : null
-          }
+          transactionSpan={props.transactionSpan ?? null}
           projectId={params.projectId!}
           profileGroup={props.profileGroup}
         />

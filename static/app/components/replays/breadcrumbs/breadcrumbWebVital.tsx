@@ -93,7 +93,7 @@ export function BreadcrumbWebVital({
         >
           <ValueObjectKey>{t('element')}</ValueObjectKey>
           <span>{': '}</span>
-          <SelectorButton size="zero" priority="transparent">
+          <SelectorButton size="zero" variant="transparent">
             {key}
           </SelectorButton>
         </span>
@@ -117,7 +117,7 @@ export function BreadcrumbWebVital({
         />
       </NoMarginWrapper>
       <NoWrapButton
-        priority="link"
+        variant="link"
         size="xs"
         to={{
           pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/`,

@@ -243,7 +243,7 @@ function FreshInstallSteps({
         {t('Install the Sentry GitHub App on a GitHub organization to get started.')}
       </Text>
       {popupBlockedNotice}
-      <Button size="sm" priority="primary" onClick={onInstall} disabled={installDisabled}>
+      <Button size="sm" variant="primary" onClick={onInstall} disabled={installDisabled}>
         {t('Install GitHub App')}
       </Button>
     </Stack>

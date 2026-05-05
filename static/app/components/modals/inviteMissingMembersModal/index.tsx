@@ -48,8 +48,7 @@ export function InviteMissingMembersModal({
     externalId: member.externalId,
     selected: true,
   }));
-  const [memberInvites, setMemberInvites] =
-    useState<MissingMemberInvite[]>(initialMemberInvites);
+  const [memberInvites, setMemberInvites] = useState(initialMemberInvites);
   const referrer = 'github_nudge_invite';
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
@@ -290,7 +289,7 @@ export function InviteMissingMembersModal({
           </Button>
           <Button
             size="sm"
-            priority="primary"
+            variant="primary"
             aria-label={t('Send Invites')}
             onClick={sendInvites}
             disabled={!canSend || selectedCount === 0}

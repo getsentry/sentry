@@ -33,7 +33,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {
@@ -167,7 +167,7 @@ export default function IntegrationOrganizationLink() {
   useEffect(() => {
     // If only one organization, select it and redirect
     if (organizations.length === 1) {
-      selectOrganization((organizations[0] as Organization).slug);
+      selectOrganization(organizations[0]!.slug);
     }
     // Now, check the subdomain and use that org slug if it exists
     const customerDomain = ConfigStore.get('customerDomain');
@@ -427,7 +427,7 @@ function AddIntegrationButton({
   return (
     <ButtonWrapper>
       <Button
-        priority="primary"
+        variant="primary"
         disabled={!hasAccess || disabled}
         onClick={() =>
           installationId

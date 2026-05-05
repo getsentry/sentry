@@ -34,7 +34,7 @@ export function TreemapControlButtons({buttons}: TreemapControlButtonsProps) {
           size="xs"
           aria-label={button.ariaLabel}
           tooltipProps={{title: button.title}}
-          priority="transparent"
+          variant="transparent"
           icon={button.icon}
           onClick={button.onClick}
           disabled={button.disabled}

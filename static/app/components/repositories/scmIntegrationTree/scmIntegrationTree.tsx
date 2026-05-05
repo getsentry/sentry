@@ -52,7 +52,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     scmProviders,
     scmIntegrations,
     connectedRepos,
-    connectedIdentifiers,
+    connectedExternalIds,
     refetchIntegrations,
     reposByIntegrationId,
     reposPendingByIntegrationId,
@@ -62,10 +62,8 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
   } = useScmIntegrationTreeData();
 
   // Expansion state
-  const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
-  const [expandedIntegrations, setExpandedIntegrations] = useState<Set<string>>(
-    new Set()
-  );
+  const [expandedProviders, setExpandedProviders] = useState(new Set<string>());
+  const [expandedIntegrations, setExpandedIntegrations] = useState(new Set<string>());
 
   // Expand all providers (and disconnected section) once data first loads
   const providersInitialized = useRef(false);
@@ -79,7 +77,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
   }, [scmProviders]);
 
   // In-flight toggle state to disable checkboxes during mutation
-  const [togglingRepos, setTogglingRepos] = useState<Set<string>>(new Set());
+  const [togglingRepos, setTogglingRepos] = useState(new Set<string>());
 
   const toggleProvider = useCallback((providerKey: string) => {
     setExpandedProviders(prev => {
@@ -116,7 +114,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
         connectedRepos,
         reposByIntegrationId,
         reposPendingByIntegrationId,
-        connectedIdentifiers,
+        connectedExternalIds,
         expandedProviders,
         expandedIntegrations,
         togglingRepos,
@@ -131,7 +129,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       connectedRepos,
       reposByIntegrationId,
       reposPendingByIntegrationId,
-      connectedIdentifiers,
+      connectedExternalIds,
       expandedProviders,
       expandedIntegrations,
       togglingRepos,
@@ -198,7 +196,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
           const connectedRepo = queryClient
             .getQueryData(reposQueryOptions.queryKey)
             ?.pages.flatMap(p => p.json)
-            .find(r => r.name === repo.identifier);
+            .find(r => r.externalId === repo.externalId);
           if (connectedRepo) {
             await removeRepo(connectedRepo);
           }
@@ -288,7 +286,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
           {t('No source code management integrations found.')}
         </Text>
         <LinkButton
-          priority="primary"
+          variant="primary"
           to={`/settings/${organization.slug}/integrations/?category=source+code+management`}
         >
           {t('Connect an Integration')}

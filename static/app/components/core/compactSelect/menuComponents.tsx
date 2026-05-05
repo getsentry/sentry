@@ -27,8 +27,8 @@ export const MenuComponents = {
    * immediately and close the menu. For navigation actions use `LinkButton`
    * instead. For prominent footer actions use `CTAButton`.
    */
-  HeaderButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
-    return <StyledHeaderButton size="zero" priority="transparent" {...props} />;
+  HeaderButton(props: DistributedOmit<ButtonProps, 'variant' | 'size'>) {
+    return <StyledHeaderButton size="zero" variant="transparent" {...props} />;
   },
 
   /**
@@ -43,13 +43,13 @@ export const MenuComponents = {
    *
    * `priority` and `size` are locked to keep the header visually consistent.
    */
-  ResetButton(props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>) {
+  ResetButton(props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>) {
     const controlContext = useContext(ControlContext);
 
     return (
       <StyledHeaderButton
         size="zero"
-        priority="transparent"
+        variant="transparent"
         {...props}
         onClick={e => {
           props.onClick?.(e);
@@ -61,13 +61,13 @@ export const MenuComponents = {
     );
   },
 
-  ClearButton(props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>) {
+  ClearButton(props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>) {
     const controlContext = useContext(ControlContext);
 
     return (
       <StyledHeaderButton
         size="zero"
-        priority="transparent"
+        variant="transparent"
         {...props}
         onClick={e => {
           props.onClick?.(e);
@@ -91,11 +91,11 @@ export const MenuComponents = {
    *
    * `priority` and `size` are locked to keep footer actions visually consistent.
    */
-  CTAButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
-    return <Button size="xs" priority="default" {...props} />;
+  CTAButton(props: DistributedOmit<ButtonProps, 'variant' | 'size'>) {
+    return <Button size="xs" variant="secondary" {...props} />;
   },
-  CTALinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <LinkButton size="xs" priority="default" {...props} />;
+  CTALinkButton(props: DistributedOmit<LinkButtonProps, 'variant' | 'size'>) {
+    return <LinkButton size="xs" variant="secondary" {...props} />;
   },
 
   /**
@@ -119,12 +119,12 @@ export const MenuComponents = {
    *
    * `priority` (`primary`) and `size` are locked to keep staged selection UIs consistent.
    */
-  ApplyButton(props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>) {
+  ApplyButton(props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>) {
     const controlContext = useContext(ControlContext);
     return (
       <Button
         size="xs"
-        priority="primary"
+        variant="primary"
         {...props}
         onClick={e => {
           props.onClick?.(e);
@@ -145,12 +145,12 @@ export const MenuComponents = {
    *
    * `priority` and `size` are locked to keep staged selection UIs consistent.
    */
-  CancelButton(props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>) {
+  CancelButton(props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>) {
     const controlContext = useContext(ControlContext);
     return (
       <Button
         size="xs"
-        priority="transparent"
+        variant="transparent"
         {...props}
         onClick={e => {
           props.onClick?.(e);

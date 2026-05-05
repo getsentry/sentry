@@ -1,4 +1,5 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   useInfiniteQuery,
@@ -8,11 +9,13 @@ import {
 } from '@tanstack/react-query';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   useUpdateBulkAutofixAutomationSettings,
@@ -21,6 +24,7 @@ import {organizationIntegrationsCodingAgents} from 'sentry/components/events/aut
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -51,7 +55,13 @@ import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/pro
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {projects, fetching, fetchError} = useProjects();
+  const {
+    projects: allProjects,
+    fetching: fetchingProjects,
+    fetchError: projectFetchError,
+  } = useProjects();
+
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
@@ -65,13 +75,27 @@ export function SeerProjectTable() {
   });
   const result = useInfiniteQuery({
     ...autofixSettingsQueryOptions,
-    select: ({pages}) => pages.flatMap(page => page.json),
+    select: ({pages}) =>
+      Object.fromEntries(
+        pages
+          .flatMap(page => page.json)
+          .map(setting => [String(setting.projectId), setting] as const)
+      ),
   });
-
-  // Auto-fetch each page, one at a time
   useFetchAllPages({result});
+  const {
+    data: autofixSettingsByProjectId,
+    isPending: isPendingSettings,
+    isFetchingNextPage,
+    isError: isErrorSettings,
+  } = result;
 
-  const {data: autofixAutomationSettings} = result;
+  const projects = useMemo(() => {
+    return allProjects.filter(project => {
+      const setting = autofixSettingsByProjectId?.[project.id];
+      return setting?.reposCount;
+    });
+  }, [allProjects, autofixSettingsByProjectId]);
 
   const {data: integrations, isPending: isPendingIntegrations} = useQuery({
     ...organizationIntegrationsCodingAgents(organization),
@@ -124,17 +148,6 @@ export function SeerProjectTable() {
       },
     });
 
-  const autofixSettingsByProjectId = useMemo(
-    () =>
-      new Map(
-        (autofixAutomationSettings ?? []).map(setting => [
-          String(setting.projectId),
-          setting,
-        ])
-      ),
-    [autofixAutomationSettings]
-  );
-
   const [agentFilter, setAgentFilter] = useQueryState(
     'agent',
     preferredAgentFilterParser
@@ -163,8 +176,8 @@ export function SeerProjectTable() {
           : b.name.localeCompare(a.name);
       }
 
-      const aSettings = autofixSettingsByProjectId.get(a.id);
-      const bSettings = autofixSettingsByProjectId.get(b.id);
+      const aSettings = autofixSettingsByProjectId?.[a.id];
+      const bSettings = autofixSettingsByProjectId?.[b.id];
 
       if (sort.field === 'agent') {
         const aAgent = aSettings?.automationHandoff?.target ?? 'seer';
@@ -210,7 +223,7 @@ export function SeerProjectTable() {
 
     if (agentFilter) {
       filtered = filtered.filter(project => {
-        const settings = autofixSettingsByProjectId.get(project.id);
+        const settings = autofixSettingsByProjectId?.[project.id];
         const projectAgentId = settings?.automationHandoff?.target
           ? String(settings.automationHandoff.target)
           : 'seer';
@@ -255,6 +268,36 @@ export function SeerProjectTable() {
               }
             />
           </InputGroup>
+
+          <Button
+            variant="primary"
+            size="md"
+            onClick={async () => {
+              setIsLoadingModal(true);
+              try {
+                const {ProjectAddRepoModal} =
+                  await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
+
+                openModal(
+                  deps => (
+                    <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />
+                  ),
+                  {
+                    modalCss: css`
+                      width: 700px;
+                    `,
+                  }
+                );
+              } finally {
+                setIsLoadingModal(false);
+              }
+            }}
+            icon={<IconAdd />}
+            busy={isLoadingModal}
+            disabled={isLoadingModal}
+          >
+            {t('Add Project')}
+          </Button>
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
@@ -265,11 +308,11 @@ export function SeerProjectTable() {
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
 
-          {fetching ? (
+          {fetchingProjects || isPendingSettings || isFetchingNextPage ? (
             <SimpleTable.Empty>
               <LoadingIndicator />
             </SimpleTable.Empty>
-          ) : fetchError ? (
+          ) : projectFetchError || isErrorSettings ? (
             <SimpleTable.Empty>
               <LoadingError />
             </SimpleTable.Empty>
@@ -294,7 +337,7 @@ export function SeerProjectTable() {
             filteredProjects.map(project => (
               <SeerProjectTableRow
                 key={project.id}
-                autofixSettings={autofixSettingsByProjectId.get(project.id)}
+                autofixSettings={autofixSettingsByProjectId?.[project.id]}
                 integrations={integrations ?? []}
                 isPendingIntegrations={isPendingIntegrations}
                 mutateStoppingPoint={mutateStoppingPoint}

@@ -27,6 +27,7 @@ from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
+from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
@@ -709,8 +710,7 @@ class DashboardRevisionSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         user_ids = [r.created_by_id for r in item_list if r.created_by_id is not None]
         users_by_id = {
-            u["id"]: {"id": u["id"], "name": u["name"], "email": u["email"]}
-            for u in user_service.serialize_many(filter={"user_ids": user_ids})
+            u["id"]: u for u in user_service.serialize_many(filter={"user_ids": user_ids})
         }
         return {
             revision: {"created_by": users_by_id.get(str(revision.created_by_id))}
@@ -718,10 +718,23 @@ class DashboardRevisionSerializer(Serializer):
         }
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardRevisionResponse:
+        created_by = attrs.get("created_by") or {}
+        avatar = created_by.get("avatar") or {}
+        avatar_type = avatar.get("avatarType")
         return {
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": attrs.get("created_by"),
+            "createdBy": {
+                "id": created_by["id"],
+                "name": created_by["name"],
+                "email": created_by["email"],
+                "avatarType": avatar_type,
+                "avatarUrl": get_gravatar_url(created_by["email"], size=32)
+                if avatar_type == "gravatar"
+                else avatar.get("avatarUrl"),
+            }
+            if created_by
+            else None,
             "source": obj.source,
         }

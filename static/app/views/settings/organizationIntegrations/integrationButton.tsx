@@ -17,7 +17,7 @@ type Props = {
    */
   buttonProps: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
-    'size' | 'priority' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
+    'size' | 'variant' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
   >;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;

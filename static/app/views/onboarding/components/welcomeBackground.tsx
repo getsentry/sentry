@@ -14,7 +14,7 @@ export function WelcomeBackground() {
         animate: {},
         exit: {},
       }}
-      transition={{staggerChildren: 0.2}}
+      transition={{staggerChildren: 0.1}}
     >
       <WelcomeBackgroundImages />
     </Container>
@@ -33,11 +33,11 @@ function WelcomeBackgroundImages() {
           animate: {
             opacity: 1,
             scale: 1,
-            transition: {duration: 0.5},
+            transition: {duration: 0.25},
           },
-          exit: {y: -120, opacity: 0},
+          exit: {opacity: 0},
         }}
-        transition={{duration: 0.9}}
+        transition={{duration: 0.25}}
       >
         <Image src={BugAImage} alt="" />
       </BugA>
@@ -50,12 +50,12 @@ function WelcomeBackgroundImages() {
           animate: {
             opacity: 1,
             scale: 1,
-            transition: {duration: 0.5},
+            transition: {duration: 0.25},
           },
-          exit: {y: -200, opacity: 0},
+          exit: {opacity: 0},
         }}
         transition={{
-          duration: 1.1,
+          duration: 0.25,
         }}
       >
         <Image src={BugBImage} alt="" />
@@ -84,15 +84,15 @@ const Illustration = styled(motion.div)`
 `;
 
 const BugA = styled(Illustration)`
-  left: 0;
+  left: -16rem;
   top: 0;
-  width: 13rem;
+  width: 14rem;
 `;
 
 const BugB = styled(Illustration)`
-  right: 0;
+  right: -16rem;
   bottom: 0;
-  width: 9rem;
+  width: 12rem;
 `;
 
 const Container = styled(motion.div)`
@@ -112,7 +112,7 @@ const ContainerNewUi = styled(motion.div)`
   pointer-events: none;
   position: absolute;
   height: 100%;
-  width: 150%;
+  width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;

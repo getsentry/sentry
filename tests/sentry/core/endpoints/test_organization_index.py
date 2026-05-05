@@ -441,6 +441,46 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.name == data["name"]
         assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
 
+    @override_options({"provision_organization_in_cell.record_analytics": True})
+    @mock.patch("sentry.analytics.record")
+    def test_success_analytics_in_rpc_call(self, mock_record: mock.MagicMock) -> None:
+        self.login_as(user=self.user)
+
+        with outbox_runner():
+            data = {
+                "name": "org name",
+                "aggregatedDataConsent": True,
+                "agreeTerms": True,
+                "defaultTeam": True,
+            }
+            response = self.get_success_response(**data)
+        assert response.status_code == 201
+
+        org = Organization.objects.get(slug="org-name")
+
+        assert_any_analytics_event(
+            mock_record,
+            OrganizationCreatedEvent(
+                id=org.id,
+                actor_id=self.user.id,
+                name=org.name,
+                slug=org.slug,
+            ),
+        )
+        assert_any_analytics_event(
+            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
+        )
+        assert_org_audit_log_exists(
+            organization=org,
+            event=audit_log.get_event_id("ORG_ADD"),
+        )
+        assert org.get_option("sentry:aggregated_data_consent") is True
+        assert org.get_option("sentry:streamline_ui_only") is True
+        assert OrganizationMember.objects.filter(
+            organization_id=org.id, user_id=self.user.id
+        ).exists()
+        assert Team.objects.filter(organization_id=org.id).exists()
+
     def test_streamline_only_is_true(self) -> None:
         """
         All new organizations should never see the legacy UI.

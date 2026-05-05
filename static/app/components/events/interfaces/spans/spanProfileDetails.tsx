@@ -189,7 +189,7 @@ export function useSpanProfileDetails(
       }
     }
 
-    return undefined;
+    return;
   }, [organization, project, event, span, threadId]);
 
   return {

@@ -35,13 +35,11 @@ from sentry.integrations.slack.message_builder.types import (
 )
 from sentry.integrations.slack.message_builder.util import build_slack_footer
 from sentry.integrations.slack.utils.escape import (
-    escape_slack_markdown_asterisks,
     escape_slack_markdown_text,
     escape_slack_text,
 )
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
-from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
 from sentry.models.commit import Commit
@@ -440,7 +438,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
-        self.issue_summary: dict[str, Any] | None = None
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -475,21 +472,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
 
         return " ".join(title_emojis)
-
-    def get_issue_summary_text(self) -> str | None:
-        """Generate formatted text from issue summary fields."""
-        if self.issue_summary is None:
-            return None
-
-        parts = []
-
-        if possible_cause := self.issue_summary.get("possibleCause"):
-            parts.append(escape_slack_markdown_asterisks(possible_cause))
-
-        if not parts:
-            return None
-
-        return f"*Initial Guess*: {escape_slack_markdown_text('  '.join(parts))}"
 
     def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
@@ -568,17 +550,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_context_block(context_text)
 
-    def build_pre_footer_context_blocks(self) -> list[SlackBlock]:
-        blocks: list[SlackBlock] = []
-        summary_text = self.get_issue_summary_text()
-        if summary_text:
-            blocks.append(self.get_context_block(summary_text))
-
-        return blocks
-
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
-        self.issue_summary = fetch_issue_summary(self.group)
-
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         text = text.strip(" \n")
@@ -718,9 +690,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 actions.append(autofix_button.to_dict())
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
-
-        if pre_footer_context_block := self.build_pre_footer_context_blocks():
-            blocks.extend(pre_footer_context_block)
 
         # add notes
         if self.notes:

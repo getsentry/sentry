@@ -291,7 +291,7 @@ export function NotificationActionItem({
               <Button onClick={handleCancel} size="xs">
                 {t('Cancel')}
               </Button>
-              <Button priority="primary" size="xs" onClick={handleSave}>
+              <Button variant="primary" size="xs" onClick={handleSave}>
                 {t('Save')}
               </Button>
             </Grid>

@@ -45,7 +45,6 @@ def _query_detectors(source_id: str, query_type: str) -> list[Detector]:
         Detector.objects.filter(
             data_sources__source_id=source_id,
             data_sources__type=query_type,
-            enabled=True,
         )
         .select_related("workflow_condition_group")
         .prefetch_related("workflow_condition_group__conditions")

@@ -160,12 +160,7 @@ export function AutomationsTableActions({
               {t('Disable')}
             </Button>
           )}
-          <Button
-            size="xs"
-            priority="danger"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
+          <Button size="xs" variant="danger" onClick={handleDelete} disabled={isDeleting}>
             {t('Delete')}
           </Button>
         </Flex>
@@ -184,7 +179,7 @@ export function AutomationsTableActions({
                   '%s alerts on this page selected.',
                   selected.size
                 )}
-                <Button priority="link" onClick={() => setAllInQuerySelected(true)}>
+                <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
                   {tct('Select all [count] alerts that match this search query.', {
                     count: queryCount,
                   })}

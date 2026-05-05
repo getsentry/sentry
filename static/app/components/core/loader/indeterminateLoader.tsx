@@ -67,7 +67,7 @@ function useMessageCycler(messages: React.ReactNode[]) {
 
   useEffect(() => {
     if (messages.length <= 1 || index >= messages.length - 1) {
-      return undefined;
+      return;
     }
     const timer = setTimeout(() => setIndex(i => i + 1), MESSAGE_INTERVAL_MS);
     return () => clearTimeout(timer);

@@ -7,6 +7,10 @@ import type {DynamicSamplingBias} from './sampling';
 
 export type SeerNightshiftTweaks = {
   enabled?: boolean;
+  extra_triage_instructions?: string;
+  intelligence_level?: 'low' | 'medium' | 'high';
+  max_candidates?: number;
+  reasoning_effort?: 'low' | 'medium' | 'high';
 };
 
 // Minimal project representation for use with avatars.
@@ -95,7 +99,9 @@ export type Project = {
   preprodSnapshotPrCommentsEnabled?: boolean;
   preprodSnapshotStatusChecksEnabled?: boolean;
   preprodSnapshotStatusChecksFailOnAdded?: boolean;
+  preprodSnapshotStatusChecksFailOnChanged?: boolean;
   preprodSnapshotStatusChecksFailOnRemoved?: boolean;
+  preprodSnapshotStatusChecksFailOnRenamed?: boolean;
   scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;

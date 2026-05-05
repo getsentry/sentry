@@ -25,7 +25,7 @@ export function useProjectLatestSemverRelease({enabled}: {enabled: boolean}) {
   });
 
   if (isPending || isError || !data) {
-    return undefined;
+    return;
   }
 
   return data[0];

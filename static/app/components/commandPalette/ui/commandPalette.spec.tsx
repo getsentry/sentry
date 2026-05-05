@@ -18,9 +18,17 @@ jest.mock('@tanstack/react-virtual', () => ({
       getTotalSize: () => count * 48,
       measureElement: jest.fn(),
       measure: jest.fn(),
+      scrollToIndex: jest.fn(),
     };
   },
 }));
+
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
@@ -38,12 +46,6 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {
-  makeCloseButton,
-  makeClosableHeader,
-  ModalBody,
-  ModalFooter,
-} from 'sentry/components/globalModal/components';
 
 function makeRenderProps(onClose: () => void) {
   return {
@@ -132,6 +134,53 @@ describe('CommandPalette', () => {
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() => expect(router.location.pathname).toBe('/other/'));
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reset focus to the first item after mouse leave', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const {router} = render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+    const initialPathname = router.location.pathname;
+
+    await userEvent.hover(await screen.findByRole('option', {name: 'Other'}));
+    await userEvent.unhover(screen.getByRole('listbox', {name: 'Search results'}));
+    await userEvent.keyboard('{Enter}');
+
+    expect(router.location.pathname).toBe(initialPathname);
+    expect(closeSpy).not.toHaveBeenCalled();
+  });
+
+  it('ArrowUp from the first item wraps to the last selectable item', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{ArrowUp}{Enter}');
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole('option', {name: 'Child Action'})).toBeInTheDocument();
+  });
+
+  it('ArrowDown from the last selectable item wraps to the first item', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const {router} = render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{ArrowUp}{ArrowDown}{Enter}');
+
+    await waitFor(() => expect(router.location.pathname).toBe('/target/'));
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -459,6 +508,25 @@ describe('CommandPalette', () => {
 
       expect(await screen.findByRole('option', {name: 'Dark'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Light'})).not.toBeInTheDocument();
+    });
+
+    it('shows a group preview when the group label matches but its children do not', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Help'}}>
+            <CMDKAction to="/docs/" display={{label: 'Open Documentation'}} />
+            <CMDKAction to="/discord/" display={{label: 'Join Discord'}} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'help');
+
+      expect(
+        await screen.findByRole('option', {name: 'Open Documentation'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Join Discord'})).toBeInTheDocument();
     });
   });
 

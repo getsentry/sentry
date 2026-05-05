@@ -5,7 +5,7 @@ import type {
   InfiniteQueryObserverRefetchErrorResult,
 } from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS,
@@ -27,8 +27,7 @@ export function useLogsAutoRefreshInterval({
     | false
     | Promise<
         InfiniteQueryObserverRefetchErrorResult<
-          InfiniteData<ApiResult<EventsLogsResult>>,
-          Error
+          InfiniteData<ApiResponse<EventsLogsResult>>
         >
       >;
   isError: boolean;
@@ -38,8 +37,8 @@ export function useLogsAutoRefreshInterval({
   const organization = useOrganization();
   const organizationRef = useRef(organization);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
-  const consecutivePagesWithMoreDataRef = useRef<number>(0);
+  const startTimeRef = useRef(Date.now());
+  const consecutivePagesWithMoreDataRef = useRef(0);
   const isRefreshRunningRef = useRef(false);
 
   const shouldPauseForVisibility = useCallback((): boolean => {
@@ -54,8 +53,7 @@ export function useLogsAutoRefreshInterval({
   const shouldDisableForRateLimit = useCallback(
     (
       pageResult: InfiniteQueryObserverRefetchErrorResult<
-        InfiniteData<ApiResult<EventsLogsResult>>,
-        Error
+        InfiniteData<ApiResponse<EventsLogsResult>>
       >
     ): boolean => {
       const parsed = parseLinkHeaderFromLogsPage(pageResult);

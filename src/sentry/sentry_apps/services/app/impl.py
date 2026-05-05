@@ -432,10 +432,3 @@ class DatabaseBackedAppService(AppService):
             return None
         component = prepare_sentry_app_components(installation, component_type, project_slug)
         return serialize_sentry_app_component(component) if component else None
-
-    def disable_sentryapp(self, *, id: int) -> None:
-        try:
-            sentryapp = SentryApp.objects.get(id=id)
-        except SentryApp.DoesNotExist:
-            return
-        sentryapp._disable()

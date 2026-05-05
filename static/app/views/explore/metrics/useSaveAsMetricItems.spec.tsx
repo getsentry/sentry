@@ -252,7 +252,7 @@ describe('useSaveAsMetricItems', () => {
 
     expect(createAlertItem).toBeDefined();
 
-    const url = new URL(createAlertItem?.to as string, 'http://example.com');
+    const url = new URL(createAlertItem?.to!, 'http://example.com');
     const queryParams = new URLSearchParams(url.search);
     expect(queryParams.get('aggregate')).toBe(equation);
   });

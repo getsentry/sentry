@@ -5,7 +5,9 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -17,6 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
@@ -37,17 +40,30 @@ export function OurlogsSection({
   group: Group;
   project: Project;
 }) {
+  const location = useLocation();
   const traceId = event.contexts?.trace?.trace_id;
+  if (!traceId) {
+    return null;
+  }
   return (
-    <LogsQueryParamsProvider
-      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-      source="state"
-      freeze={traceId ? {traceId} : undefined}
+    <LazyRender
+      disabled={
+        location.query[LOGS_DRAWER_QUERY_PARAM] === 'true' ||
+        location.hash === `#${SectionKey.LOGS}`
+      }
+      observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
+      withoutContainer
     >
-      <LogsPageDataProvider disabled={!traceId}>
-        <OurlogsSectionContent event={event} group={group} project={project} />
-      </LogsPageDataProvider>
-    </LogsQueryParamsProvider>
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+        source="state"
+        freeze={{traceId}}
+      >
+        <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
+          <OurlogsSectionContent event={event} group={group} project={project} />
+        </LogsPageDataProvider>
+      </LogsQueryParamsProvider>
+    </LazyRender>
   );
 }
 
@@ -113,7 +129,10 @@ function OurlogsSectionContent({
             source="state"
             freeze={traceId ? {traceId} : undefined}
           >
-            <LogsPageDataProvider disabled={!traceId}>
+            <LogsPageDataProvider
+              disabled={!traceId}
+              staleTime={EXPLORE_FIVE_MIN_STALE_TIME}
+            >
               <OurlogsDrawer
                 group={group}
                 event={event}

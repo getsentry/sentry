@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {ListItem} from 'sentry/components/list/listItem';
-import type {CursorHandler} from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
 import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
@@ -57,12 +57,12 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
   const api = useApi();
   const organization = useOrganization();
   const isMounted = useIsMountedRef();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [previewError, setPreviewError] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
   const [previewGroups, setPreviewGroups] = useState<Group[]>([]);
-  const [previewPage, setPreviewPage] = useState<number>(0);
-  const [pageLinks, setPageLinks] = useState<string>('');
-  const [issueCount, setIssueCount] = useState<number>(0);
+  const [previewPage, setPreviewPage] = useState(0);
+  const [pageLinks, setPageLinks] = useState('');
+  const [issueCount, setIssueCount] = useState(0);
   const endDateRef = useRef<string | null>(null);
 
   /**

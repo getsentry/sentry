@@ -14,6 +14,7 @@ from sentry.taskworker import namespaces
 from sentry.utils import metrics
 from sentry.utils.exceptions import timeout_grouping_context
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.tasks.utils import (
     ProjectNotActiveError,
     build_workflow_event_data_from_activity,
@@ -81,7 +82,7 @@ def build_trigger_action_task_params(
     timeouts=True,
     raise_on_no_retries=False,
     ignore_and_capture=(Action.DoesNotExist, Group.DoesNotExist),
-    ignore=(Project.DoesNotExist, ProjectNotActiveError),
+    ignore=(Project.DoesNotExist, ProjectNotActiveError, Workflow.DoesNotExist),
 )
 def trigger_action(
     action_id: int,

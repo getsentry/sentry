@@ -29,6 +29,7 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  allowedAttributeKeys?: string[];
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   disableRecentSearches?: boolean;
@@ -109,6 +110,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disableRecentSearches,
   attributeQuery,
   hiddenAttributeKeys,
+  allowedAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
@@ -147,13 +149,17 @@ export function useTraceItemSearchQueryBuilderProps({
     booleanAttributes,
   });
 
-  const getTagKeys = useGetTraceItemAttributeTagKeys({
+  const dynamicTagKeys = useGetTraceItemAttributeTagKeys({
     itemType,
     projects,
     extraTags: functionTags,
     query: attributeQuery,
     hiddenKeys: hiddenAttributeKeys,
   });
+  // When an allowlist is in effect, the static filterKeys are already curated to
+  // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
+  // the allowlist (and unrecognized keys are auto-rejected).
+  const getTagKeys = allowedAttributeKeys ? undefined : dynamicTagKeys;
 
   return useMemo(
     () => ({
@@ -252,6 +258,7 @@ export function TraceItemSearchQueryBuilder({
   disableRecentSearches,
   attributeQuery,
   hiddenAttributeKeys,
+  allowedAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -281,6 +288,7 @@ export function TraceItemSearchQueryBuilder({
     disableRecentSearches,
     attributeQuery,
     hiddenAttributeKeys,
+    allowedAttributeKeys,
   });
 
   return (

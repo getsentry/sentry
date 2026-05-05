@@ -8,19 +8,22 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface ContinuousProfileHeader {
-  transaction: Event | null;
+  transactionSpan:
+    | Pick<SpanResponse, 'trace' | 'span_id' | 'precise.finish_ts'>
+    | undefined;
 }
 
-export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) {
+export function ContinuousProfileHeader({transactionSpan}: ContinuousProfileHeader) {
   const location = useLocation();
   const organization = useOrganization();
   const hasPageFrameFeature = useHasPageFrameFeature();
@@ -30,11 +33,11 @@ export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) 
     return [{type: 'landing', payload: {query: {}}}];
   }, []);
 
-  const transactionTarget = transaction?.id
+  const transactionTarget = transactionSpan
     ? generateLinkToEventInTraceView({
-        timestamp: transaction.endTimestamp ?? '',
-        eventId: transaction.id,
-        traceSlug: transaction.contexts?.trace?.trace_id ?? '',
+        timestamp: transactionSpan[SpanFields.PRECISE_FINISH_TS],
+        targetId: transactionSpan[SpanFields.SPAN_ID],
+        traceSlug: transactionSpan[SpanFields.TRACE],
         location,
         organization,
       })

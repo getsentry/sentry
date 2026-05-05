@@ -279,7 +279,7 @@ export function WidgetBuilderQueryFilterBuilder({
       {canAddSearchConditions && (
         <Button
           size="sm"
-          priority="link"
+          variant="link"
           onClick={onAddSearchConditions}
           aria-label={t('Add Filter')}
           disabled={disableTransactionWidget}
@@ -296,7 +296,7 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
     <Button
       size="zero"
       style={{height: 'fit-content'}}
-      priority="transparent"
+      variant="transparent"
       onClick={onDelete}
       icon={<IconDelete />}
       tooltipProps={{title: t('Remove this filter')}}

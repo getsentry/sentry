@@ -83,31 +83,40 @@ export function TraceAiConversations({
     [conversationIds]
   );
 
-  const conversationUrl = activeConversationId
+  const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
+  const conversationUrl = linkConversationId
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${activeConversationId}/${selectedSpanId ? `?spanId=${encodeURIComponent(selectedSpanId)}` : ''}`
+        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${linkConversationId}/${selectedSpanId && activeConversationId ? `?spanId=${encodeURIComponent(selectedSpanId)}` : ''}`
       )
     : null;
 
   return (
     <Container flex="1" minHeight="0" border="primary" radius="md" overflow="hidden">
       <Flex direction="column" height="100%">
-        {activeConversationId && conversationUrl && (
+        {activeConversationId && (
           <TraceConversationHeader
             conversationId={activeConversationId}
-            conversationUrl={conversationUrl}
             nodes={traceNodes}
             isLoading={isLoading}
           />
         )}
         <StyledTabs value={activeSubTab} onChange={handleTabChange}>
-          <Container borderBottom="primary">
-            <TabList>
-              {tabItems.map(item => (
-                <TabList.Item key={item.key}>{item.label}</TabList.Item>
-              ))}
-            </TabList>
-          </Container>
+          <Flex direction="row" justify="between" align="center" borderBottom="primary">
+            <Container width="100%" minWidth="0">
+              <TabList>
+                {tabItems.map(item => (
+                  <TabList.Item key={item.key}>{item.label}</TabList.Item>
+                ))}
+              </TabList>
+            </Container>
+            {conversationUrl && (
+              <Flex flexShrink={0} padding="0 lg">
+                <LinkButton size="xs" to={conversationUrl}>
+                  {t('Show full conversation')}
+                </LinkButton>
+              </Flex>
+            )}
+          </Flex>
           <FullHeightTabPanels>
             {tabItems.map(item =>
               item.conversationId ? (
@@ -117,7 +126,6 @@ export function TraceAiConversations({
                     nodeTraceMap={nodeTraceMap}
                     isLoading={isLoading}
                     error={error}
-                    conversationId={item.conversationId}
                     selectedSpanId={selectedSpanId}
                     onSelectSpan={handleSelectSpan}
                   />
@@ -137,35 +145,25 @@ export function TraceAiConversations({
 
 function TraceConversationHeader({
   conversationId,
-  conversationUrl,
   nodes,
   isLoading,
 }: {
   conversationId: string;
-  conversationUrl: string;
   isLoading: boolean;
   nodes: AITraceSpanNode[];
 }) {
   return (
     <Container padding="md lg" borderBottom="primary">
-      <Flex align="center" justify="between" gap="md">
-        <ConversationAggregatesBar
-          nodes={nodes}
-          conversationId={conversationId}
-          isLoading={isLoading}
-        />
-        <Flex flexShrink={0}>
-          <LinkButton size="xs" to={conversationUrl}>
-            {t('Show full conversation')}
-          </LinkButton>
-        </Flex>
-      </Flex>
+      <ConversationAggregatesBar
+        nodes={nodes}
+        conversationId={conversationId}
+        isLoading={isLoading}
+      />
     </Container>
   );
 }
 
 function TraceConversationChat({
-  conversationId,
   nodes,
   nodeTraceMap,
   isLoading,
@@ -173,7 +171,6 @@ function TraceConversationChat({
   selectedSpanId,
   onSelectSpan,
 }: {
-  conversationId: string;
   error: boolean;
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
@@ -181,8 +178,6 @@ function TraceConversationChat({
   onSelectSpan: (spanId: string) => void;
   selectedSpanId: string | null;
 }) {
-  const organization = useOrganization();
-
   const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
     selectedSpanId,
@@ -199,17 +194,8 @@ function TraceConversationChat({
   }
 
   if (nodes.length === 0) {
-    const conversationUrl = normalizeUrl(
-      `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${conversationId}/`
-    );
     return (
-      <EmptyMessage
-        action={
-          <LinkButton size="sm" to={conversationUrl}>
-            {t('Show full conversation')}
-          </LinkButton>
-        }
-      >
+      <EmptyMessage>
         {t('No chat messages in this portion of the conversation')}
       </EmptyMessage>
     );

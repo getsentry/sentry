@@ -1,6 +1,11 @@
+from django.db import router
+
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -13,7 +18,10 @@ class BackfillScmIntegrationConfigTest(TestMigrations):
         OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
         OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
-        with assume_test_silo_mode(SiloMode.MONOLITH):
+        with (
+            assume_test_silo_mode(SiloMode.MONOLITH),
+            unguarded_write(using=router.db_for_write(OrganizationIntegration)),
+        ):
             true_org = self.create_organization()
             gh = Integration.objects.create(provider="github", external_id="gh-true", name="gh-t")
             gl = Integration.objects.create(provider="gitlab", external_id="gl-true", name="gl-t")
@@ -109,7 +117,11 @@ class BackfillScmIntegrationConfigTest(TestMigrations):
             )
 
     def test(self) -> None:
-        from sentry.integrations.models.organization_integration import OrganizationIntegration
+        # The migration only emits cell outboxes; the receiver in
+        # sentry.receivers.outbox.cell does the actual fan-out, so drain
+        # before asserting.
+        with outbox_runner():
+            pass
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             true_gh = OrganizationIntegration.objects.get(id=self.true_gh_oi.id).config

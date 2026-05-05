@@ -1208,6 +1208,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_snapshot_status_checks_fail_on_removed": options.get(
                 "sentry:preprod_snapshot_status_checks_fail_on_removed", True
             ),
+            "sentry:preprod_snapshot_status_checks_fail_on_changed": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_changed", True
+            ),
+            "sentry:preprod_snapshot_status_checks_fail_on_renamed": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_renamed", False
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
             "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),
             "sentry:preprod_distribution_enabled_query": options.get(
@@ -1225,8 +1231,17 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_snapshot_pr_comments_enabled": self.get_value_with_default(
                 attrs, "sentry:preprod_snapshot_pr_comments_enabled"
             ),
-            "sentry:preprod_snapshot_pr_comments_only_if_diff": self.get_value_with_default(
-                attrs, "sentry:preprod_snapshot_pr_comments_only_if_diff"
+            "sentry:preprod_snapshot_pr_comments_post_on_added": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_added"
+            ),
+            "sentry:preprod_snapshot_pr_comments_post_on_removed": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_removed"
+            ),
+            "sentry:preprod_snapshot_pr_comments_post_on_changed": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_changed"
+            ),
+            "sentry:preprod_snapshot_pr_comments_post_on_renamed": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_renamed"
             ),
         }
 

@@ -1,10 +1,17 @@
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
 
-const MOCK_API_ENDPOINT = '/api/test/';
-function queryKeyFactory() {
-  return jest.fn().mockImplementation(query => [MOCK_API_ENDPOINT, {query}]);
+const MOCK_API_ENDPOINT = '/api-tokens/';
+
+function getQueryOptionsFactory() {
+  return jest.fn().mockImplementation(({cursor, per_page}) =>
+    apiOptions.as<string>()(MOCK_API_ENDPOINT, {
+      query: {cursor, per_page},
+      staleTime: Infinity,
+    })
+  );
 }
 
 describe('useFetchParallelPages', () => {
@@ -13,12 +20,12 @@ describe('useFetchParallelPages', () => {
       url: MOCK_API_ENDPOINT,
       body: 'text result',
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: false,
-        getQueryKey,
+        getQueryOptions,
         hits: 13,
         perPage: 10,
       },
@@ -26,7 +33,7 @@ describe('useFetchParallelPages', () => {
 
     expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).not.toHaveBeenCalled();
+    expect(getQueryOptions).not.toHaveBeenCalled();
   });
 
   it('should immediately switch to isFetching=true when the prop is changed', async () => {
@@ -34,12 +41,12 @@ describe('useFetchParallelPages', () => {
       url: MOCK_API_ENDPOINT,
       body: 'text result',
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result, rerender} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: false,
-        getQueryKey,
+        getQueryOptions,
         hits: 13,
         perPage: 10,
       },
@@ -47,13 +54,13 @@ describe('useFetchParallelPages', () => {
 
     expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).not.toHaveBeenCalled();
+    expect(getQueryOptions).not.toHaveBeenCalled();
 
-    rerender({enabled: true, getQueryKey, hits: 13, perPage: 10});
+    rerender({enabled: true, getQueryOptions, hits: 13, perPage: 10});
 
     expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
-    expect(getQueryKey).toHaveBeenCalled();
+    expect(getQueryOptions).toHaveBeenCalled();
 
     // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('pending'));
@@ -61,12 +68,12 @@ describe('useFetchParallelPages', () => {
   });
 
   it('should call the queryFn zero times, when hits is 0', () => {
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         hits: 0,
         perPage: 10,
       },
@@ -74,16 +81,16 @@ describe('useFetchParallelPages', () => {
 
     expect(result.current.status).toBe('success');
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).not.toHaveBeenCalled();
+    expect(getQueryOptions).not.toHaveBeenCalled();
   });
 
   it('should call the queryFn zero times, and flip to state=success when hits is 0', () => {
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result, rerender} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: false,
-        getQueryKey,
+        getQueryOptions,
         hits: 0,
         perPage: 10,
       },
@@ -91,13 +98,13 @@ describe('useFetchParallelPages', () => {
 
     expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).not.toHaveBeenCalled();
+    expect(getQueryOptions).not.toHaveBeenCalled();
 
-    rerender({enabled: true, getQueryKey, hits: 0, perPage: 10});
+    rerender({enabled: true, getQueryOptions, hits: 0, perPage: 10});
 
     expect(result.current.status).toBe('success');
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).not.toHaveBeenCalled();
+    expect(getQueryOptions).not.toHaveBeenCalled();
   });
 
   it('should call the queryFn 1 times, when hits is less than the perPage size', async () => {
@@ -105,12 +112,12 @@ describe('useFetchParallelPages', () => {
       url: MOCK_API_ENDPOINT,
       body: 'text result',
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         hits: 7,
         perPage: 10,
       },
@@ -122,7 +129,7 @@ describe('useFetchParallelPages', () => {
     // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).toHaveBeenCalledTimes(1);
+    expect(getQueryOptions).toHaveBeenCalledTimes(1);
   });
 
   it('should call the queryFn N times, depending on how many hits we expect', async () => {
@@ -130,12 +137,12 @@ describe('useFetchParallelPages', () => {
       url: MOCK_API_ENDPOINT,
       body: 'text result',
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         hits: 21,
         perPage: 10,
       },
@@ -147,7 +154,7 @@ describe('useFetchParallelPages', () => {
     // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
-    expect(getQueryKey).toHaveBeenCalledTimes(3);
+    expect(getQueryOptions).toHaveBeenCalledTimes(3);
   });
 
   it('should return a list of all pages that have been resolved', async () => {
@@ -161,12 +168,12 @@ describe('useFetchParallelPages', () => {
       body: 'results starting at 10',
       match: [MockApiClient.matchQuery({cursor: '0:10:0', per_page: 10})],
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         hits: 13,
         perPage: 10,
       },
@@ -187,12 +194,12 @@ describe('useFetchParallelPages', () => {
       url: MOCK_API_ENDPOINT,
       body: 'text result',
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         hits: 13,
         perPage: 10,
       },
@@ -217,12 +224,12 @@ describe('useFetchParallelPages', () => {
       headers: {Link: 'next: 0:20:0'},
       match: [MockApiClient.matchQuery({cursor: '0:10:0', per_page: 10})],
     });
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         hits: 13,
         perPage: 10,
       },
@@ -231,8 +238,7 @@ describe('useFetchParallelPages', () => {
     // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
-    expect(result.current.getLastResponseHeader).toStrictEqual(expect.any(Function));
-    expect(result.current.getLastResponseHeader?.('Link')).toBe('next: 0:20:0');
+    expect(result.current.lastResponseHeaders?.Link).toBe('next: 0:20:0');
   });
 
   it('should have isFetching=true as long as something is outstanding', async () => {
@@ -249,12 +255,12 @@ describe('useFetchParallelPages', () => {
       asyncDelay: 500,
     });
 
-    const getQueryKey = queryKeyFactory();
+    const getQueryOptions = getQueryOptionsFactory();
 
     const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
-        getQueryKey,
+        getQueryOptions,
         hits: 13,
         perPage: 10,
       },
