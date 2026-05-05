@@ -13,7 +13,10 @@ class NightShiftRunResultKind(models.TextChoices):
 
 @cell_silo_model
 class SeerNightShiftRun(DefaultFieldsModel):
-    """One row per night shift invocation per organization."""
+    """
+    Records each night shift invocation for an organization.
+    One row is created per org each time run_night_shift_for_org executes.
+    """
 
     __relocation_scope__ = RelocationScope.Excluded
 
