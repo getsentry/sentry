@@ -232,7 +232,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         if len(result.data["data"]) == 0:
             return 0, 0
         min_value, max_value = None, None
-        for row in result.data["data"][1:]:
+        for row in result.data["data"]:
             if min_value is None:
                 min_value = row[min_y]
             elif row[min_y] is not None and row[min_y] < min_value:
