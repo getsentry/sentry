@@ -238,7 +238,6 @@ export const AI_DETECTED_ISSUE_TYPES = new Set<IssueType>([
   IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
   IssueType.AI_DETECTED_SECURITY,
   IssueType.AI_DETECTED_CODE_HEALTH,
-  IssueType.AI_DETECTED_GENERAL,
 ]);
 
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(

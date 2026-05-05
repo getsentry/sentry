@@ -152,7 +152,7 @@ export function SCMOverviewSection(props: Props) {
           variant="danger"
           data-test-id="loading-error"
           trailingItems={
-            <Alert.Button onClick={refetchIntegrations} priority="default">
+            <Alert.Button onClick={refetchIntegrations} variant="secondary">
               {t('Retry')}
             </Alert.Button>
           }

@@ -566,7 +566,7 @@ export function CommandPalette({
                         {containerProps => (
                           <MotionButton
                             size="xs"
-                            priority="transparent"
+                            variant="transparent"
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
                               animatePop();
@@ -612,7 +612,7 @@ export function CommandPalette({
                         <Container position="absolute" right="-8px">
                           <MotionButton
                             size="xs"
-                            priority="transparent"
+                            variant="transparent"
                             aria-label={t('Reset')}
                             icon={<IconClose size="xs" aria-hidden />}
                             onClick={() => {
@@ -1201,7 +1201,7 @@ function CommandPaletteNoResults() {
         </Container>
         <Container paddingTop="xl">
           <FeedbackButton
-            priority="primary"
+            variant="primary"
             feedbackOptions={{
               tags: {
                 ['feedback.source']: 'command_palette',

@@ -8,7 +8,12 @@ from typing import Any, Optional, Protocol, TypedDict, TypeGuard
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
+from sentry.issues.grouptype import (
+    PERFORMANCE_ISSUE_CATEGORIES,
+    GroupCategory,
+    get_all_group_type_ids,
+    get_group_type_by_type_id,
+)
 from sentry.issues.grouptype import registry as GT_REGISTRY
 from sentry.models.organization import Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
@@ -253,7 +258,10 @@ def _update_profiling_search_filters(
 
 
 SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
-    GroupCategory.PERFORMANCE.value: _update_profiling_search_filters,
+    **{
+        category.value: _update_profiling_search_filters
+        for category in PERFORMANCE_ISSUE_CATEGORIES
+    },
     GroupCategory.PROFILE.value: _update_profiling_search_filters,
 }
 

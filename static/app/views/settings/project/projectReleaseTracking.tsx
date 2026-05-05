@@ -2,18 +2,18 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {FieldGroup as FormFieldGroup} from '@sentry/scraps/form';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PluginList} from 'sentry/components/pluginList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -101,7 +101,7 @@ export default function ProjectReleaseTracking() {
     });
   };
 
-  function getReleaseWebhookIntructions() {
+  function getReleaseWebhookInstructions() {
     return (
       'curl ' +
       releaseTokenData?.webhookUrl +
@@ -130,8 +130,7 @@ export default function ProjectReleaseTracking() {
 
   const hasWrite = hasEveryAccess(['project:write'], {organization, project});
   return (
-    <div>
-      <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug} />
+    <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug}>
       <SettingsPageHeader
         title={t('Release Tracking')}
         subtitle={t(
@@ -149,109 +148,105 @@ export default function ProjectReleaseTracking() {
         </Alert.Container>
       )}
 
-      <Panel>
-        <PanelHeader>{t('Client Configuration')}</PanelHeader>
-        <PanelBody withPadding>
-          <p>
+      <FormFieldGroup title={t('Client Configuration')}>
+        <Stack gap="xl">
+          <Text as="p">
             {tct(
-              'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
+              'Start by binding the [code:release] attribute in your application, take a look at [link:our docs] to see how to configure this for the SDK you are using.',
               {
+                code: <code />,
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/releases/">
-                    our docs
-                  </ExternalLink>
+                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/releases/" />
                 ),
-                release: <code>release</code>,
               }
             )}
-          </p>
-          <p>
+          </Text>
+          <Text as="p">
             {t(
               "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
             )}
-          </p>
-          <p>
+          </Text>
+          <Text as="p">
             {t(
               'In addition you may configure a release hook (or use our API) to push a release and include additional metadata with it.'
             )}
-          </p>
-        </PanelBody>
-      </Panel>
+          </Text>
+        </Stack>
+      </FormFieldGroup>
 
-      <Panel>
-        <PanelHeader>{t('Deploy Token')}</PanelHeader>
-        <PanelBody>
-          <FieldGroup
-            label={t('Token')}
-            help={t('A unique secret which is used to generate deploy hook URLs')}
-          >
-            <TextCopyInput>{releaseTokenData.token}</TextCopyInput>
-          </FieldGroup>
-          <FieldGroup
-            label={t('Regenerate Token')}
-            help={t(
-              'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
-            )}
-          >
-            <div>
-              <Confirm
-                disabled={!hasWrite}
-                priority="danger"
-                onConfirm={handleRegenerateToken}
-                message={t(
-                  'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
-                )}
-              >
-                <Button variant="danger">{t('Regenerate Token')}</Button>
-              </Confirm>
-            </div>
-          </FieldGroup>
-        </PanelBody>
-      </Panel>
+      <FormFieldGroup title={t('Deploy Token')}>
+        <FieldGroup
+          label={t('Token')}
+          help={t('A unique secret which is used to generate deploy hook URLs')}
+          hideControlState
+        >
+          <TextCopyInput aria-label={t('Token')}>{releaseTokenData.token}</TextCopyInput>
+        </FieldGroup>
 
-      <Panel>
-        <PanelHeader>{t('Webhook')}</PanelHeader>
-        <PanelBody withPadding>
-          <p>
-            {t(
-              'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
-            )}
-          </p>
+        <FieldGroup
+          label={t('Regenerate Token')}
+          help={t(
+            'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
+          )}
+          hideControlState
+        >
+          <Container>
+            <Confirm
+              disabled={!hasWrite}
+              priority="danger"
+              onConfirm={handleRegenerateToken}
+              message={t(
+                'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
+              )}
+            >
+              <Button variant="danger">{t('Regenerate Token')}</Button>
+            </Confirm>
+          </Container>
+        </FieldGroup>
+      </FormFieldGroup>
 
-          <AutoSelectText>
-            <pre>{releaseTokenData?.webhookUrl}</pre>
-          </AutoSelectText>
+      <FormFieldGroup title={t('Webhook')}>
+        <FieldGroup
+          label={t('Webhook URL')}
+          help={t(
+            'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
+          )}
+          inline={false}
+          hideControlState
+        >
+          <TextCopyInput aria-label={t('Webhook URL')}>
+            {releaseTokenData.webhookUrl}
+          </TextCopyInput>
+        </FieldGroup>
 
-          <p>
-            {t(
-              'The release webhook accepts the same parameters as the "Create a new Release" API endpoint.'
-            )}
-          </p>
-
-          <AutoSelectText>
-            <pre>{getReleaseWebhookIntructions()}</pre>
-          </AutoSelectText>
-        </PanelBody>
-      </Panel>
+        <FieldGroup
+          label={t('Request Example')}
+          help={t(
+            'The release webhook accepts the same parameters as the "Create a new Release" API endpoint.'
+          )}
+          inline={false}
+          hideControlState
+        >
+          <CodeBlock language="bash">{getReleaseWebhookInstructions()}</CodeBlock>
+        </FieldGroup>
+      </FormFieldGroup>
 
       <PluginList project={project} pluginList={pluginList} />
 
-      <Panel>
-        <PanelHeader>{t('API')}</PanelHeader>
-        <PanelBody withPadding>
-          <p>
+      <FormFieldGroup title={t('API')}>
+        <Stack gap="xl">
+          <Text as="p">
             {t(
               'You can notify Sentry when you release new versions of your application via our HTTP API.'
             )}
-          </p>
-
-          <p>
+          </Text>
+          <Text as="p">
             {tct('See the [link:releases documentation] for more information.', {
               link: <ExternalLink href="https://docs.sentry.io/workflow/releases/" />,
             })}
-          </p>
-        </PanelBody>
-      </Panel>
-    </div>
+          </Text>
+        </Stack>
+      </FormFieldGroup>
+    </SentryDocumentTitle>
   );
 }
