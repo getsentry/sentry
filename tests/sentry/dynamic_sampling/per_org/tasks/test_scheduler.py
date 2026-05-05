@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import NamedTuple
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -49,7 +49,7 @@ MEASURE_OPTION_CASES = (
 
 
 def _assert_called_once_with_config(
-    mock,
+    mock: Mock,
     organization_id: int,
     measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
 ) -> BaseDynamicSamplingConfiguration:

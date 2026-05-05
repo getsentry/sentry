@@ -64,7 +64,7 @@ def get_eap_organization_volume(
 ) -> OrganizationDataVolume | None:
     organization = config.organization
     projects = list(
-        Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
+        Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
     )
     if not projects:
         return None
@@ -76,7 +76,7 @@ def get_eap_organization_volume(
             start=start_time,
             end=end_time,
             projects=projects,
-            organization=organization,
+            organization=config.organization,
         ),
         query_string=EAP_ORGANIZATION_VOLUME_QUERY_STRINGS[config.measure],
         selected_columns=["count()", "count_sample()"],
@@ -101,7 +101,7 @@ def get_eap_organization_volume(
         return None
     indexed = _get_aggregate_int(row, "count_sample()")
 
-    return OrganizationDataVolume(org_id=organization.id, total=total, indexed=indexed)
+    return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
 
 
 def get_eap_project_volumes(
@@ -110,7 +110,7 @@ def get_eap_project_volumes(
 ) -> list[ProjectVolumes]:
     organization = config.organization
     projects = list(
-        Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
+        Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
     )
     if not projects:
         return []
@@ -127,7 +127,7 @@ def get_eap_project_volumes(
                 start=start_time,
                 end=end_time,
                 projects=projects,
-                organization=organization,
+                organization=config.organization,
             ),
             query_string=EAP_ORGANIZATION_VOLUME_QUERY_STRINGS[config.measure],
             selected_columns=["project.id", "count()", "count_sample()"],
