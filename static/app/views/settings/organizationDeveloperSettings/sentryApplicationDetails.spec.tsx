@@ -12,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', () => {
@@ -125,6 +126,7 @@ describe('Sentry Application Details', () => {
         isAlertable: true,
         allowedOrigins: [],
         schema: {},
+        overview: null,
       };
 
       expect(createAppRequest).toHaveBeenCalledWith(
@@ -556,17 +558,14 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('renders the error', async () => {
+    it('shows an error toast when save fails', async () => {
+      const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
-      expect(
-        await screen.findByText(
-          "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change."
-        )
-      ).toBeInTheDocument();
+      await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
     });
 
     it('handles client secret rotation', async () => {

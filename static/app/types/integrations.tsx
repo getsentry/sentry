@@ -263,6 +263,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
+  allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;

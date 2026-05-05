@@ -13,7 +13,10 @@ import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
-import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {
+  PermissionSelection,
+  permissionStateToList,
+} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type DefaultProps = {
@@ -25,6 +28,8 @@ type Props = DefaultProps & {
   events: WebhookEvent[];
   newApp: boolean;
   scopes: Scope[];
+  onEventsChange?: (events: WebhookEvent[]) => void;
+  onScopesChange?: (scopes: Scope[]) => void;
 };
 
 type State = {
@@ -71,6 +76,9 @@ export class PermissionsObserver extends Component<Props, State> {
 
   onPermissionChange = (permissions: Permissions, hasContinuousIntegration: boolean) => {
     this.setState({permissions, hasContinuousIntegration});
+    this.props.onScopesChange?.(
+      permissionStateToList(permissions, hasContinuousIntegration)
+    );
     const new_permissions = toResourcePermissions(this.props.scopes);
 
     let elevating = false;
@@ -98,6 +106,7 @@ export class PermissionsObserver extends Component<Props, State> {
 
   onEventChange = (events: WebhookEvent[]) => {
     this.setState({events});
+    this.props.onEventsChange?.(events);
   };
 
   renderCallout() {

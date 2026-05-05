@@ -27,7 +27,7 @@ export class Subscriptions extends Component<Props> {
   };
 
   UNSAFE_componentWillMount(): void {
-    this.context.form.setValue('events', this.props.events);
+    this.context.form?.setValue('events', this.props.events);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -63,7 +63,7 @@ export class Subscriptions extends Component<Props> {
 
   save = (events: WebhookEvent[]) => {
     this.props.onChange(events);
-    this.context.form.setValue('events', events);
+    this.context.form?.setValue('events', events);
   };
 
   render() {
