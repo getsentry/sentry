@@ -26,8 +26,8 @@ HEATMAP_DATASETS = {TraceMetrics}
 
 class AxisMeta(TypedDict):
     name: str
-    start: float
-    end: float
+    start: float | None
+    end: float | None
     bucketCount: NotRequired[int]
     bucketSize: NotRequired[float | int]
 
@@ -77,7 +77,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         Retrieves explore data for a given organization as a heatmap.
         """
         if not features.has(
-            "organizations:data-browsing-heat-map-widget", organization, request.user
+            "organizations:data-browsing-heat-map-widget", organization, actor=request.user
         ):
             return Response(status=404)
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
@@ -114,20 +114,24 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 raise ParseError("xBuckets must be a number")
             else:
                 x_buckets = int(xBuckets)
-                assert x_buckets > 0, ParseError("xBuckets must be greater than 0")
+                if x_buckets <= 0:
+                    raise ParseError("xBuckets must be greater than 0")
 
             yBuckets = request.GET.get("yBuckets")
             if yBuckets is None or not yBuckets.isnumeric():
                 raise ParseError("yBuckets must be a number")
             else:
                 y_buckets = int(yBuckets)
-                assert y_buckets > 0, ParseError("yBuckets must be greater than 0")
+                if y_buckets <= 0:
+                    raise ParseError("yBuckets must be greater than 0")
 
             # Leaving it as this even though we can query more buckets, just want to do some testing first
             if x_buckets * y_buckets > MAX_BUCKETS:
                 raise ParseError(f"xBuckets * yBuckets must be less than {MAX_BUCKETS}")
 
-            snuba_params.granularity_secs = (snuba_params.date_range.seconds) // x_buckets
+            snuba_params.granularity_secs = int(
+                (snuba_params.date_range.total_seconds()) // x_buckets
+            )
             query = request.GET.get("query", "")
 
         with handle_query_errors():
@@ -158,12 +162,15 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                     heatmap.append(HeatMap(xAxis=row["time"] * 1000, yAxis=y, zAxis=row[axis]))
 
             # Calculate the min&max z Value
-            min_z_value, max_z_value = heatmap[0]["zAxis"], heatmap[0]["zAxis"]
-            for row in heatmap:
-                if row["zAxis"] > max_z_value:
-                    max_z_value = row["zAxis"]
-                if row["zAxis"] < min_z_value:
-                    min_z_value = row["zAxis"]
+            if len(heatmap) > 0:
+                min_z_value, max_z_value = heatmap[0]["zAxis"], heatmap[0]["zAxis"]
+                for row in heatmap[1:]:
+                    if row["zAxis"] > max_z_value:
+                        max_z_value = row["zAxis"]
+                    if row["zAxis"] < min_z_value:
+                        min_z_value = row["zAxis"]
+            else:
+                min_z_value, max_z_value = None, None
 
             return Response(
                 HeatmapResponse(
@@ -213,7 +220,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         )
         if len(result.data["data"]) == 0:
             return 0, 0
-        min_value, max_value = result.data["data"][0][max_y], result.data["data"][0][min_y]
+        min_value, max_value = result.data["data"][0][min_y], result.data["data"][0][max_y]
         for row in result.data["data"][1:]:
             if row[min_y] < min_value:
                 min_value = row[min_y]
