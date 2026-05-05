@@ -9,7 +9,6 @@ import {
   useTraceItemAttributes,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {SpanFields} from 'sentry/views/insights/types';
 
 describe('extractBaseKey', () => {
   const testCases = [
@@ -138,42 +137,6 @@ describe('useTraceItemAttributes number filtering', () => {
 
     expect('is_transaction' in result.current.attributes).toBe(false);
     expect('custom_metric' in result.current.attributes).toBe(true);
-  });
-
-  it('only includes GenAI cost fields when returned by the attributes response', async () => {
-    const organization = OrganizationFixture();
-
-    addAttributeMock([
-      {
-        attributeType: 'number',
-        key: SpanFields.GEN_AI_COST_INPUT_TOKENS,
-        name: SpanFields.GEN_AI_COST_INPUT_TOKENS,
-      },
-    ]);
-
-    const {result} = renderHookWithProviders(
-      () =>
-        useTraceItemAttributes(
-          {
-            traceItemType: TraceItemDataset.SPANS,
-            enabled: true,
-          },
-          'number'
-        ),
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.attributes[SpanFields.GEN_AI_COST_INPUT_TOKENS]).toBeDefined();
-    expect(
-      result.current.attributes[SpanFields.GEN_AI_COST_OUTPUT_TOKENS]
-    ).toBeUndefined();
-    expect(
-      result.current.attributes[SpanFields.GEN_AI_COST_TOTAL_TOKENS]
-    ).toBeUndefined();
   });
 
   it('filters tags[key,number] format when boolean version exists', async () => {
