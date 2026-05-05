@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState, type UIEventHandler} from 'react';
+import {useCallback, useEffect, useRef, type UIEventHandler} from 'react';
 
 import {defined} from 'sentry/utils';
 
@@ -7,14 +7,14 @@ interface UseAutoScrollOptions {
 }
 
 export function useAutoScroll({key}: UseAutoScrollOptions) {
-  const [canAutoScroll, setCanAutoScroll] = useState(true);
+  const canAutoScroll = useRef(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
 
-    if (!canAutoScroll || !defined(container)) {
+    if (!canAutoScroll.current || !defined(container)) {
       return;
     }
 
@@ -22,12 +22,12 @@ export function useAutoScroll({key}: UseAutoScrollOptions) {
       top: container.scrollHeight,
       behavior: 'smooth',
     });
-  }, [canAutoScroll, key]);
+  }, [key]);
 
   const onScrollHandler: UIEventHandler = useCallback(event => {
     const {scrollTop, scrollHeight, clientHeight} = event.currentTarget;
     const atBottom = scrollHeight - scrollTop - clientHeight < 1;
-    setCanAutoScroll(atBottom);
+    canAutoScroll.current = atBottom;
   }, []);
 
   return {
