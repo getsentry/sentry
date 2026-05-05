@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.files.file import File
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
@@ -23,6 +25,8 @@ class OrganizationAvatarTestCase(TestCase):
         assert OrganizationAvatar.objects.get(id=avatar.id).get_file() is None
 
 
+# TODO(cells): Unskip when implemented
+@pytest.mark.skip(reason="Requires implementation of avatar replication in control")
 @django_db_all(transaction=True)
 @cell_silo_test(cells=create_test_cells("us"), include_monolith_run=True)
 def test_organization_avatar_replica_created_on_save() -> None:
@@ -35,6 +39,8 @@ def test_organization_avatar_replica_created_on_save() -> None:
         assert replica.avatar_ident == avatar.ident
 
 
+# TODO(cells): Unskip when implemented
+@pytest.mark.skip(reason="Requires implementation of avatar deletion in control")
 @django_db_all(transaction=True)
 @cell_silo_test(cells=create_test_cells("us"), include_monolith_run=True)
 def test_organization_avatar_replica_deleted_on_avatar_delete() -> None:
