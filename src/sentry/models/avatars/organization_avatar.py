@@ -41,20 +41,26 @@ class OrganizationAvatar(AvatarBase, ReplicatedCellModel):
         return f"org_avatar:{self.organization_id}:{size}"
 
     def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.hybridcloud.services.replica import control_replica_service
+        # TODO(cells): Uncomment implementation once RPC methods deployed
+        pass
 
-        control_replica_service.upsert_organization_avatar_replica(
-            organization_id=self.organization_id,
-            avatar_type=self.avatar_type,
-            avatar_ident=self.ident,
-        )
+        # from sentry.hybridcloud.services.replica import control_replica_service
+
+        # control_replica_service.upsert_organization_avatar_replica(
+        #     organization_id=self.organization_id,
+        #     avatar_type=self.avatar_type,
+        #     avatar_ident=self.ident,
+        # )
 
     @classmethod
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
-        from sentry.hybridcloud.services.replica import control_replica_service
+        # TODO(cells): Uncomment implementation once RPC methods deployed
+        pass
 
-        control_replica_service.delete_organization_avatar_replica(
-            organization_id=shard_identifier,
-        )
+        # from sentry.hybridcloud.services.replica import control_replica_service
+
+        # control_replica_service.delete_organization_avatar_replica(
+        #     organization_id=shard_identifier,
+        # )
