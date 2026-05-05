@@ -6,15 +6,18 @@ import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -38,6 +41,7 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
@@ -95,6 +99,7 @@ import {
   useQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 
 type LogsRowProps = {
@@ -115,6 +120,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  showExploreSimilarSpansLink?: boolean;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [
@@ -122,6 +128,7 @@ const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.EXCLUDE,
   Actions.COPY_TO_CLIPBOARD,
 ];
+const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-logs-table-similar-spans';
 
 function isInsideButton(element: Element | null): boolean {
   let i = 10;
@@ -153,6 +160,7 @@ export const LogRowContent = memo(function LogRowContent({
   onEmbeddedRowClick,
   logStart,
   logEnd,
+  showExploreSimilarSpansLink,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -452,6 +460,7 @@ export const LogRowContent = memo(function LogRowContent({
           embedded={embedded}
           meta={meta}
           ref={measureRef}
+          showExploreSimilarSpansLink={showExploreSimilarSpansLink}
         />
       )}
     </Fragment>
@@ -464,15 +473,18 @@ function LogRowDetails({
   highlightTerms,
   meta,
   ref,
+  showExploreSimilarSpansLink,
 }: {
   dataRow: LogTableRowItem;
   embedded: boolean;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   ref: React.RefObject<HTMLTableRowElement | null>;
+  showExploreSimilarSpansLink?: boolean;
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
@@ -530,6 +542,31 @@ function LogRowDetails({
   }
 
   const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
+  const message = String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '');
+
+  let exploreSimilarSpansUrl: string | undefined;
+  if (showExploreSimilarSpansLink && message.length > 0) {
+    exploreSimilarSpansUrl = getExploreUrl({
+      organization,
+      selection: {
+        ...selection,
+        datetime: {
+          period: '24h',
+          start: null,
+          end: null,
+          utc: selection.datetime.utc,
+        },
+      },
+      mode: Mode.SAMPLES,
+      referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
+      crossEvents: [
+        {
+          type: 'logs',
+          query: `${OurLogKnownFieldKey.MESSAGE}:"${escapeDoubleQuotes(message)}"`,
+        },
+      ],
+    });
+  }
 
   return (
     <DetailsWrapper ref={isPending ? undefined : ref}>
@@ -539,27 +576,36 @@ function LogRowDetails({
           <Fragment>
             <DetailsContent>
               <DetailsBody>
-                {isRegularLogResponseItem(dataRow) ? (
-                  <LogBodyRenderer
-                    item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
-                    extra={{
-                      highlightTerms,
-                      logColors,
-                      wrapBody: true,
-                      location,
-                      organization,
-                      caseSensitiveHighlighting: !caseInsensitivity,
-                      projectSlug,
-                      attributes,
-                      attributeTypes,
-                      meta,
-                      theme,
-                      traceItemMeta: data?.meta,
-                    }}
-                  />
-                ) : (
-                  <span>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</span>
-                )}
+                <Flex align="baseline" gap="sm">
+                  {isRegularLogResponseItem(dataRow) ? (
+                    <LogBodyRenderer
+                      item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
+                      extra={{
+                        highlightTerms,
+                        logColors,
+                        wrapBody: true,
+                        location,
+                        organization,
+                        caseSensitiveHighlighting: !caseInsensitivity,
+                        projectSlug,
+                        attributes,
+                        attributeTypes,
+                        meta,
+                        theme,
+                        traceItemMeta: data?.meta,
+                      }}
+                    />
+                  ) : (
+                    <span>{message}</span>
+                  )}
+                  {exploreSimilarSpansUrl ? (
+                    <Text as="span" size="sm" textWrap="nowrap">
+                      <Link to={exploreSimilarSpansUrl}>
+                        {t('Explore similar spans')}
+                      </Link>
+                    </Text>
+                  ) : null}
+                </Flex>
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>

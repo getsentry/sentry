@@ -1,3 +1,4 @@
+import qs from 'query-string';
 import {LogFixture, LogFixtureMeta} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -337,6 +338,55 @@ describe('logsTableRow', () => {
       expect.anything(),
       expect.objectContaining({enabled: true})
     );
+  });
+
+  it('links expanded log details to similar spans with a logs cross-event query', async () => {
+    const rowDataWithQuotedMessage = {
+      ...rowData,
+      [OurLogKnownFieldKey.MESSAGE]: 'test "quoted" log body',
+    };
+
+    render(
+      <LogRowContent
+        dataRow={rowDataWithQuotedMessage}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithQuotedMessage)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+        showExploreSimilarSpansLink
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    const link = await screen.findByRole('link', {name: 'Explore similar spans'});
+    const href = link.getAttribute('href')!;
+    expect(href.startsWith(`/organizations/${organization.slug}/explore/traces/?`)).toBe(
+      true
+    );
+
+    const parsedQuery = qs.parse(href.split('?')[1]!);
+    expect(parsedQuery).toEqual(
+      expect.objectContaining({
+        mode: 'samples',
+        project: project.id,
+        referrer: 'trace-logs-table-similar-spans',
+        statsPeriod: '24h',
+      })
+    );
+    expect(JSON.parse(parsedQuery.crossEvents as string)).toEqual([
+      {
+        type: 'logs',
+        query: 'message:"test \\"quoted\\" log body"',
+      },
+    ]);
   });
 
   it('shows a link when hovering over code file path in the table', async () => {

@@ -105,6 +105,7 @@ type LogsTableProps = {
     filteredItems: OurLogsResponseItem[];
   };
   numberAttributes?: TagCollection;
+  showExploreSimilarSpansLink?: boolean;
   stringAttributes?: TagCollection;
 };
 
@@ -124,6 +125,7 @@ export function LogsInfiniteTable({
   embeddedStyling,
   embeddedOptions,
   additionalData,
+  showExploreSimilarSpansLink,
 }: LogsTableProps) {
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
@@ -551,6 +553,7 @@ export function LogsInfiniteTable({
                   logEnd={logEnd}
                   isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
                   onExpandHeight={handleExpandHeight}
+                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                 />
               </Fragment>
             );
