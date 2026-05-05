@@ -100,6 +100,19 @@ export type WidgetChange =
   | {status: 'removed'; widget: Widget}
   | {fields: FieldChange[]; layoutChanged: boolean; status: 'modified'; widget: Widget};
 
+function makeWidgetFingerprint(w: Widget): string {
+  const queryPart = w.queries
+    .map(
+      q =>
+        `${q.conditions}|${q.aggregates.join(',')}|${q.columns.join(',')}|${q.orderby}|${q.name}`
+    )
+    .join(';');
+  const layoutPart = w.layout
+    ? `${w.layout.x},${w.layout.y},${w.layout.w},${w.layout.h}`
+    : '';
+  return `${w.title}::${w.displayType}::${w.interval ?? ''}::${w.description ?? ''}::${queryPart}::${layoutPart}`;
+}
+
 function diffQueryFields(
   base: WidgetQuery,
   snapshot: WidgetQuery,
@@ -162,17 +175,28 @@ export function diffWidgets(
 
   const baseById = new Map<string, Widget>();
   const titleCounts = new Map<string, number>();
+  const fingerprintCounts = new Map<string, number>();
   for (const w of base.widgets) {
     if (w.id) baseById.set(w.id, w);
     titleCounts.set(w.title, (titleCounts.get(w.title) ?? 0) + 1);
+    const fp = makeWidgetFingerprint(w);
+    fingerprintCounts.set(fp, (fingerprintCounts.get(fp) ?? 0) + 1);
   }
   // Only index titles that are unique — avoids wrong matches when two widgets share a title.
   // After a dashboard restore, widget IDs are reassigned, so title matching is the only way
   // to correlate widgets across the restore boundary.
   const baseByUniqueTitle = new Map<string, Widget>();
+  // Content-fingerprint fallback: handles dashboards where multiple widgets share a default
+  // title (e.g. "Custom Widget") but have distinct queries — common after a restore where
+  // IDs are reassigned and titles are non-unique.
+  const baseByUniqueFingerprint = new Map<string, Widget>();
   for (const w of base.widgets) {
     if (titleCounts.get(w.title) === 1) {
       baseByUniqueTitle.set(w.title, w);
+    }
+    const fp = makeWidgetFingerprint(w);
+    if (fingerprintCounts.get(fp) === 1) {
+      baseByUniqueFingerprint.set(fp, w);
     }
   }
 
@@ -180,7 +204,10 @@ export function diffWidgets(
 
   for (const snapshotWidget of snapshot.widgets) {
     const matchById = snapshotWidget.id ? baseById.get(snapshotWidget.id) : undefined;
-    const match = matchById ?? baseByUniqueTitle.get(snapshotWidget.title);
+    const match =
+      matchById ??
+      baseByUniqueTitle.get(snapshotWidget.title) ??
+      baseByUniqueFingerprint.get(makeWidgetFingerprint(snapshotWidget));
     const matchIndex = match ? base.widgets.indexOf(match) : -1;
 
     if (!match || matchIndex === -1 || matchedBaseIndices.has(matchIndex)) {
