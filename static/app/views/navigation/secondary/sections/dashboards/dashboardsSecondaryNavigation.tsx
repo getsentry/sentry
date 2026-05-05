@@ -68,7 +68,7 @@ export function DashboardsSecondaryNavigation() {
                 }
                 analyticsItemName="dashboards_all"
               >
-                {hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards')}
+                {t('Custom Dashboards')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             {hasPrebuiltDashboards ? (

@@ -159,14 +159,11 @@ function ManageDashboards() {
   const isOnlyPrebuilt =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
   const isAllDashboards = hasPrebuiltDashboards && urlFilter === DashboardFilter.ALL;
-  const customDashboardsLabel = hasPrebuiltDashboards
-    ? t('Custom Dashboards')
-    : t('All Dashboards');
   const pageTitle = isOnlyPrebuilt
     ? PREBUILT_DASHBOARD_LABEL
     : isAllDashboards
       ? t('All Dashboards')
-      : customDashboardsLabel;
+      : t('Custom Dashboards');
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');

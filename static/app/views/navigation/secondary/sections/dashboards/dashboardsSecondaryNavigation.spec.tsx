@@ -46,7 +46,7 @@ describe('DashboardsSecondaryNavigation', () => {
     expect(await screen.findByText('Dashboard 9999')).toBeInTheDocument();
 
     expect(screen.getAllByRole('link').map(el => el.textContent)).toEqual([
-      'All Dashboards',
+      'Custom Dashboards',
       'Dashboard 9999',
       'Dashboard 1',
     ]);
