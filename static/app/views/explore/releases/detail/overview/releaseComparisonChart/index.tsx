@@ -1124,7 +1124,7 @@ export function ReleaseComparisonChart({
             </ShowMoreTitle>
             <Flex justify="end" align="center" column="2 / -1">
               <Button
-                priority="transparent"
+                variant="transparent"
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
                 aria-label={t('Toggle additional charts')}

@@ -5,13 +5,13 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isSeerCompatibleProvider} from 'sentry/views/settings/organizationRepositories/seerCompatibleProviders';
 
 interface Props {
   onAddIntegration: (data: IntegrationWithConfig) => void;
@@ -21,11 +21,14 @@ interface Props {
 export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
+  const isSeerSupported = useIsSeerSupportedProvider();
 
-  const hasSeerCompatible = providers.some(p => isSeerCompatibleProvider(p.key));
+  const hasSeerCompatible = providers.some(p =>
+    isSeerSupported({id: p.key, name: p.name})
+  );
 
   const items: MenuItemProps[] = providers.map(provider => {
-    const isSeerCompatible = isSeerCompatibleProvider(provider.key);
+    const isSeerCompatible = isSeerSupported({id: provider.key, name: provider.name});
     return {
       key: provider.key,
       label: isSeerCompatible ? (

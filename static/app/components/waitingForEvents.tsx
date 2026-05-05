@@ -55,7 +55,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
     ) : (
       <p>
         <CreateSampleEventButton
-          priority="link"
+          variant="link"
           project={project}
           source="issues_list"
           disabled={!project}

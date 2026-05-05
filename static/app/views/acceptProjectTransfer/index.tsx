@@ -130,7 +130,7 @@ function AcceptProjectTransfer() {
       <Form
         onSubmit={data => handleSubmitMutation.mutate(data)}
         submitLabel={t('Transfer Project')}
-        submitPriority="danger"
+        submitVariant="danger"
         initialData={organization ? {organization} : undefined}
       >
         <SelectField

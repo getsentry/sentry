@@ -64,7 +64,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       };
     };
 
-    if (hasAnyFeedback === false) {
+    if (!hasAnyFeedback) {
       // send to reload only due to higher event volume
       trackAnalytics('user_feedback.viewed', {
         organization,
@@ -84,7 +84,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   }
 
   // Show no user reports if waiting for projects to load or if there is no feedback
-  if (loadingProjects || hasAnyFeedback !== false) {
+  if (loadingProjects || hasAnyFeedback) {
     return (
       <EmptyStateWarning>
         <p>{t('Sorry, no user reports match your filters.')}</p>

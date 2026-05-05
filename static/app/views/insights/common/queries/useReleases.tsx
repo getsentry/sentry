@@ -1,4 +1,4 @@
-import {useQuery, useQueries} from '@tanstack/react-query';
+import {queryOptions, useQueries, useQuery} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -6,15 +6,11 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -26,7 +22,6 @@ function useReleases(
   const location = useLocation();
   const {selection, isReady} = usePageFilters();
   const {environments, projects} = selection;
-  const api = useApi();
 
   const activeSort = sortBy ?? ReleasesSortOption.DATE;
   const releaseResults = useQuery({
@@ -63,30 +58,18 @@ function useReleases(
         projects: selection.projects,
       };
       const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
-      const queryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      return queryOptions({
+        ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
           path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
           query: {
             ...eventView.getEventsAPIPayload(location),
             referrer: 'api.insights.mobile-release-selector',
           },
-        },
-      ] as ApiQueryKey;
-      const {url, options} = parseQueryKey(queryKey);
-      return {
-        queryKey,
-        queryFn: (): Promise<TableData> => {
-          return api.requestPromise(url, {
-            method: 'GET',
-            query: options?.query,
-          });
-        },
-        staleTime: Infinity,
+          staleTime: Infinity,
+        }),
         enabled: isReady && !releaseResults.isPending,
         retry: false,
-      };
+      });
     }),
   });
 

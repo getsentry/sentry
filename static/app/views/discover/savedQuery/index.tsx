@@ -96,7 +96,7 @@ export function SaveAsDropdown({
       <Button
         {...triggerProps}
         size="sm"
-        icon={<IconStar />}
+        variant="primary"
         aria-label={t('Save as')}
         disabled={disabled}
       >
@@ -120,7 +120,7 @@ export function SaveAsDropdown({
                     <SaveAsButton
                       type="submit"
                       onClick={modifiedHandleCreateQuery}
-                      priority="primary"
+                      variant="primary"
                       disabled={disabled || !queryName}
                     >
                       {t('Save for Organization')}

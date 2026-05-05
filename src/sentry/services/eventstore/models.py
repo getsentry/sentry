@@ -21,7 +21,7 @@ from sentry.db.models import NodeData
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.grouping.variants import BaseVariant
 from sentry.interfaces.base import Interface, get_interfaces
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import PERFORMANCE_ISSUE_CATEGORIES
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
@@ -482,7 +482,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         subject_template = self.project.get_option("mail:subject_template")
         if subject_template:
             template = EventSubjectTemplate(subject_template)
-        elif self.group.issue_category == GroupCategory.PERFORMANCE:
+        elif self.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
             template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE

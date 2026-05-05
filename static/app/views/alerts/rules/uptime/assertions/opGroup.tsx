@@ -213,7 +213,7 @@ export function AssertionOpGroup({
         <CompositeSelect
           size="xs"
           trigger={props => (
-            <OverlayTrigger.Button {...props} size="zero" priority="transparent">
+            <OverlayTrigger.Button {...props} size="zero" variant="transparent">
               {triggerLabel}
             </OverlayTrigger.Button>
           )}

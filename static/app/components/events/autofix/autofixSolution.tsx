@@ -554,7 +554,7 @@ function AutofixSolutionDisplay({
           {t('Solution')}
           <Button
             size="zero"
-            priority="transparent"
+            variant="transparent"
             tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
@@ -613,7 +613,7 @@ function AutofixSolutionDisplay({
             <SubmitButton
               size="zero"
               type="submit"
-              priority="transparent"
+              variant="transparent"
               disabled={!instructions.trim()}
               aria-label={t('Add to solution')}
             >
@@ -662,10 +662,10 @@ function AutofixSolutionDisplay({
           >
             <Button
               size="sm"
-              priority={
+              variant={
                 !solutionSelected || !valueIsEqual(solutionItems, solution, true)
                   ? 'primary'
-                  : 'default'
+                  : 'secondary'
               }
               busy={isPending}
               disabled={hasNoRepos || cantReadRepos || !enableSeerCoding}

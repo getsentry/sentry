@@ -61,7 +61,7 @@ export function AiFeaturesAreDisabledBanner() {
                   }
                 )}
               </Text>
-              <Button size="sm" priority="default" onClick={() => mutate()}>
+              <Button size="sm" variant="secondary" onClick={() => mutate()}>
                 {t('Enable Generative AI Features')}
               </Button>
             </Fragment>
