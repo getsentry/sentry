@@ -1,8 +1,14 @@
+import pytest
 from django.db.migrations.state import StateApps
 
 from sentry.testutils.cases import TestMigrations
 
 
+# 0009 has 12 operations including a CONCURRENTLY index, so the migration
+# round-trip TestMigrations does on every run takes longer than the global
+# 120s fail-slow budget. The test itself is fast — the cost is Django's
+# migration framework.
+@pytest.mark.fail_slow("4m")
 class GenericizeNightShiftResultsMigrationTest(TestMigrations):
     migrate_from = "0008_add_seer_run_models"
     migrate_to = "0009_genericize_night_shift_results"
