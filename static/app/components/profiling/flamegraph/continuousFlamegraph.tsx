@@ -325,7 +325,11 @@ export function ContinuousFlamegraph(): ReactElement {
     }
 
     return LOADING_OR_FALLBACK_SPAN_TREE;
-  }, [transactionResult]);
+  }, [
+    transactionResult.isPending,
+    transactionResult.data.transactionSpan,
+    transactionResult.data.childSpans,
+  ]);
 
   const spanChart = useMemo(() => {
     if (!profile || !spanTree || !transactionResult.isEnabled) {
@@ -341,7 +345,14 @@ export function ContinuousFlamegraph(): ReactElement {
         configSpaceQueryParam
       ),
     });
-  }, [spanTree, profile, profileGroup, transactionResult, configSpaceQueryParam]);
+  }, [
+    spanTree,
+    profile,
+    profileGroup,
+    transactionResult.isEnabled,
+    transactionResult.data.transactionSpan,
+    configSpaceQueryParam,
+  ]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
