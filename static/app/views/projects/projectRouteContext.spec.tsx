@@ -118,6 +118,27 @@ describe('ProjectRouteProvider', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('renders children when the user has access but is not a project member', async () => {
+    const nonMemberProject = ProjectFixture({hasAccess: true, isMember: false});
+    ProjectsStore.loadInitialData([nonMemberProject]);
+    const fetchMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${nonMemberProject.slug}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: nonMemberProject,
+    });
+
+    render(
+      <ProjectRouteProvider projectSlug={nonMemberProject.slug}>
+        <ProjectSlug />
+      </ProjectRouteProvider>,
+      {organization: org}
+    );
+
+    expect(await screen.findByText(nonMemberProject.slug)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('redirects when project was renamed (API returns different slug)', async () => {
     ProjectsStore.loadInitialData([]);
     MockApiClient.addMockResponse({

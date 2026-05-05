@@ -47,8 +47,11 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
     [projects, projectSlug]
   );
 
-  const shouldFetchDetailedProject =
-    projectsInitiallyLoaded && !(summaryProject && !summaryProject.isMember);
+  const missingProjectMembership = summaryProject
+    ? !summaryProject.hasAccess && !summaryProject.isMember
+    : false;
+
+  const shouldFetchDetailedProject = projectsInitiallyLoaded && !missingProjectMembership;
 
   const {
     data: detailedProject,
@@ -102,7 +105,7 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
     );
   }
 
-  if (summaryProject?.isMember === false) {
+  if (missingProjectMembership) {
     return (
       <SentryDocumentTitle noSuffix title={title}>
         <ErrorWrapper>
