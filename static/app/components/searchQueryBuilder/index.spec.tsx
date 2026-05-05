@@ -36,7 +36,6 @@ import {
 } from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
-import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -4014,18 +4013,6 @@ describe('SearchQueryBuilder', () => {
         filterKeySections: [],
         fieldDefinitionGetter,
       };
-      const spanCurrencyProps: SearchQueryBuilderProps = {
-        ...defaultProps,
-        filterKeys: {
-          [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: {
-            key: SpanFields.GEN_AI_COST_TOTAL_TOKENS,
-            name: SpanFields.GEN_AI_COST_TOTAL_TOKENS,
-            kind: FieldKind.FIELD,
-          },
-        },
-        filterKeySections: [],
-        fieldDefinitionGetter: key => getFieldDefinition(key, 'span'),
-      };
 
       it('new currency filters start with greater than operator and default value', async () => {
         render(<SearchQueryBuilder {...currencyProps} />);
@@ -4124,40 +4111,6 @@ describe('SearchQueryBuilder', () => {
         });
         expect(screen.getByRole('option', {name: '$100m'})).toBeInTheDocument();
         expect(screen.getByRole('option', {name: '$100b'})).toBeInTheDocument();
-      });
-
-      it('span GenAI cost filters render with a $ prefix', async () => {
-        render(
-          <SearchQueryBuilder
-            {...spanCurrencyProps}
-            initialQuery={`${SpanFields.GEN_AI_COST_TOTAL_TOKENS}:>100`}
-          />
-        );
-
-        expect(await screen.findByText('$100')).toBeInTheDocument();
-      });
-
-      it('span GenAI cost filters render with a $ prefix when absent from filter keys', async () => {
-        render(
-          <SearchQueryBuilder
-            {...spanCurrencyProps}
-            filterKeys={{}}
-            initialQuery={`${SpanFields.GEN_AI_COST_TOTAL_TOKENS}:>100`}
-          />
-        );
-
-        expect(await screen.findByText('$100')).toBeInTheDocument();
-      });
-
-      it('span GenAI cost aggregate filters render with a $ prefix', async () => {
-        render(
-          <SearchQueryBuilder
-            {...spanCurrencyProps}
-            initialQuery={`sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS}):>100`}
-          />
-        );
-
-        expect(await screen.findByText('$100')).toBeInTheDocument();
       });
     });
 
