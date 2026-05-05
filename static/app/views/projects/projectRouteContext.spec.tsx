@@ -165,5 +165,35 @@ describe('ProjectRouteProvider', () => {
     await waitFor(() => {
       expect(redirectToProject).toHaveBeenCalledWith('renamed-project');
     });
+
+    expect(
+      screen.queryByText('The project you were looking for was not found.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('redirects when project is in store but API returns a different slug', async () => {
+    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: ProjectFixture({slug: 'renamed-project'}),
+    });
+
+    render(
+      <ProjectRouteProvider projectSlug={project.slug}>
+        <ProjectSlug />
+      </ProjectRouteProvider>,
+      {organization: org}
+    );
+
+    await waitFor(() => {
+      expect(redirectToProject).toHaveBeenCalledWith('renamed-project');
+    });
+
+    expect(screen.queryByText(project.slug)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('The project you were looking for was not found.')
+    ).not.toBeInTheDocument();
   });
 });
