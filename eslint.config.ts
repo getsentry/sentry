@@ -878,7 +878,7 @@ export default typescript.config([
 
       'jest/prefer-hooks-in-order': 'error',
       'jest/prefer-hooks-on-top': 'error',
-      '@sentry/require-fake-timer-cleanup': 'warn',
+      '@sentry/require-fake-timer-cleanup': 'error',
 
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line

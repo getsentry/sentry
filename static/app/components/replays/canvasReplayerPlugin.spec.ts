@@ -49,8 +49,6 @@ type EventWithTime = {
   type: number;
 };
 
-jest.useFakeTimers();
-
 // Ensure canvas.toDataURL exists under JSDOM
 beforeAll(() => {
   jest
@@ -95,8 +93,14 @@ function createReplayer(getNodeImpl: (id: number) => Node | null) {
 
 describe('canvasReplayerPlugin', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllTimers();
     (canvasMutation as jest.Mock).mockClear();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('does not clear current canvas snapshot when flushing queued sync events before processing a canvas event', async () => {

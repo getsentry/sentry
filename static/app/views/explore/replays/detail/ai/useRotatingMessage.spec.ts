@@ -10,6 +10,7 @@ describe('useRotatingMessage', () => {
   });
 
   afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
     jest.useRealTimers();
     jest.restoreAllMocks();
   });
