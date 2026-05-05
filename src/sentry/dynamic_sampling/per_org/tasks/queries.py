@@ -13,7 +13,9 @@ from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
 )
-from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE
+from sentry.dynamic_sampling.tasks.constants import (
+    CHUNK_SIZE,
+)
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
@@ -106,7 +108,7 @@ def get_eap_organization_volume(
 
 def get_eap_project_volumes(
     config: BaseDynamicSamplingConfiguration,
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    time_interval: timedelta = timedelta(hours=1),
 ) -> list[ProjectVolumes]:
     organization = config.organization
     projects = list(
