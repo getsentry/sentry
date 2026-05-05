@@ -217,24 +217,7 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         assert len(control_response.data) == 1
         assert len(cell_response.data) == 1
 
-        # TODO(cells): fields the control serializer doesn't return yet. Remove
-        # entries as they're ported — once empty, drop the filter and assert
-        # full equality.
-        missing_fields = {
-            "allowMemberInvite",
-            "allowMemberProjectCreation",
-            "allowSuperuserAccess",
-            "avatar",
-            "dateCreated",
-            "hasAuthProvider",
-            "isEarlyAdopter",
-            "links",
-            "require2FA",
-            "status",
-        }
-        assert control_response.data[0] == {
-            k: v for k, v in cell_response.data[0].items() if k not in missing_fields
-        }
+        assert control_response.data == cell_response.data
 
 
 @control_silo_test(cells=create_test_cells("us", "de"))
