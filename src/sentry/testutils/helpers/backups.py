@@ -66,7 +66,6 @@ from sentry.models.counter import Counter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -564,11 +563,6 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard,
-            member=invited,
-            last_visited=timezone.now(),
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
