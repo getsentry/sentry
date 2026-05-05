@@ -275,7 +275,9 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.build_changes_map")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
-    def test_handles_api_error(self, mock_format, mock_get_client, mock_build_changes_map, _mock_sleep):
+    def test_handles_api_error(
+        self, mock_format, mock_get_client, mock_build_changes_map, _mock_sleep
+    ):
         mock_client = Mock()
         mock_client.create_comment.side_effect = ApiError("rate limited", code=429)
         mock_get_client.return_value = mock_client
