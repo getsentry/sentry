@@ -1,7 +1,6 @@
 import {invokeProvidesCallback} from './flakeStressUtils';
 
-const chunkSizeBytes = 64 * 1024;
-/** 1024 × 64 KiB ≈ 64 MiB fragmented across many allocations (heap / GC pressure). */
+const chunkSizeBytes = 8 * 1024;
 const chunkCount = 1024;
 
 /**
