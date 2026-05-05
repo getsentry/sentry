@@ -12,6 +12,8 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
+import {DashboardsTab} from 'sentry/views/dashboards/manage/types';
+import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboardsTab';
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
@@ -30,8 +32,7 @@ export function DashboardsSecondaryNavigation() {
     'dashboards-prebuilt-insights-dashboards'
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
-  const isOnlyPrebuilt = urlFilter === DashboardFilter.ONLY_PREBUILT;
-  const isAllDashboards = urlFilter === DashboardFilter.ALL;
+  const dashboardsTab = getDashboardsTab(hasPrebuiltDashboards, urlFilter);
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
     `${baseUrl}/`,
     location.pathname,
@@ -50,7 +51,7 @@ export function DashboardsSecondaryNavigation() {
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/?filter=${DashboardFilter.ALL}`}
-                  isActive={isOnDashboardsList && isAllDashboards}
+                  isActive={isOnDashboardsList && dashboardsTab === DashboardsTab.ALL}
                   analyticsItemName="dashboards_all_combined"
                 >
                   {t('All Dashboards')}
@@ -63,7 +64,7 @@ export function DashboardsSecondaryNavigation() {
                 end
                 isActive={
                   hasPrebuiltDashboards
-                    ? isOnDashboardsList && !isOnlyPrebuilt && !isAllDashboards
+                    ? isOnDashboardsList && dashboardsTab === DashboardsTab.CUSTOM
                     : undefined
                 }
                 analyticsItemName="dashboards_all"
@@ -75,7 +76,9 @@ export function DashboardsSecondaryNavigation() {
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
-                  isActive={isOnDashboardsList && isOnlyPrebuilt}
+                  isActive={
+                    isOnDashboardsList && dashboardsTab === DashboardsTab.PREBUILT
+                  }
                   analyticsItemName="dashboards_sentry_built"
                 >
                   {PREBUILT_DASHBOARD_LABEL}
