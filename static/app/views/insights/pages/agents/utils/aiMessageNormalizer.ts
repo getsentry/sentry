@@ -27,6 +27,14 @@ type RawMessage = {
   roleExplicit?: boolean;
 };
 
+type PartBuckets = {
+  hasRenderableTextPart: boolean;
+  objectParts: unknown[];
+  textParts: string[];
+  toolCalls: unknown[];
+  toolResponses: UnknownRecord[];
+};
+
 // Keep this parser mirrored with src/sentry/utils/ai_message_normalizer.py.
 // AI SDKs emit inconsistent shapes and their specs keep changing, so update both
 // parsers together whenever adding or changing a supported format.
@@ -291,30 +299,74 @@ function renderTextContent(content: unknown): unknown {
  * structured objects, then tool_calls, then tool_call_responses.
  */
 function collapseParts(parts: unknown[]): unknown {
-  const hasText = parts.some(part => getPartType(part) === 'text');
-  const hasFile = parts.some(part => isFileContentPartType(getPartType(part)));
-  if (hasText || hasFile) {
-    return extractTextFromContentParts(parts);
-  }
+  const buckets = bucketParts(parts);
 
-  const objectParts = parts.filter(part => getPartType(part) === 'object');
-  if (objectParts.length > 0) {
-    return objectParts.length === 1 ? objectParts[0] : objectParts;
+  if (buckets.hasRenderableTextPart) {
+    return buckets.textParts.join('\n');
   }
-
-  const toolCalls = parts.filter(part => getPartType(part) === 'tool_call');
-  if (toolCalls.length > 0) {
-    return toolCalls;
+  if (buckets.objectParts.length > 0) {
+    return buckets.objectParts.length === 1
+      ? buckets.objectParts[0]
+      : buckets.objectParts;
   }
-
-  const toolResponses = parts.filter(part => getPartType(part) === 'tool_call_response');
-  if (toolResponses.length > 0) {
-    return toolResponses
-      .map(response => (isRecord(response) ? response.result : undefined))
-      .join('\n');
+  if (buckets.toolCalls.length > 0) {
+    return buckets.toolCalls;
+  }
+  if (buckets.toolResponses.length > 0) {
+    return buckets.toolResponses.map(response => response.result).join('\n');
   }
 
   return undefined;
+}
+
+function bucketParts(parts: unknown[]): PartBuckets {
+  const buckets: PartBuckets = {
+    hasRenderableTextPart: false,
+    textParts: [],
+    objectParts: [],
+    toolCalls: [],
+    toolResponses: [],
+  };
+  for (const part of parts) {
+    if (!isRecord(part)) {
+      continue;
+    }
+
+    const partType = getPartType(part);
+    if (isFileContentPartType(partType)) {
+      buckets.hasRenderableTextPart = true;
+      buckets.textParts.push(redactedFileContent(part));
+      continue;
+    }
+    if (partType === 'text') {
+      buckets.hasRenderableTextPart = true;
+      const text = getTextPartContent(part, {trim: true});
+      if (text) {
+        buckets.textParts.push(text);
+      }
+      continue;
+    }
+    if (!partType) {
+      const text = getTextPartContent(part, {trim: true});
+      if (text) {
+        buckets.textParts.push(text);
+      }
+      continue;
+    }
+    if (partType === 'object') {
+      buckets.objectParts.push(part);
+      continue;
+    }
+    if (partType === 'tool_call') {
+      buckets.toolCalls.push(part);
+      continue;
+    }
+    if (partType === 'tool_call_response') {
+      buckets.toolResponses.push(part);
+    }
+  }
+
+  return buckets;
 }
 
 function selectAssistantMessages(rawMessages: RawMessage[]): RawMessage[] {
@@ -428,9 +480,9 @@ function extractTextFromContentParts(parts: unknown[]): string {
     // Accept untyped items with `text` or `content` (older Anthropic-style
     // [{text: '...'}] arrays) as well as explicit `type: 'text'` parts.
     if (!partType || partType === 'text') {
-      const text = getStringField(part, 'text') ?? getStringField(part, 'content');
+      const text = getTextPartContent(part, {trim: true});
       if (text) {
-        texts.push(text.trim());
+        texts.push(text);
       }
     }
   }
@@ -456,6 +508,14 @@ function isFileContentPartType(value: unknown): value is FileContentPartType {
 
 function getMimeType(record: UnknownRecord): string {
   return getStringField(record, 'mime_type') ?? 'unknown';
+}
+
+function getTextPartContent(
+  record: UnknownRecord,
+  options: {trim?: boolean} = {}
+): string | undefined {
+  const text = getStringField(record, 'text') ?? getStringField(record, 'content');
+  return options.trim ? text?.trim() : text;
 }
 
 function redactedFileContent(record: UnknownRecord): string {

@@ -24,6 +24,14 @@ class RawMessage(TypedDict, total=False):
     role_explicit: bool
 
 
+class PartBuckets(TypedDict):
+    has_renderable_text_part: bool
+    text_parts: list[str]
+    object_parts: list[Any]
+    tool_calls: list[Any]
+    tool_responses: list[dict[str, Any]]
+
+
 # Keep this parser mirrored with
 # static/app/views/insights/pages/agents/utils/aiMessageNormalizer.ts.
 # AI SDKs emit inconsistent shapes and their specs keep changing, so update both
@@ -218,34 +226,63 @@ def _try_parse_json_recursive(value: Any) -> Any:
 
 
 def _collapse_parts(parts: list[Any]) -> Any:
-    has_text = any(isinstance(part, dict) and part.get("type") == "text" for part in parts)
-    has_file = any(
-        isinstance(part, dict) and part.get("type") in FILE_CONTENT_PARTS for part in parts
-    )
-    if has_text or has_file:
-        return _extract_text_from_content_parts(parts)
+    buckets = _bucket_parts(parts)
 
-    object_parts = [
-        part for part in parts if isinstance(part, dict) and part.get("type") == "object"
-    ]
-    if object_parts:
-        return object_parts[0] if len(object_parts) == 1 else object_parts
-
-    tool_calls = [
-        part for part in parts if isinstance(part, dict) and part.get("type") == "tool_call"
-    ]
-    if tool_calls:
-        return tool_calls
-
-    tool_responses = [
-        part
-        for part in parts
-        if isinstance(part, dict) and part.get("type") == "tool_call_response"
-    ]
-    if tool_responses:
-        return "\n".join(str(response.get("result", "")) for response in tool_responses)
+    if buckets["has_renderable_text_part"]:
+        return "\n".join(buckets["text_parts"])
+    if buckets["object_parts"]:
+        return (
+            buckets["object_parts"][0]
+            if len(buckets["object_parts"]) == 1
+            else buckets["object_parts"]
+        )
+    if buckets["tool_calls"]:
+        return buckets["tool_calls"]
+    if buckets["tool_responses"]:
+        return "\n".join(str(response.get("result", "")) for response in buckets["tool_responses"])
 
     return None
+
+
+def _bucket_parts(parts: list[Any]) -> PartBuckets:
+    buckets: PartBuckets = {
+        "has_renderable_text_part": False,
+        "text_parts": [],
+        "object_parts": [],
+        "tool_calls": [],
+        "tool_responses": [],
+    }
+
+    for part in parts:
+        if not isinstance(part, dict):
+            continue
+
+        part_type = part.get("type")
+        if part_type in FILE_CONTENT_PARTS:
+            buckets["has_renderable_text_part"] = True
+            buckets["text_parts"].append(_redacted_file_content(part))
+            continue
+        if part_type == "text":
+            buckets["has_renderable_text_part"] = True
+            text = _text_from_part(part, strip=True)
+            if text:
+                buckets["text_parts"].append(text)
+            continue
+        if not part_type:
+            text = _text_from_part(part, strip=True)
+            if text:
+                buckets["text_parts"].append(text)
+            continue
+        if part_type == "object":
+            buckets["object_parts"].append(part)
+            continue
+        if part_type == "tool_call":
+            buckets["tool_calls"].append(part)
+            continue
+        if part_type == "tool_call_response":
+            buckets["tool_responses"].append(part)
+
+    return buckets
 
 
 def _select_assistant_messages(raw_messages: list[RawMessage]) -> list[RawMessage]:
@@ -334,10 +371,17 @@ def _extract_text_from_content_parts(parts: list[Any]) -> str:
             texts.append(_redacted_file_content(part))
             continue
         if not part.get("type") or part.get("type") == "text":
-            text = part.get("text") or part.get("content")
-            if isinstance(text, str) and text:
-                texts.append(text.strip())
+            text = _text_from_part(part, strip=True)
+            if text:
+                texts.append(text)
     return "\n".join(texts)
+
+
+def _text_from_part(part: dict[str, Any], *, strip: bool = False) -> str | None:
+    text = part.get("text") or part.get("content")
+    if not isinstance(text, str) or not text:
+        return None
+    return text.strip() if strip else text
 
 
 def _redacted_file_content(part: dict[str, Any]) -> str:
