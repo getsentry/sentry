@@ -18,7 +18,7 @@ def mark_skipped(group_id: int) -> None:
     _client().set(key(group_id), "1", ex=SKIP_TTL_SECONDS)
 
 
-def filter_recently_skipped(group_ids: Iterable[int]) -> set[int]:
+def recently_skipped(group_ids: Iterable[int]) -> set[int]:
     ids = list(group_ids)
     if not ids:
         return set()

@@ -13,7 +13,7 @@ from sentry.models.project import Project
 from sentry.seer.autofix.utils import is_issue_category_eligible
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.skip_cache import filter_recently_skipped
+from sentry.tasks.seer.night_shift.skip_cache import recently_skipped
 from sentry.types.group import PriorityLevel
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
@@ -66,7 +66,7 @@ def fixability_score_strategy(
         referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value,
     )
 
-    skipped_ids = filter_recently_skipped(g.id for g in result.results)
+    skipped_ids = recently_skipped(g.id for g in result.results)
 
     logger.info(
         "night_shift.search_results",

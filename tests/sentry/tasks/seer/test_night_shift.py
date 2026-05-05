@@ -528,7 +528,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage.filter_recently_skipped",
+                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
                 return_value={skipped_group.id},
             ),
             self._patched_night_shift([(other_group.id, "autofix")]) as (mock_trigger, _),
