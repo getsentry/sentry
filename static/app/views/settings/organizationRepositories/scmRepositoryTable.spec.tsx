@@ -206,7 +206,7 @@ describe('ScmRepositoryTable', () => {
       expect(screen.getByText('No repositories available.')).toBeInTheDocument();
     });
 
-    it('shows a loading message in the body and a loading indicator on the tag when reposLoading', () => {
+    it('shows a loading indicator on the tag and loading text in the body when reposLoading', () => {
       render(
         <ScmRepositoryTable
           provider={provider}
@@ -214,8 +214,8 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      // Tag always shows the count (0 while loading), with a StatusIndicator alongside it.
-      expect(screen.getByText('0 repos')).toBeInTheDocument();
+      // Tag shows the count with a loading indicator icon.
+      expect(screen.getByText('0 repositories')).toBeInTheDocument();
       // Body shows loading text when no repos have arrived yet.
       const repoList = screen.getByRole('list', {name: 'Repositories'});
       expect(within(repoList).getByText('Loading repositories')).toBeInTheDocument();
@@ -254,40 +254,60 @@ describe('ScmRepositoryTable', () => {
     });
   });
 
-  describe('footer', () => {
-    it('shows last-synced time when lastSyncedAt is provided', () => {
+  describe('repository count tag', () => {
+    it('shows last-synced date in the tooltip when configData has last_sync', async () => {
       render(
         <ScmRepositoryTable
           provider={provider}
-          installations={[makeInstallation()]}
-          lastSyncedAt={new Date(Date.now() - 5 * 60 * 1000)}
+          installations={[
+            makeInstallation({
+              integration: OrganizationIntegrationsFixture({
+                id: '1',
+                configData: {
+                  last_sync: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+                },
+              }),
+            }),
+          ]}
         />
       );
 
-      expect(screen.getByText(/Last synced/)).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('3 repositories'));
+      expect(await screen.findByText(/Repositories last synced/)).toBeInTheDocument();
     });
 
-    it('shows a sync button when onSync is provided', async () => {
-      const onSync = jest.fn();
-      render(
-        <ScmRepositoryTable
-          provider={provider}
-          installations={[makeInstallation()]}
-          onSync={onSync}
-        />
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Sync'}));
-      expect(onSync).toHaveBeenCalledTimes(1);
-    });
-
-    it('hides the footer when neither lastSyncedAt nor onSync is provided', () => {
+    it('shows "not synced yet" in the tooltip when lastSync is absent', async () => {
       render(
         <ScmRepositoryTable provider={provider} installations={[makeInstallation()]} />
       );
 
-      expect(screen.queryByText(/Last synced/)).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Sync'})).not.toBeInTheDocument();
+      await userEvent.hover(screen.getByText('3 repositories'));
+      expect(await screen.findByText('Repositories not yet synced.')).toBeInTheDocument();
+    });
+
+    it('calls onInstallationSync when Sync now is clicked', async () => {
+      const onInstallationSync = jest.fn();
+      render(
+        <ScmRepositoryTable
+          provider={provider}
+          installations={[makeInstallation()]}
+          onInstallationSync={onInstallationSync}
+        />
+      );
+
+      await userEvent.hover(screen.getByText('3 repositories'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Sync now'}));
+      expect(onInstallationSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('hides the Sync now button when onInstallationSync is not provided', async () => {
+      render(
+        <ScmRepositoryTable provider={provider} installations={[makeInstallation()]} />
+      );
+
+      await userEvent.hover(screen.getByText('3 repositories'));
+      await screen.findByText('Repositories not yet synced.');
+      expect(screen.queryByRole('button', {name: 'Sync now'})).not.toBeInTheDocument();
     });
   });
 

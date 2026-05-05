@@ -19,9 +19,9 @@ import {
   IconChevron,
   IconDelete,
   IconEllipsis,
+  IconInfo,
   IconOpen,
   IconSliders,
-  IconSync,
 } from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {
@@ -64,6 +64,11 @@ export interface ScmInstallation {
    */
   initiallyExpanded?: boolean;
   /**
+   * When true, the tag icon switches to a loading indicator and the tooltip
+   * shows "Re-syncing in the background…" instead of the sync button.
+   */
+  isSyncing?: boolean;
+  /**
    * Optional URL to the upstream provider's installation-management page
    * (e.g. GitHub's app settings). Surfaced as a "Manage repositories" link in
    * the empty state and the no-search-results state.
@@ -92,8 +97,8 @@ export interface ScmInstallation {
   overflowMenuItems?: MenuItemProps[];
   /**
    * Whether the parent is still fetching the repository list. Drives the
-   * "Loading repositories" empty state and hides the repo-count tag while
-   * `repositories` is still empty.
+   * "Loading repositories" empty state and shows a loading indicator
+   * alongside the repository count tag.
    */
   reposLoading?: boolean;
   /**
@@ -118,18 +123,15 @@ interface ScmRepositoryTableProps {
    */
   provider: IntegrationProvider;
   /**
-   * When provided, renders a "Last synced N ago" label in the footer.
+   * Called when the user clicks "Sync now" in the repository count tag tooltip.
+   * When omitted the button is hidden.
    */
-  lastSyncedAt?: Date;
+  onInstallationSync?: (installation: ScmInstallation) => void;
   /**
    * Called when the user clicks the settings button for an installation.
    * When omitted the button is hidden.
    */
   onSettings?: (installation: ScmInstallation) => void;
-  /**
-   * When provided, renders a Sync button in the footer.
-   */
-  onSync?: () => void;
   /**
    * Called when the user clicks the uninstall button for an installation.
    * When omitted the button is hidden.
@@ -183,14 +185,12 @@ function useExpandedInstallations(installations: ScmInstallation[]) {
 export function ScmRepositoryTable({
   provider,
   installations,
-  lastSyncedAt,
   onSettings,
-  onSync,
+  onInstallationSync,
   onUninstall,
   repoActions,
   repoMatches,
 }: ScmRepositoryTableProps) {
-  const showFooter = lastSyncedAt !== undefined || onSync !== undefined;
   const soleInstallation = installations.length === 1 ? installations[0]! : null;
 
   const {expandedIds, toggle} = useExpandedInstallations(installations);
@@ -222,6 +222,7 @@ export function ScmRepositoryTable({
               providerName={provider.name}
               onUninstall={onUninstall}
               onSettings={onSettings}
+              onInstallationSync={onInstallationSync}
             />
           )}
         </Flex>
@@ -248,6 +249,7 @@ export function ScmRepositoryTable({
                   onToggle={() => toggle(installation.integration.id)}
                   onUninstall={onUninstall}
                   onSettings={onSettings}
+                  onInstallationSync={onInstallationSync}
                   repoActions={repoActions}
                   repoMatches={repoMatches}
                 />
@@ -255,34 +257,6 @@ export function ScmRepositoryTable({
             );
           })}
         </Grid>
-      )}
-      {showFooter && (
-        <Flex
-          align="center"
-          gap="md"
-          background="secondary"
-          borderTop="primary"
-          radius="0 0 md md"
-          padding="md xl"
-        >
-          {lastSyncedAt !== undefined && (
-            <Text variant="muted" size="sm">
-              {tct('Last synced [timeSince] ago', {
-                timeSince: <TimeSince date={lastSyncedAt} suffix="" />,
-              })}
-            </Text>
-          )}
-          {onSync && (
-            <Button
-              variant="transparent"
-              size="zero"
-              icon={<IconSync size="xs" />}
-              onClick={onSync}
-            >
-              {t('Sync')}
-            </Button>
-          )}
-        </Flex>
       )}
     </Panel>
   );
@@ -293,6 +267,7 @@ interface InstallationRowProps {
   installation: ScmInstallation;
   onToggle: () => void;
   provider: IntegrationProvider;
+  onInstallationSync?: (installation: ScmInstallation) => void;
   onSettings?: (installation: ScmInstallation) => void;
   onUninstall?: (installation: ScmInstallation) => void;
   repoActions?: (repo: Repository, installation: ScmInstallation) => ReactNode;
@@ -306,6 +281,7 @@ function InstallationRow({
   onToggle,
   onUninstall,
   onSettings,
+  onInstallationSync,
   repoActions,
   repoMatches,
 }: InstallationRowProps) {
@@ -354,6 +330,7 @@ function InstallationRow({
               providerName={provider.name}
               onUninstall={onUninstall}
               onSettings={onSettings}
+              onInstallationSync={onInstallationSync}
             />
           </Flex>
         </Flex>
@@ -372,23 +349,12 @@ function InstallationRow({
 }
 
 function IntegrationSummary({installation}: {installation: ScmInstallation}) {
-  const {integration, repositories, reposLoading} = installation;
+  const {integration} = installation;
   return (
     <Fragment>
       {getIntegrationIcon(integration.provider.key, 'sm')}
       <Text bold>{integration.name}</Text>
-      {integration.status === 'disabled' ? (
-        <Tag variant="warning">{t('Disabled')}</Tag>
-      ) : (
-        <Fragment>
-          <Tag variant="muted">{tn('%s repo', '%s repos', repositories.length)}</Tag>
-          {reposLoading && (
-            <Tooltip title={t('Loading repositories')} skipWrapper>
-              <StatusIndicator variant="accent" />
-            </Tooltip>
-          )}
-        </Fragment>
-      )}
+      {integration.status === 'disabled' && <Tag variant="warning">{t('Disabled')}</Tag>}
     </Fragment>
   );
 }
@@ -396,6 +362,7 @@ function IntegrationSummary({installation}: {installation: ScmInstallation}) {
 interface InstallationActionsProps {
   installation: ScmInstallation;
   providerName: string;
+  onInstallationSync?: (installation: ScmInstallation) => void;
   onSettings?: (installation: ScmInstallation) => void;
   onUninstall?: (installation: ScmInstallation) => void;
 }
@@ -403,13 +370,63 @@ interface InstallationActionsProps {
 function InstallationActions({
   installation,
   providerName,
+  onInstallationSync,
   onUninstall,
   onSettings,
 }: InstallationActionsProps) {
-  const {manageUrl, overflowMenuItems, settingsButtonProps, uninstallButtonProps} =
-    installation;
+  const {
+    manageUrl,
+    overflowMenuItems,
+    settingsButtonProps,
+    uninstallButtonProps,
+    repositories,
+    reposLoading,
+    isSyncing,
+    integration,
+  } = installation;
+
+  const isDisabled = integration.status === 'disabled';
+  const rawLastSync = integration.configData?.last_sync;
+  const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
+
+  const syncNowButton =
+    onInstallationSync && !isSyncing ? (
+      <Button size="xs" variant="link" onClick={() => onInstallationSync(installation)}>
+        {t('Sync now')}
+      </Button>
+    ) : null;
+
+  const isLoading = reposLoading || isSyncing;
+
+  const repoCountTooltip = reposLoading
+    ? t('Loading repositories')
+    : isSyncing
+      ? t('Re-syncing in the background…')
+      : lastSync
+        ? tct('Repositories last synced to Sentry [date]. [syncNow]', {
+            date: (
+              <strong>
+                <TimeSince disabledAbsoluteTooltip date={lastSync} />
+              </strong>
+            ),
+            syncNow: syncNowButton,
+          })
+        : tct('Repositories not yet synced. [syncNow]', {
+            syncNow: syncNowButton,
+          });
+
   return (
     <Fragment>
+      {!isDisabled && (
+        <Tooltip isHoverable={!isLoading} title={repoCountTooltip} skipWrapper>
+          <Tag
+            variant="muted"
+            icon={isLoading ? <StatusIndicator variant="accent" /> : <IconInfo />}
+          >
+            {tn('%s repository', '%s repositories', repositories.length)}
+          </Tag>
+        </Tooltip>
+      )}
       {manageUrl && (
         <LinkButton
           tooltipProps={{

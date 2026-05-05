@@ -57,6 +57,7 @@ import {
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
@@ -189,7 +190,9 @@ function SpanTabContentSectionInner({
   const id = useQueryParamsId();
   const [tab, setTab] = useTab();
   const [caseInsensitive] = useCaseInsensitivity();
-  const crossEventQueries = useCrossEventQueries();
+  const organization = useOrganization();
+  const crossEventDatasetAvailability = useCrossEventDatasetAvailability(organization);
+  const crossEventQueries = useCrossEventQueries(crossEventDatasetAvailability);
   const sortBys = useQueryParamsSortBys();
   const groupBys = useQueryParamsGroupBys();
 
@@ -208,7 +211,6 @@ function SpanTabContentSectionInner({
     sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
   });
 
-  const organization = useOrganization();
   const hasCrossEventQueries = organization.features.includes(
     'traces-page-cross-event-querying'
   );
@@ -292,6 +294,7 @@ function SpanTabContentSectionInner({
     tracesTableResult,
     timeseriesResult,
     interval,
+    crossEventQueries,
   });
 
   const error = defined(timeseriesResult.error)
