@@ -43,7 +43,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
 
-        dataset = self.get_dataset(request)
+        dataset = self.get_dataset(request, organization)
 
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
