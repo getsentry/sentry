@@ -102,7 +102,7 @@ def simple_task_compressed(*args: list[Any], **kwargs: dict[str, Any]) -> None:
 
 @exampletasks.register(name="examples.simple_task_with_random_duration")
 def simple_task_with_random_duration(
-    distribution: str, a: int, b: int, *args: list[Any], **kwargs: dict[str, Any]
+    distribution: str, a: float, b: float, *args: list[Any], **kwargs: dict[str, Any]
 ) -> None:
     """
     Runs tasks that sleep for a random duration, based on the distribution and the parameters.
