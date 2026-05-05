@@ -156,7 +156,7 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
         assert new_conditions.count() == 3
         assert {c.comparison["value"] for c in new_conditions} == {13, 14, 15}
         dcg = DataConditionGroup.objects.get(id=self.dcg_none.id)
-        assert dcg.logic_type == "all"
+        assert dcg.logic_type == "none"
 
         # Test that a type other than issue category is untouched
         dc = DataCondition.objects.get(id=self.dc_unrelated.id)
