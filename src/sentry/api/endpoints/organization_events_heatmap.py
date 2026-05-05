@@ -83,7 +83,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
-            dataset = self.get_dataset(request)
+            dataset = self.get_dataset(request, organization)
             if dataset not in HEATMAP_DATASETS:
                 raise ParseError(f"{dataset} is not supported on this endpoint")
 
