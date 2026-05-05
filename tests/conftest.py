@@ -203,6 +203,14 @@ def _leaked_signals() -> list[str]:
 
 
 @pytest.fixture(autouse=True)
+def mock_objectstore_mint_token() -> Generator[None]:
+    from unittest.mock import patch
+
+    with patch("objectstore_client.client.Session.mint_token", return_value=None):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def check_leaked_signals() -> Generator[None]:
     before = frozenset(_leaked_signals())
     yield
