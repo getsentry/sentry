@@ -12,8 +12,6 @@ from sentry.scm.types import PullRequestEvent
 
 @scm_event_stream.listen_for_pull_request
 def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
-    # print(f"VJA: received pull request event: {e}", flush=True)
-
     # @todo(When we remove the old handlers for GitHub) Remove this check, and process GitHub webhooks
     if e.subscription_event["type"] != "gitlab":
         return
