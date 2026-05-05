@@ -419,7 +419,17 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
-    default={"base_url": "http://127.0.0.1:8888"},
+    default={
+        "base_url": "http://127.0.0.1:8888",
+        # Test-only token generator with no permissions. Only active when no real
+        # objectstore config is deployed. Exists so mint_token() does not raise in
+        # test/dev environments that lack signing keys.
+        "token_generator": {
+            "kid": "test",
+            "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
+            "permissions": [],
+        },
+    },
     flags=FLAG_NOSTORE,
 )
 
