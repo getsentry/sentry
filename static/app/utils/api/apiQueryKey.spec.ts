@@ -70,6 +70,18 @@ describe('apiQueryKey', () => {
         expect(safeParseQueryKey([null])).toBeUndefined();
       });
 
+      it('returns undefined when the URL does not start with /', () => {
+        expect(safeParseQueryKey(['api-tokens/', {}, {infinite: false}])).toBeUndefined();
+      });
+
+      it('returns undefined when the URL does not end with /', () => {
+        expect(safeParseQueryKey(['/api-tokens', {}, {infinite: false}])).toBeUndefined();
+      });
+
+      it('returns undefined when the first element is not a string', () => {
+        expect(safeParseQueryKey([123, {}, {infinite: false}])).toBeUndefined();
+      });
+
       it('returns undefined when the second element is not an object', () => {
         expect(safeParseQueryKey(['/url/', 'not-an-object'])).toBeUndefined();
       });
