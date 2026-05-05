@@ -8,10 +8,13 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.rules.utils import DecisionDropCount, DecisionKeepCount, ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
 )
+from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
@@ -19,9 +22,17 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
+ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+
+EAP_ORGANIZATION_VOLUME_QUERY_STRINGS = {
+    SamplingMeasure.SEGMENTS: "is_transaction:true",
+    SamplingMeasure.SPANS: "",
+}
+
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
-    return int(row.get(column, 0))
+    value = row.get(column)
+    return int(value) if value is not None else 0
 
 
 def run_eap_spans_table_query_in_chunks(
@@ -51,8 +62,9 @@ def get_eap_organization_volume(
     config: BaseDynamicSamplingConfiguration,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
 ) -> OrganizationDataVolume | None:
+    organization = config.organization
     projects = list(
-        Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
+        Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
     )
     if not projects:
         return None
@@ -64,9 +76,9 @@ def get_eap_organization_volume(
             start=start_time,
             end=end_time,
             projects=projects,
-            organization=config.organization,
+            organization=organization,
         ),
-        query_string="is_transaction:true",
+        query_string=EAP_ORGANIZATION_VOLUME_QUERY_STRINGS[config.measure],
         selected_columns=["count()", "count_sample()"],
         orderby=None,
         offset=0,
@@ -89,4 +101,57 @@ def get_eap_organization_volume(
         return None
     indexed = _get_aggregate_int(row, "count_sample()")
 
-    return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
+    return OrganizationDataVolume(org_id=organization.id, total=total, indexed=indexed)
+
+
+def get_eap_project_volumes(
+    config: BaseDynamicSamplingConfiguration,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+) -> list[ProjectVolumes]:
+    organization = config.organization
+    projects = list(
+        Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
+    )
+    if not projects:
+        return []
+
+    end_time = datetime.now(UTC)
+    start_time = end_time - time_interval
+    offset = 0
+    project_volumes: list[ProjectVolumes] = []
+    more_results = True
+
+    while more_results:
+        result = Spans.run_table_query(
+            params=SnubaParams(
+                start=start_time,
+                end=end_time,
+                projects=projects,
+                organization=organization,
+            ),
+            query_string=EAP_ORGANIZATION_VOLUME_QUERY_STRINGS[config.measure],
+            selected_columns=["project.id", "count()", "count_sample()"],
+            orderby=["project.id"],
+            offset=offset,
+            limit=CHUNK_SIZE + 1,
+            referrer=Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
+            config=SearchResolverConfig(
+                auto_fields=True,
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+            ),
+            sampling_mode=SAMPLING_MODE_HIGHEST_ACCURACY,
+        )
+
+        data = result.get("data", [])
+        more_results = len(data) > CHUNK_SIZE
+        offset += CHUNK_SIZE
+        if more_results:
+            data = data[:-1]
+
+        for row in data:
+            total = int(row["count()"])
+            keep = int(row["count_sample()"])
+            drop = max(total - keep, 0)
+            project_volumes.append((ProjectId(row["project.id"]), total, keep, drop))
+
+    return project_volumes

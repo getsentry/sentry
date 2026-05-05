@@ -10,7 +10,10 @@ from taskbroker_client.retry import Retry
 
 from sentry.dynamic_sampling.per_org.tasks.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
-from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
+from sentry.dynamic_sampling.per_org.tasks.queries import (
+    get_eap_organization_volume,
+    get_eap_project_volumes,
+)
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     TelemetryStatus,
@@ -103,6 +106,10 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> TelemetryStatus | N
 
     org_volume = get_eap_organization_volume(config)
     if org_volume is None:
+        return TelemetryStatus.NO_VOLUME
+
+    project_volumes = get_eap_project_volumes(config)
+    if not project_volumes:
         return TelemetryStatus.NO_VOLUME
 
     return None
