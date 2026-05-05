@@ -439,7 +439,7 @@ export function MetricSelector({
         }));
 
   const sidePanelAnchorPosition =
-    sidePanelAnchorOffset === null ? undefined : {md: `${sidePanelAnchorOffset}px`};
+    sidePanelAnchorOffset === null ? '0px' : `${sidePanelAnchorOffset}px`;
   const hasSelectedMetric = Boolean(traceMetric.name);
 
   return (
@@ -599,34 +599,27 @@ export function MetricSelector({
                     </Container>
                   </Stack>
                   {hasSelectedMetric ? (
-                    <Container
+                    <SidePanel
                       ref={setSidePanelRef}
                       top={
                         isOverlayAboveTrigger
                           ? undefined
-                          : (sidePanelAnchorPosition ?? {md: 0})
+                          : {xs: 'auto', md: sidePanelAnchorPosition}
                       }
                       bottom={
                         isOverlayAboveTrigger
-                          ? (sidePanelAnchorPosition ?? {md: 0})
+                          ? {xs: 'auto', md: sidePanelAnchorPosition}
                           : undefined
                       }
                       width={{xs: '100%', md: '280px'}}
                       padding="lg"
                       minHeight="0"
-                      position={{md: 'absolute'}}
-                      left={{md: '100%'}}
-                      maxHeight={{md: 'calc(100vh - 32px)'}}
-                      overflowY={{md: 'auto'}}
-                      background={{md: 'primary'}}
-                      border={{md: 'primary'}}
-                      radius={{md: 'md'}}
                     >
                       <MetricDetailPanel
                         metric={highlightedOption ?? optionFromTraceMetric}
                         hasMetricUnitsUI={hasMetricUnitsUI}
                       />
-                    </Container>
+                    </SidePanel>
                   ) : null}
                 </Flex>
               </FocusScope>
@@ -642,5 +635,17 @@ export function MetricSelector({
 const MetricSelectorOverlay = styled(Overlay)`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     overflow: visible;
+  }
+`;
+
+const SidePanel = styled(Container)`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    position: absolute;
+    left: 100%;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: ${p => p.theme.tokens.background.primary};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
