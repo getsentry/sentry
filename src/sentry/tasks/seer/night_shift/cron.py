@@ -504,7 +504,7 @@ def _validated_kinds(kinds: Sequence[str] | None) -> list[NightShiftKind]:
             logger.error("night_shift.unknown_kind_requested", extra={"kind": k})
             continue
         seen.add(k)
-        deduped.append(k)  # type: ignore[arg-type]
+        deduped.append(k)
     return deduped
 
 
