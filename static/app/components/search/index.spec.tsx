@@ -1,6 +1,6 @@
 import Fuse from 'fuse.js';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {SearchProps} from 'sentry/components/search';
@@ -77,22 +77,30 @@ describe('Search', () => {
     jest.clearAllMocks();
   });
 
-  it('renders search results from source', async () => {
-    jest.useFakeTimers();
-    render(<Search {...makeSearchProps()} />);
+  describe('with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
 
-    await userEvent.click(screen.getByPlaceholderText('Search Input'), {delay: null});
-    await userEvent.keyboard('Export', {delay: null});
+    it('renders search results from source', async () => {
+      render(<Search {...makeSearchProps()} />);
 
-    jest.advanceTimersByTime(500);
-    jest.useRealTimers();
+      await userEvent.click(screen.getByPlaceholderText('Search Input'), {delay: null});
+      await userEvent.keyboard('Export', {delay: null});
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Vandelay Industries - Export/))
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/Vandelay Industries - Import/))
-    ).not.toBeInTheDocument();
+      jest.advanceTimersByTime(500);
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/Vandelay Industries - Export/))
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(textWithMarkupMatcher(/Vandelay Industries - Import/))
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('navigates to a route when item has to prop', async () => {

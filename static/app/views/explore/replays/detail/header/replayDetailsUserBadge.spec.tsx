@@ -28,10 +28,14 @@ function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
   });
 }
 
-jest.useFakeTimers();
 describe('replayDetailsUserBadge', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     MockApiClient.clearMockResponses();
+  });
+  afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
+    jest.useRealTimers();
   });
 
   it('should show LIVE badge when last received segment is within 5 minutes', async () => {

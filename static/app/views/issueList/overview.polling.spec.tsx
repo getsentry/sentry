@@ -4,7 +4,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {StreamGroup} from 'sentry/components/stream/group';
@@ -36,6 +36,7 @@ describe('IssueList -> Polling', () => {
   let pollRequest: jest.Mock;
 
   afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
     jest.useRealTimers();
     MockApiClient.clearMockResponses();
   });

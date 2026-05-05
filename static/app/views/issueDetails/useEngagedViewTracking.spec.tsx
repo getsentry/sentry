@@ -21,6 +21,7 @@ describe('useEngagedViewTracking', () => {
   });
 
   afterEach(() => {
+    jest.runOnlyPendingTimers();
     jest.useRealTimers();
     jest.clearAllMocks();
   });

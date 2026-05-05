@@ -20,9 +20,14 @@ jest.mock('sentry/utils/replays/hooks/useReplayProjectSlug', () => ({
   useReplayProjectSlug: () => 'test-project',
 }));
 
-jest.useFakeTimers();
-
 describe('useLiveBadge', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
+    jest.useRealTimers();
+  });
   it('should return isLive=true when replay finished within 5 minutes', () => {
     const now = Date.now();
     const startedAt = new Date(now - 60_000); // 1 minute ago
@@ -120,7 +125,12 @@ describe('useLiveRefresh', () => {
   }
 
   beforeEach(() => {
+    jest.useFakeTimers();
     MockApiClient.clearMockResponses();
+  });
+  afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
+    jest.useRealTimers();
   });
 
   it('should not show refresh button when replay is undefined', () => {

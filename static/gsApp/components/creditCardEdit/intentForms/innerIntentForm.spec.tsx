@@ -36,26 +36,33 @@ describe('InnerIntentForm', () => {
     });
   });
 
-  it('shows warning when Stripe hooks return null', async () => {
-    jest.useFakeTimers();
-
-    const stripeImport = await import('@stripe/react-stripe-js');
-    jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null as any);
-    jest.spyOn(stripeImport, 'useElements').mockReturnValue(null as any);
-
-    render(<InnerIntentForm {...defaultProps} />);
-
-    act(() => {
-      jest.advanceTimersByTime(10001);
+  describe('stripe loading timeout', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    expect(
-      screen.getByText(
-        /To add or update your payment method, you may need to disable any ad or tracker blocking extensions/
-      )
-    ).toBeInTheDocument();
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
 
-    jest.useRealTimers();
+    it('shows warning when Stripe hooks return null', async () => {
+      const stripeImport = await import('@stripe/react-stripe-js');
+      jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null as any);
+      jest.spyOn(stripeImport, 'useElements').mockReturnValue(null as any);
+
+      render(<InnerIntentForm {...defaultProps} />);
+
+      act(() => {
+        jest.advanceTimersByTime(10001);
+      });
+
+      expect(
+        screen.getByText(
+          /To add or update your payment method, you may need to disable any ad or tracker blocking extensions/
+        )
+      ).toBeInTheDocument();
+    });
   });
 
   it('shows error message when provided', () => {

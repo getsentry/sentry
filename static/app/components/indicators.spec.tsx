@@ -156,21 +156,33 @@ describe('Indicators', () => {
     expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 
-  it('hides after 10s', () => {
-    jest.useFakeTimers();
-    const {container} = render(<Indicators />);
+  describe('with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+    afterEach(() => {
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } catch {
+        // ignore errors if timers were already restored
+      }
+      jest.useRealTimers();
+    });
 
-    act(() => addMessage('Duration', '', {append: true, duration: 10000}));
-    act(() => jest.advanceTimersByTime(9000));
-    expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
+    it('hides after 10s', () => {
+      const {container} = render(<Indicators />);
 
-    // Still visible
-    act(() => jest.advanceTimersByTime(999));
-    expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
+      act(() => addMessage('Duration', '', {append: true, duration: 10000}));
+      act(() => jest.advanceTimersByTime(9000));
+      expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
 
-    act(() => jest.advanceTimersByTime(2));
-    expect(container).toHaveTextContent('');
-    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
-    jest.useRealTimers();
+      // Still visible
+      act(() => jest.advanceTimersByTime(999));
+      expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
+
+      act(() => jest.advanceTimersByTime(2));
+      expect(container).toHaveTextContent('');
+      expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
+    });
   });
 });

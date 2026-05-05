@@ -51,24 +51,34 @@ describe('Settings Breadcrumb Dropdown', () => {
     expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
-  it('closes after entering dropdown and then leaving after timeout', async () => {
-    jest.useFakeTimers();
-    createWrapper();
+  describe('dropdown close timeout', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
 
-    await userEvent.hover(screen.getByText('The Crumb'), {delay: null});
-    expect(screen.getByText('foo')).toBeInTheDocument();
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
 
-    await userEvent.hover(screen.getByText('foo'), {delay: null});
-    expect(screen.getByText('foo')).toBeInTheDocument();
+    it('closes after entering dropdown and then leaving after timeout', async () => {
+      createWrapper();
 
-    await userEvent.unhover(screen.getByText('foo'), {delay: null});
+      await userEvent.hover(screen.getByText('The Crumb'), {delay: null});
+      expect(screen.getByText('foo')).toBeInTheDocument();
 
-    // The menu will not disappear until after a timeout
-    expect(screen.getByText('foo')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('foo'), {delay: null});
+      expect(screen.getByText('foo')).toBeInTheDocument();
 
-    // Menu disappears after timeout
-    await act(() => jest.runAllTimersAsync());
-    expect(screen.queryByText('foo')).not.toBeInTheDocument();
+      await userEvent.unhover(screen.getByText('foo'), {delay: null});
+
+      // The menu will not disappear until after a timeout
+      expect(screen.getByText('foo')).toBeInTheDocument();
+
+      // Menu disappears after timeout
+      await act(() => jest.runAllTimersAsync());
+      expect(screen.queryByText('foo')).not.toBeInTheDocument();
+    });
   });
 
   it('closes other breadcrumbs upon hover immediately', async () => {

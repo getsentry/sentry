@@ -46,41 +46,50 @@ describe('OnboardingSkipButton', () => {
     jest.clearAllMocks();
   });
 
-  it.each(MAPPED_CASES)(
-    'renders and fires the expected analytics for $stepId',
-    async ({stepId, sidebarSource, referrer}) => {
+  describe('with fake timers', () => {
+    beforeEach(() => {
       jest.useFakeTimers();
-      const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
+    });
 
-      try {
-        render(<OnboardingSkipButton stepId={stepId} />);
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    });
 
-        const button = screen.getByRole('button', {name: 'Skip setup'});
-        expect(button).toHaveAttribute(
-          'href',
-          `/organizations/org-slug/issues/?referrer=${referrer}`
-        );
+    it.each(MAPPED_CASES)(
+      'renders and fires the expected analytics for $stepId',
+      async ({stepId, sidebarSource, referrer}) => {
+        const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
 
-        await userEvent.click(button, {delay: null});
+        try {
+          render(<OnboardingSkipButton stepId={stepId} />);
 
-        expect(trackAnalytics).toHaveBeenCalledWith(
-          'onboarding.scm_header_skip_clicked',
-          expect.objectContaining({step: stepId})
-        );
+          const button = screen.getByRole('button', {name: 'Skip setup'});
+          expect(button).toHaveAttribute(
+            'href',
+            `/organizations/org-slug/issues/?referrer=${referrer}`
+          );
 
-        jest.runAllTimers();
+          await userEvent.click(button, {delay: null});
 
-        expect(trackAnalytics).toHaveBeenCalledWith(
-          'quick_start.opened',
-          expect.objectContaining({source: sidebarSource})
-        );
-        expect(openSpy).toHaveBeenCalled();
-      } finally {
-        jest.useRealTimers();
-        openSpy.mockRestore();
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'onboarding.scm_header_skip_clicked',
+            expect.objectContaining({step: stepId})
+          );
+
+          jest.runAllTimers();
+
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'quick_start.opened',
+            expect.objectContaining({source: sidebarSource})
+          );
+          expect(openSpy).toHaveBeenCalled();
+        } finally {
+          openSpy.mockRestore();
+        }
       }
-    }
-  );
+    );
+  });
 
   it('renders nothing for unmapped steps', () => {
     const {container} = render(

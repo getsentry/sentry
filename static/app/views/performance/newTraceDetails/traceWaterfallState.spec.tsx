@@ -132,6 +132,7 @@ describe('TraceWaterfallState', () => {
     });
 
     afterEach(() => {
+      jest.runOnlyPendingTimers();
       jest.useRealTimers();
     });
 

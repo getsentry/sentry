@@ -140,43 +140,52 @@ describe('Onboarding', () => {
       });
     });
 
-    it('calls trackAnalytics and activateSidebar on skip click', async () => {
-      jest.useFakeTimers();
-      const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
+    describe('with fake timers', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
 
-      try {
-        render(
-          <OnboardingContextProvider>
-            <OnboardingWithoutContext />
-          </OnboardingContextProvider>,
-          {
-            initialRouterConfig: {
-              location: {
-                pathname: '/onboarding/org-slug/welcome/',
-              },
-              route: '/onboarding/:orgId/:step/',
-            },
-          }
-        );
-
-        await userEvent.click(screen.getByRole('link', {name: 'Skip onboarding.'}), {
-          delay: null,
-        });
-
-        expect(trackAnalytics).toHaveBeenCalledWith(
-          'growth.onboarding_clicked_skip',
-          expect.objectContaining({
-            source: 'targeted_onboarding',
-          })
-        );
-
-        jest.runAllTimers();
-
-        expect(openSpy).toHaveBeenCalled();
-      } finally {
+      afterEach(() => {
+        act(() => jest.runOnlyPendingTimers());
         jest.useRealTimers();
-        openSpy.mockRestore();
-      }
+      });
+
+      it('calls trackAnalytics and activateSidebar on skip click', async () => {
+        const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
+
+        try {
+          render(
+            <OnboardingContextProvider>
+              <OnboardingWithoutContext />
+            </OnboardingContextProvider>,
+            {
+              initialRouterConfig: {
+                location: {
+                  pathname: '/onboarding/org-slug/welcome/',
+                },
+                route: '/onboarding/:orgId/:step/',
+              },
+            }
+          );
+
+          await userEvent.click(screen.getByRole('link', {name: 'Skip onboarding.'}), {
+            delay: null,
+          });
+
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'growth.onboarding_clicked_skip',
+            expect.objectContaining({
+              source: 'targeted_onboarding',
+            })
+          );
+
+          jest.runAllTimers();
+
+          expect(openSpy).toHaveBeenCalled();
+        } finally {
+          openSpy.mockRestore();
+        }
+      });
     });
   });
 
@@ -245,48 +254,57 @@ describe('Onboarding', () => {
       });
     });
 
-    it('calls trackAnalytics and activateSidebar on skip click', async () => {
-      jest.useFakeTimers();
-      const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
-
-      const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
+    describe('with fake timers', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
       });
 
-      try {
-        render(
-          <OnboardingContextProvider>
-            <OnboardingWithoutContext />
-          </OnboardingContextProvider>,
-          {
-            organization,
-            initialRouterConfig: {
-              location: {
-                pathname: `/onboarding/${organization.slug}/welcome/`,
-              },
-              route: '/onboarding/:orgId/:step/',
-            },
-          }
-        );
+      afterEach(() => {
+        act(() => jest.runOnlyPendingTimers());
+        jest.useRealTimers();
+      });
 
-        await userEvent.click(screen.getByRole('button', {name: 'Skip onboarding'}), {
-          delay: null,
+      it('calls trackAnalytics and activateSidebar on skip click', async () => {
+        const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
+
+        const organization = OrganizationFixture({
+          features: ['onboarding-new-welcome-ui'],
         });
 
-        expect(trackAnalytics).toHaveBeenCalledWith(
-          'growth.onboarding_clicked_skip',
-          expect.objectContaining({
-            source: 'targeted_onboarding',
-          })
-        );
+        try {
+          render(
+            <OnboardingContextProvider>
+              <OnboardingWithoutContext />
+            </OnboardingContextProvider>,
+            {
+              organization,
+              initialRouterConfig: {
+                location: {
+                  pathname: `/onboarding/${organization.slug}/welcome/`,
+                },
+                route: '/onboarding/:orgId/:step/',
+              },
+            }
+          );
 
-        jest.runAllTimers();
+          await userEvent.click(screen.getByRole('button', {name: 'Skip onboarding'}), {
+            delay: null,
+          });
 
-        expect(openSpy).toHaveBeenCalled();
-      } finally {
-        jest.useRealTimers();
-        openSpy.mockRestore();
-      }
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'growth.onboarding_clicked_skip',
+            expect.objectContaining({
+              source: 'targeted_onboarding',
+            })
+          );
+
+          jest.runAllTimers();
+
+          expect(openSpy).toHaveBeenCalled();
+        } finally {
+          openSpy.mockRestore();
+        }
+      });
     });
   });
 

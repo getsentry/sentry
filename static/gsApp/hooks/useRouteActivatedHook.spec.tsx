@@ -48,15 +48,17 @@ describe('useRouteActivatedHook', () => {
   const props = genProps();
 
   beforeEach(() => {
+    jest.useFakeTimers();
     SubscriptionStore.set(organization.slug, subscription);
   });
 
   afterEach(() => {
+    act(() => jest.runOnlyPendingTimers());
+    jest.useRealTimers();
     (rawTrackAnalyticsEvent as jest.Mock).mockClear();
   });
 
   it('calls rawTrackAnalyticsEvent after one seconds if org is set', () => {
-    jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -80,7 +82,6 @@ describe('useRouteActivatedHook', () => {
   });
 
   it('does not call rawTrackAnalyticsEvent if org is not set', () => {
-    jest.useFakeTimers();
     renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -89,7 +90,6 @@ describe('useRouteActivatedHook', () => {
   });
 
   it('only calls rawTrackAnalyticsEvent once and ignores later param updates', () => {
-    jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -114,7 +114,6 @@ describe('useRouteActivatedHook', () => {
   });
 
   it('only calls rawTrackAnalyticsEvent once when URL query params are updated', () => {
-    jest.useFakeTimers();
     const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -134,7 +133,6 @@ describe('useRouteActivatedHook', () => {
   });
 
   it('disable route analytics', () => {
-    jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -145,7 +143,6 @@ describe('useRouteActivatedHook', () => {
   });
 
   it('disables and re-enables analytics', () => {
-    jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -159,7 +156,6 @@ describe('useRouteActivatedHook', () => {
   });
 
   it('re-initializes after route changes', () => {
-    jest.useFakeTimers();
     const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -195,7 +191,6 @@ describe('useRouteActivatedHook', () => {
   });
 
   it('overrwite event names', () => {
-    jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
@@ -218,7 +213,6 @@ describe('useRouteActivatedHook', () => {
   });
 
   it('route changes triggers early analytics event', () => {
-    jest.useFakeTimers();
     let loadTime = Date.now();
 
     const {result, rerender} = renderHook(useRouteActivatedHook, {

@@ -32,15 +32,24 @@ describe('Version', () => {
     });
   });
 
-  it('shows raw version in tooltip', async () => {
-    jest.useFakeTimers();
-    render(<Version version={VERSION} tooltipRawVersion />);
-    expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
+  describe('with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
 
-    // Activate tooltip
-    await userEvent.hover(screen.getByText('1.0.0 (20200101)'), {delay: null});
-    act(() => jest.advanceTimersByTime(50));
+    it('shows raw version in tooltip', async () => {
+      render(<Version version={VERSION} tooltipRawVersion />);
+      expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
 
-    expect(await screen.findByText(VERSION)).toBeInTheDocument();
+      // Activate tooltip
+      await userEvent.hover(screen.getByText('1.0.0 (20200101)'), {delay: null});
+      act(() => jest.advanceTimersByTime(50));
+
+      expect(await screen.findByText(VERSION)).toBeInTheDocument();
+    });
   });
 });

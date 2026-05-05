@@ -13,10 +13,12 @@ import {PartialTraceDataWarning} from './partialTraceDataWarning';
 describe('PartialTraceDataWarning', () => {
   describe('when the trace is older than 30 days', () => {
     beforeAll(() => {
-      jest.useFakeTimers().setSystemTime(new Date(2025, 0, 31));
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date(2025, 0, 31));
     });
 
     afterAll(() => {
+      jest.runOnlyPendingTimers();
       jest.useRealTimers();
     });
 
@@ -66,10 +68,12 @@ describe('PartialTraceDataWarning', () => {
 
   describe('when the trace is younger than 30 days', () => {
     beforeAll(() => {
-      jest.useFakeTimers().setSystemTime(new Date(2025, 0, 1));
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date(2025, 0, 1));
     });
 
     afterAll(() => {
+      jest.runOnlyPendingTimers();
       jest.useRealTimers();
     });
 

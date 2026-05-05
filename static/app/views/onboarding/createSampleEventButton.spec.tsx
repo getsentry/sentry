@@ -7,7 +7,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
-jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
 
 describe('CreateSampleEventButton', () => {
@@ -30,8 +29,13 @@ describe('CreateSampleEventButton', () => {
     );
   }
 
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
   afterEach(() => {
-    MockApiClient.clearMockResponses();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('creates a sample event', async () => {
@@ -85,6 +89,11 @@ describe('CreateSampleEventButton', () => {
       method: 'POST',
       body: {groupID},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
+      statusCode: 404,
+      body: {},
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {
       delay: null,
@@ -115,6 +124,11 @@ describe('CreateSampleEventButton', () => {
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
       body: {groupID},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
+      statusCode: 404,
+      body: {},
     });
 
     await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {

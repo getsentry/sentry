@@ -99,16 +99,18 @@ export const requireFakeTimerCleanup = ESLintUtils.RuleCreator.withoutDocs({
           }
         }
 
-        if (!hasUseRealTimersInCleanup) {
-          context.report({
-            node: useFakeTimersCalls[0]!,
-            messageId: 'missingCleanup',
-          });
-        } else if (!hasRunOnlyPendingTimersInCleanup) {
-          context.report({
-            node: useFakeTimersCalls[0]!,
-            messageId: 'missingRunOnlyPendingTimers',
-          });
+        if (useFakeTimersCalls[0]) {
+          if (!hasUseRealTimersInCleanup) {
+            context.report({
+              node: useFakeTimersCalls[0],
+              messageId: 'missingCleanup',
+            });
+          } else if (!hasRunOnlyPendingTimersInCleanup) {
+            context.report({
+              node: useFakeTimersCalls[0],
+              messageId: 'missingRunOnlyPendingTimers',
+            });
+          }
         }
       },
     };
