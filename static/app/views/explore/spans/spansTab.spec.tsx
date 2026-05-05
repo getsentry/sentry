@@ -651,6 +651,41 @@ describe('SpansTabContent', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
     });
 
+    it('hides dataset options from non-member projects when My Projects is selected', async () => {
+      const spansOnlyProject = makeProject({
+        id: '3',
+        slug: 'spans-only-project',
+        hasLogs: false,
+        hasTraceMetrics: false,
+        isMember: true,
+      });
+      const logsAndMetricsProject = makeProject({
+        id: '4',
+        slug: 'logs-and-metrics-project',
+        hasLogs: true,
+        hasTraceMetrics: true,
+        isMember: false,
+      });
+      setProjects([spansOnlyProject, logsAndMetricsProject], []);
+
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'tracemetrics-enabled'],
+        },
+        additionalWrapper: Wrapper,
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(screen.queryByRole('menuitemradio', {name: 'Logs'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Application Metrics'})
+      ).not.toBeInTheDocument();
+    });
+
     it('adds a cross event query', async () => {
       const {router} = render(
         <SpansTabContent datePageFilterProps={datePageFilterProps} />,
