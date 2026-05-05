@@ -36,8 +36,8 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
         assert integration_id is not None
         integration = Integration.objects.get(id=integration_id)
         provider = cast(ProviderName, integration.provider)
-        # @todo(NOW) Use the actual hostname for this GitLab instance.
-        gitlab_host_name = "gitlab.com"
+        assert provider == "gitlab"
+        gitlab_host_name = integration.metadata["domain_name"]
         repository = Repository.objects.get(
             organization_id=organization_id,
             provider=f"integrations:{provider}",
