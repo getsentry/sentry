@@ -107,6 +107,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                 action_type=ProjectManagementActionType.SEARCH_PROJECTS,
                 integration=integration,
             ).capture() as lifecycle:
+                lifecycle.add_extra("field", field)
                 try:
                     response = jira_client.get_projects_paginated(params={"query": query})
                 except (ApiUnauthorized, ApiError) as e:
