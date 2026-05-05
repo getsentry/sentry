@@ -686,6 +686,43 @@ describe('SpansTabContent', () => {
       expect(attributeBreakdownsTab).toHaveAttribute('aria-disabled', 'true');
     });
 
+    it('disables Trace Samples tab when cross events are present', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features],
+        },
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              crossEvents: JSON.stringify([{query: '', type: 'logs'}]),
+              table: 'trace',
+            },
+          },
+        },
+      });
+
+      const traceSamplesTab = screen.getByRole('tab', {name: 'Trace Samples'});
+      expect(traceSamplesTab).toHaveAttribute('aria-disabled', 'true');
+      expect(traceSamplesTab).toBeVisible();
+
+      await userEvent.hover(traceSamplesTab);
+      expect(
+        await screen.findByText(
+          'Trace samples do not yet work with Cross-Event queries, use spans tab.'
+        )
+      ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'Span Samples'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+    });
+
     it('switches from Attribute Breakdowns to Span tab when cross event is added', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization: {
@@ -714,6 +751,39 @@ describe('SpansTabContent', () => {
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
 
       // Should switch to Span tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'Span Samples'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+    });
+
+    it('switches from Trace Samples to Span tab when cross event is added', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features],
+        },
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {table: 'trace'},
+          },
+        },
+      });
+
+      expect(screen.getByRole('tab', {name: 'Trace Samples'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
+
       await waitFor(() => {
         expect(screen.getByRole('tab', {name: 'Span Samples'})).toHaveAttribute(
           'aria-selected',
