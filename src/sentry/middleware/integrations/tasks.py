@@ -294,7 +294,7 @@ def update_linking_message(
 ) -> None:
     """
     Replace the original 'Connect to Sentry' ephemeral halt message with a
-    'linked!' confirmation, using Slack's response_url + replace_original=true.
+    confirmation, using Slack's response_url + replace_original=true.
     """
     from slack_sdk.errors import SlackApiError, SlackRequestError
     from slack_sdk.webhook import WebhookClient
