@@ -1,5 +1,6 @@
 import {
   createContext,
+  use,
   useCallback,
   useContext,
   useEffect,
@@ -201,8 +202,7 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
 };
 
 function useContextBridges(): ContextBridge[] {
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- safe: KNOWN_BRIDGED_CONTEXTS is a module constant with stable length
-  const values = KNOWN_BRIDGED_CONTEXTS.map(ctx => useContext(ctx));
+  const values = KNOWN_BRIDGED_CONTEXTS.map(ctx => use(ctx));
   const [prev, setPrev] = useState<ContextBridge[]>([]);
 
   const changed =
