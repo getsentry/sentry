@@ -2331,17 +2331,8 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.8.25" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
-<<<<<<< HEAD
-<<<<<<< HEAD
-    { name = "sentry-scm", specifier = ">=0.5.0" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.58.0" },
-=======
-    { name = "sentry-scm", specifier = "==0.9.0" },
-=======
     { name = "sentry-scm", specifier = "==0.10.1" },
->>>>>>> b43e177cba1 (dep(scm): Upgrade the scm platform to 0.10.1 (#114487))
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.47.0" },
->>>>>>> a26887b366c (feat(scm): Get permissions from the GitHub App installation (#114163))
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
