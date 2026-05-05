@@ -134,11 +134,8 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
                         "jira.issue-updated.project-changed",
                         extra={**payload_extra, "project_change": project_change},
                     )
-        except Exception:
-            logger.exception(
-                "jira.issue-updated.payload-logging-failed",
-                extra={"integration_id": rpc_integration.id},
-            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if not data.get("changelog"):
             logger.info("jira.missing-changelog", extra={"integration_id": rpc_integration.id})

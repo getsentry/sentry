@@ -217,19 +217,20 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
-    @patch("sentry.integrations.jira.webhooks.issue_updated.logger")
+    @patch("sentry.integrations.jira.webhooks.issue_updated.sentry_sdk.capture_exception")
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     @patch("sentry.integrations.jira.webhooks.issue_updated._payload_logging_enabled")
     def test_payload_logging_failure_does_not_skip_handlers(
         self,
         mock_payload_logging_enabled: MagicMock,
         mock_sync_group_assignee_inbound: MagicMock,
-        mock_logger: MagicMock,
+        mock_capture_exception: MagicMock,
     ) -> None:
         # The diagnostic payload-logging path makes RPC calls that could fail
         # transiently. Those failures must not prevent the real webhook
         # handlers from running.
-        mock_payload_logging_enabled.side_effect = RuntimeError("transient RPC failure")
+        error = RuntimeError("transient RPC failure")
+        mock_payload_logging_enabled.side_effect = error
 
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
@@ -241,9 +242,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         mock_sync_group_assignee_inbound.assert_called_with(
             self.integration, "jess@sentry.io", "APP-123", assign=True
         )
-        assert (
-            mock_logger.exception.call_args.args[0] == "jira.issue-updated.payload-logging-failed"
-        )
+        mock_capture_exception.assert_called_once_with(error)
 
     @with_feature("organizations:jira-issue-updated-payload-logging")
     @patch("sentry.integrations.jira.webhooks.issue_updated.logger")
