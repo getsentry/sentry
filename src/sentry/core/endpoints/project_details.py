@@ -154,6 +154,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "storeCrashReports",
         "relayPiiConfig",
         "builtinSymbolSources",
+        "applyPdbSrcsrv",
         "symbolSources",
         "scrubIPAddresses",
         "groupingConfig",
@@ -263,6 +264,14 @@ E.g. `['release', 'environment']`""",
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
+    applyPdbSrcsrv = serializers.BooleanField(
+        required=False,
+        help_text=(
+            "When enabled, native symbolication uses the source server (srcsrv) mapping "
+            "embedded in PDB debug files to rewrite each frame's `abs_path`/`filename` and "
+            "report the per-frame VCS revision."
+        ),
+    )
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
     groupingConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -795,6 +804,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
                 ]
+        if result.get("applyPdbSrcsrv") is not None:
+            if project.update_option("sentry:apply_pdb_srcsrv", result["applyPdbSrcsrv"]):
+                changed_proj_settings["sentry:apply_pdb_srcsrv"] = result["applyPdbSrcsrv"]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)

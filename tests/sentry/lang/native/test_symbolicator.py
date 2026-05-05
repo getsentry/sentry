@@ -7,6 +7,11 @@ from sentry.lang.native.sources import (
     redact_internal_sources,
     reverse_aliases_map,
 )
+from sentry.lang.native.symbolicator import (
+    Symbolicator,
+    SymbolicatorPlatform,
+    SymbolicatorTaskKind,
+)
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -28,6 +33,36 @@ CUSTOM_SOURCE_CONFIG = """
     "bundleId": "test"
 }]
 """
+
+
+def _make_symbolicator(project) -> Symbolicator:
+    return Symbolicator(
+        task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native),
+        on_request=lambda: None,
+        project=project,
+        event_id="0" * 32,
+    )
+
+
+@django_db_all
+def test_native_options_default_no_srcsrv(default_project) -> None:
+    options = _make_symbolicator(default_project)._native_options()
+    assert options == {"dif_candidates": True}
+
+
+@django_db_all
+def test_native_options_with_srcsrv_enabled(default_project) -> None:
+    default_project.update_option("sentry:apply_pdb_srcsrv", True)
+    options = _make_symbolicator(default_project)._native_options(
+        apply_source_context=True,
+        frame_order="caller_first",
+    )
+    assert options == {
+        "dif_candidates": True,
+        "apply_source_context": True,
+        "frame_order": "caller_first",
+        "apply_srcsrv": True,
+    }
 
 
 @django_db_all

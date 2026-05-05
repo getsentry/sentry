@@ -119,6 +119,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         new_frame["post_context"] = symbolicated["post_context"]
     if symbolicated.get("source_link"):
         new_frame["source_link"] = symbolicated["source_link"]
+    if symbolicated.get("revision"):
+        new_frame["revision"] = symbolicated["revision"]
 
     addr_mode = symbolicated.get("addr_mode")
     if addr_mode is None:

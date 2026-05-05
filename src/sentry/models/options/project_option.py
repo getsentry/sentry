@@ -28,6 +28,7 @@ OPTION_KEYS = frozenset(
         "sentry:safe_fields",
         "sentry:store_crash_reports",
         "sentry:builtin_symbol_sources",
+        "sentry:apply_pdb_srcsrv",
         "sentry:symbol_sources",
         "sentry:sensitive_fields",
         "sentry:highlight_tags",

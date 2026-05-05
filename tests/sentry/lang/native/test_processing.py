@@ -13,6 +13,7 @@ import pytest
 
 from sentry.lang.native.processing import (
     ELECTRON_FIRST_MODULE_REWRITE_RULES,
+    _merge_frame,
     _merge_image,
     get_frames_for_symbolication,
     process_native_stacktraces,
@@ -90,6 +91,18 @@ def test_merge_symbolicator_image_remove_unknown_arch() -> None:
         "unwind_status": "found",
         "instruction_addr": 0xFEEBEE,
     }
+
+
+def test_merge_frame_revision_propagated() -> None:
+    new_frame: dict[str, Any] = {}
+    _merge_frame(new_frame, {"revision": "12345"})
+    assert new_frame["revision"] == "12345"
+
+
+def test_merge_frame_revision_absent_does_not_set() -> None:
+    new_frame: dict[str, Any] = {}
+    _merge_frame(new_frame, {})
+    assert "revision" not in new_frame
 
 
 @pytest.mark.parametrize(
