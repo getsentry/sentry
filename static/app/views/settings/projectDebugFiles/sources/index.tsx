@@ -6,6 +6,7 @@ import type {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
+import {ApplyPdbSrcsrv} from './applyPdbSrcsrv';
 import {BuiltInRepositories} from './builtInRepositories';
 import {CustomRepositories} from './customRepositories';
 
@@ -44,6 +45,7 @@ export function Sources({
         customRepositories={customRepositories}
         project={project}
       />
+      <ApplyPdbSrcsrv organization={organization} project={project} />
     </Fragment>
   );
 }
