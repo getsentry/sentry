@@ -4,8 +4,9 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Separator} from '@sentry/scraps/separator';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -124,7 +125,7 @@ export function ReprocessingEventModal({
           })}
         </Introduction>
 
-        <FieldList>
+        <Stack gap="xl">
           <form.AppField name="maxEvents">
             {field => (
               <field.Layout.Row
@@ -142,6 +143,8 @@ export function ReprocessingEventModal({
               </field.Layout.Row>
             )}
           </form.AppField>
+
+          <Separator orientation="horizontal" border="secondary" />
 
           <form.Subscribe selector={state => state.values.maxEvents === ''}>
             {isDisabled => (
@@ -166,7 +169,7 @@ export function ReprocessingEventModal({
               </form.AppField>
             )}
           </form.Subscribe>
-        </FieldList>
+        </Stack>
       </Body>
       <Footer>
         <Flex gap="md" justify="end">
@@ -186,12 +189,4 @@ const StyledList = styled(List)`
   gap: ${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space['3xl']};
   font-size: ${p => p.theme.font.size.md};
-`;
-
-const FieldList = styled('div')`
-  > *:not(:last-child) {
-    padding-bottom: ${p => p.theme.space.xl};
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-    margin-bottom: ${p => p.theme.space.xl};
-  }
 `;
