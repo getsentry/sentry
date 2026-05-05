@@ -62,7 +62,7 @@ issue_search_config = SearchConfig.create_from(
     default_config,
     allow_boolean=False,
     is_filter_translation=is_filter_translation,
-    numeric_keys=default_config.numeric_keys | {"times_seen"},
+    numeric_keys=default_config.numeric_keys | {"times_seen", "user_count"},
     date_keys=default_config.date_keys | {"date", "first_seen", "last_seen", "issue.seer_last_run"},
     key_mappings={
         "assigned_to": ["assigned"],
@@ -76,6 +76,7 @@ issue_search_config = SearchConfig.create_from(
         # on date_from and date_to explicitly
         "date": ["event.timestamp"],
         "times_seen": ["timesSeen"],
+        "user_count": ["userCount", "affectedUsers", "affected_users"],
         "sentry:dist": ["dist"],
     },
 )
