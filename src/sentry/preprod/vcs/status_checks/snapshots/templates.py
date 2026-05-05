@@ -72,8 +72,8 @@ def format_snapshot_status_check_messages(
         if total_changed > 0:
             parts.append(
                 ngettext(
-                    "%(count)d modified",
-                    "%(count)d modified",
+                    "%(count)d changed",
+                    "%(count)d changed",
                     total_changed,
                 )
                 % {"count": total_changed}

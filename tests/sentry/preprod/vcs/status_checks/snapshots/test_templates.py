@@ -298,7 +298,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "3 modified, 7 unchanged"
+        assert subtitle == "3 changed, 7 unchanged"
         assert "⏳ Needs approval" in summary
 
     def test_single_image_changed(self) -> None:
@@ -325,7 +325,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             project=self.project,
         )
 
-        assert subtitle == "1 modified, 9 unchanged"
+        assert subtitle == "1 changed, 9 unchanged"
 
     def test_images_added_and_removed(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -408,7 +408,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             project=self.project,
         )
 
-        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 5 unchanged"
+        assert subtitle == "3 changed, 1 added, 2 removed, 1 renamed, 5 unchanged"
         assert "⏳ Needs approval" in summary
 
 
@@ -554,7 +554,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |"
             in summary
         )
         assert "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |" in summary
@@ -671,7 +671,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/snapshots/"
         configure_link = f"[Configure {self.project.name} snapshot settings]({settings_url})"
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app`"
             f" | 0 | 0 | 0 | 0"
@@ -713,12 +713,12 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 4 unchanged"
+        assert subtitle == "3 changed, 1 added, 2 removed, 1 renamed, 4 unchanged"
 
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/snapshots/"
         configure_link = f"[Configure {self.project.name} snapshot settings]({settings_url})"
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app`"
             f" | [{1}]({artifact_url}?selectedTypes=added)"
@@ -1085,12 +1085,12 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 4 unchanged"
+        assert subtitle == "3 changed, 1 added, 2 removed, 1 renamed, 4 unchanged"
 
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/snapshots/"
         configure_link = f"[Configure {self.project.name} snapshot settings]({settings_url})"
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app`"
             f" | [{1}]({artifact_url}?selectedTypes=added)"

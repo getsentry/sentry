@@ -16,7 +16,7 @@ export type ApiResponse<TResponseData = unknown> = {
 };
 
 export async function apiFetch<TQueryFnData = unknown>(
-  context: QueryFunctionContext<ApiQueryKey, never>
+  context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResponse<TQueryFnData>> {
   const {url, options} = parseQueryKey(context.queryKey);
 
@@ -76,7 +76,7 @@ export function useFetchAllPages<TQueryFnData = unknown>({
   result,
   enabled = true,
 }: {
-  result: UseInfiniteQueryResult<TQueryFnData, Error>;
+  result: UseInfiniteQueryResult<TQueryFnData>;
   enabled?: boolean;
 }) {
   const {fetchNextPage, hasNextPage, isError, isFetchingNextPage} = result;

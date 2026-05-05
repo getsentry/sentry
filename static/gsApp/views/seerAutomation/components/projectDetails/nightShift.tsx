@@ -245,7 +245,7 @@ export function NightShift({canWrite, project}: Props) {
         label={t('Runs')}
         hintText={t('View past Night Shift runs for this organization.')}
       >
-        <Link to={`/organizations/${organization.slug}/seer/workflows/`}>
+        <Link to={`/organizations/${organization.slug}/issues/autofix/`}>
           {t('View organization runs')}
         </Link>
       </Row>
@@ -257,7 +257,7 @@ export function NightShift({canWrite, project}: Props) {
       >
         <Flex gap="sm">
           <Button
-            priority="primary"
+            variant="primary"
             disabled={!canWrite || isTriggering}
             busy={isTriggering}
             onClick={() => triggerRun({dryRun: false})}

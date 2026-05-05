@@ -704,8 +704,14 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     };
   }
 
+  let mockNowInner: jest.SpyInstance;
+
   beforeEach(() => {
     jest.resetAllMocks();
+    // jest.resetAllMocks() clears any outer Date.now spy, so we need to re-mock it here
+    // with a realistic timestamp so that initializeVirtualTimestamp computes a sane
+    // targetTimestamp and correctly filters far-future log rows.
+    mockNowInner = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
     mockUseNavigate.mockReturnValue(jest.fn());
     MockApiClient.clearMockResponses();
     queryClient.clear();
@@ -716,6 +722,10 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       shouldPersist: true,
       selection: PageFiltersFixture(),
     });
+  });
+
+  afterEach(() => {
+    mockNowInner.mockRestore();
   });
 
   it('should integrate with virtual streaming when auto refresh is enabled', async () => {
@@ -790,7 +800,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
         (_, options) => {
           const query = options?.query || {};
           // TODO: Fix space in query
-          return query.query === ' timestamp_precise:<=1508208040000000000';
+          return query.query === ' timestamp_precise:<=1699999960000000000';
         },
       ],
       headers: linkHeaders,

@@ -55,12 +55,12 @@ export class WidgetLegendSelectionState {
         .filter(unselectedSeries => unselectedSeries !== undefined);
 
       const thisWidgetWithReleasesWasSelected =
-        Object.values(selected).filter(value => value === false).length !== 1 &&
+        Object.values(selected).filter(value => !value).length !== 1 &&
         Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`);
 
       const thisWidgetWithoutReleasesWasSelected =
         !Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`) &&
-        Object.values(selected).filter(value => value === false).length === 1;
+        Object.values(selected).filter(value => !value).length === 1;
 
       // For new-path widgets the default is nothing hidden, so any toggle
       // should update the URL. The two conditions above only cover old-path

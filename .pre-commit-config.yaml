@@ -59,13 +59,13 @@ repos:
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
         language: pygrep
         types: [python]
-      - id: sort-stronger-mypy-list
-        name: sort stronger mypy list
+      - id: sort-mypy-weaklist
+        name: sort mypy weaklist
         entry: python3 -m tools.mypy_helpers.sort_stronger_modules
         files: ^pyproject\.toml$
         language: python
-      - id: check-mypy-stronglist
-        name: check mypy stronglist
+      - id: check-mypy-weaklist
+        name: check mypy weaklist
         entry: python3 -m tools.mypy_helpers.check_stronglist
         files: ^pyproject\.toml$
         language: python

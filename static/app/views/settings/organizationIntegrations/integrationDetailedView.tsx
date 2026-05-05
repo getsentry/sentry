@@ -259,6 +259,8 @@ export default function IntegrationDetailedView() {
           : config
       );
 
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<Integration[]>(
         queryClient,
         makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
@@ -268,6 +270,8 @@ export default function IntegrationDetailedView() {
       const options: RequestOptions = {
         method: 'DELETE',
         error: () => {
+          // Will be fixed soon when we get rid of setApiQueryData.
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
           setApiQueryData<Integration[]>(
             queryClient,
             makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),

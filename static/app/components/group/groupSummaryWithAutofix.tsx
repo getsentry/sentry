@@ -286,7 +286,7 @@ export function AutofixSummary({
                           aria-label={t('Copy to clipboard')}
                           size="xs"
                           text={card.copyText}
-                          priority="transparent"
+                          variant="transparent"
                           tooltipProps={{title: card.copyTitle}}
                           onClick={e => {
                             e.stopPropagation();

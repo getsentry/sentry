@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Literal, NamedTuple, NotRequired, Optional, Self, TypedDict, TypeVar, cast
 
-import sentry_sdk
 from django.utils.functional import cached_property
 
 from sentry import features
@@ -43,12 +41,8 @@ from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_col
 
 logger = logging.getLogger(__name__)
 
-SPEC_VERSION_TWO_FLAG = "organizations:on-demand-metrics-query-spec-version-two"
-# Certain functions will only be supported with certain feature flags
-OPS_REQUIRE_FEAT_FLAG = {
-    "count_unique": SPEC_VERSION_TWO_FLAG,
-    "user_misery": SPEC_VERSION_TWO_FLAG,
-}
+# Functions that are not allowed for on-demand metric querying.
+OPS_DISALLOWED: set[str] = {"count_unique", "user_misery"}
 
 # Splits the bulk cache for on-demand resolution into N chunks
 WIDGET_QUERY_CACHE_MAX_CHUNKS = 6
@@ -87,10 +81,6 @@ class OnDemandMetricSpecVersioning:
 
     @classmethod
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
-        """Return spec version based on feature flag enabled for an organization."""
-        org = Organization.objects.get_from_cache(id=organization_id)
-        if features.has(SPEC_VERSION_TWO_FLAG, org):
-            return cls.spec_versions[1]
         return cls.spec_versions[0]
 
     @classmethod
@@ -572,23 +562,8 @@ def should_use_on_demand_metrics_for_querying(organization: Organization, **kwar
         return False
     function, _ = components
 
-    # This helps us control which functions are allowed to use the new spec version.
-    if function in OPS_REQUIRE_FEAT_FLAG:
-        if not organization:
-            # We need to let devs writting tests that if they intend to use a function that requires a feature flag
-            # that the organization needs to be included in the test.
-            if os.environ.get("PYTEST_CURRENT_TEST"):
-                logger.error("Pass the organization to create the spec for this function.")
-            sentry_sdk.capture_message(
-                f"Organization is required for {function} on-demand metrics."
-            )
-            return False
-        feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
-        if not features.has(feat_flag, organization):
-            if os.environ.get("PYTEST_CURRENT_TEST"):
-                # This will show up in the logs and help the developer understand why the test is failing
-                logger.error("Add the feature flag to create the spec for this function.")
-            return False
+    if function in OPS_DISALLOWED:
+        return False
 
     supported_by = _query_supported_by(**kwargs)
     if (

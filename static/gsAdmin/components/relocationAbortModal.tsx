@@ -39,7 +39,7 @@ export function RelocationAbortModal({
             addErrorMessage(error.responseJSON?.detail);
           }}
           submitLabel="Abort"
-          submitPriority="danger"
+          submitVariant="danger"
         >
           <p>
             This is a potentially dangerous, irreversible operation! Please be sure that

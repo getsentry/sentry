@@ -165,7 +165,7 @@ export const apiOptions = {
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
-      _apiOptions<TManualData, TApiPath>(path, options as never),
+      _apiOptions<TManualData>(path, options as never),
 
   asInfinite:
     <TManualData>() =>
@@ -173,5 +173,5 @@ export const apiOptions = {
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
-      _apiOptionsInfinite<TManualData, TApiPath>(path, options as never),
+      _apiOptionsInfinite<TManualData>(path, options as never),
 };

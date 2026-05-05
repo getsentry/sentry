@@ -18,7 +18,6 @@ export function SettingsPageTabs() {
 
   const tabsData = showNewSeer(organization)
     ? [
-        [t('Overview'), '/seer/'],
         [t('Repositories'), '/seer/scm/'],
         [t('Autofix'), '/seer/projects/'],
         [t('Code Review'), '/seer/repos/'],

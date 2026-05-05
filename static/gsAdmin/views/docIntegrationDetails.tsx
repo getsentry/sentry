@@ -54,7 +54,7 @@ export function DocIntegrationDetails() {
     onSuccess: updatedData => {
       addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
       clearIndicators();
-      setApiQueryData<any>(queryClient, [ENDPOINT], updatedData);
+      setApiQueryData(queryClient, [ENDPOINT], updatedData);
     },
     onError: () => {
       addErrorMessage('There was an internal error with updating the resource.');

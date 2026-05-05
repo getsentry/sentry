@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from unittest import mock
 
 import orjson
 import pytest
@@ -365,10 +366,26 @@ class TestTokenAuthentication(TestCase):
 
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+        request.META["REMOTE_ADDR"] = "10.0.0.1"
 
-        with pytest.raises(AuthenticationFailed) as exc_info:
-            self.auth.authenticate(request)
+        with (
+            mock.patch("sentry.api.authentication.logger") as mock_logger,
+            mock.patch("sentry.api.authentication.record_suspended_user_rejection") as mock_metric,
+        ):
+            with pytest.raises(AuthenticationFailed) as exc_info:
+                self.auth.authenticate(request)
+
         assert exc_info.value.detail == "User account is suspended"
+
+        mock_logger.info.assert_any_call(
+            "api.token.suspended-user",
+            extra={
+                "user_id": self.user.id,
+                "token_id": self.api_token.id,
+                "ip_address": "10.0.0.1",
+            },
+        )
+        mock_metric.assert_called_once_with("token_auth")
 
 
 @control_silo_test

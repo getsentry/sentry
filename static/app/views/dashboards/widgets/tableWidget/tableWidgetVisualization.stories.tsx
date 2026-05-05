@@ -117,12 +117,10 @@ ${JSON.stringify(aliases)}
 
   story('Sorting', () => {
     const location = useLocation();
-    const [data, setData] = useState<TabularData>(sampleHTTPRequestTableData);
+    const [data, setData] = useState(sampleHTTPRequestTableData);
     const [sort, setSort] = useState<Sort>();
     function onChangeSort(newSort: Sort) {
-      const sortedData: Array<TabularRow<string>> = Object.entries(
-        sampleHTTPRequestTableData.data
-      )
+      const sortedData: TabularRow[] = Object.entries(sampleHTTPRequestTableData.data)
         .sort(([, a], [, b]) => {
           const aField = a?.[newSort.field] ?? 0;
           const bField = b?.[newSort.field] ?? 0;

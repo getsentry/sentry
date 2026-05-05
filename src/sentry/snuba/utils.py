@@ -22,6 +22,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
+from sentry.snuba.replays import Replays
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.uptime_results import UptimeResults
@@ -45,6 +46,7 @@ DATASET_OPTIONS = {
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
     SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
+    SupportedTraceItemType.REPLAYS.value: Replays,
     SupportedTraceItemType.SPANS.value: Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
@@ -53,12 +55,23 @@ DATASET_OPTIONS = {
     "transactions": transactions,
 }
 DEPRECATED_LABELS = {"ourlogs"}
+FEATURE_FLAGGED_DATASETS = {
+    SupportedTraceItemType.OCCURRENCES.value,
+    SupportedTraceItemType.REPLAYS.value,
+}
+# Labels that we're okay showing to users; not behind a feature flag and not deprecated
+PUBLIC_DATASET_LABELS = sorted(
+    key
+    for key in DATASET_OPTIONS.keys()
+    if key not in DEPRECATED_LABELS and key not in FEATURE_FLAGGED_DATASETS
+)
 RPC_DATASETS = {
     Occurrences,
     OurLogs,
     PreprodSize,
     ProcessingErrors,
     ProfileFunctions,
+    Replays,
     Spans,
     TraceMetrics,
     UptimeResults,
