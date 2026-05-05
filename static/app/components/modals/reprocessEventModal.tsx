@@ -73,7 +73,7 @@ export function ReprocessingEventModal({
           closeModal();
           testableWindowLocation.reload();
         })
-        .catch(error => {
+        .catch((error: unknown) => {
           const handled =
             error instanceof RequestError ? setFieldErrors(formApi, error) : false;
           if (!handled) {
@@ -152,7 +152,11 @@ export function ReprocessingEventModal({
                 {field => (
                   <field.Radio.Group
                     value={field.state.value}
-                    onChange={value => field.handleChange(value as 'keep' | 'delete')}
+                    onChange={value => {
+                      if (value === 'keep' || value === 'delete') {
+                        field.handleChange(value);
+                      }
+                    }}
                     disabled={isDisabled}
                   >
                     <field.Layout.Row
