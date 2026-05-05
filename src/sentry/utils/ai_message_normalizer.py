@@ -52,6 +52,17 @@ def extract_assistant_output(raw: Any, default_role: str) -> AIOutputResult:
     return _output_from_messages(selected)
 
 
+def stringify_message_content(content: Any) -> str | None:
+    if isinstance(content, str):
+        return content or None
+
+    try:
+        return json.dumps(content)
+    except TypeError:
+        rendered = str(content)
+        return rendered or None
+
+
 def _empty_output() -> AIOutputResult:
     return {"response_text": None, "response_object": None, "tool_calls": None}
 
@@ -174,7 +185,8 @@ def _to_raw_message(item: Any, default_role: str) -> RawMessage | None:
     if not isinstance(item, dict):
         return None
 
-    role = item.get("role") if isinstance(item.get("role"), str) and item.get("role") else None
+    raw_role = item.get("role")
+    role = raw_role if isinstance(raw_role, str) and raw_role else None
     if isinstance(item.get("parts"), list):
         return {
             "role": role or default_role,
@@ -363,18 +375,7 @@ def _looks_like_json(raw: str) -> bool:
 
 
 def _extract_text_from_content_parts(parts: list[Any]) -> str:
-    texts: list[str] = []
-    for part in parts:
-        if not isinstance(part, dict):
-            continue
-        if part.get("type") in FILE_CONTENT_PARTS:
-            texts.append(_redacted_file_content(part))
-            continue
-        if not part.get("type") or part.get("type") == "text":
-            text = _text_from_part(part, strip=True)
-            if text:
-                texts.append(text)
-    return "\n".join(texts)
+    return "\n".join(_bucket_parts(parts)["text_parts"])
 
 
 def _text_from_part(part: dict[str, Any], *, strip: bool = False) -> str | None:

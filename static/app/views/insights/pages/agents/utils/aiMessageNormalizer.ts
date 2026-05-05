@@ -1,6 +1,6 @@
 import {
   parseJsonWithFix,
-  tryParseJsonRecursive as parseJsonRecursive,
+  tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export interface AIMessage {
@@ -26,6 +26,8 @@ type RawMessage = {
   role?: string;
   roleExplicit?: boolean;
 };
+
+type UnknownRecord = Record<string, unknown>;
 
 type PartBuckets = {
   hasRenderableTextPart: boolean;
@@ -285,7 +287,7 @@ function resolveMessageContent(msg: RawMessage, role: string): unknown {
   if (msg.parts) {
     return collapseParts(msg.parts);
   }
-  const parsed = tryParseJsonContent(msg.content);
+  const parsed = parseJsonContentPreservingPrimitives(msg.content);
   return role === 'tool' ? parsed : renderTextContent(parsed);
 }
 
@@ -388,7 +390,7 @@ function appendOutputFromMessage(
     return;
   }
 
-  const content = tryParseJsonContent(msg.content);
+  const content = parseJsonContentPreservingPrimitives(msg.content);
   if (content === undefined || content === null) {
     return;
   }
@@ -435,10 +437,9 @@ function appendOutputFromParts(
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const FILE_CONTENT_PART_TYPES = new Set<string>(FILE_CONTENT_PARTS);
 type FileContentPartType = (typeof FILE_CONTENT_PARTS)[number];
-type UnknownRecord = Record<string, unknown>;
 
-function tryParseJsonContent(value: unknown): unknown {
-  const parsed = parseJsonRecursive(value);
+function parseJsonContentPreservingPrimitives(value: unknown): unknown {
+  const parsed = tryParseJsonRecursive(value);
   if (
     typeof value === 'string' &&
     (parsed === null || typeof parsed === 'number' || typeof parsed === 'boolean')
@@ -466,27 +467,7 @@ function looksLikeJson(raw: string): boolean {
 }
 
 function extractTextFromContentParts(parts: unknown[]): string {
-  const texts: string[] = [];
-  for (const part of parts) {
-    if (!isRecord(part)) {
-      continue;
-    }
-
-    const partType = getPartType(part);
-    if (isFileContentPartType(partType)) {
-      texts.push(redactedFileContent(part));
-      continue;
-    }
-    // Accept untyped items with `text` or `content` (older Anthropic-style
-    // [{text: '...'}] arrays) as well as explicit `type: 'text'` parts.
-    if (!partType || partType === 'text') {
-      const text = getTextPartContent(part, {trim: true});
-      if (text) {
-        texts.push(text);
-      }
-    }
-  }
-  return texts.join('\n');
+  return bucketParts(parts).textParts.join('\n');
 }
 
 function isRecord(value: unknown): value is UnknownRecord {

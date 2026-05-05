@@ -1,4 +1,3 @@
-import json  # noqa: S003
 import logging
 from collections import defaultdict
 from datetime import datetime
@@ -29,6 +28,7 @@ from sentry.utils.ai_message_normalizer import (
     FILTERED,
     extract_assistant_output,
     normalize_to_messages,
+    stringify_message_content,
 )
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
@@ -67,17 +67,6 @@ def _compute_timestamp_ms(finish_ts: float) -> int:
     return int(finish_ts * 1000) if finish_ts else 0
 
 
-def _stringify_message_content(content: Any) -> str | None:
-    if isinstance(content, str):
-        return content or None
-
-    try:
-        return json.dumps(content)
-    except TypeError:
-        rendered = str(content)
-        return rendered or None
-
-
 def _extract_first_user_message(messages: Any) -> str | None:
     """Extract first user message, handling both old (content) and new (parts) formats."""
     if isinstance(messages, str) and messages == FILTERED:
@@ -87,7 +76,7 @@ def _extract_first_user_message(messages: Any) -> str | None:
         return None
     for msg in parsed:
         if msg.get("role") == "user":
-            content = _stringify_message_content(msg.get("content"))
+            content = stringify_message_content(msg.get("content"))
             if content:
                 return content
     return None
