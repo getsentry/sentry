@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -31,6 +32,10 @@ describe('NoGroupsHandler', () => {
   it('collapses latest deploys when looking up the selected project', async () => {
     const projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
+      body: [ProjectFixture({id: '1844558'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/issues/',
       body: [],
     });
     const sentFirstEventMock = MockApiClient.addMockResponse({
@@ -77,6 +82,25 @@ describe('NoGroupsHandler', () => {
   });
 
   it('displays waiting for events state when first event has not been sent', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [ProjectFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/issues/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: false},
+    });
+
+    render(<NoGroupsHandler {...defaultProps} />);
+
+    expect(await screen.findByText(/Waiting for events/i)).toBeInTheDocument();
+  });
+
+  it('displays waiting for events state when no projects exist yet', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],

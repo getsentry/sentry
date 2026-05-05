@@ -122,12 +122,12 @@ export function NoGroupsHandler({
     return <EmptyResult emptyMessage={emptyMessage} query={query} />;
   }
 
-  if (!sentFirstEventQuery.data?.sentFirstEvent && projectsQuery.data?.length) {
+  if (!sentFirstEventQuery.data?.sentFirstEvent) {
     return (
       <AwaitingEvents
         groupIds={groupIds}
         organization={organization}
-        projects={projectsQuery.data}
+        projects={projectsQuery.data ?? []}
       />
     );
   }
