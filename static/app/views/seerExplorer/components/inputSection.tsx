@@ -195,7 +195,7 @@ export function InputSection({
               <Button size="md" onClick={onReject}>
                 {t('Reject')} <Kbd>esc</Kbd>
               </Button>
-              <Button size="md" priority="primary" onClick={onApprove}>
+              <Button size="md" variant="primary" onClick={onApprove}>
                 {t('Approve')} <Kbd>↵</Kbd>
               </Button>
             </Grid>
@@ -244,7 +244,7 @@ export function InputSection({
               )}
               <Button
                 size="md"
-                priority="primary"
+                variant="primary"
                 onClick={onNext}
                 disabled={!canSubmitQuestion}
               >
@@ -280,7 +280,7 @@ export function InputSection({
             icon={<IconPause />}
             onClick={onInterrupt}
             size="md"
-            priority="primary"
+            variant="primary"
             disabled={waitingForInterrupt}
             aria-label={t('Interrupt button')}
             tooltipProps={{
@@ -292,7 +292,7 @@ export function InputSection({
             icon={<IconArrow direction="right" />}
             onClick={onSend}
             size="md"
-            priority="default"
+            variant="secondary"
             disabled={!inputValue.trim()}
             aria-label={t('Send message')}
           />

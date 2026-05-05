@@ -43,12 +43,7 @@ interface CodingAgentError {
   message: string;
 }
 
-export type AutofixExplorerStep =
-  | 'root_cause'
-  | 'solution'
-  | 'code_changes'
-  | 'impact_assessment'
-  | 'triage';
+export type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes';
 
 /**
  * Artifact data types matching the backend Pydantic schemas.

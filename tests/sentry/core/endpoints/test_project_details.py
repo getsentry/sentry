@@ -813,12 +813,33 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_enabled") is False
 
-    def test_preprod_snapshot_pr_comments_only_if_diff_option(self) -> None:
+    def test_preprod_snapshot_pr_comments_post_on_added_option(self) -> None:
         self.get_success_response(
-            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsOnlyIfDiff=True
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnAdded=True
         )
         project = Project.objects.get(id=self.project.id)
-        assert project.get_option("sentry:preprod_snapshot_pr_comments_only_if_diff") is True
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_added") is True
+
+    def test_preprod_snapshot_pr_comments_post_on_removed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnRemoved=False
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_removed") is False
+
+    def test_preprod_snapshot_pr_comments_post_on_changed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnChanged=False
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_changed") is False
+
+    def test_preprod_snapshot_pr_comments_post_on_renamed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnRenamed=True
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_renamed") is True
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")

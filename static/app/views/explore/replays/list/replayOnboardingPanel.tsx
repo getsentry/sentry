@@ -235,7 +235,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
             data-test-id="setup-replays-btn"
             type="button"
             onClick={() => activateSidebar()}
-            priority="primary"
+            variant="primary"
             disabled={disabled}
           >
             {t('Set Up Replays')}
@@ -259,7 +259,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
             path: '/new/',
             organization,
           })}
-          priority="primary"
+          variant="primary"
           disabled={disabled}
         >
           {t('Create Project')}
@@ -297,7 +297,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
             isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
-                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23699186513947-Session-Replay-FAQ" />
+                <ExternalLink href="https://www.sentry.help/en/articles/13964404-session-replay-faq" />
               ),
             })}
           />

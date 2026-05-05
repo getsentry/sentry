@@ -191,7 +191,11 @@ def launch_coding_agents(
 
     # Store the coding agent states to Seer
     try:
-        store_coding_agent_states_to_seer(run_id=run_id, coding_agent_states=states_to_store)
+        store_coding_agent_states_to_seer(
+            run_id=run_id,
+            coding_agent_states=states_to_store,
+            organization_id=organization.id,
+        )
     except SeerApiError:
         logger.exception(
             "explorer.coding_agent.seer_storage_error",

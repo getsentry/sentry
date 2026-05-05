@@ -159,7 +159,7 @@ function TableHeader() {
         {hasPageFrameFeature ? (
           <LinkButton
             to={makeAutomationCreatePathname(organization.slug)}
-            priority="primary"
+            variant="primary"
             icon={<IconAdd />}
             size="sm"
           >
@@ -181,7 +181,7 @@ function Actions() {
       {hasPageFrameFeature ? null : (
         <LinkButton
           to={makeAutomationCreatePathname(organization.slug)}
-          priority="primary"
+          variant="primary"
           icon={<IconAdd />}
           size="sm"
         >

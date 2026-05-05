@@ -20,7 +20,6 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
@@ -93,50 +92,6 @@ def code_changes_memory_block(referrer: str | None = None) -> MemoryBlock:
             AgentFilePatch(
                 repo_name="test-repo",
                 patch=FilePatch(path="test.py", type="M", added=5, removed=2),
-            )
-        ],
-    )
-
-
-def triage_memory_block(referrer: str | None = None) -> MemoryBlock:
-    metadata: dict[str, str] = {"step": "triage"}
-    if referrer is not None:
-        metadata["referrer"] = referrer
-    return MemoryBlock(
-        id="block-triage",
-        message=Message(
-            role="assistant",
-            content="message triage",
-            metadata=metadata,
-        ),
-        timestamp="2026-02-10T00:00:00Z",
-        artifacts=[
-            Artifact(
-                key="triage",
-                data={},  # TODO
-                reason="explorer",
-            )
-        ],
-    )
-
-
-def impact_assessment_memory_block(referrer: str | None = None) -> MemoryBlock:
-    metadata: dict[str, str] = {"step": "impact_assessment"}
-    if referrer is not None:
-        metadata["referrer"] = referrer
-    return MemoryBlock(
-        id="block-impact-assessment",
-        message=Message(
-            role="assistant",
-            content="message impact assessment",
-            metadata=metadata,
-        ),
-        timestamp="2026-02-10T00:00:00Z",
-        artifacts=[
-            Artifact(
-                key="impact_assessment",
-                data={},  # TODO
-                reason="explorer",
             )
         ],
     )
@@ -220,11 +175,6 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
     def test_get_next_step_code_changes_is_last(self) -> None:
         """Returns None after CODE_CHANGES (last step)."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.CODE_CHANGES)
-        assert result is None
-
-    def test_get_next_step_unknown_step(self) -> None:
-        """Returns None for steps not in pipeline."""
-        result = AutofixOnCompletionHook._get_next_step(AutofixStep.TRIAGE)
         assert result is None
 
 
@@ -353,16 +303,6 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 "expected_event": SeerActionType.SOLUTION_COMPLETED,
                 "expected_payload_key": "solution",
             },
-            {
-                "block": triage_memory_block(),
-                "expected_event": SeerActionType.TRIAGE_COMPLETED,
-                "expected_payload_key": "triage",
-            },
-            {
-                "block": impact_assessment_memory_block(),
-                "expected_event": SeerActionType.IMPACT_ASSESSMENT_COMPLETED,
-                "expected_payload_key": "impact_assessment",
-            },
         ]
 
         for i, test_case in enumerate(test_cases):
@@ -414,77 +354,6 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
 
         mock_broadcast.assert_not_called()
-
-
-class TestAutofixOnCompletionHookSupergroups(TestCase):
-    """Tests for supergroups embedding trigger in AutofixOnCompletionHook."""
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.organization = self.create_organization()
-        self.project = self.create_project(organization=self.organization)
-        self.group = self.create_group(project=self.project)
-
-    @with_feature("projects:supergroup-embeddings-explorer")
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
-    def test_triggers_embedding_on_root_cause(self, mock_trigger_sg):
-        """Triggers supergroups embedding when root cause completes with feature flag enabled."""
-        block = root_cause_memory_block()
-        state = run_state(blocks=[block], metadata={"group_id": self.group.id})
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
-            self.organization, 123, state, self.group
-        )
-
-        mock_trigger_sg.assert_called_once_with(
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-            project_id=self.group.project_id,
-            artifact_data=block.artifacts[0].data,
-        )
-
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
-    def test_skips_embedding_when_flag_disabled(self, mock_trigger_sg):
-        """Does not trigger supergroups embedding when feature flag is disabled."""
-        state = run_state(
-            blocks=[root_cause_memory_block()],
-            metadata={"group_id": self.group.id},
-        )
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
-            self.organization, 123, state, self.group
-        )
-
-        mock_trigger_sg.assert_not_called()
-
-    @with_feature("projects:supergroup-embeddings-explorer")
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
-    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
-    def test_skips_embedding_when_current_step_is_not_root_cause(
-        self, mock_fetch, mock_broadcast, mock_trigger_sg
-    ):
-        """Does not trigger embedding when current step is solution, not root cause."""
-        state = MagicMock()
-        state.metadata = {"group_id": self.group.id}
-        state.has_code_changes.return_value = (False, True)
-        state.get_artifacts.return_value = {
-            "root_cause": Artifact(
-                key="root_cause", data={"one_line_description": "test"}, reason="test"
-            ),
-            "solution": Artifact(key="solution", data={"steps": []}, reason="test"),
-        }
-        state.blocks = [
-            MemoryBlock(
-                id="block_sol",
-                message=Message(message="test", role="tool_use"),
-                timestamp="2024-01-01T00:01:00Z",
-                artifacts=[Artifact(key="solution", data={"steps": []}, reason="test")],
-            ),
-        ]
-        mock_fetch.return_value = state
-
-        AutofixOnCompletionHook.execute(self.organization, 123)
-
-        mock_trigger_sg.assert_not_called()
 
 
 class TestAutofixOnCompletionHookHandoff(TestCase):

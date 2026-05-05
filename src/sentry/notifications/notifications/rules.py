@@ -19,7 +19,7 @@ from sentry.integrations.types import (
 )
 from sentry.issues.grouptype import (
     GROUP_CATEGORIES_CUSTOM_EMAIL,
-    GroupCategory,
+    PERFORMANCE_ISSUE_CATEGORIES,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
@@ -100,7 +100,14 @@ class AlertRuleNotification(ProjectNotification):
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
 
-        if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+        if (
+            event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
+            or event.group.issue_type.type_id
+            in (
+                PerformanceP95EndpointRegressionGroupType.type_id,
+                ProfileFunctionRegressionType.type_id,
+            )
+        ):
             # profile issues use the generic template for now
             if (
                 isinstance(event, GroupEvent)
@@ -108,6 +115,8 @@ class AlertRuleNotification(ProjectNotification):
                 and event.occurrence.evidence_data.get("template_name") == "profile"
             ):
                 email_template_name = GENERIC_TEMPLATE_NAME
+            elif event.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
+                email_template_name = "performance"
             else:
                 email_template_name = event.group.issue_category.name.lower()
         else:
@@ -239,7 +248,7 @@ class AlertRuleNotification(ProjectNotification):
             else None
         )
 
-        if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
+        if self.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES and template_name != "profile":
             # This can't use data from the occurrence at the moment, so we'll keep fetching the event
             # and gathering span evidence.
 

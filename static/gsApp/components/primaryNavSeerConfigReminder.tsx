@@ -136,7 +136,7 @@ export function PrimaryNavSeerConfigReminder() {
               <LinkButton
                 size="sm"
                 to={`/settings/${organization.slug}/seer/`}
-                priority="primary"
+                variant="primary"
                 onClick={() => state.close()}
                 analyticsEventName="Seer Config Reminder: Configure Now Clicked"
                 analyticsParams={analyticsParams}

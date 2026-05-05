@@ -20,6 +20,8 @@
 export type LLMContextNodeType =
   | 'chart'
   | 'dashboard'
+  | 'issue-detail'
+  | 'issue-list'
   | 'trace'
   | 'traces-explorer'
   | 'widget'

@@ -73,6 +73,7 @@ EXPOSABLE_FEATURES = [
     "projects:trace-attachment-processing",
     "projects:relay-upload-endpoint",
     "projects:relay-minidump-attachment-uploads",
+    "projects:relay-minidump-uploads",
 ]
 
 EXTRACT_METRICS_VERSION = 1

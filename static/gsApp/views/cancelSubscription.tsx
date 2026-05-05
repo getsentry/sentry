@@ -173,7 +173,7 @@ function CancelSubscriptionForm() {
           </Alert>
         </Alert.Container>
         <Button
-          priority="danger"
+          variant="danger"
           onClick={() =>
             setState(currentState => ({...currentState, understandsMembers: true}))
           }
@@ -263,7 +263,7 @@ function CancelSubscriptionForm() {
             )}
 
             <ButtonList>
-              <Button type="submit" priority="danger" disabled={!state.canSubmit}>
+              <Button type="submit" variant="danger" disabled={!state.canSubmit}>
                 {t('Cancel Subscription')}
               </Button>
               <Button

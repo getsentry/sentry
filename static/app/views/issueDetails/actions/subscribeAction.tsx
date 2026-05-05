@@ -34,7 +34,7 @@ export function SubscribeAction({
       className={className}
       disabled={disabled || disabledNotifications}
       tooltipProps={{title: getSubscriptionReason(group), delay: 300}}
-      priority={!disablePriority && group.isSubscribed ? 'primary' : 'default'}
+      variant={!disablePriority && group.isSubscribed ? 'primary' : 'secondary'}
       size={size}
       aria-label={t('Subscribe')}
       onClick={onClick}

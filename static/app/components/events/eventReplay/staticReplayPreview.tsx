@@ -77,7 +77,7 @@ export function StaticReplayPreview({
               <LinkButton
                 {...fullReplayButtonProps}
                 icon={<IconPlay />}
-                priority="primary"
+                variant="primary"
                 to={fullReplayUrl}
               >
                 {t('Open Replay')}

@@ -43,7 +43,7 @@ export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Prop
         <Flex gap="md" align="center">
           {onBackToList && (
             <Button
-              priority="primary"
+              variant="primary"
               icon={<IconArrow direction="left" size="xs" />}
               onClick={onBackToList}
               size="zero"

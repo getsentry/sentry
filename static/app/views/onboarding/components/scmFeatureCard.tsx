@@ -6,6 +6,7 @@ import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
@@ -22,6 +23,7 @@ interface ScmFeatureCardProps {
   volumeTooltip: string;
   disabled?: boolean;
   disabledReason?: ReactNode;
+  isVolumeLoading?: boolean;
 }
 
 export function ScmFeatureCard({
@@ -34,6 +36,7 @@ export function ScmFeatureCard({
   onClick,
   volume,
   volumeTooltip,
+  isVolumeLoading,
 }: ScmFeatureCardProps) {
   return (
     <ScmCardButton
@@ -81,11 +84,15 @@ export function ScmFeatureCard({
             </Container>
           </Grid>
           <Flex align="start" gap="sm">
-            <Tooltip title={volumeTooltip} delay={100}>
-              <Tag variant="muted" icon={<IconInfo size="sm" />}>
-                {volume}
-              </Tag>
-            </Tooltip>
+            {isVolumeLoading ? (
+              <Placeholder height="22px" width="100px" />
+            ) : (
+              <Tooltip title={volumeTooltip} delay={100}>
+                <Tag variant="muted" icon={<IconInfo size="sm" />}>
+                  {volume}
+                </Tag>
+              </Tooltip>
+            )}
             <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
               <Switch
                 checked={isSelected}

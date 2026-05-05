@@ -427,7 +427,7 @@ function AddIntegrationButton({
   return (
     <ButtonWrapper>
       <Button
-        priority="primary"
+        variant="primary"
         disabled={!hasAccess || disabled}
         onClick={() =>
           installationId

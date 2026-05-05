@@ -272,7 +272,7 @@ function NoticeModal({
       <Footer>
         <Button onClick={() => closeModalDoNotContinue()}>{t('Remind Me Later')}</Button>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => closeModalAndContinue(link)}
           style={{marginLeft: theme.space.xl}}
           data-test-id="modal-continue-button"
@@ -965,7 +965,7 @@ class GSBanner extends Component<Props, State> {
                       <LinkButton
                         to={billingUrl}
                         size="zero"
-                        priority="default"
+                        variant="secondary"
                         aria-label={t('Update payment information')}
                         onClick={addButtonAnalytics}
                       />
@@ -979,7 +979,7 @@ class GSBanner extends Component<Props, State> {
                       <LinkButton
                         to={membersPageUrl}
                         size="zero"
-                        priority="default"
+                        variant="secondary"
                         aria-label={t('Org Owner or Billing Member')}
                         onClick={addButtonAnalytics}
                       />
@@ -1022,14 +1022,14 @@ class GSBanner extends Component<Props, State> {
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
                     size="xs"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Upgrade')}
                   </LinkButton>
                   <Button
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"
-                    priority="default"
+                    variant="secondary"
                     tooltipProps={{
                       title: t(
                         'You can also resolve this warning by removing the deactivated members from your organization'

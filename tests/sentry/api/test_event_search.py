@@ -319,6 +319,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
+    def test_bare_duration_treated_as_tag(self) -> None:
+        """Bare `duration:>3s` is not a duration key — it should parse as a text
+        filter so that column resolution sends it to `tags[duration]` instead of
+        the internal ClickHouse `duration` column (which would cause a
+        type-mismatch 500)."""
+        assert parse_search_query("duration:>3s") == [
+            SearchFilter(
+                key=SearchKey(name="duration"),
+                operator="=",
+                value=SearchValue(">3s"),
+            ),
+        ]
+
     def test_paren_expression(self) -> None:
         assert parse_search_query("(x:1 OR y:1) AND z:1") == [
             ParenExpression(

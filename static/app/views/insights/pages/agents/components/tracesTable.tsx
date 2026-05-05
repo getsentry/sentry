@@ -370,7 +370,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <span>
           <TraceIdButton
-            priority="link"
+            variant="link"
             onClick={() =>
               openTraceViewDrawer?.(dataRow.traceId, undefined, dataRow.timestamp / 1000)
             }
@@ -523,7 +523,7 @@ function AgentTags({agents}: {agents: string[]}) {
         padding="2xs xs 0 xl"
         style={{bottom: '0', right: '0'}}
       >
-        <Button priority="link" size="xs" onClick={handleShowAll}>
+        <Button variant="link" size="xs" onClick={handleShowAll}>
           {showAll ? t('Show less') : t('Show all')}
         </Button>
       </Container>

@@ -5,11 +5,12 @@ import {Flex} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import type {
-  Integration,
   IntegrationProvider,
+  OrganizationIntegration,
   Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import type {ScmInstallation} from './scmRepositoryTable';
 import {ScmRepositoryTable} from './scmRepositoryTable';
@@ -34,7 +35,7 @@ const GITHUB_PROVIDER: IntegrationProvider = {
   },
 };
 
-function makeIntegration(id: string, name: string): Integration {
+function makeIntegration(id: string, name: string): OrganizationIntegration {
   return {
     id,
     name,
@@ -44,6 +45,10 @@ function makeIntegration(id: string, name: string): Integration {
     icon: null,
     organizationIntegrationStatus: 'active',
     status: 'active',
+    configData: null,
+    configOrganization: [],
+    externalId: id,
+    organizationId: '',
     provider: {
       key: 'github',
       slug: 'github',
@@ -79,19 +84,47 @@ const REPO_NAMES = [
   'org-name/repo-name-empanada',
 ];
 
-const INSTALLATIONS: ScmInstallation[] = [
-  {
-    integration: makeIntegration('1', '@org-name-123'),
-    repositories: REPO_NAMES.map((name, i) => makeRepo(`a-${i}`, name)),
-    manageUrl: 'https://github.com/',
-  },
-  {
-    integration: makeIntegration('2', '@org-name-456'),
-    repositories: REPO_NAMES.map((name, i) => makeRepo(`b-${i}`, name)),
-    manageUrl: 'https://github.com/',
-    initiallyExpanded: true,
-  },
-];
+/**
+ * Deterministically pick a subset of project slugs for a given repo index, so
+ * the story shows a realistic mix of "no mapping", "single project", and
+ * "many projects (with +N collapse)" rows without reshuffling on every render.
+ */
+function pickSlugsForRepo(allSlugs: string[], repoIndex: number): string[] {
+  if (allSlugs.length === 0) return [];
+  const counts = [0, 1, 1, 3, 0, 5];
+  const count = Math.min(counts[repoIndex % counts.length]!, allSlugs.length);
+  const start = (repoIndex * 3) % allSlugs.length;
+  return Array.from({length: count}, (_, i) => allSlugs[(start + i) % allSlugs.length]!);
+}
+
+function useStoryInstallations(): ScmInstallation[] {
+  const {projects} = useProjects();
+  return useMemo(() => {
+    const slugs = projects.map(p => p.slug);
+    const buildMap = (prefix: string) =>
+      Object.fromEntries(
+        REPO_NAMES.map((_, i) => [
+          `${prefix}-${i}`,
+          pickSlugsForRepo(slugs, i + 1),
+        ]).filter(([, list]) => (list as string[]).length > 0)
+      );
+    return [
+      {
+        integration: makeIntegration('1', '@org-name-123'),
+        repositories: REPO_NAMES.map((name, i) => makeRepo(`a-${i}`, name)),
+        mappedProjectSlugsByRepoId: buildMap('a'),
+        manageUrl: 'https://github.com/',
+      },
+      {
+        integration: makeIntegration('2', '@org-name-456'),
+        repositories: REPO_NAMES.map((name, i) => makeRepo(`b-${i}`, name)),
+        mappedProjectSlugsByRepoId: buildMap('b'),
+        manageUrl: 'https://github.com/',
+        initiallyExpanded: true,
+      },
+    ];
+  }, [projects]);
+}
 
 const EMPTY_INSTALLATION: ScmInstallation[] = [
   {
@@ -103,29 +136,24 @@ const EMPTY_INSTALLATION: ScmInstallation[] = [
 ];
 
 export default Storybook.story('ScmRepositoryTable', story => {
-  story('Default', () => (
-    <ScmRepositoryTable
-      provider={GITHUB_PROVIDER}
-      installations={INSTALLATIONS}
-      onDelete={() => {}}
-      settingsTo="#"
-      overflowMenuItems={[
-        {key: 'disable', label: 'Disable integration', onAction: () => {}},
-      ]}
-      lastSyncedAt={new Date(Date.now() - 5 * 60 * 1000)}
-      onSync={() => {}}
-    />
-  ));
+  story('Default', () => {
+    const installations = useStoryInstallations();
+    return (
+      <ScmRepositoryTable
+        provider={GITHUB_PROVIDER}
+        installations={installations}
+        lastSyncedAt={new Date(Date.now() - 5 * 60 * 1000)}
+        onSync={() => {}}
+        onUninstall={() => {}}
+        onSettings={() => {}}
+      />
+    );
+  });
 
   story('Empty installation', () => (
     <ScmRepositoryTable
       provider={GITHUB_PROVIDER}
       installations={EMPTY_INSTALLATION}
-      onDelete={() => {}}
-      settingsTo="#"
-      overflowMenuItems={[
-        {key: 'disable', label: 'Disable integration', onAction: () => {}},
-      ]}
       lastSyncedAt={new Date(Date.now() - 5 * 60 * 1000)}
       onSync={() => {}}
     />
@@ -133,7 +161,11 @@ export default Storybook.story('ScmRepositoryTable', story => {
 
   story('With search', () => {
     const [query, setQuery] = useState('');
-    const allRepos = useMemo(() => INSTALLATIONS.flatMap(i => i.repositories), []);
+    const installations = useStoryInstallations();
+    const allRepos = useMemo(
+      () => installations.flatMap(i => i.repositories),
+      [installations]
+    );
     const repoMatches = useRepoSearch(allRepos, query);
 
     return (
@@ -146,10 +178,8 @@ export default Storybook.story('ScmRepositoryTable', story => {
         />
         <ScmRepositoryTable
           provider={GITHUB_PROVIDER}
-          installations={INSTALLATIONS.map(i => ({...i, initiallyExpanded: true}))}
+          installations={installations.map(i => ({...i, initiallyExpanded: true}))}
           repoMatches={repoMatches}
-          onDelete={() => {}}
-          settingsTo="#"
         />
       </Flex>
     );
@@ -158,12 +188,14 @@ export default Storybook.story('ScmRepositoryTable', story => {
   story('Loading and disabled', () => (
     <ScmRepositoryTable
       provider={GITHUB_PROVIDER}
+      onUninstall={() => {}}
+      onSettings={() => {}}
       installations={[
         {
           integration: makeIntegration('1', '@org-name-123'),
           repositories: REPO_NAMES.map((name, i) => makeRepo(`a-${i}`, name)),
           manageUrl: 'https://github.com/',
-          isLoading: true,
+          reposLoading: true,
           initiallyExpanded: true,
         },
         {
@@ -176,8 +208,23 @@ export default Storybook.story('ScmRepositoryTable', story => {
           expandDisabled: true,
         },
       ]}
-      onDelete={() => {}}
-      settingsTo="#"
     />
   ));
+
+  story('Mappings loading', () => {
+    const installations = useStoryInstallations();
+    return (
+      <ScmRepositoryTable
+        provider={GITHUB_PROVIDER}
+        installations={installations.map(i => ({
+          ...i,
+          // Drop the seeded mappings so every row appears unmapped, then
+          // mark the mappings query as in-flight to render the placeholder
+          // skeletons in the right slot.
+          mappedProjectSlugsByRepoId: {},
+          mappingsLoading: true,
+        }))}
+      />
+    );
+  });
 });

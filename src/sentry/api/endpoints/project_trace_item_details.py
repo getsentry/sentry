@@ -21,15 +21,86 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.project import Project
 from sentry.search.eap import constants
-from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
+from sentry.search.eap.types import (
+    ColumnType,
+    ScalarType,
+    ScalarValueType,
+    SupportedTraceItemType,
+    TraceItemAttribute,
+)
 from sentry.search.eap.utils import (
     can_expose_attribute,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
+    translate_search_type_for_internal_column,
     translate_to_sentry_conventions,
 )
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, snuba_rpc
+
+_NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
+_VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
+    "valBool": "boolean",
+    "valStr": "string",
+    "valInt": "number",
+    "valFloat": "number",
+    "valDouble": "number",
+    "valArray": "array",
+}
+
+
+def _parse_scalar(
+    column_type: ColumnType, value_type, value: str
+) -> tuple[ScalarValueType, ScalarType]:
+    parsed_value_type = value_type[3:].lower()
+    match column_type:
+        case "number":
+            if value_type in _NUMERIC_COERCIONS:
+                # Only for nonintegers, always typed as float.
+                try:
+                    return _NUMERIC_COERCIONS[value_type](float(value)), "float"
+                except ValueError:
+                    raise BadRequest(
+                        f"Failed value parsing for [{column_type}, {value_type}, {value}]"
+                    )
+            return value, parsed_value_type
+        case "boolean":
+            return bool(value), parsed_value_type
+        case "string":
+            return str(value), parsed_value_type
+        case _:
+            raise BadRequest(
+                f"unknown Value Type in response: [{column_type}, {value_type}, {value}]"
+            )
+
+
+def _get_value_from_attribute(
+    attribute_value: dict[str, Any],
+) -> tuple[ColumnType | None, ScalarValueType | list[ScalarValueType] | None, ScalarType | None]:
+    """Column Type, parsed value, and python scalar type (for arrays, type of its elements)"""
+    for attribute_type_key, value in attribute_value.items():
+        column_type = _VAL_TYPE_TO_COLUMN_TYPE.get(attribute_type_key)
+        if column_type is None:
+            sentry_sdk.logger.error(f"Unknown Type in Protobuf {attribute_value}")
+            continue
+        if column_type == "array":
+            element_types: list[ScalarType] = []
+            elements: list[ScalarValueType] = []
+            for element in value.get("values", []):
+                _, val, ty = _get_value_from_attribute(element)
+                # reject nested arrays
+                if ty is not None and not isinstance(val, list | None):
+                    element_types.append(ty)
+                    elements.append(val)
+            if len(element_types):
+                return column_type, elements, element_types[0]
+            # When array is empty, we can safely assume type as 'string'.
+            # Type can be overridden by column definitions (with 'search_type') later
+            return column_type, elements, "str"
+        else:
+            value, python_type = _parse_scalar(column_type, attribute_type_key, value)
+            return column_type, value, python_type
+    return None, None, None
 
 
 def convert_rpc_attribute_to_json(
@@ -37,6 +108,7 @@ def convert_rpc_attribute_to_json(
     trace_item_type: SupportedTraceItemType,
     use_sentry_conventions: bool = False,
     include_internal: bool = False,
+    include_arrays: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     seen_sentry_conventions: set[str] = set()
@@ -50,58 +122,60 @@ def convert_rpc_attribute_to_json(
 
         source = attribute["value"]
         if len(source) == 0:
-            raise BadRequest(f"unknown field in protobuf: {internal_name}")
-        for key, value in source.items():
-            lowered_key = key.lower()
-            if lowered_key.startswith("val"):
-                val_type = lowered_key[3:]
-                column_type: Literal["string", "number", "boolean"] = "string"
-                if val_type == "bool":
-                    column_type = "boolean"
-                elif val_type == "str":
-                    column_type = "string"
-                elif val_type in ["int", "float", "double"]:
-                    column_type = "number"
-                    if val_type == "double":
-                        val_type = "float"
-                else:
-                    raise BadRequest(f"unknown column type in protobuf: {val_type}")
+            raise BadRequest(f"Unknown field in Response: {internal_name}")
+        column_type, output_value, python_scalar_type = _get_value_from_attribute(source)
 
-                external_name, _, _ = translate_internal_to_public_alias(
-                    internal_name, column_type, trace_item_type
-                )
+        if column_type is None and output_value is None:
+            continue
+        if column_type == "array" and not include_arrays:
+            continue
 
-                if use_sentry_conventions and external_name:
-                    external_name = translate_to_sentry_conventions(external_name, trace_item_type)
-                    if external_name in seen_sentry_conventions:
-                        continue
-                    seen_sentry_conventions.add(external_name)
-                else:
-                    if external_name and is_sentry_convention_replacement_attribute(
-                        external_name, trace_item_type
-                    ):
-                        continue
+        output_type: ScalarType | Literal["array"] = "str"
+        if column_type == "array":
+            translate_type = translate_search_type_for_internal_column(
+                internal_name, trace_item_type
+            )
+            output_type = "array"
+        else:
+            translate_type = column_type
+            output_type = python_scalar_type or output_type
+        external_name = None
+        if translate_type:
+            external_name, _, _ = translate_internal_to_public_alias(
+                internal_name, translate_type, trace_item_type
+            )
 
-                if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith(
-                    "sentry."
-                ):
-                    internal_name = internal_name.replace("sentry.", "", count=1)
+        if use_sentry_conventions and external_name:
+            external_name = translate_to_sentry_conventions(external_name, trace_item_type)
+            if external_name in seen_sentry_conventions:
+                continue
+            seen_sentry_conventions.add(external_name)
+        else:
+            if external_name and is_sentry_convention_replacement_attribute(
+                external_name, trace_item_type
+            ):
+                continue
 
-                if external_name is None:
-                    if column_type == "number":
-                        external_name = f"tags[{internal_name},number]"
-                    elif column_type == "boolean":
-                        external_name = f"tags[{internal_name},boolean]"
-                    else:
-                        external_name = internal_name
+        if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith("sentry."):
+            internal_name = internal_name.replace("sentry.", "", count=1)
 
-                # TODO: this should happen in snuba instead
-                if external_name == "trace":
-                    value = value.replace("-", "")
+        if external_name is None:
+            if column_type in ("number", "boolean", "array"):
+                external_name = f"tags[{internal_name},{column_type}]"
+            else:
+                external_name = internal_name
 
-                result.append(
-                    TraceItemAttribute({"name": external_name, "type": val_type, "value": value})
-                )
+        # TODO: this should happen in snuba instead
+        if external_name == "trace" and isinstance(output_value, str):
+            output_value = output_value.replace("-", "")
+
+        result.append(
+            TraceItemAttribute(
+                name=external_name,
+                type=output_type,
+                value=output_value,
+            )
+        )
 
     return sorted(result, key=lambda x: (x["type"], x["name"]))
 
@@ -310,6 +384,11 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             project.organization,
             actor=request.user,
         )
+        include_arrays = features.has(
+            "organizations:trace-item-details-array-fields",
+            project.organization,
+            actor=request.user,
+        )
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
@@ -321,6 +400,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 item_type,
                 use_sentry_conventions,
                 include_internal=include_internal,
+                include_arrays=include_arrays,
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),

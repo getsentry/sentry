@@ -9,7 +9,8 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
 import {ReprocessingEventModal} from 'sentry/components/modals/reprocessEventModal';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 

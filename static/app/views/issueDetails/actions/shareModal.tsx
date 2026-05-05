@@ -156,7 +156,7 @@ export function ShareIssueModal({
               {t('Copy as Markdown')}
             </Button>
             <Button
-              priority="primary"
+              variant="primary"
               size="sm"
               onClick={handleCopyIssueLink}
               analyticsEventKey={
@@ -214,7 +214,7 @@ export function ShareIssueModal({
                         title: t('Generate new URL. Invalidates previous URL'),
                       }}
                       aria-label={t('Generate new URL')}
-                      priority="transparent"
+                      variant="transparent"
                       size="sm"
                       icon={<IconRefresh />}
                       onClick={() => handlePublicShare(null, true)}
@@ -225,7 +225,7 @@ export function ShareIssueModal({
                   <ButtonContainer>
                     <Button
                       size="sm"
-                      priority="primary"
+                      variant="primary"
                       disabled={!shareUrl}
                       onClick={() =>
                         copy(shareUrl, {

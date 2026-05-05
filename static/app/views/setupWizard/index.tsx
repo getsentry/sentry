@@ -15,11 +15,11 @@ type Props = {
 };
 
 function SetupWizard({hash, enableProjectSelection = false}: Props) {
-  const {data: organizations, isError, isLoading} = useOrganizationsWithRegion();
+  const {data: organizations, isError, isPending} = useOrganizationsWithRegion();
 
   useSetupWizardViewedAnalytics(organizations);
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

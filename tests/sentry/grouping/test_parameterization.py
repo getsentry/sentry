@@ -32,7 +32,14 @@ standard_cases = [
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     ("url - with path", "http://dogsaregreat.com/adopt/dont/shop", "<url>"),
     ("url - with path/trailing slash", "http://dogsaregreat.com/adopt/dont/shop/", "<url>"),
+    ("url - with internal comma", "http://dogsaregreat.com?tricks=spin,kangaroo", "<url>"),
+    (
+        "url - with trailing comma",
+        "http://dogsaregreat.com, http://numberonedog.com",
+        "<url>, <url>",
+    ),
     ("url - with path/filename", "http://dogsaregreat.com/adopt/dont/shop.js", "<url>"),
+    ("url - with trailing period", "The URL is http://dogsaregreat.com.", "The URL is <url>."),
     (
         "url - with querystring",
         "http://dogsaregreat.com/adopt/dont/shop.js?command=sit&trick=spin",
@@ -40,7 +47,14 @@ standard_cases = [
     ),
     ("url - with anchor", "http://dogsaregreat.com/adopt/dont/shop.html#shelters", "<url>"),
     ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
+    ("url - with encoding", "http://dogsaregreat.com/%F0%9F%90%B6", "<url>"),
     ("url - localhost", "http://localhost:8000", "<url>"),
+    ("url - single-segment domain", "http://dogserver", "<url>"),
+    ("url - one-character path", "http://d ogsaregreat", "<url> ogsaregreat"),
+    ("url - tcp", "tcp://dogsaregreat.com:10", "<url>"),
+    ("url - filepath", "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg", "<url>"),
+    ("url - postgres", "postgresql:///dogdb", "<url>"),
+    ("url - app-specific scheme", "best-dogs-app://number-one-dog", "<url>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
@@ -57,6 +71,9 @@ standard_cases = [
     ("ip - v6 final compressed segment", "2012:d157::", "<ip>"),
     ("ip - v4 mapped to v6", "::ffff:192.168.1.1", "<ip>"),
     ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
+    ("ip - v4 too many segments", "11.21.12.31.12", "<int>.<int>.<int>.<int>.<int>"),
+    ("ip - v4 segment > 255", "12.31.12.908", "<int>.<int>.<int>.<int>"),
+    ("ip - v4 leading zeros", "11.21.12.001", "<int>.<int>.<int>.<int>"),
     ("ip - double colon object property", "Option::unwrap()", "Option::unwrap()"),
     ("ip - double colon object property including hex", "Bee::buzz()", "Bee::buzz()"),
     (
@@ -218,6 +235,8 @@ standard_cases = [
     ("random id - no numbers", "kMtdgDcgG", "kMtdgDcgG"),
     ("random id - no numbers until later", "kMtdgDcgG 1121", "kMtdgDcgG <int>"),
     ("float", "0.23", "<float>"),
+    ("float - postive, too many segments", "1.2.3", "<int>.<int>.<int>"),
+    ("float - negative, too many segments", "-1.2.3", "<int>.<int>.<int>"),
     ("int", "23", "<int>"),
     ("int - negative", "-23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
@@ -309,18 +328,6 @@ incorrect_cases = [
         "<int>/Nov/<int>:<date>",
     ),
     (
-        "float - postive, too many segments",
-        "1.2.3",
-        "<int>.<int>.<int>",
-        "<float>.<int>",
-    ),
-    (
-        "float - negative, too many segments",
-        "-1.2.3",
-        "<int>.<int>.<int>",
-        "<float>.<int>",
-    ),
-    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
@@ -331,24 +338,6 @@ incorrect_cases = [
         "4,150,908",
         "<int>",
         "<int>,<int>,<int>",
-    ),
-    (
-        "ip - v4, leading zeros",
-        "11.21.12.001",
-        "<int>.<int>.<int>.<int>",
-        "<float>.<float>",
-    ),
-    (
-        "ip - v4, segment > 255",
-        "12.31.12.908",
-        "<int>.<int>.<int>.<int>",
-        "<float>.<float>",
-    ),
-    (
-        "ip - v4, too many segments",
-        "11.21.12.31.12",
-        "<int>.<int>.<int>.<int>.<int>",
-        "<ip>.<int>",
     ),
     (
         "ip - short double colon object property including only hex",
@@ -369,18 +358,6 @@ incorrect_cases = [
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
         "{'dogs are great': <bool>, 'dog_id': '<id>'}",
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
-    ),
-    (
-        "url - non-http protocol with username/password/port",
-        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
-        "<url> had a problem",
-        "tcp://charlie:<email>:<int> had a problem",
-    ),
-    (
-        "url - tcp",
-        "tcp://dogsaregreat.com:10",
-        "<url>",
-        "tcp://<hostname>:<int>",
     ),
 ]
 
@@ -804,7 +781,7 @@ ip_false_positive_cases = [
     ("ip - too few segments", "12:31:99", True),
     ("ip - v4 leading zeros", "11.21.12.001", False),
     ("ip - v4 segment > 255", "12.31.12.908", False),
-    ("ip - v4 too many segments", "11.21.12.31.12", True),
+    ("ip - v4 too many segments", "11.21.12.31.12", False),
     ("date - colon btwn date and time", "21/Nov/2012:12:31:12", True),
 ]
 

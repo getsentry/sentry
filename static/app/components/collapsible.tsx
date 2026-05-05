@@ -51,7 +51,7 @@ export function Collapsible({
       {visibleItems}
 
       {showDefault && (
-        <Button priority="link" onClick={handleCollapseToggle}>
+        <Button variant="link" onClick={handleCollapseToggle}>
           {isCollapsed
             ? tn('Show %s hidden item', 'Show %s hidden items', numberOfHiddenItems)
             : t('Collapse')}

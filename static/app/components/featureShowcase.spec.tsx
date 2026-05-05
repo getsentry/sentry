@@ -4,10 +4,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {GlobalModal} from '@sentry/scraps/modal';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureShowcase, useShowcaseContext} from 'sentry/components/featureShowcase';
-import {GlobalModal} from 'sentry/components/globalModal';
 
 function CustomFooter() {
   const {close} = useShowcaseContext();
@@ -17,7 +17,7 @@ function CustomFooter() {
         external
         href="http://example.org"
         onClick={close}
-        priority="primary"
+        variant="primary"
         aria-label="Complete tour"
       >
         Finished
