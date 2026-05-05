@@ -95,7 +95,7 @@ type AutofixAutomationUpdate =
 
 export function useUpdateBulkAutofixAutomationSettings(
   options?: Omit<
-    UseMutationOptions<unknown, Error, AutofixAutomationUpdate, unknown>,
+    UseMutationOptions<unknown, Error, AutofixAutomationUpdate>,
     'mutationFn'
   >
 ) {
@@ -108,7 +108,7 @@ export function useUpdateBulkAutofixAutomationSettings(
     [projects]
   );
 
-  return useMutation<unknown, Error, AutofixAutomationUpdate, unknown>({
+  return useMutation<unknown, Error, AutofixAutomationUpdate>({
     mutationFn: (data: AutofixAutomationUpdate) => {
       return fetchMutation({
         method: 'POST',

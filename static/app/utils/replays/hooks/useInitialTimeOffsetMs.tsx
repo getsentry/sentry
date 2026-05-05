@@ -10,27 +10,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
-type TimeOffsetLocationQueryParams = {
-  /**
-   * The time when the event happened.
-   * Anything that can be parsed by `new Date()`; for example a timestamp in ms
-   * or an ISO 8601 formatted string.
-   */
-  event_t?: Query[string];
-
-  /**
-   * The query that was used on the index page. If it includes `click.*` fields
-   * then we will use those to lookup a list of `offsetMs` values
-   */
-  query?: Query[string];
-
-  /**
-   * A specific offset into the replay. Number of seconds.
-   * Should be less than the duration of the replay
-   */
-  t?: Query[string];
-};
-
 type Opts = {
   /**
    * The organization name you'll see in the browser url
@@ -171,7 +150,7 @@ export function useInitialTimeOffsetMs({
   const api = useApi();
   const {
     query: {event_t: eventTimestamp, query: listPageQuery, t: offsetSec},
-  } = useLocation<TimeOffsetLocationQueryParams>();
+  } = useLocation();
   const [timestamp, setTimestamp] = useState<Result>(undefined);
 
   // The different strategies for getting a time offset into the replay (what

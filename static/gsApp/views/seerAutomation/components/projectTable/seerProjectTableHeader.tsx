@@ -29,7 +29,7 @@ import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/ut
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>>;
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;

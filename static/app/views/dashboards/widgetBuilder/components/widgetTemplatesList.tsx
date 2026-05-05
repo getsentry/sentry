@@ -46,9 +46,7 @@ export function WidgetTemplatesList({
         widgets.findIndex(w => w.id === widgetTemplateId)
       )
     : null;
-  const [selectedWidget, setSelectedWidget] = useState<number | null>(
-    initialSelectedIndex
-  );
+  const [selectedWidget, setSelectedWidget] = useState(initialSelectedIndex);
 
   const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();

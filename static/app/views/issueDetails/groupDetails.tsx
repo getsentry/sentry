@@ -235,7 +235,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const navigate = useNavigate();
   const {projects} = useProjects();
 
-  const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
+  const [allProjectChanged, setAllProjectChanged] = useState(false);
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();

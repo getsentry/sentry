@@ -60,7 +60,7 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
     }
   }
 
-  function handlePayNow(event: React.MouseEvent<Element>) {
+  function handlePayNow(event: React.MouseEvent) {
     event.preventDefault();
     openInvoicePaymentModal({invoice, organization, reloadInvoice});
   }

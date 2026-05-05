@@ -253,7 +253,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
 
-  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
+  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
   );
   const [_, setPersistentParams] = usePersistedLogsPageParams();
@@ -427,7 +427,10 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ViewportConstrainedPage constrained={tableExpando} hideFooter={tableExpando}>
+      <ViewportConstrainedPage
+        constrained={tableExpando && mode === Mode.SAMPLES}
+        hideFooter={tableExpando}
+      >
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
             {sidebarOpen ? <LogsToolbar /> : null}

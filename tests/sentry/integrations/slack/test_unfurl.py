@@ -201,7 +201,9 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=avg(span.duration)&project=1&statsPeriod=24h"),
+                    "query": QueryDict(
+                        "yAxis=avg(span.duration)&project=1&statsPeriod=24h&interval=5m"
+                    ),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.SPANS,
                 },
@@ -213,7 +215,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=count(span.duration)&statsPeriod=24h"),
+                    "query": QueryDict("yAxis=count(span.duration)&statsPeriod=24h&interval=5m"),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.SPANS,
                 },
@@ -225,7 +227,9 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=sum(payload_size)&project=1&statsPeriod=24h"),
+                    "query": QueryDict(
+                        "yAxis=sum(payload_size)&project=1&statsPeriod=24h&interval=5m"
+                    ),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.LOGS,
                 },
@@ -237,7 +241,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=count(payload_size)&statsPeriod=24h"),
+                    "query": QueryDict("yAxis=count(payload_size)&statsPeriod=24h&interval=5m"),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.LOGS,
                 },
@@ -249,7 +253,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=sum(value)&project=1&statsPeriod=7d"),
+                    "query": QueryDict("yAxis=sum(value)&project=1&statsPeriod=7d&interval=30m"),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.TRACEMETRICS,
                 },
@@ -261,7 +265,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=avg(value)&statsPeriod=24h"),
+                    "query": QueryDict("yAxis=avg(value)&statsPeriod=24h&interval=5m"),
                     "chart_type": None,
                     "dataset": SupportedTraceItemType.TRACEMETRICS,
                 },
@@ -1640,7 +1644,37 @@ class UnfurlTest(TestCase):
 
         # Verify sort is passed to the timeseries API for correct top events
         api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("sort") == ["-avg(span.duration)"]
+        assert api_params["sort"] == "-avg(span.duration)"
+
+    @patch("sentry.api.client.resolve")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_forwards_multiple_groupbys_to_api(
+        self, mock_generate_chart: MagicMock, mock_resolve: MagicMock
+    ) -> None:
+        # Don't mock client.get — exercise the real API client so we catch
+        # multi-value param collapse on the way to events-timeseries.
+        mock_response = MagicMock(
+            status_code=200,
+            data=self._build_mock_timeseries_response(y_axis="count(span.duration)"),
+        )
+        mock_view = MagicMock(return_value=mock_response)
+        mock_resolve.return_value = (mock_view, (), {})
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22transaction%22%7D&aggregateField=%7B%22groupBy%22%3A%22browser.name%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A1%7D&project={self.project.id}&statsPeriod=14d"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            link_handlers[link_type].fn(self.integration, links, self.user)
+
+        mock_view.assert_called_once()
+        request = mock_view.call_args[0][0]
+        assert request.GET.getlist("groupBy") == ["transaction", "browser.name"]
+        assert request.GET.getlist("yAxis") == ["count(span.duration)"]
+        assert request.GET["dataset"] == "spans"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1667,7 +1701,7 @@ class UnfurlTest(TestCase):
 
         # Verify explicit aggregateSort from the URL is used instead of the default
         api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("sort") == ["span.op"]
+        assert api_params["sort"] == "span.op"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -2000,6 +2034,75 @@ class UnfurlTest(TestCase):
         call_kwargs = mock_client_get.call_args[1]
         api_params = call_kwargs["params"]
         assert api_params["interval"] == "1h"
+
+    def test_match_link_explore_default_interval_ladder(self) -> None:
+        # Mirrors MINIMUM_INTERVAL in static/app/utils/useChartInterval.tsx — if
+        # this list changes, the ladder in explore.py must change with it.
+        cases = [
+            ("1h", "1m"),
+            ("6h", "1m"),
+            ("12h", "5m"),
+            ("2d", "10m"),
+            ("4d", "30m"),
+            ("14d", "1h"),
+            ("30d", "3h"),
+        ]
+        for stats_period, expected_interval in cases:
+            url = (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+                f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+                f"&project={self.project.id}&statsPeriod={stats_period}"
+            )
+            _, args = match_link(url)
+            assert args is not None
+            assert args["query"]["interval"] == expected_interval, (
+                f"statsPeriod={stats_period} expected {expected_interval}, "
+                f"got {args['query']['interval']}"
+            )
+
+    def test_match_link_explore_default_interval_for_logs_and_metrics(self) -> None:
+        # Logs and metrics use the same useChartInterval default as traces, so
+        # the URL → timeseries conversion should pick the same interval for the
+        # same time range.
+        urls = [
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+                f"?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+                f"&project={self.project.id}&statsPeriod=14d"
+            ),
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+                f"?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum(value)%22%5D%7D%5D%7D"
+                f"&project={self.project.id}&statsPeriod=14d"
+            ),
+        ]
+        for url in urls:
+            _, args = match_link(url)
+            assert args is not None
+            assert args["query"]["interval"] == "1h"
+
+    def test_match_link_explore_default_interval_when_no_stats_period(self) -> None:
+        # When neither statsPeriod nor start/end is supplied, the unfurl falls
+        # back to DEFAULT_PERIOD (14d), so the default interval should be 1h.
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+            f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+            f"&project={self.project.id}"
+        )
+        _, args = match_link(url)
+        assert args is not None
+        assert args["query"]["statsPeriod"] == "14d"
+        assert args["query"]["interval"] == "1h"
+
+    def test_match_link_explore_preserves_explicit_interval(self) -> None:
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+            f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+            f"&project={self.project.id}&statsPeriod=24h&interval=1h"
+        )
+        _, args = match_link(url)
+        assert args is not None
+        assert args["query"]["interval"] == "1h"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",

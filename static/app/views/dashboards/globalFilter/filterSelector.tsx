@@ -122,8 +122,8 @@ export function FilterSelector({
     };
   }, [filterToken, fieldDefinition]);
 
-  const [stagedOperator, setStagedOperator] = useState<TermOperator>(initialOperator);
-  const [activeFilterValues, setActiveFilterValues] = useState<string[]>(initialValues);
+  const [stagedOperator, setStagedOperator] = useState(initialOperator);
+  const [activeFilterValues, setActiveFilterValues] = useState(initialValues);
   const [stagedFilterValues, setStagedFilterValues] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 

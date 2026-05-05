@@ -2,7 +2,6 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {AutofixData} from './types';
-import type {AutofixProgressDetails} from './utils';
 import {getAutofixProgressDetails} from './utils';
 
 interface AutofixProgressBarProps {
@@ -10,7 +9,7 @@ interface AutofixProgressBarProps {
 }
 
 function AutofixProgressBar({autofixData}: AutofixProgressBarProps) {
-  const [progressDetails, setProgressDetails] = useState<AutofixProgressDetails>({
+  const [progressDetails, setProgressDetails] = useState({
     overallProgress: 0,
   });
 

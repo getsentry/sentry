@@ -1187,7 +1187,7 @@ function SaveQueryButton({
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
   const handleCreate = useCallback(
-    (event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>) => {
+    (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       event.stopPropagation();
       if (!queryName) {
@@ -1207,7 +1207,7 @@ function SaveQueryButton({
     [api, organization, eventView, yAxis, queryName]
   );
 
-  const handleUpdate = (event: React.MouseEvent<Element>) => {
+  const handleUpdate = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     handleUpdateSavedQuery(api, organization, eventView, yAxis).then((sq: SavedQuery) => {

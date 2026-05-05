@@ -256,7 +256,7 @@ export const LogRowContent = memo(function LogRowContent({
   }
 
   const analyticsPageSource = useLogsAnalyticsPageSource();
-  const [_expanded, setExpanded] = useState<boolean>(false);
+  const [_expanded, setExpanded] = useState(false);
   const expanded = isExpanded ?? _expanded;
   const isPseudoRow = isPseudoLogResponseItem(dataRow);
 
