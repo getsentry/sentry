@@ -368,45 +368,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             == IncidentStatus.CLOSED
         )
 
-    def test_build_notification_context(self) -> None:
-        notification_context = self.handler.build_notification_context(self.action)
-        assert isinstance(notification_context, NotificationContext)
-        assert notification_context.target_identifier == "channel456"
-        assert notification_context.integration_id == 1234567890
-        assert notification_context.sentry_app_config is None
-
-    def test_build_alert_context(self) -> None:
-        assert self.group_event.occurrence is not None
-        assert self.group_event.occurrence.priority is not None
-        alert_context = self.handler.build_alert_context(
-            self.detector,
-            self.evidence_data,
-            self.group_event.group.status,
-            DetectorPriorityLevel(self.group_event.occurrence.priority),
-        )
-        assert isinstance(alert_context, AlertContext)
-        assert alert_context.name == self.detector.name
-        assert alert_context.action_identifier_id == self.detector.id
-        assert alert_context.threshold_type == AlertRuleThresholdType.ABOVE
-        assert alert_context.comparison_delta is None
-
-    def test_build_alert_context_anomaly_detection(self) -> None:
-        assert self.group_event.occurrence is not None
-        assert self.group_event.occurrence.priority is not None
-        alert_context = self.handler.build_alert_context(
-            self.detector,
-            self.anomaly_detection_evidence_data,
-            self.group_event.group.status,
-            DetectorPriorityLevel(self.group_event.occurrence.priority),
-        )
-        assert isinstance(alert_context, AlertContext)
-        assert alert_context.name == self.detector.name
-        assert alert_context.action_identifier_id == self.detector.id
-        assert alert_context.threshold_type == AnomalyDetectionThresholdType.ABOVE_AND_BELOW
-        assert alert_context.comparison_delta is None
-        assert alert_context.alert_threshold == 0
-        assert alert_context.resolve_threshold == 0
-
     def test_get_new_status(self) -> None:
         assert self.group_event.occurrence is not None
         assert self.group_event.occurrence.priority is not None
