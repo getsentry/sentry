@@ -1,17 +1,10 @@
-import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  useApiQuery,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {type ApiQueryKey} from 'sentry/utils/queryClient';
 
-interface Props extends Partial<UseApiQueryOptions<RepositoryWithSettings>> {
-  repositoryId: string;
-}
-
+/**
+ * TODO: Convert to apiOptions
+ */
 export function getRepositoryWithSettingsQueryKey(
   organization: Organization,
   repoId: string
@@ -22,16 +15,4 @@ export function getRepositoryWithSettingsQueryKey(
     }),
     {query: {expand: 'settings'}},
   ] satisfies ApiQueryKey;
-}
-
-export function useRepositoryWithSettings({repositoryId, ...options}: Props) {
-  const organization = useOrganization();
-
-  return useApiQuery<RepositoryWithSettings>(
-    getRepositoryWithSettingsQueryKey(organization, repositoryId),
-    {
-      staleTime: 0,
-      ...options,
-    }
-  );
 }

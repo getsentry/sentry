@@ -88,7 +88,7 @@ export function AggregateColumnEditorModal({
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
-  const [tempColumns, setTempColumns] = useState<AggregateField[]>(columns);
+  const [tempColumns, setTempColumns] = useState(columns);
 
   const groupBys = useMemo(() => {
     return columns.filter(isGroupBy).map(groupBy => groupBy.groupBy);

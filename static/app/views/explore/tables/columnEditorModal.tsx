@@ -72,7 +72,7 @@ export function ColumnEditorModal({
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
-  const [tempColumns, setTempColumns] = useState<string[]>(columns.slice());
+  const [tempColumns, setTempColumns] = useState(columns.slice());
 
   function handleApply() {
     onColumnsChange(tempColumns.filter(Boolean));

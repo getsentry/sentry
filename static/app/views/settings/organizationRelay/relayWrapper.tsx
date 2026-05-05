@@ -39,7 +39,7 @@ const relaySchema = z.object({
 export function RelayWrapper() {
   const organization = useOrganization();
   const api = useApi();
-  const [relays, setRelays] = useState<Relay[]>(organization.trustedRelays);
+  const [relays, setRelays] = useState(organization.trustedRelays);
   const hasPageFrame = useHasPageFrameFeature();
 
   const disabled = !organization.access.includes('org:write');

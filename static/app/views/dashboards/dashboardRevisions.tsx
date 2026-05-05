@@ -67,7 +67,7 @@ function DashboardRevisionsModal({
   dashboard: DashboardDetails;
 }) {
   const dashboardId = dashboard.id;
-  const [selectedRevisionId, setSelectedRevisionId] = useState<string>(NEWEST_VERSION_ID);
+  const [selectedRevisionId, setSelectedRevisionId] = useState(NEWEST_VERSION_ID);
   const {data: revisions, isPending, isError} = useDashboardRevisions({dashboardId});
   const displayedRevisions = revisions?.slice(0, MAX_DISPLAYED_REVISIONS) ?? [];
   const isNewestVersionSelected = selectedRevisionId === NEWEST_VERSION_ID;

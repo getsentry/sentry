@@ -100,7 +100,7 @@ export function useFetchParallelPages<Data>({
 }: Props<Data>): State<Data> {
   const queryClient = useQueryClient();
 
-  const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
+  const responsePages = useRef(new Map<string, ResponsePage<Data>>());
 
   const cursors = useMemo(
     () =>

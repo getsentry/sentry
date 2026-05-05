@@ -50,7 +50,7 @@ function SentryAppExternalInstallationContent() {
   const [selectedOrgSlug, setSelectedOrgSlug] = useState<string>();
 
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
-  const [orgsLoading, setOrgsLoading] = useState<boolean>(true);
+  const [orgsLoading, setOrgsLoading] = useState(true);
   const [isInstalled, setIsInstalled] = useState<boolean>();
 
   // Load data on mount.

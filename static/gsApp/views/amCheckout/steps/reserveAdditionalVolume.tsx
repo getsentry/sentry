@@ -32,7 +32,7 @@ export function ReserveAdditionalVolume({
   | 'onUpdate'
 >) {
   // if the customer has any reserved volume above platform already, auto-show the sliders
-  const [showSliders, setShowSliders] = useState<boolean>(
+  const [showSliders, setShowSliders] = useState(
     isDeveloperPlan(subscription.planDetails) || isTrialPlan(subscription.plan)
       ? false
       : Object.values(subscription.categories ?? {})
@@ -49,9 +49,7 @@ export function ReserveAdditionalVolume({
               }).price > 0
           )
   );
-  const [reserved, setReserved] = useState<Partial<Record<DataCategory, number>>>(
-    formData.reserved
-  );
+  const [reserved, setReserved] = useState(formData.reserved);
   const reservedVolumeTotal = useMemo(() => {
     return Object.entries(reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(

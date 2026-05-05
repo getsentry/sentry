@@ -81,11 +81,10 @@ function getStoppingPointOptions(organization: Organization) {
 export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const organization = useOrganization();
   const [message, setMessage] = useState('');
-  const [selectedStoppingPoint, setSelectedStoppingPoint] =
-    useLocalStorageState<AutofixStoppingPoint>(
-      'autofix:selected-stopping-point',
-      AutofixStoppingPoint.ROOT_CAUSE
-    );
+  const [selectedStoppingPoint, setSelectedStoppingPoint] = useLocalStorageState(
+    'autofix:selected-stopping-point',
+    AutofixStoppingPoint.ROOT_CAUSE
+  );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent, stoppingPoint?: AutofixStoppingPoint) => {

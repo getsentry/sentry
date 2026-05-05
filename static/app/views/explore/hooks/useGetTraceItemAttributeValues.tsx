@@ -1,6 +1,6 @@
+import {useCallback} from 'react';
 import {
   queryOptions,
-  useMutation,
   useQueryClient,
   type QueryFunctionContext,
 } from '@tanstack/react-query';
@@ -47,8 +47,8 @@ export function useGetTraceItemAttributeValues({
   const {selection} = usePageFilters();
   const queryClient = useQueryClient();
 
-  const {mutateAsync: getTraceItemAttributeValues} = useMutation({
-    mutationFn: async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
+  return useCallback(
+    async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
       if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
         // We can't really auto suggest values for aggregate functions, numbers, or booleans
         return Promise.resolve([]);
@@ -102,7 +102,16 @@ export function useGetTraceItemAttributeValues({
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);
       }
     },
-  });
-
-  return getTraceItemAttributeValues;
+    [
+      datetime,
+      filterQuery,
+      organization.slug,
+      projectIds,
+      queryClient,
+      selection.datetime,
+      selection.projects,
+      traceItemType,
+      type,
+    ]
+  );
 }
