@@ -898,7 +898,7 @@ describe('SpansTabContent', () => {
       await userEvent.hover(traceSamplesTab);
       expect(
         await screen.findByText(
-          'Trace samples do not yet work with Cross-Event queries, use spans tab.'
+          'Trace samples do not yet work with Cross-Event queries. Use the Spans tab instead.'
         )
       ).toBeInTheDocument();
 
