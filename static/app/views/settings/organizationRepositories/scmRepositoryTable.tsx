@@ -386,7 +386,7 @@ function InstallationActions({
   } = installation;
 
   const isDisabled = integration.status === 'disabled';
-  const rawLastSync = integration.configData?.['last_sync'];
+  const rawLastSync = integration.configData?.last_sync;
   const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
 
   const syncNowButton =
