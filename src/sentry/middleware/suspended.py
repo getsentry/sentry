@@ -36,24 +36,24 @@ class SuspendedUserMiddleware(MiddlewareMixin):
         if not getattr(user, "is_suspended", False):
             return None
 
-        if any(request.path.startswith(p) for p in SUSPENDED_EXEMPT_PATHS):
+        if any(request.path_info.startswith(p) for p in SUSPENDED_EXEMPT_PATHS):
             return None
 
         # Allow logout (DELETE /api/0/auth/) so suspended users can end their session.
-        if request.path == "/api/0/auth/" and request.method == "DELETE":
+        if request.path_info == "/api/0/auth/" and request.method == "DELETE":
             return None
 
         logger.error(
             "suspended_user.safety_net_triggered",
             extra={
                 "user_id": user.id,
-                "path": request.path,
+                "path": request.path_info,
                 "method": request.method,
                 "ip_address": request.META.get("REMOTE_ADDR"),
             },
         )
 
-        if request.path.startswith("/api/"):
+        if request.path_info.startswith("/api/"):
             return JsonResponse(
                 {"detail": "Your account has been suspended."},
                 status=403,
