@@ -111,9 +111,11 @@ def simple_task_with_random_duration(
     For exponential distribution, the first parameter is the lambda (lambd is 1.0 divided by the desired mean).
     """
     if distribution == "uniform":
+        if a > b or a < 0 or b < 0:
+            raise ValueError(f"Invalid parameters for uniform distribution: a={a}, b={b}")
         sleep(random.uniform(a, b))
     elif distribution == "gauss":
-        sleep(random.normalvariate(mu=a, sigma=b))  # random.gauss isn't threadsafe
+        sleep(max(0, random.normalvariate(mu=a, sigma=b)))  # random.gauss isn't threadsafe
     elif distribution == "exponential":
         sleep(random.expovariate(lambd=a))
     else:
