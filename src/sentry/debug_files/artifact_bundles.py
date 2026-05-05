@@ -466,6 +466,7 @@ def get_artifact_bundles_containing_url(
                     dist_name=dist_name,
                 )
             ),
+            organization_id=project.organization.id,
         )
         .values_list("id", "date_added")
         .order_by("-date_last_modified", "-id")[:MAX_BUNDLES_QUERY]
@@ -482,6 +483,7 @@ def get_artifact_bundles_by_release(
     """
     return set(
         ArtifactBundle.objects.filter(
+            organization_id=project.organization.id,
             releaseartifactbundle__organization_id=project.organization.id,
             releaseartifactbundle__release_name=release_name,
             releaseartifactbundle__dist_name=dist_name,
