@@ -1716,7 +1716,6 @@ module = [
     "sentry.web.frontend.debug.debug_trigger_error",
     "sentry.web.frontend.debug.debug_unable_to_delete_repository",
     "sentry.web.frontend.debug.debug_unassigned_email",
-    "sentry.web.frontend.debug.debug_uptime_auto_detected_monitor_email",
     "sentry.web.frontend.debug.debug_weekly_report",
     "sentry.web.frontend.debug.mail",
     "sentry.web.frontend.disabled_member_view",
