@@ -1,6 +1,5 @@
 import {
   queryOptions,
-  useMutation,
   useQueryClient,
   type QueryFunctionContext,
 } from '@tanstack/react-query';
@@ -47,62 +46,58 @@ export function useGetTraceItemAttributeValues({
   const {selection} = usePageFilters();
   const queryClient = useQueryClient();
 
-  const {mutateAsync: getTraceItemAttributeValues} = useMutation({
-    mutationFn: async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
-      if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
-        // We can't really auto suggest values for aggregate functions, numbers, or booleans
-        return Promise.resolve([]);
+  return async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
+    if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
+      // We can't really auto suggest values for aggregate functions, numbers, or booleans
+      return Promise.resolve([]);
+    }
+
+    const project =
+      projectIds && projectIds.length > 0
+        ? projectIds.map(String)
+        : selection.projects.map(String);
+    const datetimeParams = datetime
+      ? normalizeDateTimeParams(datetime)
+      : normalizeDateTimeParams(selection.datetime);
+
+    const options = apiOptions.as<TraceItemAttributeValue[]>()(
+      '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
+      {
+        path: {organizationIdOrSlug: organization.slug, key: tag.key},
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+        query: {
+          itemType: traceItemType,
+          attributeType: type,
+          query: filterQuery || undefined,
+          substringMatch: searchQuery || undefined,
+          project,
+          ...datetimeParams,
+        },
       }
+    );
+    const originalQueryFn = options.queryFn;
+    const optionsWithPrefixCacheShortcut =
+      typeof originalQueryFn === 'function'
+        ? queryOptions({
+            ...options,
+            queryFn: (ctx: QueryFunctionContext<ApiQueryKey>) => {
+              return (
+                findFreshEmptyPrefixSearchCacheMatch({
+                  client: ctx.client,
+                  currentKey: ctx.queryKey,
+                }) ?? originalQueryFn(ctx)
+              );
+            },
+          })
+        : options;
 
-      const project =
-        projectIds && projectIds.length > 0
-          ? projectIds.map(String)
-          : selection.projects.map(String);
-      const datetimeParams = datetime
-        ? normalizeDateTimeParams(datetime)
-        : normalizeDateTimeParams(selection.datetime);
-
-      const options = apiOptions.as<TraceItemAttributeValue[]>()(
-        '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
-        {
-          path: {organizationIdOrSlug: organization.slug, key: tag.key},
-          staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
-          query: {
-            itemType: traceItemType,
-            attributeType: type,
-            query: filterQuery || undefined,
-            substringMatch: searchQuery || undefined,
-            project,
-            ...datetimeParams,
-          },
-        }
-      );
-      const originalQueryFn = options.queryFn;
-      const optionsWithPrefixCacheShortcut =
-        typeof originalQueryFn === 'function'
-          ? queryOptions({
-              ...options,
-              queryFn: (ctx: QueryFunctionContext<ApiQueryKey>) => {
-                return (
-                  findFreshEmptyPrefixSearchCacheMatch({
-                    client: ctx.client,
-                    currentKey: ctx.queryKey,
-                  }) ?? originalQueryFn(ctx)
-                );
-              },
-            })
-          : options;
-
-      try {
-        const {json} = await queryClient.fetchQuery(optionsWithPrefixCacheShortcut);
-        return json
-          .filter((item: TraceItemAttributeValue) => defined(item.value))
-          .map((item: TraceItemAttributeValue) => item.value);
-      } catch (e) {
-        throw new Error(`Unable to fetch trace item attribute values: ${e}`);
-      }
-    },
-  });
-
-  return getTraceItemAttributeValues;
+    try {
+      const {json} = await queryClient.fetchQuery(optionsWithPrefixCacheShortcut);
+      return json
+        .filter((item: TraceItemAttributeValue) => defined(item.value))
+        .map((item: TraceItemAttributeValue) => item.value);
+    } catch (e) {
+      throw new Error(`Unable to fetch trace item attribute values: ${e}`);
+    }
+  };
 }
