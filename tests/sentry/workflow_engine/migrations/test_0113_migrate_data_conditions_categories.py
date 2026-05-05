@@ -82,42 +82,28 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
             condition_group=self.dcg,
         )
 
-    def test_metric_issue_migrates(self) -> None:
-        """
-        Test that GroupCategory.METRIC_ISSUE -> GroupCategory.METRIC
-        """
+    def test_data_conditions_migrate(self) -> None:
+        # Test that GroupCategory.METRIC_ISSUE -> GroupCategory.METRIC
         dc = DataCondition.objects.get(id=self.dc_metric_issue.id)
         assert dc.type == "issue_category"
         assert dc.comparison == {"value": 11}
 
-    def test_replay_migrates(self) -> None:
-        """
-        Test that GroupCategory.REPLAY -> GroupCategory.FRONTEND
-        """
+        # Test that GroupCategory.REPLAY -> GroupCategory.FRONTEND
         dc = DataCondition.objects.get(id=self.dc_replay.id)
         assert dc.type == "issue_category"
         assert dc.comparison == {"value": 14}
 
-    def test_uptime_migrates_to_issue_type(self) -> None:
-        """
-        Test that GroupCategory.UPTIME -> issue type Uptime Monitor Detected Downtime
-        """
+        # Test that GroupCategory.UPTIME -> issue type Uptime Monitor Detected Downtime
         dc = DataCondition.objects.get(id=self.dc_uptime.id)
         assert dc.type == "issue_type"
         assert dc.comparison == {"value": "uptime_domain_failure"}
 
-    def test_cron_migrates_to_issue_type(self) -> None:
-        """
-        Test that GroupCategory.CRON -> issue type Missed or Failed Cron Check-In
-        """
+        # Test that GroupCategory.CRON -> issue type Missed or Failed Cron Check-In
         dc = DataCondition.objects.get(id=self.dc_cron.id)
         assert dc.type == "issue_type"
         assert dc.comparison == {"value": "monitor_check_in_failure"}
 
-    def test_performance_all_logic_type(self) -> None:
-        """
-        Test that GroupCategory.PERFORMANCE with logic type 'all' -> NOT GroupCategory.ERROR
-        """
+        # Test that GroupCategory.PERFORMANCE with logic type 'all' -> NOT GroupCategory.ERROR
         dc = DataCondition.objects.get(id=self.dc_performance_all.id)
         assert dc.type == "issue_category"
         assert dc.comparison == {"value": 1, "include": False}
@@ -125,12 +111,9 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
         assert dcg.logic_type == "all"
         assert DataCondition.objects.filter(condition_group=self.dcg_all).count() == 1
 
-    def test_performance_any_logic_type(self) -> None:
-        """
-        Test that GroupCategory.PERFORMANCE with logic type 'any' ->
-        GroupCategory.DB_QUERY, GroupCategory.HTTP_CLIENT, GroupCategory.FRONTEND, and GroupCategory.MOBILE
-        (4 DataConditions from 1)
-        """
+        # Test that GroupCategory.PERFORMANCE with logic type 'any' ->
+        # GroupCategory.DB_QUERY, GroupCategory.HTTP_CLIENT, GroupCategory.FRONTEND, and GroupCategory.MOBILE
+        # (4 DataConditions from 1)
         dc = DataCondition.objects.get(id=self.dc_performance_any.id)
         assert dc.type == "issue_category"
         assert dc.comparison == {"value": 12}
@@ -138,19 +121,16 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
             condition_group=self.dcg_any,
             type="issue_category",
         ).exclude(id=self.dc_performance_any.id)
-        assert new_conditions.count() == 4
-        assert {c.comparison["value"] for c in new_conditions} == {11, 13, 14, 15}
+        assert new_conditions.count() == 3
+        assert {c.comparison["value"] for c in new_conditions} == {13, 14, 15}
         for condition in new_conditions:
             assert "include" not in condition.comparison
         dcg = DataConditionGroup.objects.get(id=self.dcg_any.id)
         assert dcg.logic_type == "any"
 
-    def test_performance_any_short_logic_type(self) -> None:
-        """
-        Test that GroupCategory.PERFORMANCE with logic type 'any-short' ->
-        GroupCategory.DB_QUERY, GroupCategory.HTTP_CLIENT, GroupCategory.FRONTEND, and GroupCategory.MOBILE
-        (4 DataConditions from 1)
-        """
+        # Test that GroupCategory.PERFORMANCE with logic type 'any-short' ->
+        # GroupCategory.DB_QUERY, GroupCategory.HTTP_CLIENT, GroupCategory.FRONTEND, and GroupCategory.MOBILE
+        # (4 DataConditions from 1)
         dc = DataCondition.objects.get(id=self.dc_performance_any_short.id)
         assert dc.type == "issue_category"
         assert dc.comparison == {"value": 12}
@@ -158,17 +138,14 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
             condition_group=self.dcg_any_short,
             type="issue_category",
         ).exclude(id=self.dc_performance_any_short.id)
-        assert new_conditions.count() == 4
-        assert {c.comparison["value"] for c in new_conditions} == {11, 13, 14, 15}
+        assert new_conditions.count() == 3
+        assert {c.comparison["value"] for c in new_conditions} == {13, 14, 15}
         dcg = DataConditionGroup.objects.get(id=self.dcg_any_short.id)
         assert dcg.logic_type == "any-short"
 
-    def test_performance_none_logic_type(self) -> None:
-        """
-        Test that GroupCategory.PERFORMANCE with logic type 'none' ->
-        NOT GroupCategory.DB_QUERY, GroupCategory.HTTP_CLIENT, GroupCategory.FRONTEND, and GroupCategory.MOBILE
-        (4 NOT DataConditions from 1)
-        """
+        # Test that GroupCategory.PERFORMANCE with logic type 'none' ->
+        # NOT GroupCategory.DB_QUERY, GroupCategory.HTTP_CLIENT, GroupCategory.FRONTEND, and GroupCategory.MOBILE
+        # (4 NOT DataConditions from 1)
         dc = DataCondition.objects.get(id=self.dc_performance_none.id)
         assert dc.type == "issue_category"
         assert dc.comparison == {"value": 12, "include": False}
@@ -176,17 +153,14 @@ class MigrateDataConditionsCategoriesTest(TestMigrations):
             condition_group=self.dcg_none,
             type="issue_category",
         ).exclude(id=self.dc_performance_none.id)
-        assert new_conditions.count() == 4
-        assert {c.comparison["value"] for c in new_conditions} == {11, 13, 14, 15}
+        assert new_conditions.count() == 3
+        assert {c.comparison["value"] for c in new_conditions} == {13, 14, 15}
         for condition in new_conditions:
             assert condition.comparison.get("include") is False
         dcg = DataConditionGroup.objects.get(id=self.dcg_none.id)
         assert dcg.logic_type == "all"
 
-    def test_non_issue_category_not_modified(self) -> None:
-        """
-        Test that a type other than issue category is untouched
-        """
+        # Test that a type other than issue category is untouched
         dc = DataCondition.objects.get(id=self.dc_unrelated.id)
         assert dc.type == "first_seen_event"
         assert dc.comparison is True

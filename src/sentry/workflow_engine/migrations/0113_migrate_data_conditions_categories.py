@@ -82,7 +82,6 @@ def migrate_data_condition_issue_category(
                 continue
             else:  # logic type is any, any-short, or none (legacy for does not match all)
                 comparison["value"] = 12  # GroupCategory.DB_QUERY
-                metric_comparison: dict[str, object] = {"value": 11}
                 http_client_comparison: dict[str, object] = {"value": 13}
                 front_end_comparison: dict[str, object] = {"value": 14}
                 mobile_comparison: dict[str, object] = {"value": 15}
@@ -92,17 +91,10 @@ def migrate_data_condition_issue_category(
                     dcg_logic_type_cache[group_id] = "all"
 
                     comparison["include"] = False
-                    metric_comparison["include"] = False
                     http_client_comparison["include"] = False
                     front_end_comparison["include"] = False
                     mobile_comparison["include"] = False
 
-                DataCondition.objects.create(
-                    type="issue_category",
-                    condition_result=True,
-                    comparison=metric_comparison,
-                    condition_group_id=data_condition.condition_group_id,
-                )
                 DataCondition.objects.create(
                     type="issue_category",
                     condition_result=True,
