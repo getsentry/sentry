@@ -57,7 +57,8 @@ export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): stri
 
     search.addFilterValue('metric.name', traceMetric.name);
     search.addFilterValue('metric.type', traceMetric.type);
-    const metricUnit = traceMetric.unit ?? NONE_UNIT;
+    const metricUnit =
+      traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
     const addNoneOperators = metricUnit === NONE_UNIT;
     if (addNoneOperators) {
       search.addOp('(');

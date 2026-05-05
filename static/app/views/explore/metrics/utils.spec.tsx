@@ -280,4 +280,14 @@ describe('createTraceMetricEventsFilter', () => {
       '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
     );
   });
+
+  it('treats the legacy dash unit sentinel as no unit', () => {
+    const result = createTraceMetricEventsFilter([
+      {name: 'chat.message_sent', type: 'counter', unit: '-'},
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
+  });
 });
