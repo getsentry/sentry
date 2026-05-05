@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from time import sleep
 from typing import Any
 
@@ -97,3 +98,24 @@ def timed_task(sleep_seconds: float | str, *args: list[Any], **kwargs: dict[str,
 def simple_task_compressed(*args: list[Any], **kwargs: dict[str, Any]) -> None:
     sleep(0.1)
     logger.debug("simple_task_compressed complete")
+
+
+@exampletasks.register(name="examples.simple_task_with_random_duration")
+def simple_task_with_random_duration(
+    distribution: str, a: int, b: int, *args: list[Any], **kwargs: dict[str, Any]
+) -> None:
+    """
+    Runs tasks that sleep for a random duration, based on the distribution and the parameters.
+    For uniform distribution, the parameters are the minimum and maximum duration.
+    For gauss distribution, the parameters are the mean and standard deviation.
+    For exponential distribution, the first parameter is the lambda (lambd is 1.0 divided by the desired mean).
+    """
+    if distribution == "uniform":
+        sleep(random.uniform(a, b))
+    elif distribution == "gauss":
+        sleep(random.normalvariate(mu=a, sigma=b))  # random.gauss isn't threadsafe
+    elif distribution == "exponential":
+        sleep(random.expovariate(lambd=a))
+    else:
+        raise ValueError(f"Invalid distribution: {distribution}")
+    logger.debug("simple_task_with_random_duration complete")
