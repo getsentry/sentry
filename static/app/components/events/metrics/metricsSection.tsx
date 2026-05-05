@@ -4,8 +4,10 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -34,10 +36,10 @@ export function MetricsSection({
   project: Project;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const traceId = event.contexts?.trace?.trace_id;
 
   if (!traceId) {
-    // If there isn't a traceId, we shouldn't show metrics since they are trace specific
     return null;
   }
 
@@ -46,14 +48,23 @@ export function MetricsSection({
   }
 
   return (
-    <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-      <MetricsSectionContent
-        event={event}
-        group={group}
-        project={project}
-        traceId={traceId}
-      />
-    </TraceViewMetricsProviderWrapper>
+    <LazyRender
+      disabled={
+        location.query[METRICS_DRAWER_QUERY_PARAM] === 'true' ||
+        location.hash === `#${SectionKey.METRICS}`
+      }
+      observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
+      withoutContainer
+    >
+      <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+        <MetricsSectionContent
+          event={event}
+          group={group}
+          project={project}
+          traceId={traceId}
+        />
+      </TraceViewMetricsProviderWrapper>
+    </LazyRender>
   );
 }
 

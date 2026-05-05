@@ -136,7 +136,6 @@ describe('LogsPage', () => {
     );
 
     await screen.findByTestId('logs-table');
-    await userEvent.click(screen.getByText('Expand'));
 
     expect(screen.getByTestId('global-footer')).toBe(
       document.querySelector('[data-hide-footer] ~ footer')

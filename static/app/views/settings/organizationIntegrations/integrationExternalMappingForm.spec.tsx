@@ -8,7 +8,7 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 

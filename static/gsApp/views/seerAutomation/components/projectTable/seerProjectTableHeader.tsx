@@ -17,7 +17,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
 import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -26,7 +29,7 @@ import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/ut
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>>;
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
@@ -257,7 +260,7 @@ function SelectAllCheckbox({
   listItemCheckboxState: {deselectAll, isAllSelected, selectedIds, selectAll},
   projects,
 }: {
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
   projects: Project[];
 }) {
   return (

@@ -419,7 +419,7 @@ function RemoveButton({
       <Flex align="center" gap="sm">
         <Button
           size="xs"
-          priority="danger"
+          variant="danger"
           disabled={isToggling}
           onClick={() => {
             onRemove();

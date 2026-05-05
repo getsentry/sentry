@@ -17,7 +17,7 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
     analyticsEventName: props.analyticsEventName,
     analyticsEventKey: props.analyticsEventKey,
     analyticsParams: {
-      priority: props.priority,
+      variant: props.variant,
       href: 'href' in props ? props.href : undefined,
       ...props.analyticsParams,
     },

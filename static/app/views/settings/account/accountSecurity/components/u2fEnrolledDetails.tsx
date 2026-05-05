@@ -96,7 +96,7 @@ function Device(props: DeviceProps) {
             <Button
               aria-label={t('Remove device')}
               size="sm"
-              priority="danger"
+              variant="danger"
               icon={<IconDelete />}
               tooltipProps={{
                 title: isLastDevice ? t('Can not remove last U2F device') : undefined,
@@ -123,7 +123,7 @@ function Device(props: DeviceProps) {
       </DeviceInformation>
       <Grid flow="column" align="center" gap="md">
         <Button
-          priority="primary"
+          variant="primary"
           size="sm"
           onClick={() => {
             onRenameU2fDevice(device, deviceName);

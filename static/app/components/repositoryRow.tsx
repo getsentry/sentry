@@ -119,7 +119,7 @@ export function RepositoryRow({
               >
                 <Button
                   size="xs"
-                  priority="danger"
+                  variant="danger"
                   icon={<IconDelete />}
                   disabled={!hasAccess}
                 >

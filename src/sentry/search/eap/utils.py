@@ -145,6 +145,16 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
 }
 
 
+def translate_search_type_for_internal_column(
+    internal_name: str,
+    item_type: SupportedTraceItemType,
+) -> Literal["string", "number", "boolean"] | None:
+    for search_type, mapping in INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).items():
+        if internal_name in mapping:
+            return search_type
+    return None
+
+
 def translate_internal_to_public_alias(
     internal_alias: str,
     search_type: Literal["string", "number", "boolean"],

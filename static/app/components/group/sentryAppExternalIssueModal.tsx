@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Heading} from '@sentry/scraps/text';
 
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExternalIssueForm';
@@ -78,7 +79,9 @@ function SentryAppExternalIssueModal(props: Props) {
 
   return (
     <Fragment>
-      <Header closeButton>{tct('[name] Issue', {name})}</Header>
+      <Header closeButton>
+        <Heading as="h4">{tct('[name] Issue', {name})}</Heading>
+      </Header>
       <TabsContainer>
         <Tabs value={action} onChange={setAction}>
           <TabList>

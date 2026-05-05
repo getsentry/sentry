@@ -212,7 +212,7 @@ export default function ProjectKeys() {
               <Button
                 onClick={() => handleCreateKeyMutation.mutate()}
                 size="md"
-                priority="primary"
+                variant="primary"
                 icon={<IconAdd />}
                 disabled={!hasAccess}
               >
@@ -239,7 +239,7 @@ export default function ProjectKeys() {
             <Button
               onClick={() => handleCreateKeyMutation.mutate()}
               size="sm"
-              priority="primary"
+              variant="primary"
               icon={<IconAdd />}
               disabled={!hasAccess}
             >

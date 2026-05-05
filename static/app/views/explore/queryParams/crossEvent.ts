@@ -9,6 +9,12 @@ export type CrossEvent =
   | {query: string; type: 'logs' | 'spans'}
   | {metric: TraceMetric; query: string; type: 'metrics'};
 
+export type CrossEventQueryExtras = {
+  logQuery: string[];
+  metricQuery: string[];
+  spanQuery: string[];
+};
+
 export function getCrossEventsFromLocation(
   location: Location,
   key: string

@@ -32,7 +32,7 @@ export function OtherProjects({projects, location, version, organization}: Props
       <SidebarSection.Content>
         <Collapsible
           expandButton={({onExpand, numberOfHiddenItems}) => (
-            <Button priority="link" onClick={onExpand}>
+            <Button variant="link" onClick={onExpand}>
               {tn(
                 'Show %s collapsed project',
                 'Show %s collapsed projects',

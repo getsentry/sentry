@@ -153,7 +153,7 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
   const enableSeerCoding = organization.enableSeerCoding !== false;
 
   const steps = data.steps;
-  const isMountedRef = useRef<boolean>(false);
+  const isMountedRef = useRef(false);
   const {repos} = useAutofixRepos(groupId);
 
   const codingAgentData = Object.values(data.coding_agents || {}).map(agent => {

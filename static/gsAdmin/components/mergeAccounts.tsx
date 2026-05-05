@@ -142,7 +142,7 @@ export function MergeAccountsModal(props: Props) {
         </Form>
       </Body>
       <Footer>
-        <Button onClick={() => doMergeMutation.mutate()} priority="primary">
+        <Button onClick={() => doMergeMutation.mutate()} variant="primary">
           Merge Account(s)
         </Button>
       </Footer>

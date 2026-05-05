@@ -29,8 +29,8 @@ function RefundVercelRequestModal({
   Body,
 }: ModalProps) {
   const api = useApi();
-  const [reason, setReason] = useState<string>('');
-  const [guid, setGuid] = useState<string>('');
+  const [reason, setReason] = useState('');
+  const [guid, setGuid] = useState('');
   const orgSlug = subscription.slug;
 
   const onSubmit = () => {

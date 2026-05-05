@@ -11,6 +11,7 @@ export function useWelcomeAnalyticsEffect() {
   const onboardingContext = useOnboardingContext();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
+    reportExposure: false,
   });
 
   useEffect(() => {

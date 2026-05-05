@@ -51,7 +51,7 @@ function MemberListHeader({members, organization, subscription}: Props) {
         <UpsellProvider source="member-settings-table-header">
           {({canTrial, onClick}) => (
             <Button
-              priority="default"
+              variant="secondary"
               size="xs"
               onClick={onClick}
               icon={<IconBusiness />}

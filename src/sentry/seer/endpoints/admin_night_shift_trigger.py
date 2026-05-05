@@ -8,6 +8,7 @@ from sentry.api.permissions import StaffPermission
 from sentry.tasks.seer.night_shift.cron import (
     SeerNightShiftRunOptionsPartial,
     run_night_shift_for_org,
+    schedule_night_shift,
 )
 
 
@@ -20,14 +21,14 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
     }
 
     def post(self, request: Request) -> Response:
-        organization_id = request.data.get("organization_id")
-        if organization_id is None:
-            return Response({"detail": "organization_id is required"}, status=400)
-
-        try:
-            organization_id = int(organization_id)
-        except (ValueError, TypeError):
-            return Response({"detail": "organization_id must be a valid integer"}, status=400)
+        organization_id: int | None
+        if "organization_id" not in request.data:
+            organization_id = None
+        else:
+            try:
+                organization_id = int(request.data["organization_id"])
+            except (ValueError, TypeError):
+                return Response({"detail": "organization_id must be a valid integer"}, status=400)
 
         dry_run = bool(request.data.get("dry_run", False))
 
@@ -47,10 +48,13 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
         if max_candidates is not None:
             options["max_candidates"] = max_candidates
 
-        run_night_shift_for_org.apply_async(
-            args=[organization_id],
-            kwargs={"options": options, "execute_in_task": True},
-        )
+        if organization_id is None:
+            schedule_night_shift.apply_async(kwargs={"run_options": options})
+        else:
+            run_night_shift_for_org.apply_async(
+                args=[organization_id],
+                kwargs={"options": options, "execute_in_task": True},
+            )
 
         return Response(
             {

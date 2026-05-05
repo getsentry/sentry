@@ -321,8 +321,11 @@ def _errors_query(
 
 
 @sentry_sdk.tracing.trace
-def _run_errors_query(errors_query: DiscoverQueryBuilder):
-    result = errors_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+def _run_errors_query(
+    errors_query: DiscoverQueryBuilder,
+    referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+):
+    result = errors_query.run_query(referrer)
     error_data = errors_query.process_results(result)["data"]
     for event in error_data:
         event["event_type"] = "error"
@@ -451,8 +454,9 @@ def _perf_issues_query(
 @sentry_sdk.tracing.trace
 def _run_perf_issues_query(
     occurrence_query: DiscoverQueryBuilder,
+    referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
 ) -> list[TraceIssueOccurrenceData]:
-    snuba_result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+    snuba_result = occurrence_query.run_query(referrer)
     occurrence_data = occurrence_query.process_results(snuba_result)["data"]
 
     occurrence_ids = defaultdict(list)
@@ -665,10 +669,12 @@ def query_trace_data(
         errors_future = query_thread_pool.submit(
             _run_errors_query,
             errors_query,
+            referrer=referrer,
         )
         occurrence_future = query_thread_pool.submit(
             _run_perf_issues_query,
             occurrence_query,
+            referrer=referrer,
         )
         uptime_future = None
         if include_uptime and uptime_query:

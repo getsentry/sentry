@@ -18,6 +18,7 @@ import type {
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {AutofixContentProps} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
+import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -363,6 +364,7 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
+  'react-hook:use-scm-feature-meta': () => UseScmFeatureMetaResult;
 };
 
 /**

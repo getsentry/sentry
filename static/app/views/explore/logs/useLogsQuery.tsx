@@ -409,10 +409,12 @@ export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
   referrer,
+  staleTime: staleTimeOverride,
 }: {
   disabled?: boolean;
   highFidelity?: boolean;
   referrer?: string;
+  staleTime?: number;
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
@@ -519,7 +521,9 @@ export function useInfiniteLogsQuery({
     getNextPageParam,
     initialPageParam,
     enabled: !disabled,
-    staleTime: autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView),
+    staleTime:
+      staleTimeOverride ??
+      (autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView)),
     maxPages: maxPagesForLogsInfiniteQuery(queryClient, queryKeyWithInfinite),
     refetchIntervalInBackground: true, // Don't refetch when tab is not visible
   });

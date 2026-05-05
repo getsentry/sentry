@@ -30,7 +30,7 @@ describe('OrganizationAuthTokensIndex', () => {
     routeParams: router.params,
   };
 
-  let projectsMock: jest.Mock<any>;
+  let projectsMock: jest.Mock;
 
   beforeEach(() => {
     OrganizationsStore.addOrReplace(organization);

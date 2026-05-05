@@ -81,7 +81,7 @@ export default function ProjectSettingsLayout() {
             title={t('Choose a Project')}
             action={
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={() => navigateTo(location.pathname, navigate, location)}
               >
                 {t('Choose Project')}

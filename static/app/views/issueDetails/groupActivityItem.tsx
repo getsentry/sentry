@@ -32,7 +32,7 @@ interface AssignedMessageProps {
 
 function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
   const {data} = activity;
-  let assignee: string | User | undefined = undefined;
+  let assignee: string | User | undefined;
   const {teams} = useTeamsById(
     data.assigneeType === 'team' ? {ids: [data.assignee]} : undefined
   );

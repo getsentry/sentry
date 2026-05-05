@@ -51,12 +51,11 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/',
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
-]);
-/** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
 ]);
+/** New experimental routes where the LLMContext tree provides structured page context. */
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>(['/issues/', '/issues/:groupId/']);
 
 function supportsStructuredContext(
   referrer: string,
@@ -111,7 +110,7 @@ export const useSeerExplorer = () => {
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
-  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState<boolean>(
+  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
     'seer-explorer.override.ctx-eng',
     true
   );
@@ -138,7 +137,7 @@ export const useSeerExplorer = () => {
 
   const {getPageReferrer} = usePageReferrer();
 
-  const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
+  const [waitingForInterrupt, setWaitingForInterrupt] = useState(false);
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
@@ -198,6 +197,8 @@ export const useSeerExplorer = () => {
       setOptimistic(null);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
@@ -246,6 +247,9 @@ export const useSeerExplorer = () => {
       setWaitingForInterrupt(false);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
+
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),

@@ -343,16 +343,7 @@ const config: Config.InitialOptions = {
   testResultsProcessor: JEST_TEST_BALANCER
     ? '<rootDir>/tests/js/test-balancer/index.js'
     : undefined,
-  reporters: [
-    'default',
-    [
-      'jest-junit',
-      {
-        outputDirectory: '.artifacts',
-        outputName: 'jest.junit.xml',
-      },
-    ],
-  ],
+  reporters: ['default'],
   /**
    * jest.clearAllMocks() automatically called before each test
    * @link - https://jestjs.io/docs/configuration#clearmocks-boolean

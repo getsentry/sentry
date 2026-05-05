@@ -34,7 +34,7 @@ const STARTUP_PROGRAM_OPTIONS = [
 
 function coerceValue(value: number) {
   if (isNaN(value)) {
-    return undefined;
+    return;
   }
   return value * 100;
 }

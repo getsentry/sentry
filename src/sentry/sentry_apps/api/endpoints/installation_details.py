@@ -34,6 +34,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
+    allow_disabled_sentry_app_for_methods = {"DELETE"}
 
     def get(self, request: Request, installation) -> Response:
         return Response(

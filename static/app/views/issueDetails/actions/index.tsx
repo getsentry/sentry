@@ -67,8 +67,8 @@ import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/usePro
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
-  | {isBookmarked: boolean}
-  | {isSubscribed: boolean}
+  | {isBookmarked: boolean; inbox?: boolean}
+  | {isSubscribed: boolean; inbox?: boolean}
   | MarkReviewed
   | GroupStatusResolution;
 
@@ -88,15 +88,15 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
           ? t('Issue unarchived')
           : t('Issue marked unresolved');
       default:
-        return undefined;
+        return;
     }
   }
 
-  if ((data as {inbox: boolean}).inbox === false) {
+  if (data.inbox === false) {
     return t('Issue marked reviewed');
   }
 
-  return undefined;
+  return;
 };
 
 interface GroupActionsProps {
@@ -357,7 +357,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               <Button
                 style={{marginLeft: theme.space.md}}
-                priority="primary"
+                variant="primary"
                 onClick={onDiscard}
                 disabled={!hasFeature}
               >

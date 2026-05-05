@@ -78,7 +78,7 @@ function MemberInviteModalCustomization({
         source="member_invite_modal"
         subscription={subscription}
         organization={organization}
-        upgradePriority="default"
+        upgradePriority="secondary"
       />
     );
 

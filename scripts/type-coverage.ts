@@ -475,7 +475,7 @@ function main() {
     try {
       return fs.readFileSync(filename, 'utf8');
     } catch {
-      return undefined;
+      return;
     }
   });
 
@@ -498,7 +498,7 @@ function main() {
       try {
         return fs.readFileSync(filename, 'utf8');
       } catch {
-        return undefined;
+        return;
       }
     },
     useCaseSensitiveFileNames: true,

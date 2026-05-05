@@ -88,6 +88,8 @@ ERR_IDENTITY_CONFLICT = _(
     " Try logging in with your existing credentials instead."
 )
 
+ERR_USER_SUSPENDED = _("Your account has been suspended.")
+
 ERR_MERGE_FAILED = _(
     "Unable to merge accounts. Please verify your email address to link your SSO identity."
 )
@@ -974,6 +976,19 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
                     },
                 )
                 return auth_handler.handle_unknown_identity(self.state)
+
+            if getattr(auth_identity.user, "is_suspended", False):
+                logger.info(
+                    "sso.login-pipeline.suspended-user",
+                    extra={
+                        "auth_identity_id": auth_identity.id,
+                        "user_id": auth_identity.user_id,
+                        "organization_id": self.organization.id,
+                        "ip_address": self.request.META.get("REMOTE_ADDR"),
+                    },
+                )
+                auth.record_suspended_user_rejection("sso_finish")
+                return self.error(ERR_USER_SUSPENDED)
 
             try:
                 return auth_handler.handle_existing_identity(self.state, auth_identity)

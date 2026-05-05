@@ -320,7 +320,7 @@ function NextStepTemplate({
             {labelNevermind}
           </Button>
           <Button
-            priority="primary"
+            variant="primary"
             disabled={isProcessing}
             onClick={() => onClickNo(userContext)}
           >
@@ -339,7 +339,7 @@ function NextStepTemplate({
           {labelNo}
         </Button>
         <ButtonBar>
-          <Button priority="primary" disabled={isProcessing} onClick={onClickYes}>
+          <Button variant="primary" disabled={isProcessing} onClick={onClickYes}>
             {labelYes}
           </Button>
           {codingAgentIntegrations === undefined ? null : (
@@ -350,7 +350,7 @@ function NextStepTemplate({
                 <Button
                   {...triggerProps}
                   disabled={isProcessing}
-                  priority="primary"
+                  variant="primary"
                   icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   aria-label={t('More code fix options')}
                 />

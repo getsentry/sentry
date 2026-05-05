@@ -262,7 +262,7 @@ function EmailRow({
             <Button
               aria-label={t('Remove email')}
               data-test-id="remove"
-              priority="danger"
+              variant="danger"
               size="sm"
               icon={<IconDelete />}
             />

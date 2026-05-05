@@ -129,7 +129,7 @@ export function ConsoleModal({
       <Body>{config}</Body>
       <Footer>
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => {
             trackAnalytics(
               'gaming.partner_request_access_guidance_modal_button_got_it_clicked',

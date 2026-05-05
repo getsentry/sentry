@@ -230,7 +230,7 @@ function PluginDetailedView() {
             disabled={disabledFromFeatures}
             onClick={handleAddToProject}
             size="sm"
-            priority="primary"
+            variant="primary"
           >
             {t('Add to Project')}
           </AddButton>

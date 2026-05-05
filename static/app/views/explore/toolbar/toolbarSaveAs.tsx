@@ -187,7 +187,7 @@ export function ToolbarSaveAs() {
         label: formattedYAxes.filter(Boolean).join(', '),
         onAction: () => {
           if (disableAddToDashboard) {
-            return undefined;
+            return;
           }
 
           trackAnalytics('trace_explorer.save_as', {
@@ -218,7 +218,7 @@ export function ToolbarSaveAs() {
     children: chartOptions.length > 1 ? chartOptions : undefined,
     onAction: () => {
       if (disableAddToDashboard || chartOptions.length > 1) {
-        return undefined;
+        return;
       }
 
       trackAnalytics('trace_explorer.save_as', {
@@ -296,7 +296,7 @@ export function ToolbarSaveAs() {
           trigger={triggerProps => (
             <SaveAsButton
               {...triggerProps}
-              priority={shouldHighlightSaveButton ? 'primary' : 'default'}
+              variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
               aria-label={t('Save as')}
               onClick={e => {
                 e.stopPropagation();

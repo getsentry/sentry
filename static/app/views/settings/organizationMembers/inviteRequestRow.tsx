@@ -127,7 +127,7 @@ export function InviteRequestRow({
           }
         >
           <Button
-            priority="primary"
+            variant="primary"
             size="sm"
             busy={inviteRequestBusy[inviteRequest.id]}
             tooltipProps={{

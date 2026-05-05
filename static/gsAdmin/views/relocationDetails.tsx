@@ -176,9 +176,7 @@ export function RelocationDetails() {
     regionName: string;
     relocationUuid: string;
   }>();
-  const [artifactsState, setArtifactsState] = useState<ArtifactsState>(
-    ArtifactsState.DISABLED
-  );
+  const [artifactsState, setArtifactsState] = useState(ArtifactsState.DISABLED);
   const navigate = useNavigate();
 
   const region = ConfigStore.get('regions').find((r: any) => r.name === regionName);

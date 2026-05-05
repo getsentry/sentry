@@ -3,7 +3,6 @@ from urllib.parse import urlparse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -20,8 +19,7 @@ class DsnLookupEndpoint(OrganizationEndpoint):
     """Resolve a DSN to its project and key metadata within an organization.
 
     Used by the command palette to let users paste a DSN and quickly navigate
-    to the corresponding project. Gated behind the organizations:cmd-k-dsn-lookup
-    feature flag.
+    to the corresponding project.
     """
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -38,9 +36,6 @@ class DsnLookupEndpoint(OrganizationEndpoint):
     )
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:cmd-k-dsn-lookup", organization):
-            return Response(status=404)
-
         dsn = request.GET.get("dsn")
         if not dsn:
             return Response({"detail": "Missing required parameter: dsn"}, status=400)

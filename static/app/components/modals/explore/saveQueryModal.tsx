@@ -93,6 +93,7 @@ function SaveQueryModal({
         <Wrapper>
           <SectionHeader>{t('Name')}</SectionHeader>
           <Input
+            autoFocus
             placeholder={
               defined(initialName)
                 ? t('Enter a name for your query')
@@ -126,7 +127,7 @@ function SaveQueryModal({
           <Button onClick={closeModal} disabled={isSaving}>
             {t('Cancel')}
           </Button>
-          <Button onClick={onSave} disabled={!name || isSaving} priority="primary">
+          <Button onClick={onSave} disabled={!name || isSaving} variant="primary">
             {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
           </Button>
         </StyledButtonBar>

@@ -23,7 +23,7 @@ type Props = ModalRenderProps & {
 };
 
 export function CustomIgnoreCountModal(props: Props) {
-  const [count, setCount] = useState<number>(100);
+  const [count, setCount] = useState(100);
   const [window, setWindow] = useState<number | null>(null);
   const {
     Header,
@@ -81,7 +81,7 @@ export function CustomIgnoreCountModal(props: Props) {
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" onClick={handleSubmit}>
+          <Button variant="primary" onClick={handleSubmit}>
             {t('Ignore')}
           </Button>
         </Grid>

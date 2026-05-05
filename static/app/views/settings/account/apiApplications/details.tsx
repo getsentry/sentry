@@ -119,6 +119,8 @@ function ApiApplicationsDetails() {
 
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {
+    // Will be fixed soon when we get rid of setApiQueryData.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
     setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
     addSuccessMessage(t('Changes applied.'));
   };
@@ -317,7 +319,7 @@ function ApiApplicationsDetails() {
                     'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
                   )}
                 >
-                  <Button size="xs" priority="danger">
+                  <Button size="xs" variant="danger">
                     {t('Rotate client secret')}
                   </Button>
                 </Confirm>

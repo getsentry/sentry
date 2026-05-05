@@ -72,7 +72,7 @@ export function DetectorListHeader({
               pathname: makeMonitorCreatePathname(organization.slug),
               query: {project, detectorType},
             }}
-            priority="primary"
+            variant="primary"
             icon={<IconAdd />}
             size="md"
             disabled={!canCreateDetector}
