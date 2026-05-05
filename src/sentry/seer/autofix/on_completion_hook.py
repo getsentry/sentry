@@ -405,7 +405,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             state._is_repo_synced(repo) or repo in errored_repos for repo in diffs_by_repo
         ):
             logger.info(
-                "autofix.on_completion_hook.skip_errored_pushes",
+                "autofix.on_completion_hook.skip_no_pushable_repos",
                 extra={
                     "run_id": run_id,
                     "organization_id": group.organization.id,
