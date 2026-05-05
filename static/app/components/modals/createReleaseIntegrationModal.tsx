@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type CreateReleaseIntegrationModalOptions = {
   onCancel: () => void;
@@ -22,7 +23,7 @@ type CreateReleaseIntegrationModalProps = CreateReleaseIntegrationModalOptions &
   ModalRenderProps;
 
 const schema = z.object({
-  name: z.string().min(1, t('Name is required')),
+  name: z.string().min(1, t('Field is required')),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -72,7 +73,7 @@ function CreateReleaseIntegrationModal({
     ...defaultFormOptions,
     defaultValues: {name: defaultName},
     validators: {onDynamic: schema},
-    onSubmit: ({value}) =>
+    onSubmit: ({value, formApi}) =>
       mutation
         .mutateAsync(value)
         .then(integration => {
@@ -80,8 +81,12 @@ function CreateReleaseIntegrationModal({
           addSuccessMessage(t('Created Release Integration'));
           closeModal();
         })
-        .catch(() => {
-          addErrorMessage(t('Something went wrong!'));
+        .catch(error => {
+          const handled =
+            error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+          if (!handled) {
+            addErrorMessage(t('Something went wrong!'));
+          }
         }),
   });
 
@@ -93,7 +98,7 @@ function CreateReleaseIntegrationModal({
       <Body>
         <form.AppField name="name">
           {field => (
-            <field.Layout.Stack
+            <field.Layout.Row
               label={t('Name')}
               hintText={t('Name of new integration.')}
               required
@@ -103,7 +108,7 @@ function CreateReleaseIntegrationModal({
                 onChange={field.handleChange}
                 placeholder={defaultName}
               />
-            </field.Layout.Stack>
+            </field.Layout.Row>
           )}
         </form.AppField>
       </Body>
