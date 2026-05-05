@@ -19,7 +19,7 @@ export function isMultiSeriesEventsStats(obj: unknown): obj is MultiSeriesEvents
 
   return (
     getValues(obj).every(subObject => isEventsStats(subObject)) &&
-    !obj.hasOwnProperty('data')
+    !Object.hasOwn(obj, 'data')
   );
 }
 
@@ -32,7 +32,7 @@ export function isGroupedMultiSeriesEventsStats(
 
   return (
     getValues(obj).every(subObject => isMultiSeriesEventsStats(subObject)) &&
-    !obj.hasOwnProperty('data')
+    !Object.hasOwn(obj as Record<PropertyKey, unknown>, 'data')
   );
 }
 

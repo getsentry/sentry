@@ -47,11 +47,11 @@ function getFuzzyHighlightContext(
   );
   const title = getContextTitle({alias, type: contextType, value});
   let highlightKey: string | undefined;
-  if (highlightContextSets.hasOwnProperty(alias)) {
+  if (Object.hasOwn(highlightContextSets, alias)) {
     highlightKey = alias;
-  } else if (highlightContextSets.hasOwnProperty(contextType)) {
+  } else if (Object.hasOwn(highlightContextSets, contextType)) {
     highlightKey = contextType;
-  } else if (highlightContextSets.hasOwnProperty(title)) {
+  } else if (Object.hasOwn(highlightContextSets, title)) {
     highlightKey = title;
   }
 
@@ -163,9 +163,12 @@ export function getHighlightTagData({
   return highlightTags.map(tagKey => ({
     subtree: {},
     meta: tagMap[tagKey]?.meta ?? {},
-    value: tagMap[tagKey]?.hasOwnProperty('value')
-      ? tagMap[tagKey]?.value
-      : EMPTY_HIGHLIGHT_DEFAULT,
+    value:
+      tagMap[tagKey] !== undefined &&
+      tagMap[tagKey] !== null &&
+      Object.hasOwn(tagMap[tagKey]!, 'value')
+        ? tagMap[tagKey]?.value
+        : EMPTY_HIGHLIGHT_DEFAULT,
     originalTag: tagMap[tagKey] ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
   }));
 }

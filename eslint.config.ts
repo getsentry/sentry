@@ -417,8 +417,7 @@ export default typescript.config([
       yoda: 'error',
       'no-cond-assign': ['error', 'always'],
 
-      // TODO: Evaluate which rules we could practically fix violations from & enable
-      'no-prototype-builtins': 'off',
+      'no-prototype-builtins': 'error',
     },
   },
   {

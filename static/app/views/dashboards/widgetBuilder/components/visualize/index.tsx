@@ -357,9 +357,9 @@ export function Visualize({error, setError}: VisualizeProps) {
         .filter(
           column =>
             column !== '' &&
-            !stringSpanTags.hasOwnProperty(column) &&
-            !numericSpanTags.hasOwnProperty(column) &&
-            !booleanSpanTags.hasOwnProperty(column)
+            !Object.hasOwn(stringSpanTags, column) &&
+            !Object.hasOwn(numericSpanTags, column) &&
+            !Object.hasOwn(booleanSpanTags, column)
         )
         .map(column => {
           return {
