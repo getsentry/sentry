@@ -3,7 +3,7 @@ import {useCallback, useEffect, useRef, useState, type UIEventHandler} from 'rea
 import {defined} from 'sentry/utils';
 
 interface UseAutoScrollOptions {
-  key: any;
+  key: unknown;
 }
 
 export function useAutoScroll({key}: UseAutoScrollOptions) {
