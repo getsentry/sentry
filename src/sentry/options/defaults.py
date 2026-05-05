@@ -114,6 +114,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Issue labels
+register(
+    "issues.issue-label-cache-ttl",
+    type=Int,
+    default=600,  # 10 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.org-label-cache-ttl",
+    type=Int,
+    default=600,  # 10 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
