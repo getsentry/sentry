@@ -74,10 +74,10 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
         if cached is None:
             return
 
-        if cached["response_url"]:
+        if response_url := cached.get("response_url"):
             update_linking_message.apply_async(
                 kwargs={
-                    "response_url": cached["response_url"],
+                    "response_url": response_url,
                     "integration_id": cached["integration_id"],
                     "slack_user_id": cached["slack_user_id"],
                 }
