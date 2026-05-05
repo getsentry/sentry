@@ -605,29 +605,27 @@ function LogRowDetails({
           <Fragment>
             <DetailsContent>
               <DetailsBody>
-                <Flex align="baseline" gap="sm">
-                  {isRegularLogResponseItem(dataRow) ? (
-                    <LogBodyRenderer
-                      item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
-                      extra={{
-                        highlightTerms,
-                        logColors,
-                        wrapBody: true,
-                        location,
-                        organization,
-                        caseSensitiveHighlighting: !caseInsensitivity,
-                        projectSlug,
-                        attributes,
-                        attributeTypes,
-                        meta,
-                        theme,
-                        traceItemMeta: data?.meta,
-                      }}
-                    />
-                  ) : (
-                    <span>{message}</span>
-                  )}
-                </Flex>
+                {isRegularLogResponseItem(dataRow) ? (
+                  <LogBodyRenderer
+                    item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
+                    extra={{
+                      highlightTerms,
+                      logColors,
+                      wrapBody: true,
+                      location,
+                      organization,
+                      caseSensitiveHighlighting: !caseInsensitivity,
+                      projectSlug,
+                      attributes,
+                      attributeTypes,
+                      meta,
+                      theme,
+                      traceItemMeta: data?.meta,
+                    }}
+                  />
+                ) : (
+                  <span>{message}</span>
+                )}
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
