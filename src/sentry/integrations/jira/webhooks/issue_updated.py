@@ -104,29 +104,39 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
         # webhook payload so we can see exactly what Jira sends us (especially
         # for `project` changes, which we want to use to update the linked
         # Jira issue link in Sentry).
-        if _payload_logging_enabled(rpc_integration.id):
-            issue = data.get("issue") or {}
-            fields = issue.get("fields") or {}
-            changelog_items = (data.get("changelog") or {}).get("items") or []
-            payload_extra = {
-                "integration_id": rpc_integration.id,
-                "issue_key": issue.get("key"),
-                "issue_id": issue.get("id"),
-                "webhook_event": data.get("webhookEvent"),
-                "changed_fields": [item.get("field") for item in changelog_items],
-                "project": fields.get("project"),
-                "payload": data,
-            }
-            logger.info("jira.issue-updated.payload", extra=payload_extra)
-            project_change = next(
-                (item for item in changelog_items if item.get("field") == "project"),
-                None,
-            )
-            if project_change is not None:
-                logger.info(
-                    "jira.issue-updated.project-changed",
-                    extra={**payload_extra, "project_change": project_change},
+        #
+        # This is purely diagnostic, so swallow any failure (including transient
+        # RPC errors from the feature-flag check) rather than letting it skip
+        # the real `handle_assignee_change` / `handle_status_change` calls below.
+        try:
+            if _payload_logging_enabled(rpc_integration.id):
+                issue = data.get("issue") or {}
+                fields = issue.get("fields") or {}
+                changelog_items = (data.get("changelog") or {}).get("items") or []
+                payload_extra = {
+                    "integration_id": rpc_integration.id,
+                    "issue_key": issue.get("key"),
+                    "issue_id": issue.get("id"),
+                    "webhook_event": data.get("webhookEvent"),
+                    "changed_fields": [item.get("field") for item in changelog_items],
+                    "project": fields.get("project"),
+                    "payload": data,
+                }
+                logger.info("jira.issue-updated.payload", extra=payload_extra)
+                project_change = next(
+                    (item for item in changelog_items if item.get("field") == "project"),
+                    None,
                 )
+                if project_change is not None:
+                    logger.info(
+                        "jira.issue-updated.project-changed",
+                        extra={**payload_extra, "project_change": project_change},
+                    )
+        except Exception:
+            logger.exception(
+                "jira.issue-updated.payload-logging-failed",
+                extra={"integration_id": rpc_integration.id},
+            )
 
         if not data.get("changelog"):
             logger.info("jira.missing-changelog", extra={"integration_id": rpc_integration.id})
