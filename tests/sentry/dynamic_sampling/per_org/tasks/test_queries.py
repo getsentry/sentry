@@ -271,6 +271,20 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert project_volumes == []
 
+    def test_get_eap_project_volumes_handles_none_aggregate_values(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
+            return_value={
+                "data": [{"project.id": project.id, "count()": None, "count_sample()": None}]
+            },
+        ):
+            project_volumes = get_eap_project_volumes(self.get_config(organization))
+
+        assert project_volumes == [(project.id, 0, 0, 0)]
+
     def test_get_eap_project_volumes_without_projects(self) -> None:
         organization = self.create_organization()
 

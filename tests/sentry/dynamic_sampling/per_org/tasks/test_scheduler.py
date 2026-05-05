@@ -175,7 +175,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result == TelemetryStatus.NO_VOLUME
+        assert result == TelemetryStatus.NO_ORG_VOLUME
         _assert_called_once_with_config(get_volume, org.id)
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         get_project_volumes.assert_not_called()
@@ -227,7 +227,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result == TelemetryStatus.NO_VOLUME
+        assert result == TelemetryStatus.NO_PROJECT_VOLUMES
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         _assert_called_once_with_config(get_volume, org.id)
         _assert_called_once_with_config(get_project_volumes, org.id)

@@ -7,11 +7,7 @@ from typing import Any
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.per_org.tasks.configuration import (
-    AutomaticDynamicSamplingConfiguration,
-    BaseDynamicSamplingConfiguration,
-    CustomDynamicSamplingProjectConfiguration,
-)
+from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.rules.utils import DecisionDropCount, DecisionKeepCount, ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
@@ -68,7 +64,7 @@ def get_eap_organization_volume(
 ) -> OrganizationDataVolume | None:
     organization = config.organization
     projects = list(
-        Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
+        Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
     )
     if not projects:
         return None
@@ -80,7 +76,7 @@ def get_eap_organization_volume(
             start=start_time,
             end=end_time,
             projects=projects,
-            organization=config.organization,
+            organization=organization,
         ),
         query_string=EAP_ORGANIZATION_VOLUME_QUERY_STRINGS[config.measure],
         selected_columns=["count()", "count_sample()"],
@@ -105,16 +101,16 @@ def get_eap_organization_volume(
         return None
     indexed = _get_aggregate_int(row, "count_sample()")
 
-    return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
+    return OrganizationDataVolume(org_id=organization.id, total=total, indexed=indexed)
 
 
 def get_eap_project_volumes(
-    config: AutomaticDynamicSamplingConfiguration | CustomDynamicSamplingProjectConfiguration,
+    config: BaseDynamicSamplingConfiguration,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
 ) -> list[ProjectVolumes]:
     organization = config.organization
     projects = list(
-        Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
+        Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
     )
     if not projects:
         return []
@@ -131,7 +127,7 @@ def get_eap_project_volumes(
                 start=start_time,
                 end=end_time,
                 projects=projects,
-                organization=config.organization,
+                organization=organization,
             ),
             query_string=EAP_ORGANIZATION_VOLUME_QUERY_STRINGS[config.measure],
             selected_columns=["project.id", "count()", "count_sample()"],
@@ -153,8 +149,8 @@ def get_eap_project_volumes(
             data = data[:-1]
 
         for row in data:
-            total = int(row["count()"])
-            keep = int(row["count_sample()"])
+            total = _get_aggregate_int(row, "count()")
+            keep = _get_aggregate_int(row, "count_sample()")
             drop = max(total - keep, 0)
             project_volumes.append((ProjectId(row["project.id"]), total, keep, drop))
 
