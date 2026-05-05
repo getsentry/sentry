@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
@@ -10,6 +11,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
+import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -110,14 +112,7 @@ function useIntegrationList() {
     data: orgOwnedApps = [],
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
-  } = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
-  );
+  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
   const {
     data: publishedApps = [],
     isPending: isPublishedAppsPending,

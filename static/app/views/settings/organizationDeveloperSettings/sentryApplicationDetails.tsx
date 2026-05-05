@@ -12,11 +12,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import type {ApiResult} from 'sentry/api';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -210,19 +210,12 @@ export default function SentryApplicationDetails() {
         return;
       }
 
-      // eslint-disable-next-line @sentry/no-query-data-type-parameters
-      const listData = queryClient.getQueryData<ApiResult<SentryApp[]>>([
-        getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ]);
+      const listData = queryClient.getQueryData(
+        sentryAppsApiOptions({orgSlug: organization.slug}).queryKey
+      );
 
-      if (!listData) {
-        return;
-      }
-
-      const found = listData[0].find(item => item.slug === appSlug);
-      return found ? [found, listData[1], listData[2]] : undefined;
+      const found = listData?.json.find(item => item.slug === appSlug);
+      return found ? [found, '', undefined] : undefined;
     },
   });
   const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
