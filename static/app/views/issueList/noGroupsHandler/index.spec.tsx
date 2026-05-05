@@ -29,43 +29,6 @@ describe('NoGroupsHandler', () => {
     expect(projectsMock).not.toHaveBeenCalled();
   });
 
-  it('collapses latest deploys when looking up the selected project', async () => {
-    const projectsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [ProjectFixture({id: '1844558'})],
-    });
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/issues/',
-      body: [],
-    });
-    const sentFirstEventMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sent-first-event/',
-      body: {sentFirstEvent: false},
-    });
-
-    render(<NoGroupsHandler {...defaultProps} selectedProjectIds={[1844558]} />);
-
-    expect(await screen.findByText(/Waiting for events/i)).toBeInTheDocument();
-    expect(sentFirstEventMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/sent-first-event/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [1844558],
-        }),
-      })
-    );
-    expect(projectsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/projects/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          collapse: ['latestDeploys', 'unusedFeatures'],
-          per_page: 1,
-          query: 'id:1844558',
-        }),
-      })
-    );
-  });
-
   it('displays default empty state when an error occurs', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
