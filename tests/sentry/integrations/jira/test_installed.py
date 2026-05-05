@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import jwt
 import responses
 from jwt import DecodeError, ExpiredSignatureError, InvalidSignatureError
+from requests.exceptions import ReadTimeout
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
@@ -15,11 +16,13 @@ from sentry.integrations.project_management.metrics import ProjectManagementFail
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectFailureReason,
+    AtlassianConnectNetworkError,
     AtlassianConnectValidationError,
     get_query_hash,
 )
 from sentry.testutils.asserts import (
     assert_count_of_metric,
+    assert_failure_metric,
     assert_halt_metric,
 )
 from sentry.testutils.cases import APITestCase
@@ -254,4 +257,27 @@ class JiraInstalledTest(APITestCase):
         assert_halt_metric(
             mock_record_event,
             AtlassianConnectFailureReason.INVALID_KEY_ID,
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_raises_500_error_on_network_error(self, mock_record_event: MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"https://connect-install-keys.atlassian.com/{self.kid}",
+            body=ReadTimeout("timed out"),
+        )
+
+        response = self.client.post(
+            self.path,
+            data=self.body(),
+            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+        )
+        assert response.status_code == 500
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_failure_metric(
+            mock_record_event,
+            AtlassianConnectNetworkError(),
         )

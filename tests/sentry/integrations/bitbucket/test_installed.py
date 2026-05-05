@@ -6,6 +6,7 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import jwt as pyjwt
+import requests
 import responses
 from jwt import DecodeError, ExpiredSignatureError, InvalidSignatureError
 
@@ -15,6 +16,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectFailureReason,
+    AtlassianConnectNetworkError,
     AtlassianConnectValidationError,
     get_query_hash,
 )
@@ -24,7 +26,11 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_failure_metric,
+    assert_halt_metric,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -482,3 +488,27 @@ class BitbucketInstalledEndpointTest(APITestCase):
             assert response.status_code == 200
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
             assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 3)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_raises_500_error_on_network_error(self, mock_record_event: MagicMock) -> None:
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            responses.add(
+                responses.GET,
+                "https://connect-install-keys.atlassian.com/bitbucket-test-kid",
+                body=requests.exceptions.ReadTimeout("timed out"),
+            )
+
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+            )
+            assert response.status_code == 500
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+            assert_failure_metric(
+                mock_record_event,
+                AtlassianConnectNetworkError(),
+            )

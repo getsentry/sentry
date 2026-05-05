@@ -15,6 +15,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectNetworkError,
     AtlassianConnectTokenValidator,
     AtlassianConnectValidationError,
 )
@@ -68,6 +69,11 @@ class BitbucketInstalledEndpoint(Endpoint):
                 return self.respond(
                     {"detail": "Request Token Validation Failed"},
                     status=status.HTTP_400_BAD_REQUEST,
+                )
+            except AtlassianConnectNetworkError as e:
+                lifecycle.record_failure(failure_reason=e, create_issue=False)
+                return self.respond(
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
             return self.respond()

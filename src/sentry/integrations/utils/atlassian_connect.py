@@ -37,6 +37,10 @@ class AtlassianConnectValidationError(Exception):
     pass
 
 
+class AtlassianConnectNetworkError(Exception):
+    pass
+
+
 def get_query_hash(
     uri: str, method: str, query_params: Mapping[str, str | Sequence[str]] | None = None
 ) -> str:
@@ -147,7 +151,17 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     if token is None:
         raise AtlassianConnectValidationError(AtlassianConnectFailureReason.NO_TOKEN_PARAMETER)
     headers = jwt.peek_header(token)
-    key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
+    try:
+        key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
+        key_response.raise_for_status()
+    except requests.HTTPError as e:
+        if key_response.status_code == 404:
+            raise AtlassianConnectValidationError(
+                AtlassianConnectFailureReason.INVALID_KEY_ID
+            ) from e
+        raise AtlassianConnectNetworkError(f"Failed to fetch public key for key_id {key_id}") from e
+    except requests.RequestException as e:
+        raise AtlassianConnectNetworkError(f"Failed to fetch public key for key_id {key_id}") from e
     public_key = key_response.content.decode("utf-8").strip()
     decoded_claims = jwt.decode(
         token, public_key, audience=absolute_uri(), algorithms=[headers.get("alg")]
