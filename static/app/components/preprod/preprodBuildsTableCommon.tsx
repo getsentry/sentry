@@ -88,7 +88,7 @@ export function PreprodBuildsRowCells({
                         <Button
                           aria-label={t('Not installable')}
                           icon={<IconNot variant="danger" size="xs" />}
-                          priority="transparent"
+                          variant="transparent"
                           size="zero"
                           disabled
                         />

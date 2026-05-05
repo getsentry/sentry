@@ -74,7 +74,7 @@ export function EncryptBackup(props: StepProps) {
             {t('for this command.')}
           </i>
         </p>
-        <ContinueButton priority="primary" onClick={() => props.onComplete()} />
+        <ContinueButton variant="primary" onClick={() => props.onComplete()} />
       </motion.div>
     </Wrapper>
   );

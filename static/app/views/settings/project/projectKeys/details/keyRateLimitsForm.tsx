@@ -198,7 +198,7 @@ export function KeyRateLimitsForm({
                             }
                             return getExactDuration(rangeValue);
                           }
-                          return undefined;
+                          return;
                         }}
                         disabled={disabled || !hasFeature}
                         onChange={(rangeValue, event) =>

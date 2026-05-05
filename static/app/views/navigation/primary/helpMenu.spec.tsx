@@ -7,6 +7,15 @@ import * as intercom from 'sentry/utils/intercom';
 import * as zendesk from 'sentry/utils/zendesk';
 import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 
+jest.mock('sentry/views/navigation/navigationTour', () => ({
+  useNavigationTour: jest.fn(() => ({
+    startTour: jest.fn(),
+  })),
+  NavigationTourReminder: ({children}: {children: React.ReactNode}) => (
+    <div>{children}</div>
+  ),
+}));
+
 jest.mock('sentry/utils/intercom', () => ({
   showIntercom: jest.fn(),
 }));
@@ -16,14 +25,10 @@ jest.mock('sentry/utils/zendesk', () => ({
   activateZendesk: jest.fn(),
 }));
 
-jest.mock('sentry/views/navigation/navigationTour', () => ({
-  useNavigationTour: jest.fn(() => ({
-    startTour: jest.fn(),
-  })),
-  NavigationTourReminder: ({children}: {children: React.ReactNode}) => (
-    <div>{children}</div>
-  ),
-}));
+async function expandResourcesSubmenu() {
+  await userEvent.click(screen.getByRole('button', {name: 'Help'}));
+  await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
+}
 
 describe('PrimaryNavigationHelpMenu', () => {
   beforeEach(() => {
@@ -38,10 +43,7 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     render(<PrimaryNavigationHelpMenu />, {organization});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
-
-    // Contact Support is nested inside the Resources submenu
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
+    await expandResourcesSubmenu();
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(intercom.showIntercom).toHaveBeenCalledWith(organization.slug);
@@ -57,10 +59,7 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     render(<PrimaryNavigationHelpMenu />, {organization});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
-
-    // Contact Support is nested inside the Resources submenu
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
+    await expandResourcesSubmenu();
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(zendesk.activateZendesk).toHaveBeenCalled();
@@ -76,11 +75,11 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     render(<PrimaryNavigationHelpMenu />, {organization});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
+    await expandResourcesSubmenu();
 
-    // Contact Support is nested inside the Resources submenu
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
-    const contactSupport = screen.getByRole('menuitemradio', {name: 'Contact Support'});
+    const contactSupport = screen.getByRole('menuitemradio', {
+      name: 'Contact Support',
+    });
     expect(contactSupport).toHaveAttribute('href', 'mailto:support@sentry.io');
   });
 });

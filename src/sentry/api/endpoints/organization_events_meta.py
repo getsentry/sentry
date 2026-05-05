@@ -38,7 +38,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({"count": 0})
 
-        dataset = self.get_dataset(request)
+        dataset = self.get_dataset(request, organization)
 
         with handle_query_errors():
             if dataset in RPC_DATASETS:

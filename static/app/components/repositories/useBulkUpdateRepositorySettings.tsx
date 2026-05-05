@@ -27,14 +27,14 @@ type RepositorySettings =
 
 export function useBulkUpdateRepositorySettings(
   options?: Omit<
-    UseMutationOptions<RepositoryWithSettings[], Error, RepositorySettings, unknown>,
+    UseMutationOptions<RepositoryWithSettings[], Error, RepositorySettings>,
     'mutationFn'
   >
 ) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  return useMutation<RepositoryWithSettings[], Error, RepositorySettings, unknown>({
+  return useMutation<RepositoryWithSettings[], Error, RepositorySettings>({
     mutationFn: data => {
       return fetchMutation({
         method: 'PUT',

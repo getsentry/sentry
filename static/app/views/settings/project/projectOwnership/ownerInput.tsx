@@ -166,7 +166,7 @@ export function OwnerInput({
             </Button>
             <Button
               size="sm"
-              priority="primary"
+              variant="primary"
               onClick={handleUpdateOwnership}
               disabled={disabled || !hasChanges}
             >

@@ -170,7 +170,7 @@ export function SpanDescription({
               <LinkHint value={formattedDescription} />
             </span>
             <CopyToClipboardButton
-              priority="transparent"
+              variant="transparent"
               size="zero"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
@@ -275,7 +275,7 @@ function ResourceImage(props: {
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}

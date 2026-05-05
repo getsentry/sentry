@@ -262,7 +262,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
               <Button
                 size="xs"
                 aria-label={t('Open Full-Screen View')}
-                priority="transparent"
+                variant="transparent"
                 icon={<IconExpand />}
                 onClick={() => {
                   openInsightChartModal({

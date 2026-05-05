@@ -134,7 +134,7 @@ export function GetStarted({
           )}
           <ContinueButton
             disabled={!orgSlugs || !regionUrl}
-            priority="primary"
+            variant="primary"
             type="submit"
           />
         </Form>

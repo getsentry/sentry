@@ -4,7 +4,7 @@ import {ThemeProvider} from '@emotion/react';
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
-import {SnapshotSidebarContent, type SidebarGroup} from './snapshotSidebarContent';
+import {SnapshotSidebarContent, type SidebarSection} from './snapshotSidebarContent';
 
 jest.mock('@sentry/scraps/layout', () => {
   const actual = jest.requireActual('@sentry/scraps/layout');
@@ -18,11 +18,21 @@ const themes = {light: lightTheme, dark: darkTheme};
 
 const noop = () => {};
 
-const groups: SidebarGroup[] = [
-  {key: 'Button/light', name: 'Button/light', count: 1},
-  {key: 'Alert/dark', name: 'Alert/dark', count: 3},
-  {key: 'Badge/light', name: 'Badge/light', count: 4},
-  {key: 'Checkbox/theme-dark', name: 'Checkbox/theme-dark', count: 2},
+const sections: SidebarSection[] = [
+  {
+    type: DiffStatus.CHANGED,
+    groups: [
+      {key: 'changed:Button/light', name: 'Button/light', count: 1},
+      {key: 'changed:Alert/dark', name: 'Alert/dark', count: 3},
+    ],
+  },
+  {
+    type: DiffStatus.UNCHANGED,
+    groups: [
+      {key: 'unchanged:Badge/light', name: 'Badge/light', count: 4},
+      {key: 'unchanged:Checkbox/theme-dark', name: 'Checkbox/theme-dark', count: 2},
+    ],
+  },
 ];
 
 const statusCounts: Record<DiffStatus, number> = {
@@ -44,45 +54,58 @@ describe('SnapshotSidebarContent', () => {
     }
 
     it.snapshot(
-      'all-selected',
+      'default',
       () => (
         <Wrapper>
           <SnapshotSidebarContent
-            groups={groups}
-            currentItemKey="Button/light"
-            isAllSelected
+            sections={sections}
             searchQuery=""
             onSearchChange={noop}
             onSelectItem={noop}
-            onSelectAll={noop}
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'all-selected'}
+      {theme: themeName, state: 'default'}
     );
 
     it.snapshot(
-      'child-selected',
+      'active-group',
       () => (
         <Wrapper>
           <SnapshotSidebarContent
-            groups={groups}
-            currentItemKey="Badge/light"
-            isAllSelected={false}
+            sections={sections}
+            activeItemKey="unchanged:Badge/light"
             searchQuery=""
             onSearchChange={noop}
             onSelectItem={noop}
-            onSelectAll={noop}
+            statusCounts={statusCounts}
+            activeStatuses={new Set()}
+            onToggleStatus={noop}
+          />
+        </Wrapper>
+      ),
+      {theme: themeName, state: 'active-group'}
+    );
+
+    it.snapshot(
+      'filtered',
+      () => (
+        <Wrapper>
+          <SnapshotSidebarContent
+            sections={sections}
+            searchQuery=""
+            onSearchChange={noop}
+            onSelectItem={noop}
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'child-selected'}
+      {theme: themeName, state: 'filtered'}
     );
 
     it.snapshot(
@@ -90,13 +113,10 @@ describe('SnapshotSidebarContent', () => {
       () => (
         <Wrapper>
           <SnapshotSidebarContent
-            groups={[]}
-            currentItemKey={null}
-            isAllSelected
+            sections={[]}
             searchQuery="missing"
             onSearchChange={noop}
             onSelectItem={noop}
-            onSelectAll={noop}
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
             onToggleStatus={noop}

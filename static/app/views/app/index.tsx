@@ -2,6 +2,8 @@ import {lazy, Suspense, useCallback, useEffect} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {
   displayDeployPreviewAlert,
   displayExperimentalSpaAlert,
@@ -10,7 +12,6 @@ import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {GlobalModal} from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
@@ -112,7 +113,7 @@ export function App() {
     // Skip loading organization-related data before the user is logged in,
     // because it triggers a 401 error in the UI.
     if (!preloadData) {
-      return undefined;
+      return;
     }
 
     loadOrganizations();

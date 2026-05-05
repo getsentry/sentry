@@ -178,7 +178,7 @@ export function ExplorerDrawerHeader({
             icon={<IconCopy />}
             onClick={onCopySessionClick}
             disabled={!onCopySessionClick}
-            priority="default"
+            variant="secondary"
             size="xs"
             aria-label={t('Copy conversation to clipboard')}
             tooltipProps={{title: t('Copy conversation to clipboard')}}
@@ -187,7 +187,7 @@ export function ExplorerDrawerHeader({
             icon={<IconLink />}
             onClick={onCopyLinkClick}
             disabled={!onCopyLinkClick}
-            priority="default"
+            variant="secondary"
             size="xs"
             aria-label={t('Copy link to current chat and web page')}
             tooltipProps={{title: t('Copy link to current chat and web page')}}
@@ -202,7 +202,7 @@ export function ExplorerDrawerHeader({
               'aria-label': t('More actions'),
               icon: <IconEllipsis />,
               showChevron: false,
-              priority: 'default',
+              variant: 'secondary',
               size: 'xs',
             }}
           />
@@ -217,7 +217,7 @@ export function ExplorerDrawerHeader({
             tooltipProps: {title: t('Chat history')},
             icon: <IconClock />,
             showChevron: false,
-            priority: 'default',
+            variant: 'secondary',
             size: 'xs',
           }}
         />
@@ -226,7 +226,7 @@ export function ExplorerDrawerHeader({
             icon={<IconAdd />}
             onClick={onNewChatClick}
             disabled={disableNewChatButton}
-            priority="default"
+            variant="secondary"
             size="xs"
             aria-label={t('Start a new chat (/new)')}
             tooltipProps={{title: t('Start a new chat (/new)')}}
@@ -237,7 +237,7 @@ export function ExplorerDrawerHeader({
             icon={<IconAdd />}
             onClick={onNewChatClick}
             disabled={disableNewChatButton}
-            priority="default"
+            variant="secondary"
             size="xs"
             aria-label={t('Start a new chat (/new)')}
             tooltipProps={{title: t('Start a new chat (/new)')}}

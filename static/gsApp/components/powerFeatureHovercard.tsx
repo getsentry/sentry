@@ -104,7 +104,7 @@ function PowerFeatureHovercard({
                   : t('Requires %s Plan', planName)}
               </div>
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={handleClick}
                 data-test-id="power-learn-more"
                 size="xs"

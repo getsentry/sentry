@@ -169,7 +169,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
             batch_features = self.get_features(organization, request)
 
-            dataset = self.get_dataset(request)
+            dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 dataset = (

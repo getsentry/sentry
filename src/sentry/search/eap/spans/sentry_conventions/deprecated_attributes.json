@@ -365,7 +365,7 @@
         "_status": null,
         "replacement": "http.request.method"
       },
-      "alias": ["http.request.method"],
+      "alias": ["http.request.method", "http.request_method", "http.method"],
       "sdks": ["javascript-browser", "javascript-node"],
       "changelog": [
         {
@@ -518,11 +518,16 @@
       "is_in_otel": false,
       "example": "GET /",
       "deprecation": {
-        "_status": null,
-        "replacement": "sentry.transaction"
+        "_status": "backfill",
+        "replacement": "sentry.segment.name"
       },
-      "alias": ["sentry.transaction"],
+      "alias": ["sentry.segment.name", "sentry.transaction"],
       "changelog": [
+        {
+          "version": "0.6.0",
+          "prs": [345],
+          "description": "Updated transaction deprecation replacement to sentry.segment.name"
+        },
         {
           "version": "0.1.0",
           "prs": [61, 127]
@@ -615,7 +620,7 @@
       "alias": ["gen_ai.usage.output_tokens", "gen_ai.usage.completion_tokens"],
       "sdks": ["python"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.usage.output_tokens"
       },
       "changelog": [
@@ -665,7 +670,7 @@
       "is_in_otel": false,
       "example": "COMPLETE",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.response.finish_reasons"
       },
       "alias": ["gen_ai.response.finish_reasons"],
@@ -686,7 +691,7 @@
       "is_in_otel": false,
       "example": 0.5,
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.request.frequency_penalty"
       },
       "alias": ["gen_ai.request.frequency_penalty"],
@@ -711,7 +716,7 @@
       "is_in_otel": false,
       "example": "function_name",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.tool.name"
       },
       "alias": ["gen_ai.tool.name"],
@@ -732,7 +737,7 @@
       "is_in_otel": false,
       "example": "gen_123abc",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.response.id"
       },
       "alias": ["gen_ai.response.id"],
@@ -755,7 +760,7 @@
       "alias": ["gen_ai.request.messages"],
       "sdks": ["python"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.request.messages"
       },
       "changelog": [
@@ -824,7 +829,7 @@
       "is_in_otel": false,
       "example": "openai",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.provider.name"
       },
       "alias": ["gen_ai.provider.name", "gen_ai.system"],
@@ -851,7 +856,7 @@
       "alias": ["gen_ai.response.model"],
       "sdks": ["python"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.response.model"
       },
       "changelog": [
@@ -874,7 +879,7 @@
       "is_in_otel": false,
       "example": "Autofix Pipeline",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.pipeline.name"
       },
       "alias": ["gen_ai.pipeline.name"],
@@ -895,7 +900,7 @@
       "is_in_otel": false,
       "example": "You are now a clown.",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.system_instructions"
       },
       "alias": ["gen_ai.system_instructions"],
@@ -920,7 +925,7 @@
       "is_in_otel": false,
       "example": 0.5,
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.request.presence_penalty"
       },
       "alias": ["gen_ai.request.presence_penalty"],
@@ -947,7 +952,7 @@
       "alias": ["gen_ai.usage.prompt_tokens", "gen_ai.usage.input_tokens"],
       "sdks": ["python"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.usage.input_tokens"
       },
       "changelog": [
@@ -1021,7 +1026,7 @@
       "example": ["hello", "world"],
       "sdks": ["python"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.response.text"
       },
       "changelog": [
@@ -1090,7 +1095,7 @@
       "is_in_otel": false,
       "example": "1234567890",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.request.seed"
       },
       "alias": ["gen_ai.request.seed"],
@@ -1112,7 +1117,7 @@
       "example": true,
       "sdks": ["python"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.response.streaming"
       },
       "alias": ["gen_ai.response.streaming"],
@@ -1159,7 +1164,7 @@
       "is_in_otel": false,
       "example": 0.1,
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.request.temperature"
       },
       "alias": ["gen_ai.request.temperature"],
@@ -1184,7 +1189,7 @@
       "is_in_otel": false,
       "example": ["Hello, how are you?", "What is the capital of France?"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.input.messages"
       },
       "alias": ["gen_ai.input.messages"],
@@ -1209,7 +1214,7 @@
       "is_in_otel": false,
       "example": ["tool_call_1", "tool_call_2"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.response.tool_calls"
       },
       "changelog": [
@@ -1229,7 +1234,7 @@
       "is_in_otel": false,
       "example": ["function_1", "function_2"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.request.available_tools"
       },
       "changelog": [
@@ -1249,7 +1254,7 @@
       "is_in_otel": false,
       "example": 35,
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.request.top_k"
       },
       "alias": ["gen_ai.request.top_k"],
@@ -1274,7 +1279,7 @@
       "is_in_otel": false,
       "example": 0.7,
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.request.top_p"
       },
       "alias": ["gen_ai.request.top_p"],
@@ -1299,7 +1304,7 @@
       "is_in_otel": false,
       "example": 12.34,
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.cost.total_tokens"
       },
       "alias": ["gen_ai.cost.total_tokens"],
@@ -1329,7 +1334,7 @@
       "example": 30,
       "sdks": ["python"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.usage.total_tokens"
       },
       "alias": ["gen_ai.usage.total_tokens"],
@@ -1564,30 +1569,6 @@
       ]
     },
     {
-      "key": "code.function",
-      "brief": "The method or function name, or equivalent (usually rightmost part of the code unit's name).",
-      "type": "string",
-      "pii": {
-        "key": "maybe"
-      },
-      "is_in_otel": true,
-      "example": "server_request",
-      "deprecation": {
-        "_status": null,
-        "replacement": "code.function.name"
-      },
-      "alias": ["code.function.name"],
-      "changelog": [
-        {
-          "version": "0.1.0",
-          "prs": [61, 74]
-        },
-        {
-          "version": "0.0.0"
-        }
-      ]
-    },
-    {
       "key": "code.lineno",
       "brief": "The line number in code.filepath best representing the operation. It SHOULD point within the code unit named in code.function",
       "type": "integer",
@@ -1609,30 +1590,6 @@
         {
           "version": "0.1.0",
           "prs": [61, 108]
-        },
-        {
-          "version": "0.0.0"
-        }
-      ]
-    },
-    {
-      "key": "code.namespace",
-      "brief": "The 'namespace' within which code.function is defined. Usually the qualified class or module name, such that code.namespace + some separator + code.function form a unique identifier for the code unit.",
-      "type": "string",
-      "pii": {
-        "key": "maybe"
-      },
-      "is_in_otel": true,
-      "example": "http.handler",
-      "deprecation": {
-        "_status": null,
-        "replacement": "code.function.name",
-        "reason": "code.function.name should include the namespace."
-      },
-      "changelog": [
-        {
-          "version": "0.1.0",
-          "prs": [61, 74]
         },
         {
           "version": "0.0.0"
@@ -1973,7 +1930,7 @@
       "example": "[{\"name\": \"get_weather\", \"description\": \"Get the weather for a given location\"}, {\"name\": \"get_news\", \"description\": \"Get the news for a given topic\"}]",
       "alias": [],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.tool.definitions"
       },
       "changelog": [
@@ -1998,7 +1955,7 @@
       "example": "[{\"role\": \"system\", \"content\": \"Generate a random number.\"}, {\"role\": \"user\", \"content\": [{\"text\": \"Generate a random number between 0 and 10.\", \"type\": \"text\"}]}, {\"role\": \"tool\", \"content\": {\"toolCallId\": \"1\", \"toolName\": \"Weather\", \"output\": \"rainy\"}}]",
       "alias": ["ai.input_messages"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.input.messages"
       },
       "changelog": [
@@ -2023,7 +1980,7 @@
       "example": "[\"The weather in Paris is rainy and overcast, with temperatures around 57°F\", \"The weather in London is sunny and warm, with temperatures around 65°F\"]",
       "alias": [],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.output.messages"
       },
       "changelog": [
@@ -2048,7 +2005,7 @@
       "example": "[{\"name\": \"get_weather\", \"arguments\": {\"location\": \"Paris\"}}]",
       "alias": [],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.output.messages"
       },
       "changelog": [
@@ -2072,7 +2029,7 @@
       "is_in_otel": true,
       "example": "openai",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.provider.name"
       },
       "alias": ["ai.model.provider", "gen_ai.provider.name"],
@@ -2097,7 +2054,7 @@
       "is_in_otel": false,
       "example": "You are a helpful assistant",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.system_instructions"
       },
       "changelog": [
@@ -2122,7 +2079,7 @@
       "example": "{\"location\": \"Paris\"}",
       "alias": ["gen_ai.tool.call.arguments"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.tool.call.arguments"
       },
       "changelog": [
@@ -2147,7 +2104,7 @@
       "example": "rainy, 57°F",
       "alias": ["gen_ai.tool.call.result", "gen_ai.tool.output"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.tool.call.result"
       },
       "changelog": [
@@ -2172,7 +2129,7 @@
       "example": "rainy, 57°F",
       "alias": ["gen_ai.tool.call.result", "gen_ai.tool.message"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.tool.call.result"
       },
       "changelog": [
@@ -2216,7 +2173,7 @@
       "is_in_otel": true,
       "example": 10,
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.usage.output_tokens"
       },
       "alias": ["ai.completion_tokens.used", "gen_ai.usage.output_tokens"],
@@ -2244,7 +2201,7 @@
       "is_in_otel": true,
       "example": 20,
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "gen_ai.usage.input_tokens"
       },
       "alias": ["ai.prompt_tokens.used", "gen_ai.usage.input_tokens"],
@@ -2345,10 +2302,10 @@
       "is_in_otel": true,
       "example": "GET",
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "http.request.method"
       },
-      "alias": ["http.request.method"],
+      "alias": ["http.request.method", "http.request_method", "method"],
       "changelog": [
         {
           "version": "0.1.0",
@@ -2356,6 +2313,28 @@
         },
         {
           "version": "0.0.0"
+        }
+      ]
+    },
+    {
+      "key": "http.request_method",
+      "brief": "The HTTP method used.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "GET",
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "http.request.method"
+      },
+      "alias": ["method", "http.method", "http.request.method"],
+      "changelog": [
+        {
+          "version": "0.6.0",
+          "prs": [343],
+          "description": "Added http.request_method attribute"
         }
       ]
     },
@@ -3306,7 +3285,7 @@
       "example": "051581bf3cb55c13",
       "alias": ["sentry.segment.id"],
       "deprecation": {
-        "_status": null,
+        "_status": "backfill",
         "replacement": "sentry.segment.id"
       },
       "changelog": [
@@ -3357,6 +3336,32 @@
         {
           "version": "0.1.0",
           "prs": [116]
+        }
+      ]
+    },
+    {
+      "key": "sentry.transaction",
+      "brief": "The sentry transaction (segment name).",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "GET /",
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "sentry.segment.name",
+        "reason": "This attribute is being deprecated in favor of sentry.segment.name"
+      },
+      "alias": ["sentry.segment.name", "transaction"],
+      "changelog": [
+        {
+          "version": "0.6.0",
+          "prs": [345],
+          "description": "Deprecated sentry.transaction in favor of sentry.segment.name"
+        },
+        {
+          "version": "0.0.0"
         }
       ]
     },

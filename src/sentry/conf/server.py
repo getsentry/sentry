@@ -543,6 +543,7 @@ CSP_CONNECT_SRC = [
     "*.algolia.net",
     "*.algolianet.com",
     "*.algolia.io",
+    "browser.sentry-cdn.com",
 ]
 CSP_FRAME_ANCESTORS = [
     "'none'",
@@ -867,6 +868,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.nodestore",
     "sentry.deletions.tasks.scheduled",
+    "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.per_org.tasks.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
@@ -984,7 +986,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
-    "sentry.uptime.autodetect.notifications",
     "sentry.uptime.autodetect.tasks",
     "sentry.uptime.consumers.tasks",
     "sentry.uptime.rdap.tasks",
@@ -992,7 +993,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
-    "sentry.workflow_engine.tasks.cleanup",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
     "sentry.tasks.seer.lightweight_rca_cluster",
@@ -2238,7 +2238,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.4.1"
+SELF_HOSTED_STABLE_VERSION = "26.4.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

@@ -303,8 +303,8 @@ export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
-  const [title, setTitle] = useQueryParamState<string>({fieldName: 'title'});
-  const [description, setDescription] = useQueryParamState<string>({
+  const [title, setTitle] = useQueryParamState({fieldName: 'title'});
+  const [description, setDescription] = useQueryParamState({
     fieldName: 'description',
   });
   const [displayType, setDisplayType] = useQueryParamState<DisplayType>({
@@ -1288,7 +1288,7 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
           field: maybeLinkedDashboard.field,
         } satisfies LinkedDashboard;
       }
-      return undefined;
+      return;
     })
     .filter(defined);
 }

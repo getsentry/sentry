@@ -176,7 +176,7 @@ function TrySeerNowButton() {
   return (
     <LinkButton
       to={`/settings/${organization.slug}/billing/overview/?product=seer`}
-      priority="primary"
+      variant="primary"
       icon={<IconUpgrade />}
       analyticsEventKey="clicked.try_seer_button"
       analyticsEventName="Clicked: Try Seer Now"

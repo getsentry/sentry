@@ -34,7 +34,7 @@ export function AutofixCursorGithubAccessModal({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Remind me later')}</Button>
-          <LinkButton href={CURSOR_GITHUB_APP_URL} external priority="primary">
+          <LinkButton href={CURSOR_GITHUB_APP_URL} external variant="primary">
             {t('Install Cursor GitHub App')}
           </LinkButton>
         </Grid>

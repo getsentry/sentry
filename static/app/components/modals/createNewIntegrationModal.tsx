@@ -104,7 +104,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
           {t('Cancel')}
         </Button>
         <LinkButton
-          priority="primary"
+          variant="primary"
           size="sm"
           to={`/settings/${organization.slug}/developer-settings/${
             option === 'public' ? 'new-public' : 'new-internal'

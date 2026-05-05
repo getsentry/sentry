@@ -13,7 +13,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, roles
+from sentry import roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -181,37 +181,37 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
         missing_org_members = []
 
-        use_oi_config_reads = features.has("organizations:scm-config-oi-reads", organization)
-
         for integration_provider, integration_ids in integration_provider_to_ids.items():
             # TODO(cathy): allow other integration providers
             if integration_provider != IntegrationProviderSlug.GITHUB.value:
                 continue
 
-            if use_oi_config_reads:
-                nudge_enabled_ids = [
-                    oi.integration_id
-                    for oi in integration_service.get_organization_integrations(
-                        organization_id=organization.id,
-                        providers=[integration_provider],
-                        status=ObjectStatus.ACTIVE,
-                    )
-                    if oi.config.get("nudge_invite", False)
-                ]
-                integration_ids = [iid for iid in integration_ids if iid in nudge_enabled_ids]
-                if not integration_ids:
-                    continue
-
-            queryset = _get_missing_organization_members(
-                organization, integration_provider, integration_ids, shared_domain
-            )
-
-            missing_members_for_integration = {
-                "integration": integration_provider,
-                "users": serialize(queryset, request.user, serializer=MissingOrgMemberSerializer()),
+            nudge_enabled_ids = {
+                oi.integration_id
+                for oi in integration_service.get_organization_integrations(
+                    organization_id=organization.id,
+                    providers=[integration_provider],
+                    status=ObjectStatus.ACTIVE,
+                )
+                if oi.config.get("nudge_invite", False)
             }
+            enabled_ids = [iid for iid in integration_ids if iid in nudge_enabled_ids]
+            enabled = bool(enabled_ids)
 
-            missing_org_members.append(missing_members_for_integration)
+            users = []
+            if enabled:
+                queryset = _get_missing_organization_members(
+                    organization, integration_provider, enabled_ids, shared_domain
+                )
+                users = serialize(queryset, request.user, serializer=MissingOrgMemberSerializer())
+
+            missing_org_members.append(
+                {
+                    "integration": integration_provider,
+                    "enabled": enabled,
+                    "users": users,
+                }
+            )
 
         return Response(
             missing_org_members,

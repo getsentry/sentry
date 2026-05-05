@@ -51,5 +51,5 @@ export function getResponseBodySize(frame: SpanFrame) {
     //   frame.data.encodedBodySize
     return frame.data.size;
   }
-  return undefined;
+  return;
 }

@@ -45,7 +45,7 @@ export function useDatePageFilterProps({
     );
 
     const isOptionDisabled = (option: SelectOptionWithKey<string>): boolean => {
-      return disabledOptions.hasOwnProperty(option.value);
+      return Object.hasOwn(disabledOptions, option.value);
     };
 
     const menuFooter = isEmptyObject(disabledOptions) ? null : (upsellFooter ?? null);

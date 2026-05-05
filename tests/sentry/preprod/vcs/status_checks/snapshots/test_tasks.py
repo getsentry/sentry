@@ -218,6 +218,7 @@ class SnapshotStatusCheckWithSkippedTest(SnapshotTasksTestBase):
             overall_status=status,
             base_artifact_map={artifact.id: base_artifact},
             changes_map={artifact.id: has_changes},
+            project=self.project,
         )
         return subtitle, summary
 
@@ -226,7 +227,7 @@ class SnapshotStatusCheckWithSkippedTest(SnapshotTasksTestBase):
             images_changed=2, images_skipped=50, images_unchanged=3
         )
 
-        assert "2 modified" in subtitle
+        assert "2 changed" in subtitle
         assert "50 skipped" in subtitle
         assert "3 unchanged" in subtitle
         assert "Skipped" in summary

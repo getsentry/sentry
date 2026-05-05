@@ -111,7 +111,7 @@ export function DashboardChatPanel({
         <ChatHistoryToggle
           onClick={() => setIsHistoryExpanded(prev => !prev)}
           aria-expanded={isHistoryExpanded}
-          priority="transparent"
+          variant="transparent"
           disabled={!hasHistory}
         >
           <Flex align="center" gap="sm">

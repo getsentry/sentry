@@ -20,6 +20,31 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
+    def setUp(self) -> None:
+        super().setUp()
+        patcher = patch("sentry.deletions.defaults.repository.notify_seer_repository_deleted")
+        self.mock_notify_seer_repository_deleted = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_schedules_seer_notification_when_repository_deleted(self) -> None:
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            provider="dummy",
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        self.mock_notify_seer_repository_deleted.delay.assert_called_once_with(
+            org.id, repo.id, repo.provider, repo.name
+        )
+        assert not Repository.objects.filter(id=repo.id).exists()
+
     def test_simple(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)

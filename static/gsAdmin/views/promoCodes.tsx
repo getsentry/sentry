@@ -49,7 +49,7 @@ export function PromoCodes() {
       <PageHeader title="Promo Codes">
         <Button
           onClick={() => openModal(deps => <PromoCodeModal {...deps} />)}
-          priority="primary"
+          variant="primary"
           size="sm"
         >
           Create Promo Code

@@ -194,7 +194,7 @@ def create_metric_alert(
         raise ValidationError(validator.errors)
 
     try:
-        trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
+        trigger_sentry_app_action_creators_for_incidents(validator.validated_data, organization)
     except SentryAppBaseError as e:
         return e.response_from_exception()
 
@@ -333,14 +333,11 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-        prefilling_for_deprecation = (
-            "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
-        )
         alert_specs = get_default_version_alert_metric_specs(
             project,
             enabled_features,
             prefilling,
-            prefilling_for_deprecation=prefilling_for_deprecation,
+            prefilling_for_deprecation=False,
         )
 
         return Response(

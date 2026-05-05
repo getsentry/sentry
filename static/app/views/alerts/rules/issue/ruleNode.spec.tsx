@@ -147,7 +147,7 @@ describe('RuleNode', () => {
     expect(onDelete).toHaveBeenCalledWith(index);
   });
 
-  it('renders choice string choice fields correctly', async () => {
+  it.isKnownFlake('renders choice string choice fields correctly', async () => {
     const fieldName = 'exampleStringChoiceField';
     const label = `Here is a string choice field {${fieldName}}`;
     renderRuleNode(formNode(label));

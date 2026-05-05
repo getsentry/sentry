@@ -46,7 +46,7 @@ export function ReplayPreviewPlayer({
   handleForwardClick,
   overlayContent,
   showNextAndPrevious,
-  playPausePriority,
+  playPauseVariant,
 }: {
   errorBeforeReplayStart: boolean;
   replayId: string;
@@ -55,7 +55,7 @@ export function ReplayPreviewPlayer({
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
   overlayContent?: React.ReactNode;
-  playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
+  playPauseVariant?: ComponentProps<typeof ReplayPlayPauseButton>['variant'];
   query?: Query;
   showNextAndPrevious?: boolean;
 }) {
@@ -167,8 +167,8 @@ export function ReplayPreviewPlayer({
               <ReplayPlayPauseButton
                 analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
                 analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
-                priority={
-                  playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
+                variant={
+                  playPauseVariant ?? (isFinished || isPlaying ? 'primary' : 'secondary')
                 }
               />
               {showNextAndPrevious && (
