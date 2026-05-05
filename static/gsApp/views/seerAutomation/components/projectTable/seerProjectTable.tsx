@@ -88,7 +88,6 @@ export function SeerProjectTable() {
   const {
     data: autofixSettingsByProjectId,
     isPending: isPendingSettings,
-    isFetchingNextPage,
     isError: isErrorSettings,
   } = result;
 
@@ -236,7 +235,7 @@ export function SeerProjectTable() {
     return filtered;
   }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
 
-  if (fetchingProjects || isPendingSettings || isFetchingNextPage) {
+  if (fetchingProjects || isPendingSettings) {
     return <LoadingIndicator />;
   }
 
@@ -317,15 +316,7 @@ export function SeerProjectTable() {
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
 
-          {fetchingProjects || isPendingSettings || isFetchingNextPage ? (
-            <SimpleTable.Empty>
-              <LoadingIndicator />
-            </SimpleTable.Empty>
-          ) : projectFetchError || isErrorSettings ? (
-            <SimpleTable.Empty>
-              <LoadingError />
-            </SimpleTable.Empty>
-          ) : filteredProjects.length === 0 ? (
+          {filteredProjects.length === 0 ? (
             <SimpleTable.Empty>
               {searchTerm
                 ? agentFilter

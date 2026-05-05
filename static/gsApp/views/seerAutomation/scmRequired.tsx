@@ -58,7 +58,7 @@ export default function SeerAutomationSCMRequired() {
     return <LoadingIndicator />;
   }
 
-  if (!isError && !supportedIntegrations.length) {
+  if (isError || !supportedIntegrations.length) {
     return (
       <Fragment>
         <SettingsPageHeader
