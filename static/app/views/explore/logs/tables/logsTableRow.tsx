@@ -120,6 +120,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
 };
 
@@ -160,6 +161,7 @@ export const LogRowContent = memo(function LogRowContent({
   onEmbeddedRowClick,
   logStart,
   logEnd,
+  showCellActions,
   showExploreSimilarSpansLink,
 }: LogsRowProps) {
   const location = useLocation();
@@ -409,7 +411,7 @@ export const LogRowContent = memo(function LogRowContent({
           };
 
           const shouldRenderActions =
-            !embedded &&
+            (showCellActions ?? !embedded) &&
             field !== OurLogKnownFieldKey.TIMESTAMP &&
             shouldRenderHoverElements;
 
