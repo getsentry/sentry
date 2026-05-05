@@ -514,9 +514,10 @@ export default function SentryApplicationDetails() {
         }
 
         addErrorMessage(
-          typeof responseJSON.detail === 'string'
-            ? responseJSON.detail
-            : t('Unknown Error')
+          (typeof responseJSON.detail === 'string' && responseJSON.detail) ||
+            (Array.isArray(responseJSON.scopes) && responseJSON.scopes[0]) ||
+            (Array.isArray(responseJSON.events) && responseJSON.events[0]) ||
+            t('Unknown Error')
         );
       });
     },

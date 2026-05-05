@@ -194,8 +194,9 @@ describe('Sentry Application Details', () => {
     it('shows logo upload fields', async () => {
       renderComponent();
 
-      expect(await screen.findByText('Logo')).toBeInTheDocument();
-      expect(await screen.findByText('Small Icon')).toBeInTheDocument();
+      await screen.findByRole('button', {name: 'Save Changes'});
+      expect(screen.getByText('Logo')).toBeInTheDocument();
+      expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
     it('has inputs for redirectUrl and verifyInstall', async () => {
@@ -271,8 +272,9 @@ describe('Sentry Application Details', () => {
     it('shows logo upload fields', async () => {
       renderComponent();
 
-      expect(await screen.findByText('Logo')).toBeInTheDocument();
-      expect(await screen.findByText('Small Icon')).toBeInTheDocument();
+      await screen.findByRole('button', {name: 'Save Changes'});
+      expect(screen.getByText('Logo')).toBeInTheDocument();
+      expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
     it('has tokens', async () => {
@@ -550,14 +552,18 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('shows an error toast when save fails', async () => {
+    it('surfaces scope errors in the toast', async () => {
       const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
-      await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(addErrorMessage).toHaveBeenCalledWith(
+          "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change."
+        )
+      );
     });
 
     it('handles client secret rotation', async () => {
