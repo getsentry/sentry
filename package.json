@@ -106,7 +106,7 @@
     "@sentry-internal/rrweb": "2.41.0",
     "@sentry-internal/rrweb-player": "2.41.0",
     "@sentry-internal/rrweb-snapshot": "2.41.0",
-    "@sentry/conventions": "^0.4.0",
+    "@sentry/conventions": "^0.6.0",
     "@sentry/core": "10.41.0-beta.0",
     "@sentry/node": "10.41.0-beta.0",
     "@sentry/react": "10.41.0-beta.0",
