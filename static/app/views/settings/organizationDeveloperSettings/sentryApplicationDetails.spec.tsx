@@ -77,14 +77,19 @@ describe('Sentry Application Details', () => {
     it('saves', async () => {
       renderComponent();
 
-      await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
-      await userEvent.paste('Test App');
-      await userEvent.click(screen.getByRole('textbox', {name: 'Author'}));
-      await userEvent.paste('Sentry');
-      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook URL'}));
-      await userEvent.paste('https://webhook.com');
-      await userEvent.click(screen.getByRole('textbox', {name: 'Redirect URL'}));
-      await userEvent.paste('https://webhook.com/setup');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Webhook URL'}),
+        'https://webhook.com'
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Redirect URL'}),
+        'https://webhook.com/setup'
+      );
+
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');
       await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Rule Action'}));
@@ -463,10 +468,11 @@ describe('Sentry Application Details', () => {
     it('updates app with correct data', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
-      const redirectUrl = screen.getByRole('textbox', {name: 'Redirect URL'});
-      await userEvent.clear(redirectUrl);
-      await userEvent.click(redirectUrl);
-      await userEvent.paste('https://hello.com/');
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Redirect URL'}),
+        'https://hello.com/'
+      );
 
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');

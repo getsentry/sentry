@@ -822,9 +822,7 @@ export default function SentryApplicationDetails() {
           )}
 
           <Flex justify="end" paddingTop="xl">
-            <form.SubmitButton aria-label={t('Save Changes')}>
-              {t('Save Changes')}
-            </form.SubmitButton>
+            <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
           </Flex>
         </form.AppForm>
       )}
