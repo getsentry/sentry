@@ -29,12 +29,13 @@ export function useCrossEventDatasetAvailability(
       projectId => projectId !== ALL_ACCESS_PROJECTS && projectId > 0
     );
 
-    const selectedProjects =
-      explicitlySelectedProjectIds.length > 0
+    const selectedProjects = selection.projects.includes(ALL_ACCESS_PROJECTS)
+      ? projects
+      : explicitlySelectedProjectIds.length > 0
         ? projects.filter(project =>
             explicitlySelectedProjectIds.includes(Number(project.id))
           )
-        : projects;
+        : projects.filter(project => project.isMember);
 
     return {
       spans: true,
