@@ -4004,7 +4004,7 @@ register(
 register(
     "issue-detection.llm-detection.traces-per-invocation",
     type=Dict,
-    default={"team": 1, "business": 3},
+    default={"team": 1, "business": 1},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

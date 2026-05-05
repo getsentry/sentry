@@ -360,7 +360,7 @@ class LLMIssueDetectionTest(TestCase):
         ]
         mock_seer_request.return_value = Mock(status=202)
 
-        for plan_tier, expected in [("team", 1), ("business", 3)]:
+        for plan_tier, expected in [("team", 1), ("business", 1)]:
             detect_llm_issues_for_org(self.organization.id, plan_tier=plan_tier)
             seer_request = mock_seer_request.call_args[0][0]
             assert len(seer_request.traces) == expected
