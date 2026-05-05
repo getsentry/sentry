@@ -113,7 +113,7 @@ export function ProjectsEditTable({
     setIsBulkEditEnabled(newIsActive);
 
     // On exiting the bulk edit mode, we need to ensure the displayed org rate is a valid percentage
-    if (newIsActive === false) {
+    if (!newIsActive) {
       setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
     }
   }, []);

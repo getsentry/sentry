@@ -717,8 +717,6 @@ register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_
 register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Issue Summary on Alerts (timeout in seconds)
-register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register(
     "seer.max_num_autofix_autotriggered_per_hour",
@@ -3435,6 +3433,16 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Killswitch list of NotificationSource values that should be blocked from being
+# dispatched by the notification platform's NotificationService. Values must match
+# the string values of `sentry.notifications.platform.types.NotificationSource`.
+register(
+    "notifications.platform.killswitch.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 # List of organizations with increased rate limits for organization_events API
@@ -3706,6 +3714,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "uptime.use-detectors-by-data-source-cache",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Configures the list of public IP addresses that are returned from the
 # `uptime-ips` API. This does NOT control what actual IPs are used to make the
 # check, we simply have this as an option so that we can quickly update this
@@ -3739,6 +3754,18 @@ register(
     "secret-scanning.github.enable-signature-verification",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Routes the seen-stats / TSDB conditions through `get_snuba_column_name`
+# so a column-name-vs-tag-name collision (e.g. user tag named `platform`)
+# resolves to the tag, matching the issue surfacing query. Without this,
+# `resolve_column`'s DATASET_FIELDS shortcut treats user-typed bare column
+# names as column references and the badge disagrees with surfacing.
+register(
+    "issues.search.use-tag-aware-condition-resolver",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4039,6 +4066,14 @@ register(
     "sentry-apps.webhook.restricted-webhook-sending",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enforce is_disabled field on sentry app endpoints and webhooks.
+register(
+    "sentry-apps.disabled-enforcement",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

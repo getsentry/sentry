@@ -134,7 +134,6 @@ def export_chunk_to_stored_blobs(
     data_export: ExportedData,
     export_limit: int,
     environment_id: int | None,
-    last_emitted_item_id_hex: str | None = None,
     first_page: bool = True,
     page_token: str | None = None,
     offset: int = 0,
@@ -148,7 +147,6 @@ def export_chunk_to_stored_blobs(
         environment_id,
         output_mode,
         page_token_b64=page_token,
-        last_emitted_item_id_hex=last_emitted_item_id_hex,
     )
 
     with tempfile.TemporaryFile(mode="w+b") as tf:
@@ -213,7 +211,6 @@ def _schedule_retry(
     environment_id: int | None,
     export_retries: int,
     page_token: str | None,
-    last_emitted_item_id_hex: str | None,
     delay_retry: bool = False,
 ) -> None:
     assemble_download.apply_async(
@@ -226,7 +223,6 @@ def _schedule_retry(
             "environment_id": environment_id,
             "export_retries": export_retries - 1,
             "page_token": page_token,
-            "last_emitted_item_id_hex": last_emitted_item_id_hex,
         },
         countdown=recoverable_retry_countdown(export_retries) if delay_retry else None,
     )
@@ -256,22 +252,13 @@ def _schedule_next_task(
         "export_retries": export_retries,
         "page_token": _page_token_b64_from_processor(processor),
     }
-    if isinstance(processor, TraceItemFullExportProcessor):
-        cont_kwargs["last_emitted_item_id_hex"] = processor.last_emitted_item_id_hex
-
-    should_continue = (
-        new_bytes_written
-        and next_offset < export_limit
-        and (
-            (
-                isinstance(processor, TraceItemFullExportProcessor)
-                and processor.page_token is not None
-            )
-            or (
-                not isinstance(processor, TraceItemFullExportProcessor)
-                and rows
-                and len(rows) >= batch_size
-            )
+    should_continue = next_offset < export_limit and (
+        (isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None)
+        or (
+            not isinstance(processor, TraceItemFullExportProcessor)
+            and new_bytes_written
+            and rows
+            and len(rows) >= batch_size
         )
     )
 
@@ -306,7 +293,6 @@ def assemble_download(
     export_retries: int = DEFAULT_EXPORT_RETRIES,
     *,
     page_token: str | None = None,
-    last_emitted_item_id_hex: str | None = None,
     **kwargs: Any,
 ) -> None:
     # The API response to export the data contains the ID which you can use
@@ -337,7 +323,6 @@ def assemble_download(
                 bytes_written=bytes_written,
                 environment_id=environment_id,
                 page_token=page_token,
-                last_emitted_item_id_hex=last_emitted_item_id_hex,
                 first_page=first_page,
             )
         except ExportError as error:
@@ -351,7 +336,6 @@ def assemble_download(
                     environment_id=environment_id,
                     export_retries=export_retries,
                     page_token=page_token,
-                    last_emitted_item_id_hex=last_emitted_item_id_hex,
                     delay_retry=error.delay_retry,
                 )
             else:
@@ -438,7 +422,6 @@ def get_processor(
     output_mode: OutputMode,
     *,
     page_token_b64: str | None = None,
-    last_emitted_item_id_hex: str | None = None,
 ) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor | TraceItemFullExportProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
@@ -473,7 +456,6 @@ def get_processor(
                 organization=data_export.organization,
                 output_mode=output_mode,
                 page_token=page_token,
-                last_emitted_item_id_hex=last_emitted_item_id_hex,
             )
 
         else:

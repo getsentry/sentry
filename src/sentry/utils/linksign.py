@@ -13,6 +13,7 @@ from sentry.models.organization import Organization
 from sentry.types.cell import get_local_locality
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.auth import record_suspended_user_rejection
 from sentry.utils.numbers import base36_decode, base36_encode
 
 
@@ -104,6 +105,10 @@ def process_signature(request: HttpRequest, max_age: int = 60 * 60 * 24 * 10) ->
         return None
 
     try:
-        return user_service.get_user(user_id=base36_decode(user_id))
+        user = user_service.get_user(user_id=base36_decode(user_id))
     except ValueError:
         return None
+    if user is not None and getattr(user, "is_suspended", False):
+        record_suspended_user_rejection("link_sign")
+        return None
+    return user

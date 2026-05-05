@@ -157,7 +157,7 @@ export function InstanceLevelOAuthDetails() {
           <Flex justify="right">
             <StyledButton
               size="sm"
-              priority="danger"
+              variant="danger"
               onClick={() =>
                 openModal(deps => (
                   <ConfirmClientDeleteModal

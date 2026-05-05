@@ -64,7 +64,7 @@ export function RelayWrapper() {
       tooltipProps={{
         title: disabled ? t('You do not have permission to register keys') : undefined,
       }}
-      priority="primary"
+      variant="primary"
       size={hasPageFrame ? 'md' : 'sm'}
       icon={<IconAdd />}
       onClick={handleOpenAddDialog}

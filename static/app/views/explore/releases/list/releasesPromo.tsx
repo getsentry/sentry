@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
@@ -18,6 +19,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
+import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
@@ -33,8 +35,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
@@ -101,16 +101,8 @@ type Props = {
 };
 
 export function ReleasesPromo({organization, project}: Props) {
-  const {data, isPending} = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {status: 'internal'}},
-    ],
-    {
-      staleTime: 0,
-    }
+  const {data, isPending} = useQuery(
+    sentryAppsApiOptions({orgSlug: organization.slug, status: 'internal'})
   );
 
   const api = useApi();

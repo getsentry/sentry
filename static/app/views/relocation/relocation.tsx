@@ -237,7 +237,7 @@ export function RelocationOnboarding() {
         <Button
           onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
           icon={<IconArrow direction="left" />}
-          priority="link"
+          variant="link"
         >
           {t('Back')}
         </Button>

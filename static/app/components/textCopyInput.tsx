@@ -75,7 +75,7 @@ export function TextCopyInput({
       <InputGroup.TrailingItems>
         <StyledCopyButton
           aria-label={t('Copy to clipboard')}
-          priority="transparent"
+          variant="transparent"
           size={size === 'xs' ? 'xs' : 'sm'}
           onCopy={onCopy}
           text={children}

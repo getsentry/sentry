@@ -999,7 +999,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                             ) && (
                               <Tooltip title={LINK_FIELD_TOOLTIP}>
                                 <Button
-                                  priority="transparent"
+                                  variant="transparent"
                                   icon={<IconLink />}
                                   aria-label={t('Link field')}
                                   size="zero"
@@ -1048,7 +1048,7 @@ export function Visualize({error, setError}: VisualizeProps) {
                             datasetConfig.enableEquations ||
                             (isBigNumberWidget && fields.length > 1)) && (
                             <Button
-                              priority="transparent"
+                              variant="transparent"
                               icon={<IconDelete />}
                               size="zero"
                               disabled={
@@ -1106,7 +1106,7 @@ export function Visualize({error, setError}: VisualizeProps) {
       {canAddFields && (
         <AddButtons>
           <AddButton
-            priority="link"
+            variant="link"
             disabled={disableTransactionWidget}
             aria-label={
               isTimeSeriesWidget
@@ -1145,7 +1145,7 @@ export function Visualize({error, setError}: VisualizeProps) {
           </AddButton>
           {datasetConfig.enableEquations && (
             <AddButton
-              priority="link"
+              variant="link"
               disabled={disableTransactionWidget}
               aria-label={t('Add Equation')}
               onClick={() => {

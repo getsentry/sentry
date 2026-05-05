@@ -52,7 +52,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     scmProviders,
     scmIntegrations,
     connectedRepos,
-    connectedIdentifiers,
+    connectedExternalIds,
     refetchIntegrations,
     reposByIntegrationId,
     reposPendingByIntegrationId,
@@ -114,7 +114,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
         connectedRepos,
         reposByIntegrationId,
         reposPendingByIntegrationId,
-        connectedIdentifiers,
+        connectedExternalIds,
         expandedProviders,
         expandedIntegrations,
         togglingRepos,
@@ -129,7 +129,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       connectedRepos,
       reposByIntegrationId,
       reposPendingByIntegrationId,
-      connectedIdentifiers,
+      connectedExternalIds,
       expandedProviders,
       expandedIntegrations,
       togglingRepos,
@@ -196,7 +196,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
           const connectedRepo = queryClient
             .getQueryData(reposQueryOptions.queryKey)
             ?.pages.flatMap(p => p.json)
-            .find(r => r.name === repo.identifier);
+            .find(r => r.externalId === repo.externalId);
           if (connectedRepo) {
             await removeRepo(connectedRepo);
           }
@@ -286,7 +286,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
           {t('No source code management integrations found.')}
         </Text>
         <LinkButton
-          priority="primary"
+          variant="primary"
           to={`/settings/${organization.slug}/integrations/?category=source+code+management`}
         >
           {t('Connect an Integration')}

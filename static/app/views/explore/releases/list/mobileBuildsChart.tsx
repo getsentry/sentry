@@ -195,7 +195,7 @@ export function MobileBuildsChart({
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}
-                priority="transparent"
+                variant="transparent"
                 size="zero"
               />
             )}

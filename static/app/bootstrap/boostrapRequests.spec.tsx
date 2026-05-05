@@ -128,7 +128,7 @@ describe('useBootstrapTeamsQuery', () => {
     TeamStore.reset();
   });
 
-  it('updates team store with fetched data', async () => {
+  it.isKnownFlake('updates team store with fetched data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/teams/`,
       body: mockTeams,

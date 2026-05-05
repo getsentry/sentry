@@ -33,7 +33,7 @@ function DummyStepOne({
       </InputGroup>
       <Button
         size="sm"
-        priority="primary"
+        variant="primary"
         onClick={() => advance({name})}
         disabled={isAdvancing || !name}
       >
@@ -53,7 +53,7 @@ function DummyStepTwo({
       <Text>{stepData?.greeting ?? t('Dummy step two')}</Text>
       <Button
         size="sm"
-        priority="primary"
+        variant="primary"
         onClick={() => advance()}
         disabled={isAdvancing}
       >
@@ -74,7 +74,7 @@ function DummyCompletionView({
   return (
     <Stack gap="md">
       <Text>{data.result}</Text>
-      <Button size="sm" priority="primary" onClick={finish}>
+      <Button size="sm" variant="primary" onClick={finish}>
         {t('Done')}
       </Button>
     </Stack>

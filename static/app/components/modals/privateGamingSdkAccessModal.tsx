@@ -240,7 +240,7 @@ export function PrivateGamingSdkAccessModal({
                 )}
               </p>
               <Button
-                priority="primary"
+                variant="primary"
                 icon={<IconGithub />}
                 onClick={() => {
                   const separator = currentPath.includes('?') ? '&' : '?';
@@ -271,7 +271,7 @@ export function PrivateGamingSdkAccessModal({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           {showSuccessView ? (
-            <Button priority="primary" onClick={closeModal}>
+            <Button variant="primary" onClick={closeModal}>
               {t('Done')}
             </Button>
           ) : (
@@ -279,7 +279,7 @@ export function PrivateGamingSdkAccessModal({
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               {hasGithubIdentity && (
                 <Button
-                  priority="primary"
+                  variant="primary"
                   onClick={handleSubmit}
                   disabled={!isFormValid}
                   busy={mutation.isPending}

@@ -159,7 +159,7 @@ export class OrganizationMemberRow extends PureComponent<Props, State> {
               {!isInviting && !isInviteSuccessful && (
                 <Button
                   disabled={!canAddMembers && !canEditInvite}
-                  priority="primary"
+                  variant="primary"
                   size="sm"
                   onClick={this.handleSendInvite}
                 >
@@ -229,7 +229,7 @@ export class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="sm" icon={<IconClose />}>
+                <Button variant="danger" size="sm" icon={<IconClose />}>
                   {t('Leave')}
                 </Button>
               </Confirm>

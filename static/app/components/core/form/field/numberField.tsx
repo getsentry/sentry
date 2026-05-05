@@ -4,15 +4,15 @@ import type {InputFieldProps} from './inputField';
 
 export function NumberField(
   props: Omit<InputFieldProps, 'type' | 'value' | 'onChange'> & {
-    onChange: (value: number) => void;
-    value: number;
+    onChange: (value: number | null) => void;
+    value: number | null;
   }
 ) {
   return (
     <InputField
       {...props}
-      value={String(props.value)}
-      onChange={value => props.onChange(Number(value))}
+      value={props.value === null ? '' : String(props.value)}
+      onChange={value => props.onChange(value === '' ? null : Number(value))}
       type="number"
     />
   );

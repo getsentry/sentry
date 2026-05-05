@@ -12,13 +12,6 @@ from typing import Any
 ALLOWLIST_FILES: set[str] = {
     "src/sentry/buffer/base.py",
     "src/sentry/db/models/manager/base.py",
-    "src/sentry/nodestore/django/backend.py",
-    "src/sentry/onboarding_tasks/backends/organization_onboarding_task.py",
-    "src/sentry/models/featureadoption.py",
-    "src/sentry/models/options/organization_option.py",
-    "src/sentry/utils/mockdata/core.py",
-    "src/sentry/tasks/assemble.py",
-    "src/sentry/services/nodestore/django/backend.py",
 }
 
 

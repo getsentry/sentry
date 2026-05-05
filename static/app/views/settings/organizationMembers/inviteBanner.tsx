@@ -40,8 +40,7 @@ export function InviteBanner({
   onSendInvite,
   onModalClose,
 }: Props) {
-  const isEligibleForBanner =
-    organization.access.includes('org:write') && organization.githubNudgeInvite;
+  const isEligibleForBanner = organization.access.includes('org:write');
   const [sendingInvite, setSendingInvite] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
   const [missingMembers, setMissingMembers] = useState<MissingMember[]>([]);
@@ -80,11 +79,14 @@ export function InviteBanner({
           method: 'GET',
         }
       );
-      const githubMissingMembers = data?.find(
+      const githubEntry = data?.find(
         (integrationMissingMembers: any) =>
           integrationMissingMembers.integration === 'github'
       );
-      setMissingMembers(githubMissingMembers?.users || []);
+      if (!githubEntry?.enabled) {
+        return;
+      }
+      setMissingMembers(githubEntry.users ?? []);
     } catch (err: any) {
       if (err.status !== 403) {
         addErrorMessage(t('Unable to fetching missing commit authors'));
@@ -185,7 +187,7 @@ export function InviteBanner({
           </Stack>
           <Grid flow="column" align="center" gap="md">
             <Button
-              priority="primary"
+              variant="primary"
               size="xs"
               onClick={openInviteModal}
               analyticsEventName="Github Invite Banner: View All"
@@ -286,7 +288,7 @@ function MemberCards({
         </Stack>
         <Button
           size="sm"
-          priority="primary"
+          variant="primary"
           onClick={openInviteModal}
           analyticsEventName="Github Invite Banner: View All"
           analyticsEventKey="github_invite_banner.view_all"

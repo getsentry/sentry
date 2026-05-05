@@ -37,6 +37,18 @@ _LOGIN_URL: str | None = None
 
 MFA_SESSION_KEY = "mfa"
 
+SUSPENDED_USER_REJECTED_METRIC = "auth.suspended_user.rejected"
+
+
+def record_suspended_user_rejection(path: str) -> None:
+    metrics.incr(
+        SUSPENDED_USER_REJECTED_METRIC,
+        tags={"path": path},
+        skip_internal=True,
+        sample_rate=1.0,
+    )
+
+
 DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
 
@@ -314,6 +326,10 @@ def login(
 
     Returns boolean indicating if the user was logged in.
     """
+    if getattr(user, "is_suspended", False):
+        record_suspended_user_rejection("session_login")
+        return False
+
     if passed_2fa is None:
         passed_2fa = request.session.get(MFA_SESSION_KEY, "") == str(user.id)
 
@@ -452,7 +468,11 @@ class EmailAuthBackend(ModelBackend):
         return True
 
     def get_user(self, user_id: int) -> RpcUser | None:  # type: ignore[override]  # XXX: HC "pretends" to be the user model
-        return user_service.get_user(user_id=user_id)
+        user = user_service.get_user(user_id=user_id)
+        if user is not None and user.is_suspended:
+            record_suspended_user_rejection("session_get_user")
+            return None
+        return user
 
 
 def construct_link_with_query(path: str, query_params: Mapping[str, str | None]) -> str:

@@ -53,7 +53,7 @@ export function ScmGithubMultiOrgInstall({
           trailingItems={
             <LinkButton
               size="xs"
-              priority="primary"
+              variant="primary"
               icon={<IconLightning />}
               href={`/settings/${organization.slug}/billing/overview/?referrer=upgrade-github-multi-org`}
               external

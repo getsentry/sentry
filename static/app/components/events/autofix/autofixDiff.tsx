@@ -554,7 +554,7 @@ function DiffHunkContent({
             <OverlayFooter>
               <OverlayButtonGroup>
                 <Button onClick={handleCancelEdit}>{t('Cancel')}</Button>
-                <Button priority="primary" onClick={handleSaveEdit}>
+                <Button variant="primary" onClick={handleSaveEdit}>
                   {t('Save')}
                 </Button>
               </OverlayButtonGroup>
@@ -600,7 +600,7 @@ function FileDiff({
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
-            priority="transparent"
+            variant="transparent"
           />
         </FileHeader>
       )}

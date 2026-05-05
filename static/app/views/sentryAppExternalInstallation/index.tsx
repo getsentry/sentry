@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
@@ -8,6 +9,7 @@ import {Select} from '@sentry/scraps/select';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
+import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryAppDetailsModal} from 'sentry/components/modals/sentryAppDetailsModal';
@@ -17,9 +19,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -54,15 +54,8 @@ function SentryAppExternalInstallationContent() {
   const [isInstalled, setIsInstalled] = useState<boolean>();
 
   // Load data on mount.
-  const {data: sentryApp, isPending: sentryAppLoading} = useApiQuery<SentryApp>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-        path: {sentryAppIdOrSlug: params.sentryAppSlug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
+  const {data: sentryApp, isPending: sentryAppLoading} = useQuery(
+    sentryAppApiOptions({appSlug: params.sentryAppSlug})
   );
 
   useEffect(() => {

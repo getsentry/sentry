@@ -553,7 +553,7 @@ function Product({
     >
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
-        priority={!!disabled || checked ? 'primary' : 'default'}
+        variant={!!disabled || checked ? 'primary' : 'secondary'}
         disabled={isDisabled}
         aria-label={label}
       >

@@ -195,7 +195,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           }
         >
           <Button
-            priority="primary"
+            variant="primary"
             onClick={onRerunAnalysis}
             disabled={isRerunning}
             icon={<IconRefresh />}
@@ -233,7 +233,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           }
         >
           <Button
-            priority="primary"
+            variant="primary"
             onClick={onRerunAnalysis}
             disabled={isRerunning}
             icon={<IconRefresh />}
@@ -406,7 +406,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                   <Button
                     onClick={() => setSearchQuery(undefined)}
                     aria-label="Clear search"
-                    priority="transparent"
+                    variant="transparent"
                     size="zero"
                   >
                     <IconClose size="sm" />

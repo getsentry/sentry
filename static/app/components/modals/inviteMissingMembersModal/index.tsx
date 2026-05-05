@@ -289,7 +289,7 @@ export function InviteMissingMembersModal({
           </Button>
           <Button
             size="sm"
-            priority="primary"
+            variant="primary"
             aria-label={t('Send Invites')}
             onClick={sendInvites}
             disabled={!canSend || selectedCount === 0}

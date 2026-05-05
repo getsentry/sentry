@@ -35,7 +35,7 @@ export function ArtifactCard({
               {allowReset && (
                 <Button
                   size="xs"
-                  priority="transparent"
+                  variant="transparent"
                   icon={<IconRefresh size="xs" />}
                   aria-label={t('Re-run step')}
                   tooltipProps={{title: t('Re-run step')}}
@@ -45,7 +45,7 @@ export function ArtifactCard({
               )}
               <Button
                 size="xs"
-                priority="transparent"
+                variant="transparent"
                 icon={<IconCopy size="xs" />}
                 aria-label={t('Copy as Markdown')}
                 tooltipProps={{title: t('Copy as Markdown')}}

@@ -237,12 +237,12 @@ function TransactionThresholdModal({
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">
-          <Button priority="default" onClick={handleReset} data-test-id="reset-all">
+          <Button variant="secondary" onClick={handleReset} data-test-id="reset-all">
             {t('Reset All')}
           </Button>
           <Button
             aria-label={t('Apply')}
-            priority="primary"
+            variant="primary"
             onClick={handleApply}
             data-test-id="apply-threshold"
           >

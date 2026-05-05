@@ -40,6 +40,7 @@ export function UserDetailsFixture(params: Partial<User> = {}): User {
     canReset2fa: false,
     flags: {newsletter_consent_prompt: false},
     hasPasswordAuth: false,
+    isSuspended: false,
     ...params,
   };
 }

@@ -308,12 +308,12 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
               icon={<IconAdd />}
               disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
               onClick={openAddRepoModal}
-              priority={
+              variant={
                 !isFetchingRepositories &&
                 !isLoadingPreferences &&
                 filteredSelectedRepositories.length === 0
                   ? 'primary'
-                  : 'default'
+                  : 'secondary'
               }
             >
               {t('Add Repos')}

@@ -24,9 +24,9 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {GlobalModal} from 'sentry/components/globalModal';
 import type {Organization} from 'sentry/types/organization';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';

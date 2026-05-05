@@ -161,7 +161,7 @@ export function AddCodeOwnerModal({
         <Button
           disabled={codeownersFile ? false : true}
           aria-label={t('Add File')}
-          priority="primary"
+          variant="primary"
           onClick={addFile}
         >
           {t('Add File')}
@@ -256,7 +256,7 @@ function LinkCodeOwners({
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
       <Flex justify="center" paddingTop="xl">
-        <LinkButton priority="primary" size="sm" to={baseUrl}>
+        <LinkButton variant="primary" size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
       </Flex>

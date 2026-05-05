@@ -166,7 +166,7 @@ function MergeAccounts() {
         <div>{t("Check your email for your code. You'll need it in Step 3.")}</div>
         <ButtonSection>
           <Button
-            priority="primary"
+            variant="primary"
             disabled={verificationCodeSent}
             onClick={() => handlePostVerificationCode()}
           >
@@ -196,7 +196,7 @@ function MergeAccounts() {
         />
         <div>
           <Button
-            priority="danger"
+            variant="danger"
             onClick={() => handleSubmit(selectedUserIds, tokenValue)}
             disabled={isSubmitPending}
           >

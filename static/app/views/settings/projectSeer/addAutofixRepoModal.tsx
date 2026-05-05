@@ -190,7 +190,7 @@ export function AddAutofixRepoModal({
             )}
           </div>
           <Button
-            priority="primary"
+            variant="primary"
             onClick={() => {
               onSave(modalSelectedRepoIds);
               closeModal();

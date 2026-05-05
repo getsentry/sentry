@@ -166,7 +166,7 @@ export function PaygCard({
                 </Currency>
                 <Flex justify="between" align="center" gap="xl sm" wrap="wrap">
                   <Flex gap="sm" align="center">
-                    <Button priority="primary" onClick={() => handleSubmit()}>
+                    <Button variant="primary" onClick={() => handleSubmit()}>
                       {t('Save')}
                     </Button>
                     <Button
@@ -181,7 +181,7 @@ export function PaygCard({
                     </Button>
                   </Flex>
                   <Button
-                    priority="link"
+                    variant="link"
                     onClick={() =>
                       openSpendLimitsPricingModal({organization, subscription, theme})
                     }

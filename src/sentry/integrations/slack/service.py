@@ -38,7 +38,6 @@ from sentry.integrations.slack.threads.activity_notifications import (
 )
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
@@ -258,7 +257,7 @@ class SlackService:
             will_fire_workflow_actions = should_fire_workflow_actions(
                 group.organization, group.type
             )
-            if group.issue_category == GroupCategory.UPTIME:
+            if group.issue_type.type_id == UptimeDomainCheckFailure.type_id:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
                 if will_fire_workflow_actions:
