@@ -81,6 +81,19 @@ describe('QueryParamsContext', () => {
           crossEvents: [{query: 'bar', type: 'logs'}],
         });
       });
+
+      it('should clear the crossEvents when setting an empty array', () => {
+        renderHookWithProviders(
+          () => {
+            const setCrossEvents = useSetQueryParamsCrossEvents();
+            setCrossEvents([]);
+            return useQueryParamsCrossEvents();
+          },
+          {additionalWrapper: Wrapper}
+        );
+
+        expect(mockSetQueryParams).toHaveBeenCalledWith({crossEvents: null});
+      });
     });
   });
 });

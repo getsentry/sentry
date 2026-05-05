@@ -3,9 +3,11 @@ import {Fragment} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -15,7 +17,6 @@ import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/s
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
 import {SeerConnectGitHubBanner} from 'getsentry/views/seerAutomation/components/seerConnectGitHubBanner';
 import {SettingsPageTabs} from 'getsentry/views/seerAutomation/components/settingsPageTabs';
-import {SeerAutomationSettings} from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
   const subscription = useSubscription();
@@ -29,7 +30,9 @@ export default function SeerAutomation() {
     subscription?.canSelfServe;
 
   if (showNewSeer(organization)) {
-    return <SeerAutomationSettings />;
+    return (
+      <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/projects/`)} />
+    );
   }
 
   // Legacy cohorts continue to use the old automation page.

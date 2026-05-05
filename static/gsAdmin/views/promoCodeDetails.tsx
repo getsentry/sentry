@@ -133,6 +133,8 @@ export function PromoCodeDetails() {
                 {...deps}
                 promoCode={promoCode}
                 onSubmit={(newCode: PromoCode) => {
+                  // Will be fixed soon when we get rid of setApiQueryData.
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
                   setApiQueryData<PromoCode>(queryClient, [ENDPOINT], newCode);
                 }}
               />

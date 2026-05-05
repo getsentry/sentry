@@ -36,6 +36,8 @@ interface BarsConfig extends CategoricalDataSeriesConfig {
  * A plottable that renders a categorical bar series.
  */
 export class Bars
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   extends CategoricalDataSeries<BarsConfig>
   implements CategoricalPlottable
 {

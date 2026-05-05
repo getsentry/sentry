@@ -141,9 +141,16 @@ export default Storybook.story('ScmRepositoryTable', story => {
     return (
       <ScmRepositoryTable
         provider={GITHUB_PROVIDER}
-        installations={installations}
-        lastSyncedAt={new Date(Date.now() - 5 * 60 * 1000)}
-        onSync={() => {}}
+        installations={installations.map((inst, i) => ({
+          ...inst,
+          integration: {
+            ...inst.integration,
+            configData: {
+              last_sync: new Date(Date.now() - (i + 1) * 5 * 60 * 1000).toISOString(),
+            },
+          },
+        }))}
+        onInstallationSync={() => {}}
         onUninstall={() => {}}
         onSettings={() => {}}
       />
@@ -154,8 +161,7 @@ export default Storybook.story('ScmRepositoryTable', story => {
     <ScmRepositoryTable
       provider={GITHUB_PROVIDER}
       installations={EMPTY_INSTALLATION}
-      lastSyncedAt={new Date(Date.now() - 5 * 60 * 1000)}
-      onSync={() => {}}
+      onInstallationSync={() => {}}
     />
   ));
 
@@ -182,6 +188,28 @@ export default Storybook.story('ScmRepositoryTable', story => {
           repoMatches={repoMatches}
         />
       </Flex>
+    );
+  });
+
+  story('Syncing', () => {
+    const installations = useStoryInstallations();
+    return (
+      <ScmRepositoryTable
+        provider={GITHUB_PROVIDER}
+        installations={installations.map((inst, i) => ({
+          ...inst,
+          integration: {
+            ...inst.integration,
+            configData: {
+              last_sync: new Date(Date.now() - (i + 1) * 5 * 60 * 1000).toISOString(),
+            },
+          },
+          isSyncing: i === 0,
+        }))}
+        onInstallationSync={() => {}}
+        onUninstall={() => {}}
+        onSettings={() => {}}
+      />
     );
   });
 

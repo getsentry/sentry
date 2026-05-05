@@ -8,7 +8,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
+from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.night_shift.cron import (
     _get_eligible_projects,
@@ -306,8 +306,8 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             assert "night_shift.no_eligible_projects" in info_events
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.error_message is None
-        assert not SeerNightShiftRunIssue.objects.filter(run=run).exists()
+        assert run.extras.get("error_message") is None
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_eligible_projects_error_records_error_message(self) -> None:
         org = self.create_organization()
@@ -322,8 +322,8 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.error_message == "Failed to get eligible projects"
-        assert not SeerNightShiftRunIssue.objects.filter(run=run).exists()
+        assert run.extras["error_message"] == "Failed to get eligible projects"
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_selects_candidates_and_skips_triggered(self) -> None:
         org = self.create_organization()
@@ -358,8 +358,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             assert candidates[1]["seer_run_id"] == "101"
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.triage_strategy == "agentic_triage"
-        assert run.error_message is None
+        assert run.extras.get("error_message") is None
         assert run.extras == {
             "options": {
                 "source": "cron",
@@ -372,10 +371,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             "agent_run_id": 1,
         }
 
-        issue_group_ids = set(
-            SeerNightShiftRunIssue.objects.filter(run=run).values_list("group_id", flat=True)
+        result_group_ids = set(
+            SeerNightShiftRunResult.objects.filter(run=run, kind="agentic_triage").values_list(
+                "group_id", flat=True
+            )
         )
-        assert issue_group_ids == {high_fix.id, low_fix.id}
+        assert result_group_ids == {high_fix.id, low_fix.id}
 
     def test_explorer_triage_error_propagates_to_run(self) -> None:
         org = self.create_organization()
@@ -397,8 +398,8 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.error_message == "Night shift run failed"
-        assert not SeerNightShiftRunIssue.objects.filter(run=run).exists()
+        assert run.extras["error_message"] == "Night shift run failed"
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_triggers_autofix_with_correct_stopping_point(self) -> None:
         org = self.create_organization()
@@ -430,10 +431,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         assert stopping_points_by_group[root_cause_group.id] == AutofixStoppingPoint.ROOT_CAUSE
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        issue_run_ids = dict(
-            SeerNightShiftRunIssue.objects.filter(run=run).values_list("group_id", "seer_run_id")
+        result_run_ids = dict(
+            SeerNightShiftRunResult.objects.filter(run=run, kind="agentic_triage").values_list(
+                "group_id", "seer_run_id"
+            )
         )
-        assert issue_run_ids == {autofix_group.id: "42", root_cause_group.id: "99"}
+        assert result_run_ids == {autofix_group.id: "42", root_cause_group.id: "99"}
 
     def test_autofix_stopping_point_honors_project_preference(self) -> None:
         org = self.create_organization()
@@ -484,9 +487,9 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             assert call_extra["dry_run"] is True
             assert call_extra["candidates"][0]["seer_run_id"] is None
 
-        # Dry runs don't perform any Seer work, so no issue rows are written.
+        # Dry runs don't perform any Seer work, so no result rows are written.
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert SeerNightShiftRunIssue.objects.filter(run=run).count() == 0
+        assert SeerNightShiftRunResult.objects.filter(run=run).count() == 0
 
     def test_skips_autofix_for_skip_candidates(self) -> None:
         org = self.create_organization()
@@ -505,7 +508,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             assert "night_shift.no_fixable_candidates" in log_calls
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert not SeerNightShiftRunIssue.objects.filter(run=run).exists()
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_skips_autofix_when_no_seer_quota(self) -> None:
         org = self.create_organization()
@@ -533,8 +536,8 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             mock_trigger.assert_not_called()
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.error_message == "No Seer quota available"
-        assert not SeerNightShiftRunIssue.objects.filter(run=run).exists()
+        assert run.extras["error_message"] == "No Seer quota available"
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_skips_issue_row_on_trigger_failure(self) -> None:
         org = self.create_organization()
@@ -561,10 +564,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             assert "night_shift.autofix_trigger_failed" in exception_calls
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        issue_run_ids = dict(
-            SeerNightShiftRunIssue.objects.filter(run=run).values_list("group_id", "seer_run_id")
+        result_run_ids = dict(
+            SeerNightShiftRunResult.objects.filter(run=run, kind="agentic_triage").values_list(
+                "group_id", "seer_run_id"
+            )
         )
-        assert issue_run_ids == {ok_group.id: "7"}
+        assert result_run_ids == {ok_group.id: "7"}
 
     def test_max_candidates_defaults_to_global_option(self) -> None:
         org = self.create_organization()

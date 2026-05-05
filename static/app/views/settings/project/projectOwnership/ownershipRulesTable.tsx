@@ -45,8 +45,8 @@ export function OwnershipRulesTable({
   actions,
 }: OwnershipRulesTableProps) {
   const user = useUser();
-  const [search, setSearch] = useState<string>('');
-  const [page, setPage] = useState<number>(0);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
   const [selectedActors, setSelectedActors] = useState<string[] | null>(null);
   const {teams} = useTeams({provideUserTeams: true});
 

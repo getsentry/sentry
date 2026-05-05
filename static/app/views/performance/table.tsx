@@ -292,7 +292,7 @@ export function Table({
           dataRow['http.method'] as string,
         ]);
       }
-      if (dataRow.hasOwnProperty('transaction.op')) {
+      if (Object.hasOwn(dataRow, 'transaction.op')) {
         existingQuery.removeFilter('!transaction.op');
         existingQuery.removeFilter('transaction.op');
         if (dataRow['transaction.op']) {

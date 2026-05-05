@@ -49,7 +49,7 @@ export function useVisualizeFields({
     const seen = new Set<string>();
     const unknownOptions = [unknownField]
       .filter(defined)
-      .filter(option => !tags.hasOwnProperty(option));
+      .filter(option => !Object.hasOwn(tags, option));
 
     return [
       ...unknownOptions.map(option => {
