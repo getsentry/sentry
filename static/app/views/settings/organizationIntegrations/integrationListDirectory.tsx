@@ -11,7 +11,10 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
-import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
+import {
+  sentryAppApiOptions,
+  sentryAppsApiOptions,
+} from 'sentry/actionCreators/sentryApps';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -152,17 +155,7 @@ function useIntegrationList() {
   } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
-  const extraAppQuery = useApiQuery<SentryApp>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-        path: {sentryAppIdOrSlug: extraAppSlug ?? ''},
-      }),
-    ],
-    {
-      ...queryOptions,
-      enabled: isExtraAppEnabled,
-    }
-  );
+  const extraAppQuery = useQuery(sentryAppApiOptions({appSlug: extraAppSlug}));
   const {data: extraApp} = extraAppQuery;
   const isExtraAppPending = isExtraAppEnabled && extraAppQuery.isPending;
   const isExtraAppError = isExtraAppEnabled && extraAppQuery.isError;

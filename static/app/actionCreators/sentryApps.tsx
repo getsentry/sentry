@@ -1,3 +1,5 @@
+import {skipToken} from '@tanstack/react-query';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -24,6 +26,13 @@ export function sentryAppsApiOptions({
       staleTime: 0,
     }
   );
+}
+
+export function sentryAppApiOptions({appSlug}: {appSlug: string | null}) {
+  return apiOptions.as<SentryApp>()('/sentry-apps/$sentryAppIdOrSlug/', {
+    path: appSlug ? {sentryAppIdOrSlug: appSlug} : skipToken,
+    staleTime: 0,
+  });
 }
 
 /**

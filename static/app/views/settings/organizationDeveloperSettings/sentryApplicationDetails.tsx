@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
@@ -12,7 +12,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
+import {
+  sentryAppApiOptions,
+  sentryAppsApiOptions,
+} from 'sentry/actionCreators/sentryApps';
 import {
   addSentryAppToken,
   removeSentryAppToken,
@@ -164,14 +167,6 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-const makeSentryAppQueryKey = (appSlug: string): ApiQueryKey => {
-  return [
-    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-      path: {sentryAppIdOrSlug: appSlug},
-    }),
-  ];
-};
-
 const makeSentryAppApiTokensQueryKey = (appSlug: string): ApiQueryKey => {
   return [
     getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
@@ -194,17 +189,20 @@ export default function SentryApplicationDetails() {
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const SENTRY_APP_QUERY_KEY = makeSentryAppQueryKey(appSlug);
   const SENTRY_APP_API_TOKENS_QUERY_KEY = makeSentryAppApiTokensQueryKey(appSlug);
+
+  const sentryAppQueryOptions = sentryAppApiOptions({
+    appSlug: isEditingApp ? appSlug : skipToken,
+  });
 
   const {
     data: app,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<SentryApp>(SENTRY_APP_QUERY_KEY, {
-    staleTime: 30000,
-    enabled: isEditingApp,
+  } = useQuery({
+    ...sentryAppQueryOptions,
+    staleTime: 30_000,
     placeholderData: () => {
       if (!appSlug) {
         return;
@@ -215,7 +213,7 @@ export default function SentryApplicationDetails() {
       );
 
       const found = listData?.json.find(item => item.slug === appSlug);
-      return found ? [found, '', undefined] : undefined;
+      return found ? {json: found, headers: {}} : undefined;
     },
   });
   const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
@@ -376,7 +374,10 @@ export default function SentryApplicationDetails() {
         app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
 
       avatars.push(avatar as SentryAppAvatar);
-      setApiQueryData(queryClient, SENTRY_APP_QUERY_KEY, {...app, avatars});
+      queryClient.setQueryData(sentryAppQueryOptions.queryKey, {
+        json: {...app, avatars},
+        headers: {},
+      });
     }
   };
 
