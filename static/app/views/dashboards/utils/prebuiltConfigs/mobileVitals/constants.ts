@@ -1,7 +1,7 @@
 import {SpanFields} from 'sentry/views/insights/types';
 
-export const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
-export const ROOT_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${TRANSACTION_OP_CONDITION}`;
+const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
+const ROOT_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${TRANSACTION_OP_CONDITION}`;
 export const TRANSACTION_COUNT = `count_unique(${SpanFields.TRANSACTION_SPAN_ID})`;
 
 // Mobile vitals need to cover two span shapes. In the legacy transaction shape,
@@ -14,7 +14,7 @@ export const WARM_START_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFi
 export const TTID_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.initial_display has:${SpanFields.APP_VITALS_TTID_VALUE})`;
 export const TTFD_CONDITION = `(${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE} OR ${SpanFields.SPAN_OP}:ui.load.full_display has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
 
-export const APP_START_CONDITION = `(${COLD_START_CONDITION} OR ${WARM_START_CONDITION})`;
+const APP_START_CONDITION = `(${COLD_START_CONDITION} OR ${WARM_START_CONDITION})`;
 export const APP_START_TABLE_CONDITION = `${APP_START_CONDITION} has:${SpanFields.TRANSACTION}`;
 
 // TTFD can be absent while TTID is present because reportFullyDrawn() is opt-in.
