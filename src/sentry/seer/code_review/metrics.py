@@ -117,6 +117,29 @@ def record_webhook_enqueued(
     )
 
 
+def record_scm_webhook_filtered(
+    provider: str,
+    action: str,
+    reason: CodeReviewFilteredReason,
+) -> None:
+    metrics.incr(
+        f"{METRICS_PREFIX}.webhook.filtered",
+        tags={"scm_provider": provider, "scm_event_action": action, "reason": reason.value},
+        sample_rate=1.0,
+    )
+
+
+def record_scm_webhook_enqueued(
+    provider: str,
+    action: str,
+) -> None:
+    metrics.incr(
+        f"{METRICS_PREFIX}.webhook.enqueued",
+        tags={"scm_provider": provider, "scm_event_action": action},
+        sample_rate=1.0,
+    )
+
+
 def record_webhook_handler_error(
     github_event: GithubWebhookType,
     github_event_action: str,

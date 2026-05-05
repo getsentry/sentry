@@ -33,8 +33,7 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
         assert len(sentry_meta) == 1
         organization_id = sentry_meta[0]["organization_id"]
         assert organization_id is not None
-        # organization =
-        Organization.objects.get(id=organization_id)
+        organization = Organization.objects.get(id=organization_id)
         integration_id = sentry_meta[0]["integration_id"]
         assert integration_id is not None
         integration = Integration.objects.get(id=integration_id)
@@ -58,16 +57,24 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
 
     # Forward the event to Seer
 
-    # @todo(NOW) Implement forwarding the event to Seer, adapting the following (copied from ./pull_request.py):
+    target_commit_sha = e.pull_request["head"]["sha"]
+    if not isinstance(target_commit_sha, str) or not target_commit_sha:
+        return
 
-    # from .task import schedule_task
+    tags = {
+        "scm_provider": e.subscription_event["type"],
+        "sentry_integration_id": str(integration_id),
+        "sentry_organization_id": str(organization_id),
+        "sentry_organization_slug": organization.slug,
+        "scm_event_action": e.action,
+    }
 
-    # schedule_task(
-    #     github_event=github_event,
-    #     github_event_action=action_value,
-    #     event=event,
-    #     organization=organization,
-    #     repo=repository,
-    #     target_commit_sha=_get_target_commit_sha(github_event, event, repository, integration),
-    #     tags=tags,
-    # )
+    from .task import schedule_scm_task
+
+    schedule_scm_task(
+        pull_request_event=e,
+        organization=organization,
+        repo=repository,
+        target_commit_sha=target_commit_sha,
+        tags=tags,
+    )
