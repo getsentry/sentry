@@ -12,18 +12,24 @@ import {Text, Heading} from '@sentry/scraps/text';
 
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoAccess} from 'sentry/components/noAccess';
+import {Redirect} from 'sentry/components/redirect';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 export default function SeerAutomationSCMRequired() {
   const organization = useOrganization();
 
-  const hasSeatBasedSeer = showNewSeer(organization);
+  const showSeatBasedSeer = showNewSeer(organization);
+  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+  const hasLegacySeer = organization.features.includes('seer-added');
+  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
   const isSeerSupportedProvider = useIsSeerSupportedProvider();
 
@@ -40,7 +46,7 @@ export default function SeerAutomationSCMRequired() {
         staleTime: 0,
       }
     ),
-    enabled: hasSeatBasedSeer,
+    enabled: showSeatBasedSeer,
     select: response =>
       response.json.filter(integration =>
         isSeerSupportedProvider({
@@ -49,6 +55,14 @@ export default function SeerAutomationSCMRequired() {
         })
       ) ?? [],
   });
+
+  if (showSeatBasedSeer && !hasSeatBasedSeer) {
+    return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/trial/`)} />;
+  }
+
+  if (!hasSeatBasedSeer && !hasLegacySeer && !hasCodeReviewBeta) {
+    return <NoAccess />;
+  }
 
   if (!hasSeatBasedSeer) {
     return <Outlet />;
