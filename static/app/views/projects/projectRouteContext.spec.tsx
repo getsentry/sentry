@@ -171,6 +171,24 @@ describe('ProjectRouteProvider', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows missing membership when user lacks access and membership', async () => {
+    const noAccessProject = ProjectFixture({hasAccess: false, isMember: false});
+    ProjectsStore.loadInitialData([noAccessProject]);
+
+    render(
+      <ProjectRouteProvider projectSlug={noAccessProject.slug}>
+        <ProjectSlug />
+      </ProjectRouteProvider>,
+      {organization: org}
+    );
+
+    expect(
+      await screen.findByText(
+        'No teams have access to this project yet. Ask an admin to add your team to this project.'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('redirects when project is in store but API returns a different slug', async () => {
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({

@@ -98,45 +98,58 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
   // Project was renamed -- show loading while the useEffect redirect fires
   const projectRenamed = detailedProject && detailedProject.slug !== projectSlug;
 
-  let content: React.ReactNode;
-
   if (loading || projectRenamed || isFetchingDetailedProject) {
-    content = (
-      <div className="loading-full-layout">
-        <LoadingIndicator />
-      </div>
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        <div className="loading-full-layout">
+          <LoadingIndicator />
+        </div>
+      </SentryDocumentTitle>
     );
-  } else if (missingProjectMembership) {
-    // User lacks both access and membership
-    content = (
-      <ErrorWrapper>
-        <MissingProjectMembership organization={organization} project={summaryProject} />
-      </ErrorWrapper>
-    );
-  } else if (summaryProject?.slug && detailedProject?.slug === projectSlug) {
-    // Happy path: detailed project loaded and slug matches
-    content = (
-      <ProjectRouteContext value={detailedProject}>{children}</ProjectRouteContext>
-    );
-  } else if (!summaryProject || isNotFoundError(detailedProjectError)) {
-    // Project not in store or API returned 404
-    content = (
-      <Stack flex={1} padding="2xl 3xl">
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {t('The project you were looking for was not found.')}
-          </Alert>
-        </Alert.Container>
-      </Stack>
-    );
-  } else {
-    // Unknown error fetching detailed project
-    content = <LoadingError onRetry={refetch} />;
   }
 
+  // User lacks both access and membership
+  if (missingProjectMembership) {
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        <ErrorWrapper>
+          <MissingProjectMembership
+            organization={organization}
+            project={summaryProject}
+          />
+        </ErrorWrapper>
+      </SentryDocumentTitle>
+    );
+  }
+
+  // Happy path: detailed project loaded and slug matches
+  if (summaryProject?.slug && detailedProject?.slug === projectSlug) {
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        <ProjectRouteContext value={detailedProject}>{children}</ProjectRouteContext>
+      </SentryDocumentTitle>
+    );
+  }
+
+  // Project not in store or API returned 404
+  if (!summaryProject || isNotFoundError(detailedProjectError)) {
+    return (
+      <SentryDocumentTitle noSuffix title={title}>
+        <Stack flex={1} padding="2xl 3xl">
+          <Alert.Container>
+            <Alert variant="warning" showIcon={false}>
+              {t('The project you were looking for was not found.')}
+            </Alert>
+          </Alert.Container>
+        </Stack>
+      </SentryDocumentTitle>
+    );
+  }
+
+  // Unknown error fetching detailed project
   return (
     <SentryDocumentTitle noSuffix title={title}>
-      {content}
+      <LoadingError onRetry={refetch} />
     </SentryDocumentTitle>
   );
 }
