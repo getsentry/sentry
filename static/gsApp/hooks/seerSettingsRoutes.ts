@@ -25,16 +25,30 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
       path: 'projects/',
       name: t('Autofix'),
       component: make(() => import('getsentry/views/seerAutomation/projects')),
+      children: [
+        {
+          path: 'defaults/',
+          name: t('Defaults'),
+          component: make(() => import('getsentry/views/seerAutomation/projectDefaults')),
+        },
+      ],
     },
     {
       path: 'repos/',
       name: t('Code Review'),
       component: make(() => import('getsentry/views/seerAutomation/repos')),
-    },
-    {
-      path: 'repos/:repoId/',
-      name: t('Repository Details'),
-      component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
+      children: [
+        {
+          path: ':repoId/',
+          name: t('Repository Details'),
+          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
+        },
+        {
+          path: 'defaults/',
+          name: t('Defaults'),
+          component: make(() => import('getsentry/views/seerAutomation/repoDefaults')),
+        },
+      ],
     },
     {
       path: 'advanced/',

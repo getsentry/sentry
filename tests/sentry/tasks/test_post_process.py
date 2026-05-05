@@ -3624,7 +3624,7 @@ class PostProcessGroupPerformanceTest(
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     @patch("sentry.signals.transaction_processed.send_robust")
@@ -3635,7 +3635,7 @@ class PostProcessGroupPerformanceTest(
         transaction_processed_signal_mock,
         mock_process_workflows_event,
         run_post_process_job_mock,
-        mock_process_workflow_engine_issue_alerts,
+        mock_process_workflow_engine,
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
@@ -3648,11 +3648,11 @@ class PostProcessGroupPerformanceTest(
         call_order = [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         mock_handle_owner_assignment.side_effect = None
         mock_handle_auto_assignment.side_effect = None
-        mock_process_workflow_engine_issue_alerts.side_effect = None
+        mock_process_workflow_engine.side_effect = None
 
         post_process_group(
             is_new=True,
@@ -3671,7 +3671,7 @@ class PostProcessGroupPerformanceTest(
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
 
 
@@ -3786,7 +3786,7 @@ class PostProcessGroupGenericTest(
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     @patch("sentry.signals.event_processed.send_robust")
@@ -3797,7 +3797,7 @@ class PostProcessGroupGenericTest(
         event_processed_signal_mock,
         mock_process_workflows_event,
         run_post_process_job_mock,
-        mock_process_workflow_engine_issue_alerts,
+        mock_process_workflow_engine,
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
@@ -3805,11 +3805,11 @@ class PostProcessGroupGenericTest(
         call_order = [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         mock_handle_owner_assignment.side_effect = None
         mock_handle_auto_assignment.side_effect = None
-        mock_process_workflow_engine_issue_alerts.side_effect = None
+        mock_process_workflow_engine.side_effect = None
         self.call_post_process_group(
             is_new=False,
             is_regression=True,
@@ -3822,7 +3822,7 @@ class PostProcessGroupGenericTest(
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
-            mock_process_workflow_engine_issue_alerts,
+            mock_process_workflow_engine,
         ]
         assert snuba_raw_query_mock.call_count == 0
 
@@ -4420,12 +4420,12 @@ class PostProcessGroupInstrumentationIssueTest(
                 eventstream_type=EventStreamEventType.Generic.value,
             )
 
-    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    @patch("sentry.tasks.post_process.process_workflow_engine")
     def test_instrumentation_issues_do_not_trigger_alerts(
         self,
-        mock_process_workflow_engine_issue_alerts,
+        mock_process_workflow_engine,
     ):
-        """Instrumentation issues should not trigger process_rules or process_workflow_engine_issue_alerts."""
+        """Instrumentation issues should not trigger process_rules or process_workflow_engine."""
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -4438,4 +4438,4 @@ class PostProcessGroupInstrumentationIssueTest(
             event=event,
         )
 
-        mock_process_workflow_engine_issue_alerts.assert_not_called()
+        mock_process_workflow_engine.assert_not_called()

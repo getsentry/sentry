@@ -200,7 +200,7 @@ export function ResultGrid(props: Props) {
     };
   };
 
-  const [state, setState] = useState<State>(buildDefaultState());
+  const [state, setState] = useState(buildDefaultState());
 
   useEffect(() => {
     const queryParams = location.query;

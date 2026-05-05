@@ -48,7 +48,7 @@ export function ReleasesSelectControl({
   id,
 }: ReleasesSelectControlProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
+  const [activeReleases, setActiveReleases] = useState(selectedReleases);
   const [isReleasesDropdownOpen, setIsReleasesDropdownOpen] = useState(false);
 
   // Event counts are lazy-loaded only when the dropdown is open to reduce API calls

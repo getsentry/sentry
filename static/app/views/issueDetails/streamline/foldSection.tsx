@@ -147,7 +147,7 @@ export function FoldSection({
   }, [preventCollapse, setIsCollapsed]);
 
   useLayoutEffect(() => {
-    if (!sectionData.hasOwnProperty(sectionKey)) {
+    if (!Object.hasOwn(sectionData, sectionKey)) {
       dispatch({
         type: 'UPDATE_EVENT_SECTION',
         key: sectionKey,

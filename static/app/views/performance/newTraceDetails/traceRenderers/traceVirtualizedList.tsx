@@ -33,8 +33,8 @@ export const useVirtualizedList = (
 ): UseVirtualizedListResult => {
   const list = useRef<VirtualizedList | null>(null);
 
-  const scrollTopRef = useRef<number>(0);
-  const scrollHeightRef = useRef<number>(0);
+  const scrollTopRef = useRef(0);
+  const scrollHeightRef = useRef(0);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
 
   const renderCache = useRef<Map<number, React.ReactNode> | null>(null);
@@ -60,9 +60,9 @@ export const useVirtualizedList = (
 
   const renderRef = useRef<(item: VirtualizedRow) => React.ReactNode>(props.render);
   renderRef.current = props.render;
-  const itemsRef = useRef<readonly BaseNode[]>(props.items);
+  const itemsRef = useRef(props.items);
   itemsRef.current = props.items;
-  const managerRef = useRef<VirtualizedViewManager>(props.manager);
+  const managerRef = useRef(props.manager);
   managerRef.current = props.manager;
 
   useLayoutEffect(() => {

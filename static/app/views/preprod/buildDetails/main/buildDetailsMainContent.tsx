@@ -86,7 +86,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const handleContentChange = (value: 'treemap' | 'categories') => {
     setSelectedContentParam(value === 'treemap' ? undefined : value);
   };
-  const [searchQuery, setSearchQuery] = useQueryParamState<string>({
+  const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'search',
   });
 
@@ -95,10 +95,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     parseAsBoolean.withDefault(true)
   );
 
-  const [selectedCategoriesParam, setSelectedCategoriesParam] =
-    useQueryParamState<string>({
-      fieldName: 'categories',
-    });
+  const [selectedCategoriesParam, setSelectedCategoriesParam] = useQueryParamState({
+    fieldName: 'categories',
+  });
 
   const selectedCategories = selectedCategoriesParam
     ? new Set(

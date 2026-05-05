@@ -71,6 +71,9 @@ standard_cases = [
     ("ip - v6 final compressed segment", "2012:d157::", "<ip>"),
     ("ip - v4 mapped to v6", "::ffff:192.168.1.1", "<ip>"),
     ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
+    ("ip - v4 too many segments", "11.21.12.31.12", "<int>.<int>.<int>.<int>.<int>"),
+    ("ip - v4 segment > 255", "12.31.12.908", "<int>.<int>.<int>.<int>"),
+    ("ip - v4 leading zeros", "11.21.12.001", "<int>.<int>.<int>.<int>"),
     ("ip - double colon object property", "Option::unwrap()", "Option::unwrap()"),
     ("ip - double colon object property including hex", "Bee::buzz()", "Bee::buzz()"),
     (
@@ -232,6 +235,8 @@ standard_cases = [
     ("random id - no numbers", "kMtdgDcgG", "kMtdgDcgG"),
     ("random id - no numbers until later", "kMtdgDcgG 1121", "kMtdgDcgG <int>"),
     ("float", "0.23", "<float>"),
+    ("float - postive, too many segments", "1.2.3", "<int>.<int>.<int>"),
+    ("float - negative, too many segments", "-1.2.3", "<int>.<int>.<int>"),
     ("int", "23", "<int>"),
     ("int - negative", "-23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
@@ -323,18 +328,6 @@ incorrect_cases = [
         "<int>/Nov/<int>:<date>",
     ),
     (
-        "float - postive, too many segments",
-        "1.2.3",
-        "<int>.<int>.<int>",
-        "<float>.<int>",
-    ),
-    (
-        "float - negative, too many segments",
-        "-1.2.3",
-        "<int>.<int>.<int>",
-        "<float>.<int>",
-    ),
-    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
@@ -345,24 +338,6 @@ incorrect_cases = [
         "4,150,908",
         "<int>",
         "<int>,<int>,<int>",
-    ),
-    (
-        "ip - v4, leading zeros",
-        "11.21.12.001",
-        "<int>.<int>.<int>.<int>",
-        "<float>.<float>",
-    ),
-    (
-        "ip - v4, segment > 255",
-        "12.31.12.908",
-        "<int>.<int>.<int>.<int>",
-        "<float>.<float>",
-    ),
-    (
-        "ip - v4, too many segments",
-        "11.21.12.31.12",
-        "<int>.<int>.<int>.<int>.<int>",
-        "<ip>.<int>",
     ),
     (
         "ip - short double colon object property including only hex",
@@ -806,7 +781,7 @@ ip_false_positive_cases = [
     ("ip - too few segments", "12:31:99", True),
     ("ip - v4 leading zeros", "11.21.12.001", False),
     ("ip - v4 segment > 255", "12.31.12.908", False),
-    ("ip - v4 too many segments", "11.21.12.31.12", True),
+    ("ip - v4 too many segments", "11.21.12.31.12", False),
     ("date - colon btwn date and time", "21/Nov/2012:12:31:12", True),
 ]
 

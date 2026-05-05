@@ -14,7 +14,7 @@ export const Indent = styled('div')`
   padding-right: ${p => p.theme.space.md};
 `;
 
-export function InspectorMargin(props: ContainerProps<'div'>) {
+export function InspectorMargin(props: ContainerProps) {
   return <Container padding="md" {...props} />;
 }
 

@@ -43,7 +43,7 @@ export function DebounceSearch({
   const enterPress = useKeyPress('Enter', node);
   const escapePress = useKeyPress('Escape', node);
 
-  const [cursor, setCursor] = useState<number>(0);
+  const [cursor, setCursor] = useState(0);
 
   const api = useApi();
 

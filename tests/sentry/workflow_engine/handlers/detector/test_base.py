@@ -97,7 +97,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             type_id = 1
             slug = "no_handler"
             description = "no handler"
-            category = GroupCategory.METRIC_ALERT.value
+            category = GroupCategory.METRIC.value
 
         class MockDetectorHandler(BaseDetectorHandler[dict[str, Any], int]):
             def evaluate_impl(

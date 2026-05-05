@@ -66,7 +66,7 @@ export function ColumnEditModal(props: Props) {
   const tags = useTags();
   const tagKeys = Object.keys(tags);
 
-  const [columns, setColumns] = useState<Column[]>(props.columns);
+  const [columns, setColumns] = useState(props.columns);
 
   function handleApply() {
     onApply(columns);
