@@ -23,13 +23,14 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow, IconWarning} from 'sentry/icons';
+import {IconArrow, IconChevron, IconClose, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TableBodyCell,
   TableHead,
@@ -54,6 +55,8 @@ import {
   LogTable,
   LogTableBody,
   LogTableRow,
+  PinnedRowsDivider,
+  PinnedRowsSection,
 } from 'sentry/views/explore/logs/styles';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
@@ -61,6 +64,11 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {
+  useClearAllLogPins,
+  useLogsPinnedRows,
+  useToggleLogPinnedRow,
+} from 'sentry/views/explore/logs/useLogsPinnedRows';
 import {
   createPseudoLogResponseItem,
   getDynamicLogsNextFetchThreshold,
@@ -219,6 +227,23 @@ export function LogsInfiniteTable({
       logEnd: new Date(quantizedEnd).toISOString(),
     };
   }, [baseData]);
+
+  const organization = useOrganization();
+  const hasPinning = organization.features.includes('ourlogs-pinning');
+  const pinnedRowIds = useLogsPinnedRows();
+  const togglePin = useToggleLogPinnedRow();
+  const clearAllPins = useClearAllLogPins();
+  const [pinnedSectionCollapsed, setPinnedSectionCollapsed] = useState(false);
+
+  const pinnedRows = useMemo(() => {
+    if (!hasPinning || pinnedRowIds.size === 0 || !baseData) {
+      return [];
+    }
+    return baseData.filter(
+      row =>
+        isRegularLogResponseItem(row) && pinnedRowIds.has(row[OurLogKnownFieldKey.ID])
+    );
+  }, [hasPinning, pinnedRowIds, baseData]);
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -529,6 +554,62 @@ export function LogsInfiniteTable({
           {isRefetching && !hasReplay && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
+          {hasPinning && pinnedRows.length > 0 && !embedded && (
+            <Fragment>
+              {!pinnedSectionCollapsed && (
+                <PinnedRowsSection>
+                  {pinnedRows.map(pinnedRow => {
+                    const pinnedId = pinnedRow[OurLogKnownFieldKey.ID];
+                    const pinnedExpandKey = `pinned-${pinnedId}`;
+                    return (
+                      <LogRowContent
+                        key={pinnedExpandKey}
+                        dataRow={pinnedRow}
+                        meta={meta}
+                        highlightTerms={highlightTerms}
+                        embedded={false}
+                        sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                        isPinned
+                        onTogglePin={togglePin}
+                        expandKey={pinnedExpandKey}
+                        onExpand={handleExpand}
+                        onCollapse={handleCollapse}
+                        isExpanded={expandedLogRows.has(pinnedExpandKey)}
+                        onExpandHeight={handleExpandHeight}
+                        logStart={logStart}
+                        logEnd={logEnd}
+                      />
+                    );
+                  })}
+                </PinnedRowsSection>
+              )}
+              <PinnedRowsDivider>
+                <Button
+                  size="xs"
+                  icon={
+                    <IconChevron
+                      size="xs"
+                      direction={pinnedSectionCollapsed ? 'down' : 'up'}
+                    />
+                  }
+                  onClick={() => setPinnedSectionCollapsed(prev => !prev)}
+                >
+                  {pinnedSectionCollapsed
+                    ? t('Expand %s pinned', pinnedRows.length)
+                    : t('Collapse %s pinned', pinnedRows.length)}
+                </Button>
+                <Button
+                  size="xs"
+                  variant="transparent"
+                  icon={<IconClose size="xs" />}
+                  onClick={clearAllPins}
+                  aria-label={t('Clear all pins')}
+                >
+                  {t('Clear all')}
+                </Button>
+              </PinnedRowsDivider>
+            </Fragment>
+          )}
           {virtualItems.map(virtualRow => {
             const dataRow = data?.[virtualRow.index];
 
@@ -545,6 +626,12 @@ export function LogsInfiniteTable({
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
+                  isPinned={
+                    hasPinning &&
+                    isRegularLogResponseItem(dataRow) &&
+                    pinnedRowIds.has(dataRow[OurLogKnownFieldKey.ID])
+                  }
+                  onTogglePin={hasPinning ? togglePin : undefined}
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}

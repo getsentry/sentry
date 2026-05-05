@@ -11,7 +11,7 @@ import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
+import {IconAdd, IconJson, IconPin, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -58,6 +58,7 @@ import {
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
+  CellContentWrapper,
   DetailsBody,
   DetailsContent,
   DetailsWrapper,
@@ -70,6 +71,7 @@ import {
   LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
+  PinActionButton,
   StyledChevronButton,
   TraceIconStyleWrapper,
 } from 'sentry/views/explore/logs/styles';
@@ -78,6 +80,10 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
+import {
+  useLogsHoveredLogId,
+  useSetLogsHoveredLogId,
+} from 'sentry/views/explore/logs/useLogsHoveredLogId';
 import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   adjustAliases,
@@ -108,13 +114,16 @@ type LogsRowProps = {
     openWithExpandedIds?: string[];
     replay?: ReplayEmbeddedTableOptions;
   };
+  expandKey?: string;
   isExpanded?: boolean;
+  isPinned?: boolean;
   logEnd?: string;
   logStart?: string;
   onCollapse?: (logItemId: string) => void;
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  onTogglePin?: (logId: string) => void;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [
@@ -145,10 +154,13 @@ export const LogRowContent = memo(function LogRowContent({
   highlightTerms,
   meta,
   sharedHoverTimeoutRef,
+  expandKey: expandKeyProp,
   isExpanded,
+  isPinned: isPinnedProp,
   onExpand,
   onCollapse,
   onExpandHeight,
+  onTogglePin,
   blockRowExpanding,
   onEmbeddedRowClick,
   logStart,
@@ -163,6 +175,14 @@ export const LogRowContent = memo(function LogRowContent({
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
   const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(false);
+
+  const hasPinning = organization.features.includes('ourlogs-pinning');
+  const hoveredLogId = useLogsHoveredLogId();
+  const setHoveredLogId = useSetLogsHoveredLogId();
+  const logId = String(dataRow[OurLogKnownFieldKey.ID]);
+  const expandKey = expandKeyProp ?? logId;
+  const isPinned = isPinnedProp ?? false;
+  const isHoverLinked = hasPinning && hoveredLogId === logId;
 
   // This only applies in embedded views where clicking doesn't expand row details.
   function onClick(event: SyntheticEvent) {
@@ -206,9 +226,9 @@ export const LogRowContent = memo(function LogRowContent({
   function toggleExpanded() {
     if (onExpand) {
       if (isExpanded) {
-        onCollapse?.(String(dataRow[OurLogKnownFieldKey.ID]));
+        onCollapse?.(expandKey);
       } else {
-        onExpand?.(String(dataRow[OurLogKnownFieldKey.ID]));
+        onExpand?.(expandKey);
       }
     } else {
       setExpanded(e => !e);
@@ -226,12 +246,9 @@ export const LogRowContent = memo(function LogRowContent({
 
   useLayoutEffect(() => {
     if (measureRef.current && isExpanded) {
-      onExpandHeight?.(
-        String(dataRow[OurLogKnownFieldKey.ID]),
-        measureRef.current.clientHeight
-      );
+      onExpandHeight?.(expandKey, measureRef.current.clientHeight);
     }
-  }, [isExpanded, onExpandHeight, dataRow]);
+  }, [isExpanded, onExpandHeight, expandKey]);
 
   const addSearchFilter = useAddSearchFilter();
   const theme = useTheme();
@@ -327,12 +344,25 @@ export const LogRowContent = memo(function LogRowContent({
       <LogTableRow
         data-test-id="log-table-row"
         data-row-highlighted={isPseudoRow}
+        data-row-pinned={isPinned}
+        data-row-hover-linked={isHoverLinked}
         {...omit(rowInteractProps, 'className')}
         className={classNames(rowInteractProps.className, replayTimeClasses)}
         onMouseEnter={e => {
           setShouldRenderHoverElements(true);
+          if (hasPinning && isPinned) {
+            setHoveredLogId(logId);
+          }
           if (rowInteractProps.onMouseEnter) {
             rowInteractProps.onMouseEnter(e);
+          }
+        }}
+        onMouseLeave={e => {
+          if (hasPinning) {
+            setHoveredLogId(null);
+          }
+          if (rowInteractProps.onMouseLeave) {
+            rowInteractProps.onMouseLeave(e);
           }
         }}
       >
@@ -370,8 +400,9 @@ export const LogRowContent = memo(function LogRowContent({
             )}
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
-        {fields?.map(field => {
+        {fields?.map((field, fieldIndex) => {
           const value = (dataRow as OurLogsResponseItem)[field];
+          const isLastField = fieldIndex === (fields?.length ?? 0) - 1;
 
           if (!defined(value)) {
             return <LogTableBodyCell key={field} />;
@@ -405,42 +436,77 @@ export const LogRowContent = memo(function LogRowContent({
             field !== OurLogKnownFieldKey.TIMESTAMP &&
             shouldRenderHoverElements;
 
+          const showPinButton =
+            hasPinning &&
+            !embedded &&
+            !isPseudoRow &&
+            isLastField &&
+            (isPinned || shouldRenderHoverElements);
+
+          const hasExtraPadding = hasPinning && !embedded && !isPseudoRow && isLastField;
+
+          const pinButton = showPinButton ? (
+            <PinActionButton
+              icon={<IconPin isSolid={isPinned} size="xs" />}
+              aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
+              size="zero"
+              variant={isPinned ? 'primary' : undefined}
+              isPinned={isPinned}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                onTogglePin?.(logId);
+              }}
+            />
+          ) : null;
+
+          const cellContent = shouldRenderActions ? (
+            <CellAction
+              column={discoverColumn}
+              dataRow={dataRow as unknown as TableDataRow}
+              handleCellAction={(actions, cellValue) => {
+                switch (actions) {
+                  case Actions.ADD:
+                    addSearchFilter({
+                      key: field,
+                      value: cellValue,
+                    });
+                    break;
+                  case Actions.EXCLUDE:
+                    addSearchFilter({
+                      key: field,
+                      value: cellValue,
+                      negated: true,
+                    });
+                    break;
+                  case Actions.COPY_TO_CLIPBOARD:
+                    copyToClipboard(cellValue);
+                    break;
+                  default:
+                    break;
+                }
+              }}
+              allowActions={ALLOWED_CELL_ACTIONS}
+              triggerType={ActionTriggerType.ELLIPSIS}
+            >
+              {renderedField}
+              {pinButton}
+            </CellAction>
+          ) : pinButton ? (
+            <CellContentWrapper>
+              {renderedField}
+              {pinButton}
+            </CellContentWrapper>
+          ) : (
+            renderedField
+          );
+
           return (
-            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
-              {shouldRenderActions ? (
-                <CellAction
-                  column={discoverColumn}
-                  dataRow={dataRow as unknown as TableDataRow}
-                  handleCellAction={(actions, cellValue) => {
-                    switch (actions) {
-                      case Actions.ADD:
-                        addSearchFilter({
-                          key: field,
-                          value: cellValue,
-                        });
-                        break;
-                      case Actions.EXCLUDE:
-                        addSearchFilter({
-                          key: field,
-                          value: cellValue,
-                          negated: true,
-                        });
-                        break;
-                      case Actions.COPY_TO_CLIPBOARD:
-                        copyToClipboard(cellValue);
-                        break;
-                      default:
-                        break;
-                    }
-                  }}
-                  allowActions={ALLOWED_CELL_ACTIONS}
-                  triggerType={ActionTriggerType.ELLIPSIS}
-                >
-                  {renderedField}
-                </CellAction>
-              ) : (
-                renderedField
-              )}
+            <LogTableBodyCell
+              key={field}
+              data-test-id={'log-table-cell-' + field}
+              data-has-pin-feature={hasExtraPadding ? '' : undefined}
+            >
+              {cellContent}
             </LogTableBodyCell>
           );
         })}

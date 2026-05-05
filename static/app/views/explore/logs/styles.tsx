@@ -66,6 +66,25 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     }
   }
 
+  &[data-row-pinned='true']:not(thead > &) {
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
+  }
+
+  &[data-row-hover-linked='true']:not(thead > &) {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.active};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
+  }
+
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
@@ -103,6 +122,51 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   }
 `;
 
+export const PinActionButton = styled(Button)<{isPinned: boolean}>`
+  position: absolute;
+  top: 50%;
+  right: -33px;
+  transform: translateY(-50%);
+  padding: ${p => p.theme.space.xs};
+
+  display: flex;
+  align-items: center;
+
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition: opacity 0.1s;
+  z-index: 1;
+
+  &:focus-visible {
+    opacity: 1;
+  }
+  ${LogTableRow}:hover & {
+    opacity: 1;
+  }
+`;
+
+export const CellContentWrapper = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+export const PinnedRowsSection = styled('div')`
+  display: contents;
+`;
+
+export const PinnedRowsDivider = styled('div')`
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xs} 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
 export const LogAttributeTreeWrapper = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-bottom: 0px;
@@ -110,6 +174,7 @@ export const LogAttributeTreeWrapper = styled('div')`
 
 export const LogTableBodyCell = styled(TableBodyCell)`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
+  position: relative;
 
   padding: 2px ${p => p.theme.space.xl};
 
@@ -123,6 +188,10 @@ export const LogTableBodyCell = styled(TableBodyCell)`
 
   &:last-child {
     padding: 2px ${p => p.theme.space.xl};
+  }
+
+  &:last-child[data-has-pin-feature] {
+    padding-right: 56px;
   }
 `;
 
