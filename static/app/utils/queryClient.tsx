@@ -91,6 +91,7 @@ export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError>;
  *   ['/events', {query: {limit: 50}}],
  *   {staleTime: 0}
  * );
+ * @deprecated prefer apiOptions and pass them directly to useQuery
  */
 export function useApiQuery<TResponseData, TError = RequestError>(
   queryKey: ApiQueryKey,
@@ -108,6 +109,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
  * Wraps React Query's queryClient.getQueryData to return only the cached API
  * response body. The underlying cache stores `ApiResponse<T> = {json, headers}`;
  * this helper unwraps `.json`.
+ * @deprecated Use queryClient.getQuryData directly with apiOptions or queryOptions — they infer the correct type from the query key
  */
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function getApiQueryData<TResponseData>(
@@ -124,6 +126,7 @@ export function getApiQueryData<TResponseData>(
  * response data without needing to provide a request object. The underlying cache
  * stores `ApiResponse<T> = {json, headers}`; this helper writes `{json: newData,
  * headers: prev?.headers ?? {}}`.
+ * @deprecated Use queryClient.setQueryData directly with apiOptions or queryOptions — they infer the correct type from the query key
  */
 export function setApiQueryData<TResponseData>(
   queryClient: QueryClient,
