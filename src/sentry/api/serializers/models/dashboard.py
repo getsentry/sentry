@@ -517,9 +517,7 @@ class DashboardFiltersMixin:
 class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
         item_dict = {i.id: i for i in item_list}
-        prefetch_related_objects(
-            item_list, "projects__organization", "dashboardlastvisited_set__member"
-        )
+        prefetch_related_objects(item_list, "projects__organization")
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 

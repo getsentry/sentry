@@ -7,14 +7,12 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone
 
 from sentry.dashboards.endpoints.organization_dashboards import PrebuiltDashboardId
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
 from sentry.models.dashboard import (
     Dashboard,
-    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -27,7 +25,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardWidgetDatasetSourcesTypes
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
@@ -4702,43 +4699,6 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         dashboard = Dashboard.objects.get(id=self.dashboard.id)
         assert dashboard.visits == 1
         assert dashboard.last_visited == last_visited
-
-    def test_user_visited_dashboard_creates_entry(self) -> None:
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
-        assert not DashboardLastVisited.objects.filter(
-            dashboard=self.dashboard,
-            member=member,
-        ).exists()
-
-        response = self.do_request("post", self.url(self.dashboard.id))
-        assert response.status_code == 204
-
-        visit = DashboardLastVisited.objects.get(
-            dashboard=self.dashboard,
-            member=member,
-        )
-        assert visit.last_visited.timestamp() == pytest.approx(timezone.now().timestamp())
-
-    def test_user_visited_dashboard_updates_entry(self) -> None:
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=self.dashboard,
-            member=member,
-            last_visited=timezone.now() - timedelta(days=10),
-        )
-
-        response = self.do_request("post", self.url(self.dashboard.id))
-        assert response.status_code == 204
-
-        visit = DashboardLastVisited.objects.get(
-            dashboard=self.dashboard,
-            member=member,
-        )
-        assert visit.last_visited.timestamp() == pytest.approx(timezone.now().timestamp())
 
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
