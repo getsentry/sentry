@@ -1554,7 +1554,8 @@ def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
         )
 
         # Step 5: Buffer calls done_flush_segments with OLD captured score
-        # score mismatch (11 vs 60) -> cleanup skipped
+        # score mismatch (11 vs 60) -> cleanup skipped (iff
+        # https://github.com/getsentry/sentry/pull/110462 is still applied)
         buffer.done_flush_segments(rv)
 
         rv2 = buffer.flush_segments(now=120)
