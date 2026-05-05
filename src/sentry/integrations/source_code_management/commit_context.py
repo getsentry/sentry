@@ -15,7 +15,6 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.errors import OrganizationIntegrationNotFound
-from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
@@ -196,6 +195,8 @@ class CommitContextIntegration(ABC):
                 # Ignore retry errors for GitLab
                 # Ignore host error errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
+                from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
+
                 if (
                     self.integration_name == ExternalProviderEnum.GITLAB.value
                     and client.base_url != GITLAB_CLOUD_BASE_URL

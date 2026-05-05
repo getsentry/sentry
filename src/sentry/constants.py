@@ -333,6 +333,7 @@ TICKET_ACTIONS = frozenset(
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
         "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
         "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+        "sentry.integrations.gitlab.notify_action.GitlabCreateTicketAction",
     ]
 )
 
