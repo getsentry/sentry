@@ -34,7 +34,7 @@ from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.entrypoints.slack.messaging import send_identity_link_prompt
+from sentry.seer.entrypoints.slack.analytics import SlackSeerAgentConversation
 from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
 
 from .base import SlackDMEndpoint
@@ -128,7 +128,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         payload = {
             "channel": slack_request.channel_id,
             "user": slack_request.user_id,
-            "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
+            "text": "Link your Slack identity to Sentry to unfurl charts.",
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
         }
 
@@ -225,6 +225,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 feature_flag = {
                     LinkType.DISCOVER: "organizations:discover-basic",
                     LinkType.EXPLORE: "organizations:data-browsing-widget-unfurl",
+                    LinkType.DASHBOARDS: "organizations:dashboards-widget-unfurl",
                 }.get(link_type)
 
                 if (
@@ -244,7 +245,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
                         sentry_sdk.capture_exception(e)
 
                     self.prompt_link(slack_request)
-                    lifecycle.record_halt("Discover link requires identity", extra={"url": url})
+                    lifecycle.record_halt(
+                        f"{link_type.value} link requires identity", extra={"url": url}
+                    )
                     return {}
 
                 # Don't unfurl the same thing multiple times
@@ -360,9 +363,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
     def _handle_seer_prompt(
         self,
         slack_request: SlackEventRequest,
-        interaction_type: MessagingInteractionType,
+        conversation_type: SlackSeerAgentConversation,
     ) -> Response:
-        """Shared handler for app mentions and DMs that trigger the Seer Explorer agent."""
+        """Shared handler for app mentions and DMs that trigger the Seer Agent."""
+        if conversation_type == SlackSeerAgentConversation.DIRECT_MESSAGE:
+            interaction_type = MessagingInteractionType.DIRECT_MESSAGE
+        else:
+            interaction_type = MessagingInteractionType.APP_MENTION
+
         with MessagingInteractionEvent(
             interaction_type=interaction_type,
             spec=SlackMessagingSpec(),
@@ -382,16 +390,11 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 }
             )
 
-            organization_id, error_reason = slack_request.resolve_seer_organization()
-            if error_reason:
-                lifecycle.record_halt(error_reason)
-                if error_reason == SeerSlackHaltReason.IDENTITY_NOT_LINKED:
-                    send_identity_link_prompt(
-                        integration=slack_request.integration,
-                        slack_user_id=slack_request.user_id,
-                        channel_id=slack_request.channel_id,
-                        thread_ts=slack_request.thread_ts or None,
-                    )
+            organization_id, halt_reason = slack_request.resolve_seer_organization()
+            if halt_reason:
+                # The control parser route Seer events through `route_slack_seer_event`. It'll send
+                # messages about re-installing, checking settings, or linking before proceeding.
+                lifecycle.record_halt(halt_reason)
                 return self.respond()
 
             if not organization_id:
@@ -437,15 +440,22 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     "text": text,
                     "slack_user_id": slack_request.user_id,
                     "bot_user_id": bot_user_id,
+                    "conversation_type": conversation_type,
                 }
             )
             return self.respond()
 
     def on_app_mention(self, slack_request: SlackEventRequest) -> Response:
-        return self._handle_seer_prompt(slack_request, MessagingInteractionType.APP_MENTION)
+        return self._handle_seer_prompt(
+            slack_request,
+            SlackSeerAgentConversation.APP_MENTION,
+        )
 
     def on_direct_message(self, slack_request: SlackEventRequest) -> Response:
-        return self._handle_seer_prompt(slack_request, MessagingInteractionType.DIRECT_MESSAGE)
+        return self._handle_seer_prompt(
+            slack_request,
+            SlackSeerAgentConversation.DIRECT_MESSAGE,
+        )
 
     def on_assistant_thread_started(self, slack_request: SlackEventRequest) -> Response:
         """Handle assistant_thread_started events by sending suggested prompts."""
@@ -454,17 +464,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             spec=SlackMessagingSpec(),
         ).capture() as lifecycle:
             lifecycle.add_extra("integration_id", slack_request.integration.id)
-            organization_id, error_reason = slack_request.resolve_seer_organization()
-            if error_reason:
-                lifecycle.record_halt(error_reason)
-                if error_reason == SeerSlackHaltReason.IDENTITY_NOT_LINKED:
-                    send_identity_link_prompt(
-                        integration=slack_request.integration,
-                        slack_user_id=slack_request.user_id,
-                        channel_id=slack_request.channel_id,
-                        thread_ts=slack_request.thread_ts or None,
-                        is_welcome_message=True,
-                    )
+            organization_id, halt_reason = slack_request.resolve_seer_organization()
+            if halt_reason:
+                lifecycle.record_halt(halt_reason)
                 return self.respond()
 
             if not organization_id:

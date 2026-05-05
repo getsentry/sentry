@@ -57,9 +57,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
     });
 
     errorsQuery = {
-      ...(getAllViews(organization).find(
-        view => view.name === 'Errors by Title'
-      ) as NewQuery),
+      ...getAllViews(organization).find(view => view.name === 'Errors by Title')!,
       yAxis: ['count()'],
       display: DisplayModes.DEFAULT,
     };
@@ -190,7 +188,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
       mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
       // Fill in the Input
       await userEvent.type(
@@ -217,7 +215,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
       mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
       // Fill in the Input
       const input = screen.getByPlaceholderText('Display name');
@@ -242,7 +240,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
       mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
       // Do not fill in Input
 
@@ -415,7 +413,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
         mount(location, organization, errorsViewModified, savedQuery, yAxis);
 
         // Click on ButtonSaveAs to open dropdown
-        await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+        await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
         // Fill in the Input
         await userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');

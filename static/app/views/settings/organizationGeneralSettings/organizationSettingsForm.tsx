@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
+import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -30,7 +31,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
@@ -488,7 +489,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                         'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
                         {
                           link: (
-                            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
+                            <ExternalLink href="https://www.sentry.help/en/articles/13964423-can-i-update-my-sentry-organization-slug" />
                           ),
                         }
                       )}

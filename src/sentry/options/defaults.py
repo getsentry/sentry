@@ -344,6 +344,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# POST rate limit for ProjectTransferEndpoint, overridable via automator.
+register(
+    "api.project-transfer.rate-limit-overrides",
+    type=Int,
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 register(
@@ -656,9 +664,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for expanding the unreal report in the endpoint rather than during processing
+# Rollout rate for expanding the unreal report in the endpoint rather than during processing.
 register(
     "relay.unreal-report-expansion.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate for fetching project configs in the minidump endpoint.
+register(
+    "relay.minidump-endpoint-fetch-config.rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -701,8 +717,6 @@ register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_
 register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Issue Summary on Alerts (timeout in seconds)
-register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register(
     "seer.max_num_autofix_autotriggered_per_hour",
@@ -748,6 +762,12 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-app.fetch-commits.max-compare-commits",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "github.webhook.mailbox-bucketing.enabled",
@@ -1211,7 +1231,7 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Explorer context engine indexing options
+# Agent context engine indexing options
 register(
     "explorer.context_engine_indexing.enable",
     default=False,
@@ -2260,6 +2280,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.trace.span_with_errors_ok_status.sample_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "insights.span-samples-query.sample-rate",
     type=Float,
     default=0.0,  # 0 acts as 'no sampling'
@@ -2340,6 +2366,36 @@ register(
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
 register("dynamic-sampling.config.killswitch", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Killswitch for the per-org dynamic sampling pipeline. When set to True, the
+# scheduled entry point exits before it can enqueue work.
+register(
+    "dynamic-sampling.per_org.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
+# organization id. A value of 0.0 disables the pipeline for every org; 1.0
+# enables it for every org. Intermediate values select a stable hash-based
+# subset so toggling the rate up and down does not reshuffle which orgs run.
+register(
+    "dynamic-sampling.per_org.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sample rate for metrics emitted by the per-org dynamic sampling pipeline
+# (status counters, org_status counters, duration timer). 1.0 emits every
+# event; lower values drop events proportionally. Use this to reduce metric
+# volume/cost when the pipeline is rolled out to many organizations.
+register(
+    "dynamic-sampling.per_org.metrics-sample-rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
@@ -2727,9 +2783,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("metric_alerts.extended_max_subscriptions", default=1250, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
-    "metric_alerts.extended_max_subscriptions_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+    "metric_alerts.extended_max_subscriptions",
+    default=1250,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "metric_alerts.extended_max_subscriptions_orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # SDK Crash Detection
@@ -3169,12 +3231,6 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When enabled, oversized segments are split into chunks instead of being dropped.
-register(
-    "spans.buffer.chunk-oversized-segments",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Whether to enforce max-segment-bytes during ingestion via the Lua script.
 register(
     "spans.buffer.enforce-segment-size",
@@ -3219,6 +3275,18 @@ register(
 register(
     "spans.buffer.flusher.use-stuck-detector",
     default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# TTL (in seconds) for the per-segment lock acquired at flush time to
+# prevent two flushers from producing the same segment concurrently.
+# The lock is never explicitly released and only expires via this TTL.
+# Pick a value larger than the expected flush+produce latency but smaller than
+# `spans.buffer.root-timeout` so a re-entered segment isn't blocked from its
+# next flush cycle. If set to 0, no locks will be acquired.
+register(
+    "spans.buffer.flusher.flush-lock-ttl",
+    type=Int,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3364,6 +3432,16 @@ register(
     type=Dict,
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch list of NotificationSource values that should be blocked from being
+# dispatched by the notification platform's NotificationService. Values must match
+# the string values of `sentry.notifications.platform.types.NotificationSource`.
+register(
+    "notifications.platform.killswitch.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Options - End
 
@@ -3636,6 +3714,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "uptime.use-detectors-by-data-source-cache",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Configures the list of public IP addresses that are returned from the
 # `uptime-ips` API. This does NOT control what actual IPs are used to make the
 # check, we simply have this as an option so that we can quickly update this
@@ -3672,6 +3757,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Routes the seen-stats / TSDB conditions through `get_snuba_column_name`
+# so a column-name-vs-tag-name collision (e.g. user tag named `platform`)
+# resolves to the tag, matching the issue surfacing query. Without this,
+# `resolve_column`'s DATASET_FIELDS shortcut treats user-typed bare column
+# names as column references and the badge disagrees with surfacing.
+register(
+    "issues.search.use-tag-aware-condition-resolver",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rate limiting for the occurrence consumer
 register(
     "issues.occurrence-consumer.rate-limit.quota",
@@ -3691,12 +3788,6 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "eventstore.adjacent_event_ids_apply_query_conditions.organization_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Demo mode
@@ -3937,14 +4028,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Allow list for projects with LLM issue detection enabled
-register(
-    "issue-detection.llm-detection.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Controls whether deletion from EAP is enabled.
 register(
     "eventstream.eap.deletion-enabled",
@@ -3983,6 +4066,14 @@ register(
     "sentry-apps.webhook.restricted-webhook-sending",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enforce is_disabled field on sentry app endpoints and webhooks.
+register(
+    "sentry-apps.disabled-enforcement",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4071,6 +4162,16 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Cells
+
+# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
+register(
+    "provision_organization_in_cell.record_analytics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # SCM

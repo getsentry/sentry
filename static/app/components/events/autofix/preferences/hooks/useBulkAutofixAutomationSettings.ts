@@ -1,16 +1,14 @@
 import {useMemo} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import type {UseMutationOptions} from '@tanstack/react-query';
 
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {
-  fetchMutation,
-  useMutation,
-  useQueryClient,
-  type UseMutationOptions,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -24,7 +22,7 @@ type AutofixAutomationTuning =
   | null; // deprecated
 
 // Mirrors the backend SeerRepoDefinition type
-export interface BackendRepository {
+interface BackendRepository {
   external_id: string;
   integration_id: string;
   name: string;
@@ -46,7 +44,7 @@ export type AutofixAutomationSettings = {
   autofixAutomationTuning: AutofixAutomationTuning;
   automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
   automationHandoff: ProjectSeerPreferences['automation_handoff'];
-  projectId: string;
+  projectId: string | number; // Ideally this is a string, but in reality it can be a number.
   reposCount: number;
 };
 
@@ -147,19 +145,9 @@ export function useUpdateBulkAutofixAutomationSettings(
           }),
         });
         // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
-        queryClient.invalidateQueries({
-          queryKey: [
-            getApiUrl(
-              '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
-              {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }
-            ),
-          ],
-        });
+        queryClient.invalidateQueries(
+          projectSeerPreferencesApiOptions(organization.slug, project.slug)
+        );
       });
 
       options?.onSettled?.(...args);

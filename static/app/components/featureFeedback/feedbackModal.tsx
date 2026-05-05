@@ -114,7 +114,7 @@ export function FeedbackModal<T extends Data>({
     if (projectsLoaded && location.query.project) {
       return projects.find(p => p.id === location.query.project);
     }
-    return undefined;
+    return;
   }, [projectsLoaded, projects, location.query.project]);
 
   const handleSubmit = useCallback(
@@ -227,7 +227,7 @@ export function FeedbackModal<T extends Data>({
           <Grid flow="column" align="center" gap="md">
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
-              priority="primary"
+              variant="primary"
               tooltipProps={{
                 title:
                   props.children === undefined

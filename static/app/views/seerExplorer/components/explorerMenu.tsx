@@ -1,35 +1,28 @@
 import {Activity, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
-import {TimeSince} from 'sentry/components/timeSince';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
-type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
+type MenuMode = 'slash-commands-keyboard' | 'pr-widget' | 'hidden';
 
 interface SlashCommandHandlers {
-  onConversations: () => void;
   onFeedback: (() => void) | undefined;
-  onLangfuse: () => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
   onNew: () => void;
+  onCodeMode?: (value: 'off' | 'on' | 'only') => void;
+  onConversations?: () => void;
+  onLangfuse?: () => void;
+  onMaxSize?: () => void;
+  onMedSize?: () => void;
 }
 
 interface ExplorerMenuProps {
   clearInput: () => void;
   focusInput: () => void;
   inputValue: string;
-  onChangeSession: (runId: number) => void;
   panelSize: 'max' | 'med';
-  panelVisible: boolean;
   slashCommandHandlers: SlashCommandHandlers;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
-  menuAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetFooter?: React.ReactNode;
   prWidgetItems?: MenuItemProps[];
@@ -42,16 +35,16 @@ export interface MenuItemProps {
   title: string;
 }
 
+/**
+ * Custom floating menu for Seer Explorer slash commands and PR widget.
+ */
 export function useExplorerMenu({
   clearInput,
   inputValue,
   focusInput,
   textAreaRef,
   panelSize,
-  panelVisible,
   slashCommandHandlers,
-  onChangeSession,
-  menuAnchorRef,
   inputAnchorRef,
   prWidgetAnchorRef,
   prWidgetItems,
@@ -76,23 +69,17 @@ export function useExplorerMenu({
     return allSlashCommands.filter(cmd => cmd.title.toLowerCase().startsWith(query));
   }, [allSlashCommands, inputValue]);
 
-  const {sessionItems, refetchSessions, isSessionsPending, isSessionsError} = useSessions(
-    {onChangeSession, enabled: panelVisible}
-  );
-
   // Menu items and select handlers change based on the mode.
   const menuItems = useMemo(() => {
     switch (menuMode) {
       case 'slash-commands-keyboard':
         return filteredSlashCommands;
-      case 'session-history':
-        return sessionItems;
       case 'pr-widget':
         return prWidgetItems ?? [];
       default:
         return [];
     }
-  }, [menuMode, filteredSlashCommands, sessionItems, prWidgetItems]);
+  }, [menuMode, filteredSlashCommands, prWidgetItems]);
 
   const close = useCallback(() => {
     setMenuMode('hidden');
@@ -123,28 +110,11 @@ export function useExplorerMenu({
         }
       }
 
-      if (item.key === '/resume') {
-        // Handle /resume command here - avoid changing menu state from item handlers.
-        setMenuMode('session-history');
-        refetchSessions();
-      } else if (menuMode === 'session-history') {
-        // When resuming a session, just close without focusing input.
-        close();
-      } else {
-        // Default to closing the menu after an item is selected and handled.
-        closeAndFocusInput();
-      }
+      // Default to closing the menu after an item is selected and handled.
+      closeAndFocusInput();
     },
     // clearInput and textAreaRef are both expected to be stable.
-    [
-      menuMode,
-      clearInput,
-      textAreaRef,
-      setMenuMode,
-      refetchSessions,
-      close,
-      closeAndFocusInput,
-    ]
+    [menuMode, clearInput, textAreaRef, closeAndFocusInput]
   );
 
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
@@ -225,7 +195,7 @@ export function useExplorerMenu({
       document.addEventListener('keydown', handleKeyDown, true);
       return () => document.removeEventListener('keydown', handleKeyDown, true);
     }
-    return undefined;
+    return;
   }, [handleKeyDown, isVisible]);
 
   // Calculate menu position based on anchor element
@@ -235,13 +205,7 @@ export function useExplorerMenu({
       return;
     }
 
-    const anchorRef =
-      menuMode === 'slash-commands-keyboard'
-        ? inputAnchorRef
-        : menuMode === 'pr-widget'
-          ? prWidgetAnchorRef
-          : menuAnchorRef;
-    const isSlashCommand = menuMode === 'slash-commands-keyboard';
+    const anchorRef = menuMode === 'pr-widget' ? prWidgetAnchorRef : inputAnchorRef;
 
     if (!anchorRef?.current) {
       setMenuPosition({
@@ -264,24 +228,19 @@ export function useExplorerMenu({
     const relativeTop = rect.top - panelRect.top;
     const relativeLeft = rect.left - panelRect.left;
 
-    if (isSlashCommand) {
+    if (menuMode === 'slash-commands-keyboard') {
       setMenuPosition({
         bottom: `${panelRect.height - relativeTop + spacing}px`,
         left: `${relativeLeft}px`,
       });
-    } else if (menuMode === 'pr-widget') {
+    } else {
       // Position above anchor (since button is at bottom of panel)
       setMenuPosition({
         bottom: `${panelRect.height - relativeTop + spacing}px`,
         right: `${panelRect.width - relativeLeft - rect.width}px`,
       });
-    } else {
-      setMenuPosition({
-        top: `${relativeTop + rect.height + spacing}px`,
-        left: `${relativeLeft}px`,
-      });
     }
-  }, [isVisible, menuMode, menuAnchorRef, inputAnchorRef, prWidgetAnchorRef]);
+  }, [isVisible, menuMode, inputAnchorRef, prWidgetAnchorRef]);
 
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
@@ -299,31 +258,10 @@ export function useExplorerMenu({
             <ItemDescription>{item.description}</ItemDescription>
           </MenuItem>
         ))}
-        {menuMode === 'session-history' && menuItems.length === 0 && (
-          <MenuItem key="empty-state" isSelected={false}>
-            <ItemName>
-              {isSessionsPending
-                ? 'Loading sessions...'
-                : isSessionsError
-                  ? 'Error loading sessions.'
-                  : 'No session history found.'}
-            </ItemName>
-          </MenuItem>
-        )}
         {menuMode === 'pr-widget' && prWidgetFooter}
       </MenuPanel>
     </Activity>
   );
-
-  // Handler for opening session history from button
-  const openSessionHistory = useCallback(() => {
-    if (menuMode === 'session-history') {
-      close();
-    } else {
-      setMenuMode('session-history');
-      refetchSessions();
-    }
-  }, [menuMode, close, refetchSessions]);
 
   // Handler for opening PR widget from button
   const openPRWidget = useCallback(() => {
@@ -339,7 +277,6 @@ export function useExplorerMenu({
     menuMode,
     isMenuOpen: menuMode !== 'hidden',
     closeMenu: close,
-    openSessionHistory,
     openPRWidget,
   };
 }
@@ -351,6 +288,7 @@ function useSlashCommands({
   onFeedback,
   onLangfuse,
   onConversations,
+  onCodeMode,
 }: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
@@ -362,24 +300,26 @@ function useSlashCommands({
         description: 'Start a new session',
         handler: onNew,
       },
-      {
-        title: '/resume',
-        key: '/resume',
-        description: 'View your session history to resume past sessions',
-        handler: () => {}, // Handled by parent onSelect callback.
-      },
-      {
-        title: '/max-size',
-        key: '/max-size',
-        description: 'Expand panel to full viewport height',
-        handler: onMaxSize,
-      },
-      {
-        title: '/med-size',
-        key: '/med-size',
-        description: 'Set panel to medium size (default)',
-        handler: onMedSize,
-      },
+      ...(onMaxSize
+        ? [
+            {
+              title: '/max-size',
+              key: '/max-size',
+              description: 'Expand panel to full viewport height',
+              handler: onMaxSize,
+            },
+          ]
+        : []),
+      ...(onMedSize
+        ? [
+            {
+              title: '/med-size',
+              key: '/med-size',
+              description: 'Set panel to medium size (default)',
+              handler: onMedSize,
+            },
+          ]
+        : []),
       ...(onFeedback
         ? [
             {
@@ -390,7 +330,29 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(isSentryEmployee
+      ...(isSentryEmployee && onCodeMode
+        ? [
+            {
+              title: '/code-mode-off',
+              key: '/code-mode-off',
+              description: 'Disable code mode tools',
+              handler: () => onCodeMode('off'),
+            },
+            {
+              title: '/code-mode-on',
+              key: '/code-mode-on',
+              description: 'Enable code mode tools alongside standard tools',
+              handler: () => onCodeMode('on'),
+            },
+            {
+              title: '/code-mode-only',
+              key: '/code-mode-only',
+              description: 'Use only code mode tools (no standard tools)',
+              handler: () => onCodeMode('only'),
+            },
+          ]
+        : []),
+      ...(isSentryEmployee && onLangfuse
         ? [
             {
               title: '/langfuse',
@@ -398,6 +360,10 @@ function useSlashCommands({
               description: 'Open Langfuse to view session details',
               handler: onLangfuse,
             },
+          ]
+        : []),
+      ...(isSentryEmployee && onConversations
+        ? [
             {
               title: '/conversations',
               key: '/conversations',
@@ -412,58 +378,12 @@ function useSlashCommands({
       onMaxSize,
       onMedSize,
       onFeedback,
+      onCodeMode,
       onLangfuse,
       onConversations,
       isSentryEmployee,
     ]
   );
-}
-
-function useSessions({
-  onChangeSession,
-  enabled,
-}: {
-  onChangeSession: (runId: number) => void;
-  enabled?: boolean;
-}) {
-  const organization = useOrganization({allowNull: true});
-  const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
-
-  const {data, isPending, isError, refetch} = useExplorerSessions({
-    limit: 20,
-    enabled: enabled && hasFeature,
-  });
-
-  const sessionItems = useMemo(() => {
-    if (isPending || isError) {
-      return [];
-    }
-
-    return data.data.map(
-      (session: {last_triggered_at: moment.MomentInput; run_id: number; title: any}) => ({
-        title: session.title,
-        key: session.run_id.toString(),
-        description: (
-          <TimeSince
-            tooltipPrefix="Last updated"
-            date={moment.utc(session.last_triggered_at).toDate()}
-            suffix="ago"
-          />
-        ),
-        handler: () => {
-          onChangeSession(session.run_id);
-        },
-      })
-    );
-  }, [data, isPending, isError, onChangeSession]);
-
-  return {
-    sessionItems,
-    isSessionsPending: isPending,
-    isSessionsError: isError,
-    isError,
-    refetchSessions: refetch,
-  };
 }
 
 const MenuPanel = styled('div')<{

@@ -27,13 +27,14 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -44,8 +45,6 @@ import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/use
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
@@ -80,7 +79,7 @@ export interface TraceWaterfallProps {
   replay: ReplayRecord | null;
   rootEventResults: TraceRootEventQueryResults;
   source: TraceWaterfallSource;
-  trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
+  trace: TraceQueryResult;
   traceEventView: EventView;
   traceSlug: string;
   tree: TraceTree;
@@ -135,7 +134,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   useEffect(() => {
     if (!props.replayTraces?.length || props.tree?.type !== 'trace') {
-      return undefined;
+      return;
     }
 
     const cleanup = props.tree.fetchAdditionalTraces({
@@ -667,6 +666,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     return null;
   }
 
+  let waterfallTraceId: string | undefined = props.traceSlug;
+  if (props.source === 'replay') {
+    waterfallTraceId = undefined;
+  }
+
   return (
     <Flex direction="column" flex={1}>
       <Flex gap="md">
@@ -711,7 +715,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               <Trace
                 trace={props.tree}
                 rerender={rerender}
-                trace_id={props.traceSlug}
+                trace_id={waterfallTraceId}
                 onRowClick={onRowClick}
                 onTraceSearch={onTraceSearch}
                 previouslyFocusedNodeRef={previouslyFocusedNodeRef}

@@ -260,7 +260,7 @@ function getInsightsModuleBreadcrumbs(
     }
   }
 
-  let moduleName: RoutableModuleNames | undefined = undefined;
+  let moduleName: RoutableModuleNames | undefined;
 
   if (
     typeof location.query.source === 'string' &&
@@ -399,7 +399,7 @@ function LeafBreadCrumbLabel({
         className="trace-id-copy-button"
         text={traceSlug}
         size="zero"
-        priority="transparent"
+        variant="transparent"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
         }}
@@ -523,7 +523,7 @@ export function getTraceViewBreadcrumbs({
     case TraceViewSources.TRACE_METRICS:
       return [
         {
-          label: t('Metrics'),
+          label: t('Application Metrics'),
           to: getBreadCrumbTarget(
             normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
             location.query

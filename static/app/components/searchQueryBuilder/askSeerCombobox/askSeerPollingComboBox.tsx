@@ -4,6 +4,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import type {UseMutationOptions} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -32,11 +33,9 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {UseMutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
-
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -518,7 +517,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             reset();
           }}
           aria-label={t('Close Seer Search')}
-          priority="transparent"
+          variant="transparent"
         />
       </ButtonsWrapper>
       {state.isOpen ? (
@@ -564,8 +563,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </SeerContent>
           )}
-          <SeerFooter>
-            {openForm && (
+          {openForm && (
+            <SeerFooter>
               <Button
                 size="xs"
                 icon={<IconMegaphone />}
@@ -581,8 +580,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               >
                 {t('Give Feedback')}
               </Button>
-            )}
-          </SeerFooter>
+            </SeerFooter>
+          )}
         </AskSeerSearchPopover>
       ) : null}
     </Wrapper>

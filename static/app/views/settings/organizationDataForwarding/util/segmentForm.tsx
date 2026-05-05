@@ -86,7 +86,7 @@ export function SegmentSetupForm({
       const {
         is_enabled: _is_enabled,
         enroll_new_projects,
-        project_ids = [],
+        project_ids,
         ...configFields
       } = value;
       onSubmit({
@@ -150,7 +150,7 @@ export function SegmentEditForm({
     },
     validators: {onDynamic: segmentSchema},
     onSubmit: ({value}) => {
-      const {is_enabled, enroll_new_projects, project_ids = [], ...configFields} = value;
+      const {is_enabled, enroll_new_projects, project_ids, ...configFields} = value;
       onSubmit({
         provider: DataForwarderProviderSlug.SEGMENT,
         config: buildSegmentConfig(configFields),

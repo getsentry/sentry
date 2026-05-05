@@ -5,6 +5,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
@@ -58,7 +59,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
-    @with_feature("organizations:seer-project-settings-dual-write")
     def test_repository_and_identity(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -77,9 +77,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             external_issue = ExternalIssue.objects.create(
                 organization_id=org.id, integration_id=integration.id, key="ABC-123"
             )
-            seer_project_repo = SeerProjectRepository.objects.create(
-                project=project, repository=repository
-            )
         organization_integration.update(status=ObjectStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
@@ -96,7 +93,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             assert ExternalIssue.objects.filter(id=external_issue.id).exists()
             repo = Repository.objects.get(id=repository.id)
             assert repo.integration_id is None
-            assert not SeerProjectRepository.objects.filter(id=seer_project_repo.id).exists()
 
     def test_codeowner_links(self) -> None:
         org = self.create_organization()
@@ -124,6 +120,75 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             # We expect to delete all associated Code Owners and Code Mappings
             assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
             assert not RepositoryProjectPathConfig.objects.filter(id=code_owner.id).exists()
+
+    def test_seer_project_repository_links(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        integration = self.create_provider_integration(provider="example", name="Example")
+        organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
+        repository = self.create_repo(
+            project=project, name="testrepo", provider="gitlab", integration_id=integration.id
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            seer_repo = SeerProjectRepository.objects.create(
+                project=project, repository_id=repository.id
+            )
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not SeerProjectRepository.objects.filter(id=seer_repo.id).exists()
+
+    def test_seer_automation_handoff_options_links(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        other_project = self.create_project(organization=org)
+        integration = self.create_provider_integration(provider="example", name="Example")
+        other_integration = self.create_provider_integration(provider="slack", name="Slack")
+        organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            project.update_option("sentry:seer_automation_handoff_integration_id", integration.id)
+            project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+            project.update_option(
+                "sentry:seer_automation_handoff_target", "cursor_background_agent"
+            )
+            project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+            other_project.update_option(
+                "sentry:seer_automation_handoff_integration_id", other_integration.id
+            )
+            other_project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ProjectOption.objects.filter(
+                project_id=project.id,
+                key__in={
+                    "sentry:seer_automation_handoff_integration_id",
+                    "sentry:seer_automation_handoff_point",
+                    "sentry:seer_automation_handoff_target",
+                    "sentry:seer_automation_handoff_auto_create_pr",
+                },
+            ).exists()
+            # Other integration's options are untouched
+            assert (
+                other_project.get_option("sentry:seer_automation_handoff_integration_id")
+                == other_integration.id
+            )
+            assert other_project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
 
     @with_feature("organizations:update-action-status")
     def test_actions_disabled_on_integration_delete(self) -> None:

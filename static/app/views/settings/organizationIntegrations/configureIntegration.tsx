@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -29,12 +29,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -48,6 +43,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -88,6 +84,7 @@ function ConfigureIntegration() {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
   const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
   const {integrationId, providerKey} = useParams<{
@@ -249,7 +246,7 @@ function ConfigureIntegration() {
       p =>
         p.id === 'opsgenie' &&
         p.projectList.length >= 1 &&
-        p.projectList.some(({enabled}) => enabled === true)
+        p.projectList.some(({enabled}) => enabled)
     );
   };
 
@@ -310,7 +307,7 @@ function ConfigureIntegration() {
                 handleJiraMigration();
               }}
             >
-              <Button priority="primary" disabled={!hasAccess}>
+              <Button variant="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -351,7 +348,7 @@ function ConfigureIntegration() {
                 handleOpsgenieMigration();
               }}
             >
-              <Button priority="primary" disabled={!hasAccess}>
+              <Button variant="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -530,18 +527,9 @@ function ConfigureIntegration() {
       <SentryDocumentTitle
         title={integration ? integration.provider.name : 'Configure Integration'}
       />
-      <BackButtonWrapper>
-        <LinkButton
-          icon={<IconArrow direction="left" size="sm" />}
-          size="sm"
-          to={`/settings/${organization.slug}/integrations/${provider.key}/`}
-        >
-          {t('Back')}
-        </LinkButton>
-      </BackButtonWrapper>
       <SettingsPageHeader
         noTitleStyles
-        title={<IntegrationItem integration={integration} />}
+        title={<IntegrationItem integration={integration} compact={hasPageFrame} />}
         action={getAction()}
       />
       {renderMainContent()}
@@ -568,7 +556,7 @@ function PagerdutyAddServicesButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       icon={<IconAdd />}
       onClick={() => startFlow({provider, onInstall, account, organization})}
@@ -583,8 +571,3 @@ const TabsContainer = styled('div')`
 `;
 
 export default ConfigureIntegration;
-
-const BackButtonWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  width: 100%;
-`;

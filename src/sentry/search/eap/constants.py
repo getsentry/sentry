@@ -23,6 +23,16 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.OCCURRENCES: TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
 }
 
+
+PROTOBUF_TYPE_TO_SEARCH_TYPE: dict[str, Literal["string", "number", "boolean"]] = {
+    "string_value": "string",
+    "bytes_value": "string",
+    "bool_value": "boolean",
+    "int_value": "number",
+    "double_value": "number",
+}
+
+
 SUPPORTED_STATS_TYPES = {"attributeDistributions"}
 
 OPERATOR_MAP = {
@@ -77,11 +87,13 @@ STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 DOUBLE = AttributeKey.TYPE_DOUBLE
 INT = AttributeKey.TYPE_INT
+ARRAY = AttributeKey.TYPE_ARRAY
 TYPE_TO_STRING_MAP = {
     STRING: "string",
     BOOLEAN: "boolean",
     DOUBLE: "double",
     INT: "integer",
+    ARRAY: "array",
 }
 
 # TODO: we need a datetime type

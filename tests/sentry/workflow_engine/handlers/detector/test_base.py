@@ -98,7 +98,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             slug = "no_handler"
             description = "no handler"
             category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC_ALERT.value
 
         class MockDetectorHandler(BaseDetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
@@ -163,24 +162,21 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             type_id = 2
             slug = "handler"
             description = "handler"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
 
         class HandlerStateGroupType(GroupType):
             type_id = 3
             slug = "handler_with_state"
             description = "handler with state"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorStateHandler)
 
         class HandlerUpdateGroupType(GroupType):
             type_id = 4
             slug = "handler_update"
             description = "handler update"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorWithUpdateHandler)
 
         self.no_handler_type = NoHandlerGroupType
@@ -282,7 +278,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             event_data = (
                 detector_occurrence.event_data.copy() if detector_occurrence.event_data else {}
             )
-        event_data["environment"] = detector.config.get("environment")
+        event_data.setdefault("environment", detector.config.get("environment"))
         event_data["timestamp"] = issue_occurrence.detection_time
         event_data["project_id"] = detector.project_id
         event_data["event_id"] = occurrence_id

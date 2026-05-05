@@ -4,16 +4,34 @@ import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {
+  defaultAggregateSortBys,
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  type TraceMetric,
+} from 'sentry/views/explore/metrics/metricQuery';
+import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {
   Block,
   ToolCall,
@@ -377,10 +395,17 @@ export function getToolsStringFromBlock(block: Block): string[] {
   const isLoading = block.loading ?? false;
   const toolCalls = block.message.tool_calls || [];
   const toolLinks = block.tool_links || [];
+  const toolResults = block.tool_results || [];
 
-  for (let i = 0; i < toolCalls.length; i++) {
-    const tool = toolCalls[i] as ToolCall;
-    const toolLink = toolLinks[i];
+  const toolLinkByCallId = new Map<string, ToolLink | null>();
+  toolResults.forEach((result, idx) => {
+    if (result?.tool_call_id) {
+      toolLinkByCallId.set(result.tool_call_id, toolLinks[idx] ?? null);
+    }
+  });
+
+  for (const tool of toolCalls) {
+    const toolLink = toolLinkByCallId.get(tool.id) ?? null;
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
@@ -416,7 +441,9 @@ function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
   // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
+  // Allows multi-hyphen project slugs like FRONTEND-REACT-59A or BACKEND-RUBY-ON-RAILS-58
+  const shortIdPattern =
+    /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
@@ -495,14 +522,133 @@ function validateIso(val: unknown): string | undefined {
   return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
 }
 
+function getStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  return typeof value === 'string' ? [value] : [];
+}
+
+function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | null {
+  const rawTraceMetric = params.trace_metric;
+  if (
+    !rawTraceMetric ||
+    typeof rawTraceMetric !== 'object' ||
+    typeof rawTraceMetric.name !== 'string' ||
+    typeof rawTraceMetric.type !== 'string'
+  ) {
+    return null;
+  }
+
+  const traceMetric: TraceMetric = {
+    name: rawTraceMetric.name,
+    type: rawTraceMetric.type,
+  };
+  if (typeof rawTraceMetric.unit === 'string') {
+    traceMetric.unit = rawTraceMetric.unit;
+  }
+  return traceMetric;
+}
+
+function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
+  const visualize = new VisualizeFunction(yAxis);
+  const aggregate = visualize.parsedFunction?.name;
+  if (!aggregate) {
+    return yAxis;
+  }
+
+  return makeMetricsAggregate({aggregate, traceMetric});
+}
+
+function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
+  return makeMetricsAggregate({
+    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
+    traceMetric,
+  });
+}
+
+function parseMetricsSort(
+  sort: unknown,
+  normalizedYAxesByOriginal: Map<string, string>
+): Sort | undefined {
+  if (typeof sort !== 'string' || !sort) {
+    return undefined;
+  }
+
+  const kind = sort.startsWith('-') ? 'desc' : 'asc';
+  const sortField = sort.replace(/^-/, '');
+  const normalizedYAxis = normalizedYAxesByOriginal.get(sortField);
+  if (normalizedYAxis) {
+    return {field: normalizedYAxis, kind};
+  }
+
+  const sortFunction = new VisualizeFunction(sortField).parsedFunction;
+  if (sortFunction) {
+    for (const mappedYAxis of normalizedYAxesByOriginal.values()) {
+      const yAxisFunction = new VisualizeFunction(mappedYAxis).parsedFunction;
+      if (yAxisFunction?.name === sortFunction.name) {
+        return {field: mappedYAxis, kind};
+      }
+    }
+  }
+
+  return {field: sortField, kind};
+}
+
+function buildMetricsQueryParam(params: Record<string, any>): string[] | undefined {
+  const traceMetric = getTraceMetricFromParams(params);
+  if (!traceMetric) {
+    return undefined;
+  }
+
+  const mode = params.mode === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES;
+  const base = defaultMetricQuery();
+
+  // Seer y-axes use short names like "avg(duration)"; normalize them to fully
+  // qualified metric aggregates like "avg(metrics.foo.duration)".
+  const yAxes = getStringArray(params.y_axes);
+  const resolvedYAxes = yAxes.length ? yAxes : [getDefaultMetricYAxis(traceMetric)];
+  const normalizedYAxesByOriginal = resolvedYAxes.reduce((map, yAxis) => {
+    map.set(yAxis, getMetricYAxis(yAxis, traceMetric));
+    return map;
+  }, new Map<string, string>());
+  // VisualizeFunction instances that the Explore page uses to render charts.
+  const visualizes = resolvedYAxes.map(
+    yAxis => new VisualizeFunction(normalizedYAxesByOriginal.get(yAxis)!)
+  );
+
+  const aggregateFields: AggregateField[] = [
+    ...getStringArray(params.group_by).map(groupBy => ({groupBy})),
+    ...visualizes,
+  ];
+  const sortBys = parseMetricsSort(params.sort, normalizedYAxesByOriginal);
+
+  const queryParams = base.queryParams.replace({
+    query: typeof params.query === 'string' ? params.query : '',
+    mode,
+    aggregateFields,
+    aggregateSortBys:
+      mode === Mode.AGGREGATE && sortBys
+        ? [sortBys]
+        : defaultAggregateSortBys(aggregateFields),
+    sortBys: mode === Mode.SAMPLES && sortBys ? [sortBys] : base.queryParams.sortBys,
+  });
+
+  return [encodeMetricQueryParams({metric: traceMetric, queryParams})];
+}
+
 /**
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
 export function buildToolLinkUrl(
-  toolLink: ToolLink,
+  toolLink: ToolLink | undefined,
   orgSlug: string,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
+  if (!toolLink) {
+    return null;
+  }
+
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
       const {dataset, project_slugs, query, sort, stats_period, start, end} =
@@ -564,9 +710,15 @@ export function buildToolLinkUrl(
           const yAxesArray = Array.isArray(y_axes) ? y_axes : [y_axes];
           fields.push(...yAxesArray);
         }
-        if (fields.length > 0) {
-          queryParams.field = fields;
+
+        // make sure we always force some fields as discover will re-route to the
+        // saved default query in the event that no fields are specified
+        if (fields.length === 0) {
+          const defaultErrorView = DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS];
+          fields.push(...defaultErrorView.fields);
         }
+
+        queryParams.field = fields;
 
         // Discover sort strips parentheses from aggregates: -count() -> -count
         if (queryParams.sort) {
@@ -604,13 +756,12 @@ export function buildToolLinkUrl(
       }
 
       if (dataset === 'metrics' || dataset === 'tracemetrics') {
-        // TODO: The metrics explore page reads metric-specific state (metric name,
-        // type, aggregations, group bys) from a JSON-encoded `metric` URL param.
-        // Currently we only pass page filter params (project, statsPeriod, etc.)
-        // which means the search query context is lost on navigation. To fully
-        // preserve context, the Seer backend should include structured metric
-        // metadata (name, type, unit) in tool_link params so we can build the
-        // `metric` param here via encodeMetricsQueryParams().
+        const metric = buildMetricsQueryParam(toolLink.params);
+        if (!metric) {
+          return null;
+        }
+        queryParams.metric = metric;
+
         return {
           pathname: `/organizations/${orgSlug}/explore/metrics/`,
           query: queryParams,
@@ -976,7 +1127,37 @@ function locationToUrl(location: LocationDescriptor): string | null {
   return `${base}${queryPart}${hashPart}`;
 }
 
-export const RUN_ID_QUERY_PARAM = 'explorerRunId';
+const RUN_ID_QUERY_PARAM = 'explorerRunId';
+
+/**
+ * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ */
+export function useSeerExplorerDeepLink({
+  callback,
+  enabled = true,
+}: {
+  callback: (runId: number) => void;
+  enabled?: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (!paramValue || typeof paramValue !== 'string') {
+      return;
+    }
+
+    const parsedRunId = Number(paramValue);
+    if (!Number.isNaN(parsedRunId)) {
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+      navigate({...location, query: restQuery}, {replace: true});
+      callback(parsedRunId);
+    }
+  }, [location, navigate, callback, enabled]);
+}
 
 /**
  * Returns the URL of the current window with the run ID query param set.
@@ -991,13 +1172,35 @@ export function getLangfuseUrl(runId: number | string): string {
   return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
 }
 
+export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOptions {
+  return {
+    formTitle: 'Seer Agent Feedback',
+    messagePlaceholder: 'How can we make Seer better for you?',
+    tags: {
+      ['feedback.source']: 'seer_explorer',
+      ['feedback.owner']: 'ml-ai',
+      ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
+      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
+      ...(runId === null
+        ? {}
+        : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),
+    },
+  };
+}
+
 /**
  * Checks if Seer Explorer is enabled for the organization.
- * Requires all of the following conditions:
- * - 'seer-explorer' feature flag
- * - Organization has open membership
- * Does not check general AI features access or org consent.
+ * Requires the rollout flag and:
+ * - 'gen-ai-features' feature flag
+ * - Organization has not disabled open membership
+ * - Organization has not disabled AI features (hideAiFeatures is false)
  */
 export function isSeerExplorerEnabled(organization: Organization): boolean {
-  return organization.openMembership && organization.features.includes('seer-explorer');
+  return (
+    organization.openMembership &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('seer-explorer')
+  );
 }

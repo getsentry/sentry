@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -14,7 +16,6 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -34,6 +35,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
@@ -79,6 +81,7 @@ function OrganizationMembersList() {
   const queryClient = useQueryClient();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
   const navigate = useNavigate();
   const location = useLocation();
   const {data: inviteRequests = [], refetch: refetchInviteRequests} = useApiQuery<
@@ -335,7 +338,7 @@ function OrganizationMembersList() {
 
   return (
     <Fragment>
-      <SettingsPageHeader title="Members" action={action} />
+      <SettingsPageHeader title="Members" action={hasPageFrame ? undefined : action} />
       <InviteBanner
         onSendInvite={() => {
           refetchMembers();
@@ -372,16 +375,24 @@ function OrganizationMembersList() {
         </Panel>
       )}
       <SearchWrapperWithFilter>
-        <MembersFilter
-          roles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
-          query={searchQuery}
-          onChange={handleQueryChange}
-        />
-        <SearchBar
-          placeholder={t('Search Members')}
-          query={searchQuery}
-          onSearch={handleQueryChange}
-        />
+        <Flex align="center" gap="lg">
+          <MembersFilter
+            roles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
+            query={searchQuery}
+            onChange={handleQueryChange}
+          />
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                placeholder={t('Search Members')}
+                query={searchQuery}
+                onSearch={handleQueryChange}
+              />
+            )}
+          </Container>
+          {hasPageFrame && action}
+        </Flex>
       </SearchWrapperWithFilter>
       <Panel data-test-id="org-member-list">
         <MemberListHeader members={membersToShow} organization={organization} />
@@ -426,10 +437,6 @@ function OrganizationMembersList() {
 }
 
 const SearchWrapperWithFilter = styled('div')`
-  position: relative;
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.lg};
   margin-bottom: ${p => p.theme.space.lg};
 `;
 
@@ -454,7 +461,7 @@ function InviteMembersButton({
 }) {
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"

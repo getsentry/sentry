@@ -35,7 +35,7 @@ export function InstallAppButton({
       project_slug: projectId,
       source,
     });
-    openInstallModal(artifactId);
+    openInstallModal(artifactId, projectId);
   };
 
   if (variant === 'icon') {
@@ -44,7 +44,7 @@ export function InstallAppButton({
         aria-label={t('Install')}
         icon={<IconDownload size="sm" />}
         onClick={handleClick}
-        priority="transparent"
+        variant="transparent"
         size="zero"
         tooltipProps={{title: t('Install')}}
       />
@@ -52,12 +52,7 @@ export function InstallAppButton({
   }
 
   return (
-    <Button
-      onClick={handleClick}
-      priority="link"
-      size="sm"
-      style={{fontWeight: 'normal'}}
-    >
+    <Button onClick={handleClick} variant="link" size="sm" style={{fontWeight: 'normal'}}>
       {t('Install')}
     </Button>
   );

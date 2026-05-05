@@ -73,7 +73,7 @@ function PipelineModal<
       </Header>
       <Body>
         <Stack gap="2xl">
-          {!pipeline.isComplete && (
+          {!pipeline.isComplete && pipeline.totalSteps > 1 && (
             <Grid columns="1fr max-content">
               <Flex gap="md" align="center">
                 <ProgressRing
@@ -108,7 +108,7 @@ function PipelineModal<
                 {pipeline.stepIndex !== 0 && (
                   <Button
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                     onClick={pipeline.restart}
                     icon={<IconRefresh size="xs" variant="muted" />}
                     tooltipProps={{title: t('Restart flow')}}

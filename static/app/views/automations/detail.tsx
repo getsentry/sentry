@@ -73,9 +73,6 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         {hasPageFrameFeature ? (
           <Fragment>
             <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
-            <TopBar.Slot name="actions">
-              <Actions automation={automation} />
-            </TopBar.Slot>
             <AutomationFeedbackButton />
           </Fragment>
         ) : (
@@ -99,7 +96,16 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               </Alert>
             )}
             <PageFiltersContainer>
-              <DatePageFilter />
+              {hasPageFrameFeature ? (
+                <Flex align="center" justify="between" gap="md">
+                  <DatePageFilter />
+                  <Flex flex={1} justify="end" gap="md">
+                    <Actions automation={automation} size="sm" />
+                  </Flex>
+                </Flex>
+              ) : (
+                <DatePageFilter />
+              )}
               <ErrorBoundary>
                 <AutomationStatsChart
                   automationId={automation.id}
@@ -266,12 +272,12 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
 
   return (
     <Fragment>
-      <Button priority="default" size={size} onClick={toggleDisabled} busy={isUpdating}>
+      <Button variant="secondary" size={size} onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
-        priority="primary"
+        variant="primary"
         icon={<IconEdit />}
         size={size}
       >

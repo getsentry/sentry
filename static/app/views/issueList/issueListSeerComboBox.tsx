@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -8,7 +9,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -2,6 +2,8 @@ import {lazy, Suspense, useCallback, useEffect} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {
   displayDeployPreviewAlert,
   displayExperimentalSpaAlert,
@@ -10,7 +12,6 @@ import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {GlobalModal} from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
@@ -36,9 +37,7 @@ import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKInteg
 import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
-import {ExplorerPanel} from 'sentry/views/seerExplorer/components/panel/explorerPanel';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -114,7 +113,7 @@ export function App() {
     // Skip loading organization-related data before the user is logged in,
     // because it triggers a 401 error in the UI.
     if (!preloadData) {
-      return undefined;
+      return;
     }
 
     loadOrganizations();
@@ -243,12 +242,9 @@ export function App() {
                   <MainContainer tabIndex={-1}>
                     <DemoToursProvider>
                       <LLMContextProvider>
-                        <SeerExplorerContextProvider>
-                          <GlobalModal />
-                          <ExplorerPanel />
-                          <Indicators className="indicators-container" />
-                          <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                        </SeerExplorerContextProvider>
+                        <GlobalModal />
+                        <Indicators className="indicators-container" />
+                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
                       </LLMContextProvider>
                     </DemoToursProvider>
                   </MainContainer>

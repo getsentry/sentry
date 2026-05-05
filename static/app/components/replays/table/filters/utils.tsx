@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {useNavigate} from 'sentry/utils/useNavigate';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
 
 export function generateAction({
   key,

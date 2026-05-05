@@ -10,15 +10,11 @@ import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import {createTraceMetricEventsFilter} from 'sentry/views/dashboards/widgetCard/hooks/useWidgetRawCounts';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
-import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
   useMetricName,
@@ -30,9 +26,14 @@ import {
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
+  createTraceMetricEventsFilter,
+  getEquationMetricsTotalFilter,
+} from 'sentry/views/explore/metrics/utils';
+import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
@@ -52,19 +53,15 @@ const MINIMIZED_GRAPH_HEIGHT = 50;
 const STACKED_GRAPH_HEIGHT = 362;
 
 interface MetricsGraphProps {
-  orientation: TableOrientation;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   additionalActions?: React.ReactNode;
-  infoContentHidden?: boolean;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
 
 export function MetricsGraph({
   timeseriesResult,
-  orientation,
   additionalActions,
-  infoContentHidden,
   isMetricOptionsEmpty,
   title,
 }: MetricsGraphProps) {
@@ -89,9 +86,7 @@ export function MetricsGraph({
       visualizes={visualizes}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
-      orientation={orientation}
       additionalActions={additionalActions}
-      infoContentHidden={infoContentHidden}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
       title={title}
     />
@@ -107,15 +102,12 @@ interface GraphProps extends MetricsGraphProps {
 function Graph({
   onChartTypeChange,
   timeseriesResult,
-  orientation,
   visualize,
   visualizes,
-  infoContentHidden,
   additionalActions,
   isMetricOptionsEmpty,
   title,
 }: GraphProps) {
-  const organization = useOrganization();
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const metricLabel = useMetricLabel();
@@ -125,8 +117,12 @@ function Graph({
   const traceMetric = useTraceMetric();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
-    enabled: Boolean(traceMetric.name),
-    query: createTraceMetricEventsFilter([traceMetric]),
+    enabled:
+      Boolean(traceMetric.name) ||
+      (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
+    query: isVisualizeEquation(visualize)
+      ? getEquationMetricsTotalFilter(visualize.expression.text)
+      : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
 
@@ -204,7 +200,7 @@ function Graph({
               title: t('Type of chart displayed in this visualization (ex. line)'),
             }}
             icon={<IconGraph type={chartIcon} />}
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             size="xs"
           />
@@ -224,7 +220,7 @@ function Graph({
             }}
             {...triggerProps}
             icon={<IconClock />}
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             size="xs"
           />
@@ -239,21 +235,10 @@ function Graph({
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
   const showChart = visualize.visible && !isMetricOptionsEmpty;
 
-  let height: number | undefined = MINIMIZED_GRAPH_HEIGHT;
-  if (visualize.visible) {
-    if (orientation === 'bottom' || infoContentHidden) {
-      height = STACKED_GRAPH_HEIGHT;
-    } else if (canUseMetricsUIRefresh(organization)) {
-      height = STACKED_GRAPH_HEIGHT;
-    } else {
-      height = undefined;
-    }
-  }
+  const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
   return (
-    <WidgetWrapper
-      hideFooterBorder={orientation === 'bottom' || canUseMetricsUIRefresh(organization)}
-    >
+    <WidgetWrapper hideFooterBorder>
       <Widget
         Title={Title}
         Actions={Actions}
@@ -261,7 +246,7 @@ function Graph({
           showEmptyState ? (
             <GenericWidgetEmptyStateWarning
               message={tct(
-                'No metrics found for this time period. If this is unexpected, try updating your filters or [link:learn more] about how to use metrics.',
+                'No application metrics found for this time period. If this is unexpected, try updating your filters or [link:learn more] about how to use application metrics.',
                 {
                   link: (
                     <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">

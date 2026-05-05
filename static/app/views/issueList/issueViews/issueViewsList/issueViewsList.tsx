@@ -4,15 +4,15 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Pagination} from 'sentry/components/pagination';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconSort} from 'sentry/icons';
@@ -259,7 +259,7 @@ function NoViewsBanner({
       >
         {({hasFeature}) => (
           <BannerAddViewButton
-            priority="primary"
+            variant="primary"
             icon={<IconAdd />}
             size="sm"
             onClick={() => {
@@ -384,46 +384,13 @@ export default function IssueViewsList() {
           </Layout.HeaderContent>
           {hasPageFrameFeature ? (
             <Fragment>
-              <TopBar.Slot name="actions">
-                <Feature
-                  features="organizations:issue-views"
-                  hookName="feature-disabled:issue-views"
-                  renderDisabled={props => (
-                    <Hovercard
-                      body={
-                        <FeatureDisabled
-                          features={props.features}
-                          hideHelpToggle
-                          featureName={t('Issue Views')}
-                        />
-                      }
-                    >
-                      {typeof props.children === 'function'
-                        ? props.children(props)
-                        : props.children}
-                    </Hovercard>
-                  )}
-                >
-                  {({hasFeature}) => (
-                    <Button
-                      priority="primary"
-                      icon={<IconAdd />}
-                      disabled={!hasFeature || isCreatingView}
-                      busy={isCreatingView}
-                      onClick={() => {
-                        trackAnalytics('issue_views.table.create_view_clicked', {
-                          organization,
-                        });
-                        handleCreateView();
-                      }}
-                    >
-                      {t('Create View')}
-                    </Button>
-                  )}
-                </Feature>
-              </TopBar.Slot>
               <TopBar.Slot name="feedback">
-                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions}>
+                <FeedbackButton
+                  size="sm"
+                  feedbackOptions={issueViewsFeedbackOptions}
+                  aria-label={t('Give Feedback')}
+                  tooltipProps={{title: t('Give Feedback')}}
+                >
                   {null}
                 </FeedbackButton>
               </TopBar.Slot>
@@ -453,7 +420,7 @@ export default function IssueViewsList() {
                 >
                   {({hasFeature}) => (
                     <Button
-                      priority="primary"
+                      variant="primary"
                       icon={<IconAdd />}
                       size="sm"
                       disabled={!hasFeature || isCreatingView}
@@ -490,7 +457,47 @@ export default function IssueViewsList() {
                 }}
                 placeholder={t('Search views by name or query')}
               />
-              <SortDropdown />
+              <Flex gap="md">
+                <SortDropdown />
+                {hasPageFrameFeature ? (
+                  <Feature
+                    features="organizations:issue-views"
+                    hookName="feature-disabled:issue-views"
+                    renderDisabled={props => (
+                      <Hovercard
+                        body={
+                          <FeatureDisabled
+                            features={props.features}
+                            hideHelpToggle
+                            featureName={t('Issue Views')}
+                          />
+                        }
+                      >
+                        {typeof props.children === 'function'
+                          ? props.children(props)
+                          : props.children}
+                      </Hovercard>
+                    )}
+                  >
+                    {({hasFeature}) => (
+                      <Button
+                        variant="primary"
+                        icon={<IconAdd />}
+                        disabled={!hasFeature || isCreatingView}
+                        busy={isCreatingView}
+                        onClick={() => {
+                          trackAnalytics('issue_views.table.create_view_clicked', {
+                            organization,
+                          });
+                          handleCreateView();
+                        }}
+                      >
+                        {t('Create View')}
+                      </Button>
+                    )}
+                  </Feature>
+                ) : null}
+              </Flex>
             </FilterSortBar>
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection

@@ -61,13 +61,13 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         response = self.client.post(self.url, data={}, format="json")
 
         assert response.status_code == 400
-        assert response.data == {"detail": "Missing required parameter: query"}
+        assert str(response.data["query"][0]) == "This field is required."
 
     def test_empty_query_parameter(self) -> None:
         response = self.client.post(self.url, data={"query": ""}, format="json")
 
         assert response.status_code == 400
-        assert response.data == {"detail": "Missing required parameter: query"}
+        assert str(response.data["query"][0]) == "This field may not be blank."
 
     def test_ai_features_disabled_for_org(self) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
@@ -107,7 +107,22 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         )
 
         assert response.status_code == 500
-        assert response.data == {"detail": "Failed to generate title"}
+        assert response.data == {"detail": "No title returned from Seer"}
+
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    def test_blank_response_from_seer(self, mock_request: MagicMock) -> None:
+        mock_response = MagicMock(status=200)
+        mock_response.json.return_value = {"content": "   "}
+        mock_request.return_value = mock_response
+
+        response = self.client.post(
+            self.url,
+            data={"query": "is:unresolved"},
+            format="json",
+        )
+
+        assert response.status_code == 500
+        assert response.data == {"detail": "No title returned from Seer"}
 
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_long_query_is_truncated(self, mock_request: MagicMock) -> None:

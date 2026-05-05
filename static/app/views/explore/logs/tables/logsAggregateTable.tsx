@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Pagination} from 'sentry/components/pagination';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -136,10 +136,7 @@ export function LogsAggregateTable({
             );
           },
           renderBodyCell: (column, row) => {
-            const value =
-              typeof row[column.key] === 'undefined'
-                ? null
-                : (row[column.key] as string | number);
+            const value = row[column.key] === undefined ? null : row[column.key]!;
             const level = getLogSeverityLevel(
               typeof row?.[OurLogKnownFieldKey.SEVERITY_NUMBER] === 'number'
                 ? row?.[OurLogKnownFieldKey.SEVERITY_NUMBER]
@@ -151,6 +148,7 @@ export function LogsAggregateTable({
             const extra: RendererExtra = {
               attributes: row,
               attributeTypes: data?.meta?.fields ?? {},
+              caseSensitiveHighlighting: false,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,

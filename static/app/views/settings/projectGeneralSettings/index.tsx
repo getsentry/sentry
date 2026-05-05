@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
@@ -34,10 +35,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -175,7 +174,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             }
           >
             <div>
-              <Button priority="danger">{t('Remove Project')}</Button>
+              <Button variant="danger">{t('Remove Project')}</Button>
             </div>
           </Confirm>
         )}
@@ -251,7 +250,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             )}
           >
             <div>
-              <Button priority="danger">{t('Transfer Project')}</Button>
+              <Button variant="danger">{t('Transfer Project')}</Button>
             </div>
           </Confirm>
         )}
@@ -292,7 +291,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     apiMethod: 'PUT' as const,
     apiEndpoint: endpoint,
     onSubmitSuccess: resp => {
-      queryClient.setQueryData<ApiResponse<Project>>(projectSettingsQueryKey, prev => ({
+      queryClient.setQueryData(projectSettingsQueryKey, prev => ({
         headers: prev?.headers ?? {},
         json: resp,
       }));

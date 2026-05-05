@@ -143,7 +143,7 @@ export function MultiQueryModeChart({
     disabled: disableAddToDashboard,
     onAction: () => {
       if (disableAddToDashboard) {
-        return undefined;
+        return;
       }
       trackAnalytics('trace_explorer.save_as', {
         save_type: 'dashboard',
@@ -169,7 +169,7 @@ export function MultiQueryModeChart({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconGraph type={visualizationType} />}
-                priority="transparent"
+                variant="transparent"
                 showChevron={false}
                 size="xs"
               />
@@ -193,7 +193,7 @@ export function MultiQueryModeChart({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconClock />}
-                priority="transparent"
+                variant="transparent"
                 showChevron={false}
                 size="xs"
               />
@@ -207,7 +207,7 @@ export function MultiQueryModeChart({
             key="contextMenu"
             triggerProps={{
               size: 'xs',
-              priority: 'transparent',
+              variant: 'transparent',
               showChevron: false,
               icon: <IconEllipsis />,
             }}

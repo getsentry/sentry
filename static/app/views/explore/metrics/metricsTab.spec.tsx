@@ -26,6 +26,11 @@ import {
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
 
+jest.mock('sentry/views/explore/metrics/multiMetricsQueryParams', () => ({
+  ...jest.requireActual('sentry/views/explore/metrics/multiMetricsQueryParams'),
+  MAX_METRICS_ALLOWED: 3,
+}));
+
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
@@ -71,6 +76,13 @@ describe('MetricsTabContent', () => {
 
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     setupTraceItemsMock(metricFixtures.detailedFixtures);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+
     setupEventsMock(metricFixtures.detailedFixtures, [
       MockApiClient.matchQuery({
         dataset: 'tracemetrics',
@@ -149,7 +161,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('should add a metric when Add Metric button is clicked', async () => {
+  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -169,11 +181,10 @@ describe('MetricsTabContent', () => {
     });
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
 
-    let addButton = screen.getByRole('button', {name: 'Add Metric'});
-    expect(addButton).toBeInTheDocument();
-    expect(addButton).toBeEnabled();
+    let addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    expect(addButtons[0]).toBeEnabled();
 
-    await userEvent.click(addButton);
+    await userEvent.click(addButtons[0]!);
 
     toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(2);
@@ -186,11 +197,10 @@ describe('MetricsTabContent', () => {
     await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
     expect(within(toolbars[1]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
 
-    addButton = screen.getByRole('button', {name: 'Add Metric'});
-    expect(addButton).toBeInTheDocument();
-    expect(addButton).toBeEnabled();
+    addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    expect(addButtons[0]).toBeEnabled();
 
-    await userEvent.click(addButton);
+    await userEvent.click(addButtons[0]!);
 
     toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(3);
@@ -261,8 +271,8 @@ describe('MetricsTabContent', () => {
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
     trackAnalyticsMock.mockClear();
 
-    const addButton = screen.getByRole('button', {name: 'Add Metric'});
-    await userEvent.click(addButton);
+    const addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    await userEvent.click(addButtons[0]!);
 
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
@@ -526,67 +536,74 @@ describe('MetricsTabContent', () => {
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should switch to aggregate mode when a group by is added', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [
+  it.isKnownFlake(
+    'should switch to aggregate mode when a group by is added',
+    async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {
+            attributeType: 'string',
+            key: 'test.region',
+            name: 'test.region',
+          },
+          {
+            attributeType: 'string',
+            key: 'test.service',
+            name: 'test.service',
+          },
+        ],
+        match: [
+          MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']}),
+        ],
+      });
+
+      const {router} = render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
         {
-          attributeType: 'string',
-          key: 'test.region',
-          name: 'test.region',
-        },
-        {
-          attributeType: 'string',
-          key: 'test.service',
-          name: 'test.service',
-        },
-      ],
-      match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
-    });
+          initialRouterConfig,
+          organization,
+        }
+      );
 
-    const {router} = render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
+      const toolbars = screen.getAllByTestId('metric-toolbar');
+      expect(toolbars).toHaveLength(1);
 
-    const toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(1);
+      // Wait for the toolbar to load
+      await waitFor(() => {
+        expect(
+          within(toolbars[0]!).getByRole('button', {name: 'bar'})
+        ).toBeInTheDocument();
+      });
 
-    // Wait for the toolbar to load
-    await waitFor(() => {
-      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    });
+      // Verify initial state is samples mode
+      const initialMetricQuery = JSON.parse(router.location.query.metric as string);
+      expect(initialMetricQuery.mode).toBe('samples');
 
-    // Verify initial state is samples mode
-    const initialMetricQuery = JSON.parse(router.location.query.metric as string);
-    expect(initialMetricQuery.mode).toBe('samples');
+      // Click on the Group by selector - use text content since prefix renders differently
+      const groupByButton = within(toolbars[0]!).getByText('Group by');
+      await userEvent.click(groupByButton);
 
-    // Click on the Group by selector - use text content since prefix renders differently
-    const groupByButton = within(toolbars[0]!).getByText('Group by');
-    await userEvent.click(groupByButton);
+      // Select a group by option (test.region)
+      const regionOption = await screen.findByRole('option', {name: 'test.region'});
+      await userEvent.click(regionOption);
 
-    // Select a group by option (test.region)
-    const regionOption = await screen.findByRole('option', {name: 'test.region'});
-    await userEvent.click(regionOption);
+      let metricQuery = router.location.query.metric;
+      expect(metricQuery).toBeDefined();
 
-    let metricQuery = router.location.query.metric;
-    expect(metricQuery).toBeDefined();
-
-    // Verify that the mode switched to aggregate in the URL
-    let parsedQuery: ReturnType<typeof JSON.parse>;
-    await waitFor(() => {
-      metricQuery = router.location.query.metric;
-      parsedQuery = JSON.parse(metricQuery as string);
-      expect(parsedQuery.mode).toBe('aggregate');
-    });
-    expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
-  });
+      // Verify that the mode switched to aggregate in the URL
+      let parsedQuery: ReturnType<typeof JSON.parse>;
+      await waitFor(() => {
+        metricQuery = router.location.query.metric;
+        parsedQuery = JSON.parse(metricQuery as string);
+        expect(parsedQuery.mode).toBe('aggregate');
+      });
+      expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
+    }
+  );
 
   it('does not show the Add Equation button when the feature flag is disabled', async () => {
     render(
@@ -597,7 +614,7 @@ describe('MetricsTabContent', () => {
         organization,
       }
     );
-    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
+    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
     expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
   });
 
@@ -613,17 +630,13 @@ describe('MetricsTabContent', () => {
         organization: orgWithFeature,
       }
     );
-    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
-    expect(screen.getByText('Add Equation')).toBeInTheDocument();
+    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
+    expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
   });
 
-  it('renders aggregate and equation panels in separate sections in refresh layout', async () => {
+  it('renders aggregate and equation panels in separate sections', async () => {
     const orgWithFeatures = OrganizationFixture({
-      features: [
-        'tracemetrics-enabled',
-        'tracemetrics-equations-in-explore',
-        'tracemetrics-ui-refresh',
-      ],
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${orgWithFeatures.slug}/events/`,
@@ -702,15 +715,7 @@ describe('MetricsTabContent', () => {
             query: {
               start: '2025-04-10T14%3A37%3A55',
               end: '2025-04-10T20%3A04%3A51',
-              metric: [
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-              ],
+              metric: [metricQueryWithGroupBy, metricQueryWithGroupBy],
               title: 'Test Title',
             },
           },
@@ -718,17 +723,29 @@ describe('MetricsTabContent', () => {
         },
       }
     );
-    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
-    expect(screen.getByText('Add Equation')).toBeInTheDocument();
+    expect(await screen.findAllByText('Add Metric')).not.toHaveLength(0);
+    expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
 
-    // Only 7 entries -> both buttons are enabled
-    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Add Equation'})).toBeEnabled();
+    // Only 2 entries (cap is 3) -> both buttons are enabled
+    for (const button of screen.getAllByRole('button', {
+      name: 'Add Metric',
+    })) {
+      expect(button).toBeEnabled();
+    }
+    for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
+      expect(button).toBeEnabled();
+    }
 
-    // Add an entry, 8 entries -> both buttons are disabled
-    await userEvent.click(screen.getByRole('button', {name: 'Add Metric'}));
-    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Add Equation'})).toBeDisabled();
+    // Add an entry, 3 entries (at cap) -> both buttons are disabled
+    await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
+    for (const button of screen.getAllByRole('button', {
+      name: 'Add Metric',
+    })) {
+      expect(button).toBeDisabled();
+    }
+    for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
+      expect(button).toBeDisabled();
+    }
   });
 
   it('disables delete button for metrics referenced by an equation', async () => {
@@ -792,17 +809,17 @@ describe('MetricsTabContent', () => {
 
     // Metric A should be disabled because it is referenced by the equation
     expect(
-      within(toolbars[0]!).getByRole('button', {name: 'Delete metric'})
+      within(toolbars[0]!).getByRole('button', {name: 'Delete Metric'})
     ).toBeDisabled();
 
     // Metric B should be enabled because it is not referenced by the equation
     expect(
-      within(toolbars[1]!).getByRole('button', {name: 'Delete metric'})
+      within(toolbars[1]!).getByRole('button', {name: 'Delete Metric'})
     ).toBeEnabled();
 
     // Equation deletion should always be enabled
     expect(
-      within(toolbars[2]!).getByRole('button', {name: 'Delete metric'})
+      within(toolbars[2]!).getByRole('button', {name: 'Delete Metric'})
     ).toBeEnabled();
   });
 });

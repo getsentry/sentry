@@ -11,7 +11,8 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
 import * as analytics from 'sentry/utils/analytics';
 
 import {RepositoryProjectPathConfigModal} from './repositoryProjectPathConfigForm';

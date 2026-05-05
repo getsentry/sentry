@@ -1,15 +1,16 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormContext} from 'sentry/components/forms/formContext';
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -20,7 +21,6 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -276,7 +276,7 @@ function SpecificMonitorsSection({
       ref={ref}
       size="sm"
       style={{width: 'min-content'}}
-      priority="primary"
+      variant="primary"
       icon={<IconAdd />}
       onClick={toggleDrawer}
     >

@@ -30,11 +30,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
-import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
-import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
+import {BrowserOSIcons} from 'sentry/views/explore/replays/detail/browserOSIcons';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function ReplayPreviewPlayer({
   query,
@@ -46,7 +46,7 @@ export function ReplayPreviewPlayer({
   handleForwardClick,
   overlayContent,
   showNextAndPrevious,
-  playPausePriority,
+  playPauseVariant,
 }: {
   errorBeforeReplayStart: boolean;
   replayId: string;
@@ -55,7 +55,7 @@ export function ReplayPreviewPlayer({
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
   overlayContent?: React.ReactNode;
-  playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
+  playPauseVariant?: ComponentProps<typeof ReplayPlayPauseButton>['variant'];
   query?: Query;
   showNextAndPrevious?: boolean;
 }) {
@@ -167,8 +167,8 @@ export function ReplayPreviewPlayer({
               <ReplayPlayPauseButton
                 analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
                 analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
-                priority={
-                  playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
+                variant={
+                  playPauseVariant ?? (isFinished || isPlaying ? 'primary' : 'secondary')
                 }
               />
               {showNextAndPrevious && (

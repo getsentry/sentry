@@ -227,7 +227,7 @@ function Chart({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconGraph type={chartIcon} />}
-              priority="transparent"
+              variant="transparent"
               showChevron={false}
               size="xs"
             />
@@ -246,7 +246,7 @@ function Chart({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconClock />}
-              priority="transparent"
+              variant="transparent"
               showChevron={false}
               size="xs"
             />
@@ -340,11 +340,12 @@ function Chart({
   );
 }
 
-const ChartWrapper = styled('div')`
+export const ChartWrapper = styled('div')`
   position: relative;
+  min-width: 0;
 `;
 
-const ChartList = styled('div')`
+export const ChartList = styled('div')`
   position: relative;
   display: grid;
   row-gap: ${p => p.theme.space.md};

@@ -26,7 +26,7 @@ function makeSection(
   artifacts: any[] = [],
   {status}: {status: 'completed' | 'processing'} = {status: 'completed'}
 ): AutofixSection {
-  return {step, artifacts, messages: [], status};
+  return {step, artifacts, blocks: [], status};
 }
 
 describe('RootCausePreview', () => {

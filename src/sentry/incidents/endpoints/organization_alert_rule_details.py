@@ -10,6 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -31,6 +32,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 )
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     DetailedWorkflowEngineDetectorSerializer,
+    WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.logic import (
     AlreadyDeletedError,
@@ -128,7 +130,7 @@ def update_alert_rule(
     )
     if validator.is_valid():
         try:
-            trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
+            trigger_sentry_app_action_creators_for_incidents(validator.validated_data, organization)
         except SentryAppBaseError as e:
             return e.response_from_exception()
 
@@ -146,7 +148,31 @@ def update_alert_rule(
             # The user has requested a new Slack channel and we tell the client to check again in a bit
             return Response({"uuid": client.uuid}, status=202)
         else:
-            return Response(serialize(validator.save(), request.user), status=status.HTTP_200_OK)
+            updated_rule = validator.save()
+            if features.has(
+                "organizations:workflow-engine-metric-alert-endpoints-put", organization
+            ):
+                try:
+                    detector = Detector.objects.get(
+                        alertruledetector__alert_rule_id=updated_rule.id
+                    )
+                    return Response(
+                        serialize(
+                            detector,
+                            request.user,
+                            WorkflowEngineDetectorSerializer(),
+                        ),
+                        status=status.HTTP_200_OK,
+                    )
+                except Detector.DoesNotExist:
+                    logger.error(
+                        "Alert rule was not dual written. Returning serialized rule instead of detector",
+                        extra={"rule_id": updated_rule.id},
+                    )
+                    return Response(
+                        serialize(updated_rule, request.user), status=status.HTTP_200_OK
+                    )
+            return Response(serialize(updated_rule, request.user), status=status.HTTP_200_OK)
 
     return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -337,7 +363,7 @@ def _check_project_access[T](
 @cell_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-orgalertruledetails-get",
+        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
         "DELETE": "organizations:workflow-engine-orgalertruledetails-delete",
     }
     owner = ApiOwner.ISSUES

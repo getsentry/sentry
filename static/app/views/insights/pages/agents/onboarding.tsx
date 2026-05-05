@@ -40,7 +40,7 @@ import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -53,6 +53,13 @@ import {
   CopyLLMPromptButton,
   LLM_ONBOARDING_COPY_MARKDOWN,
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  AGENT_INTEGRATION_ICONS,
+  AGENT_INTEGRATION_LABELS,
+  DENO_AGENT_INTEGRATIONS,
+  NODE_AGENT_INTEGRATIONS,
+  PYTHON_AGENT_INTEGRATIONS,
+} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
@@ -63,14 +70,6 @@ import {
   SubTitle,
   useOnboardingProject,
 } from 'sentry/views/insights/pages/onboardingUtils';
-
-import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  DENO_AGENT_INTEGRATIONS,
-  NODE_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-} from './utils/agentIntegrations';
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
@@ -116,7 +115,7 @@ function WaitingIndicator({project}: {project: Project}) {
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button priority="primary" busy={fetching} onClick={reloadProjects}>
+    <Button variant="primary" busy={fetching} onClick={reloadProjects}>
       {t('View Agent Monitoring')}
     </Button>
   ) : (
@@ -270,7 +269,7 @@ export function Onboarding() {
     return <div>{t('No project found')}</div>;
   }
 
-  if (!agentMonitoringPlatforms.has(project.platform as PlatformKey)) {
+  if (!agentMonitoringPlatforms.has(project.platform!)) {
     return (
       <UnsupportedPlatformOnboarding
         project={project}

@@ -76,11 +76,7 @@ def wrap_event_response(
                 filter_conditions.append(["environment", "IN", environments])
 
             if legacy_conditions:
-                apply_query_conditions_org_ids = options.get(
-                    "eventstore.adjacent_event_ids_apply_query_conditions.organization_ids"
-                )
-                if event.project.organization_id in apply_query_conditions_org_ids:
-                    filter_conditions.extend(legacy_conditions)
+                filter_conditions.extend(legacy_conditions)
 
             _filter = eventstore.Filter(
                 conditions=filter_conditions,

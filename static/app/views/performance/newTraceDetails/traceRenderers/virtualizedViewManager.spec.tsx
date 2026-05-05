@@ -41,6 +41,50 @@ describe('VirtualizedViewManger', () => {
     expect(manager.view.trace_physical_space.serialize()).toEqual([0, 0, 500, 1]);
   });
 
+  it('re-dispatches the container content box when scrollbar width changes', () => {
+    const scheduler = new TraceScheduler();
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      scheduler,
+      new TraceView(),
+      ThemeFixture()
+    );
+
+    manager.view.setTracePhysicalSpace([0, 0, 500, 200], [0, 0, 250, 200]);
+
+    const container = document.createElement('div');
+    container.style.paddingTop = '38px';
+    container.style.paddingLeft = '10px';
+    container.style.paddingRight = '10px';
+    manager.container = container;
+
+    jest.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 238,
+      right: 520,
+      width: 520,
+      height: 238,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    let dispatchedContainerPhysicalSpace: [number, number, number, number] | null = null;
+    scheduler.on('set container physical space', containerPhysicalSpace => {
+      dispatchedContainerPhysicalSpace = containerPhysicalSpace;
+    });
+
+    manager.onScrollbarWidthChange(14);
+
+    // 520 - 10 (paddingLeft) - 10 (paddingRight) = 500
+    // 238 - 38 (paddingTop) = 200
+    expect(dispatchedContainerPhysicalSpace).toEqual([0, 0, 500, 200]);
+  });
+
   describe('computeSpanCSSMatrixTransform', () => {
     it('enforces min scaling', () => {
       const manager = new VirtualizedViewManager(

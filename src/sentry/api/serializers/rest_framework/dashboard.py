@@ -383,6 +383,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {"widget_type": "Text widgets don't have a widget type or dataset"}
             )
 
+        description = data.get("description")
+        if description is not None and len(description) > 15000:
+            raise serializers.ValidationError(
+                {"description": "Description must not exceed 15,000 characters"}
+            )
+
         queries = data.get("queries")
         if queries and len(queries) > 0:
             raise serializers.ValidationError({"queries": "Text widgets don't have queries"})
@@ -538,9 +544,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         # Validate limit on chart widgets with group-by columns:
         # if there are too many groups the server cannot serve the
         # request to get widget data and hence the chart fails to load.
+        # WHEEL widgets render a single aggregated row and don't use `limit`,
+        # so they're exempted from this check.
         if (
             data.get("display_type") != DashboardWidgetDisplayTypes.TABLE
             and data.get("display_type") != DashboardWidgetDisplayTypes.BIG_NUMBER
+            and data.get("display_type") != DashboardWidgetDisplayTypes.WHEEL
             and data.get("limit") is None
             and has_columns
         ):

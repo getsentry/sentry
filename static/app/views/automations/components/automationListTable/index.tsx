@@ -190,7 +190,7 @@ export function AutomationListTable({
 
             <LinkButton
               icon={<IconSearch />}
-              priority="primary"
+              variant="primary"
               to={{
                 pathname: makeMonitorBasePathname(organization.slug),
                 query: {query},

@@ -10,7 +10,7 @@ from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_pr
 _HEADER = "## Sentry Snapshot Testing"
 PROCESSING_STATUS = "⏳ Processing"
 COMPARISON_TABLE_HEADER = (
-    "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+    "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
     "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
 )
 
@@ -135,5 +135,5 @@ def _format_name_cell(app_display: str, app_id: str, url: str) -> str:
 
 def _section_cell(count: int, section: str, artifact_url: str) -> str:
     if count > 0:
-        return f"[{count}]({artifact_url}?section={section})"
+        return f"[{count}]({artifact_url}?selectedTypes={section})"
     return str(count)

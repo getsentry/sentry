@@ -19,10 +19,10 @@ import {AuthLayoutRoute} from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -1252,14 +1252,12 @@ function buildRoutes(): RouteObject[] {
       },
       accountSettingsRoutes,
       {
-        name: t('Organization'),
         component: withDomainRequired(NoOp),
         customerDomainOnlyRoute: true,
         children: [orgSettingsRoutes, projectSettingsRoutes, subscriptionSettingsRoutes],
       },
       {
         path: ':orgId/',
-        name: t('Organization'),
         component: withDomainRedirect(NoOp),
         children: [
           orgSettingsRoutes,
@@ -1346,17 +1344,6 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'widget-builder/widget/new/',
-          component: make(() => import('sentry/views/dashboards/create')),
-        },
-      ],
-    },
-    {
-      path: '/dashboards/new/:templateId',
-      component: make(() => import('sentry/views/dashboards/create')),
-      withOrgPath: true,
-      children: [
-        {
-          path: 'widget/:widgetId/',
           component: make(() => import('sentry/views/dashboards/create')),
         },
       ],
@@ -1642,7 +1629,7 @@ function buildRoutes(): RouteObject[] {
   const replayChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/replays/list')),
+      component: make(() => import('sentry/views/explore/replays/list')),
     },
     {
       path: 'selectors/',
@@ -1650,12 +1637,12 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: ':replaySlug/',
-      component: make(() => import('sentry/views/replays/details')),
+      component: make(() => import('sentry/views/explore/replays/details')),
     },
   ];
   const replayRoutes: SentryRouteObject = {
     path: '/replays/',
-    component: make(() => import('sentry/views/replays/index')),
+    component: make(() => import('sentry/views/explore/replays/index')),
     withOrgPath: true,
     children: replayChildren,
   };
@@ -1663,32 +1650,34 @@ function buildRoutes(): RouteObject[] {
   const releaseChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/releases/list')),
+      component: make(() => import('sentry/views/explore/releases/list')),
     },
     {
       path: ':release/',
-      component: make(() => import('sentry/views/releases/detail')),
+      component: make(() => import('sentry/views/explore/releases/detail')),
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/releases/detail/overview')),
+          component: make(() => import('sentry/views/explore/releases/detail/overview')),
         },
         {
           path: 'commits/',
           component: make(
-            () => import('sentry/views/releases/detail/commitsAndFiles/commits')
+            () => import('sentry/views/explore/releases/detail/commitsAndFiles/commits')
           ),
         },
         {
           path: 'files-changed/',
           component: make(
-            () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
+            () =>
+              import('sentry/views/explore/releases/detail/commitsAndFiles/filesChanged')
           ),
         },
         {
           path: 'builds/',
           component: make(
-            () => import('sentry/views/releases/detail/commitsAndFiles/preprodBuilds')
+            () =>
+              import('sentry/views/explore/releases/detail/commitsAndFiles/preprodBuilds')
           ),
         },
       ],
@@ -1698,7 +1687,7 @@ function buildRoutes(): RouteObject[] {
     children: [
       {
         path: '/releases/',
-        component: make(() => import('sentry/views/releases/index')),
+        component: make(() => import('sentry/views/explore/releases/index')),
         withOrgPath: true,
         children: releaseChildren,
       },
@@ -2235,39 +2224,47 @@ function buildRoutes(): RouteObject[] {
   const profilingChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/profiling/content')),
+      component: make(() => import('sentry/views/explore/profiling/content')),
     },
     {
       path: 'summary/:projectId/',
-      component: make(() => import('sentry/views/profiling/profileSummaryRedirect')),
+      component: make(
+        () => import('sentry/views/explore/profiling/profileSummaryRedirect')
+      ),
     },
     traceView,
     {
       path: 'profile/:projectId/',
-      component: make(() => import('sentry/views/profiling/continuousProfileProvider')),
+      component: make(
+        () => import('sentry/views/explore/profiling/continuousProfileProvider')
+      ),
       children: [
         {
           path: 'flamegraph/',
           component: make(
-            () => import('sentry/views/profiling/continuousProfileFlamegraph')
+            () => import('sentry/views/explore/profiling/continuousProfileFlamegraph')
           ),
         },
       ],
     },
     {
       path: 'profile/:projectId/:eventId/',
-      component: make(() => import('sentry/views/profiling/transactionProfileProvider')),
+      component: make(
+        () => import('sentry/views/explore/profiling/transactionProfileProvider')
+      ),
       children: [
         {
           path: 'flamegraph/',
-          component: make(() => import('sentry/views/profiling/profileFlamechart')),
+          component: make(
+            () => import('sentry/views/explore/profiling/profileFlamechart')
+          ),
         },
       ],
     },
   ];
   const profilingRoutes: SentryRouteObject = {
     path: '/profiling/',
-    component: make(() => import('sentry/views/profiling')),
+    component: make(() => import('sentry/views/explore/profiling')),
     withOrgPath: true,
     children: profilingChildren,
   };
@@ -2279,7 +2276,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'profiling/',
-      component: make(() => import('sentry/views/profiling')),
+      component: make(() => import('sentry/views/explore/profiling')),
       children: profilingChildren,
     },
     {
@@ -2289,7 +2286,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'replays/',
-      component: make(() => import('sentry/views/replays/index')),
+      component: make(() => import('sentry/views/explore/replays/index')),
       children: replayChildren,
     },
     {
@@ -2299,7 +2296,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'releases/',
-      component: make(() => import('sentry/views/releases/index')),
+      component: make(() => import('sentry/views/explore/releases/index')),
       children: releaseChildren,
     },
     {
@@ -2314,18 +2311,16 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
-      component: make(() => import('sentry/views/insights/pages/conversations/layout')),
+      component: make(() => import('sentry/views/explore/conversations/layout')),
       children: [
         {
           index: true,
-          component: make(
-            () => import('sentry/views/insights/pages/conversations/overview')
-          ),
+          component: make(() => import('sentry/views/explore/conversations/overview')),
         },
         {
           path: ':conversationId/',
           component: make(
-            () => import('sentry/views/insights/pages/conversations/conversationDetail')
+            () => import('sentry/views/explore/conversations/conversationDetail')
           ),
         },
         transactionSummaryRoute,
@@ -2540,6 +2535,10 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
+    },
+    {
+      path: 'autofix/',
+      component: make(() => import('sentry/views/seerWorkflows')),
     },
     {
       path: 'autofix/recent/',

@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -20,10 +21,9 @@ import {
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  makeAutofixQueryKey,
+  autofixApiOptions,
   useAutofixData,
   useAutofixRepos,
-  type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatSolutionWithEvent} from 'sentry/components/events/autofix/utils';
 import {Timeline} from 'sentry/components/timeline';
@@ -33,7 +33,6 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -67,20 +66,19 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
       );
     },
     onSuccess: (_, params) => {
-      setApiQueryData<AutofixResponse>(
-        queryClient,
-        makeAutofixQueryKey(orgSlug, groupId),
-        data => {
-          if (!data?.autofix) {
-            return data;
-          }
+      queryClient.setQueryData(autofixApiOptions(orgSlug, groupId).queryKey, prev => {
+        if (!prev?.json?.autofix) {
+          return prev;
+        }
 
-          return {
-            ...data,
+        return {
+          ...prev,
+          json: {
+            ...prev.json,
             autofix: {
-              ...data.autofix,
+              ...prev.json.autofix,
               status: AutofixStatus.PROCESSING,
-              steps: data.autofix.steps?.map(step => {
+              steps: prev.json.autofix.steps?.map(step => {
                 if (step.type !== AutofixStepType.SOLUTION) {
                   return step;
                 }
@@ -96,14 +94,14 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
                 };
               }),
             },
-          };
-        }
-      );
-      queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+          },
+        };
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       addLoadingMessage('On it.');
     },
@@ -556,7 +554,7 @@ function AutofixSolutionDisplay({
           {t('Solution')}
           <Button
             size="zero"
-            priority="transparent"
+            variant="transparent"
             tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
@@ -615,7 +613,7 @@ function AutofixSolutionDisplay({
             <SubmitButton
               size="zero"
               type="submit"
-              priority="transparent"
+              variant="transparent"
               disabled={!instructions.trim()}
               aria-label={t('Add to solution')}
             >
@@ -664,10 +662,10 @@ function AutofixSolutionDisplay({
           >
             <Button
               size="sm"
-              priority={
+              variant={
                 !solutionSelected || !valueIsEqual(solutionItems, solution, true)
                   ? 'primary'
-                  : 'default'
+                  : 'secondary'
               }
               busy={isPending}
               disabled={hasNoRepos || cantReadRepos || !enableSeerCoding}

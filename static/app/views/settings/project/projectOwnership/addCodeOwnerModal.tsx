@@ -1,6 +1,11 @@
 import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {
+  skipToken,
+  useQuery,
+  useMutation,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -28,12 +33,7 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  type UseMutationResult,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
@@ -167,7 +167,7 @@ export function AddCodeOwnerModal({
         <Button
           disabled={codeownersFile ? false : true}
           aria-label={t('Add File')}
-          priority="primary"
+          variant="primary"
           onClick={addFile}
         >
           {t('Add File')}
@@ -262,7 +262,7 @@ function LinkCodeOwners({
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
       <Flex justify="center" paddingTop="xl">
-        <LinkButton priority="primary" size="sm" to={baseUrl}>
+        <LinkButton variant="primary" size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
       </Flex>

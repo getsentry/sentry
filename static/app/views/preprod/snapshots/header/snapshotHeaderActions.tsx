@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -17,16 +18,21 @@ import {
   IconDelete,
   IconEllipsis,
   IconInfo,
+  IconOpen,
+  IconReceipt,
   IconRefresh,
   IconThumb,
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {openBuildDebugInfoModal} from 'sentry/views/preprod/snapshots/header/buildDebugInfoModal';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
+import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 interface SnapshotHeaderActionsProps {
@@ -44,6 +50,7 @@ export function SnapshotHeaderActions({
   const clientRef = useRef(new Client());
   useEffect(() => () => clientRef.current.clear(), []);
   const navigate = useNavigate();
+  const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -66,6 +73,10 @@ export function SnapshotHeaderActions({
   }));
 
   const handleApprove = () => {
+    trackAnalytics('preprod.snapshots.details.approve_clicked', {
+      organization,
+      build_id: data.head_artifact_id,
+    });
     setIsApproving(true);
     clientRef.current.request(
       `/organizations/${organizationSlug}/preprodartifacts/${data.head_artifact_id}/approve/`,
@@ -178,7 +189,7 @@ export function SnapshotHeaderActions({
             </Tag>
             <Button
               size="sm"
-              priority="primary"
+              variant="primary"
               icon={<IconThumb />}
               onClick={handleApprove}
               disabled={isApproving}
@@ -192,11 +203,31 @@ export function SnapshotHeaderActions({
         message={t(
           'Are you sure you want to delete this snapshot? This action cannot be undone and will permanently remove all associated files and data.'
         )}
-        confirmInput={data.head_artifact_id}
+        confirmInput="delete"
         onConfirm={handleDelete}
       >
         {({open: openDeleteModal}) => {
-          const menuItems: MenuItemProps[] = [
+          const menuItems: MenuItemProps[] = [];
+
+          if (data.base_artifact_id) {
+            const baseBuildPath = getSnapshotPath({
+              organizationSlug,
+              snapshotId: data.base_artifact_id,
+            });
+            menuItems.push({
+              key: 'go-to-base-build',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconOpen size="sm" />
+                  {t('Go to Base Build')}
+                </Flex>
+              ),
+              onAction: () => navigate(baseBuildPath),
+              textValue: t('Go to Base Build'),
+            });
+          }
+
+          menuItems.push(
             {
               key: 'rerun-status-checks',
               label: (
@@ -209,6 +240,17 @@ export function SnapshotHeaderActions({
               textValue: t('Rerun Status Checks'),
             },
             {
+              key: 'build-debug-info',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconReceipt size="sm" />
+                  {t('Build Metadata')}
+                </Flex>
+              ),
+              onAction: () => openBuildDebugInfoModal(data),
+              textValue: t('Build Metadata'),
+            },
+            {
               key: 'delete',
               label: (
                 <Flex align="center" gap="sm">
@@ -218,8 +260,8 @@ export function SnapshotHeaderActions({
               ),
               onAction: openDeleteModal,
               textValue: t('Delete Snapshots'),
-            },
-          ];
+            }
+          );
 
           if (isSentryEmployee) {
             menuItems.push({
