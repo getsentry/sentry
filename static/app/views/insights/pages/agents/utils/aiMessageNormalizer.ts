@@ -49,21 +49,15 @@ export function normalizeToMessages(
   raw: string,
   {defaultRole}: {defaultRole: string}
 ): NormalizedResult {
-  const {fixedInvalidJson, messages: rawMessages} = parseAndDetect(raw, defaultRole);
-
-  const normalized: AIMessage[] = [];
-  for (const msg of rawMessages) {
-    const role = msg.role ?? defaultRole;
-    const content = resolveMessageContent(msg, role);
-    if (content === undefined || content === null || content === '') {
-      continue;
-    }
-    normalized.push({role, content});
-  }
+  const {fixedInvalidJson, messages: rawMessages} = rawMessagesFromAttribute(
+    raw,
+    defaultRole
+  );
+  const messages = normalizeRawMessages(rawMessages, defaultRole);
 
   return {
     fixedInvalidJson,
-    messages: normalized.length > 0 ? normalized : null,
+    messages: messages.length > 0 ? messages : null,
   };
 }
 
@@ -79,25 +73,53 @@ export function extractAssistantOutput(
   raw: string,
   {defaultRole}: {defaultRole: string}
 ): AIOutputResult {
-  const {fixedInvalidJson, messages: rawMessages} = parseAndDetect(raw, defaultRole);
+  const {fixedInvalidJson, messages: rawMessages} = rawMessagesFromAttribute(
+    raw,
+    defaultRole
+  );
 
-  const empty: AIOutputResult = {
+  if (rawMessages.length === 0) {
+    return emptyOutput(fixedInvalidJson);
+  }
+
+  const selected = selectAssistantMessages(rawMessages);
+  return outputFromMessages(selected, fixedInvalidJson);
+}
+
+function emptyOutput(fixedInvalidJson: boolean): AIOutputResult {
+  return {
     fixedInvalidJson,
     responseText: null,
     responseObject: null,
     toolCalls: null,
   };
-  if (rawMessages.length === 0) {
-    return empty;
+}
+
+function normalizeRawMessages(
+  rawMessages: RawMessage[],
+  defaultRole: string
+): AIMessage[] {
+  const normalized: AIMessage[] = [];
+  for (const msg of rawMessages) {
+    const role = msg.role ?? defaultRole;
+    const content = resolveMessageContent(msg, role);
+    if (content === undefined || content === null || content === '') {
+      continue;
+    }
+    normalized.push({role, content});
   }
+  return normalized;
+}
 
-  const selected = selectAssistantMessages(rawMessages);
-
+function outputFromMessages(
+  messages: RawMessage[],
+  fixedInvalidJson: boolean
+): AIOutputResult {
   const textParts: string[] = [];
   const toolCallParts: unknown[] = [];
   const objectParts: unknown[] = [];
-  for (const msg of selected) {
-    collectOutputExtras(msg, {textParts, toolCallParts, objectParts});
+  for (const msg of messages) {
+    appendOutputFromMessage(msg, {textParts, toolCallParts, objectParts});
   }
 
   return {
@@ -111,30 +133,34 @@ export function extractAssistantOutput(
   };
 }
 
-function parseAndDetect(
+function rawMessagesFromAttribute(
   raw: string,
   defaultRole: string
 ): {fixedInvalidJson: boolean; messages: RawMessage[]} {
-  if (!looksLikeJson(raw)) {
-    return {
-      fixedInvalidJson: false,
-      messages: raw.trim() ? [{role: defaultRole, content: raw}] : [],
-    };
-  }
-
-  const {parsed, fixedInvalidJson}: {fixedInvalidJson: boolean; parsed: unknown} =
-    parseJsonWithFix(raw);
-  if (parsed === null) {
+  const {fixedInvalidJson, parsed} = parseAttribute(raw);
+  if (parsed === undefined) {
     return {fixedInvalidJson, messages: []};
   }
 
-  return {fixedInvalidJson, messages: detectShape(parsed, defaultRole)};
+  return {
+    fixedInvalidJson,
+    messages: rawMessagesFromValue(parsed, defaultRole),
+  };
+}
+
+function parseAttribute(raw: string): {fixedInvalidJson: boolean; parsed: unknown} {
+  if (!looksLikeJson(raw)) {
+    return {fixedInvalidJson: false, parsed: raw};
+  }
+  const {parsed, fixedInvalidJson}: {fixedInvalidJson: boolean; parsed: unknown} =
+    parseJsonWithFix(raw);
+  return {fixedInvalidJson, parsed: parsed ?? undefined};
 }
 
 /**
  * Maps an already-parsed value onto a list of raw messages.
  */
-function detectShape(value: unknown, defaultRole: string): RawMessage[] {
+function rawMessagesFromValue(value: unknown, defaultRole: string): RawMessage[] {
   if (typeof value === 'string') {
     return value.trim() ? [{role: defaultRole, content: value}] : [];
   }
@@ -187,14 +213,14 @@ function unwrapMessagesField(value: UnknownRecord, defaultRole: string): RawMess
     return result;
   }
   if (typeof inner === 'string') {
-    try {
-      const innerParsed: unknown = JSON.parse(inner);
-      result.push(...detectShape(innerParsed, defaultRole));
-    } catch {
+    const innerParsed = parseJsonString(inner);
+    if (innerParsed === undefined) {
       if (inner.trim()) {
         result.push({role: defaultRole, content: inner});
       }
+      return result;
     }
+    result.push(...rawMessagesFromValue(innerParsed, defaultRole));
   }
   return result;
 }
@@ -299,28 +325,14 @@ function selectAssistantMessages(rawMessages: RawMessage[]): RawMessage[] {
   return [rawMessages[rawMessages.length - 1]!];
 }
 
-function collectOutputExtras(
+function appendOutputFromMessage(
   msg: RawMessage,
   buckets: {objectParts: unknown[]; textParts: string[]; toolCallParts: unknown[]}
 ): void {
-  const {textParts, toolCallParts, objectParts} = buckets;
+  const {textParts, objectParts} = buckets;
 
   if (msg.parts) {
-    for (const part of msg.parts) {
-      const partType = getPartType(part);
-      if (partType === 'text' && isRecord(part)) {
-        const text = getStringField(part, 'content') ?? getStringField(part, 'text');
-        if (text) {
-          textParts.push(text);
-        }
-      } else if (partType === 'tool_call') {
-        toolCallParts.push(part);
-      } else if (partType === 'object') {
-        objectParts.push(part);
-      } else if (isFileContentPartType(partType) && isRecord(part)) {
-        textParts.push(`\n\n[redacted content of type "${getMimeType(part)}"]\n\n`);
-      }
-    }
+    appendOutputFromParts(msg.parts, buckets);
     return;
   }
 
@@ -340,6 +352,34 @@ function collectOutputExtras(
   }
 }
 
+function appendOutputFromParts(
+  parts: unknown[],
+  buckets: {objectParts: unknown[]; textParts: string[]; toolCallParts: unknown[]}
+): void {
+  const {textParts, toolCallParts, objectParts} = buckets;
+  for (const part of parts) {
+    const partType = getPartType(part);
+    if (partType === 'text' && isRecord(part)) {
+      const text = getStringField(part, 'content') ?? getStringField(part, 'text');
+      if (text) {
+        textParts.push(text);
+      }
+      continue;
+    }
+    if (partType === 'tool_call') {
+      toolCallParts.push(part);
+      continue;
+    }
+    if (partType === 'object') {
+      objectParts.push(part);
+      continue;
+    }
+    if (isFileContentPartType(partType) && isRecord(part)) {
+      textParts.push(redactedFileContent(part));
+    }
+  }
+}
+
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const FILE_CONTENT_PART_TYPES = new Set<string>(FILE_CONTENT_PARTS);
 type FileContentPartType = (typeof FILE_CONTENT_PARTS)[number];
@@ -354,6 +394,14 @@ function tryParseJsonContent(value: unknown): unknown {
     return value;
   }
   return parsed;
+}
+
+function parseJsonString(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
 }
 
 function looksLikeJson(raw: string): boolean {
@@ -374,7 +422,7 @@ function extractTextFromContentParts(parts: unknown[]): string {
 
     const partType = getPartType(part);
     if (isFileContentPartType(partType)) {
-      texts.push(`\n\n[redacted content of type "${getMimeType(part)}"]\n\n`);
+      texts.push(redactedFileContent(part));
       continue;
     }
     // Accept untyped items with `text` or `content` (older Anthropic-style
@@ -408,4 +456,8 @@ function isFileContentPartType(value: unknown): value is FileContentPartType {
 
 function getMimeType(record: UnknownRecord): string {
   return getStringField(record, 'mime_type') ?? 'unknown';
+}
+
+function redactedFileContent(record: UnknownRecord): string {
+  return `\n\n[redacted content of type "${getMimeType(record)}"]\n\n`;
 }

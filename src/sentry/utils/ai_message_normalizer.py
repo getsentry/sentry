@@ -3,6 +3,7 @@ from typing import Any, TypedDict
 
 FILTERED = "[Filtered]"
 FILE_CONTENT_PARTS = ("blob", "uri", "file")
+_INVALID_JSON = object()
 
 
 class AIMessage(TypedDict):
@@ -28,8 +29,26 @@ class RawMessage(TypedDict, total=False):
 # AI SDKs emit inconsistent shapes and their specs keep changing, so update both
 # parsers together whenever adding or changing a supported format.
 def normalize_to_messages(raw: Any, default_role: str) -> list[AIMessage] | None:
-    raw_messages = _parse_and_detect(raw, default_role)
+    messages = _normalize_raw_messages(
+        _raw_messages_from_attribute(raw, default_role), default_role
+    )
+    return messages or None
 
+
+def extract_assistant_output(raw: Any, default_role: str) -> AIOutputResult:
+    raw_messages = _raw_messages_from_attribute(raw, default_role)
+    if not raw_messages:
+        return _empty_output()
+
+    selected = _select_assistant_messages(raw_messages)
+    return _output_from_messages(selected)
+
+
+def _empty_output() -> AIOutputResult:
+    return {"response_text": None, "response_object": None, "tool_calls": None}
+
+
+def _normalize_raw_messages(raw_messages: list[RawMessage], default_role: str) -> list[AIMessage]:
     normalized: list[AIMessage] = []
     for msg in raw_messages:
         role = msg.get("role") or default_role
@@ -37,22 +56,15 @@ def normalize_to_messages(raw: Any, default_role: str) -> list[AIMessage] | None
         if content is None or content == "":
             continue
         normalized.append({"role": role, "content": content})
+    return normalized
 
-    return normalized or None
 
-
-def extract_assistant_output(raw: Any, default_role: str) -> AIOutputResult:
-    raw_messages = _parse_and_detect(raw, default_role)
-    if not raw_messages:
-        return {"response_text": None, "response_object": None, "tool_calls": None}
-
-    selected = _select_assistant_messages(raw_messages)
-
+def _output_from_messages(messages: list[RawMessage]) -> AIOutputResult:
     text_parts: list[str] = []
     tool_call_parts: list[Any] = []
     object_parts: list[Any] = []
-    for msg in selected:
-        _collect_output_extras(
+    for msg in messages:
+        _append_output_from_message(
             msg,
             text_parts=text_parts,
             tool_call_parts=tool_call_parts,
@@ -70,21 +82,22 @@ def extract_assistant_output(raw: Any, default_role: str) -> AIOutputResult:
     }
 
 
-def _parse_and_detect(raw: Any, default_role: str) -> list[RawMessage]:
-    if isinstance(raw, str):
-        if not _looks_like_json(raw):
-            return [{"role": default_role, "content": raw}] if raw.strip() else []
-
-        try:
-            parsed = json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            return []
-        return _detect_shape(parsed, default_role)
-
-    return _detect_shape(raw, default_role)
+def _raw_messages_from_attribute(raw: Any, default_role: str) -> list[RawMessage]:
+    parsed = _parse_attribute(raw)
+    if parsed is _INVALID_JSON:
+        return []
+    return _raw_messages_from_value(parsed, default_role)
 
 
-def _detect_shape(value: Any, default_role: str) -> list[RawMessage]:
+def _parse_attribute(raw: Any) -> Any:
+    if not isinstance(raw, str):
+        return raw
+    if not _looks_like_json(raw):
+        return raw
+    return _parse_json_string(raw, fallback=_INVALID_JSON)
+
+
+def _raw_messages_from_value(value: Any, default_role: str) -> list[RawMessage]:
     if isinstance(value, str):
         return [{"role": default_role, "content": value}] if value.strip() else []
 
@@ -125,11 +138,12 @@ def _unwrap_messages_field(value: dict[str, Any], default_role: str) -> list[Raw
         return result
 
     if isinstance(inner, str):
-        try:
-            result.extend(_detect_shape(json.loads(inner), default_role))
-        except (json.JSONDecodeError, TypeError):
+        parsed_inner = _parse_json_string(inner, fallback=_INVALID_JSON)
+        if parsed_inner is _INVALID_JSON:
             if inner.strip():
                 result.append({"role": default_role, "content": inner})
+            return result
+        result.extend(_raw_messages_from_value(parsed_inner, default_role))
 
     return result
 
@@ -192,9 +206,8 @@ def _try_parse_json_recursive(value: Any) -> Any:
     if not isinstance(value, str):
         return value
 
-    try:
-        parsed_value = json.loads(value)
-    except (json.JSONDecodeError, TypeError):
+    parsed_value = _parse_json_string(value, fallback=_INVALID_JSON)
+    if parsed_value is _INVALID_JSON:
         return value
 
     if parsed_value is None or isinstance(parsed_value, (bool, int, float)):
@@ -242,7 +255,7 @@ def _select_assistant_messages(raw_messages: list[RawMessage]) -> list[RawMessag
     return [raw_messages[-1]]
 
 
-def _collect_output_extras(
+def _append_output_from_message(
     msg: RawMessage,
     *,
     text_parts: list[str],
@@ -250,21 +263,12 @@ def _collect_output_extras(
     object_parts: list[Any],
 ) -> None:
     if "parts" in msg:
-        for part in msg["parts"]:
-            if not isinstance(part, dict):
-                continue
-            if part.get("type") == "text":
-                text = part.get("content") or part.get("text")
-                if isinstance(text, str) and text:
-                    text_parts.append(text)
-            elif part.get("type") == "tool_call":
-                tool_call_parts.append(part)
-            elif part.get("type") == "object":
-                object_parts.append(part)
-            elif part.get("type") in FILE_CONTENT_PARTS:
-                text_parts.append(
-                    f'\n\n[redacted content of type "{part.get("mime_type") or "unknown"}"]\n\n'
-                )
+        _append_output_from_parts(
+            msg["parts"],
+            text_parts=text_parts,
+            tool_call_parts=tool_call_parts,
+            object_parts=object_parts,
+        )
         return
 
     content = _try_parse_json_recursive(msg.get("content"))
@@ -280,6 +284,40 @@ def _collect_output_extras(
         object_parts.append(content)
 
 
+def _append_output_from_parts(
+    parts: list[Any],
+    *,
+    text_parts: list[str],
+    tool_call_parts: list[Any],
+    object_parts: list[Any],
+) -> None:
+    for part in parts:
+        if not isinstance(part, dict):
+            continue
+
+        part_type = part.get("type")
+        if part_type == "text":
+            text = part.get("content") or part.get("text")
+            if isinstance(text, str) and text:
+                text_parts.append(text)
+            continue
+        if part_type == "tool_call":
+            tool_call_parts.append(part)
+            continue
+        if part_type == "object":
+            object_parts.append(part)
+            continue
+        if part_type in FILE_CONTENT_PARTS:
+            text_parts.append(_redacted_file_content(part))
+
+
+def _parse_json_string(value: str, *, fallback: Any) -> Any:
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return fallback
+
+
 def _looks_like_json(raw: str) -> bool:
     stripped = raw.strip()
     if not stripped:
@@ -293,12 +331,14 @@ def _extract_text_from_content_parts(parts: list[Any]) -> str:
         if not isinstance(part, dict):
             continue
         if part.get("type") in FILE_CONTENT_PARTS:
-            texts.append(
-                f'\n\n[redacted content of type "{part.get("mime_type") or "unknown"}"]\n\n'
-            )
+            texts.append(_redacted_file_content(part))
             continue
         if not part.get("type") or part.get("type") == "text":
             text = part.get("text") or part.get("content")
             if isinstance(text, str) and text:
                 texts.append(text.strip())
     return "\n".join(texts)
+
+
+def _redacted_file_content(part: dict[str, Any]) -> str:
+    return f'\n\n[redacted content of type "{part.get("mime_type") or "unknown"}"]\n\n'
