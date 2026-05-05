@@ -160,12 +160,13 @@ def main():
 
     amplitude_client = Amplitude(api_key)
     amplitude_client.configuration.use_batch = True
+    amplitude_client.configuration.min_id_length = 1
     amplitude_client.configuration.callback = _on_event
 
     batch_size = 1000
     for i, g in enumerate(groups):
         event = GroupIdentifyEvent(
-            user_id="$group_identify",
+            user_id=g["group_value"],
             groups={g["group_type"]: g["group_value"]},
             group_properties=g["group_properties"],
         )
