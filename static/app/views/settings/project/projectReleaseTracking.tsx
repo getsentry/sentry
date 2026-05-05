@@ -3,7 +3,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {FieldGroup as FormFieldGroup, FormSearch} from '@sentry/scraps/form';
+import {FieldGroup as FormFieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -130,127 +130,123 @@ export default function ProjectReleaseTracking() {
 
   const hasWrite = hasEveryAccess(['project:write'], {organization, project});
   return (
-    <FormSearch route="/settings/:orgId/projects/:projectId/release-tracking/">
-      <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug}>
-        <SettingsPageHeader
-          title={t('Release Tracking')}
-          subtitle={t(
-            'Configure release tracking for this project to automatically record new releases of your application.'
-          )}
-        />
-
-        {!hasWrite && (
-          <Alert.Container>
-            <Alert variant="warning" showIcon={false}>
-              {t(
-                'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
-              )}
-            </Alert>
-          </Alert.Container>
+    <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug}>
+      <SettingsPageHeader
+        title={t('Release Tracking')}
+        subtitle={t(
+          'Configure release tracking for this project to automatically record new releases of your application.'
         )}
+      />
 
-        <FormFieldGroup title={t('Client Configuration')}>
-          <Stack gap="xl">
-            <Text as="p">
-              {tct(
-                'Start by binding the [code:release] attribute in your application, take a look at [link:our docs] to see how to configure this for the SDK you are using.',
-                {
-                  code: <code />,
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/releases/" />
-                  ),
-                }
-              )}
-            </Text>
-            <Text as="p">
-              {t(
-                "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
-              )}
-            </Text>
-            <Text as="p">
-              {t(
-                'In addition you may configure a release hook (or use our API) to push a release and include additional metadata with it.'
-              )}
-            </Text>
-          </Stack>
-        </FormFieldGroup>
-
-        <FormFieldGroup title={t('Deploy Token')}>
-          <FieldGroup
-            label={t('Token')}
-            help={t('A unique secret which is used to generate deploy hook URLs')}
-            hideControlState
-          >
-            <TextCopyInput aria-label={t('Token')}>
-              {releaseTokenData.token}
-            </TextCopyInput>
-          </FieldGroup>
-
-          <FieldGroup
-            label={t('Regenerate Token')}
-            help={t(
-              'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
+      {!hasWrite && (
+        <Alert.Container>
+          <Alert variant="warning" showIcon={false}>
+            {t(
+              'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}
-            hideControlState
-          >
-            <Container>
-              <Confirm
-                disabled={!hasWrite}
-                priority="danger"
-                onConfirm={handleRegenerateToken}
-                message={t(
-                  'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
-                )}
-              >
-                <Button variant="danger">{t('Regenerate Token')}</Button>
-              </Confirm>
-            </Container>
-          </FieldGroup>
-        </FormFieldGroup>
+          </Alert>
+        </Alert.Container>
+      )}
 
-        <FormFieldGroup title={t('Webhook')}>
-          <FieldGroup
-            label={t('Webhook URL')}
-            help={t(
-              'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
+      <FormFieldGroup title={t('Client Configuration')}>
+        <Stack gap="xl">
+          <Text as="p">
+            {tct(
+              'Start by binding the [code:release] attribute in your application, take a look at [link:our docs] to see how to configure this for the SDK you are using.',
+              {
+                code: <code />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/releases/" />
+                ),
+              }
             )}
-            inline={false}
-            hideControlState
-          >
-            <TextCopyInput aria-label={t('Webhook URL')}>
-              {releaseTokenData.webhookUrl}
-            </TextCopyInput>
-          </FieldGroup>
-
-          <FieldGroup
-            label={t('Request Example')}
-            help={t(
-              'The release webhook accepts the same parameters as the "Create a new Release" API endpoint.'
+          </Text>
+          <Text as="p">
+            {t(
+              "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
             )}
-            inline={false}
-            hideControlState
-          >
-            <CodeBlock language="bash">{getReleaseWebhookInstructions()}</CodeBlock>
-          </FieldGroup>
-        </FormFieldGroup>
+          </Text>
+          <Text as="p">
+            {t(
+              'In addition you may configure a release hook (or use our API) to push a release and include additional metadata with it.'
+            )}
+          </Text>
+        </Stack>
+      </FormFieldGroup>
 
-        <PluginList project={project} pluginList={pluginList} />
+      <FormFieldGroup title={t('Deploy Token')}>
+        <FieldGroup
+          label={t('Token')}
+          help={t('A unique secret which is used to generate deploy hook URLs')}
+          hideControlState
+        >
+          <TextCopyInput aria-label={t('Token')}>{releaseTokenData.token}</TextCopyInput>
+        </FieldGroup>
 
-        <FormFieldGroup title={t('API')}>
-          <Stack gap="xl">
-            <Text as="p">
-              {t(
-                'You can notify Sentry when you release new versions of your application via our HTTP API.'
+        <FieldGroup
+          label={t('Regenerate Token')}
+          help={t(
+            'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
+          )}
+          hideControlState
+        >
+          <Container>
+            <Confirm
+              disabled={!hasWrite}
+              priority="danger"
+              onConfirm={handleRegenerateToken}
+              message={t(
+                'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
               )}
-            </Text>
-            <Text as="p">
-              {tct('See the [link:releases documentation] for more information.', {
-                link: <ExternalLink href="https://docs.sentry.io/workflow/releases/" />,
-              })}
-            </Text>
-          </Stack>
-        </FormFieldGroup>
-      </SentryDocumentTitle>
-    </FormSearch>
+            >
+              <Button variant="danger">{t('Regenerate Token')}</Button>
+            </Confirm>
+          </Container>
+        </FieldGroup>
+      </FormFieldGroup>
+
+      <FormFieldGroup title={t('Webhook')}>
+        <FieldGroup
+          label={t('Webhook URL')}
+          help={t(
+            'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
+          )}
+          inline={false}
+          hideControlState
+        >
+          <TextCopyInput aria-label={t('Webhook URL')}>
+            {releaseTokenData.webhookUrl}
+          </TextCopyInput>
+        </FieldGroup>
+
+        <FieldGroup
+          label={t('Request Example')}
+          help={t(
+            'The release webhook accepts the same parameters as the "Create a new Release" API endpoint.'
+          )}
+          inline={false}
+          hideControlState
+        >
+          <CodeBlock language="bash">{getReleaseWebhookInstructions()}</CodeBlock>
+        </FieldGroup>
+      </FormFieldGroup>
+
+      <PluginList project={project} pluginList={pluginList} />
+
+      <FormFieldGroup title={t('API')}>
+        <Stack gap="xl">
+          <Text as="p">
+            {t(
+              'You can notify Sentry when you release new versions of your application via our HTTP API.'
+            )}
+          </Text>
+          <Text as="p">
+            {tct('See the [link:releases documentation] for more information.', {
+              link: <ExternalLink href="https://docs.sentry.io/workflow/releases/" />,
+            })}
+          </Text>
+        </Stack>
+      </FormFieldGroup>
+    </SentryDocumentTitle>
   );
 }
