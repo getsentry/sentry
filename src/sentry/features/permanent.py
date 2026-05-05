@@ -141,6 +141,14 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:workflow-engine-log-evaluations": False,
     }
 
+    # Flagpole cannot control system-scoped flags — keep these as INTERNAL.
+    permanent_system_features = {
+        # Enables user registration.
+        "auth:register": True,
+        # Enable support for multiple regions, and org slug subdomains (customer-domains).
+        "system:multi-region": False,
+    }
+
     for org_feature, default in permanent_organization_features.items():
         manager.add(
             org_feature,
@@ -168,19 +176,10 @@ def register_permanent_features(manager: FeatureManager) -> None:
             api_expose=False,
         )
 
-    # Enable support for multiple regions, and org slug subdomains (customer-domains).
-    manager.add(
-        "system:multi-region",
-        SystemFeature,
-        FeatureHandlerStrategy.INTERNAL,
-        default=False,
-        api_expose=False,
-    )
-
-    # Enables user registration.
-    manager.add(
-        "auth:register",
-        SystemFeature,
-        FeatureHandlerStrategy.INTERNAL,
-        default=True,
-    )
+    for system_feature, default in permanent_system_features.items():
+        manager.add(
+            system_feature,
+            SystemFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
+        )
