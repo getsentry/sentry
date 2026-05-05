@@ -59,7 +59,11 @@ import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/pro
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {projects, fetching, fetchError} = useProjects();
+  const {
+    projects: allProjects,
+    fetching: fetchingProjects,
+    fetchError: projectFetchError,
+  } = useProjects();
 
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
@@ -81,7 +85,19 @@ export function SeerProjectTable() {
       ),
   });
   useFetchAllPages({result});
-  const {data: autofixSettingsByProjectId} = result;
+  const {
+    data: autofixSettingsByProjectId,
+    isPending: isPendingSettings,
+    isFetchingNextPage,
+    isError: isErrorSettings,
+  } = result;
+
+  const projects = useMemo(() => {
+    return allProjects.filter(project => {
+      const setting = autofixSettingsByProjectId?.[project.id];
+      return setting?.reposCount;
+    });
+  }, [allProjects, autofixSettingsByProjectId]);
 
   const {data: integrations, isPending: isPendingIntegrations} = useQuery({
     ...organizationIntegrationsCodingAgents(organization),
@@ -220,7 +236,7 @@ export function SeerProjectTable() {
     return filtered;
   }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
 
-  if (filteredProjects.length === 0) {
+  if (projects.length === 0) {
     return (
       <Container display="flex" padding="2xl" border="primary" radius="md">
         <Flex flexGrow={1} justify="center">
@@ -282,35 +298,6 @@ export function SeerProjectTable() {
             />
           </InputGroup>
 
-          {/* <Button
-            variant="primary"
-            size="md"
-            onClick={async () => {
-              setIsLoadingModal(true);
-              try {
-                const {ProjectAddRepoModal} =
-                  await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
-
-                openModal(
-                  deps => (
-                    <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />
-                  ),
-                  {
-                    modalCss: css`
-                      width: 700px;
-                    `,
-                  }
-                );
-              } finally {
-                setIsLoadingModal(false);
-              }
-            }}
-            icon={<IconAdd />}
-            busy={isLoadingModal}
-            disabled={isLoadingModal}
-          >
-            {t('Add Project')}
-          </Button> */}
           <AddProjectButton />
         </Flex>
         <SimpleTableWithColumns>
@@ -322,11 +309,11 @@ export function SeerProjectTable() {
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
 
-          {fetching ? (
+          {fetchingProjects || isPendingSettings || isFetchingNextPage ? (
             <SimpleTable.Empty>
               <LoadingIndicator />
             </SimpleTable.Empty>
-          ) : fetchError ? (
+          ) : projectFetchError || isErrorSettings ? (
             <SimpleTable.Empty>
               <LoadingError />
             </SimpleTable.Empty>
