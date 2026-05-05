@@ -81,6 +81,7 @@ function LogsSectionContent() {
           analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
           embedded
           expanded
+          showExploreSimilarSpansLink
         />
       </TableContainer>
     </Fragment>
