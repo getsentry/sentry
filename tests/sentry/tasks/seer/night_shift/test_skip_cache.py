@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from sentry.tasks.seer.night_shift.skip_cache import (
     SKIP_TTL_SECONDS,
     key,
@@ -35,7 +37,7 @@ def test_ttl_padded_past_three_days() -> None:
     try:
         mark_skipped(305)
         ttl = redis_clusters.get("default").ttl(key(305))
-        assert 3 * 86400 < ttl <= SKIP_TTL_SECONDS
+        assert int(timedelta(days=3).total_seconds()) < ttl <= SKIP_TTL_SECONDS
     finally:
         _delete(305)
 
