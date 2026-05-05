@@ -193,7 +193,6 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
       <Panel>
         <PanelBody>
           <NoGroupsHandler
-            api={api}
             organization={organization}
             query={issueQuery}
             selectedProjectIds={[projectId]}

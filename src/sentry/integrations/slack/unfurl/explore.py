@@ -388,12 +388,20 @@ def _unfurl_explore(
         params["dataset"] = explore_dataset.value
         params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
 
+        # ApiClient iterates params via .items(), which collapses multi-value
+        # QueryDict keys to the last value. Walk lists() and emit a real list
+        # for multi-value keys (e.g. multiple groupBy entries from aggregateField)
+        # so all values reach events-timeseries.
+        api_params: dict[str, str | list[str]] = {
+            key: values if len(values) > 1 else values[0] for key, values in params.lists()
+        }
+
         try:
             resp = client.get(
                 auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                 user=user,
                 path=f"/organizations/{org_slug}/events-timeseries/",
-                params=params,
+                params=api_params,
             )
         except Exception:
             _logger.warning("Failed to load events-timeseries for explore unfurl")

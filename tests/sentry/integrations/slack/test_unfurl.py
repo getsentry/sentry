@@ -1644,7 +1644,37 @@ class UnfurlTest(TestCase):
 
         # Verify sort is passed to the timeseries API for correct top events
         api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("sort") == ["-avg(span.duration)"]
+        assert api_params["sort"] == "-avg(span.duration)"
+
+    @patch("sentry.api.client.resolve")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_forwards_multiple_groupbys_to_api(
+        self, mock_generate_chart: MagicMock, mock_resolve: MagicMock
+    ) -> None:
+        # Don't mock client.get — exercise the real API client so we catch
+        # multi-value param collapse on the way to events-timeseries.
+        mock_response = MagicMock(
+            status_code=200,
+            data=self._build_mock_timeseries_response(y_axis="count(span.duration)"),
+        )
+        mock_view = MagicMock(return_value=mock_response)
+        mock_resolve.return_value = (mock_view, (), {})
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22transaction%22%7D&aggregateField=%7B%22groupBy%22%3A%22browser.name%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A1%7D&project={self.project.id}&statsPeriod=14d"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            link_handlers[link_type].fn(self.integration, links, self.user)
+
+        mock_view.assert_called_once()
+        request = mock_view.call_args[0][0]
+        assert request.GET.getlist("groupBy") == ["transaction", "browser.name"]
+        assert request.GET.getlist("yAxis") == ["count(span.duration)"]
+        assert request.GET["dataset"] == "spans"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1671,7 +1701,7 @@ class UnfurlTest(TestCase):
 
         # Verify explicit aggregateSort from the URL is used instead of the default
         api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("sort") == ["span.op"]
+        assert api_params["sort"] == "span.op"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
