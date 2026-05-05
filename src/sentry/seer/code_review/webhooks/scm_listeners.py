@@ -20,7 +20,7 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
 
     # Do a milion checks to decide wether to process this event
 
-    # @todo(NOW) Implement the milion checks
+    # @todo(NOW) Implement the milion checks, like in ./handlers.py and ./pull_request.py
 
     if e.action not in ["opened", "reopened"]:
         return
@@ -42,12 +42,14 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
         # @todo(NOW) Use the actual hostname for this GitLab instance.
         gitlab_host_name = "gitlab.com"
         repository = Repository.objects.get(
-            external_id=f"{gitlab_host_name}:{e.pull_request['repo_id']}"
+            organization_id=organization_id,
+            provider=f"integrations:{provider}",
+            external_id=f"{gitlab_host_name}:{e.pull_request['repo_id']}",
         )
     else:
         assert False
 
-    scm = make_scm(organization_id, (provider, repository.id), referrer="seer")
+    scm = make_scm(organization_id, repository.id, referrer="seer")
     if isinstance(scm, CreatePullRequestReactionProtocol):
         scm.create_pull_request_reaction(
             pull_request_id=e.pull_request["id"],
@@ -56,7 +58,7 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
 
     # Forward the event to Seer
 
-    # @todo(NOW) Implement forwarding the event to Seer
+    # @todo(NOW) Implement forwarding the event to Seer, adapting the following (copied from ./pull_request.py):
 
     # from .task import schedule_task
 
