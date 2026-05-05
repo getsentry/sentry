@@ -56,11 +56,11 @@ export default function SeerAutomationSCMRequired() {
       ) ?? [],
   });
 
-  if (!showNewSeer(organization)) {
+  if (!showNewSeer(organization) && !hasCodeReviewBeta) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
   }
 
-  if (!hasSeatBasedSeer) {
+  if (!hasSeatBasedSeer && !hasCodeReviewBeta) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/trial/`)} />;
   }
 

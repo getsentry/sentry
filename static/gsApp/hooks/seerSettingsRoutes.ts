@@ -23,7 +23,7 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
     {
       // Legacy autofix page, redirects to /seer/projects/ if seat-based is active
       index: true,
-      name: t('Issue Scans & Fixes'),
+      name: t('Seer Automation'),
       component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
     },
     {
