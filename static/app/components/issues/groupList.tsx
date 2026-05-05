@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
-import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -117,8 +117,9 @@ export function GroupList({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {data: memberList} = useProjectMembers({
-    select: indexMembersByProject,
+  const {data: memberList} = useQuery({
+    ...useProjectMembersQueryOptions(),
+    select: resp => indexMembersByProject(resp.json),
   });
 
   const getQueryParams = useCallback(() => {

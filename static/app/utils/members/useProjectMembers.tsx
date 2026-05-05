@@ -1,26 +1,8 @@
-import {useCallback} from 'react';
-import type {UseQueryResult} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
-
 import type {Member} from 'sentry/types/organization';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ProjectId = number | string;
-
-interface ProjectMembersQueryOptions {
-  orgSlug: string;
-  projectIds?: readonly ProjectId[] | null;
-  staleTime?: number;
-}
-
-interface UseProjectMembersOptions<TData> {
-  enabled?: boolean;
-  projectIds?: readonly ProjectId[] | null;
-  select?: (members: Member[]) => TData;
-  staleTime?: number;
-}
 
 function normalizeProjectIds(projectIds: readonly ProjectId[] | null | undefined) {
   if (!projectIds?.length) {
@@ -32,38 +14,26 @@ function normalizeProjectIds(projectIds: readonly ProjectId[] | null | undefined
   return normalized.length ? normalized : undefined;
 }
 
-function projectMembersQueryOptions({
+interface ProjectMembersQueryOptions {
+  orgSlug: string;
+  projectIds?: readonly ProjectId[] | null;
+}
+
+export function projectMembersQueryOptions({
   orgSlug,
   projectIds,
-  staleTime = 30_000,
 }: ProjectMembersQueryOptions) {
   return apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/users/', {
     path: {organizationIdOrSlug: orgSlug},
     query: {project: normalizeProjectIds(projectIds)},
-    staleTime,
+    staleTime: 30_000,
   });
 }
 
-export function useProjectMembers<TData = Member[]>({
-  enabled = true,
-  projectIds,
-  select,
-  staleTime,
-}: UseProjectMembersOptions<TData> = {}): UseQueryResult<TData> {
+export function useProjectMembersQueryOptions(projectIds?: readonly ProjectId[] | null) {
   const organization = useOrganization();
-  const selectOrganizationMembers = useCallback(
-    (response: ApiResponse<Member[]>) =>
-      (select ? select(response.json) : response.json) as TData,
-    [select]
-  );
-
-  return useQuery({
-    ...projectMembersQueryOptions({
-      orgSlug: organization.slug,
-      projectIds,
-      staleTime,
-    }),
-    enabled,
-    select: selectOrganizationMembers,
+  return projectMembersQueryOptions({
+    orgSlug: organization.slug,
+    projectIds,
   });
 }

@@ -14,7 +14,7 @@ import {
   memberUsersQueryOptions,
   selectUsersFromMembers,
 } from 'sentry/utils/members/shared';
-import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const getSearchKeyForUser = (user: User) =>
@@ -73,9 +73,9 @@ function SelectMembers({
 }: Props) {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 250);
-  const {data: users = [], isPending: memberListLoading} = useProjectMembers({
-    projectIds,
-    select: selectUsersFromMembers,
+  const {data: users = [], isPending: memberListLoading} = useQuery({
+    ...useProjectMembersQueryOptions(projectIds),
+    select: resp => selectUsersFromMembers(resp.json),
   });
   const searchMembersQuery = useQuery({
     ...memberUsersQueryOptions({

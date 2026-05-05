@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -14,7 +15,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
 import {
   useAssignIssueMutation,
   type AssignedBy,
@@ -102,12 +103,11 @@ export function AssigneeSelector({
   additionalMenuFooterItems,
   showLabel = false,
 }: AssigneeSelectorProps) {
-  const {data: defaultMemberList = [], isPending: defaultMemberListLoading} =
-    useProjectMembers({
-      projectIds: [group.project.id],
-      select: selectUsersFromMembers,
-      enabled: memberList === undefined,
-    });
+  const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
+    ...useProjectMembersQueryOptions([group.project.id]),
+    select: resp => selectUsersFromMembers(resp.json),
+    enabled: memberList === undefined,
+  });
   const currentMemberList = memberList ?? defaultMemberList;
 
   return (

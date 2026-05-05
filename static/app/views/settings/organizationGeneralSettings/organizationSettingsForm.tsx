@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQuery} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -32,7 +32,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -96,8 +96,9 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const {data: members = [], isPending: fetching} = useProjectMembers({
-    select: selectUsersFromMembers,
+  const {data: members = [], isPending: fetching} = useQuery({
+    ...useProjectMembersQueryOptions(),
+    select: resp => selectUsersFromMembers(resp.json),
   });
   const memberOptions = members.map(m => ({value: m.id, label: m.name}));
 

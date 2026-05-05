@@ -1,4 +1,5 @@
 import {Outlet, useOutletContext} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 
@@ -7,7 +8,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -45,9 +46,9 @@ export default function AlertBuilderProjectProvider() {
     ? (projects.find(p => p.isMember) ?? (projects.length && projects[0]))
     : projects.find(({slug}) => slug === projectId);
 
-  const {data: members} = useProjectMembers({
+  const {data: members} = useQuery({
+    ...useProjectMembersQueryOptions(project ? [project.id] : undefined),
     enabled: Boolean(project),
-    projectIds: project ? [project.id] : undefined,
   });
 
   if (!initiallyLoaded || fetching) {

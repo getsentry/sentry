@@ -2,13 +2,11 @@ import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-
 export interface MemberResult {
   /**
    * The query error, if fetching failed.
    */
-  error: null | RequestError;
+  error: null | Error;
   /**
    * Reflects whether the query has resolved at least once.
    */

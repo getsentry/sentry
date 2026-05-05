@@ -3,7 +3,6 @@ import {useQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import type {User} from 'sentry/types/user';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {memberUsersQueryOptions, type MemberResult} from './shared';
@@ -41,8 +40,7 @@ export function useOrganizationMemberSearch(): MemberSearchResult {
     setSearch(searchTerm);
     return Promise.resolve();
   }, []);
-  const error = (searchMembersQuery.error ??
-    defaultMembersQuery.error) as RequestError | null;
+  const error = searchMembersQuery.error ?? defaultMembersQuery.error;
 
   return {
     members,

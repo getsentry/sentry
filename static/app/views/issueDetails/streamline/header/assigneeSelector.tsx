@@ -1,4 +1,5 @@
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {TeamAvatar} from '@sentry/scraps/avatar';
@@ -18,7 +19,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {buildTeamId} from 'sentry/utils';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {useProjectMembers} from 'sentry/utils/members/useProjectMembers';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/useProjectMembers';
 import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -105,9 +106,9 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     projectSlug: project.slug,
     group,
   });
-  const {data: members = []} = useProjectMembers({
-    projectIds: [project.id],
-    select: selectUsersFromMembers,
+  const {data: members = []} = useQuery({
+    ...useProjectMembersQueryOptions([project.id]),
+    select: resp => selectUsersFromMembers(resp.json),
   });
 
   const owners = getOwnerList(
