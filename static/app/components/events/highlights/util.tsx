@@ -46,7 +46,7 @@ function getFuzzyHighlightContext(
     {}
   );
   const title = getContextTitle({alias, type: contextType, value});
-  let highlightKey: string | undefined = undefined;
+  let highlightKey: string | undefined;
   if (highlightContextSets.hasOwnProperty(alias)) {
     highlightKey = alias;
   } else if (highlightContextSets.hasOwnProperty(contextType)) {

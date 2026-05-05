@@ -143,6 +143,8 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
           <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />
         )}
         <IssueStackTraceContent
+          // Reset internal state when switching events
+          key={event.id}
           event={event}
           values={values}
           group={group}

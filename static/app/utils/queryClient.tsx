@@ -191,15 +191,11 @@ export function setApiQueryData<TResponseData>(
   return updateResult?.[0];
 }
 
-type ApiMutationVariables<
-  Headers extends Record<string, unknown> = Record<string, string>,
-  Query extends Record<string, unknown> = Record<string, any>,
-  Data extends Record<string, unknown> = Record<string, unknown>,
-> = {
+type ApiMutationVariables = {
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
-  data?: Data;
-  options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers' | 'host'>;
+  data?: Record<string, unknown>;
+  options?: Pick<QueryKeyEndpointOptions, 'query' | 'headers' | 'host'>;
 };
 
 /**

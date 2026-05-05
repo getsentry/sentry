@@ -365,6 +365,9 @@ class ConvertActorOrNoneValueTest(TestCase):
             ["my_teams"], [self.project], self.user, None
         ) == get_teams_for_users([self.project], [self.user])
 
+    def test_my_team_no_projects(self) -> None:
+        assert convert_actor_or_none_value(["my_teams"], [], self.user, None) == []
+
     def test_none(self) -> None:
         assert convert_actor_or_none_value(["none"], [self.project], self.user, None) == [None]
 
@@ -430,27 +433,24 @@ class ConvertFirstReleaseValueTest(TestCase):
 class ConvertCategoryValueTest(TestCase):
     def test(self) -> None:
         error_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.ERROR.value)
-        perf_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.PERFORMANCE.value)
+        db_query_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.DB_QUERY.value)
         assert (
             set(convert_category_value(["error"], [self.project], self.user, None))
             == error_group_types
         )
         assert (
-            set(convert_category_value(["performance"], [self.project], self.user, None))
-            == perf_group_types
-        )
-        assert (
-            set(convert_category_value(["error", "performance"], [self.project], self.user, None))
-            == error_group_types | perf_group_types
+            set(convert_category_value(["error", "DB_QUERY"], [self.project], self.user, None))
+            == error_group_types | db_query_group_types
         )
 
         # Also works with new categories
         assert set(
             convert_category_value(["outage"], [self.project], self.user, None)
         ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.OUTAGE.value)
-        assert set(
-            convert_category_value(["DB_QUERY"], [self.project], self.user, None)
-        ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.DB_QUERY.value)
+        assert (
+            set(convert_category_value(["DB_QUERY"], [self.project], self.user, None))
+            == db_query_group_types
+        )
 
         # Should raise an error for invalid values
         with pytest.raises(InvalidSearchQuery):

@@ -1,17 +1,18 @@
 import type React from 'react';
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProgressBar} from 'sentry/components/progressBar';
 import {
   IconArrow,
   IconExpand,
@@ -21,6 +22,8 @@ import {
   IconStack,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
@@ -30,16 +33,22 @@ import {
   TRANSPARENT_COLOR,
 } from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-import {Card, CardHeader, DarkAware} from './snapshotCards';
+import {CardHeader, DarkAware} from './snapshotCards';
+import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
 import {
   buildSnapshotLink,
-  GroupHeader,
   isItemUngrouped,
   SnapshotListView,
+  type SnapshotListViewHandle,
 } from './snapshotListView';
 
 type ViewMode = 'single' | 'list';
 type SortBy = 'diff' | 'alpha';
+
+export interface NavButtonRefs {
+  next: React.RefObject<HTMLButtonElement | null>;
+  prev: React.RefObject<HTMLButtonElement | null>;
+}
 
 interface SnapshotMainContentProps {
   canNavigateNext: boolean;
@@ -47,9 +56,11 @@ interface SnapshotMainContentProps {
   comparisonType: 'diff' | 'solo' | undefined;
   diffImageBaseUrl: string;
   diffMode: DiffMode;
+  hasDiffComparison: boolean;
   imageBaseUrl: string;
   isSoloView: boolean;
   listItems: SidebarItem[];
+  navButtonRefs: NavButtonRefs;
   onDiffModeChange: (mode: DiffMode) => void;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onOverlayColorChange: (color: string) => void;
@@ -60,8 +71,10 @@ interface SnapshotMainContentProps {
   variantIndex: number;
   viewMode: ViewMode;
   headBranch?: string | null;
+  listViewRef?: React.RefObject<SnapshotListViewHandle | null>;
   onSelectSnapshot?: (key: string | null) => void;
   onSortByChange?: (sort: SortBy) => void;
+  onVisibleGroupChange?: (name: string | null) => void;
   selectedSnapshotKey?: string | null;
   sortBy?: SortBy;
 }
@@ -78,20 +91,66 @@ export function SnapshotMainContent({
   viewMode,
   onViewModeChange,
   listItems,
+  hasDiffComparison,
   isSoloView,
   onToggleSoloView,
   comparisonType,
   headBranch,
+  listViewRef,
   selectedSnapshotKey,
   onSelectSnapshot,
   sortBy = 'diff',
   onSortByChange,
+  onVisibleGroupChange,
   onNavigateSingleView,
   canNavigatePrev,
   canNavigateNext,
+  navButtonRefs,
 }: SnapshotMainContentProps) {
+  const organization = useOrganization();
   const [isDark, setIsDark] = useState(false);
-  const toggleDark = () => setIsDark(v => !v);
+  const toggleDark = useCallback(() => setIsDark(v => !v), []);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+
+  const {cardOffsets, totalCards} = useMemo(() => {
+    const offsets: number[] = [];
+    let total = 0;
+    for (const item of listItems) {
+      offsets.push(total);
+      const count =
+        item.type === 'changed' || item.type === 'renamed'
+          ? item.pairs.length
+          : item.images.length;
+      total += count;
+    }
+    return {cardOffsets: offsets, totalCards: total};
+  }, [listItems]);
+
+  const handleListScrollProgress = useCallback(
+    (progress: number, firstVisibleCardIndex: number) => {
+      setScrollProgress(progress);
+      setCurrentCardIndex(firstVisibleCardIndex);
+    },
+    []
+  );
+
+  const singleViewIndex = useMemo(() => {
+    if (!selectedItem) {
+      return 0;
+    }
+    const idx = listItems.indexOf(selectedItem);
+    return idx === -1 ? 0 : idx;
+  }, [selectedItem, listItems]);
+
+  useEffect(() => {
+    if (viewMode !== 'single') {
+      return;
+    }
+    const cardIndex = (cardOffsets[singleViewIndex] ?? 0) + variantIndex;
+    setCurrentCardIndex(cardIndex);
+    setScrollProgress(totalCards <= 1 ? 100 : (cardIndex / (totalCards - 1)) * 100);
+  }, [viewMode, singleViewIndex, variantIndex, totalCards, cardOffsets]);
 
   const handleOpenSnapshot = useCallback(
     (key: string) => {
@@ -104,22 +163,29 @@ export function SnapshotMainContent({
   const toggle = (
     <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
   );
+  const progressIndicator = totalCards > 0 && (
+    <ProgressPill>
+      <ToolbarProgressBar value={scrollProgress} />
+      <ProgressCounter size="xs" variant="muted">
+        {currentCardIndex + 1}/{totalCards}
+      </ProgressCounter>
+    </ProgressPill>
+  );
   const hasChangedInList = listItems.some(i => i.type === 'changed');
   const sortDropdown =
     onSortByChange && comparisonType !== 'solo' && hasChangedInList ? (
       <SortDropdown value={sortBy} onChange={onSortByChange} />
     ) : null;
-  const listDiffControls =
-    viewMode === 'list' && hasChangedInList ? (
-      <Flex align="center" gap="sm">
-        {diffMode === 'split' && (
-          <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
-        )}
-        <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
-      </Flex>
-    ) : null;
+  const diffControls = hasChangedInList ? (
+    <Fragment>
+      {diffMode === 'split' && (
+        <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
+      )}
+      <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
+    </Fragment>
+  ) : null;
   let soloDiffToggle: React.ReactNode = null;
-  if (comparisonType === 'diff') {
+  if (hasDiffComparison) {
     soloDiffToggle = (
       <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
     );
@@ -137,27 +203,26 @@ export function SnapshotMainContent({
         width="100%"
         background="secondary"
       >
-        <Flex align="center" justify="between" gap="md" padding="md 2xl md 0">
-          <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
-            {toggle}
-            {sortDropdown}
-          </Flex>
-          <Flex align="center" gap="md" onClick={e => e.stopPropagation()}>
-            {listDiffControls}
-            {soloDiffToggle}
-          </Flex>
-        </Flex>
-        <Separator orientation="horizontal" />
+        <ToolbarContainer
+          toggle={toggle}
+          sortDropdown={sortDropdown}
+          progressIndicator={progressIndicator}
+          diffControls={diffControls}
+          soloDiffToggle={soloDiffToggle}
+        />
         <SnapshotListView
+          ref={listViewRef}
           items={listItems}
           imageBaseUrl={imageBaseUrl}
           headBranch={headBranch}
           selectedSnapshotKey={selectedSnapshotKey}
           onSelectSnapshot={onSelectSnapshot}
           onOpenSnapshot={handleOpenSnapshot}
+          onScrollProgress={handleListScrollProgress}
           diffMode={diffMode}
           overlayColor={overlayColor}
           diffImageBaseUrl={diffImageBaseUrl}
+          onVisibleGroupChange={onVisibleGroupChange}
         />
       </Flex>
     );
@@ -166,14 +231,12 @@ export function SnapshotMainContent({
   if (!selectedItem) {
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <Flex align="center" justify="between" gap="md" padding="md xl">
-          <Flex align="center" gap="md">
-            {toggle}
-            {sortDropdown}
-          </Flex>
-          {soloDiffToggle}
-        </Flex>
-        <Separator orientation="horizontal" />
+        <ToolbarContainer
+          toggle={toggle}
+          sortDropdown={sortDropdown}
+          progressIndicator={progressIndicator}
+          soloDiffToggle={soloDiffToggle}
+        />
         <Flex align="center" justify="center" padding="3xl" width="100%" flex="1">
           <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
         </Flex>
@@ -196,9 +259,12 @@ export function SnapshotMainContent({
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
+        sortDropdown={sortDropdown}
+        progressIndicator={progressIndicator}
         canNavigatePrev={canNavigatePrev}
         canNavigateNext={canNavigateNext}
         onNavigateSingleView={onNavigateSingleView}
+        navButtonRefs={navButtonRefs}
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
@@ -206,15 +272,18 @@ export function SnapshotMainContent({
           diffPercent: currentPair.diff,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
+          onCopyLink: () =>
+            trackAnalytics('preprod.snapshots.details.image_link_copied', {
+              organization,
+              diff_status: 'changed',
+            }),
+          onCopyMetadata: () =>
+            trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+              organization,
+              diff_status: 'changed',
+            }),
         }}
-        rightControls={
-          <Fragment>
-            {diffMode === 'split' && (
-              <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
-            )}
-            <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
-          </Fragment>
-        }
+        diffControls={diffControls}
         body={
           <DiffImageDisplay
             pair={currentPair}
@@ -222,6 +291,7 @@ export function SnapshotMainContent({
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
             diffMode={diffMode}
+            headLabel={headBranch ?? t('Head')}
           />
         }
       />
@@ -242,15 +312,28 @@ export function SnapshotMainContent({
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
+        sortDropdown={sortDropdown}
+        progressIndicator={progressIndicator}
         canNavigatePrev={canNavigatePrev}
         canNavigateNext={canNavigateNext}
         onNavigateSingleView={onNavigateSingleView}
+        navButtonRefs={navButtonRefs}
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
           status: DiffStatus.RENAMED,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
+          onCopyLink: () =>
+            trackAnalytics('preprod.snapshots.details.image_link_copied', {
+              organization,
+              diff_status: 'renamed',
+            }),
+          onCopyMetadata: () =>
+            trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+              organization,
+              diff_status: 'renamed',
+            }),
         }}
         body={<SingleImageDisplay imageUrl={imageUrl} alt={getImageName(image)} />}
       />
@@ -280,15 +363,28 @@ export function SnapshotMainContent({
       groupName={groupName}
       toggle={toggle}
       soloDiffToggle={soloDiffToggle}
+      sortDropdown={sortDropdown}
+      progressIndicator={progressIndicator}
       canNavigatePrev={canNavigatePrev}
       canNavigateNext={canNavigateNext}
       onNavigateSingleView={onNavigateSingleView}
+      navButtonRefs={navButtonRefs}
       headerProps={{
         displayName: currentImage.display_name,
         fileName: currentImage.image_file_name,
         status,
         copyData: currentImage,
         copyUrl: buildSnapshotLink(currentImage.image_file_name),
+        onCopyLink: () =>
+          trackAnalytics('preprod.snapshots.details.image_link_copied', {
+            organization,
+            diff_status: status ? selectedItem.type : null,
+          }),
+        onCopyMetadata: () =>
+          trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+            organization,
+            diff_status: status ? selectedItem.type : null,
+          }),
       }}
       body={<SingleImageDisplay imageUrl={imageUrl} alt={getImageName(currentImage)} />}
     />
@@ -301,12 +397,15 @@ function SingleViewLayout({
   groupName,
   toggle,
   soloDiffToggle,
+  sortDropdown,
+  progressIndicator,
   canNavigatePrev,
   canNavigateNext,
   onNavigateSingleView,
+  navButtonRefs,
   headerProps,
   body,
-  rightControls,
+  diffControls,
 }: {
   body: React.ReactNode;
   canNavigateNext: boolean;
@@ -314,17 +413,85 @@ function SingleViewLayout({
   groupName: string | null;
   headerProps: Omit<React.ComponentProps<typeof CardHeader>, 'isDark' | 'onToggleDark'>;
   isDark: boolean;
+  navButtonRefs: NavButtonRefs;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onToggleDark: () => void;
+  progressIndicator: React.ReactNode;
   soloDiffToggle: React.ReactNode;
+  sortDropdown: React.ReactNode;
   toggle: React.ReactNode;
-  rightControls?: React.ReactNode;
+  diffControls?: React.ReactNode;
 }) {
+  const wheelCooldownRef = useRef(false);
+  const pressTimeoutRef = useRef<number | undefined>(undefined);
+  const cooldownTimeoutRef = useRef<number | undefined>(undefined);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const navStateRef = useRef({onNavigateSingleView, canNavigateNext, canNavigatePrev});
+  navStateRef.current = {onNavigateSingleView, canNavigateNext, canNavigatePrev};
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const handler = (e: WheelEvent) => {
+      if (e.deltaY === 0) {
+        return;
+      }
+      e.preventDefault();
+      if (wheelCooldownRef.current) {
+        return;
+      }
+      const {
+        onNavigateSingleView: navigate,
+        canNavigateNext: canNext,
+        canNavigatePrev: canPrev,
+      } = navStateRef.current;
+      const isNext = e.deltaY > 0;
+      if (isNext ? !canNext : !canPrev) {
+        return;
+      }
+      wheelCooldownRef.current = true;
+      navigate(isNext ? 'next' : 'prev');
+
+      const btn = isNext ? navButtonRefs.next.current : navButtonRefs.prev.current;
+      const otherBtn = isNext ? navButtonRefs.prev.current : navButtonRefs.next.current;
+      if (btn) {
+        clearTimeout(pressTimeoutRef.current);
+        otherBtn?.removeAttribute('aria-pressed');
+        btn.setAttribute('aria-pressed', 'true');
+        pressTimeoutRef.current = window.setTimeout(
+          () => btn.removeAttribute('aria-pressed'),
+          150
+        );
+      }
+
+      clearTimeout(cooldownTimeoutRef.current);
+      cooldownTimeoutRef.current = window.setTimeout(() => {
+        wheelCooldownRef.current = false;
+      }, 120);
+    };
+    el.addEventListener('wheel', handler, {passive: false});
+    return () => {
+      el.removeEventListener('wheel', handler);
+      clearTimeout(pressTimeoutRef.current);
+      clearTimeout(cooldownTimeoutRef.current);
+    };
+  }, [navButtonRefs]);
+
   const card = (
-    <SingleViewCard isDark={isDark} isSelected={false}>
-      <CardHeader {...headerProps} isDark={isDark} onToggleDark={onToggleDark} />
-      <SingleViewBody>{body}</SingleViewBody>
-    </SingleViewCard>
+    <SnapshotVariantFrame fillHeight>
+      <CardHeader
+        {...headerProps}
+        isDark={isDark}
+        onToggleDark={onToggleDark}
+        showBottomBorder={false}
+      />
+      <Flex direction="column" flex="1" minHeight="0">
+        {body}
+      </Flex>
+    </SnapshotVariantFrame>
   );
   return (
     <Flex
@@ -334,55 +501,48 @@ function SingleViewLayout({
       height="100%"
       width="100%"
       background="secondary"
+      onClick={e => e.stopPropagation()}
     >
-      <Flex
-        align="center"
-        justify="between"
-        gap="md"
-        padding="md xl"
-        onClick={e => e.stopPropagation()}
-      >
-        {toggle}
-        <Flex align="center" gap="md">
-          {rightControls}
-          {soloDiffToggle}
-        </Flex>
-      </Flex>
-      <Separator orientation="horizontal" />
-      <SingleViewScroll>
+      <ToolbarContainer
+        toggle={toggle}
+        sortDropdown={sortDropdown}
+        progressIndicator={progressIndicator}
+        diffControls={diffControls}
+        soloDiffToggle={soloDiffToggle}
+      />
+      <SingleViewScroll ref={scrollRef}>
         <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
           <Flex direction="column" flex="1" minWidth="0">
             <DarkAware isDark={isDark}>
-              {groupName ? (
-                <SingleViewGroup>
-                  <GroupHeader name={groupName} />
-                  {card}
-                </SingleViewGroup>
-              ) : (
-                card
-              )}
+              <SnapshotCardFrame groupName={groupName} fillHeight>
+                {card}
+              </SnapshotCardFrame>
             </DarkAware>
           </Flex>
-          <NavGutter onClick={e => e.stopPropagation()}>
-            <Tooltip title={t('Previous')} skipWrapper>
-              <Button
-                size="sm"
-                icon={<IconArrow direction="up" />}
-                aria-label={t('Previous snapshot')}
-                disabled={!canNavigatePrev}
-                onClick={() => onNavigateSingleView('prev')}
-              />
-            </Tooltip>
-            <Tooltip title={t('Next')} skipWrapper>
-              <Button
-                size="sm"
-                icon={<IconArrow direction="down" />}
-                aria-label={t('Next snapshot')}
-                disabled={!canNavigateNext}
-                onClick={() => onNavigateSingleView('next')}
-              />
-            </Tooltip>
-          </NavGutter>
+          <Container flexShrink={0} onClick={e => e.stopPropagation()}>
+            <NavGutter>
+              <Tooltip title={t('Previous (↑)')} skipWrapper>
+                <Button
+                  ref={navButtonRefs.prev}
+                  size="sm"
+                  icon={<IconArrow direction="up" />}
+                  aria-label={t('Previous snapshot')}
+                  disabled={!canNavigatePrev}
+                  onClick={() => onNavigateSingleView('prev')}
+                />
+              </Tooltip>
+              <Tooltip title={t('Next (↓)')} skipWrapper>
+                <Button
+                  ref={navButtonRefs.next}
+                  size="sm"
+                  icon={<IconArrow direction="down" />}
+                  aria-label={t('Next snapshot')}
+                  disabled={!canNavigateNext}
+                  onClick={() => onNavigateSingleView('next')}
+                />
+              </Tooltip>
+            </NavGutter>
+          </Container>
         </Flex>
       </SingleViewScroll>
     </Flex>
@@ -400,6 +560,7 @@ function SoloDiffToggle({
     <SegmentedControl
       size="xs"
       value={isSoloView ? 'head' : 'diff'}
+      aria-label={t('Comparison view')}
       onChange={value => {
         if ((value === 'head') !== isSoloView) {
           onToggleSoloView();
@@ -423,24 +584,31 @@ function ViewModeToggle({
   onViewModeChange: (mode: ViewMode) => void;
   viewMode: ViewMode;
 }) {
+  const organization = useOrganization();
   return (
     <SegmentedControl
       size="xs"
       value={viewMode}
-      onChange={onViewModeChange}
+      onChange={(value: ViewMode) => {
+        onViewModeChange(value);
+        trackAnalytics('preprod.snapshots.details.view_mode_changed', {
+          organization,
+          view_mode: value,
+        });
+      }}
       aria-label={t('View mode')}
     >
       <SegmentedControl.Item
         key="list"
         icon={<IconList />}
         aria-label={t('List view')}
-        tooltip={t('List view')}
+        tooltip={t('List view (←)')}
       />
       <SegmentedControl.Item
         key="single"
         icon={<IconExpand />}
         aria-label={t('Single image view')}
-        tooltip={t('Single image view')}
+        tooltip={t('Single image view (→)')}
       />
     </SegmentedControl>
   );
@@ -480,7 +648,7 @@ function ColorPickerButton({
 
   useEffect(() => {
     if (!isOpen) {
-      return undefined;
+      return;
     }
     function handleMouseDown(e: MouseEvent) {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
@@ -529,8 +697,19 @@ function DiffModeToggle({
   diffMode: DiffMode;
   onDiffModeChange: (mode: DiffMode) => void;
 }) {
+  const organization = useOrganization();
   return (
-    <SegmentedControl size="xs" value={diffMode} onChange={onDiffModeChange}>
+    <SegmentedControl
+      size="xs"
+      value={diffMode}
+      onChange={(value: DiffMode) => {
+        onDiffModeChange(value);
+        trackAnalytics('preprod.snapshots.details.diff_mode_changed', {
+          organization,
+          diff_mode: value,
+        });
+      }}
+    >
       <SegmentedControl.Item
         key="split"
         icon={<IconPause />}
@@ -553,16 +732,6 @@ function DiffModeToggle({
   );
 }
 
-const SingleViewGroup = styled(Stack)`
-  flex: 1 1 0;
-  min-height: 0;
-  padding: ${p => p.theme.space.lg};
-  gap: ${p => p.theme.space.md};
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-`;
-
 const SingleViewScroll = styled('div')`
   flex: 1 1 0;
   min-height: 0;
@@ -574,31 +743,23 @@ const SingleViewScroll = styled('div')`
   flex-direction: column;
 `;
 
-// Sticky + vertically centered so the nav arrows sit at the viewport's
-// vertical center and stay reachable as the user scrolls tall images.
 const NavGutter = styled('div')`
   position: sticky;
   top: 50%;
   transform: translateY(-50%);
-  align-self: flex-start;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex-shrink: 0;
-`;
 
-const SingleViewCard = styled(Card)`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-`;
-
-const SingleViewBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
+  button[aria-pressed='true'] {
+    &::after {
+      transform: translateY(0px);
+    }
+    > span:last-child {
+      transform: translateY(0px);
+    }
+  }
 `;
 
 const ColorPickerWrapper = styled('div')`
@@ -643,6 +804,21 @@ const ColorTrigger = styled('button')<{color: string}>`
   }
 `;
 
+const ProgressPill = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+`;
+
+const ProgressCounter = styled(Text)`
+  white-space: nowrap;
+  font-family: ${p => p.theme.font.family.mono};
+`;
+
+const ToolbarProgressBar = styled(ProgressBar)`
+  width: 50px;
+`;
+
 const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
   width: 20px;
   height: 20px;
@@ -664,3 +840,45 @@ const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
       transparent calc(50% + 1.5px)
     );`}
 `;
+
+function ToolbarContainer({
+  toggle,
+  sortDropdown,
+  progressIndicator,
+  diffControls,
+  soloDiffToggle,
+}: {
+  toggle: React.ReactNode;
+  diffControls?: React.ReactNode;
+  progressIndicator?: React.ReactNode;
+  soloDiffToggle?: React.ReactNode;
+  sortDropdown?: React.ReactNode;
+}) {
+  return (
+    <Fragment>
+      <Flex
+        align="center"
+        justify="between"
+        gap="md"
+        padding="md xl md 0"
+        background="primary"
+        onClick={e => e.stopPropagation()}
+      >
+        <Flex align="center" gap="md">
+          {toggle}
+          {sortDropdown}
+          {progressIndicator}
+        </Flex>
+        <Flex align="center" gap="md">
+          {diffControls && (
+            <Flex align="center" gap="sm">
+              {diffControls}
+            </Flex>
+          )}
+          {soloDiffToggle}
+        </Flex>
+      </Flex>
+      <Separator orientation="horizontal" />
+    </Fragment>
+  );
+}

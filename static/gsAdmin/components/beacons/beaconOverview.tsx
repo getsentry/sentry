@@ -10,7 +10,7 @@ export type BeaconData = {
   firstCheckin: string;
   id: string;
   installID: string;
-  isDocker: boolean;
+  isDocker: boolean | undefined;
   lastCheckin: string;
   totalProjects: number;
   totalUsers: number;

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -9,6 +8,7 @@ from uuid import uuid4
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.db.models import F
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
@@ -28,12 +28,11 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.explorer.utils import normalize_description
+from sentry.seer.agent.utils import normalize_description
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
-from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
@@ -42,7 +41,6 @@ SEER_CHECK_BUDGET_ENDPOINT_PATH = "/v1/automation/issue-detection/check-budget"
 SEER_TIMEOUT_S = 10
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
-TRACE_PROCESSING_TTL_SECONDS = 7200
 MAX_LLM_FIELD_LENGTH = 2000
 
 
@@ -52,34 +50,6 @@ seer_issue_detection_connection_pool = connection_from_url(
     retries=0,
     maxsize=10,
 )
-
-
-def _get_unprocessed_traces(trace_ids: list[str]) -> set[str]:
-    """Return set of trace_ids that have NOT been processed"""
-    if not trace_ids:
-        return set()
-    cluster = redis_clusters.get("default")
-    keys = [f"llm_detection:processed:{tid}" for tid in trace_ids]
-    results = cluster.mget(keys)
-    return {tid for tid, val in zip(trace_ids, results) if val is None}
-
-
-def mark_traces_as_processed(trace_ids: list[str]) -> None:
-    """
-    Mark traces as processed for LLM issue detection to prevent duplicate analysis.
-
-    Will overwrite existing keys to refresh the TTL, since reaching this point
-    means we have confirmation that the trace is being processed.
-    """
-    if not trace_ids:
-        return
-
-    cluster = redis_clusters.get("default")
-    with cluster.pipeline() as pipeline:
-        for trace_id in trace_ids:
-            key = f"llm_detection:processed:{trace_id}"
-            pipeline.set(key, "1", ex=TRACE_PROCESSING_TTL_SECONDS)
-        pipeline.execute()
 
 
 class DetectedIssue(BaseModel):
@@ -155,17 +125,17 @@ def get_base_platform(platform: str | None) -> str | None:
 
 
 TITLE_TO_GROUP_TYPE: dict[str, type[GroupType]] = {
-    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
-    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
-    "Failed HTTP Operation": AIDetectedHTTPGroupType,
+    "Blocking Operation": AIDetectedRuntimePerformanceGroupType,
     "Inefficient Database Queries": AIDetectedDBGroupType,
+    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
     "Degraded Database Operation": AIDetectedDBGroupType,
-    "Main Thread Blocking Operation": AIDetectedRuntimePerformanceGroupType,
+    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
     "Degraded UI Performance": AIDetectedRuntimePerformanceGroupType,
+    "Configuration Warning": AIDetectedCodeHealthGroupType,
     "Potential Security Leak": AIDetectedSecurityGroupType,
     "Potential Security Risk": AIDetectedSecurityGroupType,
-    "Configuration Warning": AIDetectedCodeHealthGroupType,
     "Deprecation Warning": AIDetectedCodeHealthGroupType,
+    "Failed HTTP Operation": AIDetectedHTTPGroupType,
 }
 
 GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
@@ -193,6 +163,19 @@ def create_issue_occurrence_from_detection(
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
     group_type = get_group_type_for_title(detected_issue.title)
+
+    if group_type == AIDetectedGeneralGroupType:
+        logger.info(
+            "Detected General AI Issue",
+            extra={
+                "title": detected_issue.title,
+                "explanation": detected_issue.explanation,
+                "impact": detected_issue.impact,
+                "evidence": detected_issue.evidence,
+            },
+        )
+        return None
+
     setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
     if setting_key:
         perf_settings = project.get_option("sentry:performance_issue_settings", default={})
@@ -303,6 +286,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         Project.objects.filter(
             organization_id=org_id,
             status=ObjectStatus.ACTIVE,
+            flags=F("flags").bitor(Project.flags.has_transactions),
         ).values_list("id", flat=True)
     )
     if not project_ids:
@@ -346,20 +330,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     if not evidence_traces:
         return
 
-    random.shuffle(evidence_traces)
-
-    all_trace_ids = [t.trace_id for t in evidence_traces]
-    unprocessed_ids = _get_unprocessed_traces(all_trace_ids)
-    skipped = len(all_trace_ids) - len(unprocessed_ids)
-    if skipped:
-        sentry_sdk.metrics.count("llm_issue_detection.trace.skipped", skipped)
-
-    traces_to_send: list[TraceMetadataWithSpanCount] = [
-        t for t in evidence_traces if t.trace_id in unprocessed_ids
-    ][:1]
-
-    if not traces_to_send:
-        return
+    traces_to_send = evidence_traces[:1]
 
     sentry_sdk.metrics.count(
         "llm_issue_detection.seer_request",
@@ -384,7 +355,6 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     )
 
     if response.status == 202:
-        mark_traces_as_processed([trace.trace_id for trace in traces_to_send])
         return
 
     logger.error(

@@ -137,7 +137,7 @@ export function TransactionProfileProvider({
 
   useLayoutEffect(() => {
     if (!profileId || !projectSlug || !orgSlug) {
-      return undefined;
+      return;
     }
 
     setProfile({type: 'loading'});
@@ -201,13 +201,13 @@ export function ContinuousProfileProvider({
       Sentry.captureMessage(
         'Failed to fetch continuous profile - invalid chunk parameters.'
       );
-      return undefined;
+      return;
     }
 
     const project = projects.find(p => p.slug === projectSlug);
     if (!project) {
       Sentry.captureMessage('Failed to fetch continuous profile - project not found.');
-      return undefined;
+      return;
     }
 
     setProfile({type: 'loading'});

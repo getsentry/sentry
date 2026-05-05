@@ -87,7 +87,7 @@ export function SavedQueriesLandingContent() {
             trigger={triggerProps => (
               <Button
                 {...triggerProps}
-                priority="primary"
+                variant="primary"
                 icon={<IconAdd />}
                 size="md"
                 aria-label={t('Create Query')}
@@ -104,7 +104,7 @@ export function SavedQueriesLandingContent() {
           />
         ) : (
           <LinkButton
-            priority="primary"
+            variant="primary"
             icon={<IconAdd />}
             size="md"
             to={getExploreUrl({organization, visualize: []})}

@@ -9,16 +9,18 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
@@ -639,10 +641,14 @@ function buildMetricsQueryParam(params: Record<string, any>): string[] | undefin
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
 export function buildToolLinkUrl(
-  toolLink: ToolLink,
+  toolLink: ToolLink | undefined,
   orgSlug: string,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
+  if (!toolLink) {
+    return null;
+  }
+
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
       const {dataset, project_slugs, query, sort, stats_period, start, end} =
@@ -704,9 +710,15 @@ export function buildToolLinkUrl(
           const yAxesArray = Array.isArray(y_axes) ? y_axes : [y_axes];
           fields.push(...yAxesArray);
         }
-        if (fields.length > 0) {
-          queryParams.field = fields;
+
+        // make sure we always force some fields as discover will re-route to the
+        // saved default query in the event that no fields are specified
+        if (fields.length === 0) {
+          const defaultErrorView = DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS];
+          fields.push(...defaultErrorView.fields);
         }
+
+        queryParams.field = fields;
 
         // Discover sort strips parentheses from aggregates: -count() -> -count
         if (queryParams.sort) {
@@ -1172,7 +1184,7 @@ export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOpt
       ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
       ...(runId === null
         ? {}
-        : {['conversations_url']: getConversationsUrl('sentry', runId)}),
+        : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),
     },
   };
 }

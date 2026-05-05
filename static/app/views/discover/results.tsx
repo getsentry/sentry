@@ -361,7 +361,7 @@ export class Results extends Component<Props, State> {
     const {api, organization, location} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
-    if (confirmedQuery === false || !eventView.isValid()) {
+    if (!confirmedQuery || !eventView.isValid()) {
       return;
     }
 
@@ -652,7 +652,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -725,7 +725,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -734,7 +734,7 @@ export class Results extends Component<Props, State> {
               {
                 traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
                 FAQLink: (
-                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                  <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                 ),
               }
             )}
@@ -1348,15 +1348,6 @@ function DiscoverPageFilters({
       </PageFilterBar>
       {hasPageFrameFeature && (
         <Flex gap="md" align="center">
-          <SaveQueryButton
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
-          />
           {!shouldHideCreateAlert && (
             <Feature organization={organization} features="incidents">
               {({hasFeature}) =>
@@ -1390,6 +1381,15 @@ function DiscoverPageFilters({
             yAxis={yAxis}
             isHomepage={isHomepage}
             setSavedQuery={setSavedQuery}
+          />
+          <SaveQueryButton
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            savedQuery={savedQuery}
+            yAxis={yAxis}
+            setSavedQuery={setSavedQuery}
+            errorCode={errorCode}
           />
         </Flex>
       )}

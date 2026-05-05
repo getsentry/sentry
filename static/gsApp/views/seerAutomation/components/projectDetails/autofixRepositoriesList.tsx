@@ -149,7 +149,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
             </Flex>
             <Button
               disabled={!canWrite}
-              priority="primary"
+              variant="primary"
               icon={<IconAdd />}
               onClick={handleAddRepoClick}
             >
@@ -165,7 +165,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
       <Flex justify="end">
         <Button
           disabled={!canWrite}
-          priority="primary"
+          variant="primary"
           icon={<IconAdd />}
           onClick={handleAddRepoClick}
         >

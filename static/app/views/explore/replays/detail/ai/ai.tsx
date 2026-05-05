@@ -117,7 +117,7 @@ export function Ai() {
               {t('Replay Summary')}
             </Text>
             <Button
-              priority="default"
+              variant="secondary"
               type="button"
               size="xs"
               onClick={() => {

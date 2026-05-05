@@ -2,7 +2,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
+from sentry.seer.agent.context_engine_utils import ProjectEventCounts
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.context_engine_index import (
     get_allowed_org_ids_context_engine_indexing,
