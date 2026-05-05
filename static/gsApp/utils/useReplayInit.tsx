@@ -7,7 +7,7 @@ import {isStaticString} from 'sentry/locale';
 import {useUser} from 'sentry/utils/useUser';
 
 // Single replayRef across the whole app, even if this hook is called multiple times
-let replayRef: ReturnType<typeof replayIntegration> | null;
+let replayRef: ReturnType<typeof replayIntegration> | null = null;
 // Subscribers waiting for replayRef to become non-null. Needed because two
 // useReplayInit callers can be mounted around the same async init: the
 // initiator's `setReady` only updates its own component, so the other caller
