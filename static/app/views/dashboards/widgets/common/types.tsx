@@ -211,3 +211,134 @@ export interface CategoricalSeries {
    */
   groupBy?: CategoricalGroupBy[] | null;
 }
+
+/**
+ * The type of values in a heatmap series.
+ * This is the broadest set of types supported - any value type that can come
+ * from the API. The plottable layer constrains this to plottable types.
+ */
+export type HeatMapValueType = AttributeValueType;
+export type HeatMapValueUnit = AttributeValueUnit;
+
+/**
+ * A single item in a heat map series.
+ */
+interface HeatMapItem {
+  /**
+   * The X-axis value
+   */
+  xAxis: number;
+  /**
+   * The Y-axis value
+   */
+  yAxis: number;
+  /**
+   * The Z-axis value. This can be null if the value is missing.
+   */
+  zAxis: number | null;
+}
+
+/**
+ * Metadata for a heat map series X-axis. Right now this axis is always time.
+ */
+interface HeatMapSeriesXAxisMeta {
+  /**
+   * The total count of buckets on this axis. Matches what was requested, if were requested
+   */
+  bucketCount: number;
+  /**
+   * The size of the buckets on this axis.
+   */
+  bucketSize: number;
+  /**
+   * The largest value of data on the axis
+   */
+  end: number;
+  /**
+   * The name of the series. Corresponds to what it's plotting. Could be `"time"` or something like `"count()"`
+   */
+  name: string;
+  /**
+   * The smallest value of data on the axis
+   */
+  start: number;
+}
+
+/**
+ * Metadata for a heat map series Y axis. Right now this is the only axis that is configurable by the user, so it returns the value type and unit.
+ */
+interface HeatMapSeriesYAxisMeta {
+  /**
+   * The total count of buckets on this axis. Matches what was requested, if were requested
+   */
+  bucketCount: number;
+  /**
+   * The size of the buckets on this axis.
+   */
+  bucketSize: number;
+  /**
+   * The largest value of data on the axis
+   */
+  end: number;
+  /**
+   * The name of the series. Corresponds to what it's plotting. Could be `"time"` or something like `"count()"`
+   */
+  name: string;
+  /**
+   * The smallest value of data on the axis
+   */
+  start: number;
+  /**
+   * The type of the values (e.g., "duration", "number")
+   */
+  valueType: HeatMapValueType;
+  /**
+   * The unit of the values, if applicable.
+   */
+  valueUnit: DataUnit | null;
+}
+
+/**
+ * Metadata for a heat map series Z axis. Right now this is always a count.
+ */
+interface HeatMapSeriesZAxisMeta {
+  /**
+   * The largest value of data on the axis
+   */
+  end: number;
+  /**
+   * The name of the series. Corresponds to what it's plotting. Could be `"time"` or something like `"count()"`
+   */
+  name: string;
+  /**
+   * The smallest value of data on the axis
+   */
+  start: number;
+}
+
+/**
+ * Metadata for a heat map series.
+ */
+interface HeatMapSeriesMeta {
+  xAxis: HeatMapSeriesXAxisMeta;
+  yAxis: HeatMapSeriesYAxisMeta;
+  zAxis: HeatMapSeriesZAxisMeta;
+}
+
+/**
+ * A heat map data series for heat map visualizations.
+ */
+export interface HeatMapSeries {
+  /**
+   * Metadata about the series.
+   */
+  meta: HeatMapSeriesMeta;
+  /**
+   * The data points in this series.
+   */
+  values: HeatMapItem[];
+  /**
+   * Represents the grouping information for the series, if applicable.
+   */
+  groupBy?: CategoricalGroupBy[] | null;
+}
