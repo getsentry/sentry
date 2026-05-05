@@ -2204,6 +2204,79 @@ class UnfurlTest(TestCase):
         assert api_params["dataset"] == "tracemetrics"
         assert api_params["yAxis"] == "sum(value,my.metric,distribution,millisecond)"
 
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_metrics_skips_hidden_charts(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # First metric param is hidden (visible=false); second has no `visible`
+        # field so it defaults to true. Unfurl should render the second chart.
+        hidden_metric = (
+            "%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p50(value)%22%5D%2C"
+            "%22visible%22%3Afalse%7D%5D%7D"
+        )
+        visible_metric = (
+            "%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p95(value)%22%5D%7D%5D%7D"
+        )
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+            f"?metric={hidden_metric}&metric={visible_metric}"
+            f"&project={self.project.id}&statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title="Explore Metrics - p95(value)",
+                chart_url="chart-url",
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        api_params = mock_client_get.call_args[1]["params"]
+        assert api_params["yAxis"] == "p95(value)"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_metrics_all_hidden_returns_no_unfurl(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        hidden_metric = (
+            "%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22p50(value)%22%5D%2C"
+            "%22visible%22%3Afalse%7D%5D%7D"
+        )
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+            f"?metric={hidden_metric}&project={self.project.id}&statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert unfurls == {}
+        assert mock_generate_chart.call_count == 0
+        assert mock_client_get.call_count == 0
+
     def _create_spans_widget(
         self,
         display_type: int = DashboardWidgetDisplayTypes.LINE_CHART,
