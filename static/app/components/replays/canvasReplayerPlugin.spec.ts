@@ -94,7 +94,6 @@ function createReplayer(getNodeImpl: (id: number) => Node | null) {
 describe('canvasReplayerPlugin', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.clearAllTimers();
     (canvasMutation as jest.Mock).mockClear();
   });
 
