@@ -660,6 +660,7 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
         # to return the new aliases, remove these temp mappings.
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
+        "sentry.transaction": "transaction",
         "sentry.segment_name": "transaction",
     },
     "boolean": {
