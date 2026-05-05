@@ -5,7 +5,7 @@ import {useMutation} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -107,7 +107,7 @@ function DashboardRevisionsModal({
           <LoadingIndicator />
         ) : isError ? (
           <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
-        ) : displayedRevisions.length ? (
+        ) : (
           <Flex direction="column" gap="md">
             {isRestoreError && (
               <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
@@ -122,7 +122,7 @@ function DashboardRevisionsModal({
                 isSelected={isNewestVersionSelected}
                 onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
                 revisionSource={revisions?.[0]?.source ?? 'edit'}
-                createdBy={revisions?.[0]?.createdBy ?? null}
+                createdBy={revisions?.[0]?.createdBy ?? dashboard.createdBy ?? null}
                 dateCreated={null}
                 dashboardId={dashboardId}
                 baseRevisionId={displayedRevisions[0]?.id ?? null}
@@ -144,10 +144,6 @@ function DashboardRevisionsModal({
                 />
               ))}
             </Flex>
-          </Flex>
-        ) : (
-          <Flex align="center" justify="center" padding="xl">
-            <Text variant="muted">{t('No revisions found.')}</Text>
           </Flex>
         )}
       </Body>
