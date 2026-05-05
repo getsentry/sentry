@@ -76,7 +76,7 @@ export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        priority: 'transparent',
+        variant: 'transparent',
         showChevron: false,
         'aria-label': t('Context Menu'),
         icon: <IconEllipsis />,

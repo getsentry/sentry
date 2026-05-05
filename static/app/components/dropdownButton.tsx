@@ -4,8 +4,6 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
-// eslint-disable-next-line boundaries/dependencies
-import {DO_NOT_USE_resolveButtonVariant as resolveButtonVariant} from '@sentry/scraps/button/types';
 
 import {IconChevron} from 'sentry/icons';
 
@@ -53,7 +51,7 @@ export function DropdownButton({
       {showChevron && (
         <ChevronWrap>
           <IconChevron
-            variant={resolveButtonVariant(props) === 'secondary' ? 'muted' : undefined}
+            variant={(props.variant ?? 'secondary') === 'secondary' ? 'muted' : undefined}
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />

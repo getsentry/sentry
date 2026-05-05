@@ -107,7 +107,7 @@ class Table extends PureComponent<TableProps, TableState> {
     // from an invalid view state to a valid one.
     if (
       (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
-      (prevProps.eventView.isValid() === false && this.props.eventView.isValid()) ||
+      (!prevProps.eventView.isValid() && this.props.eventView.isValid()) ||
       (prevProps.confirmedQuery !== this.props.confirmedQuery && this.didViewChange())
     ) {
       this.fetchData();

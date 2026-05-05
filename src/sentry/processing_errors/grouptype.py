@@ -253,7 +253,6 @@ class SourcemapConfigurationType(GroupType):
     slug = "sourcemap_configuration"
     description = "Source Map Configuration Issue"
     category = GroupCategory.CONFIGURATION.value
-    category_v2 = GroupCategory.CONFIGURATION.value
     released = False
     default_priority = PriorityLevel.LOW
     enable_auto_resolve = False

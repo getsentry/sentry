@@ -101,7 +101,7 @@ function ChangeCounts({
     parts.push(t('%s removed', removed));
   }
   if (changed > 0) {
-    parts.push(t('%s modified', changed));
+    parts.push(t('%s changed', changed));
   }
   if (unchanged > 0) {
     parts.push(t('%s unchanged', unchanged));

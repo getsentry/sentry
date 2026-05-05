@@ -126,7 +126,7 @@ export function RouteError({error, disableLogSentry, disableReport}: RouteErrorP
               'Still stuck? Our [link:troubleshooting guide] has tips for common browser-related issues.',
               {
                 link: (
-                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22088541158555-Why-Sentry-io-is-not-loading" />
+                  <ExternalLink href="https://www.sentry.help/en/articles/13964425-why-sentry-io-is-not-loading" />
                 ),
               }
             )}
@@ -136,7 +136,7 @@ export function RouteError({error, disableLogSentry, disableReport}: RouteErrorP
           {tct(
             'If the guide does not help, [link:contact support] — include as many of these details as you can:',
             {
-              link: <ExternalLink href="https://sentry.zendesk.com/hc/en-us" />,
+              link: <ExternalLink href="https://www.sentry.help" />,
             }
           )}
         </p>

@@ -27,7 +27,7 @@ export function ReadTheDocsFooter() {
         external
         href="https://docs.sentry.io"
         onClick={close}
-        priority="primary"
+        variant="primary"
       >
         Read the Docs
       </LinkButton>
@@ -58,7 +58,7 @@ Each step can include an image, title, content, and navigation actions. The defa
   <Fragment>
     <GlobalModal />
     <Button
-      priority="primary"
+      variant="primary"
       onClick={() => {
         openModal(deps => (
           <FeatureShowcase {...deps}>
@@ -133,7 +133,7 @@ Pass custom children alongside `<FeatureShowcase.StepActions />`, or replace it 
   <Fragment>
     <GlobalModal />
     <Button
-      priority="primary"
+      variant="primary"
       onClick={() => {
         openModal(deps => (
           <FeatureShowcase {...deps}>
@@ -166,7 +166,7 @@ function ReadTheDocsFooter() {
   const {close} = useShowcaseContext();
   return (
     <Flex justify="end">
-      <LinkButton external href="https://docs.sentry.io" onClick={close} priority="primary">
+      <LinkButton external href="https://docs.sentry.io" onClick={close} variant="primary">
         Read the Docs
       </LinkButton>
     </Flex>

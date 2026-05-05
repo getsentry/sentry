@@ -17,7 +17,7 @@ function CustomFooter() {
         external
         href="http://example.org"
         onClick={close}
-        priority="primary"
+        variant="primary"
         aria-label="Complete tour"
       >
         Finished

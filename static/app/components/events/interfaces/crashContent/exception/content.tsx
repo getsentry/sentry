@@ -128,7 +128,7 @@ function ToggleExceptionButton({
 
   return (
     <ShowRelatedExceptionsButton
-      priority="link"
+      variant="link"
       onClick={() => {
         toggleRelatedExceptions(exceptionId);
       }}

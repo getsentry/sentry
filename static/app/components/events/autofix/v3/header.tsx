@@ -42,7 +42,7 @@ export function SeerDrawerHeader({
             disabled={!onReset}
             tooltipProps={{title: t('Start a new analysis from scratch')}}
             aria-label={t('Start a new analysis from scratch')}
-            priority="transparent"
+            variant="transparent"
           />
           <Button
             size="xs"
@@ -51,7 +51,7 @@ export function SeerDrawerHeader({
             disabled={!onCopyMarkdown}
             tooltipProps={{title: t('Copy analysis as Markdown')}}
             aria-label={t('Copy analysis as Markdown')}
-            priority="transparent"
+            variant="transparent"
           />
         </Flex>
       </Flex>

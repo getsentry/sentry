@@ -1,4 +1,12 @@
-import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -9,6 +17,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -36,7 +45,7 @@ import type {SnapshotListViewHandle} from './main/snapshotListView';
 import {type NavButtonRefs, SnapshotMainContent} from './main/snapshotMainContent';
 import {
   DIFF_TYPE_ORDER,
-  type SidebarGroup,
+  type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
 
@@ -135,6 +144,22 @@ export default function SnapshotsPage() {
     }
   );
 
+  const viewedArtifactRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isPending || !data || viewedArtifactRef.current === data.head_artifact_id) {
+      return;
+    }
+    viewedArtifactRef.current = data.head_artifact_id;
+    trackAnalytics('preprod.snapshots.details.viewed', {
+      organization,
+      comparison_type: data.comparison_type,
+      image_count: data.image_count,
+      approval_status: data.approval_info?.status ?? null,
+      has_base_build: !!data.base_artifact_id,
+      project_id: data.project_id,
+    });
+  }, [isPending, data, organization]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
@@ -152,11 +177,12 @@ export default function SnapshotsPage() {
       .withDefault('list')
       .withOptions(pushHistory)
   );
+  const replaceHistory = {history: 'replace' as const};
   const [activeStatusList, setActiveStatusList] = useQueryState(
     'selectedTypes',
     parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus)))
       .withDefault([])
-      .withOptions(pushHistory)
+      .withOptions(replaceHistory)
   );
   const [selectedSnapshotKey, setSelectedSnapshotKey] = useQueryState(
     'selectedSnapshot',
@@ -172,14 +198,18 @@ export default function SnapshotsPage() {
 
   const handleToggleStatus = useCallback(
     (status: DiffStatus) => {
-      setActiveStatusList(prev => {
-        if (prev.length === 0) {
-          return [status];
-        }
-        if (prev.length === 1 && prev[0] === status) {
-          return [];
-        }
-        return prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status];
+      startTransition(() => {
+        setActiveStatusList(prev => {
+          if (prev.length === 0) {
+            return [status];
+          }
+          if (prev.length === 1 && prev[0] === status) {
+            return [];
+          }
+          return prev.includes(status)
+            ? prev.filter(s => s !== status)
+            : [...prev, status];
+        });
       });
     },
     [setActiveStatusList]
@@ -275,11 +305,8 @@ export default function SnapshotsPage() {
     [sidebarItems]
   );
 
-  const deferredSearchQuery = useDeferredValue(searchQuery);
-  const deferredActiveStatuses = useDeferredValue(activeStatuses);
-
   const searchFilteredItems = useMemo(() => {
-    const trimmedQuery = deferredSearchQuery.trim().toLowerCase();
+    const trimmedQuery = searchQuery.trim().toLowerCase();
     if (!trimmedQuery) {
       return sidebarItems;
     }
@@ -295,48 +322,64 @@ export default function SnapshotsPage() {
       }
     }
     return result;
-  }, [sidebarItems, memberSearchKeys, deferredSearchQuery]);
+  }, [sidebarItems, memberSearchKeys, searchQuery]);
 
   const filteredItems = useMemo(() => {
-    const hasStatusFilter = deferredActiveStatuses.size > 0;
+    const hasStatusFilter = activeStatuses.size > 0;
     const base = hasStatusFilter
-      ? searchFilteredItems.filter(item =>
-          deferredActiveStatuses.has(item.type as DiffStatus)
-        )
+      ? searchFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
       : searchFilteredItems;
 
-    if (sortBy === 'alpha') {
-      return [...base].sort((a, b) => a.name.localeCompare(b.name));
-    }
     return [...base].sort((a, b) => {
-      const diffA = itemMaxDiff(a);
-      const diffB = itemMaxDiff(b);
-      if (diffA !== diffB) {
-        return diffB - diffA;
+      const typeOrder = (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
+      if (typeOrder !== 0) {
+        return typeOrder;
       }
-      return (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
+      if (sortBy === 'diff') {
+        const diffDelta = itemMaxDiff(b) - itemMaxDiff(a);
+        if (diffDelta !== 0) {
+          return diffDelta;
+        }
+      }
+      return a.name.localeCompare(b.name);
     });
-  }, [searchFilteredItems, deferredActiveStatuses, sortBy]);
+  }, [searchFilteredItems, activeStatuses, sortBy]);
 
-  const sidebarGroups = useMemo<SidebarGroup[]>(() => {
-    const merged = new Map<string, SidebarGroup>();
-    for (const item of filteredItems) {
-      const existing = merged.get(item.name);
-      const count =
-        item.type === 'changed' || item.type === 'renamed'
-          ? item.pairs.length
-          : item.images.length;
-      if (existing) {
-        existing.count += count;
-      } else {
-        merged.set(item.name, {key: item.name, name: item.name, count});
-      }
+  const sidebarSections = useMemo<SidebarSection[]>(() => {
+    function toGroup(item: SidebarItem) {
+      return {key: item.key, name: item.name, count: itemVariantCount(item)};
     }
-    return [...merged.values()];
-  }, [filteredItems]);
 
+    if (comparisonType !== 'diff') {
+      const groups = filteredItems.map(toGroup);
+      return groups.length > 0 ? [{groups}] : [];
+    }
+
+    const sectionOrder = [
+      DiffStatus.CHANGED,
+      DiffStatus.REMOVED,
+      DiffStatus.ADDED,
+      DiffStatus.RENAMED,
+      DiffStatus.UNCHANGED,
+    ];
+    const byType = new Map<
+      DiffStatus,
+      Array<{count: number; key: string; name: string}>
+    >();
+    for (const type of sectionOrder) {
+      byType.set(type, []);
+    }
+    for (const item of filteredItems) {
+      byType.get(item.type as DiffStatus)?.push(toGroup(item));
+    }
+    return sectionOrder
+      .filter(type => byType.get(type)!.length > 0)
+      .map(type => ({type, groups: byType.get(type)!}));
+  }, [filteredItems, comparisonType]);
+
+  const deferredFilteredItems = useDeferredValue(filteredItems);
   const currentItem = filteredItems[0] ?? null;
-  const listItems = filteredItems;
+  const listItems = deferredFilteredItems;
 
   const statusCounts = useMemo<Record<DiffStatus, number> | null>(() => {
     if (comparisonType !== 'diff') {
@@ -358,11 +401,11 @@ export default function SnapshotsPage() {
   }, [searchFilteredItems, comparisonType]);
 
   const listViewRef = useRef<SnapshotListViewHandle>(null);
-  const [visibleGroupName, setVisibleGroupName] = useState<string | null>(null);
+  const [visibleItemKey, setVisibleItemKey] = useState<string | null>(null);
 
   const handleSelectItem = useCallback(
-    (name: string) => {
-      const item = filteredItems.find(i => i.name === name);
+    (itemKey: string) => {
+      const item = filteredItems.find(i => i.key === itemKey);
       if (!item) {
         return;
       }
@@ -370,7 +413,7 @@ export default function SnapshotsPage() {
       if (key) {
         setSelectedSnapshotKey(key);
       }
-      listViewRef.current?.scrollToGroup(name);
+      listViewRef.current?.scrollToGroup(itemKey);
     },
     [filteredItems, setSelectedSnapshotKey]
   );
@@ -445,10 +488,12 @@ export default function SnapshotsPage() {
     };
   }, [listItems, singleViewPosition]);
 
-  const navButtonRefs: NavButtonRefs = {
-    prev: useRef<HTMLButtonElement>(null),
-    next: useRef<HTMLButtonElement>(null),
-  };
+  const prevButtonRef = useRef<HTMLButtonElement>(null);
+  const nextButtonRef = useRef<HTMLButtonElement>(null);
+  const navButtonRefs = useMemo<NavButtonRefs>(
+    () => ({prev: prevButtonRef, next: nextButtonRef}),
+    []
+  );
 
   const pressTimeoutRef = useRef<number>(undefined);
   // Ref so the keydown handler reads latest state without re-registering.
@@ -545,8 +590,22 @@ export default function SnapshotsPage() {
       : deferredItem;
   const singleViewVariantIndex = singleViewPosition?.variantIdx ?? 0;
 
-  const activeGroupName =
-    viewMode === 'list' ? visibleGroupName : (singleViewItem?.name ?? null);
+  const activeItemKey = useMemo(() => {
+    if (viewMode !== 'list') {
+      return singleViewItem?.key ?? null;
+    }
+    if (selectedSnapshotKey && singleViewPosition) {
+      return listItems[singleViewPosition.itemIdx]?.key ?? visibleItemKey;
+    }
+    return visibleItemKey;
+  }, [
+    viewMode,
+    singleViewItem,
+    selectedSnapshotKey,
+    singleViewPosition,
+    listItems,
+    visibleItemKey,
+  ]);
 
   const isComparisonProcessing =
     !!comparisonRunInfo?.state &&
@@ -586,8 +645,8 @@ export default function SnapshotsPage() {
         }}
       >
         <SnapshotSidebarContent
-          groups={sidebarGroups}
-          activeGroupName={activeGroupName}
+          sections={sidebarSections}
+          activeItemKey={activeItemKey}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSelectItem={handleSelectItem}
@@ -624,7 +683,7 @@ export default function SnapshotsPage() {
           headBranch={data?.vcs_info?.head_ref}
           selectedSnapshotKey={selectedSnapshotKey}
           onSelectSnapshot={setSelectedSnapshotKey}
-          onVisibleGroupChange={setVisibleGroupName}
+          onVisibleGroupChange={setVisibleItemKey}
           sortBy={sortBy}
           onSortByChange={setSortBy}
           onNavigateSingleView={navigateSingleView}
@@ -681,14 +740,30 @@ export default function SnapshotsPage() {
   );
 }
 
+const TOOLBAR_HEIGHT = '45px';
+
 const DragHandle = styled('div')`
+  position: relative;
   display: grid;
   place-items: center;
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;
   user-select: inherit;
-  background: ${p => p.theme.tokens.background.secondary};
+  background: linear-gradient(
+    to bottom,
+    ${p => p.theme.tokens.background.primary} ${TOOLBAR_HEIGHT},
+    ${p => p.theme.tokens.background.secondary} ${TOOLBAR_HEIGHT}
+  );
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: ${TOOLBAR_HEIGHT};
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
 
   &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};

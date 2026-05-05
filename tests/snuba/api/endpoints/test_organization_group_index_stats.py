@@ -266,3 +266,52 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             assert any(bucket[1] == 10 for bucket in response.data[0]["stats"]["24h"]), (
                 "could not find upsampled bucket in stats"
             )
+
+    def _store_platform_tag_collision_events(self):
+        for i, ts in enumerate(
+            [before_now(seconds=10), before_now(seconds=8), before_now(seconds=6)]
+        ):
+            event = self.store_event(
+                data={
+                    "event_id": f"{i + 1}" * 32,
+                    "timestamp": ts.isoformat(),
+                    "fingerprint": ["platform-collision-group"],
+                    "tags": {"platform": "SJ1"},
+                },
+                project_id=self.project.id,
+            )
+        return event.group
+
+    def test_platform_tag_collision_badge_disagrees_without_option(self) -> None:
+        group = self._store_platform_tag_collision_events()
+        self.login_as(user=self.user)
+
+        response = self.get_response(query="platform:SJ1", groups=[group.id])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["count"] == "3"
+        assert response.data[0]["filtered"]["count"] == "0"
+
+    def test_platform_tag_collision_badge_agrees_with_option(self) -> None:
+        group = self._store_platform_tag_collision_events()
+        self.login_as(user=self.user)
+
+        with self.options({"issues.search.use-tag-aware-condition-resolver": True}):
+            response = self.get_response(query="platform:SJ1", groups=[group.id])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["count"] == "3"
+        assert response.data[0]["filtered"]["count"] == "3"
+
+    def test_explicit_tag_query_works_regardless_of_option(self) -> None:
+        group = self._store_platform_tag_collision_events()
+        self.login_as(user=self.user)
+
+        for option_value in (False, True):
+            with self.options({"issues.search.use-tag-aware-condition-resolver": option_value}):
+                response = self.get_response(query="tags[platform]:SJ1", groups=[group.id])
+            assert response.status_code == 200
+            assert response.data[0]["filtered"]["count"] == "3"
+            assert response.data[0]["count"] == "3"

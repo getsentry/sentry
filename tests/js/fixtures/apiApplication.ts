@@ -7,6 +7,7 @@ export function ApiApplicationFixture(
     allowedOrigins: [],
     clientID: 'aowekr12903i9i423094i23904j',
     clientSecret: null,
+    dateCreated: '2024-01-15T12:00:00.000Z',
     homepageUrl: null,
     id: '123',
     isPublic: false,

@@ -30,7 +30,7 @@ export function AskSeerButton() {
   const props: ButtonProps = {
     'aria-label': state === 'thinking' ? t('Seer is thinking...') : t('Ask Seer'),
     'aria-expanded': isOpen ? true : undefined,
-    priority: 'default',
+    variant: 'secondary',
     icon: (
       <IconSeer
         animation={

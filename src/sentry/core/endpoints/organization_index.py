@@ -38,7 +38,6 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
 from sentry.services.organization import (
     OrganizationOptions,
@@ -174,16 +173,6 @@ class OrganizationIndexEndpoint(Endpoint):
                         for u in user_service.get_many_by_email(emails=value, is_verified=False)
                     }
                     queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
-                elif key == "platform":
-                    # Note: platform filtering is kept here but is not present in the control version
-                    # of this endpoint, since the data is not in control and our UI isn't
-                    # passing this anymore.
-                    sentry_sdk.capture_message("organization_index.platform_filter_used")
-                    queryset = queryset.filter(
-                        project__in=ProjectPlatform.objects.filter(platform__in=value).values(
-                            "project_id"
-                        )
-                    )
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)
                 elif key == "status":
@@ -207,11 +196,6 @@ class OrganizationIndexEndpoint(Endpoint):
         if sort_by == "members":
             queryset = queryset.annotate(member_count=Count("member_set"))
             order_by = "-member_count"
-            paginator_cls = OffsetPaginator
-        elif sort_by == "projects":
-            sentry_sdk.capture_message("organization_index.sort_by_projects_used")
-            queryset = queryset.annotate(project_count=Count("project"))
-            order_by = "-project_count"
             paginator_cls = OffsetPaginator
         else:
             order_by = "-date_added"
@@ -317,10 +301,6 @@ class OrganizationIndexEndpoint(Endpoint):
             )
             queryset = queryset.annotate(member_count=Coalesce(Subquery(member_count_subquery), 0))
             order_by = "-member_count"
-            paginator_cls = OffsetPaginator
-        elif sort_by == "projects":
-            queryset = queryset.none()
-            order_by = "-date_created"
             paginator_cls = OffsetPaginator
         else:
             order_by = "-date_created"

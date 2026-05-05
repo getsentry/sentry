@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import Group
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
@@ -337,7 +337,10 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         error_group_ids = category_group_ids[GroupCategory.ERROR]
         assert self.event.group_id in error_group_ids
         assert self.event2.group_id in error_group_ids
-        assert self.perf_event.group_id in category_group_ids[GroupCategory.PERFORMANCE]
+        assert (
+            self.perf_event.group_id
+            in category_group_ids[GroupCategory(PerformanceNPlusOneGroupType.category)]
+        )
 
 
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
