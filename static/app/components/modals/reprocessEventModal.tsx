@@ -124,6 +124,7 @@ export function ReprocessingEventModal({
                 )}
               >
                 <field.Number
+                  min={1}
                   placeholder={t('Reprocess all events')}
                   value={field.state.value}
                   onChange={field.handleChange}
