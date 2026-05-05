@@ -152,6 +152,22 @@ describe('useCrossEventQueries', () => {
     });
   });
 
+  it('returns undefined when all cross event queries are for unavailable datasets', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {type: 'logs', query: 'test:a'},
+        {
+          type: 'metrics',
+          query: 'env:prod',
+          metric: {name: 'my_metric', type: 'counter'},
+        },
+      ]),
+      initialProps: {spans: true, logs: false, metrics: false},
+    });
+
+    expect(result.current).toBeUndefined();
+  });
+
   it('prepends metric identity fields to metric queries', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([

@@ -31,6 +31,10 @@ export function useCrossEventQueries(
       )
       .slice(0, MAX_CROSS_EVENT_QUERIES);
 
+    if (slicedCrossEvents.length === 0) {
+      return;
+    }
+
     const logQuery: string[] = [];
     const spanQuery: string[] = [];
     const metricQuery: string[] = [];
