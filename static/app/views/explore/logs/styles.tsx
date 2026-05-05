@@ -137,7 +137,7 @@ export const LogTable = styled(ContentsTable)<{minWidth: string}>`
   flex-direction: column;
   margin-bottom: 0;
   overflow-x: hidden;
-  min-width: p.minWidth;
+  min-width: ${p => p.minWidth};
 `;
 
 export const LogTableBody = styled(TableBody)<{
