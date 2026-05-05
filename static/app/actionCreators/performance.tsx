@@ -106,7 +106,7 @@ export function toggleKeyTransaction(
       } else if (typeof errorDetails === 'string') {
         addErrorMessage(errorDetails);
       } else {
-        addErrorMessage('Unable to update key transaction');
+        addErrorMessage(t('Unable to update key transaction'));
       }
     }
   });
