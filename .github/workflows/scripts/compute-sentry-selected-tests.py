@@ -82,6 +82,9 @@ EXCLUDED_TEST_FILES: set[str] = {
 
 EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
     ".github/CODEOWNERS": ["tests/sentry/api/test_api_owners.py"],
+    "static/app/data/controlsiloUrlPatterns.ts": [
+        "tests/sentry/management/commands/test_generate_controlsilo_urls.py"
+    ],
 }
 
 EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
