@@ -110,7 +110,7 @@ function makeWidgetFingerprint(w: Widget): string {
   const layoutPart = w.layout
     ? `${w.layout.x},${w.layout.y},${w.layout.w},${w.layout.h}`
     : '';
-  return `${w.title}::${w.displayType}::${w.interval ?? ''}::${w.description ?? ''}::${queryPart}::${layoutPart}`;
+  return `${w.title}::${w.displayType}::${w.interval ?? ''}::${w.description ?? ''}::${queryPart}::${layoutPart}::${JSON.stringify(w.thresholds ?? null)}`;
 }
 
 function diffQueryFields(
@@ -247,6 +247,18 @@ export function diffWidgets(
         field: isTextWidget ? t('content') : t('description'),
         before: truncateDescription(baseDescription),
         after: truncateDescription(snapshotDescription),
+      });
+    }
+
+    const baseThresholds = JSON.stringify(match.thresholds ?? null);
+    const snapshotThresholds = JSON.stringify(snapshotWidget.thresholds ?? null);
+    if (baseThresholds !== snapshotThresholds) {
+      fields.push({
+        field: 'thresholds',
+        before: match.thresholds ? JSON.stringify(match.thresholds) : t('(none)'),
+        after: snapshotWidget.thresholds
+          ? JSON.stringify(snapshotWidget.thresholds)
+          : t('(none)'),
       });
     }
 
