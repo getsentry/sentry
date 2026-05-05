@@ -357,6 +357,7 @@ export function BaseChart({
   utc,
   yAxes,
   xAxes,
+  visualMap,
 
   style,
   ref,
@@ -573,6 +574,7 @@ export function BaseChart({
       series: resolvedSeries,
       toolbox: toolBox,
       axisPointer,
+      visualMap,
       dataZoom,
       graphic,
       aria,
@@ -596,6 +598,7 @@ export function BaseChart({
     toolBox,
     brush,
     axisPointer,
+    visualMap,
     dataZoom,
     graphic,
     isGroupedByDate,
