@@ -284,6 +284,7 @@ SEARCH_MAP = {
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
+    "user_count": "user_count",
     SEMVER_ALIAS: SEMVER_ALIAS,
     RELEASE_STAGE_ALIAS: RELEASE_STAGE_ALIAS,
 }
