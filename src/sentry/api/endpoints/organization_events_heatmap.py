@@ -136,15 +136,21 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
 
         with handle_query_errors():
             bucket_ranges = self.query_y_bucket_ranges(snuba_params, dataset, query, yAxis)
-            # (Max - min)/y_buckets = size of each bucket
-            bucket_size = (bucket_ranges[1] - bucket_ranges[0]) / y_buckets
-            yAxes = {}
-            for current_bucket in range(y_buckets):
-                lower_bound = bucket_ranges[0] + current_bucket * bucket_size
-                upper_bound = bucket_ranges[0] + (current_bucket + 1) * bucket_size
-                yAxes[lower_bound] = (
-                    f"{z_function}_if(`{yAxis}:>={lower_bound} and {yAxis}:<{upper_bound}`, {yAxis})"
-                )
+            if bucket_ranges[0] != bucket_ranges[1]:
+                # (Max - min)/y_buckets = size of each bucket
+                bucket_size = (bucket_ranges[1] - bucket_ranges[0]) / y_buckets
+                yAxes = {}
+                for current_bucket in range(y_buckets):
+                    lower_bound = bucket_ranges[0] + current_bucket * bucket_size
+                    upper_bound = bucket_ranges[0] + (current_bucket + 1) * bucket_size
+                    yAxes[lower_bound] = (
+                        f"{z_function}_if(`{yAxis}:>={lower_bound} and {yAxis}:<{upper_bound}`, {yAxis})"
+                    )
+            else:
+                # if max == min, then just have 1 bucket
+                yAxes = {
+                    bucket_ranges[0]: f"{z_function}_if(`{yAxis}:{bucket_ranges[0]}`, {yAxis})"
+                }
 
             result = dataset.run_timeseries_query(
                 params=snuba_params,
