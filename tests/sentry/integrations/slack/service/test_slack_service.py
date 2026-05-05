@@ -13,6 +13,7 @@ from sentry.integrations.repository.notification_action import NotificationActio
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import ActionDataError, RuleDataError, SlackService
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
@@ -264,7 +265,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
             group=group,
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
 
         # Verify only one notification was handled
         assert mock_send_notification.call_count == 1
@@ -315,7 +322,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
             group=group,
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
 
         # Verify only one notification was handled
         assert mock_send_notification.call_count == 1
@@ -363,7 +376,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
             group=group,
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
 
         # Verify only one notification was handled
         assert mock_send_notification.call_count == 1
@@ -485,7 +504,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
             notification_2
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
 
         # Verify only one notification was handled
         assert mock_send_notification.call_count == 1

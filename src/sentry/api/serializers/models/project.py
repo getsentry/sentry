@@ -1231,8 +1231,17 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_snapshot_pr_comments_enabled": self.get_value_with_default(
                 attrs, "sentry:preprod_snapshot_pr_comments_enabled"
             ),
-            "sentry:preprod_snapshot_pr_comments_only_if_diff": self.get_value_with_default(
-                attrs, "sentry:preprod_snapshot_pr_comments_only_if_diff"
+            "sentry:preprod_snapshot_pr_comments_post_on_added": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_added"
+            ),
+            "sentry:preprod_snapshot_pr_comments_post_on_removed": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_removed"
+            ),
+            "sentry:preprod_snapshot_pr_comments_post_on_changed": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_changed"
+            ),
+            "sentry:preprod_snapshot_pr_comments_post_on_renamed": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_post_on_renamed"
             ),
         }
 

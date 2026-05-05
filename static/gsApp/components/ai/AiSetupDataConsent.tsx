@@ -157,7 +157,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     busy={autofixAcknowledgeMutation.isPending}
                     handleClick={() => autofixAcknowledgeMutation.mutate()}
                     size="md"
-                    priority="primary"
+                    variant="primary"
                     analyticsEventKey="seer_drawer.free_trial_clicked"
                     analyticsEventName="Seer Drawer: Clicked Free Trial"
                   >

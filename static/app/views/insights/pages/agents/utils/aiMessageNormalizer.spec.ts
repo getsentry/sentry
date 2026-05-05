@@ -455,6 +455,17 @@ describe('extractAssistantOutput', () => {
 
       expect(responseText).toBe('B');
     });
+
+    it('treats declared defaultRole values as explicit roles', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: 'A'},
+        {role: 'assistant', content: 'B'},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('A\nB');
+    });
   });
 
   describe('plain strings and non-array inputs', () => {

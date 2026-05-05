@@ -81,7 +81,7 @@ export function AutofixRepositoriesItemBranchOverride({
         disabled={!canWrite}
         icon={<IconDelete size="sm" />}
         onClick={onRemoveOverride}
-        priority="transparent"
+        variant="transparent"
         size="xs"
       />
     </Flex>
