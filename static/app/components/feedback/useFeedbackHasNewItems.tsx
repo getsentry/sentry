@@ -17,5 +17,5 @@ export function useFeedbackHasNewItems({listPrefetchApiOptions}: Props) {
     staleTime: 0,
   });
 
-  return Boolean(data?.length);
+  return Boolean(data?.json.length);
 }
