@@ -1478,23 +1478,17 @@ def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
 ) -> None:
     """
     Regression test for the double-flush bug caused by interaction between
-    flush locks and conditional cleanup.
+    flush locks (https://github.com/getsentry/sentry/pull/113850) and
+    conditional cleanup (https://github.com/getsentry/sentry/pull/110462)
 
     Scenario:
-    1. Buffer flushes segment, captures queue score, acquires lock
-    2. Lock expires (simulated)
-    3. New spans arrive - NO lock, so they MERGE (not detach), updating queue score
-    4. Buffer calls done_flush_segments with the OLD captured score
+    1. Buffer flushes segment, captures queue score $OLD, acquires lock
+    2. Lock expires (simulated by deleting the key)
+    3. New spans arrive, there is no lock, so they MERGE (not detach), updating queue score
+    4. Buffer calls done_flush_segments with the $OLD captured score, so in the end nothing is deleted.
+    5. Flusher iterates again, and flushes the same segment again.
 
-    With OLD conditional cleanup code:
-    - Phase 1 detects score changed (old captured vs new current) -> cleanup skipped
-    - Segment stays in queue
-    - Next cycle: segment flushed AGAIN with old+new spans -> duplicate of old spans!
-
-    With NEW unconditional cleanup:
-    - Cleanup proceeds regardless of score
-    - Segment removed from queue
-    - No duplicate
+    The fix is to remove conditional cleanup from https://github.com/getsentry/sentry/pull/110462 entirely.
     """
     mock_project = mock.Mock()
     mock_project.id = 1
@@ -1560,24 +1554,13 @@ def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
         )
 
         # Step 5: Buffer calls done_flush_segments with OLD captured score
-        # With OLD code: score mismatch (11 vs 60) -> cleanup skipped
-        # With NEW code: unconditional cleanup -> segment removed
+        # score mismatch (11 vs 60) -> cleanup skipped
         buffer.done_flush_segments(rv)
 
-        # Verify: If cleanup was skipped (OLD behavior), segment stays in queue
-        # and next flush would get all 3 spans (duplicate of a,b + new c)
-        # If cleanup proceeded (NEW behavior), segment removed from queue
         rv2 = buffer.flush_segments(now=120)
 
-        if len(rv2) > 0:
-            # Cleanup was skipped - this is the BUG
-            # The segment would be flushed again with all spans
-            span_ids = sorted(s.payload["span_id"] for s in rv2[segment_key].spans)
-            pytest.fail(
-                f"Segment should have been cleaned up, but found {len(rv2[segment_key].spans)} spans: {span_ids}. "
-                f"This indicates conditional cleanup detected score change and skipped cleanup, "
-                f"causing duplicate flush of original spans."
-            )
+        # Assert that the lock actually prevents double-flushing.
+        assert not rv2
 
 
 # --- Distributed payload keys tests ---
