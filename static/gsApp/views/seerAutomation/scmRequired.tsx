@@ -56,16 +56,16 @@ export default function SeerAutomationSCMRequired() {
       ) ?? [],
   });
 
+  if (!hasSeatBasedSeer && !hasLegacySeer && !hasCodeReviewBeta) {
+    return <NoAccess />;
+  }
+
   if (!showNewSeer(organization) && !hasCodeReviewBeta) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
   }
 
   if (!hasSeatBasedSeer && !hasCodeReviewBeta) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/trial/`)} />;
-  }
-
-  if (!hasSeatBasedSeer && !hasLegacySeer && !hasCodeReviewBeta) {
-    return <NoAccess />;
   }
 
   if (!hasSeatBasedSeer) {
