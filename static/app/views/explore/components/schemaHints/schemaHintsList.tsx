@@ -1,4 +1,4 @@
-import {type CSSProperties, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -459,12 +459,7 @@ export function SchemaHintsList({
         style={{overflow: 'hidden'}}
       >
         {SKELETON_PLACEHOLDER_WIDTHS.map((width, index) => (
-          <SchemaHintPlaceholder
-            key={index}
-            width={width}
-            height="28px"
-            style={{'--hint-index': index} as CSSProperties}
-          />
+          <SchemaHintPlaceholder key={index} width={width} height="28px" />
         ))}
       </SchemaHintsContainer>
     );
@@ -475,12 +470,11 @@ export function SchemaHintsList({
       ref={schemaHintsContainerRef}
       aria-label={t('Schema Hints List')}
     >
-      {visibleHints.map((hint, index) => (
+      {visibleHints.map(hint => (
         <SchemaHintOption
           size="xs"
           key={hint.key}
           data-type={hint.key}
-          style={{'--hint-index': index} as CSSProperties}
           onClick={() => onHintClick(hint)}
         >
           {getHintElement(hint)}
@@ -495,13 +489,11 @@ const schemaHintsSectionStaggeredFade = css`
     opacity: 0;
     pointer-events: none;
     transition: opacity 100ms ease;
-    transition-delay: 0s;
   }
 
   ${SCHEMA_HINTS_SECTION_SELECTOR}[data-expanded] & {
     opacity: 1;
     pointer-events: auto;
-    transition-delay: calc(var(--hint-index, 0) * 50ms);
   }
 `;
 
