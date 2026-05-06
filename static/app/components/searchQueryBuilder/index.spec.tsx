@@ -230,6 +230,42 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
+      it('displays wildcard footer for fields with null valueType', async () => {
+        const getNullableStringFieldDefinition: FieldDefinitionGetter = key => {
+          if (key !== 'nullable_string') {
+            return getFieldDefinition(key);
+          }
+
+          return {
+            kind: FieldKind.FIELD,
+            valueType: null,
+          };
+        };
+
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            getFieldDefinition={getNullableStringFieldDefinition}
+            filterKeys={{
+              ...defaultProps.filterKeys,
+              nullable_string: {
+                key: 'nullable_string',
+                name: 'Nullable String',
+                kind: FieldKind.FIELD,
+              },
+            }}
+            initialQuery="nullable_string:hello"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: nullable_string'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+      });
+
       it('renders swap to is for * when using a wildcard operator', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
