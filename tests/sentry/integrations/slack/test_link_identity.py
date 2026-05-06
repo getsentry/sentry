@@ -166,10 +166,9 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
         self.client.post(linking_url)
 
-        # route_slack_seer_event gets the original mention kwargs (no response_url).
         expected_kwargs = {k: v for k, v in cached_payload.items() if k != "response_url"}
         mock_apply_async.assert_called_once_with(kwargs=expected_kwargs)
-        # Cache is popped after replay.
+        assert self.mock_webhook.call_count == 1
         assert (
             SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
                 entrypoint_key=str(SeerEntrypointKey.SLACK),
