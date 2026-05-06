@@ -15,7 +15,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
@@ -256,19 +256,6 @@ class RuleSerializer(Serializer):
             # Set the results
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
-
-        neglected_rule_lookup = {
-            nr["rule_id"]: nr["disable_date"]
-            for nr in NeglectedRule.objects.filter(
-                rule__in=item_list,
-                opted_out=False,
-                sent_initial_email_date__isnull=False,
-            ).values("rule_id", "disable_date")
-        }
-        for rule in item_list:
-            disable_date = neglected_rule_lookup.get(rule.id, None)
-            if disable_date:
-                result[rule]["disable_date"] = disable_date
 
         rule_snooze_lookup = {
             snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}

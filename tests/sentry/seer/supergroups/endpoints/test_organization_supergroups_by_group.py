@@ -76,19 +76,6 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
             )
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_rca_source_is_lightweight(self, mock_seer):
-        mock_seer.return_value = mock_seer_response({"data": []})
-
-        with self.feature("organizations:top-issues-ui"):
-            self.get_success_response(
-                self.organization.slug,
-                group_id=[self.unresolved_group.id],
-            )
-
-        body = mock_seer.call_args.args[0]
-        assert body["rca_source"] == "LIGHTWEIGHT"
-
-    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_assignee_summary(self, mock_seer):
         user_a = self.create_user(email="a@example.com")
         user_b = self.create_user(email="b@example.com")

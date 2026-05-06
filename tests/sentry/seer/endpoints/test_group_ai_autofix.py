@@ -6,7 +6,7 @@ from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
 from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import SeerPermissionError, SeerRepoDefinition
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -979,6 +979,24 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):
+        for flag in EXPLORER_FLAGS:
+            mock_trigger_explorer.reset_mock()
+            mock_trigger_explorer.side_effect = SeerPermissionError("Unknown run id for group")
+            group = self.create_group()
+
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={"step": "solution", "run_id": 123},
+                    format="json",
+                )
+
+            assert response.status_code == 404, f"Failed for {flag}: {response.data}"
+            mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_returns_402_when_no_seer_quota(self, mock_trigger_explorer):
         """POST returns 402 Payment Required when quota check fails."""
         for flag in EXPLORER_FLAGS:
@@ -1054,6 +1072,28 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 400, f"Failed for {flag}: {response.data}"
             assert response.data["detail"] == "Cannot specify both integration_id and provider"
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
+    def test_post_coding_agent_handoff_unknown_run_returns_404(self, mock_handoff):
+        for flag in EXPLORER_FLAGS:
+            mock_handoff.reset_mock()
+            mock_handoff.side_effect = SeerPermissionError("Unknown run id for group")
+            group = self.create_group()
+
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "coding_agent_handoff",
+                        "run_id": 123,
+                        "integration_id": 456,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 404, f"Failed for {flag}: {response.data}"
+            mock_handoff.assert_called_once()
 
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")

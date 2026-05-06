@@ -690,6 +690,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for fetching projects in the endpoints.
+register(
+    "relay.endpoint-fetch-config.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",

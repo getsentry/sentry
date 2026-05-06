@@ -20,7 +20,7 @@ from sentry.workflow_engine.tasks.utils import (
     build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
@@ -29,7 +29,9 @@ logger = log_context.get_logger(__name__)
 def build_trigger_action_task_params(
     action: Action,
     event_data: WorkflowEventData,
-    workflow_uuid_map: dict[int, str],
+    workflow_uuid_map: dict[WorkflowId, str],
+    *,
+    workflow_id: WorkflowId,
 ) -> dict[str, object]:
     """
     Build parameters for trigger_action task invocation.
@@ -38,6 +40,7 @@ def build_trigger_action_task_params(
         action: The action to trigger.
         event_data: The event data to use for the action.
         workflow_uuid_map: Mapping of workflow_id to notification_uuid.
+        workflow_id: The workflow this action is firing for.
     """
     event_id = None
     activity_id = None
@@ -48,9 +51,6 @@ def build_trigger_action_task_params(
         occurrence_id = event_data.event.occurrence_id
     elif isinstance(event_data.event, Activity):
         activity_id = event_data.event.id
-
-    # workflow_id is annotated in the queryset by filter_recently_fired_workflow_actions
-    workflow_id = getattr(action, "workflow_id", None)
 
     task_params = {
         "action_id": action.id,
@@ -64,8 +64,7 @@ def build_trigger_action_task_params(
         "has_escalated": event_data.has_escalated,
     }
 
-    # Add notification_uuid if available from workflow_uuid_map
-    if workflow_id is not None and workflow_id in workflow_uuid_map:
+    if workflow_id in workflow_uuid_map:
         task_params["notification_uuid"] = workflow_uuid_map[workflow_id]
 
     return task_params

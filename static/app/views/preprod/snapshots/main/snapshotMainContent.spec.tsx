@@ -137,12 +137,19 @@ describe('SnapshotMainContent', () => {
       headBranch: 'feature/snapshot-updates',
       isSoloView: false,
       listItems: [
-        {key: 'changed-buttons', name: 'Buttons', pairs: [changedPair], type: 'changed'},
+        {
+          key: 'changed-buttons',
+          name: 'Buttons',
+          displayName: 'Buttons',
+          pairs: [changedPair],
+          type: 'changed',
+        },
       ],
       onNavigateSingleView,
       selectedItem: {
         key: 'changed-buttons',
         name: 'Buttons',
+        displayName: 'Buttons',
         pairs: [changedPair],
         type: 'changed',
       },
@@ -174,6 +181,7 @@ describe('SnapshotMainContent', () => {
       selectedItem: {
         key: 'renamed-buttons',
         name: 'Buttons',
+        displayName: 'Buttons',
         pairs: [renamedPair],
         type: 'renamed',
       },

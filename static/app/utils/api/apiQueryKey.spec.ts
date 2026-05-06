@@ -1,225 +1,59 @@
 import {
+  normalizeQueryKey,
   parseQueryKey,
   safeParseQueryKey,
-  type ApiQueryKey,
+  type CanonicalApiQueryKey,
   type InfiniteApiQueryKey,
 } from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 describe('apiQueryKey', () => {
   describe('parseQueryKey', () => {
-    describe('v1', () => {
-      it('can parse a v1 query key, without options', () => {
-        const queryKey: ApiQueryKey = [getApiUrl('/api-tokens/')];
-        const result = parseQueryKey(queryKey);
-        expect(result).toEqual({
-          version: 'v1',
-          isInfinite: false,
-          url: '/api-tokens/',
-          options: undefined,
-        });
-      });
-
-      it('can parse a simple query key, with options', () => {
-        const queryKey: ApiQueryKey = [
-          getApiUrl('/api-tokens/'),
-          {query: {filter: 'red'}},
-        ];
-        const result = parseQueryKey(queryKey);
-        expect(result).toEqual({
-          version: 'v1',
-          isInfinite: false,
-          url: '/api-tokens/',
-          options: {query: {filter: 'red'}},
-        });
-      });
-
-      it('can parse an v1 infinite query key, without options', () => {
-        const queryKey: InfiniteApiQueryKey = [
-          {infinite: true, version: 'v1'},
-          getApiUrl('/api-tokens/'),
-        ];
-        const result = parseQueryKey(queryKey);
-        expect(result).toEqual({
-          version: 'v1',
-          isInfinite: true,
-          url: '/api-tokens/',
-          options: undefined,
-        });
-      });
-
-      it('can parse a v2 infinite query key, with options', () => {
-        const queryKey: InfiniteApiQueryKey = [
-          {infinite: true, version: 'v1'},
-          getApiUrl('/api-tokens/'),
-          {query: {filter: 'red'}},
-        ];
-        const result = parseQueryKey(queryKey);
-        expect(result).toEqual({
-          version: 'v1',
-          isInfinite: true,
-          url: '/api-tokens/',
-          options: {query: {filter: 'red'}},
-        });
+    it('parses a canonical non-infinite key', () => {
+      const queryKey: CanonicalApiQueryKey = [
+        getApiUrl('/api-tokens/'),
+        {query: {filter: 'red'}},
+        {infinite: false},
+      ];
+      expect(parseQueryKey(queryKey)).toEqual({
+        isInfinite: false,
+        url: '/api-tokens/',
+        options: {query: {filter: 'red'}},
       });
     });
-    describe('v2', () => {
-      it('can parse a v2 query key, without options', () => {
-        const queryKey: ApiQueryKey = [
-          {infinite: false, version: 'v2'},
-          getApiUrl('/api-tokens/'),
-        ];
-        const result = parseQueryKey(queryKey);
-        expect(result).toEqual({
-          version: 'v2',
-          isInfinite: false,
-          url: '/api-tokens/',
-          options: undefined,
-        });
-      });
 
-      it('can parse a v2 query key, with options', () => {
-        const queryKey: ApiQueryKey = [
-          {infinite: false, version: 'v2'},
-          getApiUrl('/api-tokens/'),
-          {query: {filter: 'red'}},
-        ];
-        const result = parseQueryKey(queryKey);
-        expect(result).toEqual({
-          version: 'v2',
-          isInfinite: false,
-          url: '/api-tokens/',
-          options: {query: {filter: 'red'}},
-        });
-      });
-
-      it('can parse an v2 infinite query key, without options', () => {
-        const queryKey: InfiniteApiQueryKey = [
-          {infinite: true, version: 'v2'},
-          getApiUrl('/api-tokens/'),
-        ];
-        const result = parseQueryKey(queryKey);
-        expect(result).toEqual({
-          version: 'v2',
-          isInfinite: true,
-          url: '/api-tokens/',
-          options: undefined,
-        });
-      });
-
-      it('can parse a v2 infinite query key, with options', () => {
-        const queryKey: InfiniteApiQueryKey = [
-          {infinite: true, version: 'v2'},
-          getApiUrl('/api-tokens/'),
-          {query: {filter: 'red'}},
-        ];
-        const result = parseQueryKey(queryKey);
-        expect(result).toEqual({
-          version: 'v2',
-          isInfinite: true,
-          url: '/api-tokens/',
-          options: {query: {filter: 'red'}},
-        });
+    it('parses a´n infinite key', () => {
+      const queryKey: InfiniteApiQueryKey = [
+        getApiUrl('/api-tokens/'),
+        {query: {filter: 'red'}},
+        {infinite: true},
+      ];
+      expect(parseQueryKey(queryKey)).toEqual({
+        isInfinite: true,
+        url: '/api-tokens/',
+        options: {query: {filter: 'red'}},
       });
     });
   });
 
   describe('safeParseQueryKey', () => {
-    describe('happy path', () => {
-      it('parses a v1 query key, without options', () => {
-        expect(safeParseQueryKey(['/api-tokens/'])).toEqual({
-          version: 'v1',
-          isInfinite: false,
-          url: '/api-tokens/',
-          options: undefined,
-        });
+    it('parses canonical non-infinite', () => {
+      expect(
+        safeParseQueryKey(['/api-tokens/', {query: {filter: 'red'}}, {infinite: false}])
+      ).toEqual({
+        isInfinite: false,
+        url: '/api-tokens/',
+        options: {query: {filter: 'red'}},
       });
+    });
 
-      it('parses a v1 query key, with options', () => {
-        expect(safeParseQueryKey(['/api-tokens/', {query: {filter: 'red'}}])).toEqual({
-          version: 'v1',
-          isInfinite: false,
-          url: '/api-tokens/',
-          options: {query: {filter: 'red'}},
-        });
-      });
-
-      it('parses a v1 infinite query key, without options', () => {
-        expect(
-          safeParseQueryKey([{infinite: true, version: 'v1'}, '/api-tokens/'])
-        ).toEqual({
-          version: 'v1',
-          isInfinite: true,
-          url: '/api-tokens/',
-          options: undefined,
-        });
-      });
-
-      it('parses a v1 infinite query key, with options', () => {
-        expect(
-          safeParseQueryKey([
-            {infinite: true, version: 'v1'},
-            '/api-tokens/',
-            {query: {filter: 'red'}},
-          ])
-        ).toEqual({
-          version: 'v1',
-          isInfinite: true,
-          url: '/api-tokens/',
-          options: {query: {filter: 'red'}},
-        });
-      });
-
-      it('parses a v2 query key, without options', () => {
-        expect(
-          safeParseQueryKey([{infinite: false, version: 'v2'}, '/api-tokens/'])
-        ).toEqual({
-          version: 'v2',
-          isInfinite: false,
-          url: '/api-tokens/',
-          options: undefined,
-        });
-      });
-
-      it('parses a v2 query key, with options', () => {
-        expect(
-          safeParseQueryKey([
-            {infinite: false, version: 'v2'},
-            '/api-tokens/',
-            {query: {filter: 'red'}},
-          ])
-        ).toEqual({
-          version: 'v2',
-          isInfinite: false,
-          url: '/api-tokens/',
-          options: {query: {filter: 'red'}},
-        });
-      });
-
-      it('parses a v2 infinite query key, without options', () => {
-        expect(
-          safeParseQueryKey([{infinite: true, version: 'v2'}, '/api-tokens/'])
-        ).toEqual({
-          version: 'v2',
-          isInfinite: true,
-          url: '/api-tokens/',
-          options: undefined,
-        });
-      });
-
-      it('parses a v2 infinite query key, with options', () => {
-        expect(
-          safeParseQueryKey([
-            {infinite: true, version: 'v2'},
-            '/api-tokens/',
-            {query: {filter: 'red'}},
-          ])
-        ).toEqual({
-          version: 'v2',
-          isInfinite: true,
-          url: '/api-tokens/',
-          options: {query: {filter: 'red'}},
-        });
+    it('parses canonical infinite', () => {
+      expect(
+        safeParseQueryKey(['/api-tokens/', {query: {filter: 'red'}}, {infinite: true}])
+      ).toEqual({
+        isInfinite: true,
+        url: '/api-tokens/',
+        options: {query: {filter: 'red'}},
       });
     });
 
@@ -236,44 +70,54 @@ describe('apiQueryKey', () => {
         expect(safeParseQueryKey([null])).toBeUndefined();
       });
 
-      it('returns undefined for v1 with non-object options', () => {
+      it('returns undefined when the URL does not start with /', () => {
+        expect(safeParseQueryKey(['api-tokens/', {}, {infinite: false}])).toBeUndefined();
+      });
+
+      it('returns undefined when the URL does not end with /', () => {
+        expect(safeParseQueryKey(['/api-tokens', {}, {infinite: false}])).toBeUndefined();
+      });
+
+      it('returns undefined when the first element is not a string', () => {
+        expect(safeParseQueryKey([123, {}, {infinite: false}])).toBeUndefined();
+      });
+
+      it('returns undefined when the second element is not an object', () => {
         expect(safeParseQueryKey(['/url/', 'not-an-object'])).toBeUndefined();
       });
 
-      it('returns undefined for an unknown version marker', () => {
-        expect(
-          safeParseQueryKey([{version: 'v3', infinite: false}, '/url/'])
-        ).toBeUndefined();
+      it('returns undefined when the third element is not a marker', () => {
+        expect(safeParseQueryKey(['/url/', {query: {}}, 'not-a-marker'])).toBeUndefined();
       });
 
-      it('returns undefined for v2 missing the url', () => {
-        expect(safeParseQueryKey([{infinite: false, version: 'v2'}])).toBeUndefined();
-      });
-
-      it('returns undefined for v2 with a non-string url', () => {
-        expect(
-          safeParseQueryKey([{infinite: false, version: 'v2'}, 123])
-        ).toBeUndefined();
-      });
-
-      it('returns undefined for an infinite key with non-object options', () => {
-        expect(
-          safeParseQueryKey([{infinite: true, version: 'v1'}, '/url/', 'not-an-object'])
-        ).toBeUndefined();
+      it('returns undefined when the marker is missing the infinite field', () => {
+        expect(safeParseQueryKey(['/url/', {query: {}}, {}])).toBeUndefined();
       });
     });
 
-    // The schema validates *shape*, not *intent*. Any [string] or
-    // [string, object] tuple — including non-API TanStack queries that happen
-    // to match — will parse as a V1 key. Predicate callers must still scope by
-    // queryKey filter or check the URL pattern.
-    it('parses any [string, object] tuple as a v1 key', () => {
-      expect(safeParseQueryKey(['filter', {scope: 'feedback'}])).toEqual({
-        version: 'v1',
-        isInfinite: false,
-        url: 'filter',
-        options: {scope: 'feedback'},
-      });
+    it('returns undefined for a [string, object] tuple missing the marker', () => {
+      expect(safeParseQueryKey(['filter', {scope: 'feedback'}])).toBeUndefined();
+    });
+  });
+
+  describe('normalizeQueryKey', () => {
+    const url = getApiUrl('/api-tokens/');
+
+    it('returns canonical keys unchanged', () => {
+      const key: CanonicalApiQueryKey = [url, {query: {}}, {infinite: false}];
+      expect(normalizeQueryKey(key)).toEqual(key);
+    });
+
+    it('expands [url] to [url, {}, {infinite: false}]', () => {
+      expect(normalizeQueryKey([url])).toEqual([url, {}, {infinite: false}]);
+    });
+
+    it('expands [url, opts] to [url, opts, {infinite: false}]', () => {
+      expect(normalizeQueryKey([url, {query: {filter: 'red'}}])).toEqual([
+        url,
+        {query: {filter: 'red'}},
+        {infinite: false},
+      ]);
     });
   });
 });

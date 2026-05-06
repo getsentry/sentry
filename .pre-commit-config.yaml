@@ -69,6 +69,11 @@ repos:
         entry: python3 -m tools.mypy_helpers.check_stronglist
         files: ^pyproject\.toml$
         language: python
+      - id: prevent-mypy-weaklist-additions
+        name: prevent mypy weaklist additions
+        entry: python3 -m tools.mypy_helpers.prevent_weaklist_additions
+        files: ^pyproject\.toml$
+        language: python
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]
