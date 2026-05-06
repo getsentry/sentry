@@ -179,7 +179,7 @@ def convert_rpc_attribute_to_json(
                 deprecated_names = get_deprecated_source_internal_names(
                     external_name, trace_item_type
                 )
-                if deprecated_names & all_internal_names:
+                if any(name in all_internal_names for name in deprecated_names):
                     continue
 
         if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith("sentry."):
