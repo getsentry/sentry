@@ -47,16 +47,15 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-def _validate_creator_email(email: str, organization_id: int) -> list[str]:
-    matching_users = user_service.get_many_by_email(
-        emails=[email],
-        is_active=True,
-        is_verified=True,
-        organization_id=organization_id,
+def _is_valid_creator_email(email: str, organization_id: int) -> bool:
+    return bool(
+        user_service.get_many_by_email(
+            emails=[email],
+            is_active=True,
+            is_verified=True,
+            organization_id=organization_id,
+        )
     )
-    if matching_users:
-        return [email]
-    return []
 
 
 def _get_org_owner_email(organization_id: int) -> list[str]:
@@ -462,8 +461,7 @@ class DatabaseBackedAppService(AppService):
         self, *, organization_id: int, creator_label: str | None
     ) -> list[str]:
         if creator_label and "@" in creator_label:
-            emails = _validate_creator_email(creator_label, organization_id)
-            if emails:
-                return emails
+            if _is_valid_creator_email(creator_label, organization_id):
+                return [creator_label]
 
         return _get_org_owner_email(organization_id)
