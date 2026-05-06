@@ -23,9 +23,6 @@ function hasOrganizationRole(organization: Organization, roleRequired: string): 
   return currentIndex >= requiredIndex;
 }
 
-// Helper function to safely get role from project.
-// These fields only exist on DetailedProject, so we need to check for them
-// since the project may be a summary-level Project from useProjects.
 function getProjectRole(
   project: DetailedProject | undefined,
   role: 'debugFilesRole' | 'attachmentsRole'
