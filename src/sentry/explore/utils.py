@@ -25,6 +25,4 @@ def is_trace_metrics_alerts_enabled(organization: Organization, actor: User | No
     """
     Check if trace metrics alerts are enabled for the given organization.
     """
-    return features.has(
-        "organizations:tracemetrics-enabled", organization, actor=actor
-    ) and features.has("organizations:tracemetrics-alerts", organization, actor=actor)
+    return features.has("organizations:tracemetrics-enabled", organization, actor=actor)

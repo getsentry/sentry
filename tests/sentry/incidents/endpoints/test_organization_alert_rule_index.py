@@ -719,7 +719,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_ourlogs_run_timeseries_query.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:tracemetrics-alerts")
     @with_feature("organizations:tracemetrics-enabled")
     @with_feature("organizations:incidents")
     @patch(
@@ -861,7 +860,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 {
                     "organizations:incidents": True,
                     "organizations:performance-view": True,
-                    "organizations:tracemetrics-alerts": False,
                     "organizations:tracemetrics-enabled": False,
                 },
             ),
@@ -892,7 +890,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:tracemetrics-alerts",
                     "organizations:tracemetrics-enabled",
                 ]
             ),
@@ -933,7 +930,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:tracemetrics-alerts",
                     "organizations:tracemetrics-enabled",
                 ]
             ),
