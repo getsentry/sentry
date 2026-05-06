@@ -89,7 +89,7 @@ class TestReplacementAttributeFiltering:
         ],
     )
     def test_replacement_attribute_shown_when_no_deprecated_source(
-        self, attr_name, attr_value
+        self, attr_name: str, attr_value: dict[str, str]
     ) -> None:
         result = convert_rpc_attribute_to_json(
             [{"name": attr_name, "value": attr_value}],
