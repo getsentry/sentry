@@ -4,10 +4,12 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   SentryAppExternalForm,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import {LegacySentryAppExternalForm} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.legacy';
 
 type Props = ModalRenderProps & {
   appName: string;
@@ -26,6 +28,16 @@ export function SentryAppRuleModal({
   resetValues,
   onSubmitSuccess,
 }: Props) {
+  const organization = useOrganization();
+  const useNewForm = organization.features.includes('sentry-app-schema-form-migration');
+  const handleSubmitSuccess: React.ComponentProps<
+    typeof SentryAppExternalForm
+  >['onSubmitSuccess'] = (...params) => {
+    onSubmitSuccess(...params);
+    closeModal();
+  };
+  const formConfig = resetValues?.formFields || config;
+
   return (
     <Fragment>
       <Header closeButton>
@@ -33,18 +45,27 @@ export function SentryAppRuleModal({
         {config.description && <Description>{config.description}</Description>}
       </Header>
       <Body>
-        <SentryAppExternalForm
-          sentryAppInstallationUuid={sentryAppInstallationUuid}
-          appName={appName}
-          config={resetValues?.formFields || config}
-          element="alert-rule-action"
-          action="create"
-          onSubmitSuccess={(...params) => {
-            onSubmitSuccess(...params);
-            closeModal();
-          }}
-          resetValues={{settings: resetValues?.settings}}
-        />
+        {useNewForm ? (
+          <SentryAppExternalForm
+            sentryAppInstallationUuid={sentryAppInstallationUuid}
+            appName={appName}
+            config={formConfig}
+            element="alert-rule-action"
+            action="create"
+            onSubmitSuccess={handleSubmitSuccess}
+            resetValues={{settings: resetValues?.settings}}
+          />
+        ) : (
+          <LegacySentryAppExternalForm
+            sentryAppInstallationUuid={sentryAppInstallationUuid}
+            appName={appName}
+            config={formConfig}
+            element="alert-rule-action"
+            action="create"
+            onSubmitSuccess={handleSubmitSuccess}
+            resetValues={{settings: resetValues?.settings}}
+          />
+        )}
       </Body>
     </Fragment>
   );

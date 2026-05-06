@@ -6,6 +6,7 @@ import {
   useState,
   type ComponentProps,
 } from 'react';
+import * as Sentry from '@sentry/react';
 import {queryOptions, useMutation} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -276,7 +277,7 @@ function getEffectiveFieldValue({
 
   const field = findSchemaField(fieldGroups, fieldName);
   if (!field) {
-    return undefined;
+    return;
   }
 
   return getBaseFieldDefaultValue(field, externalDefaultValues, resetValues);
@@ -301,15 +302,15 @@ export function SentryAppExternalForm({
   const nextResolvedFieldGroups = cloneSchemaConfig(config, getFieldDefault);
   const serializedResolvedFieldGroups = JSON.stringify(nextResolvedFieldGroups);
 
-  const normalizedExtraFields = useSerializedValueMemo<Record<string, unknown>>(
+  const normalizedExtraFields = useSerializedValueMemo(
     extraFields ?? {},
     serializedExtraFields
   );
-  const normalizedExtraRequestBody = useSerializedValueMemo<Record<string, unknown>>(
+  const normalizedExtraRequestBody = useSerializedValueMemo(
     extraRequestBody ?? {},
     serializedExtraRequestBody
   );
-  const normalizedResetValues = useSerializedValueMemo<ResetValues | undefined>(
+  const normalizedResetValues = useSerializedValueMemo(
     resetValues,
     serializedResetValues
   );
@@ -429,18 +430,39 @@ export function SentryAppExternalForm({
         return;
       }
 
-      const results = await Promise.all(
-        fieldsToPrefetch.map(async field => ({
-          fieldName: field.name,
-          ...(await fetchFieldChoices({
-            currentValues: {},
-            defaultValues: {},
-            field,
-            input: '',
-            nextFieldGroups,
-          })),
-        }))
-      );
+      let results: Array<{
+        choices: Choices;
+        fieldName: string;
+        defaultValue?: unknown;
+      }>;
+      try {
+        results = await Promise.all(
+          fieldsToPrefetch.map(async field => ({
+            fieldName: field.name,
+            ...(await fetchFieldChoices({
+              currentValues: {},
+              defaultValues: {},
+              field,
+              input: '',
+              nextFieldGroups,
+            })),
+          }))
+        );
+      } catch (error) {
+        Sentry.captureException(error, {
+          tags: {
+            sentry_app: appName,
+            form_element: element,
+            form_action: action,
+          },
+          extra: {
+            sentryAppInstallationUuid,
+            configUri: config.uri,
+            fieldsToPrefetch: fieldsToPrefetch.map(field => field.name),
+          },
+        });
+        return;
+      }
 
       if (isCancelled || requestVersion !== dependentFetchVersionRef.current) {
         return;
@@ -475,7 +497,16 @@ export function SentryAppExternalForm({
     return () => {
       isCancelled = true;
     };
-  }, [action, element, fetchFieldChoices, normalizedResetValues, resolvedFieldGroups]);
+  }, [
+    action,
+    appName,
+    config.uri,
+    element,
+    fetchFieldChoices,
+    normalizedResetValues,
+    resolvedFieldGroups,
+    sentryAppInstallationUuid,
+  ]);
 
   const triggerFieldNames = useMemo(
     () =>
@@ -777,6 +808,17 @@ export function SentryAppExternalForm({
       if (!(error instanceof RequestError)) {
         addErrorMessage(t('Unable to %s %s issue.', action, appName));
       }
+      Sentry.captureException(error, {
+        tags: {
+          sentry_app: appName,
+          form_element: element,
+          form_action: action,
+        },
+        extra: {
+          sentryAppInstallationUuid,
+          configUri: config.uri,
+        },
+      });
     },
   });
 

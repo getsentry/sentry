@@ -14,6 +14,7 @@ import {
   SentryAppExternalForm,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import {LegacySentryAppExternalForm} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.legacy';
 
 type Props = {
   action: 'create' | 'link';
@@ -42,8 +43,72 @@ export function SentryAppExternalIssueForm({
   const stackTrace =
     contentArr && contentArr.length > 0 ? '\n\n```\n' + contentArr[0] + '\n```' : '';
 
+  const useNewForm = organization.features.includes('sentry-app-schema-form-migration');
+
+  const handleSubmitSuccess = (issue: PlatformExternalIssue) => {
+    onCreateExternalIssue(issue);
+    onSubmitSuccess(issue);
+  };
+
+  const getFieldDefault = (field: any) => {
+    if (field.type === 'textarea') {
+      field.maxRows = 10;
+      field.autosize = true;
+    }
+
+    switch (field.default) {
+      case 'issue.title':
+        return group.title;
+      case 'issue.description': {
+        const queryParams = {referrer: appName};
+        const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
+        const shortId = group.shortId;
+
+        const tableHeader = '|  |  |\n| ------------- | --------------- |\n';
+        const feedback = group as unknown as FeedbackIssue;
+        const email = feedback.metadata.contact_email;
+        const name = feedback.metadata.name;
+        const source = feedback.metadata.source;
+        const emailRow = email ? `| **contact_email** | ${email} |\n` : '';
+        const nameRow = name ? `| **name** | ${name} |\n` : '';
+        const sourceRow = source ? `| **source** | ${source} |\n` : '';
+
+        return isFeedback
+          ? t(
+              'Sentry Feedback: [%s](%s)\n\n%s \n\n%s%s%s%s',
+              shortId,
+              url,
+              group.metadata.message,
+              tableHeader,
+              emailRow,
+              nameRow,
+              sourceRow
+            )
+          : t('Sentry Issue: [%s](%s)%s', shortId, url, stackTrace);
+      }
+      default:
+        return '';
+    }
+  };
+
+  if (useNewForm) {
+    return (
+      <SentryAppExternalForm
+        sentryAppInstallationUuid={sentryAppInstallation.uuid}
+        appName={appName}
+        config={config}
+        action={action}
+        element="issue-link"
+        extraFields={{groupId: group.id}}
+        extraRequestBody={{projectId: group.project.id}}
+        onSubmitSuccess={handleSubmitSuccess}
+        getFieldDefault={getFieldDefault}
+      />
+    );
+  }
+
   return (
-    <SentryAppExternalForm
+    <LegacySentryAppExternalForm
       sentryAppInstallationUuid={sentryAppInstallation.uuid}
       appName={appName}
       config={config}
@@ -51,50 +116,8 @@ export function SentryAppExternalIssueForm({
       element="issue-link"
       extraFields={{groupId: group.id}}
       extraRequestBody={{projectId: group.project.id}}
-      onSubmitSuccess={(issue: PlatformExternalIssue) => {
-        onCreateExternalIssue(issue);
-        onSubmitSuccess(issue);
-      }}
-      getFieldDefault={field => {
-        if (field.type === 'textarea') {
-          field.maxRows = 10;
-          field.autosize = true;
-        }
-
-        switch (field.default) {
-          case 'issue.title':
-            return group.title;
-          case 'issue.description': {
-            const queryParams = {referrer: appName};
-            const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
-            const shortId = group.shortId;
-
-            const tableHeader = '|  |  |\n| ------------- | --------------- |\n';
-            const feedback = group as unknown as FeedbackIssue;
-            const email = feedback.metadata.contact_email;
-            const name = feedback.metadata.name;
-            const source = feedback.metadata.source;
-            const emailRow = email ? `| **contact_email** | ${email} |\n` : '';
-            const nameRow = name ? `| **name** | ${name} |\n` : '';
-            const sourceRow = source ? `| **source** | ${source} |\n` : '';
-
-            return isFeedback
-              ? t(
-                  'Sentry Feedback: [%s](%s)\n\n%s \n\n%s%s%s%s',
-                  shortId,
-                  url,
-                  group.metadata.message,
-                  tableHeader,
-                  emailRow,
-                  nameRow,
-                  sourceRow
-                )
-              : t('Sentry Issue: [%s](%s)%s', shortId, url, stackTrace);
-          }
-          default:
-            return '';
-        }
-      }}
+      onSubmitSuccess={handleSubmitSuccess}
+      getFieldDefault={getFieldDefault}
     />
   );
 }
