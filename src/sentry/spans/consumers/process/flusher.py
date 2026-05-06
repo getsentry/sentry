@@ -329,9 +329,24 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     continue
 
                 with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
-                    for flushed_segment in flushed_segments.values():
+                    log_flushed_segments = options.get("spans.buffer.flusher.log-flushed-segments")
+
+                    for segment_key, flushed_segment in flushed_segments.items():
                         if not flushed_segment.spans:
                             continue
+
+                        if log_flushed_segments:
+                            logger.info(
+                                "spans.buffer.flushed_segment",
+                                extra={
+                                    "segment_key": segment_key.decode("utf-8", errors="replace"),
+                                    "queue_key": flushed_segment.queue_key.decode(
+                                        "utf-8", errors="replace"
+                                    ),
+                                    "span_count": len(flushed_segment.spans),
+                                    "project_id": flushed_segment.project_id,
+                                },
+                            )
 
                         for message in flushed_segment.to_messages():
                             kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
