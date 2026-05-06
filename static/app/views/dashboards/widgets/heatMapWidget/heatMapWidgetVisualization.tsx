@@ -105,31 +105,33 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             show: false,
           },
         }}
-        visualMap={[
-          // Zero values are transparent (empty buckets)
-          {
-            type: 'piecewise',
-            show: false,
-            dimension: 2,
-            seriesIndex: 0,
-            pieces: [
-              {value: 0, opacity: 0},
-              {min: 0, opacity: 1},
-            ],
-          },
-          // All values are plotted against a palette
-          {
-            type: 'continuous',
-            show: false,
-            dimension: 2,
-            seriesIndex: 0,
-            min: 0,
-            max: Zmax,
-            inRange: {
-              color: [...HEATMAP_COLORS],
+        options={{
+          visualMap: [
+            // Zero values are transparent (empty buckets)
+            {
+              type: 'piecewise',
+              show: false,
+              dimension: 2,
+              seriesIndex: 0,
+              pieces: [
+                {value: 0, opacity: 0},
+                {min: 0, opacity: 1},
+              ],
             },
-          },
-        ]}
+            // All values are plotted against a palette
+            {
+              type: 'continuous',
+              show: false,
+              dimension: 2,
+              seriesIndex: 0,
+              min: 0,
+              max: Zmax,
+              inRange: {
+                color: [...HEATMAP_COLORS],
+              },
+            },
+          ],
+        }}
         start={start ? new Date(start) : undefined}
         end={end ? new Date(end) : undefined}
         period={period}
