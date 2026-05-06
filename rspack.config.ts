@@ -97,7 +97,6 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
 // Silence proxy logs, they can be noisy and not interesting
 // eslint-disable-next-line no-console
 const proxyLoggerQuiet = {info: () => {}, warn: console.warn, error: console.error};
-const regionPathPattern = /^\/region\/([^/]+)/;
 
 const require = createRequire(import.meta.url);
 
@@ -814,6 +813,7 @@ if (IS_UI_DEV_ONLY) {
           '^/region/[^/]*': '',
         },
         router: req => {
+          const regionPathPattern = /^\/region\/([^/]+)/;
           const regionname = (req.url ?? '').match(regionPathPattern);
           if (regionname?.[1]) {
             return `https://${regionname[1]}.sentry.io`;
