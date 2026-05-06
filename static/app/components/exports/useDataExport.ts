@@ -123,7 +123,7 @@ export function useDataExport({
           } else {
             addErrorMessage(
               t(
-                "We tried our hardest, but we couldn't export your data. Give it another go."
+                "We tried our hardest, but we couldn't export your data. Try waiting a minute then giving it another go."
               )
             );
           }
