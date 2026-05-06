@@ -136,7 +136,7 @@ export default function SnapshotsPage() {
       // Skip retries on 4xx so error pages render instantly
       retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
       refetchInterval: query => {
-        const state = query.state.data?.[0]?.comparison_run_info?.state;
+        const state = query.state.data?.json?.comparison_run_info?.state;
         return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
           ? 5_000
           : false;
@@ -163,6 +163,8 @@ export default function SnapshotsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
     palette.at(-5) ?? palette[0]

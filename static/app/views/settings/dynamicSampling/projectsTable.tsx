@@ -69,7 +69,7 @@ export function ProjectsTable({
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
   // We store the expanded items at list level to allow calculating item height
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState(new Set());
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const handleToggleItemExpanded = useCallback((id: string) => {

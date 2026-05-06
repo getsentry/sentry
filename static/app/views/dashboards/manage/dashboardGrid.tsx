@@ -59,9 +59,7 @@ function DashboardGrid({
   });
   // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
   // to be able to show the 'previous' dashboards on resize
-  const [currentDashboards, setCurrentDashboards] = useState<
-    DashboardListItem[] | undefined
-  >(dashboards);
+  const [currentDashboards, setCurrentDashboards] = useState(dashboards);
 
   useEffect(() => {
     if (dashboards?.length) {

@@ -277,7 +277,7 @@ export function ChoiceMapperField({
 
     // Remove already added values from the items list
     const selectableValues =
-      addDropdown.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
+      addDropdown.items?.filter(i => !Object.hasOwn(value, i.value)) ?? [];
 
     const valueMap =
       addDropdown.items?.reduce<Record<string, React.ReactNode>>((map, item) => {
@@ -300,7 +300,7 @@ export function ChoiceMapperField({
 
     const formatAsyncOptions = (data: any) =>
       data
-        .filter((item: SelectOption<string>) => !value.hasOwnProperty(item.value))
+        .filter((item: SelectOption<string>) => !Object.hasOwn(value, item.value))
         .map((item: SelectOption<string>) => ({
           value: item.value,
           label: item.label,

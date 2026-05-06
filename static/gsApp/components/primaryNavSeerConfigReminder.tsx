@@ -25,6 +25,8 @@ function useReminderData() {
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
 
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
+
   const analyticsParams = useMemo(() => {
     return {
       can_write_settings: canWrite,
@@ -49,10 +51,14 @@ function useReminderData() {
     return {
       canSeeReminder: true,
       analyticsParams,
-      title: t('Connect GitHub'),
-      description: t(
-        'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Autofix and Code Review.'
-      ),
+      title: hasGitLabSupport ? t('Connect GitHub or GitLab') : t('Connect GitHub'),
+      description: hasGitLabSupport
+        ? t(
+            'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix and Code Review.'
+          )
+        : t(
+            'Seer is enabled, but repositories are not connected. Connect your GitHub account to enable Autofix and Code Review.'
+          ),
     };
   }
 

@@ -43,6 +43,7 @@ ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 
 GroupId: TypeAlias = int
 DataConditionGroupId: TypeAlias = int
+ActionId: TypeAlias = int
 WorkflowId: TypeAlias = int
 
 

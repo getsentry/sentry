@@ -10,12 +10,8 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, features, options
+from sentry import features, options
 from sentry import ratelimits as ratelimiter
-from sentry.analytics.events.data_consent_org_creation import (
-    AggregatedDataConsentOrganizationCreatedEvent,
-)
-from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -45,7 +41,6 @@ from sentry.services.organization import (
     PostProvisionOptions,
 )
 from sentry.services.organization.provisioning import organization_provisioning_service
-from sentry.signals import org_setup_complete, terms_accepted
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -371,21 +366,18 @@ class OrganizationIndexEndpoint(Endpoint):
 
         result = serializer.validated_data
 
-        analytics_in_rpc = options.get("provision_organization_in_cell.record_analytics")
-
         getsentry_options = None
-        if analytics_in_rpc:
-            getsentry_options = {
-                # Define a self-serve free account for saas. Historically
-                # these were not trial accounts.
-                # See getsentry/utils/provisioning.py
-                "subscription": {
-                    "channel": 0,
-                    "type": 0,
-                },
-                "ip_address": request.META["REMOTE_ADDR"],
-                "provisioning_user_id": request.user.id,
-            }
+        getsentry_options = {
+            # Define a self-serve free account for saas. Historically
+            # these were not trial accounts.
+            # See getsentry/utils/provisioning.py
+            "subscription": {
+                "channel": 0,
+                "type": 0,
+            },
+            "ip_address": request.META["REMOTE_ADDR"],
+            "provisioning_user_id": request.user.id,
+        }
 
         try:
             create_default_team = bool(result.get("defaultTeam"))
@@ -415,61 +407,11 @@ class OrganizationIndexEndpoint(Endpoint):
             )
             org = Organization.objects.get(id=rpc_org.id)
 
-            if not analytics_in_rpc:
-                org_setup_complete.send_robust(
-                    instance=org, user=request.user, sender=self.__class__, referrer="in-app"
-                )
-
-                self.create_audit_entry(
-                    request=request,
-                    organization=org,
-                    target_object=org.id,
-                    event=audit_log.get_event_id("ORG_ADD"),
-                    data=org.get_audit_log_data(),
-                )
-
-                try:
-                    analytics.record(
-                        OrganizationCreatedEvent(
-                            id=org.id,
-                            name=org.name,
-                            slug=org.slug,
-                            actor_id=request.user.id if request.user.is_authenticated else None,
-                        )
-                    )
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
-
         # TODO(hybrid-cloud): We'll need to catch a more generic error
         # when the internal RPC is implemented.
         except IntegrityError:
             return Response(
                 {"detail": "An organization with this slug already exists."}, status=409
             )
-
-        if not analytics_in_rpc:
-            # failure on sending this signal is acceptable
-            if result.get("agreeTerms"):
-                terms_accepted.send_robust(
-                    user=request.user,
-                    organization_id=org.id,
-                    ip_address=request.META["REMOTE_ADDR"],
-                    sender=type(self),
-                )
-
-            if result.get("aggregatedDataConsent"):
-                org.update_option("sentry:aggregated_data_consent", True)
-
-                try:
-                    analytics.record(
-                        AggregatedDataConsentOrganizationCreatedEvent(
-                            organization_id=org.id,
-                        )
-                    )
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
-
-            # New organizations should not see the legacy UI
-            org.update_option("sentry:streamline_ui_only", True)
 
         return Response(serialize(org, request.user), status=201)

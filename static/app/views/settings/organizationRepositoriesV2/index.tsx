@@ -36,6 +36,7 @@ import {useRepoSearch} from 'sentry/views/settings/organizationRepositories/useR
 import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
 
 import {useDeleteIntegration} from './useDeleteIntegration';
+import {useInstallationSettings} from './useInstallationSettings';
 
 const SCM_PROVIDER_ORDER = [
   'github',
@@ -125,6 +126,11 @@ export function OrganizationRepositoriesV2() {
     codeMappingsQuery.hasNextPage ||
     codeMappingsQuery.isFetchingNextPage;
 
+  const {configByIntegrationId, openInstallationSettings} = useInstallationSettings({
+    scmIntegrations,
+    hasAccess,
+  });
+
   const installationsByProviderKey = useMemo(() => {
     const installations = scmIntegrations.map<ScmInstallation>(integration => ({
       integration,
@@ -133,6 +139,9 @@ export function OrganizationRepositoriesV2() {
       manageUrl: getProviderConfigUrl(integration) ?? undefined,
       mappedProjectSlugsByRepoId,
       mappingsLoading,
+      settingsButtonProps: {
+        disabled: configByIntegrationId[integration.id] === undefined,
+      },
       uninstallButtonProps: hasAccess
         ? undefined
         : {
@@ -151,6 +160,7 @@ export function OrganizationRepositoriesV2() {
     reposLoading,
     mappedProjectSlugsByRepoId,
     mappingsLoading,
+    configByIntegrationId,
     hasAccess,
   ]);
 
@@ -238,6 +248,7 @@ export function OrganizationRepositoriesV2() {
                   installations={installationsByProviderKey[provider.key]!}
                   repoMatches={repoMatches}
                   onUninstall={inst => handleDeleteIntegration(inst.integration)}
+                  onSettings={inst => openInstallationSettings(inst.integration)}
                 />
               ))
           )}

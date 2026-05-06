@@ -24,7 +24,11 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
+from sentry.seer.models.night_shift import (
+    NightShiftRunResultKind,
+    SeerNightShiftRun,
+    SeerNightShiftRunResult,
+)
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
@@ -210,7 +214,6 @@ def run_night_shift_for_org(
 
     run = SeerNightShiftRun.objects.create(
         organization=organization,
-        triage_strategy="agentic_triage",
         extras=extras,
     )
 
@@ -267,7 +270,7 @@ def run_night_shift_execution(
         data_category=DataCategory.SEER_AUTOFIX,
     ):
         logger.info("night_shift.no_seer_quota", extra=log_extra)
-        run.update(error_message="No Seer quota available")
+        _record_run_error(run, "No Seer quota available")
         return None
 
     try:
@@ -330,14 +333,14 @@ def run_night_shift_execution(
             c.group.project = projects_by_id[c.group.project_id]
 
         stopping_point_by_project_id = {ep.project.id: ep.stopping_point for ep in eligible}
-        issues = _run_autofix_for_candidates(
+        results = _run_autofix_for_candidates(
             run=run,
             candidates=candidates,
             options=resolved_options,
             stopping_point_by_project_id=stopping_point_by_project_id,
             log_extra=log_extra,
         )
-        seer_run_id_by_group = {i.group_id: i.seer_run_id for i in issues}
+        seer_run_id_by_group = {r.group_id: r.seer_run_id for r in results}
 
     logger.info(
         "night_shift.candidates_selected",
@@ -412,6 +415,10 @@ def _get_eligible_orgs_from_batch(
     return eligible
 
 
+def _record_run_error(run: SeerNightShiftRun, message: str) -> None:
+    run.update(extras={**(run.extras or {}), "error_message": message})
+
+
 def _fail_run(
     run: SeerNightShiftRun,
     *,
@@ -419,9 +426,9 @@ def _fail_run(
     event: str,
     extra: dict[str, object],
 ) -> None:
-    """Log an exception and mark the run with an error message."""
+    """Log an exception and record an error message on the run."""
     logger.exception(event, extra=extra)
-    run.update(error_message=message)
+    _record_run_error(run, message)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -482,11 +489,11 @@ def _run_autofix_for_candidates(
     options: SeerNightShiftRunOptions,
     stopping_point_by_project_id: Mapping[int, AutofixStoppingPoint],
     log_extra: dict[str, object],
-) -> list[SeerNightShiftRunIssue]:
+) -> list[SeerNightShiftRunResult]:
     """
-    For each fixable triage candidate, trigger a Seer autofix run and persist the
-    resulting run id onto a newly created SeerNightShiftRunIssue row. Returns the
-    list of rows that were created.
+    For each fixable triage candidate, trigger a Seer autofix run and persist
+    the resulting run id onto a newly created SeerNightShiftRunResult row.
+    Returns the list of rows that were created.
     """
     fixable_candidates = [
         c for c in candidates if c.action in (TriageAction.AUTOFIX, TriageAction.ROOT_CAUSE_ONLY)
@@ -500,7 +507,7 @@ def _run_autofix_for_candidates(
 
     referrer = referrer_map[SeerAutomationSource.NIGHT_SHIFT]
 
-    issues = []
+    results: list[SeerNightShiftRunResult] = []
     for c in fixable_candidates:
         stopping_point = (
             AutofixStoppingPoint.ROOT_CAUSE
@@ -531,17 +538,18 @@ def _run_autofix_for_candidates(
             )
             continue
 
-        issues.append(
-            SeerNightShiftRunIssue(
+        results.append(
+            SeerNightShiftRunResult(
                 run=run,
+                kind=NightShiftRunResultKind.AGENTIC_TRIAGE,
                 group=c.group,
-                action=c.action,
                 seer_run_id=str(seer_run_id),
+                extras={"action": str(c.action)},
             )
         )
 
-    SeerNightShiftRunIssue.objects.bulk_create(issues)
+    SeerNightShiftRunResult.objects.bulk_create(results)
 
-    sentry_sdk.metrics.count("night_shift.autofix_triggered", len(issues))
+    sentry_sdk.metrics.count("night_shift.autofix_triggered", len(results))
 
-    return issues
+    return results
