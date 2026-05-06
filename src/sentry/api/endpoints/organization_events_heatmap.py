@@ -20,7 +20,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
-MAX_BUCKETS = 10_000
+MAX_BUCKETS = 1_000
 HEATMAP_DATASETS = {TraceMetrics}
 
 
@@ -109,13 +109,26 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 raise ParseError("zAxis can currently only be `count()`")
             z_function, _, _ = parse_function(zAxis)
 
-            xBuckets = request.GET.get("xBuckets")
-            if xBuckets is None or not xBuckets.isnumeric():
-                raise ParseError("xBuckets must be a number")
+            # if xAxis is time, use interval as x_buckets instead
+            if xAxis == "time":
+                rollup = self.get_rollup(request, snuba_params, 0, True)
+                snuba_params.granularity_secs = rollup
+                x_buckets = int(
+                    snuba_params.date_range.total_seconds() // snuba_params.granularity_secs
+                )
             else:
-                x_buckets = int(xBuckets)
-                if x_buckets <= 0:
-                    raise ParseError("xBuckets must be greater than 0")
+                # Currently unused since time is the only allowed xAxis
+                xBuckets = request.GET.get("xBuckets")
+                if xBuckets is None or not xBuckets.isnumeric():
+                    raise ParseError("xBuckets must be a number")
+                else:
+                    x_buckets = int(xBuckets)
+                    if x_buckets <= 0:
+                        raise ParseError("xBuckets must be greater than 0")
+
+                snuba_params.granularity_secs = int(
+                    (snuba_params.date_range.total_seconds()) // x_buckets
+                )
 
             yBuckets = request.GET.get("yBuckets")
             if yBuckets is None or not yBuckets.isnumeric():
@@ -124,14 +137,9 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 y_buckets = int(yBuckets)
                 if y_buckets <= 0:
                     raise ParseError("yBuckets must be greater than 0")
+                elif y_buckets > MAX_BUCKETS:
+                    raise ParseError(f"yBuckets must be less than {MAX_BUCKETS}")
 
-            # Leaving it as this even though we can query more buckets, just want to do some testing first
-            if x_buckets * y_buckets > MAX_BUCKETS:
-                raise ParseError(f"xBuckets * yBuckets must be less than {MAX_BUCKETS}")
-
-            snuba_params.granularity_secs = int(
-                (snuba_params.date_range.total_seconds()) // x_buckets
-            )
             query = request.GET.get("query", "")
 
         with handle_query_errors():
@@ -152,6 +160,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             else:
                 # if max == min, then just have 1 bucket
                 bucket_size = 0
+                y_buckets = 1
                 yAxes = {
                     bucket_ranges[0]: f"{z_function}_if(`{yAxis}:{bucket_ranges[0]}`, {yAxis})"
                 }
