@@ -6,12 +6,13 @@ import {Flex} from '@sentry/scraps/layout';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {SeerProjectDetails} from 'getsentry/views/seerAutomation/components/projectDetails';
 
@@ -20,7 +21,11 @@ export default function SeerProjectFlyout() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {projectSlug} = useParams<{projectSlug: string}>();
-  const project = useProjectFromSlug({organization, projectSlug});
+  const {fetching, projects} = useProjects({
+    slugs: projectSlug ? [projectSlug] : undefined,
+    orgId: organization.slug,
+  });
+  const project = projects[0];
   const {openDrawer} = useDrawer();
 
   const queryRef = useRef(query);
@@ -29,7 +34,7 @@ export default function SeerProjectFlyout() {
   useEffect(() => {
     openDrawer(
       () => (
-        <AnalyticsArea name="repo-details">
+        <AnalyticsArea name="project-details">
           <DrawerHeader>
             {project && (
               <Flex gap="sm">
@@ -40,7 +45,13 @@ export default function SeerProjectFlyout() {
             )}
           </DrawerHeader>
           <DrawerBody>
-            {project ? <SeerProjectDetails project={project} /> : <NotFound />}
+            {fetching ? (
+              <LoadingIndicator />
+            ) : project ? (
+              <SeerProjectDetails project={project} />
+            ) : (
+              <NotFound />
+            )}
           </DrawerBody>
         </AnalyticsArea>
       ),
@@ -58,7 +69,7 @@ export default function SeerProjectFlyout() {
           !nextLocation.pathname.endsWith(`/seer/projects/${projectSlug}/`),
       }
     );
-  }, [navigate, openDrawer, organization, project, projectSlug]);
+  }, [fetching, navigate, openDrawer, organization, project, projectSlug]);
 
   return null;
 }
