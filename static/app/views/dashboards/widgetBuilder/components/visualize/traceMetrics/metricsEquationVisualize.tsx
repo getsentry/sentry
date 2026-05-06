@@ -55,6 +55,7 @@ import {
   EQUATION_LABEL,
   parseAggregateExpression,
 } from 'sentry/views/explore/metrics/parseAggregateExpression';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -79,12 +80,6 @@ interface MetricsEquationVisualizeProps {
   onEquationRemoved: () => void;
 }
 
-/**
- * TODO: The filter should propagate to all sub components automatically.
- * - If the equation is removed we.. choose the first filter to set in the filter bar? Not sure.
- * - Fix orderby with equation with widget builder
- * - Filters aren't submitting when changed in the selected metric by radio button
- */
 export function MetricsEquationVisualize({
   onEquationRemoved,
 }: MetricsEquationVisualizeProps) {
@@ -103,7 +98,15 @@ export function MetricsEquationVisualize({
     if (firstField?.kind === FieldValueKind.EQUATION) {
       const parsed = parseAggregateExpression(generateFieldAsString(firstField));
       return parsed.equationRow
-        ? [...parsed.metricQueries, parsed.equationRow]
+        ? [
+            ...parsed.metricQueries,
+            {
+              ...parsed.equationRow,
+              queryParams: parsed.equationRow.queryParams.replace({
+                query: state.query?.[0] ?? '',
+              }),
+            },
+          ]
         : parsed.metricQueries;
     }
 
@@ -158,43 +161,66 @@ function MetricsEquationVisualizeContent({
     return match?.label ?? metricQueries[0]?.label;
   });
 
-  const onRowSelection = useCallback((label: string) => {
-    setSelectedLabel(label);
-  }, []);
+  const syncWidgetBuilderYAxis = useCallback(
+    (yAxis: string) => {
+      const actionType = getTraceMetricAggregateActionType(state.displayType);
+      const column = explodeFieldString(yAxis);
+      if (actionType === BuilderStateAction.SET_Y_AXIS) {
+        dispatch({type: actionType, payload: [column]});
+      } else if (actionType === BuilderStateAction.SET_CATEGORICAL_AGGREGATE) {
+        dispatch({type: actionType, payload: [column]});
+      } else {
+        const currentNonAggregates =
+          state.fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
+        dispatch({type: actionType, payload: [...currentNonAggregates, column]});
+      }
+    },
+    [state.displayType, state.fields, dispatch]
+  );
 
-  const lastSyncedYAxisRef = useRef<string | undefined>(undefined);
-  const fieldsRef = useRef(state.fields);
-  fieldsRef.current = state.fields;
+  const syncWidgetBuilderFilter = useCallback(
+    (query: string) => {
+      dispatch({type: BuilderStateAction.SET_QUERY, payload: [query]});
+    },
+    [dispatch]
+  );
+
+  const handleFilterChange = useCallback(
+    (newQueryParams: ReadableQueryParams) => {
+      syncWidgetBuilderFilter(newQueryParams.query);
+    },
+    [syncWidgetBuilderFilter]
+  );
+
+  const onRowSelection = useCallback(
+    (label: string) => {
+      setSelectedLabel(label);
+      const query = metricQueries.find(q => q.label === label);
+      if (query) {
+        syncWidgetBuilderFilter(query.queryParams.query);
+      }
+    },
+    [metricQueries, syncWidgetBuilderFilter]
+  );
+
+  const selectedQuery = metricQueries.find(q => q.label === selectedLabel);
+  const selectedYAxis = selectedQuery?.queryParams.visualizes[0]?.yAxis;
 
   useEffect(() => {
-    let selectedQuery = metricQueries.find(q => q.label === selectedLabel);
     if (!selectedQuery && metricQueries.length > 0) {
-      selectedQuery = metricQueries[0];
-      setSelectedLabel(selectedQuery?.label);
+      setSelectedLabel(metricQueries[0]!.label);
+      syncWidgetBuilderFilter(metricQueries[0]!.queryParams.query);
     }
+  }, [selectedQuery, metricQueries, syncWidgetBuilderFilter]);
 
-    const selectedYAxis = selectedQuery?.queryParams.visualizes[0]?.yAxis;
-    if (selectedYAxis === undefined || selectedYAxis === lastSyncedYAxisRef.current) {
-      return;
+  const syncYAxisRef = useRef(syncWidgetBuilderYAxis);
+  syncYAxisRef.current = syncWidgetBuilderYAxis;
+
+  useEffect(() => {
+    if (selectedYAxis) {
+      syncYAxisRef.current(selectedYAxis);
     }
-    lastSyncedYAxisRef.current = selectedYAxis;
-
-    const actionType = getTraceMetricAggregateActionType(state.displayType);
-    const column = explodeFieldString(selectedYAxis);
-
-    if (actionType === BuilderStateAction.SET_Y_AXIS) {
-      dispatch({type: actionType, payload: [column]});
-    } else if (actionType === BuilderStateAction.SET_CATEGORICAL_AGGREGATE) {
-      dispatch({type: actionType, payload: [column]});
-    } else {
-      const currentNonAggregates =
-        fieldsRef.current?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
-      dispatch({
-        type: actionType,
-        payload: [...currentNonAggregates, column],
-      });
-    }
-  }, [metricQueries, selectedLabel, state.displayType, dispatch]);
+  }, [selectedYAxis]);
 
   const functionQueries = useMemo(
     () => metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)),
@@ -230,30 +256,38 @@ function MetricsEquationVisualizeContent({
           : functionQueries.length <= 1
             ? t('At least one metric is required')
             : undefined;
+        const isSelected = selectedLabel === metricQuery.label;
         return (
-          <RowProvider key={metricQuery.label ?? ''} metricQuery={metricQuery}>
+          <RowProvider
+            key={metricQuery.label ?? ''}
+            metricQuery={metricQuery}
+            isSelected={isSelected}
+            onQueryParamsChange={handleFilterChange}
+          >
             <MetricToolbar
               metricQuery={metricQuery}
               referenceMap={referenceMap}
               deleteDisabledReason={deleteDisabledReason}
-              isSelected={selectedLabel === metricQuery.label}
+              isSelected={isSelected}
               onRowSelection={onRowSelection}
             />
           </RowProvider>
         );
       })}
       {equationQuery && (
-        <Fragment>
-          <RowProvider metricQuery={equationQuery}>
-            <MetricToolbar
-              metricQuery={equationQuery}
-              referenceMap={referenceMap}
-              isSelected={selectedLabel === equationQuery.label}
-              onRowSelection={onRowSelection}
-              onReferenceLabelsChange={setEquationReferencedLabels}
-            />
-          </RowProvider>
-        </Fragment>
+        <RowProvider
+          metricQuery={equationQuery}
+          isSelected={selectedLabel === equationQuery.label}
+          onQueryParamsChange={handleFilterChange}
+        >
+          <MetricToolbar
+            metricQuery={equationQuery}
+            referenceMap={referenceMap}
+            isSelected={selectedLabel === equationQuery.label}
+            onRowSelection={onRowSelection}
+            onReferenceLabelsChange={setEquationReferencedLabels}
+          />
+        </RowProvider>
       )}
       <Flex gap="md" align="center">
         <ToolbarVisualizeAddChart
@@ -277,17 +311,31 @@ function MetricsEquationVisualizeContent({
 
 function RowProvider({
   metricQuery,
+  isSelected,
+  onQueryParamsChange,
   children,
 }: {
   children: React.ReactNode;
+  isSelected: boolean;
   metricQuery: MetricQuery;
+  onQueryParamsChange?: (newQueryParams: ReadableQueryParams) => void;
 }) {
+  const handleSetQueryParams = useCallback(
+    (newQueryParams: ReadableQueryParams) => {
+      metricQuery.setQueryParams(newQueryParams);
+      if (isSelected) {
+        onQueryParamsChange?.(newQueryParams);
+      }
+    },
+    [metricQuery, isSelected, onQueryParamsChange]
+  );
+
   return (
     <MetricsQueryParamsProvider
       queryParams={metricQuery.queryParams}
       traceMetric={metricQuery.metric}
       setTraceMetric={metricQuery.setTraceMetric}
-      setQueryParams={metricQuery.setQueryParams}
+      setQueryParams={handleSetQueryParams}
       removeMetric={metricQuery.removeMetric}
     >
       {children}
