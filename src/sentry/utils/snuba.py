@@ -352,6 +352,15 @@ class UnqualifiedQueryError(SnubaError):
     """
 
 
+class EmptyGroupIdIntersectionError(SnubaError):
+    """
+    Raised by SnubaQueryParams when the intersection of `group_id` IN-constraints
+    is empty, meaning the query cannot match any rows. Callers that want to treat
+    this as "no results" (rather than a failure) should catch it explicitly;
+    otherwise it propagates as a generic SnubaError to preserve existing behavior.
+    """
+
+
 class UnexpectedResponseError(SnubaError):
     """
     Exception raised when the Snuba API server returns an unexpected response
@@ -980,7 +989,7 @@ class SnubaQueryParams:
             if len(in_groups) > 0:
                 triple = ["group_id", "IN", get_all_merged_group_ids(in_groups)]
             else:
-                raise SnubaError("Found empty intersection of group_ids")
+                raise EmptyGroupIdIntersectionError("Found empty intersection of group_ids")
         elif len(out_groups) > 0:
             triple = ["group_id", "NOT IN", out_groups]
 

@@ -71,11 +71,8 @@ export function MobileNavigation() {
     }
   }, [endTour, layout, currentStepId]);
 
-  const handleClick = useCallback(
-    () =>
-      setView(v => (v === 'closed' ? (activeGroup ? 'secondary' : 'primary') : 'closed')),
-    [activeGroup]
-  );
+  const handleClick = () =>
+    setView(v => (v === 'closed' ? (activeGroup ? 'secondary' : 'primary') : 'closed'));
 
   const showSuperuserWarning =
     isActiveSuperuser() &&
@@ -99,7 +96,7 @@ export function MobileNavigation() {
         onClick={handleClick}
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
-        priority="transparent"
+        variant="transparent"
       />
       {view === 'closed' ? null : (
         <NavigationOverlayPortal
@@ -131,7 +128,7 @@ export function MobileNavigation() {
                 <Flex as="header" area="header" position="sticky" top={0} padding="md">
                   <Button
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     onClick={() => setView('primary')}
                     icon={<IconChevron direction="left" />}
                     aria-label={t('Back to primary navigation')}

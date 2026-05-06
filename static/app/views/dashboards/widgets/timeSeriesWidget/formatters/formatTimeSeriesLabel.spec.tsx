@@ -3,19 +3,6 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {formatTimeSeriesLabel} from './formatTimeSeriesLabel';
 
 describe('formatSeriesName', () => {
-  describe('releases', () => {
-    it.each([
-      ['p75(span.duration)|~|11762', 'p75(span.duration)'],
-      ['Releases|~|', 'Releases'],
-    ])('Formats %s as %s', (name, result) => {
-      const timeSeries = TimeSeriesFixture({
-        yAxis: name,
-      });
-
-      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
-    });
-  });
-
   describe('aggregates', () => {
     it.each([
       ['user_misery()', 'user_misery()'],
@@ -70,26 +57,8 @@ describe('formatSeriesName', () => {
     });
   });
 
-  describe('combinations', () => {
-    it.each([
-      ['equation|p75(measurements.cls) + 1|~|76123', 'p75(measurements.cls) + 1'],
-      ['equation|p75(measurements.cls)|~|76123', 'p75(measurements.cls)'],
-    ])('Formats %s as %s', (name, result) => {
-      const timeSeries = TimeSeriesFixture({
-        yAxis: name,
-      });
-
-      expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
-    });
-  });
-
   describe('groupBy', () => {
     it.each([
-      [
-        'equation|p75(measurements.cls)|~|76123',
-        [{key: 'release', value: 'v0.0.2'}],
-        'v0.0.2',
-      ],
       ['p95(span.duration)', [{key: 'release', value: 'v0.0.2'}], 'v0.0.2'],
       ['p95(span.duration)', [{key: 'gen_ai.request.model', value: null}], '(no value)'],
       [

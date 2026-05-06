@@ -99,6 +99,8 @@ describe('tokenizeExpression', () => {
     ['avg(tags[foo,  number])', f(0, 'avg', [a(0, 'foo', 'number')])],
     ['avg(   tags[foo,  number]   )', f(0, 'avg', [a(0, 'foo', 'number')])],
     ['epm()', f(0, 'epm', [])],
+    ['count_if(`test:foo`)', f(0, 'count_if', [a(0, '`test:foo`')])],
+    ['count_if(`test:"blah blah"`)', f(0, 'count_if', [a(0, '`test:"blah blah"`')])],
   ])('tokenizes function `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
   });
@@ -115,6 +117,20 @@ describe('tokenizeExpression', () => {
     [
       'avg(   tags[foo,  number], equals,  30   )',
       f(0, 'avg', [a(0, 'foo', 'number'), a(1, 'equals'), a(2, '30')]),
+    ],
+    [
+      'count_if(`test:"blah blah"`,test,test)',
+      f(0, 'count_if', [a(0, '`test:"blah blah"`'), a(1, 'test'), a(2, 'test')]),
+    ],
+    [
+      'sum_if(`agent_name:["Agent Run","Assisted Query Agent - Traces"]`,value,agent.invocations.error,counter,none)',
+      f(0, 'sum_if', [
+        a(0, '`agent_name:["Agent Run","Assisted Query Agent - Traces"]`'),
+        a(1, 'value'),
+        a(2, 'agent.invocations.error'),
+        a(3, 'counter'),
+        a(4, 'none'),
+      ]),
     ],
   ])('tokenizes multi-param function `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
@@ -290,6 +306,42 @@ describe('tokenizeExpression', () => {
         o(0, '/'),
         s(2),
         f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'count_if(`test:foo`) + epm()',
+      [
+        s(0),
+        f(0, 'count_if', [a(0, '`test:foo`')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(1, 'epm', []),
+        s(3),
+      ],
+    ],
+    [
+      'count_if(`test:"blah blah"`) + epm()',
+      [
+        s(0),
+        f(0, 'count_if', [a(0, '`test:"blah blah"`')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(1, 'epm', []),
+        s(3),
+      ],
+    ],
+    [
+      'count_if(`test:"blah blah"`,test,test) + sum_if(`test:"blah\'blah\'blah"`)',
+      [
+        s(0),
+        f(0, 'count_if', [a(0, '`test:"blah blah"`'), a(1, 'test'), a(2, 'test')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(1, 'sum_if', [a(3, '`test:"blah\'blah\'blah"`')]),
         s(3),
       ],
     ],

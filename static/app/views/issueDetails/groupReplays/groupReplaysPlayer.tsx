@@ -14,7 +14,7 @@ import {useLogEventReplayStatus} from 'sentry/utils/replays/hooks/useLogEventRep
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 
 interface Props {
   analyticsContext: string;
@@ -76,7 +76,7 @@ export function GroupReplaysPlayer({
                     handleForwardClick={handleForwardClick}
                     overlayContent={overlayContent}
                     showNextAndPrevious
-                    playPausePriority="default"
+                    playPauseVariant="secondary"
                   />
                 </ReplayPlayerStateContextProvider>
               </ReplayReaderProvider>

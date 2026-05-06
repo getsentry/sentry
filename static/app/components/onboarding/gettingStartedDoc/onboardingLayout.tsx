@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -48,7 +48,14 @@ export type OnboardingLayoutProps = {
   projectKeyId: ProjectKey['id'];
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
+  /**
+   * Fires after every product toggle in addition to the doc's
+   * onProductSelectionChange. Used by SCM onboarding to keep its context in
+   * sync when the user changes products on the setup-docs step.
+   */
+  onProductSelectionSync?: (products: ProductSolution[]) => void;
 };
 
 const EMPTY_ARRAY: never[] = [];
@@ -62,6 +69,8 @@ export function OnboardingLayout({
   newOrg,
   projectKeyId,
   configType = 'onboarding',
+  onProductSelectionSync,
+  hasScmOnboarding,
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -106,6 +115,7 @@ export function OnboardingLayout({
       isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
+      hasScmOnboarding,
       profilingOptions: {
         defaultProfilingMode: organization.features.includes('continuous-profiling')
           ? 'continuous'
@@ -122,10 +132,13 @@ export function OnboardingLayout({
           configureSteps: doc.configure(docParams),
           dsn,
           onCopyDsn: () => {
-            trackAnalytics('onboarding.dsn-copied', {
-              organization,
-              platform: platformKey,
-            });
+            trackAnalytics(
+              hasScmOnboarding ? 'onboarding.scm_dsn_copied' : 'onboarding.dsn-copied',
+              {
+                organization,
+                platform: platformKey,
+              }
+            );
           },
         }),
         ...doc.verify(docParams),
@@ -152,12 +165,21 @@ export function OnboardingLayout({
     isSelfHosted,
     api,
     projectKeyId,
+    hasScmOnboarding,
   ]);
 
   useEffect(() => {
     onPageLoad?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleProductSelectionChange = useCallback(
+    (params: {previousProducts: ProductSolution[]; products: ProductSolution[]}) => {
+      onProductSelectionChange?.(params);
+      onProductSelectionSync?.(params.products);
+    },
+    [onProductSelectionChange, onProductSelectionSync]
+  );
 
   const hideInstructionsCopy = (docsConfig[configType] ?? docsConfig.onboarding)
     ?.hideInstructionsCopy;
@@ -172,7 +194,7 @@ export function OnboardingLayout({
               <ProductSelectionAvailabilityHook
                 organization={organization}
                 platform={platformKey}
-                onChange={onProductSelectionChange}
+                onChange={handleProductSelectionChange}
                 onLoad={onProductSelectionLoad}
               />
             )}
@@ -229,14 +251,19 @@ export function OnboardingLayout({
                       <ExternalLink
                         href={step.link}
                         onClick={() =>
-                          trackAnalytics('onboarding.next_step_clicked', {
-                            organization,
-                            platform: platformKey,
-                            project_id: project.id,
-                            products: activeProductSelection,
-                            step: step.name,
-                            newOrg: newOrg ?? false,
-                          })
+                          trackAnalytics(
+                            hasScmOnboarding
+                              ? 'onboarding.scm_next_step_clicked'
+                              : 'onboarding.next_step_clicked',
+                            {
+                              organization,
+                              platform: platformKey,
+                              project_id: project.id,
+                              products: activeProductSelection,
+                              step: step.name,
+                              newOrg: newOrg ?? false,
+                            }
+                          )
                         }
                       >
                         {step.name}

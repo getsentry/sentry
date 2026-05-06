@@ -342,6 +342,15 @@ def get_cell_by_name(name: str) -> Cell:
         )
 
 
+def get_new_org_cell_for_locality(name: str) -> Cell:
+    """
+    For the provided locality name, get the Cell
+    that new organizations should be created in.
+    """
+    locality = get_locality_by_name(name)
+    return get_cell_by_name(locality.new_org_cell)
+
+
 def get_locality_by_name(name: str) -> Locality:
     """Look up a locality by name."""
     global_directory = get_global_directory()
@@ -386,10 +395,6 @@ def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
         )
 
     return get_cell_by_name(name=mapping.cell_name)
-
-
-# TOOD(cells): Remove alias once getsentry import sites are updated
-get_region_for_organization = get_cell_for_organization
 
 
 def get_local_locality() -> Locality:

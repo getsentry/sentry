@@ -1,4 +1,9 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {
+  dispatchPipelineMessage,
+  setupMockPopup,
+} from 'sentry/components/pipeline/testUtils';
 
 import {OAuthLoginStep} from './oauthLoginStep';
 
@@ -8,33 +13,12 @@ describe('OAuthLoginStep', () => {
 
   beforeEach(() => {
     mockOnOAuthCallback.mockClear();
-    mockPopup = {
-      closed: false,
-      close: jest.fn(),
-      focus: jest.fn(),
-    } as unknown as Window;
-    jest.spyOn(window, 'open').mockReturnValue(mockPopup);
+    mockPopup = setupMockPopup();
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
-
-  function dispatchPipelineMessage({
-    data,
-    origin = document.location.origin,
-    source = mockPopup,
-  }: {
-    data: Record<string, string>;
-    origin?: string;
-    source?: Window | MessageEventSource | null;
-  }) {
-    act(() => {
-      window.dispatchEvent(
-        new MessageEvent('message', {data, origin, source: source as Window})
-      );
-    });
-  }
 
   it('renders the authorize button with the service name', () => {
     render(
@@ -108,6 +92,7 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
+      source: mockPopup,
       data: {
         _pipeline_source: 'sentry-pipeline',
         code: 'auth-code-123',
@@ -135,6 +120,7 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
+      source: mockPopup,
       data: {source: 'some-extension', code: 'nope'},
     });
 
@@ -153,6 +139,7 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
+      source: mockPopup,
       data: {
         _pipeline_source: 'sentry-pipeline',
         code: 'auth-code-123',

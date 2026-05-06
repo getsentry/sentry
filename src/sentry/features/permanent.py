@@ -114,8 +114,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:sentry-pride-logo-footer": False,
         # Enable priority calculations using Seer's severity endpoint
         "organizations:seer-based-priority": False,
-        # Show Seer run ID in Slack notification footers
-        "organizations:seer-run-id-in-slack": False,
         # Enable Vercel integration - there is a custom handler in getsentry
         "organizations:integrations-vercel": True,
         # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.
@@ -125,8 +123,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
     }
 
     permanent_project_features = {
-        # Enable data forwarding functionality for projects.
-        "projects:data-forwarding": True,
         # Enable functionality for rate-limiting events on projects.
         "projects:rate-limits": True,
         # Enable functionality to specify custom inbound filters on events.
@@ -135,6 +131,12 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "projects:discard-groups": False,
         # Enable functionality to trigger service hooks upon event ingestion.
         "projects:servicehooks": False,
+    }
+
+    # Permanent organization features that are controlled via flagpole
+    permanent_flagpole_organization_features = {
+        # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
+        "organizations:workflow-engine-log-evaluations": False,
     }
 
     for org_feature, default in permanent_organization_features.items():
@@ -153,6 +155,15 @@ def register_permanent_features(manager: FeatureManager) -> None:
             FeatureHandlerStrategy.INTERNAL,
             default=default,
             api_expose=True,
+        )
+
+    for org_feature, default in permanent_flagpole_organization_features.items():
+        manager.add(
+            org_feature,
+            OrganizationFeature,
+            FeatureHandlerStrategy.FLAGPOLE,
+            default=default,
+            api_expose=False,
         )
 
     # Enable support for multiple regions, and org slug subdomains (customer-domains).

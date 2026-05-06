@@ -60,6 +60,7 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.snuba.tasks import update_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -67,6 +68,7 @@ from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.snuba import _snuba_pool
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition
@@ -222,8 +224,6 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
         assert resp.status_code == 404
 
-
-class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def assert_alert_detail_results_match(self, old_data: dict, new_data: dict) -> None:
         """Compare old and new alert rule serializer outputs field-by-field.
 
@@ -298,6 +298,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         assert not mismatches, "Old vs new serializer differences:\n" + "\n".join(mismatches)
 
+
+class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -1150,17 +1152,27 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
 
     @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-rule-serializers")
+    @freeze_time("2024-12-11 03:21:34")
     def test_workflow_engine_serializer(self) -> None:
-        self.create_team(organization=self.organization, members=[self.user])
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
         self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["name"] = "what"
 
-        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
-        self.detector = Detector.objects.get(id=ard.detector_id)
-        fake_detector_id = get_fake_id_from_object_id(self.detector.id)
+        with self.feature("organizations:workflow-engine-metric-alert-endpoints-put"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
 
-        with outbox_runner():
-            self.get_error_response(self.organization.slug, fake_detector_id, status_code=400)
+        rule_resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
+        self.assert_alert_detail_results_match(rule_resp.data, resp.data)
 
     def test_not_updated_fields(self) -> None:
         self.create_member(
@@ -1889,6 +1901,55 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule.snuba_query.refresh_from_db()
         assert alert_rule.snuba_query.dataset != Dataset.PerformanceMetrics.value
         assert alert_rule.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+
+    @patch(
+        "sentry.snuba.subscriptions.update_subscription_in_snuba.delay",
+        wraps=update_subscription_in_snuba,
+    )
+    def test_am1_org_generic_metrics_update_creates_transactions_snuba_subscription(
+        self, mock_update_subscription_in_snuba: MagicMock
+    ) -> None:
+        """AM1 orgs updating generic_metrics alerts should update the Snuba subscription against
+        the transactions dataset, not generic_metrics."""
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        alert_rule = self.new_alert_rule(
+            data={**deepcopy(self.alert_rule_dict), "dataset": "generic_metrics"}
+        )
+        assert alert_rule.snuba_query.dataset == "transactions"
+
+        put_data = {
+            **deepcopy(self.alert_rule_dict),
+            "dataset": "generic_metrics",
+            "name": "Updated AM1 Transactions Rule",
+        }
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+                resp = self.get_success_response(self.organization.slug, alert_rule.id, **put_data)
+
+                (method, url) = urlopen.call_args[0]
+                assert method == "POST"
+                assert url.startswith("/transactions/")
+
+        assert "id" in resp.data
+        alert_rule.refresh_from_db()
+        assert alert_rule.snuba_query.dataset == "transactions"
+        assert resp.data == serialize(alert_rule, self.user)
+        assert resp.data["aggregate"] == "count()"
+        assert resp.data["dataset"] == "transactions"
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)
+            .order_by("id")[0]
+            .type
+            == SnubaQueryEventType.EventType.TRANSACTION.value
+        )
 
 
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):

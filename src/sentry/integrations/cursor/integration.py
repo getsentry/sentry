@@ -4,11 +4,13 @@ import uuid
 from collections.abc import Mapping, MutableMapping
 from typing import Any, Literal
 
-from django import forms
+from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel
 from requests import HTTPError
+from rest_framework.fields import CharField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -18,12 +20,14 @@ from sentry.integrations.base import (
 from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
     CodingAgentIntegrationProvider,
-    CodingAgentPipelineView,
 )
 from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 
 DESCRIPTION = "Connect your Sentry organization with Cursor Cloud Agents."
@@ -55,21 +59,27 @@ metadata = IntegrationMetadata(
 )
 
 
-class CursorAgentConfigForm(forms.Form):
-    api_key = forms.CharField(
-        label=_("Cursor API Key"),
-        help_text=_("Enter your Cursor API key to call Cursor Agents with."),
-        widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
-        max_length=255,
-    )
+class CursorApiKeySerializer(CamelSnakeSerializer):
+    api_key = CharField(required=True, max_length=255)
 
 
-class CursorPipelineView(CodingAgentPipelineView):
-    def get_form_class(self) -> type[forms.Form]:
-        return CursorAgentConfigForm
+class CursorApiKeyApiStep:
+    step_name = "api_key_config"
 
-    def get_template_name(self) -> str:
-        return "sentry/integrations/cursor-config.html"
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
+
+    def get_serializer_cls(self) -> type:
+        return CursorApiKeySerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        pipeline.bind_state("config", {"api_key": validated_data["api_key"]})
+        return PipelineStepResult.advance()
 
 
 class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
@@ -78,7 +88,10 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     metadata = metadata
 
     def get_pipeline_views(self):
-        return [CursorPipelineView()]
+        return []
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [CursorApiKeyApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config", {})

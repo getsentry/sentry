@@ -1,5 +1,6 @@
 import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,7 +8,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconChevron,
@@ -24,7 +25,7 @@ import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -154,7 +155,7 @@ export function GroupSummary({
   useEffect(() => {
     if (hasFixabilityScore && !isPending && aiConfig.hasAutofix) {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(organization.slug, group.id),
+        queryKey: autofixApiOptions(organization.slug, group.id).queryKey,
       });
     }
   }, [

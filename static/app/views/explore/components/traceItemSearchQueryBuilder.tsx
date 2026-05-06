@@ -29,12 +29,15 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  allowedAttributeKeys?: string[];
+  attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  hiddenAttributeKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -46,14 +49,14 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
     return {};
   }
 
-  return supportedAggregates.reduce((acc, item) => {
+  return supportedAggregates.reduce<TagCollection>((acc, item) => {
     acc[item] = {
       key: item,
       name: item,
       kind: FieldKind.FUNCTION,
     };
     return acc;
-  }, {} as TagCollection);
+  }, {});
 };
 
 const typeMap: Partial<
@@ -105,6 +108,9 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  attributeQuery,
+  hiddenAttributeKeys,
+  allowedAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
@@ -134,6 +140,7 @@ export function useTraceItemSearchQueryBuilderProps({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    query: attributeQuery,
   });
 
   const getSuggestedAttribute = useExploreSuggestedAttribute({
@@ -142,11 +149,17 @@ export function useTraceItemSearchQueryBuilderProps({
     booleanAttributes,
   });
 
-  const getTagKeys = useGetTraceItemAttributeTagKeys({
+  const dynamicTagKeys = useGetTraceItemAttributeTagKeys({
     itemType,
     projects,
     extraTags: functionTags,
+    query: attributeQuery,
+    hiddenKeys: hiddenAttributeKeys,
   });
+  // When an allowlist is in effect, the static filterKeys are already curated to
+  // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
+  // the allowlist (and unrecognized keys are auto-rejected).
+  const getTagKeys = allowedAttributeKeys ? undefined : dynamicTagKeys;
 
   return useMemo(
     () => ({
@@ -243,6 +256,9 @@ export function TraceItemSearchQueryBuilder({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  attributeQuery,
+  hiddenAttributeKeys,
+  allowedAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -270,6 +286,9 @@ export function TraceItemSearchQueryBuilder({
     disallowFreeText,
     disallowLogicalOperators,
     disableRecentSearches,
+    attributeQuery,
+    hiddenAttributeKeys,
+    allowedAttributeKeys,
   });
 
   return (
@@ -380,7 +399,7 @@ function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
     return t('Search for spans, users, tags, and more');
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
-    return t('Search for metrics, users, tags, and more');
+    return t('Search for application metrics, users, tags, and more');
   }
   if (itemType === TraceItemDataset.PREPROD) {
     return t('Search for builds, versions, and more');

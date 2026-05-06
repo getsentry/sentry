@@ -2,7 +2,7 @@ import type React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports -- need luminosity() to detect low-contrast colors
-import Color from 'color';
+import color from 'color';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -15,12 +15,15 @@ interface LegendCheckboxProps {
 
 export function LegendCheckbox({
   checked,
-  color,
+  color: legendColor,
   onChange,
   'aria-label': ariaLabel,
 }: LegendCheckboxProps) {
   const theme = useTheme();
-  const colorBlendsIn = blendsIntoBackground(color, theme.tokens.background.primary);
+  const colorBlendsIn = blendsIntoBackground(
+    legendColor,
+    theme.tokens.background.primary
+  );
   const needsBorder = !checked || colorBlendsIn;
 
   return (
@@ -47,7 +50,7 @@ export function LegendCheckbox({
         height={CHECKBOX_SIZE}
         radius="2xs"
         style={{
-          background: checked ? color : 'transparent',
+          background: checked ? legendColor : 'transparent',
           border: `1px solid ${needsBorder ? theme.tokens.border.primary : 'transparent'}`,
           pointerEvents: 'none',
         }}
@@ -75,9 +78,9 @@ const ICON_SIZE = '7px';
  * Returns true if the color has too little contrast against the page background
  * to be visible as a checkbox swatch (WCAG contrast ratio < 1.3).
  */
-function blendsIntoBackground(color: string, background: string): boolean {
+function blendsIntoBackground(legendColor: string, background: string): boolean {
   try {
-    return Color(color).contrast(Color(background)) < 1.3;
+    return color(legendColor).contrast(color(background)) < 1.3;
   } catch {
     return false;
   }

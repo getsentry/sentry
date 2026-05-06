@@ -101,28 +101,8 @@ describe('StreamlinedGroupHeader', () => {
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
       expect(screen.getByText('Leander')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Manage issue experience'})
-      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
-    });
-
-    it('displays new experience button if flag is set', async () => {
-      render(
-        <StreamlinedGroupHeader
-          {...defaultProps}
-          group={group}
-          project={project}
-          event={null}
-        />,
-        {
-          organization,
-        }
-      );
-      expect(
-        await screen.findByRole('button', {name: 'Manage issue experience'})
-      ).toBeInTheDocument();
     });
 
     it('displays share icon if issue has been shared', async () => {

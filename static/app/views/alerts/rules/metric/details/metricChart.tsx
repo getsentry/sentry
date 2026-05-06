@@ -226,12 +226,12 @@ export function MetricChart({
       warningDuration: number,
       waitingForDataDuration: number
     ) => {
-      let dataset: DiscoverDatasets | undefined = undefined;
+      let dataset: DiscoverDatasets | undefined;
       if (shouldUseErrorsDiscoverDataset(query, rule.dataset, organization)) {
         dataset = DiscoverDatasets.ERRORS;
       }
 
-      let openInDiscoverDataset: SavedQueryDatasets | undefined = undefined;
+      let openInDiscoverDataset: SavedQueryDatasets | undefined;
       if (hasDatasetSelector(organization)) {
         if (rule.dataset === Dataset.ERRORS) {
           openInDiscoverDataset = SavedQueryDatasets.ERRORS;

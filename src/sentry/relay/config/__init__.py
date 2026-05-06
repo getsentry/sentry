@@ -52,7 +52,6 @@ from sentry.utils.options import sample_modulo
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
-    "organizations:device-class-synthesis",
     "organizations:profiling",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
@@ -69,10 +68,13 @@ EXPOSABLE_FEATURES = [
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
+    "organizations:relay-default-trace-id",
     "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
     "projects:relay-upload-endpoint",
+    "projects:relay-minidump-attachment-uploads",
+    "projects:relay-minidump-uploads",
 ]
 
 EXTRACT_METRICS_VERSION = 1

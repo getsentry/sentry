@@ -31,6 +31,7 @@ interface ContainerLayoutProps {
     | 'inline-flex'
     | 'grid'
     | 'inline-grid'
+    | 'contents'
     | 'none'
   >;
 
@@ -57,6 +58,8 @@ interface ContainerLayoutProps {
   pointerEvents?: Responsive<React.CSSProperties['pointerEvents']>;
 
   cursor?: Responsive<React.CSSProperties['cursor']>;
+
+  contain?: Responsive<React.CSSProperties['contain']>;
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
@@ -195,6 +198,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'borderRight',
   'bottom',
   'column',
+  'contain',
   'cursor',
   'display',
   'flex',
@@ -275,6 +279,7 @@ export const Container = styled(
   ${p => rc('pointer-events', p.pointerEvents, p.theme)};
 
   ${p => rc('cursor', p.cursor, p.theme)};
+  ${p => rc('contain', p.contain, p.theme)};
 
   ${p => rc('padding', p.padding, p.theme, getSpacing)};
   ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing)};

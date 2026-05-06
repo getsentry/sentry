@@ -6,13 +6,15 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.http import HttpRequest
+from django.urls import reverse
 
 from fixtures.vsts import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 from sentry.identity.vsts.provider import VSTSNewIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.pipeline import IntegrationPipeline, ensure_integration
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
@@ -317,6 +319,176 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert external_id == data["external_id"]
         subscription = data["metadata"]["subscription"]
         assert subscription["id"] is not None and subscription["secret"] is not None
+
+
+@control_silo_test
+class VstsIntegrationApiPipelineTest(VstsIntegrationTestCase):
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            "sentry-api-0-organization-pipeline",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "pipeline_name": "integration_pipeline",
+            },
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "vsts"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _get_step_info(self) -> Any:
+        return self.client.get(self._get_pipeline_url())
+
+    def _get_pipeline_signature(self, init_resp: Any) -> str:
+        return parse_qs(urlparse(init_resp.data["data"]["oauthUrl"]).query)["state"][0]
+
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 2
+        assert resp.data["provider"] == "vsts"
+        assert "oauthUrl" in resp.data["data"]
+
+    def test_get_oauth_step_info(self) -> None:
+        self._initialize_pipeline()
+        resp = self._get_step_info()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert "login.microsoftonline.com/common/oauth2/v2.0/authorize" in oauth_url
+        assert "client_id=" in oauth_url
+
+    def test_oauth_step_advance(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "account_selection"
+        assert resp.data["stepIndex"] == 1
+
+    def test_oauth_step_invalid_state(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({"code": "oauth-code", "state": "invalid-state"})
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert resp.data["data"]["detail"] == "An error occurred while validating your request."
+
+    def test_account_selection_get(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.data["step"] == "account_selection"
+
+        resp = self._get_step_info()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "account_selection"
+        assert resp.data["data"]["accounts"] == [
+            {"accountId": self.vsts_account_id, "accountName": self.vsts_account_name}
+        ]
+
+    def test_account_selection_invalid_account(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+
+        resp = self._advance_step({"account": "invalid-account"})
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert resp.data["data"]["detail"] == "Invalid Azure DevOps account"
+
+    def test_full_api_pipeline_flow(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "account_selection"
+
+        resp = self._advance_step({"account": self.vsts_account_id})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="vsts")
+        assert integration.external_id == self.vsts_account_id
+        assert integration.name == self.vsts_account_name
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_account_selection_get_with_no_accounts(self, mock_record: MagicMock) -> None:
+        responses.replace(
+            responses.GET,
+            "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
+            % self.vsts_user_id,
+            status=403,
+            json={"$id": 1, "message": "Your account is not good"},
+        )
+
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["step"] == "account_selection"
+
+        # Reset so we only capture lifecycle events from the GET step
+        mock_record.reset_mock()
+
+        resp = self._get_step_info()
+        assert resp.status_code == 200
+        assert resp.data["data"]["accounts"] == []
+
+        assert_halt_metric(mock_record, "no_accounts")
+
+    def test_build_integration_uses_oauth_data_state(self) -> None:
+        provider = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        provider.set_pipeline(pipeline)
+
+        data = provider.build_integration(
+            {
+                "account": {
+                    "accountName": self.vsts_account_name,
+                    "accountId": self.vsts_account_id,
+                },
+                "oauth_data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "bearer",
+                },
+            }
+        )
+
+        assert data["external_id"] == self.vsts_account_id
+        assert data["name"] == self.vsts_account_name
+
+    def test_initialize_binds_pipeline_state(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+
+        request = HttpRequest()
+        request.session = self.client.session
+        request.user = self.user
+
+        pipeline = IntegrationPipeline.get_for_request(request)
+        assert pipeline is not None
+        assert pipeline.provider.key == "vsts"
 
     @responses.activate
     def test_source_url_matches(self) -> None:

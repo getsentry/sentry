@@ -22,6 +22,7 @@ _detectors_by_data_source = CacheMapping[_DetectorCacheKey, list[Detector]](
 def get_detectors_by_data_source(source_id: str, query_type: str) -> list[Detector]:
     """
     Get detectors from cache, querying the database and populating the cache if necessary.
+    The returned Detectors may be disabled.
     """
     with metrics.timer("workflow_engine.bulk_detector_fetch") as metrics_tags:
         cache_key = _DetectorCacheKey(source_id, query_type)
@@ -44,7 +45,6 @@ def _query_detectors(source_id: str, query_type: str) -> list[Detector]:
         Detector.objects.filter(
             data_sources__source_id=source_id,
             data_sources__type=query_type,
-            enabled=True,
         )
         .select_related("workflow_condition_group")
         .prefetch_related("workflow_condition_group__conditions")

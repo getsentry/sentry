@@ -136,7 +136,7 @@ const OverlayInner = styled(motion.div)<{
   placement?: OverlayProps['placement'];
 }>`
   position: relative;
-  background: ${p => p.theme.tokens.background.primary};
+  background: ${p => p.theme.tokens.background.overlay};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */

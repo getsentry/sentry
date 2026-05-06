@@ -30,6 +30,7 @@ sentry django makemigrations <app_name> --empty
 1. If you added a new model, ensure it's imported in the app's `__init__.py`
 2. Review the generated migration for correctness
 3. Run `sentry django sqlmigrate <app_name> <migration_name>` to verify the SQL
+4. Apply the migration locally with `sentry django migrate <app_name>` — Sentry's migration framework runs its safety checks on apply, so this catches unsafe ops (missing `is_post_deployment`, unsafe column changes, etc.) before CI does.
 
 ## Guidelines
 

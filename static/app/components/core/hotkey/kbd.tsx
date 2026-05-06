@@ -2,7 +2,8 @@ import {css, useTheme, type Theme} from '@emotion/react';
 
 export const kbdStyles = (theme: Theme, variant?: KbdProps['variant']) => css`
   margin: 0;
-  padding: 0 ${theme.space['2xs']};
+  padding: 0 ${theme.space.xs};
+  height: 1.67em; /* 20px */
 
   font-family: ${theme.font.family.mono};
   font-size: ${theme.font.size.sm};

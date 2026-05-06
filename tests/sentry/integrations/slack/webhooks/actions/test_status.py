@@ -596,6 +596,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         }
 
     def test_assign_issue_where_team_not_in_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
         user2 = self.create_user(is_superuser=False)
         team2 = self.create_team(
             organization=self.organization, members=[self.user], name="Ecosystem"
@@ -609,6 +611,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
     def test_assign_issue_where_team_not_in_project_through_unfurl(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
         user2 = self.create_user(is_superuser=False)
         team2 = self.create_team(
             organization=self.organization, members=[self.user], name="Ecosystem"

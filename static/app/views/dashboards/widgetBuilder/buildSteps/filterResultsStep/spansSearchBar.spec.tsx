@@ -88,6 +88,10 @@ describe('SpansSearchBar', () => {
     mockSpanTagValues({type: 'number', tagKey: 'span.op', mockedValues: []});
 
     mockSpanTags({type: 'boolean', mockedTags: []});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/validate/',

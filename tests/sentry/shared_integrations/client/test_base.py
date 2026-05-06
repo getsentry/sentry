@@ -82,3 +82,84 @@ class BaseApiClientTest(TestCase):
         self.api_client.get("https://172.31.255.255")
         assert mock_session_send.call_count == 1
         assert mock_session_send.mock_calls[0].kwargs["timeout"] == 30
+
+    @patch.object(BaseApiClient, "track_response_data")
+    @patch.object(Session, "send")
+    def test_track_response_data_includes_integration_id(
+        self, mock_session_send, mock_track_response_data
+    ) -> None:
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        class Client(BaseApiClient):
+            integration_type = "integration"
+            integration_name = "base"
+
+        api_client = Client(integration_id=123)
+        api_client.get("https://example.com/get")
+
+        assert mock_track_response_data.call_count == 1
+        assert mock_track_response_data.mock_calls[0].kwargs["extra"]["integration_id"] == "123"
+
+    @patch("sentry.shared_integrations.client.base.metrics.incr")
+    @patch.object(Session, "send")
+    def test_request_and_response_metrics_include_api_request_type(
+        self, mock_session_send, mock_metrics_incr
+    ) -> None:
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        self.api_client.get("https://example.com/get", api_request_type="compare_commits")
+
+        mock_metrics_incr.assert_any_call(
+            "None.http_request",
+            sample_rate=1.0,
+            tags={"integration": "base", "api_request_type": "compare_commits"},
+        )
+        mock_metrics_incr.assert_any_call(
+            "None.http_response",
+            sample_rate=1.0,
+            tags={"integration": "base", "status": 204, "api_request_type": "compare_commits"},
+        )
+
+    @patch("sentry.shared_integrations.client.base.metrics.incr")
+    def test_get_cached_emits_hit_metric(self, mock_metrics_incr) -> None:
+        with patch.object(self.api_client, "check_cache", return_value={"cached": True}):
+            self.api_client.get_cached("https://example.com/repos/example/repo/commits")
+
+        mock_metrics_incr.assert_called_once_with(
+            "None.get_cached",
+            sample_rate=1.0,
+            tags={"integration": "base", "api_request_type": "unknown", "result": "hit"},
+        )
+
+    @patch("sentry.shared_integrations.client.base.metrics.incr")
+    def test_get_cached_emits_miss_metric(self, mock_metrics_incr) -> None:
+        with (
+            patch.object(self.api_client, "check_cache", return_value=None),
+            patch.object(self.api_client, "request", return_value={"fresh": True}),
+            patch.object(self.api_client, "set_cache"),
+        ):
+            self.api_client.get_cached("https://example.com/repos/example/repo/commits")
+
+        mock_metrics_incr.assert_any_call(
+            "None.get_cached",
+            sample_rate=1.0,
+            tags={"integration": "base", "api_request_type": "unknown", "result": "miss"},
+        )
+
+    @patch("sentry.shared_integrations.client.base.metrics.incr")
+    def test_get_cached_emits_api_request_type_metric_tag(self, mock_metrics_incr) -> None:
+        with patch.object(self.api_client, "check_cache", return_value={"cached": True}):
+            self.api_client.get_cached(
+                "https://example.com/repos/example/repo/commits",
+                api_request_type="get_commits",
+            )
+
+        mock_metrics_incr.assert_called_once_with(
+            "None.get_cached",
+            sample_rate=1.0,
+            tags={"integration": "base", "api_request_type": "get_commits", "result": "hit"},
+        )

@@ -38,18 +38,18 @@ def create_control_relocation_transfer(organization: Organization, **kwargs):
         kwargs["state"] = RelocationTransferState.Request
 
     return ControlRelocationTransfer.objects.create(
-        org_slug=organization.slug, requesting_region="de", exporting_region="us", **kwargs
+        org_slug=organization.slug, requesting_cell="de", exporting_cell="us", **kwargs
     )
 
 
-def create_region_relocation_transfer(organization: Organization, **kwargs):
+def create_cell_relocation_transfer(organization: Organization, **kwargs):
     if "relocation_uuid" not in kwargs:
         kwargs["relocation_uuid"] = uuid4()
     if "state" not in kwargs:
         kwargs["state"] = RelocationTransferState.Request
 
     return RegionRelocationTransfer.objects.create(
-        org_slug=organization.slug, requesting_region="de", exporting_region="us", **kwargs
+        org_slug=organization.slug, requesting_cell="de", exporting_cell="us", **kwargs
     )
 
 
@@ -100,7 +100,7 @@ class FindRelocationTransferRegionTest(TestCase):
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
     def test_no_due_records(self, mock_process: MagicMock) -> None:
-        create_region_relocation_transfer(
+        create_cell_relocation_transfer(
             organization=self.organization, scheduled_for=timezone.now() + timedelta(minutes=2)
         )
         find_relocation_transfer_region()
@@ -108,7 +108,7 @@ class FindRelocationTransferRegionTest(TestCase):
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
     def test_due_records(self, mock_process: MagicMock) -> None:
-        transfer = create_region_relocation_transfer(
+        transfer = create_cell_relocation_transfer(
             organization=self.organization, scheduled_for=timezone.now() - timedelta(minutes=2)
         )
         find_relocation_transfer_region()
@@ -118,7 +118,7 @@ class FindRelocationTransferRegionTest(TestCase):
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
     def test_purge_expired(self, mock_process: MagicMock) -> None:
-        transfer = create_region_relocation_transfer(
+        transfer = create_cell_relocation_transfer(
             organization=self.organization,
             scheduled_for=timezone.now() - timedelta(minutes=2),
         )
@@ -176,7 +176,7 @@ class ProcessRelocationTransferControlTest(TestCase):
         assert mock_uploading_complete.apply_async.called, "task should be spawned"
         # Should be removed on completion.
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
-        # the relocation RPC call should create a file on the region
+        # the relocation RPC call should create a file on the cell
         with assume_test_silo_mode(SiloMode.CELL):
             assert RelocationFile.objects.filter(relocation=relocation).exists()
 
@@ -188,7 +188,7 @@ class ProcessRelocationTransferRegionTest(TestCase):
         assert res is None
 
     def test_transfer_request_state(self) -> None:
-        transfer = create_region_relocation_transfer(
+        transfer = create_cell_relocation_transfer(
             organization=self.organization,
             state=RelocationTransferState.Request,
         )
@@ -204,7 +204,7 @@ class ProcessRelocationTransferRegionTest(TestCase):
             want_org_slugs=["acme-org"],
             step=Relocation.Step.UPLOADING.value,
         )
-        transfer = create_region_relocation_transfer(
+        transfer = create_cell_relocation_transfer(
             organization=organization,
             relocation_uuid=relocation.uuid,
             state=RelocationTransferState.Reply,
@@ -224,6 +224,6 @@ class ProcessRelocationTransferRegionTest(TestCase):
             assert ControlRelocationTransfer.objects.filter(
                 state=RelocationTransferState.Reply,
                 org_slug=organization.slug,
-                exporting_region=transfer.exporting_region,
-                requesting_region=transfer.requesting_region,
+                exporting_cell=transfer.exporting_cell,
+                requesting_cell=transfer.requesting_cell,
             ).exists()

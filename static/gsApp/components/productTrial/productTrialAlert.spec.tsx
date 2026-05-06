@@ -330,6 +330,14 @@ describe('getProductForPath', () => {
     });
   });
 
+  it('normalizes /explore/metrics/ to /metrics/', () => {
+    const result = getProductForPath(subscription, '/explore/metrics/');
+    expect(result).toEqual({
+      product: DataCategory.TRACE_METRIC_BYTE,
+      categories: [DataCategory.TRACE_METRIC_BYTE],
+    });
+  });
+
   it('returns null for unknown path', () => {
     const result = getProductForPath(subscription, '/unknown/');
     expect(result).toBeNull();

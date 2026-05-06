@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -19,7 +20,6 @@ import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import {IconChat, IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
 
@@ -27,8 +27,6 @@ const STEP_LABELS: Record<AutofixExplorerStep, string> = {
   root_cause: t('Find Root Cause'),
   solution: t('Plan a Solution'),
   code_changes: t('Write a Code Fix'),
-  impact_assessment: t('Assess the Impact'),
-  triage: t('Triage the Issue'),
 };
 
 interface ExplorerNextStepsProps {
@@ -78,8 +76,6 @@ function getAvailableNextSteps(
 ): AutofixExplorerStep[] {
   const hasRootCause = 'root_cause' in artifacts;
   const hasSolution = 'solution' in artifacts;
-  const hasImpact = 'impact_assessment' in artifacts;
-  const hasTriage = 'triage' in artifacts;
 
   if (!hasRootCause) {
     // Only root cause is available initially
@@ -97,14 +93,6 @@ function getAvailableNextSteps(
   // Only show code changes if they don't already exist and no coding agents are launched
   if (!hasCodeChanges && !hasCodingAgents) {
     available.push('code_changes');
-  }
-
-  if (!hasImpact) {
-    available.push('impact_assessment');
-  }
-
-  if (!hasTriage) {
-    available.push('triage');
   }
 
   return available;
@@ -132,7 +120,7 @@ function StepButton({
 }) {
   const organization = useOrganization();
   const enableSeerCoding = organization.enableSeerCoding !== false;
-  const priority = index === 0 ? 'primary' : 'default';
+  const priority = index === 0 ? 'primary' : 'secondary';
 
   // Only show dropdown for code_changes step when integrations are available
   if (step !== 'code_changes' || !codingAgentIntegrations?.length) {
@@ -143,7 +131,9 @@ function StepButton({
           '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
           {
             settings: (
-              <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              <Link
+                to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+              />
             ),
           }
         )}
@@ -152,7 +142,7 @@ function StepButton({
           onClick={onStepClick}
           disabled={isLoading || (step === 'code_changes' && !enableSeerCoding)}
           busy={isBusy}
-          priority={priority}
+          variant={priority}
         >
           {STEP_LABELS[step]}
         </Button>
@@ -193,7 +183,9 @@ function StepButton({
       title={tct(
         '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
         {
-          settings: <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />,
+          settings: (
+            <Link to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`} />
+          ),
         }
       )}
     >
@@ -202,7 +194,7 @@ function StepButton({
           onClick={onStepClick}
           disabled={isLoading || (step === 'code_changes' && !enableSeerCoding)}
           busy={isBusy}
-          priority={priority}
+          variant={priority}
         >
           {STEP_LABELS[step]}
         </Button>
@@ -212,7 +204,7 @@ function StepButton({
             <DropdownTrigger
               {...triggerProps}
               disabled={isLoading || (step === 'code_changes' && !enableSeerCoding)}
-              priority={priority}
+              variant={priority}
               icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
               aria-label={t('More code fix options')}
             />
@@ -309,7 +301,7 @@ export function ExplorerNextSteps({
                 <Button
                   size="md"
                   onClick={onOpenChat}
-                  priority="primary"
+                  variant="primary"
                   icon={<IconChat />}
                   disabled={isChatAlreadyOpen}
                 >
@@ -326,7 +318,7 @@ export function ExplorerNextSteps({
                 <Button
                   size="md"
                   onClick={onOpenChat}
-                  priority="primary"
+                  variant="primary"
                   icon={<IconChat />}
                   disabled={isChatAlreadyOpen}
                 >

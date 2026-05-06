@@ -150,19 +150,19 @@ class TestCreatePriorityWorkflow(TestCase):
         # Verify action filter has correct logic type
         assert action_filter.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
 
-    def test_idempotent_returns_existing_workflow(self) -> None:
+    def test_creates_separate_workflow_per_call(self) -> None:
+        """Each call creates a new Workflow so that each project gets its own."""
         org = self.create_organization()
 
         workflow1 = create_priority_workflow(org)
         workflow2 = create_priority_workflow(org)
 
-        assert workflow1.id == workflow2.id
-        # Should only have one workflow
+        assert workflow1.id != workflow2.id
         assert (
             Workflow.objects.filter(
                 organization=org, name="Send a notification for high priority issues"
             ).count()
-            == 1
+            == 2
         )
 
 

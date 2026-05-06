@@ -160,9 +160,9 @@ describe('Dashboards > Dashboard', () => {
     render(
       <Dashboard
         dashboard={mockDashboard}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
-        handleAddCustomWidget={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
+        handleAddCustomWidget={() => {}}
         widgetLimitReached={false}
         isEditingDashboard={false}
         widgetLegendState={widgetLegendState}
@@ -178,8 +178,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         newWidget={newWidget}
         widgetLimitReached={false}
@@ -198,8 +198,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -214,8 +214,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -234,8 +234,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -273,9 +273,9 @@ describe('Dashboards > Dashboard', () => {
           isEditingDashboard={false}
           onUpdate={mockOnUpdate}
           handleUpdateWidgetList={mockHandleUpdateWidgetList}
-          handleAddCustomWidget={() => undefined}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
-          onSetNewWidget={() => undefined}
+          onSetNewWidget={() => {}}
           widgetLegendState={widgetLegendState}
         />
       </MEPSettingProvider>,
@@ -330,9 +330,9 @@ describe('Dashboards > Dashboard', () => {
         <Dashboard
           dashboard={dashboardWithOneWidget}
           isEditingDashboard={false}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           isEmbedded
           widgetLegendState={widgetLegendState}
@@ -374,9 +374,9 @@ describe('Dashboards > Dashboard', () => {
           <Dashboard
             dashboard={dashboard}
             isEditingDashboard={false}
-            onUpdate={() => undefined}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            onUpdate={() => {}}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
           />
@@ -420,9 +420,7 @@ describe('Dashboards > Dashboard', () => {
   describe('Interval selection', () => {
     // Use a SPANS widget with LINE display: both are required by
     // widgetCanUseTimeSeriesVisualization, which gates widgetInterval propagation.
-    const orgWithFlag = OrganizationFixture({
-      features: ['dashboards-interval-selection'],
-    });
+    const org = OrganizationFixture();
     const spansWidget: Widget = {
       id: '3',
       title: 'Test Spans Widget',
@@ -509,14 +507,14 @@ describe('Dashboards > Dashboard', () => {
             isEditingDashboard={false}
             isPreview={false}
             location={location}
-            onDashboardFilterChange={() => undefined}
+            onDashboardFilterChange={() => {}}
           />
           <Dashboard
             dashboard={dashboard}
             isEditingDashboard={false}
-            onUpdate={() => undefined}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            onUpdate={() => {}}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
             widgetInterval={widgetInterval}
@@ -558,7 +556,7 @@ describe('Dashboards > Dashboard', () => {
         // No interval in the URL — the 10m default (second-biggest of [5m, 10m, 30m])
         // is derived from the dashboard's saved 24h period via useDashboardChartInterval.
         const {router} = render(<DashboardWithIntervalSelector />, {
-          organization: orgWithFlag,
+          organization: org,
           initialRouterConfig: {location: {pathname: '/'}},
         });
 
@@ -600,7 +598,7 @@ describe('Dashboards > Dashboard', () => {
         });
 
         const {router} = render(<DashboardWithIntervalSelector />, {
-          organization: orgWithFlag,
+          organization: org,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '30m'}}},
         });
 
@@ -647,7 +645,7 @@ describe('Dashboards > Dashboard', () => {
 
         // 5m is in the URL but is not a valid interval for a 30d window.
         render(<DashboardWithIntervalSelector dashboard={thirtyDayDashboard} />, {
-          organization: orgWithFlag,
+          organization: org,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
         });
 
@@ -696,7 +694,7 @@ describe('Dashboards > Dashboard', () => {
         });
 
         render(<DashboardWithIntervalSelector dashboard={thirtyDayReleaseDashboard} />, {
-          organization: orgWithFlag,
+          organization: org,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
         });
 
@@ -725,8 +723,8 @@ describe('Dashboards > Dashboard', () => {
             onUpdate={newWidgets => {
               widgets.splice(0, widgets.length, ...newWidgets);
             }}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             isPreview={isPreview}
             onEditWidget={onEditWidget}
@@ -858,9 +856,9 @@ describe('Dashboards > Dashboard', () => {
         <Dashboard
           dashboard={dashboardWithGlobalFilters}
           isEditingDashboard={false}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
         />
@@ -894,9 +892,9 @@ describe('Dashboards > Dashboard', () => {
       <div>
         <Dashboard
           dashboard={{...mockDashboard, title: 'LLM Test Dashboard'}}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           isEditingDashboard={false}
           widgetLegendState={widgetLegendState}

@@ -13,7 +13,7 @@ import type {
 export const DISCONNECTED_SECTION_KEY = '__disconnected__';
 
 type Props = {
-  connectedIdentifiers: Set<string>;
+  connectedExternalIds: Set<string>;
   connectedRepos: Repository[];
   expandedIntegrations: Set<string>;
   expandedProviders: Set<string>;
@@ -34,7 +34,7 @@ export function buildIntegrationTreeNodes({
   connectedRepos,
   reposByIntegrationId,
   reposPendingByIntegrationId,
-  connectedIdentifiers,
+  connectedExternalIds,
   expandedProviders,
   expandedIntegrations,
   togglingRepos,
@@ -73,7 +73,7 @@ export function buildIntegrationTreeNodes({
           isExpanded: expandedIntegrations.has(integration.id),
           isReposPending: reposPendingByIntegrationId[integration.id] ?? false,
           repoCount: repos.length,
-          connectedRepoCount: repos.filter(r => connectedIdentifiers.has(r.identifier))
+          connectedRepoCount: repos.filter(r => connectedExternalIds.has(r.externalId))
             .length,
         });
 
@@ -84,11 +84,11 @@ export function buildIntegrationTreeNodes({
 
           if (repoFilter === 'connected') {
             visibleRepos = visibleRepos.filter(r =>
-              connectedIdentifiers.has(r.identifier)
+              connectedExternalIds.has(r.externalId)
             );
           } else if (repoFilter === 'not-connected') {
             visibleRepos = visibleRepos.filter(
-              r => !connectedIdentifiers.has(r.identifier)
+              r => !connectedExternalIds.has(r.externalId)
             );
           }
 
@@ -105,7 +105,7 @@ export function buildIntegrationTreeNodes({
                 type: 'repo',
                 repo,
                 integration,
-                isConnected: connectedIdentifiers.has(repo.identifier),
+                isConnected: connectedExternalIds.has(repo.externalId),
                 isToggling: togglingRepos.has(repo.identifier),
               });
             }

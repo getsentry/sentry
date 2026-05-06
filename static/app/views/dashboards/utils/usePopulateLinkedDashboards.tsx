@@ -1,10 +1,9 @@
 import {useMemo} from 'react';
 import type {QueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DashboardFilter,
@@ -46,13 +45,9 @@ export async function resolveLinkedDashboardIds({
     return dashboard;
   }
 
-  const queryKey = makeDashboardsQueryKey(orgSlug, prebuiltIds);
-
-  const [resolvedDashboards] = await queryClient.fetchQuery({
-    queryKey,
-    queryFn: fetchDataQuery<DashboardDetails[]>,
-    staleTime: Infinity,
-  });
+  const resolvedDashboards = (
+    await queryClient.fetchQuery(dashboardsByPrebuiltIdOptions(orgSlug, prebuiltIds))
+  ).json;
 
   const resolvedIdMap = buildResolvedIdMap(resolvedDashboards);
   return replacePlaceholderLinkedDashboardIds(dashboard, resolvedIdMap);
@@ -73,17 +68,14 @@ const usePopulatePrebuiltIdsWithActualIds = (
 
   const hasLinkedDashboards = prebuiltIds.length > 0;
 
-  const {data, isLoading} = useApiQuery<DashboardDetails[]>(
-    makeDashboardsQueryKey(
+  const {data, isLoading} = useQuery({
+    ...dashboardsByPrebuiltIdOptions(
       organization.slug,
       [...prebuiltIds, prebuiltId].filter(defined)
     ),
-    {
-      enabled: hasLinkedDashboards || Boolean(prebuiltId),
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+    enabled: hasLinkedDashboards || Boolean(prebuiltId),
+    retry: false,
+  });
 
   return useMemo(() => {
     const populatedDashboard = {
@@ -162,19 +154,19 @@ function buildResolvedIdMap(
   return map;
 }
 
-function makeDashboardsQueryKey(
+function dashboardsByPrebuiltIdOptions(
   orgSlug: string,
   prebuiltIds: PrebuiltDashboardId[]
-): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
+) {
+  return apiOptions.as<DashboardDetails[]>()(
+    '/organizations/$organizationIdOrSlug/dashboards/',
     {
+      path: {organizationIdOrSlug: orgSlug},
       query: {
         prebuiltId: prebuiltIds.sort(),
         filter: DashboardFilter.SHOW_HIDDEN,
       },
-    },
-  ];
+      staleTime: Infinity,
+    }
+  );
 }

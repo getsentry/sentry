@@ -19,17 +19,17 @@ import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
   ProfileGroupProvider,
   useProfileGroup,
-} from 'sentry/views/profiling/profileGroupProvider';
+} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {
   ProfileContext,
   ProfilesProvider,
   useProfiles,
-} from 'sentry/views/profiling/profilesProvider';
+} from 'sentry/views/explore/profiling/profilesProvider';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function ProfilePreviewSection({
   event,

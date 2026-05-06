@@ -25,6 +25,7 @@ import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useS
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type IssueViewSaveButtonProps = {
   query: string;
@@ -40,13 +41,15 @@ function SegmentedIssueViewSaveButton({
   const location = useLocation();
   const navigate = useNavigate();
   const {hasUnsavedChanges} = useIssueViewUnsavedChanges();
-  const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
   const user = useUser();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
+  const buttonPriority =
+    hasPageFrameFeature || hasUnsavedChanges ? 'primary' : 'secondary';
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -59,7 +62,7 @@ function SegmentedIssueViewSaveButton({
 
   const saveView = () => {
     if (view) {
-      trackAnalytics('issue_views.save.clicked', {organization});
+      trackAnalytics('issue_views.save.clicked', {organization, source: 'button'});
       updateGroupSearchView(
         {
           id: view.id,
@@ -96,7 +99,7 @@ function SegmentedIssueViewSaveButton({
       {({hasFeature}) => (
         <ButtonBar>
           <PrimarySaveButton
-            priority={buttonPriority}
+            variant={buttonPriority}
             data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
             onClick={() => {
               if (canEdit) {
@@ -107,7 +110,7 @@ function SegmentedIssueViewSaveButton({
             }}
             disabled={isSaving || !hasFeature}
           >
-            {canEdit ? t('Save') : t('Save As')}
+            {canEdit ? t('Save') : t('Save as')}
           </PrimarySaveButton>
           <DropdownMenu
             items={[
@@ -139,7 +142,7 @@ function SegmentedIssueViewSaveButton({
                   />
                 }
                 aria-label={t('More save options')}
-                priority={buttonPriority}
+                variant={buttonPriority}
               />
             )}
             position="bottom-end"
@@ -157,7 +160,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   const organization = useOrganization();
 
   const openCreateIssueViewModal = () => {
-    trackAnalytics('issue_views.save_as.clicked', {organization});
+    trackAnalytics('issue_views.save_as.clicked', {organization, source: 'button'});
     openModal(props => (
       <CreateIssueViewModal
         {...props}
@@ -195,11 +198,11 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
       >
         {({hasFeature}) => (
           <Button
-            priority="primary"
+            variant="primary"
             onClick={openCreateIssueViewModal}
             disabled={!hasFeature}
           >
-            {t('Save As')}
+            {t('Save as')}
           </Button>
         )}
       </Feature>

@@ -52,11 +52,43 @@ class SearchAgentTranslateEndpointTest(APITestCase):
             "Find slow transactions",
             strategy="Traces",
             model_name=None,
+            metric_context=None,
             viewer_context={
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
             },
         )
+
+    @patch(
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
+    )
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_translate_forwards_metric_context(self, mock_send_request: MagicMock) -> None:
+        """Metrics tab scopes the agent to a specific metric via options.metric_context.
+        The sync translate path must forward it like the async /start/ path does."""
+        mock_send_request.return_value = {"query": "metric.name:foo", "status": "ok"}
+
+        metric_context = {
+            "metric_name": "http.request.duration",
+            "metric_type": "distribution",
+            "metric_unit": "millisecond",
+        }
+
+        response = self.client.post(
+            self.url,
+            data={
+                "project_ids": [self.project.id],
+                "natural_language_query": "p95 of request duration",
+                "strategy": "Metrics",
+                "options": {"metric_context": metric_context},
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        _, kwargs = mock_send_request.call_args
+        assert kwargs["strategy"] == "Metrics"
+        assert kwargs["metric_context"] == metric_context
 
     def test_translate_missing_parameters(self) -> None:
         response = self.client.post(

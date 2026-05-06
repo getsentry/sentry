@@ -31,7 +31,7 @@ export const configurationIssuesConfig: IssueCategoryConfigMapping = {
     regression: {enabled: false},
     eventAndUserCounts: {enabled: false},
     tags: {enabled: false},
-    stats: {enabled: false},
+    stats: {enabled: true},
     header: {
       filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
       graph: {enabled: true, type: 'discover-events'},

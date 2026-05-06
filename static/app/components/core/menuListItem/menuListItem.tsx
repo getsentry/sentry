@@ -105,7 +105,7 @@ const StyledInnerWrap = styled('div', {
       z-index: 1;
       /* Background to hide the previous item's divider */
       ::before {
-        background: ${p.theme.tokens.background.primary};
+        background: ${p.theme.tokens.background.overlay};
       }
     `}
 `;

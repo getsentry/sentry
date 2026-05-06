@@ -3,11 +3,7 @@ import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-que
 
 import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import type {
-  ApiQueryKey,
-  InfiniteApiQueryKey,
-  QueryKeyEndpointOptions,
-} from 'sentry/utils/api/apiQueryKey';
+import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
 import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
@@ -45,7 +41,7 @@ function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unkn
   return result;
 }
 
-const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
+export const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
 
 export const selectJsonWithHeaders = <TData>(
   data: ApiResponse<TData>
@@ -69,10 +65,7 @@ function _apiOptions<
   const strippedOptions = stripUndefinedValues(options);
 
   return queryOptions({
-    queryKey:
-      Object.keys(strippedOptions).length > 0
-        ? ([{infinite: false, version: 'v2'}, url, strippedOptions] as ApiQueryKey)
-        : ([{infinite: false, version: 'v2'}, url] as ApiQueryKey),
+    queryKey: [url, strippedOptions, {infinite: false}] as const,
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -105,10 +98,7 @@ function _apiOptionsInfinite<
   const strippedOptions = stripUndefinedValues(options);
 
   return infiniteQueryOptions({
-    queryKey:
-      Object.keys(strippedOptions).length > 0
-        ? ([{infinite: true, version: 'v2'}, url, strippedOptions] as InfiniteApiQueryKey)
-        : ([{infinite: true, version: 'v2'}, url] as InfiniteApiQueryKey),
+    queryKey: [url, strippedOptions, {infinite: true}] as const,
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
@@ -169,7 +159,7 @@ export const apiOptions = {
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
-      _apiOptions<TManualData, TApiPath>(path, options as never),
+      _apiOptions<TManualData>(path, options as never),
 
   asInfinite:
     <TManualData>() =>
@@ -177,5 +167,5 @@ export const apiOptions = {
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
-      _apiOptionsInfinite<TManualData, TApiPath>(path, options as never),
+      _apiOptionsInfinite<TManualData>(path, options as never),
 };

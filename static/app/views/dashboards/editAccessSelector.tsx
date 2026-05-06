@@ -18,6 +18,7 @@ import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -64,9 +65,8 @@ export function EditAccessSelector({
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [stagedOptions, setStagedOptions] = useState<string[]>([]);
-  const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
-  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] =
-    useState<boolean>(false);
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] = useState(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
       selectedOptions[1] && selectedOptions[1] !== '_allUsers'
@@ -245,7 +245,7 @@ export function EditAccessSelector({
         key="avatar-list-many-teams"
         listonly={listOnly}
         typeAvatars="users"
-        users={new Array(selectedOptions.length).fill(dashboardCreator)}
+        users={Array.from<User>({length: selectedOptions.length}).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
@@ -303,7 +303,7 @@ export function EditAccessSelector({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
-          priority={listOnly ? 'transparent' : undefined}
+          variant={listOnly ? 'transparent' : undefined}
           style={listOnly ? {padding: 2} : {}}
         >
           {listOnly
@@ -316,7 +316,7 @@ export function EditAccessSelector({
       )}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {
-        if (newOpenState === true) {
+        if (newOpenState) {
           trackAnalytics('dashboards2.edit_access.start', {organization});
         }
 

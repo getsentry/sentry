@@ -5,7 +5,7 @@ import {
   Replayer,
 } from '@sentry-internal/rrweb';
 
-import {CanvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
+import {canvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
 
 // Mock rrweb pieces used by the plugin
 jest.mock('@sentry-internal/rrweb', () => {
@@ -93,7 +93,7 @@ function createReplayer(getNodeImpl: (id: number) => Node | null) {
   } as Replayer;
 }
 
-describe('CanvasReplayerPlugin', () => {
+describe('canvasReplayerPlugin', () => {
   beforeEach(() => {
     jest.clearAllTimers();
     (canvasMutation as jest.Mock).mockClear();
@@ -109,7 +109,7 @@ describe('CanvasReplayerPlugin', () => {
     );
 
     // Create plugin instance; the initial events list can be empty for this test
-    const plugin = CanvasReplayerPlugin([]);
+    const plugin = canvasReplayerPlugin([]);
 
     // Build the node and ensure an <img> container is appended
     plugin.onBuild!(canvasNode, {id, replayer});
@@ -169,7 +169,7 @@ describe('CanvasReplayerPlugin', () => {
     );
 
     // Create plugin instance; the initial events list can be empty for this test
-    const plugin = CanvasReplayerPlugin([]);
+    const plugin = canvasReplayerPlugin([]);
 
     // player first processes sync events
     const e0 = createCanvasEvent(1, 1000);
@@ -202,7 +202,7 @@ describe('CanvasReplayerPlugin', () => {
       return null;
     });
 
-    const plugin = CanvasReplayerPlugin([]);
+    const plugin = canvasReplayerPlugin([]);
 
     // Build both canvases and create snapshots for both
     plugin.onBuild!(canvas1, {id: id1, replayer});

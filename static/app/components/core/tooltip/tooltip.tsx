@@ -53,6 +53,7 @@ export function Tooltip({
   const {
     wrapTrigger,
     isOpen,
+    snapClosed,
     overlayProps,
     placement,
     arrowData,
@@ -70,12 +71,14 @@ export function Tooltip({
     }
   }, [reset, disabled, isOpen]);
 
-  // Update the tooltip when the tooltip is forced to be visible and the children change
+  // Reposition the tooltip when it is forced visible and the title changes
+  // size. Depending on `children` would re-fire every render because a
+  // ReactNode identity changes even when the rendered output does not.
   useLayoutEffect(() => {
     if (update && forceVisible) {
       update();
     }
-  }, [update, children, forceVisible]);
+  }, [update, title, forceVisible]);
 
   if (disabled || !title) {
     return children;
@@ -85,23 +88,29 @@ export function Tooltip({
     <Fragment>
       {wrapTrigger(children)}
       {createPortal(
-        <AnimatePresence>
-          {isOpen ? (
-            <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
-              <TooltipContent
-                animated
-                maxWidth={maxWidth}
-                arrowProps={arrowProps}
-                originPoint={arrowData}
-                placement={placement}
-                overlayStyle={overlayStyle}
-                data-tooltip
-              >
-                {title}
-              </TooltipContent>
-            </PositionWrapper>
-          ) : null}
-        </AnimatePresence>,
+        // Unmounting AnimatePresence (rather than toggling its child) skips
+        // the exit animation entirely. snapClosed is set when another overlay
+        // in the delay-group opens while this one was closing, preventing a
+        // fading-out trail beside the incoming tooltip.
+        snapClosed ? null : (
+          <AnimatePresence>
+            {isOpen ? (
+              <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
+                <TooltipContent
+                  animated
+                  maxWidth={maxWidth}
+                  arrowProps={arrowProps}
+                  originPoint={arrowData}
+                  placement={placement}
+                  overlayStyle={overlayStyle}
+                  data-tooltip
+                >
+                  {title}
+                </TooltipContent>
+              </PositionWrapper>
+            ) : null}
+          </AnimatePresence>
+        ),
         container ?? document.body
       )}
     </Fragment>

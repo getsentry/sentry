@@ -1332,6 +1332,37 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "limit": "limit is required. The maximum limit is 5."
         }
 
+    def test_wheel_widget_allows_null_limit(self) -> None:
+        data = {
+            "title": "Performance Score",
+            "widgetType": "spans",
+            "displayType": "wheel",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "performance_score(measurements.score.lcp)",
+                        "performance_score(measurements.score.total)",
+                    ],
+                    "columns": [
+                        "performance_score(measurements.score.lcp)",
+                        "performance_score(measurements.score.total)",
+                    ],
+                    "aggregates": [],
+                    "orderby": "",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 200, response.data
+
     def test_valid_widget_is_filters(self) -> None:
         data = {
             "title": "Errors over time",
@@ -1488,6 +1519,20 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             )
             assert response.status_code == 400, response.data
             assert "title" in response.data, response.data
+
+    def test_text_widget_description_exceeds_max_length(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Text Widget Title",
+                "displayType": "text",
+                "description": "x" * 15001,
+            }
+            response = self.do_request("post", self.url(), data=data)
+            assert response.status_code == 400, response.data
+            assert "description" in response.data, response.data
+            assert (
+                response.data["description"][0] == "Description must not exceed 15,000 characters"
+            )
 
     def test_widget_with_invalid_dataset_source(self) -> None:
         data = {

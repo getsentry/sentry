@@ -25,7 +25,7 @@ import {EncryptBackup} from './encryptBackup';
 import {GetStarted} from './getStarted';
 import {InProgress} from './inProgress';
 import {PublicKey} from './publicKey';
-import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
+import type {MaybeUpdateRelocationState, StepDescriptor} from './types';
 import {UploadBackup} from './uploadBackup';
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
@@ -83,7 +83,7 @@ export function RelocationOnboarding() {
   const [existingRelocation, setExistingRelocation] = useState('');
   const [publicKeys, setPublicKeys] = useState(new Map<string, string>());
   const [publicKeysState, setPublicKeysState] = useState(LoadingState.FETCHING);
-  const [relocationState, setRelocationState] = useSessionStorage<RelocationState>(
+  const [relocationState, setRelocationState] = useSessionStorage(
     'relocationOnboarding',
     {
       orgSlugs: '',
@@ -190,15 +190,12 @@ export function RelocationOnboarding() {
     navigate(normalizeUrl(`/relocation/${step.id}/`));
   };
 
-  const goNextStep = useCallback(
-    (step: StepDescriptor) => {
-      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1]!;
+  const goNextStep = (step: StepDescriptor) => {
+    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+    const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      navigate(normalizeUrl(`/relocation/${nextStep.id}/`));
-    },
-    [onboardingSteps, navigate]
-  );
+    navigate(normalizeUrl(`/relocation/${nextStep.id}/`));
+  };
 
   if (!stepObj || stepIndex === -1) {
     return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0]!.id}/`)} />;
@@ -240,7 +237,7 @@ export function RelocationOnboarding() {
         <Button
           onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
           icon={<IconArrow direction="left" />}
-          priority="link"
+          variant="link"
         >
           {t('Back')}
         </Button>

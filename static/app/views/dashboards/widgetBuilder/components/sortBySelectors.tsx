@@ -69,7 +69,7 @@ export function SortBySelectors({
   const organization = useOrganization();
   const columnSet = new Set(widgetQuery.columns);
   const [showCustomEquation, setShowCustomEquation] = useState(false);
-  const [customEquation, setCustomEquation] = useState<Values>({
+  const [customEquation, setCustomEquation] = useState({
     sortBy: EQUATION_PREFIX,
     sortDirection: values.sortDirection,
   });
@@ -87,7 +87,7 @@ export function SortBySelectors({
   const timeseriesSortOptions = useMemo(() => {
     let options: Record<string, SelectValue<FieldValue>> = {};
     if (displayType !== DisplayType.TABLE) {
-      options = datasetConfig.getTimeseriesSortOptions!(organization, widgetQuery, tags);
+      options = datasetConfig.getTimeseriesSortOptions(organization, widgetQuery, tags);
       const parsedFunction = parseFunction(values.sortBy);
       if (
         widgetType === WidgetType.SPANS &&

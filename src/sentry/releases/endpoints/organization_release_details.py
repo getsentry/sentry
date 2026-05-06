@@ -35,7 +35,6 @@ from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityPar
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
@@ -356,20 +355,30 @@ class OrganizationReleaseDetailsEndpoint(
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        if with_health and project_id:
+        # Validate project access when project_id is provided
+        project = None
+        if project_id:
             try:
-                project = Project.objects.get_from_cache(id=int(project_id))
-            except (ValueError, Project.DoesNotExist):
+                project_id_int = int(project_id)
+            except ValueError:
                 raise ParseError(detail="Invalid project")
+            validated_projects = self.get_projects(
+                request, organization, project_ids={project_id_int}
+            )
+            if not validated_projects:
+                raise ResourceDoesNotExist
+            project = validated_projects[0]
+
+        if with_health and project:
             release._for_project_id = project.id
 
-        if project_id:
+        if project:
             # Add sessions time bound to current project meta data
             environments = set(request.GET.getlist("environment")) or None
             current_project_meta.update(
                 {
                     **release_health.backend.get_release_sessions_time_bounds(
-                        project_id=int(project_id),
+                        project_id=project.id,
                         release=release.version,
                         org_id=organization.id,
                         environments=environments,
@@ -394,7 +403,7 @@ class OrganizationReleaseDetailsEndpoint(
                         **self.get_first_and_last_releases(
                             org=organization,
                             environment=filter_params.get("environment"),
-                            project_id=[project_id],
+                            project_id=[project.id],
                             sort=sort,
                         ),
                     }

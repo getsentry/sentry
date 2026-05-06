@@ -122,7 +122,7 @@ export function ThresholdTypeForm({
           }
         )}
       </Flex>,
-    ] as RadioOption);
+    ]);
   }
 
   return (

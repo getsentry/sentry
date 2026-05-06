@@ -164,6 +164,95 @@ def inbox_search(
     return results
 
 
+def search_issues(
+    request: Request,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+    extra_query_kwargs: None | Mapping[str, Any] = None,
+) -> tuple[CursorResult[Group], Mapping[str, Any]]:
+    with start_span(op="_search"):
+        query_kwargs = build_query_params_from_request(
+            request, organization, projects, environments
+        )
+        if extra_query_kwargs is not None:
+            assert "environment" not in extra_query_kwargs
+            query_kwargs.update(extra_query_kwargs)
+
+        query_kwargs["environments"] = environments if environments else None
+
+        query_kwargs["actor"] = request.user
+        if query_kwargs["sort_by"] == "inbox":
+            query_kwargs.pop("sort_by")
+            query_kwargs.pop("referrer")
+            result = inbox_search(**query_kwargs)
+        else:
+            result = search.backend.query(**query_kwargs)
+        return result, query_kwargs
+
+
+def search_and_serialize_issues(
+    request: Request,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+    *,
+    stats_period: str | None,
+    stats_period_start: datetime | None,
+    stats_period_end: datetime | None,
+    start: datetime | None,
+    end: datetime | None,
+    expand: Sequence[str],
+    collapse: Sequence[str],
+    limit: int | None = None,
+) -> tuple[list[StreamGroupSerializerSnubaResponse], CursorResult[Group], Mapping[str, Any]]:
+    serializer = functools.partial(
+        StreamGroupSerializerSnuba,
+        environment_ids=[env.id for env in environments],
+        stats_period=stats_period,
+        stats_period_start=stats_period_start,
+        stats_period_end=stats_period_end,
+        expand=expand,
+        collapse=collapse,
+        project_ids=[p.id for p in projects],
+        organization_id=organization.id,
+    )
+
+    extra_kwargs: dict[str, Any] = {"count_hits": True, "date_to": end, "date_from": start}
+    if limit is not None:
+        extra_kwargs["limit"] = limit
+
+    cursor_result, query_kwargs = search_issues(
+        request, organization, projects, environments, extra_kwargs
+    )
+
+    rows = serialize(
+        list(cursor_result),
+        request.user,
+        serializer(
+            start=start,
+            end=end,
+            search_filters=query_kwargs.get("search_filters"),
+            organization_id=organization.id,
+        ),
+        request=request,
+    )
+
+    # HACK: remove auto resolved entries
+    # TODO: We should try to integrate this into the search backend, since
+    # this can cause us to arbitrarily return fewer results than requested.
+    status = [
+        search_filter
+        for search_filter in query_kwargs.get("search_filters", [])
+        if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
+    ]
+    if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
+        status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
+        rows = [r for r in rows if "status" not in r or r["status"] in status_labels]
+
+    return rows, cursor_result, query_kwargs
+
+
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
@@ -184,24 +273,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         environments: Sequence[Environment],
         extra_query_kwargs: None | Mapping[str, Any] = None,
     ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-        with start_span(op="_search"):
-            query_kwargs = build_query_params_from_request(
-                request, organization, projects, environments
-            )
-            if extra_query_kwargs is not None:
-                assert "environment" not in extra_query_kwargs
-                query_kwargs.update(extra_query_kwargs)
-
-            query_kwargs["environments"] = environments if environments else None
-
-            query_kwargs["actor"] = request.user
-            if query_kwargs["sort_by"] == "inbox":
-                query_kwargs.pop("sort_by")
-                query_kwargs.pop("referrer")
-                result = inbox_search(**query_kwargs)
-            else:
-                result = search.backend.query(**query_kwargs)
-            return result, query_kwargs
+        return search_issues(request, organization, projects, environments, extra_query_kwargs)
 
     @extend_schema(
         operation_id="List an Organization's Issues",
@@ -348,43 +420,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         try:
             with handle_query_errors():
-                cursor_result, query_kwargs = self._search(
+                context, cursor_result, _ = search_and_serialize_issues(
                     request,
                     organization,
                     projects,
                     environments,
-                    {"count_hits": True, "date_to": end, "date_from": start},
+                    stats_period=stats_period,
+                    stats_period_start=stats_period_start,
+                    stats_period_end=stats_period_end,
+                    start=start,
+                    end=end,
+                    expand=expand,
+                    collapse=collapse,
                 )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
-
-        results = list(cursor_result)
-
-        context = serialize(
-            results,
-            request.user,
-            serializer(
-                start=start,
-                end=end,
-                search_filters=(
-                    query_kwargs["search_filters"] if "search_filters" in query_kwargs else None
-                ),
-                organization_id=organization.id,
-            ),
-            request=request,
-        )
-
-        # HACK: remove auto resolved entries
-        # TODO: We should try to integrate this into the search backend, since
-        # this can cause us to arbitrarily return fewer results than requested.
-        status = [
-            search_filter
-            for search_filter in query_kwargs.get("search_filters", [])
-            if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
-        ]
-        if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
-            status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
-            context = [r for r in context if "status" not in r or r["status"] in status_labels]
 
         # Sanity check: if we're on the first and last page with no more results,
         # the estimated hits from sampling may be too high due to Snuba/Postgres

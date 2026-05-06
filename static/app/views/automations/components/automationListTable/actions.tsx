@@ -83,51 +83,39 @@ export function AutomationsTableActions({
     );
   }, [allInQuerySelected, queryCount, selected.size]);
 
-  const handleUpdate = useCallback(
-    ({enabled}: {enabled: boolean}) => {
-      openConfirmModal({
-        message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
-        confirmText: enabled ? t('Enable') : t('Disable'),
-        priority: 'danger',
-        onConfirm: async () => {
-          if (allInQuerySelected) {
-            await updateAutomations({enabled, query, projects: selection.projects});
-          } else {
-            await updateAutomations({enabled, ids: Array.from(selected)});
-          }
-          togglePageSelected(false);
-        },
-      });
-    },
-    [
-      selected,
-      allInQuerySelected,
-      updateAutomations,
-      getEnableConfirmMessage,
-      getDisableConfirmMessage,
-      togglePageSelected,
-      selection.projects,
-      query,
-    ]
-  );
+  const handleUpdate = ({enabled}: {enabled: boolean}) => {
+    openConfirmModal({
+      message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
+      confirmText: enabled ? t('Enable') : t('Disable'),
+      priority: 'danger',
+      onConfirm: async () => {
+        if (allInQuerySelected) {
+          await updateAutomations({enabled, query, projects: selection.projects});
+        } else {
+          await updateAutomations({enabled, ids: Array.from(selected)});
+        }
+        togglePageSelected(false);
+      },
+    });
+  };
 
   const getDeleteConfirmMessage = useCallback(() => {
     if (allInQuerySelected) {
       return tct(
-        'Are you sure you want to delete all [queryCount] automations that match the search?',
+        'Are you sure you want to delete all [queryCount] alerts that match the search?',
         {
           queryCount,
         }
       );
     }
     return tn(
-      'Are you sure you want to delete this %s automation?',
-      'Are you sure you want to delete these %s automations?',
+      'Are you sure you want to delete this %s alert?',
+      'Are you sure you want to delete these %s alerts?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     openConfirmModal({
       message: getDeleteConfirmMessage(),
       confirmText: t('Delete'),
@@ -141,15 +129,7 @@ export function AutomationsTableActions({
         togglePageSelected(false);
       },
     });
-  }, [
-    selected,
-    allInQuerySelected,
-    deleteAutomations,
-    getDeleteConfirmMessage,
-    togglePageSelected,
-    selection.projects,
-    query,
-  ]);
+  };
 
   return (
     <Fragment>
@@ -180,12 +160,7 @@ export function AutomationsTableActions({
               {t('Disable')}
             </Button>
           )}
-          <Button
-            size="xs"
-            priority="danger"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
+          <Button size="xs" variant="danger" onClick={handleDelete} disabled={isDeleting}>
             {t('Delete')}
           </Button>
         </Flex>
@@ -204,7 +179,7 @@ export function AutomationsTableActions({
                   '%s alerts on this page selected.',
                   selected.size
                 )}
-                <Button priority="link" onClick={() => setAllInQuerySelected(true)}>
+                <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
                   {tct('Select all [count] alerts that match this search query.', {
                     count: queryCount,
                   })}

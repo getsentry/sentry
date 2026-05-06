@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -20,6 +20,10 @@ import {
   type CheckStatusBucket,
 } from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeChecksTable} from 'sentry/views/alerts/rules/uptime/uptimeChecksTable';
+import {
+  DisableDetectorAction,
+  EditDetectorAction,
+} from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
@@ -30,6 +34,7 @@ import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/de
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type UptimeDetectorDetailsProps = {
   detector: UptimeDetector;
@@ -38,6 +43,7 @@ type UptimeDetectorDetailsProps = {
 
 export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const {data: uptimeSummaries} = useUptimeMonitorSummaries({
     detectorIds: [detector.id],
@@ -61,7 +67,15 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          <DatePageFilter />
+          <Flex align="center" gap="sm" justify="between" wrap="wrap">
+            <DatePageFilter />
+            {hasPageFrameFeature ? (
+              <Flex align="center" gap="sm" marginLeft="auto">
+                <DisableDetectorAction detector={detector} />
+                <EditDetectorAction detector={detector} />
+              </Flex>
+            ) : null}
+          </Flex>
           <DisabledAlert
             detector={detector}
             message={t('This monitor is disabled and not recording uptime checks.')}

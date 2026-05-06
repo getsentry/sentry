@@ -1,10 +1,10 @@
 {% load sentry_helpers %}
-Seems like your team could use some new tools. {{ requester_name|sanitize_periods }} from {{ organization_name }} requested the installation of {{ integration_name }}.
+Seems like your team could use some new tools. {{ requester_name|sanitize_periods }} from {{ organization_name|sanitize_periods }} requested the installation of {{ integration_name|sanitize_periods }}.
 {% if message %}
 They’ve included some additional context:
-    {{ message }}
+    {{ message|sanitize_periods }}
 {% endif %}
-Install {{ provider_name }} by clicking the link below:
+Install {{ provider_name|sanitize_periods }} by clicking the link below:
 
     {{ provider_link }}
 

@@ -149,7 +149,7 @@ export function getChartProps({
     | 'cardStats'
   >;
   dataCategory: DataCategory;
-  error: RequestError | null;
+  error: Error | null;
   handleChangeState: (state: {
     clientDiscard?: boolean;
     dataCategory?: DataCategory;
@@ -708,7 +708,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
           <StyledSettingsButton
-            priority="transparent"
+            variant="transparent"
             size="zero"
             icon={<IconSettings variant="muted" />}
             tooltipProps={{title: t('Dynamic Sampling Settings')}}

@@ -34,7 +34,12 @@ yes_arg
 
 arg = attr
 
-attr = typed_attr / untyped_attr
+attr = typed_attr / backtick_attr / untyped_attr
+
+backtick_attr
+  = "`" [^`]* "`" {
+    return tc.tokenAttribute(text(), undefined, location());
+  }
 
 typed_attr
   = "tags[" name:name "," spaces type:type_name "]" {

@@ -1,6 +1,13 @@
+import {Token} from 'sentry/components/searchSyntax/parser';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
-import {areWildcardOperatorsAllowed} from './utils';
+import {
+  areWildcardOperatorsAllowed,
+  escapeTagValueForSearch,
+  formatFilterValue,
+  unescapeAsteriskSearchValue,
+  unescapeTagValue,
+} from './utils';
 
 describe('areWildcardOperatorsAllowed', () => {
   it('returns false when fieldDefinition is null', () => {
@@ -64,5 +71,73 @@ describe('areWildcardOperatorsAllowed', () => {
     };
 
     expect(areWildcardOperatorsAllowed(fieldDefinition)).toBe(false);
+  });
+});
+
+describe('escapeTagValueForSearch', () => {
+  it('escapes unescaped asterisks', () => {
+    expect(escapeTagValueForSearch('foo*bar')).toBe('foo\\*bar');
+  });
+
+  it('does not double escape escaped asterisks', () => {
+    expect(escapeTagValueForSearch('foo\\*bar')).toBe('foo\\*bar');
+  });
+
+  it('preserves representable backslashes before escaped asterisks', () => {
+    expect(escapeTagValueForSearch('foo\\\\*bar')).toBe('foo\\\\\\*bar');
+  });
+
+  it('preserves quoting when forced', () => {
+    expect(escapeTagValueForSearch('foo*bar', {forceQuote: true})).toBe('"foo\\*bar"');
+  });
+
+  it('respects allowArrayValue when disabled by the caller', () => {
+    expect(escapeTagValueForSearch('[foo*bar]', {allowArrayValue: false})).toBe(
+      '[foo\\*bar]'
+    );
+  });
+});
+
+describe('unescapeTagValue', () => {
+  it('only unescapes quotes', () => {
+    expect(unescapeTagValue('foo\\*bar')).toBe('foo\\*bar');
+  });
+});
+
+describe('unescapeAsteriskSearchValue', () => {
+  it('unescapes escaped asterisks for display', () => {
+    expect(unescapeAsteriskSearchValue('foo\\*bar')).toBe('foo*bar');
+  });
+
+  it('preserves representable backslashes before escaped asterisks', () => {
+    expect(unescapeAsteriskSearchValue('foo\\\\\\*bar')).toBe('foo\\\\*bar');
+  });
+});
+
+describe('formatFilterValue', () => {
+  it('unescapes asterisks for unquoted values', () => {
+    expect(
+      formatFilterValue({
+        token: {
+          type: Token.VALUE_TEXT,
+          text: '\\*\\*\\*\\*',
+          value: '\\*\\*\\*\\*',
+          quoted: false,
+        } as any,
+      })
+    ).toBe('****');
+  });
+
+  it('unescapes asterisks for quoted values', () => {
+    expect(
+      formatFilterValue({
+        token: {
+          type: Token.VALUE_TEXT,
+          text: '"foo\\\\*bar"',
+          value: 'foo\\*bar',
+          quoted: true,
+        } as any,
+      })
+    ).toBe('foo*bar');
   });
 });

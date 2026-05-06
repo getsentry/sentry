@@ -121,6 +121,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                     buffer,
                 ),
                 next_step=flusher,
+                better_backpressure=True,
             )
 
         batch = BatchStep(

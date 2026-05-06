@@ -2,7 +2,7 @@ import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
+import onboardingImg from 'sentry-images/spot/crons-onboarding.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -169,7 +169,7 @@ function CronEmptyState() {
             .map(({platform, label}) => (
               <Flex key={platform} direction="column" gap="xs" align="center">
                 <PlatformLinkButton
-                  priority="default"
+                  variant="secondary"
                   to={makeCreateUrl(platform)}
                   aria-label={t('Create %s Monitor', platform)}
                 >
@@ -252,7 +252,11 @@ export default function CronDetectorsList() {
           <InsightsRedirectNotice>
             {t('Cron monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
-          <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
+          <DetectorListHeader
+            detectorType="monitor_check_in_failure"
+            showTimeRangeSelector
+            showTypeFilter={false}
+          />
           <GlobalMonitorProcessingErrors project={selectedProjects} />
           <DetectorListContent
             isError={detectorListQuery.isError}

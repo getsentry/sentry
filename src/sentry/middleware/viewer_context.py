@@ -28,8 +28,6 @@ def ViewerContextMiddleware(
     there is no authenticated *user* (service-to-service calls that
     authenticate via HMAC but have no user session, e.g. Seer → Sentry).
 
-    Accepts both JWT and legacy JSON + HMAC signature formats.
-
     Gated by ``viewer-context.enabled`` (FLAG_NOSTORE).
     """
     enabled = options.get("viewer-context.enabled")
@@ -77,8 +75,7 @@ def _viewer_context_from_jwt_header(request: HttpRequest) -> ViewerContext | Non
     header_value = request.META.get("HTTP_X_VIEWER_CONTEXT")
     if not header_value:
         return None
-    signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
-    return viewer_context_from_header(header_value, signature)
+    return viewer_context_from_header(header_value)
 
 
 def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:

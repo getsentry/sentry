@@ -8,11 +8,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.data_export.models import ExportedData
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
-
-from ..models import ExportedData
 
 
 @cell_silo_endpoint

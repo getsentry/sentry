@@ -6,6 +6,16 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.constants import SENTRY_INTERNAL_PREFIXES
+from sentry.search.eap.occurrences.attributes import (
+    OCCURRENCE_ATTRIBUTE_DEFINITIONS,
+    OCCURRENCE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    OCCURRENCE_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    OCCURRENCE_PRIVATE_ATTRIBUTE_PREFIXES,
+    OCCURRENCE_PRIVATE_ATTRIBUTES,
+    OCCURRENCE_REPLACEMENT_ATTRIBUTES,
+    OCCURRENCE_REPLACEMENT_MAP,
+)
+from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
@@ -73,6 +83,7 @@ INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SupportedTraceItemType.PREPROD: PREPROD_SIZE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    SupportedTraceItemType.OCCURRENCES: OCCURRENCE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
 }
 
 PUBLIC_ALIAS_TO_INTERNAL_MAPPING: dict[SupportedTraceItemType, dict[str, ResolvedAttribute]] = {
@@ -80,6 +91,7 @@ PUBLIC_ALIAS_TO_INTERNAL_MAPPING: dict[SupportedTraceItemType, dict[str, Resolve
     SupportedTraceItemType.LOGS: OURLOG_ATTRIBUTE_DEFINITIONS,
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_ATTRIBUTE_DEFINITIONS,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS,
+    SupportedTraceItemType.OCCURRENCES: OCCURRENCE_ATTRIBUTE_DEFINITIONS,
 }
 
 
@@ -88,6 +100,7 @@ PRIVATE_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTES,
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_PRIVATE_ATTRIBUTES,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_PRIVATE_ATTRIBUTES,
+    SupportedTraceItemType.OCCURRENCES: OCCURRENCE_PRIVATE_ATTRIBUTES,
 }
 
 PRIVATE_ATTRIBUTE_PREFIXES: dict[SupportedTraceItemType, set[str]] = {
@@ -95,6 +108,7 @@ PRIVATE_ATTRIBUTE_PREFIXES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTE_PREFIXES,
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_PRIVATE_ATTRIBUTE_PREFIXES,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_PRIVATE_ATTRIBUTE_PREFIXES,
+    SupportedTraceItemType.OCCURRENCES: OCCURRENCE_PRIVATE_ATTRIBUTE_PREFIXES,
 }
 
 SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
@@ -102,6 +116,7 @@ SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES: dict[SupportedTraceItemType, set[str]
     SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_ATTRIBUTES,
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_REPLACEMENT_ATTRIBUTES,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_REPLACEMENT_ATTRIBUTES,
+    SupportedTraceItemType.OCCURRENCES: OCCURRENCE_REPLACEMENT_ATTRIBUTES,
 }
 
 SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, str]] = {
@@ -109,7 +124,19 @@ SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, 
     SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_MAP,
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_REPLACEMENT_MAP,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_REPLACEMENT_MAP,
+    SupportedTraceItemType.OCCURRENCES: OCCURRENCE_REPLACEMENT_MAP,
 }
+
+
+SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP: dict[SupportedTraceItemType, dict[str, set[str]]] = {}
+for _item_type, _replacement_map in SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.items():
+    _internal_mapping = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(_item_type, {})
+    _reverse: dict[str, set[str]] = {}
+    for _deprecated_alias, _replacement in _replacement_map.items():
+        _resolved = _internal_mapping.get(_deprecated_alias)
+        _internal_name = _resolved.internal_name if _resolved else _deprecated_alias
+        _reverse.setdefault(_replacement, set()).add(_internal_name)
+    SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP[_item_type] = _reverse
 
 
 INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
@@ -117,6 +144,7 @@ INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]]
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    SupportedTraceItemType.OCCURRENCES: OCCURRENCE_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
 }
 
 TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
@@ -124,15 +152,26 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
     SupportedTraceItemType.LOGS: OURLOG_DEFINITIONS,
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_DEFINITIONS,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_DEFINITIONS,
+    SupportedTraceItemType.OCCURRENCES: OCCURRENCE_DEFINITIONS,
 }
+
+
+def translate_search_type_for_internal_column(
+    internal_name: str,
+    item_type: SupportedTraceItemType,
+) -> Literal["string", "number", "boolean"] | None:
+    for search_type, mapping in INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).items():
+        if internal_name in mapping:
+            return search_type
+    return None
 
 
 def translate_internal_to_public_alias(
     internal_alias: str,
-    type: Literal["string", "number", "boolean"],
+    search_type: Literal["string", "number", "boolean"],
     item_type: SupportedTraceItemType,
 ) -> tuple[str | None, str | None, AttributeSource]:
-    mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(type, {})
+    mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(search_type, {})
     public_alias = mapping.get(internal_alias)
     if public_alias is not None:
         return public_alias, public_alias, {"source_type": AttributeSourceType.SENTRY}
@@ -142,7 +181,7 @@ def translate_internal_to_public_alias(
         # if there is a known public alias with this exact name, it means we need to wrap
         # it in the explicitly typed tags syntax in order for it to reference the correct column
         return (
-            f"tags[{internal_alias},{type}]",
+            f"tags[{internal_alias},{search_type}]",
             internal_alias,
             {"source_type": AttributeSourceType.SENTRY},
         )
@@ -152,7 +191,7 @@ def translate_internal_to_public_alias(
         if definitions.column_to_alias is not None:
             column = definitions.column_to_alias(internal_alias)
             if column is not None:
-                if type == "string":
+                if search_type == "string":
                     return (
                         column,
                         column,
@@ -162,7 +201,7 @@ def translate_internal_to_public_alias(
                         },
                     )
                 return (
-                    f"tags[{column},{type}]",
+                    f"tags[{column},{search_type}]",
                     column,
                     {
                         "source_type": AttributeSourceType.SENTRY,
@@ -202,6 +241,12 @@ def is_sentry_convention_replacement_attribute(
     public_alias: str, item_type: SupportedTraceItemType
 ) -> bool:
     return public_alias in SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES.get(item_type, {})
+
+
+def get_deprecated_source_internal_names(
+    replacement: str, item_type: SupportedTraceItemType
+) -> set[str]:
+    return SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP.get(item_type, {}).get(replacement, set())
 
 
 def translate_to_sentry_conventions(public_alias: str, item_type: SupportedTraceItemType) -> str:

@@ -527,7 +527,7 @@ class IntegrationInstallation(abc.ABC):
         elif isinstance(exc, UnsupportedResponseType):
             return ERR_UNSUPPORTED_RESPONSE_TYPE.format(content_type=exc.content_type)
         elif isinstance(exc, ApiError):
-            if exc.json:
+            if exc.json and isinstance(exc.json, dict):
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
                 msg = "unknown error"
@@ -553,7 +553,7 @@ class IntegrationInstallation(abc.ABC):
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
     def is_rate_limited_error(self, exc: ApiError) -> bool:
-        raise NotImplementedError
+        return False
 
     @property
     def metadata(self) -> dict[str, Any]:

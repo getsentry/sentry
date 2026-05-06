@@ -170,7 +170,7 @@ export class JSSelfProfile extends Profile {
     }
   }
 
-  build(): JSSelfProfile {
+  build(): this {
     this.duration = Math.max(
       this.duration,
       this.weights.reduce((a, b) => a + b, 0)

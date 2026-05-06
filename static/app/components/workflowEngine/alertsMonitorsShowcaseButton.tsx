@@ -7,13 +7,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AlertsMonitorsShowcaseButton() {
   const organization = useOrganization();
+  const label = t('Monitors and Alerts tour');
 
   return (
     <Button
       size="sm"
       icon={<IconInfo />}
       onClick={() => openAlertsMonitorsShowcase({organization})}
-      aria-label={t('Monitors and Alerts tour')}
+      tooltipProps={{title: label}}
+      aria-label={label}
     />
   );
 }

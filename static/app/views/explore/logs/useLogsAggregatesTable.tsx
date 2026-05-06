@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -41,14 +41,17 @@ export function useLogsAggregatesTable({
 }: UseLogsAggregatesTableOptions) {
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useLogsAggregatesTableImpl>['result']) => {
-      const canGoToHigherAccuracyTier = results.data?.meta?.dataScanned === 'partial';
-      const hasData = defined(results.data?.data) && results.data.data.length > 0;
+      const json = results.data?.json;
+      const canGoToHigherAccuracyTier = json?.meta?.dataScanned === 'partial';
+      const hasData = defined(json?.data) && json.data.length > 0;
       return !hasData && canGoToHigherAccuracyTier;
     },
     []
   );
 
-  const aggregateTableResult = useProgressiveQuery<typeof useLogsAggregatesTableImpl>({
+  const {result, pageLinks, eventView} = useProgressiveQuery<
+    typeof useLogsAggregatesTableImpl
+  >({
     queryHookImplementation: useLogsAggregatesTableImpl,
     queryHookArgs: {
       enabled,
@@ -61,9 +64,13 @@ export function useLogsAggregatesTable({
   });
 
   return {
-    ...aggregateTableResult.result,
-    pageLinks: aggregateTableResult.pageLinks,
-    eventView: aggregateTableResult.eventView,
+    data: result.data?.json,
+    isLoading: result.isLoading,
+    isPending: result.isPending,
+    isError: result.isError,
+    error: result.error,
+    pageLinks,
+    eventView,
   };
 }
 
@@ -74,27 +81,28 @@ function useLogsAggregatesTableImpl({
   queryExtras,
 }: UseLogsAggregatesTableOptions) {
   referrer = referrer ?? 'api.explore.logs-table-aggregates';
-  const {queryKey, other} = useLogsAggregatesQueryKey({
+  const {queryOptions, eventView} = useLogsAggregatesApiOptions({
     limit,
     queryExtras,
     referrer,
   });
 
-  const queryResult = useApiQuery<LogsAggregatesResult>(queryKey, {
+  const result = useQuery({
+    ...queryOptions,
+    select: selectJsonWithHeaders,
     enabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
     refetchOnWindowFocus: false,
     retry: false,
   });
 
   return {
-    result: queryResult,
-    pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
-    eventView: other.eventView,
+    result,
+    pageLinks: result.data?.headers.Link,
+    eventView,
   };
 }
 
-function useLogsAggregatesQueryKey({
+function useLogsAggregatesApiOptions({
   limit,
   referrer,
   queryExtras,
@@ -106,7 +114,7 @@ function useLogsAggregatesQueryKey({
   const organization = useOrganization();
   const _search = useQueryParamsSearch();
   const baseSearch = useLogsFrozenSearch();
-  const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const {selection} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
@@ -133,31 +141,24 @@ function useLogsAggregatesQueryKey({
     dataset,
     projectIds ?? pageFilters.projects
   );
-  const params = {
-    query: {
-      ...eventView.getEventsAPIPayload(location),
-      per_page: limit ? limit : undefined,
-      cursor: aggregateCursor,
-      referrer,
-      caseInsensitive,
-      sampling: queryExtras?.samplingMode,
-    },
-    pageFiltersReady,
-    eventView,
-  };
-
-  const queryKey: ApiQueryKey = [
-    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+  const options = apiOptions.as<LogsAggregatesResult>()(
+    '/organizations/$organizationIdOrSlug/events/',
+    {
       path: {organizationIdOrSlug: organization.slug},
-    }),
-    params,
-  ];
+      query: {
+        ...eventView.getEventsAPIPayload(location),
+        per_page: limit ? limit : undefined,
+        cursor: aggregateCursor,
+        referrer,
+        caseInsensitive,
+        sampling: queryExtras?.samplingMode,
+      },
+      staleTime: getStaleTimeForEventView(eventView),
+    }
+  );
 
   return {
-    queryKey,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
+    queryOptions: options,
+    eventView,
   };
 }

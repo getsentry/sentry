@@ -14,6 +14,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
+from sentry.integrations.source_code_management.sync_repos import bump_org_integration_last_sync
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
@@ -95,6 +96,9 @@ def sync_repos_on_install_change(
                 repos_added=repos_added,
                 repos_removed=repos_removed,
             )
+            removals_enabled = features.has("organizations:scm-repo-auto-sync-removal", rpc_org)
+            repos_changed = bool(repos_added or (repos_removed and removals_enabled))
+            bump_org_integration_last_sync(oi.id, repos_changed=repos_changed)
 
 
 def _sync_repos_for_org(
@@ -140,7 +144,7 @@ def _sync_repos_for_org(
                     provider=integration.provider,
                 )
 
-    if repos_removed:
+    if repos_removed and features.has("organizations:scm-repo-auto-sync-removal", rpc_org):
         # Look up repos before disabling to get their IDs and names
         external_ids = [str(repo["id"]) for repo in repos_removed]
         existing_repos = repository_service.get_repositories(

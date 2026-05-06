@@ -9,6 +9,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategoryExact} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -33,7 +34,12 @@ export function ProjectDetails() {
     orgId: string;
     projectId: string;
   }>();
-  const {data, isPending, isError} = useApiQuery<Project>(
+  // This admin view fetches project details without `collapse=organization`,
+  // so the backend returns a full Organization rather than the minimal
+  // {id, slug} shape used elsewhere.
+  const {data, isPending, isError} = useApiQuery<
+    Omit<Project, 'organization'> & {organization: Organization}
+  >(
     [
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
         path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectId},

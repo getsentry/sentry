@@ -15,6 +15,7 @@ import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  AGGREGATIONS,
   stripEquationPrefix,
   type Aggregation,
   type AggregationOutputType,
@@ -116,7 +117,12 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
           },
         ],
       };
-    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
+    } else if (
+      aggregate === AggregationKey.PERFORMANCE_SCORE ||
+      aggregate === AggregationKey.OPPORTUNITY_SCORE
+    ) {
+      acc[aggregate] = AGGREGATIONS[aggregate];
+    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate)) {
       acc[aggregate] = {
         isSortable: true,
         outputType: null,
@@ -337,8 +343,7 @@ export const SpansConfig: DatasetConfig<
       data,
       widgetQuery,
       getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
-      getMetaField: (seriesMeta, aggregate) =>
-        seriesMeta?.fields?.[aggregate] as AggregationOutputType,
+      getMetaField: (seriesMeta, aggregate) => seriesMeta?.fields?.[aggregate]!,
     });
   },
 };
@@ -468,12 +473,14 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
 
   const filters = new MutableSearch('');
 
-  // Filters on the transaction summary page won't match the dashboard because transaction summary isn't on eap yet.
+  const isEap = organization.features.includes('performance-transaction-summary-eap');
   if (data[SpanFields.SPAN_OP]) {
-    filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
+    filters.addFilterValue(
+      isEap ? SpanFields.SPAN_OP : SpanFields.TRANSACTION_OP,
+      data[SpanFields.SPAN_OP]
+    );
   }
   if (data[SpanFields.REQUEST_METHOD]) {
-    const isEap = organization.features.includes('performance-transaction-summary-eap');
     filters.addFilterValue(
       isEap ? 'request.method' : 'http.method',
       data[SpanFields.REQUEST_METHOD]

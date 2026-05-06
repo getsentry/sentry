@@ -12,8 +12,6 @@ import {
 } from './../traceGuards';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
-import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
-import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
@@ -844,6 +842,16 @@ describe('TraceTree', () => {
         childTransactionA,
         childTransactionB,
       ]);
+      expect(TraceTree.VisibleParent(childTransactionA)).toBe(rootTransaction);
+      expect(TraceTree.VisibleParent(childTransactionB)).toBe(rootTransaction);
+      expect(TraceTree.Depth(childTransactionA)).toBe(
+        TraceTree.Depth(rootTransaction) + 1
+      );
+      expect(TraceTree.Depth(childTransactionB)).toBe(
+        TraceTree.Depth(rootTransaction) + 1
+      );
+      expect(TraceTree.IsLastVisibleChild(childTransactionA)).toBe(false);
+      expect(TraceTree.IsLastVisibleChild(childTransactionB)).toBe(true);
       const rootTransactionIndex = tree.list.indexOf(rootTransaction);
       expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 3)).toEqual([
         rootTransaction,
@@ -855,6 +863,10 @@ describe('TraceTree', () => {
 
       expect(childTransactionA.parent).toBe(spanA);
       expect(childTransactionB.parent).toBe(spanB);
+      expect(TraceTree.VisibleParent(childTransactionA)).toBe(spanA);
+      expect(TraceTree.VisibleParent(childTransactionB)).toBe(spanB);
+      expect(TraceTree.Depth(childTransactionA)).toBe(TraceTree.Depth(spanA) + 1);
+      expect(TraceTree.Depth(childTransactionB)).toBe(TraceTree.Depth(spanB) + 1);
       expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 5)).toEqual([
         rootTransaction,
         spanA,
@@ -1158,9 +1170,7 @@ describe('TraceTree', () => {
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      const parentAutogroupNode = tree.root.findChild(n =>
-        isParentAutogroupedNode(n)
-      ) as ParentAutogroupNode;
+      const parentAutogroupNode = tree.root.findChild(n => isParentAutogroupedNode(n))!;
 
       // Expand the chain and collapse an intermediary child
       parentAutogroupNode.expand(true, tree);
@@ -1609,9 +1619,7 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroup = tree.root.findChild(node =>
-        isParentAutogroupedNode(node)
-      ) as ParentAutogroupNode;
+      const parentAutogroup = tree.root.findChild(node => isParentAutogroupedNode(node))!;
 
       expect(parentAutogroup).not.toBeNull();
       expect(parentAutogroup.directVisibleChildren[0]).toBe(
@@ -1629,9 +1637,7 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroup = tree.root.findChild(node =>
-        isParentAutogroupedNode(node)
-      ) as ParentAutogroupNode;
+      const parentAutogroup = tree.root.findChild(node => isParentAutogroupedNode(node))!;
 
       parentAutogroup.expand(true, tree);
 
@@ -2064,6 +2070,17 @@ describe('TraceTree', () => {
     });
   });
 
+  describe('IsLastVisibleChild', () => {
+    it('treats the trace root row as the last visible child', () => {
+      const tree = TraceTree.FromTrace(trace, traceOptions);
+      const traceRoot = tree.root.children[0]!;
+
+      expect(TraceTree.VisibleParent(traceRoot)).toBeNull();
+      expect(TraceTree.IsLastVisibleChild(traceRoot)).toBe(true);
+      expect(TraceTree.ConnectorsTo(traceRoot)).toEqual([]);
+    });
+  });
+
   describe('Invalidate', () => {
     it('invalidates node', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
@@ -2216,7 +2233,7 @@ describe('TraceTree', () => {
 
         const parentAutogroup = tree.root.findChild(node =>
           isParentAutogroupedNode(node)
-        ) as ParentAutogroupNode;
+        )!;
         expect(parentAutogroup.tail.pathToNode()).toEqual([
           'span-tail-span-id',
           'txn-child-event-id',
@@ -2281,7 +2298,7 @@ describe('TraceTree', () => {
 
         const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
-        ) as SiblingAutogroupNode;
+        )!;
 
         const path = siblingAutogroup.pathToNode();
         expect(path).toEqual(['ag-child-event-id', 'txn-child-event-id']);
@@ -2301,7 +2318,7 @@ describe('TraceTree', () => {
 
         const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
-        ) as SiblingAutogroupNode;
+        )!;
 
         const path = siblingAutogroup.children[1]!.pathToNode();
         expect(path).toEqual(['span-1', 'txn-child-event-id']);

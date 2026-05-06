@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
@@ -251,14 +251,14 @@ function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
           <FieldLabel disabled={disabled}>{t('Filter out legacy browsers')}:</FieldLabel>
           <Grid flow="column" align="center" gap="md">
             <Button
-              priority="link"
+              variant="link"
               onClick={createHandleToggleSubfilters(true)}
               disabled={disabled}
             >
               {t('All')}
             </Button>
             <Button
-              priority="link"
+              variant="link"
               onClick={createHandleToggleSubfilters(false)}
               disabled={disabled}
             >
@@ -415,23 +415,20 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
 
   const filterList = filterListData ?? [];
 
-  const handleLegacyChange = useCallback(
-    ({
-      onChange,
-      onBlur,
-      event,
-      subfilters,
-    }: {
-      event: React.ChangeEvent | React.MouseEvent;
-      onBlur: FormFieldProps['onBlur'];
-      onChange: FormFieldProps['onChange'];
-      subfilters: Set<string>;
-    }) => {
-      onChange?.(subfilters, event);
-      onBlur?.(subfilters, event);
-    },
-    []
-  );
+  const handleLegacyChange = ({
+    onChange,
+    onBlur,
+    event,
+    subfilters,
+  }: {
+    event: React.ChangeEvent | React.MouseEvent;
+    onBlur: FormFieldProps['onBlur'];
+    onChange: FormFieldProps['onChange'];
+    subfilters: Set<string>;
+  }) => {
+    onChange?.(subfilters, event);
+    onBlur?.(subfilters, event);
+  };
 
   if (isPending) {
     return <LoadingIndicator />;

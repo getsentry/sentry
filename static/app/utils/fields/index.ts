@@ -5,6 +5,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
+import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -30,7 +31,6 @@ export enum FieldKey {
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
-  DETECTOR = 'detector',
   DEVICE = 'device',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -86,6 +86,7 @@ export enum FieldKey {
   LEVEL = 'level',
   LOCATION = 'location',
   MESSAGE = 'message',
+  MONITOR = 'monitor',
   OS = 'os',
   OS_BUILD = 'os.build',
   OS_KERNEL_VERSION = 'os.kernel_version',
@@ -122,6 +123,7 @@ export enum FieldKey {
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
   TIMES_SEEN = 'timesSeen',
   TITLE = 'title',
+  USER_COUNT = 'userCount',
   TOTAL_COUNT = 'total.count',
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
@@ -177,7 +179,6 @@ type ErrorFieldKey =
   | FieldKey.ASSIGNED_OR_SUGGESTED
   | FieldKey.BOOKMARKS
   | FieldKey.CULPRIT
-  | FieldKey.DETECTOR
   | FieldKey.ERROR_HANDLED
   | FieldKey.ERROR_MECHANISM
   | FieldKey.ERROR_TYPE
@@ -198,6 +199,7 @@ type ErrorFieldKey =
   | FieldKey.LAST_SEEN
   | FieldKey.LEVEL
   | FieldKey.LOCATION
+  | FieldKey.MONITOR
   | FieldKey.STACK_ABS_PATH
   | FieldKey.STACK_COLNO
   | FieldKey.STACK_FILENAME
@@ -211,6 +213,7 @@ type ErrorFieldKey =
   | FieldKey.STATUS
   | FieldKey.SYMBOLICATED_IN_APP
   | FieldKey.TIMES_SEEN
+  | FieldKey.USER_COUNT
   | FieldKey.TYPE
   | FieldKey.UNREAL_CRASH_TYPE;
 
@@ -394,6 +397,7 @@ export enum AggregationKey {
   FAILURE_RATE = 'failure_rate',
   LAST_SEEN = 'last_seen',
   PERFORMANCE_SCORE = 'performance_score',
+  OPPORTUNITY_SCORE = 'opportunity_score',
 }
 
 export enum IsFieldValues {
@@ -476,6 +480,11 @@ export interface FieldDefinition {
    * can also be used with operators like `>=` or `<`.
    */
   allowComparisonOperators?: boolean;
+  /**
+   * Allow multiple values to be selected for this field.
+   * This is only valid for string and default numeric filters and defaults to true.
+   */
+  allowMultipleValues?: boolean;
   /**
    * Allow wildcard (*) matching for this field.
    * This is only valid for string fields and will default to true.
@@ -1023,7 +1032,35 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       {
         name: 'value',
         kind: 'column',
-        columnTypes: [FieldValueType.NUMBER],
+        columnTypes: validateAllowedColumns([
+          'measurements.score.total',
+          'measurements.score.lcp',
+          'measurements.score.fcp',
+          'measurements.score.inp',
+          'measurements.score.cls',
+          'measurements.score.ttfb',
+        ]),
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.OPPORTUNITY_SCORE]: {
+    desc: t('Returns the opportunity score for a given web vital'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.SCORE,
+    parameters: [
+      {
+        name: 'value',
+        kind: 'column',
+        columnTypes: validateAllowedColumns([
+          'measurements.score.total',
+          'measurements.score.lcp',
+          'measurements.score.fcp',
+          'measurements.score.inp',
+          'measurements.score.cls',
+          'measurements.score.ttfb',
+        ]),
         defaultValue: 'measurements.score.total',
         required: true,
       },
@@ -1054,6 +1091,8 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.EPS,
   AggregationKey.FAILURE_RATE,
   AggregationKey.FAILURE_COUNT,
+  AggregationKey.PERFORMANCE_SCORE,
+  AggregationKey.OPPORTUNITY_SCORE,
 ];
 
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
@@ -1922,12 +1961,6 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.DETECTOR]: {
-    desc: t('The detector that triggered the issue'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
   [FieldKey.ERROR_HANDLED]: {
     desc: t('Determines handling status of the error'),
     kind: FieldKind.FIELD,
@@ -2037,6 +2070,12 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.MONITOR]: {
+    desc: t('The monitor that triggered the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.STACK_ABS_PATH]: {
     desc: t('Absolute path to the source file'),
     kind: FieldKind.FIELD,
@@ -2103,6 +2142,12 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
     keywords: ['count'],
+  },
+  [FieldKey.USER_COUNT]: {
+    desc: t('Number of unique users affected'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+    keywords: ['users', 'affected'],
   },
   [FieldKey.TYPE]: {
     desc: t('Type of event (Errors, transactions, csp and default)'),
@@ -2312,6 +2357,7 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowMultipleValues: false,
     disallowWildcardOperators: true,
   },
 };
@@ -2518,6 +2564,12 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  artifact_type: {
+    desc: t('The type of artifact component (e.g., main app, watch app, app clip)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    values: [...METRICS_ARTIFACT_TYPES],
+  },
   build_configuration_name: {
     desc: t('The name of the build configuration (e.g., Debug, Release)'),
     kind: FieldKind.FIELD,
@@ -2567,6 +2619,46 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     desc: t('The pull request number associated with a build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
+  },
+  image_count: {
+    desc: t('The number of images in the snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_added: {
+    desc: t('Number of images added compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_changed: {
+    desc: t('Number of images changed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_removed: {
+    desc: t('Number of images removed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_renamed: {
+    desc: t('Number of images renamed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_skipped: {
+    desc: t('Number of images skipped during snapshot comparison'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_unchanged: {
+    desc: t('Number of images unchanged compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  is_approved: {
+    desc: t('Whether the snapshot comparison has been approved'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -2663,7 +2755,6 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ASSIGNED_OR_SUGGESTED,
   FieldKey.ASSIGNED,
   FieldKey.BOOKMARKS,
-  FieldKey.DETECTOR,
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
   FieldKey.HAS,
@@ -2675,8 +2766,10 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ISSUE_TYPE,
   FieldKey.ISSUE,
   FieldKey.LAST_SEEN,
+  FieldKey.MONITOR,
   FieldKey.RELEASE_STAGE,
   FieldKey.TIMES_SEEN,
+  FieldKey.USER_COUNT,
 ];
 
 // Should match Snuba columns defined in sentry/snuba/events.py

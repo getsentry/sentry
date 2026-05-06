@@ -1,33 +1,34 @@
 import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
-import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {defined} from 'sentry/utils';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import type {ApiQueryKey, InfiniteData, QueryState} from 'sentry/utils/queryClient';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 
 type ListCache = {
   pageParams: unknown[];
-  pages: Array<ApiResult<FeedbackIssueListItem[]>>;
+  pages: Array<ApiResponse<FeedbackIssueListItem[]>>;
 };
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
-function isIssueEndpointUrl(query: any) {
-  const url = query.queryKey[0] ?? '';
-  return issueApiEndpointRegexp.test(String(url));
+function isIssueEndpointUrl(query: {queryKey: readonly unknown[]}) {
+  const url = safeParseQueryKey(query.queryKey)?.url;
+  return url !== undefined && issueApiEndpointRegexp.test(url);
 }
 
 export function useFeedbackCache() {
   const queryClient = useQueryClient();
-  const {getItemQueryKeys, listQueryKey} = useFeedbackQueryKeys();
+  const {getItemApiOptions, listApiOptions} = useFeedbackApiOptions();
+  const listQueryKey = listApiOptions.queryKey;
 
   const updateCachedQueryKey = useCallback(
-    (queryKey: ApiQueryKey, payload: Partial<FeedbackIssue>) => {
-      setApiQueryData<FeedbackIssue>(queryClient, queryKey, feedbackIssue =>
-        feedbackIssue ? {...feedbackIssue, ...payload} : feedbackIssue
+    (queryKey: readonly unknown[], payload: Partial<FeedbackIssue>) => {
+      queryClient.setQueryData(queryKey, (prev: ApiResponse<FeedbackIssue> | undefined) =>
+        prev ? {...prev, json: {...prev.json, ...payload}} : prev
       );
     },
     [queryClient]
@@ -38,33 +39,27 @@ export function useFeedbackCache() {
       if (ids === 'all') {
         const cache = queryClient.getQueryCache();
         const queries = cache.findAll({predicate: isIssueEndpointUrl});
-        queries
-          .map(query => query.queryKey as ApiQueryKey)
-          .forEach(queryKey => updateCachedQueryKey(queryKey, payload));
+        queries.forEach(query => updateCachedQueryKey(query.queryKey, payload));
       } else {
         ids
-          .map(id => getItemQueryKeys(id).issueQueryKey)
+          .map(id => getItemApiOptions(id).issueApiOptions?.queryKey)
           .filter(defined)
           .forEach(queryKey => updateCachedQueryKey(queryKey, payload));
       }
     },
-    [getItemQueryKeys, queryClient, updateCachedQueryKey]
+    [getItemApiOptions, queryClient, updateCachedQueryKey]
   );
 
   const updateCachedListPage = useCallback(
     (ids: TFeedbackIds, payload: Partial<FeedbackIssue>) => {
-      if (!listQueryKey) {
-        return;
-      }
-      const listData = queryClient.getQueryData<ListCache>(listQueryKey);
+      const listData = queryClient.getQueryData(listQueryKey);
       if (listData) {
-        const pages = listData.pages.map(([data, statusText, resp]) => [
-          data.map(item =>
+        const pages = listData.pages.map(page => ({
+          ...page,
+          json: page.json.map(item =>
             ids === 'all' || ids.includes(item.id) ? {...item, ...payload} : item
           ),
-          statusText,
-          resp,
-        ]);
+        }));
         queryClient.setQueryData(listQueryKey, {...listData, pages});
       }
     },
@@ -85,13 +80,14 @@ export function useFeedbackCache() {
         queryClient.invalidateQueries({predicate: isIssueEndpointUrl});
       } else {
         ids.forEach(id => {
-          // Only need to invalidate & re-fetch issue data. Event data will not change.
-          const queryKey = getItemQueryKeys(id).issueQueryKey;
-          queryClient.invalidateQueries({queryKey});
+          const queryKey = getItemApiOptions(id).issueApiOptions?.queryKey;
+          if (queryKey) {
+            queryClient.invalidateQueries({queryKey});
+          }
         });
       }
     },
-    [getItemQueryKeys, queryClient]
+    [getItemApiOptions, queryClient]
   );
 
   const invalidateCachedListPage = useCallback(
@@ -108,11 +104,9 @@ export function useFeedbackCache() {
         queryClient.refetchQueries({
           queryKey: listQueryKey,
           predicate: query => {
-            // Check if any of the pages contain the items we want to invalidate
+            const data = query.state.data as ListCache | undefined;
             return Boolean(
-              (
-                query.state.data as QueryState<InfiniteData<FeedbackIssueListItem[]>>
-              ).data?.pages.some(items => items.some(item => ids.includes(item.id)))
+              data?.pages.some(page => page.json.some(item => ids.includes(item.id)))
             );
           },
         });

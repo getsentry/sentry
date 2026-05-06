@@ -1,8 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {useQuery} from 'sentry/utils/queryClient';
 
 interface UsePageFilterDatesOptions {
   /**

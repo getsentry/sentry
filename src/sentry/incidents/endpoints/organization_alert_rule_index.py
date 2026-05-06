@@ -194,7 +194,7 @@ def create_metric_alert(
         raise ValidationError(validator.errors)
 
     try:
-        trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
+        trigger_sentry_app_action_creators_for_incidents(validator.validated_data, organization)
     except SentryAppBaseError as e:
         return e.response_from_exception()
 
@@ -211,7 +211,7 @@ def create_metric_alert(
         return Response({"uuid": client.uuid}, status=202)
     else:
         alert_rule = validator.save()
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
+        if features.has("organizations:workflow-engine-metric-alert-endpoints-post", organization):
             try:
                 detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
                 return Response(
@@ -223,7 +223,11 @@ def create_metric_alert(
                     status=status.HTTP_201_CREATED,
                 )
             except Detector.DoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND)
+                logger.error(
+                    "Alert rule was not dual written. Returning serialized rule instead of detector",
+                    extra={"rule_id": alert_rule.id},
+                )
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
@@ -329,14 +333,11 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-        prefilling_for_deprecation = (
-            "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
-        )
         alert_specs = get_default_version_alert_metric_specs(
             project,
             enabled_features,
             prefilling,
-            prefilling_for_deprecation=prefilling_for_deprecation,
+            prefilling_for_deprecation=False,
         )
 
         return Response(
@@ -916,7 +917,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     }
     permission_classes = (OrganizationAlertRulePermission,)
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-orgalertruleindex-get",
+        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
     }
 
     @extend_schema(

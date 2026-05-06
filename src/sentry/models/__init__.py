@@ -70,6 +70,7 @@ from .latestreporeleaseenvironment import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
+from .organizationavatarreplica import *  # NOQA
 from .organizationcontributors import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA

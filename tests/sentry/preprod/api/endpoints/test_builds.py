@@ -4,7 +4,11 @@ import pytest
 from django.urls import reverse
 from django.utils.functional import cached_property
 
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -869,6 +873,62 @@ class BuildsEndpointTest(APITestCase):
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "recent.app"
+
+    def test_query_image_count(self) -> None:
+        matching_artifact = self.create_preprod_artifact(app_id="com.match.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=matching_artifact, image_count=25)
+        non_matching_artifact = self.create_preprod_artifact(app_id="com.nomatch.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=non_matching_artifact, image_count=3)
+
+        response = self._request({"display": "snapshot", "query": "image_count:>=20"})
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.match.app"}
+
+    def test_query_images_changed(self) -> None:
+        head_artifact = self.create_preprod_artifact(app_id="com.changed.app")
+        head_metrics = self.create_preprod_snapshot_metrics(
+            preprod_artifact=head_artifact, image_count=10
+        )
+        base_artifact = self.create_preprod_artifact(app_id="com.base.app")
+        base_metrics = self.create_preprod_snapshot_metrics(
+            preprod_artifact=base_artifact, image_count=10
+        )
+        self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            images_changed=10,
+        )
+
+        unrelated_artifact = self.create_preprod_artifact(app_id="com.unrelated.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=unrelated_artifact, image_count=10)
+
+        response = self._request({"display": "snapshot", "query": "images_changed:>5"})
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.changed.app"}
+
+    def test_query_is_approved(self) -> None:
+        approved_artifact = self.create_preprod_artifact(app_id="com.approved.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=approved_artifact)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=approved_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+        pending_artifact = self.create_preprod_artifact(app_id="com.pending.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=pending_artifact)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=pending_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+        )
+
+        response = self._request({"display": "snapshot", "query": "is_approved:true"})
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.approved.app"}
 
 
 class QuerysetForQueryTest(APITestCase):

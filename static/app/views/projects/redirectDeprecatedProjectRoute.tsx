@@ -54,8 +54,12 @@ class ProjectDetailsInner extends Component<DetailsProps, DetailsState> {
     const {orgId, projectSlug} = this.props;
 
     try {
+      // TODO: Convert this class component to a functional one and use
+      // `useDetailedProject` so this request shares the same cache and the
+      // `collapse=organization` query option is applied automatically.
       const project = await this.props.api.requestPromise(
-        `/projects/${orgId}/${projectSlug}/`
+        `/projects/${orgId}/${projectSlug}/`,
+        {query: {collapse: 'organization'}}
       );
 
       this.setState({

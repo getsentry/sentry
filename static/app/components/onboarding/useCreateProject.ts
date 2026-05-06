@@ -1,11 +1,11 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
-import {useMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
 interface Variables {
   platform: OnboardingSelectedSDK;
   default_rules?: boolean;

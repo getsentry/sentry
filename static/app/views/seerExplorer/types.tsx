@@ -106,8 +106,6 @@ interface Message {
   tool_calls?: ToolCall[];
 }
 
-export type PanelSize = 'max' | 'med';
-
 export interface ExplorerSession {
   created_at: string; // ISO date string
   last_triggered_at: string;

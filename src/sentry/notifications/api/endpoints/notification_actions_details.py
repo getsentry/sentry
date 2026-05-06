@@ -63,8 +63,12 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         parsed_kwargs["action"] = action
         action_projects = action.projects.all()
 
-        # If the action has no projects, skip the project access check
+        # Notification actions not scoped to a particular project require org-level write access for mutations.
         if not action_projects:
+            if request.method != "GET" and not request.access.has_scope("org:write"):
+                raise PermissionDenied(
+                    detail="You do not have permission to modify this organization-wide notification action."
+                )
             return (parsed_args, parsed_kwargs)
 
         if request.method == "GET":

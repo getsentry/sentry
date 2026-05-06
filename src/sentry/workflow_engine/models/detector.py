@@ -83,7 +83,10 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
     enabled = models.BooleanField(db_default=True)
 
-    # The detector's status - used for tracking deletion state
+    # The detector's status - used for tracking disabled and deletion state.
+    # A Detector that isn't allowed by plan or is effectively temporarily
+    # deleted for some other reason should have status=ObjectStatus.DISABLED.
+    # The 'enabled' field is for user-applied deactivation like snoozes.
     status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
 
     # Optionally set a description of the detector, this will be used in notifications
@@ -183,11 +186,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
-
-    def toggle(self, enabled: bool) -> None:
-        """Toggle the detector's enabled state and update status accordingly."""
-        new_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
-        self.update(enabled=enabled, status=new_status)
 
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None

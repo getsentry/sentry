@@ -29,18 +29,13 @@ export function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
     <Select
       options={roles
         ?.filter(r => !r.isRetired)
-        .map(
-          (r: BaseRole) =>
-            ({
-              value: r.id,
-              label: r.name,
-              disabled:
-                disableUnallowed &&
-                !r.isAllowed &&
-                !(isMemberInvite && r.id === 'member'),
-              details: <Details>{r.desc}</Details>,
-            }) as OptionType
-        )}
+        .map((r: BaseRole) => ({
+          value: r.id,
+          label: r.name,
+          disabled:
+            disableUnallowed && !r.isAllowed && !(isMemberInvite && r.id === 'member'),
+          details: <Details>{r.desc}</Details>,
+        }))}
       showDividers
       {...props}
     />

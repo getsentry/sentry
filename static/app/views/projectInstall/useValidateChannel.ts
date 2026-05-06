@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 

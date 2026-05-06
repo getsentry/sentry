@@ -15,7 +15,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import ProjectContextProvider from 'sentry/views/projects/projectContext';
+import {ProjectRouteProvider} from 'sentry/views/projects/projectRouteContext';
 import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -320,9 +320,9 @@ describe('projectGeneralSettings', () => {
     });
 
     render(
-      <ProjectContextProvider projectSlug={project.slug}>
+      <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-      </ProjectContextProvider>,
+      </ProjectRouteProvider>,
       {
         organization,
         initialRouterConfig,
@@ -350,9 +350,9 @@ describe('projectGeneralSettings', () => {
     });
 
     render(
-      <ProjectContextProvider projectSlug={project.slug}>
+      <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-      </ProjectContextProvider>,
+      </ProjectRouteProvider>,
       {
         organization,
         initialRouterConfig,
@@ -393,9 +393,9 @@ describe('projectGeneralSettings', () => {
 
     function renderProjectGeneralSettings() {
       render(
-        <ProjectContextProvider projectSlug={project.slug}>
+        <ProjectRouteProvider projectSlug={project.slug}>
           <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-        </ProjectContextProvider>,
+        </ProjectRouteProvider>,
         {
           organization,
           initialRouterConfig,

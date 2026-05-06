@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
 import {
   COMPARISON_INTERVAL_CHOICES,
-  INTERVAL_CHOICES,
+  PERCENT_INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {
   SubfilterDetailsList,
@@ -34,7 +34,7 @@ export function PercentSessionsCountDetails({condition}: {condition: DataConditi
         {
           value: condition.comparison.value,
           interval:
-            INTERVAL_CHOICES.find(
+            PERCENT_INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.interval
             )?.label || condition.comparison.interval,
           where: hasSubfilters ? t('where') : null,
@@ -56,7 +56,7 @@ export function PercentSessionsPercentDetails({condition}: {condition: DataCondi
         {
           value: condition.comparison.value,
           interval:
-            INTERVAL_CHOICES.find(
+            PERCENT_INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.interval
             )?.label || condition.comparison.interval,
           comparisonInterval:
@@ -94,10 +94,10 @@ function ComparisonTypeField() {
   const {removeError} = useAutomationBuilderErrorContext();
 
   if (condition.type === DataConditionType.PERCENT_SESSIONS_COUNT) {
-    return <CountBranch />;
+    return <CountBranch intervalChoices={PERCENT_INTERVAL_CHOICES} />;
   }
   if (condition.type === DataConditionType.PERCENT_SESSIONS_PERCENT) {
-    return <PercentBranch />;
+    return <PercentBranch intervalChoices={PERCENT_INTERVAL_CHOICES} />;
   }
 
   return (

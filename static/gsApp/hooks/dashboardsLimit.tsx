@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
 
 import {tct} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 
@@ -32,25 +31,18 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
 
   // Request up to the limited # of dashboards to get an idea of whether a user
   // has reached the dashboard limit
-  const {data: dashboardsTotalCount, isLoading: isLoadingDashboardsTotalCount} =
-    useApiQuery<DashboardListItem[]>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          query: {
-            filter: 'excludePrebuilt',
-            // We only need to know there are at most the limited # of dashboards.
-            per_page: dashboardsLimit,
-          },
+  const {data: dashboardsTotalCount, isLoading: isLoadingDashboardsTotalCount} = useQuery(
+    {
+      ...dashboardsApiOptions(organization, {
+        query: {
+          filter: 'excludePrebuilt',
+          // We only need to know there are at most the limited # of dashboards.
+          per_page: dashboardsLimit,
         },
-      ],
-      {
-        staleTime: 0,
-        enabled: !isUnlimitedPlan && dashboardsLimit !== 0,
-      }
-    );
+      }),
+      enabled: !isUnlimitedPlan && dashboardsLimit !== 0,
+    }
+  );
 
   const hasReachedDashboardLimit =
     ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit &&

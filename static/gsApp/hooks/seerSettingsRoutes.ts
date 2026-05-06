@@ -13,23 +13,47 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
     },
     {
       index: true,
+      name: t('Overview'),
       component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
     },
     {
       path: 'scm/',
+      name: t('Repositories'),
       component: make(() => import('getsentry/views/seerAutomation/scm')),
     },
     {
       path: 'projects/',
+      name: t('Autofix'),
       component: make(() => import('getsentry/views/seerAutomation/projects')),
+      children: [
+        {
+          path: 'defaults/',
+          name: t('Defaults'),
+          component: make(() => import('getsentry/views/seerAutomation/projectDefaults')),
+        },
+      ],
     },
     {
       path: 'repos/',
+      name: t('Code Review'),
       component: make(() => import('getsentry/views/seerAutomation/repos')),
+      children: [
+        {
+          path: ':repoId/',
+          name: t('Repository Details'),
+          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
+        },
+        {
+          path: 'defaults/',
+          name: t('Defaults'),
+          component: make(() => import('getsentry/views/seerAutomation/repoDefaults')),
+        },
+      ],
     },
     {
-      path: 'repos/:repoId/',
-      component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
+      path: 'advanced/',
+      name: t('Advanced Settings'),
+      component: make(() => import('getsentry/views/seerAutomation/advanced')),
     },
     {
       path: 'onboarding/',

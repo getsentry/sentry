@@ -67,10 +67,6 @@ declare global {
      */
     __openAllTooltips: () => void;
     /**
-     * Pipeline
-     */
-    __pipelineInitialData: PipelineInitialData;
-    /**
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
@@ -239,11 +235,6 @@ export interface Config {
     id: string;
   };
 }
-
-export type PipelineInitialData = {
-  name: string;
-  props: Record<string, any>;
-};
 
 export interface Broadcast {
   dateCreated: string;

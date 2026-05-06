@@ -63,10 +63,12 @@ export function WidgetBuilderQueryFilterBuilder({
   // - Tables: only one filter (no overlay concept)
   // - Big Numbers: only one filter (single value display)
   // - Bar (Categorical): only one filter allowed, to simplify product for now
+  // - Details: only one filter (single query, key-value display)
   const canAddSearchConditions =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.CATEGORICAL_BAR &&
+    state.displayType !== DisplayType.DETAILS &&
     state.query &&
     state.query.length < 3;
 
@@ -76,10 +78,12 @@ export function WidgetBuilderQueryFilterBuilder({
   // - Tables: no legend (data shown in rows)
   // - Big Numbers: no legend (single value)
   // - Bar (Categorical): no aliases (only one filter allowed, no point aliasing it)
+  // - Details: no legend (single query, data shown in key-value pairs)
   const canHaveAlias =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
-    state.displayType !== DisplayType.CATEGORICAL_BAR;
+    state.displayType !== DisplayType.CATEGORICAL_BAR &&
+    state.displayType !== DisplayType.DETAILS;
 
   const onAddSearchConditions = () => {
     // TODO: after hook gets updated with different dispatch types, change this part
@@ -275,7 +279,7 @@ export function WidgetBuilderQueryFilterBuilder({
       {canAddSearchConditions && (
         <Button
           size="sm"
-          priority="link"
+          variant="link"
           onClick={onAddSearchConditions}
           aria-label={t('Add Filter')}
           disabled={disableTransactionWidget}
@@ -292,7 +296,7 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
     <Button
       size="zero"
       style={{height: 'fit-content'}}
-      priority="transparent"
+      variant="transparent"
       onClick={onDelete}
       icon={<IconDelete />}
       tooltipProps={{title: t('Remove this filter')}}

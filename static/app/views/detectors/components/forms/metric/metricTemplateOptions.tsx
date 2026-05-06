@@ -62,7 +62,7 @@ export const METRIC_TEMPLATE_OPTIONS: TemplateOption[] = [
   },
   {
     key: 'trace_item_metrics',
-    label: t('Custom Metrics'),
+    label: t('Application Metrics'),
     detectorDataset: DetectorDataset.METRICS,
     aggregate: 'sum(value,,,-)',
   },

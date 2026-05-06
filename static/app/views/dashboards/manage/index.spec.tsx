@@ -3,7 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -110,6 +110,25 @@ describe('Dashboards > Detail', () => {
     expect(
       await screen.findByText('You need at least one project to use this view')
     ).toBeInTheDocument();
+  });
+
+  it('does not fetch dashboards when there are no projects', async () => {
+    act(() => ProjectsStore.loadInitialData([]));
+
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    render(<ManageDashboards />, {
+      organization: mockAuthorizedOrg,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+
+    expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
   it('creates new dashboard', async () => {
@@ -222,10 +241,6 @@ describe('Dashboards > Detail', () => {
       },
     });
 
-    expect(await screen.findByTestId('table')).toBeInTheDocument();
-    await userEvent.click(await screen.findByTestId('table'));
-
-    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
 
     expect(await screen.findByTestId('grid')).toBeInTheDocument();
@@ -233,85 +248,41 @@ describe('Dashboards > Detail', () => {
 
     expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
     expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
+
+    expect(await screen.findByTestId('table')).toBeInTheDocument();
+    await userEvent.click(await screen.findByTestId('table'));
+
+    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
+    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
   });
 
-  it('uses recently viewed sort by default on table view', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-starred-reordering'],
+  it('defaults to table view when no layout preference is stored', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
+      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
     });
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    // mock the view type to table
-    localStorageWrapper.setItem(LAYOUT_KEY, '"table"');
 
     render(<ManageDashboards />, {
-      organization: org,
+      organization: mockAuthorizedOrg,
     });
 
-    const sortBy = await screen.findByTestId('sort-by-select');
-    expect(sortBy).toBeInTheDocument();
-    // The prefix and the selection are concatenated when using text content
-    expect(sortBy).toHaveTextContent('Sort ByRecently Viewed');
+    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
   });
 
-  it('does not show My Dashboards as a sort option in table view', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-starred-reordering'],
-    });
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
+  it('respects stored grid layout preference', async () => {
+    localStorageWrapper.setItem(LAYOUT_KEY, '"grid"');
 
-    // mock the view type to table
-    localStorageWrapper.setItem(LAYOUT_KEY, '"table"');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
+      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
+    });
 
     render(<ManageDashboards />, {
-      organization: org,
+      organization: mockAuthorizedOrg,
     });
 
-    const sortBy = await screen.findByTestId('sort-by-select');
-    expect(sortBy).toBeInTheDocument();
-    // The prefix and the selection are concatenated when using text content
-    expect(sortBy).toHaveTextContent('Sort ByRecently Viewed');
-    expect(screen.queryByText('My Dashboards')).not.toBeInTheDocument();
-  });
-
-  it('redirects the URL to the default sort option when the sort option is not valid', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-starred-reordering'],
-    });
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-    mockUseLocation.mockReturnValue(LocationFixture({query: {sort: 'invalid'}}));
-
-    render(<ManageDashboards />, {
-      organization: org,
-    });
-
-    expect(await screen.findByText('My Dashboards')).toBeInTheDocument();
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({query: {sort: 'mydashboards'}})
-      );
-    });
-  });
-
-  it('shows the most favorited sort option for the %s view type', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-starred-reordering'],
-    });
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(<ManageDashboards />, {
-      organization: org,
-    });
-
-    await selectEvent.openMenu(await screen.findByRole('button', {name: /sort by/i}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Most Starred'}));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {sort: 'mostFavorited'}})
-    );
+    expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
   });
 });

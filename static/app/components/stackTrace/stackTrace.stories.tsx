@@ -14,6 +14,7 @@ import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actio
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {
   StackTraceViewStateProvider,
   useStackTraceContext,
@@ -742,7 +743,7 @@ function StoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Copy file path')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy file path')}
             icon={<IconCopy size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -751,7 +752,7 @@ function StoryFrameActions({isHovering}: {isHovering: boolean}) {
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <Button
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Open this line in GitHub')}
             icon={<IconGithub size="xs" />}
             onClick={e => e.stopPropagation()}
@@ -990,6 +991,41 @@ export default Storybook.story('StackTrace', story => {
       <Fragment>
         <p>
           Both the file path and function name are long here, testing two-column overflow.
+        </p>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
+        </StoryStackTraceProvider>
+      </Fragment>
+    );
+  });
+
+  story('StackTraceProvider - No Filename', () => {
+    const event = makeEvent({platform: 'javascript', projectID: '1'});
+    const stacktrace: StacktraceWithFrames = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: {},
+      frames: [
+        makeFrame({
+          filename: null,
+          module: null,
+          absPath: null,
+          function: 'eval',
+          lineNo: 5,
+          colNo: 20,
+          inApp: true,
+        }),
+      ],
+    };
+
+    return (
+      <Fragment>
+        <p>
+          Frames with no filename or module (e.g. browser <code>eval</code>) show a muted{' '}
+          <code>{'<unknown>'}</code> in the path slot.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceFrames
@@ -1243,14 +1279,7 @@ export default Storybook.story('StackTrace', story => {
     return (
       <Flex align="center" justify="center">
         <WideHovercard
-          body={
-            <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <StackTraceFrames
-                frameContextComponent={FrameContent}
-                frameActionsComponent={StoryFrameActions}
-              />
-            </StoryStackTraceProvider>
-          }
+          body={<IssueStackTracePreview event={event} stacktrace={stacktrace} />}
         >
           Hovercard Trigger
         </WideHovercard>

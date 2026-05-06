@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration import integration_service
@@ -19,6 +21,8 @@ if TYPE_CHECKING:
     from sentry.integrations.github.integration import GitHubIntegration  # NOQA
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
+MAX_COMPARE_COMMITS_OPTION_KEY = "github-app.fetch-commits.max-compare-commits"
+logger = logging.getLogger(__name__)
 
 
 class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"]):
@@ -44,7 +48,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
-    ) -> Mapping[str, Any]:
+    ) -> MutableMapping[str, Any]:
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
 
@@ -65,19 +69,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
             "integration_id": data["integration_id"],
         }
 
-    def compare_commits(
-        self, repo: Repository, start_sha: str | None, end_sha: str
-    ) -> Sequence[Mapping[str, Any]]:
-        def eval_commits(client: Any) -> Sequence[Mapping[str, Any]]:
-            # use config name because that is kept in sync via webhooks
-            name = repo.config["name"]
-            if start_sha is None:
-                res = client.get_last_commits(name, end_sha)
-                return self._format_commits(client, name, res[:20])
-            else:
-                commits = client.compare_commits(name, start_sha, end_sha)
-                return self._format_commits(client, name, commits)
-
+    def _get_installation_and_client(self, repo: Repository) -> tuple[IntegrationInstallation, Any]:
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
@@ -90,12 +82,59 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
             )
 
         installation = integration.get_installation(organization_id=repo.organization_id)
-        client = installation.get_client()
+        return installation, installation.get_client()
+
+    def fetch_recent_commits(
+        self, repo: Repository, end_sha: str, *, actor: Any | None = None
+    ) -> Sequence[Mapping[str, Any]]:
+        installation, client = self._get_installation_and_client(repo)
+        # use config name because that is kept in sync via webhooks
+        name = repo.config["name"]
 
         try:
-            return eval_commits(client)
+            commits = client.get_last_commits(name, end_sha, per_page=20)
+            return self._format_commits(client, name, commits)
         except Exception as e:
             installation.raise_error(e)
+
+    def fetch_commits_for_compare_range(
+        self,
+        repo: Repository,
+        start_sha: str,
+        end_sha: str,
+        *,
+        actor: Any | None = None,
+    ) -> Sequence[Mapping[str, Any]]:
+        installation, client = self._get_installation_and_client(repo)
+        # use config name because that is kept in sync via webhooks
+        name = repo.config["name"]
+
+        try:
+            commits = client.compare_commits(name, start_sha, end_sha)
+            max_compare_commits = options.get(MAX_COMPARE_COMMITS_OPTION_KEY)
+            if max_compare_commits and len(commits) > max_compare_commits:
+                logger.info(
+                    "fetch_commits.truncated",
+                    extra={
+                        "organization_id": repo.organization_id,
+                        "repository": repo.name,
+                        "start_sha": start_sha,
+                        "end_sha": end_sha,
+                        "original_count": len(commits),
+                        "truncated_count": max_compare_commits,
+                    },
+                )
+                commits = commits[-max_compare_commits:]
+            return self._format_commits(client, name, commits)
+        except Exception as e:
+            installation.raise_error(e)
+
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str
+    ) -> Sequence[Mapping[str, Any]]:
+        if start_sha is None:
+            return self.fetch_recent_commits(repo, end_sha)
+        return self.fetch_commits_for_compare_range(repo, start_sha, end_sha)
 
     def _format_commits(
         self,

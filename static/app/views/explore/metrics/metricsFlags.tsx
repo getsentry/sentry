@@ -8,7 +8,10 @@ export const canUseMetricsUI = (organization: Organization) => {
 };
 
 export const canUseMetricsStatsUI = (organization: Organization) => {
-  return canUseMetricsUI(organization);
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('explore-dev-features')
+  );
 };
 
 export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
@@ -18,13 +21,6 @@ export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
 export const canUseMetricsAlertsUI = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) && organization.features.includes('tracemetrics-alerts')
-  );
-};
-
-export const canUseMetricsUIRefresh = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-ui-refresh')
   );
 };
 
@@ -39,5 +35,19 @@ export const canUseMetricsEquations = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
     organization.features.includes('tracemetrics-equations-in-explore')
+  );
+};
+
+export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
+  return (
+    canUseMetricsAlertsUI(organization) &&
+    organization.features.includes('tracemetrics-equations-in-alerts')
+  );
+};
+
+export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-pii-scrubbing-ui')
   );
 };

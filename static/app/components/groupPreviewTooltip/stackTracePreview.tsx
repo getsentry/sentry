@@ -12,12 +12,14 @@ import {
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -59,6 +61,8 @@ export function StackTracePreviewContent({
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
 }) {
+  const organization = useOrganization();
+
   const includeSystemFrames = useMemo(() => {
     return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
   }, [stacktrace]);
@@ -80,6 +84,10 @@ export function StackTracePreviewContent({
 
   if (isNativePlatform(platform)) {
     return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
+  }
+
+  if (organization.features.includes('issue-details-new-stack-trace')) {
+    return <IssueStackTracePreview event={event} stacktrace={stacktrace} />;
   }
 
   return <StackTraceContent {...commonProps} expandFirstFrame={false} />;

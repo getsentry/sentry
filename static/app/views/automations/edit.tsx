@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -14,14 +14,13 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
+import {FullHeightFormDeprecated} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -51,14 +50,14 @@ import {
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
   return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
-function AutomationBreadcrumbs({automationId}: {automationId: string}) {
-  const title = useFormField('name');
+function AutomationBreadcrumbs() {
   const organization = useOrganization();
   return (
     <Breadcrumbs
@@ -67,11 +66,7 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
           label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug),
         },
-        {
-          label: title,
-          to: makeAutomationDetailsPathname(organization.slug, automationId),
-        },
-        {label: t('Configure')},
+        {label: <EditableAutomationName />},
       ]}
     />
   );
@@ -102,10 +97,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
-
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
       return undefined;
@@ -142,13 +135,14 @@ function AutomationEditForm({automation}: {automation: Automation}) {
 
   const handleFormSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
-      const errors = validateAutomationBuilderState(state);
+      const automationFormData = data as AutomationFormData;
+      const errors = validateAutomationBuilderState(state, automationFormData);
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length > 0) {
         const analyticsPayload = getAutomationAnalyticsPayload(
           getNewAutomationData({
-            data: data as AutomationFormData,
+            data: automationFormData,
             state,
           })
         );
@@ -167,7 +161,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       formModel.setFormSaving();
 
       const formData = await resolveDetectorIdsForProjects({
-        formData: data as AutomationFormData,
+        formData: automationFormData,
         onSubmitError,
         organization,
         projectIds: data.projectIds,
@@ -220,7 +214,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   );
 
   return (
-    <FullHeightForm
+    <FullHeightFormDeprecated
       hideFooter
       model={model}
       initialData={initialData}
@@ -229,20 +223,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       <AutomationFormProvider automation={automation}>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <StyledLayoutHeader>
-            <HeaderInner maxWidth={maxWidth}>
-              <Layout.HeaderContent>
-                <AutomationBreadcrumbs automationId={params.automationId} />
-                <Layout.Title>
-                  <EditableAutomationName />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <div>
-                <AutomationFeedbackButton />
-              </div>
-            </HeaderInner>
-          </StyledLayoutHeader>
-          <StyledBody maxWidth={maxWidth}>
+          <TopBar.Slot name="title">
+            <AutomationBreadcrumbs />
+          </TopBar.Slot>
+          <AutomationFeedbackButton />
+          <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
               <AutomationBuilderErrorContext.Provider
                 value={{
@@ -264,43 +249,20 @@ function AutomationEditForm({automation}: {automation: Automation}) {
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
-          </StyledBody>
+          </Layout.Body>
         </Stack>
         <StickyFooter>
-          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+          <Flex
+            width="100%"
+            maxWidth={`calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`}
+            align="center"
+            gap="md"
+            justify="end"
+          >
             <EditAutomationActions automation={automation} form={model} />
           </Flex>
         </StickyFooter>
       </AutomationFormProvider>
-    </FullHeightForm>
+    </FullHeightFormDeprecated>
   );
 }
-
-const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.tokens.background.primary};
-`;
-
-const HeaderInner = styled('div')<{maxWidth?: string}>`
-  display: contents;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    max-width: ${p => p.maxWidth};
-    width: 100%;
-  }
-`;
-
-const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
-  max-width: ${p => p.maxWidth};
-  padding: 0;
-  margin: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 0;
-    margin: ${p =>
-      p.noRowGap
-        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
-        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
-  }
-`;

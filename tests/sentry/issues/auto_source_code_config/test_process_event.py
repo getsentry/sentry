@@ -40,7 +40,7 @@ class ExpectedCodeMapping(TypedDict):
 
 
 def _repo_info(name: str, branch: str) -> dict[str, str]:
-    return {"full_name": name, "default_branch": branch}
+    return {"full_name": name, "default_branch": branch, "external_id": name}
 
 
 def _repo_tree_files(files: Sequence[str]) -> list[dict[str, Any]]:
@@ -887,7 +887,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
         # Let's pretend that we have already added the two level tld rule
         # This means that the uk.co.not-example.baz.qux will be in-app
-        repo = RepoAndBranch(name="repo1", branch="default")
+        repo = RepoAndBranch(name="repo1", branch="default", external_id="1")
         # The source root will only work for the foo package
         cm = CodeMapping(repo=repo, stacktrace_root="uk/co/", source_path="src/main/uk/co/")
         create_code_mapping(self.organization, cm, self.project)

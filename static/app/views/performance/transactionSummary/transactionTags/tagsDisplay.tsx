@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import type {Location} from 'history';
 
-import type {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

@@ -2,12 +2,12 @@ import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 
 describe('ansiEscapeCodes', () => {
   it('removes ANSI color codes', () => {
-    const colored = '\x1b[31mThis is red text\x1b[0m';
+    const colored = '\x1B[31mThis is red text\x1B[0m';
     expect(stripAnsi(colored)).toBe('This is red text');
   });
 
   it('removes multiple ANSI codes', () => {
-    const input = '\x1b[32mGreen\x1b[0m and \x1b[34mBlue\x1b[0m';
+    const input = '\x1B[32mGreen\x1B[0m and \x1B[34mBlue\x1B[0m';
     expect(stripAnsi(input)).toBe('Green and Blue');
   });
 
@@ -21,7 +21,7 @@ describe('ansiEscapeCodes', () => {
   });
 
   it('handles strings with mixed characters and ANSI codes', () => {
-    const input = 'Hello \x1b[1mWorld\x1b[0m!';
+    const input = 'Hello \x1B[1mWorld\x1B[0m!';
     expect(stripAnsi(input)).toBe('Hello World!');
   });
 });

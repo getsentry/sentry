@@ -1,8 +1,6 @@
 import type {ReactNode} from 'react';
+import {type UseQueryOptions} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
-
-import {queryOptions} from 'sentry/utils/queryClient';
-import type {UseQueryOptions} from 'sentry/utils/queryClient';
 
 interface Action {
   display: {
@@ -15,12 +13,16 @@ interface Action {
   };
   /** Optional keywords to improve searchability */
   keywords?: string[];
+  /** Max results shown before a "See all" expansion item appears */
+  limit?: number;
 }
 
-export type CMDKQueryOptions = Omit<
-  UseQueryOptions<any, Error, CommandPaletteAction[], any>,
+type BaseCMDKQueryOptions<TData = unknown> = Omit<
+  UseQueryOptions<TData, Error, CommandPaletteAction[], any>,
   'meta'
-> & {
+>;
+
+export type CMDKQueryOptions<TData = unknown> = BaseCMDKQueryOptions<TData> & {
   meta: {[key: string]: unknown; cmdk: true};
 };
 
@@ -29,13 +31,13 @@ export type CMDKQueryOptions = Omit<
  * the command palette loading indicator to track this query via useIsFetching.
  * All resource functions passed to CMDKAction must use this helper.
  */
-export function cmdkQueryOptions(
-  options: Omit<CMDKQueryOptions, 'meta'>
-): CMDKQueryOptions {
-  return queryOptions({...options, meta: {cmdk: true}}) as CMDKQueryOptions;
+export function cmdkQueryOptions<TData = unknown>(
+  options: BaseCMDKQueryOptions<TData>
+): CMDKQueryOptions<TData> {
+  return {...options, meta: {cmdk: true}};
 }
 
-export interface CommandPaletteActionLink extends Action {
+interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
 }

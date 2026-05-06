@@ -3,6 +3,7 @@ import {
   getCompareBuildPath,
   getInstallBuildPath,
   getSizeBuildPath,
+  getSnapshotPath,
 } from './buildLinkUtils';
 
 describe('buildLinkUtils', () => {
@@ -61,6 +62,17 @@ describe('buildLinkUtils', () => {
           baseArtifactId: 'base-456',
         })
       ).toBe('/organizations/test-org/preprod/size/compare/head-123/base-456/');
+    });
+  });
+
+  describe('getSnapshotPath', () => {
+    it('generates snapshot path with organization slug prefix', () => {
+      expect(
+        getSnapshotPath({
+          organizationSlug: 'test-org',
+          snapshotId: 'snapshot-789',
+        })
+      ).toBe('/organizations/test-org/preprod/snapshots/snapshot-789/');
     });
   });
 

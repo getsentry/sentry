@@ -78,7 +78,7 @@ class ResultsHeader extends Component<Props, State> {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
         this.setState({
-          savedQuery: getSavedQueryWithDataset(savedQuery) as SavedQuery,
+          savedQuery: getSavedQueryWithDataset(savedQuery)!,
           loading: false,
         });
       });
@@ -90,7 +90,7 @@ class ResultsHeader extends Component<Props, State> {
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
       this.setState({
-        homepageQuery: getSavedQueryWithDataset(homepageQuery) as SavedQuery,
+        homepageQuery: getSavedQueryWithDataset(homepageQuery)!,
         loading: false,
       });
     });
@@ -131,104 +131,100 @@ class ResultsHeader extends Component<Props, State> {
     const {savedQuery, loading, homepageQuery} = this.state;
     const hasDiscoverQueryFeature = organization.features.includes('discover-query');
 
+    const savedQueryButton = (
+      <SavedQueryButtonGroup
+        setSavedQuery={setSavedQuery}
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        savedQuery={savedQuery}
+        queryDataLoading={loading}
+        disabled={errorCode >= 400 && errorCode < 500}
+        updateCallback={() => this.fetchData()}
+        yAxis={yAxis}
+        isHomepage={isHomepage}
+        hasPageFrameFeature={hasPageFrameFeature}
+        setHomepageQuery={updatedHomepageQuery => {
+          this.setState({
+            homepageQuery: getSavedQueryWithDataset(updatedHomepageQuery)!,
+          });
+          if (isHomepage) {
+            setSavedQuery(updatedHomepageQuery);
+          }
+        }}
+        homepageQuery={homepageQuery}
+      />
+    );
+
+    const title = (
+      <Fragment>
+        {t('Discover')}
+        <PageHeadingQuestionTooltip
+          docsUrl="https://docs.sentry.io/product/discover-queries/"
+          title={t('Create queries to get insights into the health of your system.')}
+        />
+      </Fragment>
+    );
+
+    const legacyBreadcrumbAndInput = (
+      <Fragment>
+        <DiscoverBreadcrumb
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          isHomepage={isHomepage}
+        />
+        <EventInputName
+          savedQuery={savedQuery}
+          organization={organization}
+          eventView={eventView}
+          isHomepage={isHomepage}
+        />
+      </Fragment>
+    );
+
+    const pageFrameBreadcrumb = (
+      <DiscoverBreadcrumb
+        eventView={eventView}
+        organization={organization}
+        location={location}
+        isHomepage={isHomepage}
+        savedQuery={savedQuery}
+      />
+    );
+
     return (
       <Layout.Header>
-        <Layout.HeaderContent>
-          {isHomepage ? (
-            <GuideAnchor target="discover_landing_header">
-              <Layout.Title>
-                {t('Discover')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/discover-queries/"
-                  title={t(
-                    'Create queries to get insights into the health of your system.'
-                  )}
-                />
-              </Layout.Title>
-            </GuideAnchor>
-          ) : hasDiscoverQueryFeature ? (
-            <Fragment>
-              <DiscoverBreadcrumb
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                isHomepage={isHomepage}
-              />
-              <EventInputName
-                savedQuery={savedQuery}
-                organization={organization}
-                eventView={eventView}
-                isHomepage={isHomepage}
-              />
-            </Fragment>
-          ) : (
-            // Only has discover-basic
-            <Fragment>
-              <Layout.Title>
-                {t('Discover')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/discover-queries/"
-                  title={t(
-                    'Create queries to get insights into the health of your system.'
-                  )}
-                />
-              </Layout.Title>
-            </Fragment>
-          )}
-          {this.renderAuthor()}
-        </Layout.HeaderContent>
         {hasPageFrameFeature ? (
-          <TopBar.Slot name="actions">
-            <SavedQueryButtonGroup
-              setSavedQuery={setSavedQuery}
-              location={location}
-              organization={organization}
-              eventView={eventView}
-              savedQuery={savedQuery}
-              queryDataLoading={loading}
-              disabled={errorCode >= 400 && errorCode < 500}
-              updateCallback={() => this.fetchData()}
-              yAxis={yAxis}
-              isHomepage={isHomepage}
-              setHomepageQuery={updatedHomepageQuery => {
-                this.setState({
-                  homepageQuery: getSavedQueryWithDataset(
-                    updatedHomepageQuery
-                  ) as SavedQuery,
-                });
-                if (isHomepage) {
-                  setSavedQuery(updatedHomepageQuery);
-                }
-              }}
-              homepageQuery={homepageQuery}
-            />
-          </TopBar.Slot>
+          <Fragment>
+            <TopBar.Slot name="title">
+              {isHomepage ? (
+                <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
+              ) : hasDiscoverQueryFeature ? (
+                pageFrameBreadcrumb
+              ) : (
+                title
+              )}
+            </TopBar.Slot>
+            <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
+          </Fragment>
         ) : (
-          <Layout.HeaderActions>
-            <SavedQueryButtonGroup
-              setSavedQuery={setSavedQuery}
-              location={location}
-              organization={organization}
-              eventView={eventView}
-              savedQuery={savedQuery}
-              queryDataLoading={loading}
-              disabled={errorCode >= 400 && errorCode < 500}
-              updateCallback={() => this.fetchData()}
-              yAxis={yAxis}
-              isHomepage={isHomepage}
-              setHomepageQuery={updatedHomepageQuery => {
-                this.setState({
-                  homepageQuery: getSavedQueryWithDataset(
-                    updatedHomepageQuery
-                  ) as SavedQuery,
-                });
-                if (isHomepage) {
-                  setSavedQuery(updatedHomepageQuery);
-                }
-              }}
-              homepageQuery={homepageQuery}
-            />
-          </Layout.HeaderActions>
+          <Fragment>
+            <Layout.HeaderContent>
+              {isHomepage ? (
+                <GuideAnchor target="discover_landing_header">
+                  <Layout.Title>{title}</Layout.Title>
+                </GuideAnchor>
+              ) : hasDiscoverQueryFeature ? (
+                legacyBreadcrumbAndInput
+              ) : (
+                // Only has discover-basic
+                <Layout.Title>{title}</Layout.Title>
+              )}
+              {this.renderAuthor()}
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>{savedQueryButton}</Layout.HeaderActions>
+          </Fragment>
         )}
         <DatasetSelectorTabs
           eventView={eventView}

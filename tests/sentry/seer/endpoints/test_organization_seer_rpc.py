@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
@@ -60,6 +62,22 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         # Should include our project
         project_ids = [p["id"] for p in response.data["projects"]]
         assert self.project.id in project_ids
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_org_level_method_get_dsn(self) -> None:
+        project = self.create_project(organization=self.organization, slug="wordcraft")
+        path = self._get_path("get_dsn")
+
+        response = self.client.post(
+            path, data={"args": {"project_slug": "wordcraft"}}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert response.data is not None
+        assert response.data["project_slug"] == "wordcraft"
+        assert response.data["platform"] == project.platform
+        assert response.data["dsn_public"].startswith("http")
+        assert response.data["dsn_public"].endswith(f"/{project.id}")
 
     @with_feature("organizations:seer-public-rpc")
     def test_project_method_requires_project_id(self) -> None:
@@ -166,6 +184,56 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"slug": self.organization.slug}
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.agent.snapshot_indexes.make_agent_export_indexes_request")
+    def test_export_agent_indexes(self, mock_request: MagicMock) -> None:
+        """export_agent_indexes proxies to Seer and returns the result."""
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {
+            "org_id": self.organization.id,
+            "version": 1,
+            "tables": {"explorer_index": []},
+        }
+        mock_request.return_value = mock_response
+
+        path = self._get_path("export_explorer_indexes")
+        response = self.client.post(path, data={"args": {}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data["org_id"] == self.organization.id
+        assert "tables" in response.data
+        # org_id injected from URL, not from caller-supplied args
+        mock_request.assert_called_once_with(
+            {"org_id": self.organization.id},
+            viewer_context={"organization_id": self.organization.id},
+        )
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.agent.snapshot_indexes.make_agent_export_indexes_request")
+    def test_export_agent_indexes_ignores_caller_supplied_org_id(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Caller cannot override org_id — it is always taken from the URL."""
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {
+            "org_id": self.organization.id,
+            "version": 1,
+            "tables": {},
+        }
+        mock_request.return_value = mock_response
+
+        path = self._get_path("export_explorer_indexes")
+        # Attempt to pass a different org_id in args
+        response = self.client.post(path, data={"args": {"org_id": 99999}}, format="json")
+
+        assert response.status_code == 200
+        mock_request.assert_called_once_with(
+            {"org_id": self.organization.id},
+            viewer_context={"organization_id": self.organization.id},
+        )
 
     @with_feature("organizations:seer-public-rpc")
     def test_has_repo_code_mappings(self) -> None:

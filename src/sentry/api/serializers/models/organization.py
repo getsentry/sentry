@@ -33,19 +33,16 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
-    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    GITHUB_COMMENT_BOT_DEFAULT,
-    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
@@ -78,6 +75,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -88,6 +86,7 @@ from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.display_name_filter import is_spam_display_name
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
@@ -168,6 +167,34 @@ class BaseOrganizationSerializer(serializers.Serializer):
         org_slug=True,
         max_length=DEFAULT_SLUG_MAX_LENGTH,
     )
+
+    def _log_name_blocked(self, name: str, reason: str) -> None:
+        extra: dict[str, object] = {"attempted_name": name, "reason": reason}
+        request = self.context.get("request")
+        if request is not None:
+            extra["user_id"] = getattr(request.user, "id", None)
+            extra["user_ip"] = request.META.get("REMOTE_ADDR")
+            extra["user_agent"] = request.META.get("HTTP_USER_AGENT")
+        org = self.context.get("organization")
+        if org is not None:
+            extra["org_id"] = org.id
+            extra["org_slug"] = org.slug
+        logging.getLogger("sentry.security").warning("spam.display-name-blocked", extra=extra)
+
+    def validate_name(self, value: str) -> str:
+        if "://" in value:
+            self._log_name_blocked(value, "url_scheme")
+            raise serializers.ValidationError(
+                "Organization name cannot contain URL schemes (e.g. http:// or https://)."
+            )
+
+        if is_spam_display_name(value):
+            self._log_name_blocked(value, "spam_filter")
+            raise serializers.ValidationError(
+                "This name contains disallowed content. Please choose a different name."
+            )
+
+        return value
 
     def validate_slug(self, value: str) -> str:
         # Historically, the only check just made sure there was more than 1
@@ -285,6 +312,23 @@ class ControlSiloOrganizationSerializer(Serializer):
         )
 
 
+class ControlSiloOrganizationMappingSerializer(Serializer):
+    # TODO(cells): Add the `avatar` to this serializer
+    # once it is available in the control silo
+    def serialize(
+        self,
+        obj: OrganizationMapping,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ControlSiloOrganizationSerializerResponse:
+        return dict(
+            id=str(obj.organization_id),
+            slug=obj.slug,
+            name=obj.name,
+        )
+
+
 @register(Organization)
 class OrganizationSummarySerializer(Serializer):
     def get_attrs(
@@ -347,8 +391,12 @@ class OrganizationSummarySerializer(Serializer):
         feature_set = set()
 
         with sentry_sdk.start_span(op="features.check", name="check batch features"):
-            # Check features in batch using the entity handler
-            batch_features = features.batch_has(org_features, actor=user, organization=obj)
+            # Evaluate flags purely to populate the response — the user has not
+            # actually encountered any experiments yet, so suppress the auto
+            # exposure events the entity handler would otherwise log.
+            batch_features = features.batch_has(
+                org_features, actor=user, organization=obj, skip_experiment_exposure=True
+            )
 
             # batch_has has found some features
             if batch_features:
@@ -545,9 +593,6 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     pendingAccessRequests: int
     codecovAccess: bool
     hideAiFeatures: bool
-    githubPRBot: bool
-    githubNudgeInvite: bool
-    gitlabPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -558,10 +603,9 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     defaultCodingAgent: str
-    defaultCodingAgentIntegrationId: int | None
+    defaultCodingAgentIntegrationId: str | None
     defaultAutomatedRunStoppingPoint: str
     autoEnableCodeReview: bool
     autoOpenPrs: bool
@@ -650,6 +694,10 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 
+        coding_agent_integration_id = obj.get_option(
+            "sentry:seer_default_coding_agent_integration_id", None
+        )
+
         context: OrganizationSerializerResponse = {
             **base,
             "experiments": features.get_experiment_assignments(obj, actor=user),
@@ -705,11 +753,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
-            "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubNudgeInvite": bool(
-                obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
-            "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -727,17 +770,11 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             ),
             "defaultAutofixAutomationTuning": obj.get_option(
                 "sentry:default_autofix_automation_tuning",
-                DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+                AUTOFIX_AUTOMATION_TUNING_DEFAULT,
             ),
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "enableSeerEnhancedAlerts": bool(
-                obj.get_option(
-                    "sentry:enable_seer_enhanced_alerts",
-                    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
-                )
             ),
             "enableSeerCoding": bool(
                 obj.get_option(
@@ -748,8 +785,8 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "defaultCodingAgent": obj.get_option(
                 "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
             ),
-            "defaultCodingAgentIntegrationId": obj.get_option(
-                "sentry:seer_default_coding_agent_integration_id", None
+            "defaultCodingAgentIntegrationId": (
+                str(coding_agent_integration_id) if coding_agent_integration_id else None
             ),
             "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
             "autoOpenPrs": bool(

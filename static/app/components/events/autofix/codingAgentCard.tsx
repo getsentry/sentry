@@ -172,7 +172,7 @@ export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCa
                                 analyticsEventName="Autofix: Open Coding Agent PR"
                                 analyticsEventKey="autofix.coding_agent.open_pr"
                                 analyticsParams={{group_id: groupId}}
-                                priority="primary"
+                                variant="primary"
                               >
                                 {getResultButtonLabel(pr_url)}
                               </Button>
@@ -224,7 +224,7 @@ const StyledCard = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   padding-left: ${p => p.theme.space.xl};
   padding-right: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.primary};

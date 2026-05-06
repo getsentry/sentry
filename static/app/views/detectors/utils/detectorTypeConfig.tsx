@@ -38,7 +38,7 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
   },
   issue_stream: {
     userCreateable: false,
-    label: t('Issue Stream'),
+    label: t('Project'),
     systemCreatedNotice: () => t('This monitor is managed by Sentry'),
   },
   preprod_size_analysis: {
@@ -49,7 +49,7 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
 };
 
 export function isValidDetectorType(detectorType: DetectorType) {
-  return DETECTOR_TYPE_CONFIG.hasOwnProperty(detectorType);
+  return Object.hasOwn(DETECTOR_TYPE_CONFIG, detectorType);
 }
 
 export function detectorTypeIsUserCreateable(detectorType: DetectorType) {

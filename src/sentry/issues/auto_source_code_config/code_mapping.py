@@ -362,7 +362,10 @@ def create_code_mapping(
     repository, _ = Repository.objects.get_or_create(
         name=code_mapping.repo.name,
         organization_id=organization.id,
-        defaults={"integration_id": installation.model.id},
+        defaults={
+            "integration_id": installation.model.id,
+            "external_id": code_mapping.repo.external_id,
+        },
     )
     new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,

@@ -2,21 +2,21 @@ import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
-import {OrganizationCrumb} from './organizationCrumb';
 import {ProjectCrumb} from './projectCrumb';
 import {TeamCrumb} from './teamCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
 const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
-  Organization: OrganizationCrumb,
   Project: ProjectCrumb,
   Team: TeamCrumb,
 } as const;
@@ -29,6 +29,7 @@ type Props = {
 
 export function SettingsBreadcrumb({className, routes, params}: Props) {
   const pathMap = useBreadcrumbsPathmap();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
@@ -64,6 +65,15 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
             />
           );
         }
+        // In page-frame mode the current-page crumb is rendered as a
+        // non-interactive label; legacy mode keeps the original self-link.
+        if (isLast && hasPageFrame) {
+          return (
+            <Text key={`${route.name}:${route.path}`} as="span">
+              {pathTitle || route.name}
+            </Text>
+          );
+        }
         return (
           <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
             <CrumbLink
@@ -86,6 +96,7 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
 // routes do not have organization information.
 export const CrumbLink = styled(RouterLink)`
   display: block;
+  line-height: ${p => p.theme.font.lineHeight.default};
 
   color: ${p => p.theme.tokens.content.secondary};
   &:hover {

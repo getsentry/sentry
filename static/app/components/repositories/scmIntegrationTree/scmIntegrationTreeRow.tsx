@@ -312,12 +312,15 @@ function RepoRow({
           marginLeft="2xl"
           paddingLeft="3xl"
         >
-          {node.integration.domainName ? (
+          {node.repo.url || node.integration.domainName ? (
             <ExternalLink
-              href={`https://${node.integration.domainName}/${node.repo.name}`}
+              href={
+                node.repo.url ||
+                `https://${node.integration.domainName}/${node.repo.name}`
+              }
             >
               <Flex align="center" gap="sm">
-                {node.integration.domainName}/{node.repo.name}
+                {node.repo.name}
                 <IconOpen size="xs" />
               </Flex>
             </ExternalLink>
@@ -416,7 +419,7 @@ function RemoveButton({
       <Flex align="center" gap="sm">
         <Button
           size="xs"
-          priority="danger"
+          variant="danger"
           disabled={isToggling}
           onClick={() => {
             onRemove();

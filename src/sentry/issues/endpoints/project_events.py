@@ -4,7 +4,8 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -73,8 +74,18 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         query = request.GET.get("query")
         conditions = []
+        eap_conditions = TraceItemFilter()
         if query:
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
+            escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            eap_conditions = TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="message", type=AttributeKey.TYPE_STRING),
+                    op=ComparisonFilter.OP_LIKE,
+                    value=AttributeValue(val_str=f"%{escaped}%"),
+                    ignore_case=True,
+                )
+            )
 
         try:
             start, end = get_date_range_from_params(
@@ -96,7 +107,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         data_fn = partial(
             eventstore.backend.get_events,
             filter=event_filter,
-            eap_conditions=TraceItemFilter(),  # TODO: not currently taking the query into account
+            eap_conditions=eap_conditions,
             referrer="api.project-events",
             tenant_ids={"organization_id": project.organization_id},
         )

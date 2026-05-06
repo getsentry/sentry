@@ -207,6 +207,13 @@ class DashboardWidgetDisplayTypes(TypesClass):
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
+    # Display types that the frontend no longer exposes in either the widget
+    # builder dropdown or the widget library. TOP_N is converted to AREA at
+    # every UI entry point (widget library, builder URL deserialization). New
+    # widgets should not be created with these, but existing widgets remain
+    # editable.
+    DEPRECATED_TYPES: list[int] = [STACKED_AREA_CHART, TOP_N]
+
 
 @cell_silo_model
 class DashboardWidgetQuery(Model):

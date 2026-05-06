@@ -163,7 +163,9 @@ export function Slider({
 
     if (ticks) {
       const range = max - min;
-      return [...new Array(ticks)].map((_, i) => min + i * (range / (ticks - 1)));
+      return [...Array.from({length: ticks})].map(
+        (_, i) => min + i * (range / (ticks - 1))
+      );
     }
 
     return [];
@@ -266,7 +268,7 @@ export function Slider({
             </SliderTick>
           ))}
 
-          {[...new Array(nThumbs)].map((_, index) => (
+          {[...Array.from({length: nThumbs})].map((_, index) => (
             <SliderThumb
               ref={node => {
                 if (!node) {

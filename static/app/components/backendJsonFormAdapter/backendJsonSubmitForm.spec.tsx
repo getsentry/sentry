@@ -163,6 +163,58 @@ describe('BackendJsonSubmitForm', () => {
 
       expect(screen.getByRole('textbox', {name: /title/i})).toBeDisabled();
     });
+
+    it('does not disable field when disabledReason is set without disabled', () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'title',
+              type: 'string',
+              label: 'Title',
+              disabled: false,
+              disabledReason: 'Not editable right now',
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Save"
+        />,
+        {organization: org}
+      );
+
+      expect(screen.getByRole('textbox', {name: /title/i})).toBeEnabled();
+      expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
+    });
+
+    it('converts disabledReason to disabled string', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'title',
+              type: 'string',
+              label: 'Title',
+              disabled: true,
+              disabledReason: 'Not editable right now',
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Save"
+        />,
+        {organization: org}
+      );
+
+      expect(screen.getByRole('textbox', {name: /title/i})).toBeDisabled();
+
+      const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+      expect(lockIcon).toBeInTheDocument();
+
+      await userEvent.hover(lockIcon);
+
+      await waitFor(() => {
+        expect(screen.getByText('Not editable right now')).toBeInTheDocument();
+      });
+    });
   });
 
   describe('submission', () => {
@@ -313,6 +365,36 @@ describe('BackendJsonSubmitForm', () => {
       expect(screen.getByRole('textbox', {name: /title/i})).toHaveValue(
         'Overridden Title'
       );
+    });
+
+    it('preserves explicit null initialValues over field defaults', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'priority',
+              type: 'select',
+              label: 'Priority',
+              choices: [
+                ['high', 'High'],
+                ['medium', 'Medium'],
+                ['low', 'Low'],
+              ],
+              default: 'medium',
+            },
+          ]}
+          initialValues={{priority: null}}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({priority: null}));
+      });
     });
 
     it('renders footer with SubmitButton when footer prop provided', () => {

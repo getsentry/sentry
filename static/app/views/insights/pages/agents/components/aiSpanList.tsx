@@ -168,7 +168,7 @@ function TransactionWrapper({
           {canCollapse ? (
             <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
           ) : null}
-          <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
             <span>{title}</span>
           </Tooltip>
         </TransactionButton>
@@ -257,20 +257,14 @@ const TraceListItem = memo(function TraceListItem({
       <Stack gap="xs" flex="1" minWidth="0">
         <Flex align="center" gap="xs">
           <Container maxWidth="40%" flexShrink={0}>
-            <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+            <Tooltip title={title} showOnlyOnOverflow skipWrapper>
               <Text bold size="sm" ellipsis>
                 {title}
               </Text>
             </Tooltip>
           </Container>
           {subtitle && (
-            <Tooltip
-              title={subtitle}
-              showOnlyOnOverflow
-              skipWrapper
-              delay={500}
-              maxWidth={500}
-            >
+            <Tooltip title={subtitle} showOnlyOnOverflow skipWrapper maxWidth={500}>
               <Text size="sm" variant="muted" ellipsis>
                 - {subtitle}
               </Text>

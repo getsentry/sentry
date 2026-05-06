@@ -11,7 +11,6 @@ import type {Project} from 'sentry/types/project';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -37,10 +36,9 @@ export default function ProjectIssueGrouping() {
 
   return (
     <SentryDocumentTitle title={routeTitleGen(t('Issue Grouping'), project.slug, false)}>
-      <SettingsPageHeader title={t('Issue Grouping')} />
-
-      <TextBlock>
-        {tct(
+      <SettingsPageHeader
+        title={t('Issue Grouping')}
+        subtitle={tct(
           'All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link: read the docs].',
           {
             link: (
@@ -48,7 +46,7 @@ export default function ProjectIssueGrouping() {
             ),
           }
         )}
-      </TextBlock>
+      />
 
       <ProjectPermissionAlert project={project} />
 

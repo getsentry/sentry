@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -22,12 +23,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -182,7 +178,7 @@ export default function ProjectServiceHooks() {
               data-test-id="new-service-hook"
               to={`/settings/${organization.slug}/projects/${projectId}/hooks/new/`}
               size="sm"
-              priority="primary"
+              variant="primary"
               icon={<IconAdd />}
             >
               {t('Create New Hook')}

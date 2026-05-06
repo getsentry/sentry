@@ -4,6 +4,8 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+import sentry_sdk
+
 from sentry import search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.models.group import GroupStatus
@@ -15,7 +17,6 @@ from sentry.types.group import PriorityLevel
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
-NIGHT_SHIFT_MAX_CANDIDATES = 10
 NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 100
 
 # Weights for candidate scoring. Set to 0 to disable a signal.
@@ -47,6 +48,7 @@ class ScoredCandidate(TriageResult):
 
 def fixability_score_strategy(
     projects: Sequence[Project],
+    max_candidates: int,
 ) -> list[ScoredCandidate]:
     """
     Fetch top recommended unresolved issues that haven't been triaged by Seer yet,
@@ -86,7 +88,12 @@ def fixability_score_strategy(
         )
 
     candidates.sort(reverse=True)
-    return candidates[:NIGHT_SHIFT_MAX_CANDIDATES]
+    selected = candidates[:max_candidates]
+
+    for c in selected:
+        sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
+
+    return selected
 
 
 def priority_label(priority: int | None) -> str | None:

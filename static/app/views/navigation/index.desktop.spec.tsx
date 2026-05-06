@@ -2,10 +2,10 @@ import * as Sentry from '@sentry/react';
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -104,9 +104,19 @@ function setupMocks() {
   ConfigStore.set('user', UserFixture());
   ConfigStore.set('customerDomain', null);
 
+  const project = ProjectFixture({hasAccess: false});
+
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/broadcasts/',
     body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
+    body: [project],
+  });
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/',
+    body: project,
   });
   MockApiClient.addMockResponse({
     url: '/assistant/',
@@ -209,6 +219,27 @@ describe('desktop navigation', () => {
       expect(links[3]).toHaveAttribute('href', '/organizations/org-slug/insights/');
       expect(links[4]).toHaveAttribute('href', '/organizations/org-slug/monitors/');
       expect(links[5]).toHaveAttribute('href', '/settings/org-slug/');
+    });
+
+    it('hides Insights nav item when insights-to-dashboards-ui-rollout is enabled', () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {
+            features: [...ALL_AVAILABLE_FEATURES, 'insights-to-dashboards-ui-rollout'],
+          },
+        })
+      );
+
+      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+      const links = within(primaryNav).getAllByRole('link');
+      const linkNames = links.map(
+        link => link.getAttribute('aria-label') ?? link.textContent
+      );
+
+      expect(linkNames).not.toContain('Insights');
     });
 
     it('primary navigation marks exactly one link as active for the current route', () => {
@@ -616,7 +647,7 @@ describe('desktop navigation', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('can collapse the sidebar via Ctrl+B keyboard shortcut', () => {
+      it('can collapse the sidebar via Ctrl+B keyboard shortcut', async () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -624,12 +655,12 @@ describe('desktop navigation', () => {
           navigationContext()
         );
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
 
         expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
       });
 
-      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', () => {
+      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', async () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -637,10 +668,10 @@ describe('desktop navigation', () => {
           navigationContext()
         );
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
         expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
         expect(
           screen.queryByTestId('collapsed-secondary-sidebar')
         ).not.toBeInTheDocument();

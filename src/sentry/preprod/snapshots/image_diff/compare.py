@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from .odiff import OdiffServer, compare_cli
+from .odiff import OdiffServer
 from .types import DiffResult
 
 logger = logging.getLogger(__name__)
@@ -79,17 +79,13 @@ def compare_images_batch(
         tmpdir_path = Path(tmpdir)
         if server is not None:
             return _compare_pairs(pairs, server, tmpdir_path)
-        # Temporarily skip creating OdiffServer due to server-mode stdin
-        # buffer reuse bug (https://github.com/dmtrKovalenko/odiff/pull/170).
-        # Revert once the fix is released in odiff-bin.
-        # with OdiffServer() as new_server:
-        #     return _compare_pairs(pairs, new_server, tmpdir_path)
-        return _compare_pairs(pairs, None, tmpdir_path)
+        with OdiffServer() as new_server:
+            return _compare_pairs(pairs, new_server, tmpdir_path)
 
 
 def _compare_pairs(
     pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
-    server: OdiffServer | None,
+    server: OdiffServer,
     tmpdir_path: Path,
 ) -> list[DiffResult | None]:
     return [
@@ -102,7 +98,7 @@ def _compare_single_pair(
     idx: int,
     before: bytes | Image.Image,
     after: bytes | Image.Image,
-    server: OdiffServer | None,
+    server: OdiffServer,
     tmpdir_path: Path,
 ) -> DiffResult | None:
     before_img: Image.Image | None = None
@@ -127,18 +123,7 @@ def _compare_single_pair(
         after_padded.save(after_path, "PNG")
 
         output_path = tmpdir_path / f"diff_{idx}.png"
-        # Use CLI mode instead of server mode to work around stdin buffer
-        # reuse bug (https://github.com/dmtrKovalenko/odiff/pull/170).
-        # Revert to server.compare() once the fix is released in odiff-bin.
-        # resp = server.compare(
-        #     before_path,
-        #     after_path,
-        #     output_path,
-        #     threshold=ODIFF_SENSITIVITY_DIFF_THRESHOLD,
-        #     antialiasing=True,
-        #     outputDiffMask=True,
-        # )
-        resp = compare_cli(
+        resp = server.compare(
             before_path,
             after_path,
             output_path,

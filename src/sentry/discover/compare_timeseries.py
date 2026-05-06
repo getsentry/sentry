@@ -159,7 +159,7 @@ def make_snql_request(
     return TSResultForComparison(result=results, agg_alias=get_function_alias(aggregate))
 
 
-def get_mismatch_type(mismatches: dict[int, dict[str, float]], total_buckets: int):
+def get_mismatch_type(mismatches: dict[int, dict[str, Any]], total_buckets: int):
     all_snql_values_zero = True
     all_rpc_values_zero = True
     snql_always_lower = True
@@ -245,7 +245,7 @@ def align_timeseries(snql_result: TSResultForComparison, rpc_result: TSResultFor
 
 
 def assert_timeseries_close(aligned_timeseries, alert_rule):
-    mismatches: dict[int, dict[str, float]] = {}
+    mismatches: dict[int, dict[str, Any]] = {}
     false_positive_misfire = 0
     false_negative_misfire = 0
     rule_triggers = AlertRuleTrigger.objects.get_for_alert_rule(alert_rule)

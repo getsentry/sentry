@@ -25,7 +25,7 @@ export function UserMisery(props: Props) {
   // 0 User Misery while still preserving the actual value for sorting purposes.
   const adjustedMisery = userMisery > 0.05 ? userMisery : 0;
 
-  const palette = new Array(bars).fill(colors[0]);
+  const palette = Array.from<string>({length: bars}).fill(colors[0]);
   const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;

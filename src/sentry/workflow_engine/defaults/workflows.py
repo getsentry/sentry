@@ -43,10 +43,6 @@ def connect_workflows_to_issue_stream(
 
 
 def create_priority_workflow(org: Organization) -> Workflow:
-    existing = Workflow.objects.filter(organization=org, name=DEFAULT_WORKFLOW_LABEL).first()
-    if existing:
-        return existing
-
     with transaction.atomic(router.db_for_write(Workflow)):
         when_condition_group = DataConditionGroup.objects.create(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,

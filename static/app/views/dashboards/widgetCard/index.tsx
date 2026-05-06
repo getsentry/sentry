@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
+import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -31,6 +32,7 @@ import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/featu
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -50,7 +52,10 @@ import {
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  LegendSelection,
+  TabularColumn,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -257,6 +262,26 @@ function WidgetCard(props: Props) {
     };
   }, [timeoutRef]);
 
+  const onCopyUrlClick =
+    currentDashboardId && props.index !== undefined
+      ? () => {
+          const pathname = normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`
+          );
+          const params = qs.parse(location.search);
+          if (!params.interval && widgetInterval) {
+            params.interval = widgetInterval;
+          }
+          const query = qs.stringify(params);
+          const widgetUrl = `${window.location.origin}${pathname}${
+            query ? `?${query}` : ''
+          }`;
+          copyToClipboard(widgetUrl, {
+            successMessage: t('Widget URL copied to clipboard'),
+          });
+        }
+      : undefined;
+
   const onFullScreenViewClick = () => {
     if (isWidgetViewerPath(location.pathname)) {
       return;
@@ -356,6 +381,19 @@ function WidgetCard(props: Props) {
 
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
+    // Legend state requires a stable widget ID to persist to the URL.
+    // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
+    const legendSelectionForWidget = widget.id
+      ? widgetLegendState.getWidgetSelectionState(widget)
+      : undefined;
+
+    const handleLegendSelectionChange = widget.id
+      ? (legendState: LegendSelection) => {
+          widgetLegendState.setWidgetSelectionState(legendState, widget);
+          onLegendSelectChanged?.();
+        }
+      : undefined;
+
     return (
       <ErrorBoundary customComponent={errorBoundaryHandler}>
         <VisuallyCompleteWithData
@@ -375,6 +413,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             noVisualizationPadding={canUseTimeseriesVisualization}
+            onCopyUrlClick={onCopyUrlClick}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
@@ -390,6 +429,8 @@ function WidgetCard(props: Props) {
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
               showConfidenceWarning={showConfidenceWarning}
+              legendSelection={legendSelectionForWidget}
+              onLegendSelectionChange={handleLegendSelectionChange}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
@@ -417,6 +458,7 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
+          onCopyUrlClick={onCopyUrlClick}
           onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}

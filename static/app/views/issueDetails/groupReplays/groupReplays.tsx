@@ -40,9 +40,9 @@ import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsO
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
-import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
-import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 import {useReplaysFromIssue} from './useReplaysFromIssue';
 
@@ -88,7 +88,7 @@ export function GroupReplays({group}: Props) {
 
 function GroupReplaysContent({group}: Props) {
   const organization = useOrganization();
-  const location = useLocation<ReplayListLocationQuery>();
+  const location = useLocation();
 
   const {eventView, fetchError, isFetching} = useReplaysFromIssue({
     group,
@@ -249,7 +249,7 @@ function GroupReplaysTable({
   const replayListData = useReplayList({
     enabled: true,
     eventView,
-    location: useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []),
+    location: useMemo(() => ({query: {}}) as Location, []),
     organization,
     queryReferrer: 'issueReplays',
   });

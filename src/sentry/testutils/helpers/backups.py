@@ -67,7 +67,7 @@ from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
     DashboardLastVisited,
-    DashboardTombstone,
+    DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -600,7 +600,12 @@ class ExhaustiveFixtures(Fixtures):
             field="count()",
             dashboard=linked_dashboard,
         )
-        DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
+        DashboardRevision.objects.create(
+            dashboard=dashboard,
+            created_by_id=owner_id,
+            title=dashboard.title,
+            snapshot_schema_version=1,
+        )
 
         # *Search
         RecentSearch.objects.create(

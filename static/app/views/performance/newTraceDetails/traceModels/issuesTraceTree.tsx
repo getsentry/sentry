@@ -1,10 +1,10 @@
 import type {Client} from 'sentry/api';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {CollapsedNode} from './traceTreeNode/collapsedNode';

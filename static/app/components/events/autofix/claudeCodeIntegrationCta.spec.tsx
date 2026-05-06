@@ -111,7 +111,7 @@ describe('ClaudeCodeIntegrationCta', () => {
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
       expect(docsLink).toHaveAttribute(
         'href',
-        'https://docs.sentry.io/organization/integrations/claude-code/'
+        'https://docs.sentry.io/organization/integrations/coding-agents/claude/'
       );
     });
   });

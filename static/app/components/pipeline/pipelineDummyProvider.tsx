@@ -23,7 +23,7 @@ function DummyStepOne({
 
   return (
     <Stack gap="md">
-      <Text>{stepData.message ?? t('Enter your name to continue')}</Text>
+      <Text>{stepData?.message ?? t('Enter your name to continue')}</Text>
       <InputGroup>
         <InputGroup.Input
           aria-label={t('Your name')}
@@ -33,7 +33,7 @@ function DummyStepOne({
       </InputGroup>
       <Button
         size="sm"
-        priority="primary"
+        variant="primary"
         onClick={() => advance({name})}
         disabled={isAdvancing || !name}
       >
@@ -50,10 +50,10 @@ function DummyStepTwo({
 }: PipelineStepProps<{greeting: string}>) {
   return (
     <Stack gap="md">
-      <Text>{stepData.greeting ?? t('Dummy step two')}</Text>
+      <Text>{stepData?.greeting ?? t('Dummy step two')}</Text>
       <Button
         size="sm"
-        priority="primary"
+        variant="primary"
         onClick={() => advance()}
         disabled={isAdvancing}
       >
@@ -74,7 +74,7 @@ function DummyCompletionView({
   return (
     <Stack gap="md">
       <Text>{data.result}</Text>
-      <Button size="sm" priority="primary" onClick={finish}>
+      <Button size="sm" variant="primary" onClick={finish}>
         {t('Done')}
       </Button>
     </Stack>

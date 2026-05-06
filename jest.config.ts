@@ -2,39 +2,32 @@ import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 
-import type {TransformOptions} from '@babel/core';
 import type {Config} from '@jest/types';
+import type {Options as SwcOptions} from '@swc/core';
 
-const babelConfig: TransformOptions = {
-  presets: [
-    [
-      '@babel/preset-react',
-      {
+const swcConfig: SwcOptions = {
+  isModule: true,
+  module: {
+    type: 'commonjs',
+  },
+  sourceMaps: 'inline',
+  jsc: {
+    target: 'esnext',
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+      dynamicImport: true,
+    },
+    transform: {
+      react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
-    ],
-    [
-      '@babel/preset-env',
-      {
-        useBuiltIns: 'usage',
-        corejs: '3.41',
-        targets: {
-          node: 'current',
-        },
-      },
-    ],
-    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
-    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
-  ],
-  plugins: [
-    [
-      '@emotion/babel-plugin',
-      {
-        sourceMap: false,
-      },
-    ],
-  ],
+    },
+    experimental: {
+      plugins: [['@swc-contrib/mut-cjs-exports', {}]],
+    },
+  },
 };
 
 const {
@@ -203,7 +196,7 @@ function getTestsForGroup(
     if (!nextTest) {
       throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
     }
-    groups[i % 4]!.push(nextTest[0]);
+    groups[i % nodeTotal]!.push(nextTest[0]);
     i++;
   }
 
@@ -284,6 +277,7 @@ const ESM_NODE_MODULES = [
 
 const config: Config.InitialOptions = {
   verbose: false,
+  cacheDirectory: '.cache/jest',
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
@@ -334,8 +328,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
@@ -350,16 +343,7 @@ const config: Config.InitialOptions = {
   testResultsProcessor: JEST_TEST_BALANCER
     ? '<rootDir>/tests/js/test-balancer/index.js'
     : undefined,
-  reporters: [
-    'default',
-    [
-      'jest-junit',
-      {
-        outputDirectory: '.artifacts',
-        outputName: 'jest.junit.xml',
-      },
-    ],
-  ],
+  reporters: ['default'],
   /**
    * jest.clearAllMocks() automatically called before each test
    * @link - https://jestjs.io/docs/configuration#clearmocks-boolean

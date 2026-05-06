@@ -19,10 +19,15 @@ function CopyDsnField({params}: {params: DocsParams<any>}) {
       </p>
       <TextCopyInput
         onCopy={() =>
-          trackAnalytics('onboarding.dsn-copied', {
-            organization: params.organization,
-            platform: params.platformKey,
-          })
+          trackAnalytics(
+            params.hasScmOnboarding
+              ? 'onboarding.scm_dsn_copied'
+              : 'onboarding.dsn-copied',
+            {
+              organization: params.organization,
+              platform: params.platformKey,
+            }
+          )
         }
       >
         {params.dsn.public}

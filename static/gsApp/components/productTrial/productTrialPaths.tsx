@@ -47,6 +47,10 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
     product: DataCategory.LOG_BYTE,
     categories: [DataCategory.LOG_BYTE],
   },
+  '/metrics/': {
+    product: DataCategory.TRACE_METRIC_BYTE,
+    categories: [DataCategory.TRACE_METRIC_BYTE],
+  },
 };
 
 const PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES: Record<Path, Product> = {
@@ -89,6 +93,8 @@ function normalizePath(path: string): string {
       return '/replays/';
     case '/explore/logs/':
       return '/logs/';
+    case '/explore/metrics/':
+      return '/metrics/';
     default:
       return path;
   }
@@ -101,7 +107,7 @@ export function getProductForPath(
   path = normalizePath(path);
 
   if (subscription.planTier === PlanTier.AM3) {
-    if (PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES.hasOwnProperty(path)) {
+    if (Object.hasOwn(PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES, path)) {
       return PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES[path]!;
     }
   }

@@ -8,17 +8,17 @@ import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import type {OnboardingTask, OnboardingTaskDescriptor} from 'sentry/types/onboarding';
+import type {OnboardingTaskDescriptor} from 'sentry/types/onboarding';
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects === undefined
@@ -334,16 +334,12 @@ export function getMergedTasks({organization, projects}: Options) {
     : organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects
-  const allTasks = taskDescriptors.map(
-    desc =>
-      ({
-        ...desc,
-        ...serverTasks.find(
-          serverTask =>
-            serverTask.task === desc.task || serverTask.task === desc.serverTask
-        ),
-      }) as OnboardingTask
-  );
+  const allTasks = taskDescriptors.map(desc => ({
+    ...desc,
+    ...serverTasks.find(
+      serverTask => serverTask.task === desc.task || serverTask.task === desc.serverTask
+    ),
+  }));
 
   const supportedTasks = filterSupportedTasks(projects, allTasks);
   return supportedTasks;

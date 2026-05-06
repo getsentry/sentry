@@ -33,6 +33,7 @@ const AI_TRACE_BASE_ATTRIBUTES = [
   SpanFields.GEN_AI_TOOL_NAME,
   SpanFields.GEN_AI_OPERATION_TYPE,
   SpanFields.GEN_AI_OPERATION_NAME,
+  SpanFields.GEN_AI_CONVERSATION_ID,
   SpanFields.SPAN_STATUS,
   'status',
   'gen_ai.tool.call.arguments',

@@ -52,6 +52,11 @@ export type SeerAnalyticsEventsParameters = {
     mode?: 'explorer' | 'legacy';
     referrer?: string;
   };
+  'autofix.evidence.clicked': {
+    group_id: string;
+    organization: Organization;
+    tool_name: string;
+  };
   'autofix.root_cause.find_solution': {
     group_id: string;
     organization: Organization;
@@ -125,6 +130,7 @@ export type SeerAnalyticsEventsParameters = {
   };
   'seer.explorer.global_panel.opened': {
     referrer: string;
+    isDrawer?: boolean;
   };
   'seer.explorer.global_panel.tool_link_navigation': {
     referrer: string;
@@ -134,7 +140,6 @@ export type SeerAnalyticsEventsParameters = {
     referrer: string;
     surface: 'global_panel';
   };
-  'seer.explorer.rethink_requested': Record<string, unknown>;
   'seer.explorer.session_copied_to_clipboard': Record<string, unknown>;
   'seer.explorer.session_created': {
     referrer: string;
@@ -155,6 +160,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.coding_agent.launch': 'Autofix: Coding Agent Launch',
   'autofix.code_changes.re_run': 'Autofix: Code Changes Re-run',
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
+  'autofix.evidence.clicked': 'Autofix: Evidence Clicked',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',
   'autofix.solution.code': 'Autofix: Code It Up',
@@ -169,7 +175,6 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
   'seer.explorer.message_sent': 'Seer Explorer: Message Sent',
   'seer.explorer.session_created': 'Seer Explorer: Session Created',
-  'seer.explorer.rethink_requested': 'Seer Explorer: Rethink Requested',
   'seer.explorer.session_copied_to_clipboard':
     'Seer Explorer: Session Copied to Clipboard',
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',

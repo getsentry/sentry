@@ -8,7 +8,6 @@ from types import TracebackType
 from typing import Any, Self
 
 import sentry_sdk
-from django.conf import settings
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
@@ -168,7 +167,6 @@ class EventLifecycle:
 
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
-        sentry_sdk.metrics.count(f"{settings.SENTRY_METRICS_PREFIX}{key}", 1, attributes=dict(tags))
 
         sentry_sdk.set_tags(tags)
 
@@ -210,7 +208,7 @@ class EventLifecycle:
                 if outcome == EventLifecycleOutcome.FAILURE:
                     logger.warning(key, **log_params)
                 elif outcome == EventLifecycleOutcome.HALTED:
-                    logger.info(key, **log_params)
+                    logger.warning(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:

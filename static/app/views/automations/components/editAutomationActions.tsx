@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
@@ -29,7 +28,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
     useDeleteAutomationMutation();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
-  const toggleDisabled = useCallback(() => {
+  const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
     updateAutomation(
       {
@@ -43,9 +42,9 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
         },
       }
     );
-  }, [updateAutomation, automation]);
+  };
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     openConfirmModal({
       message: t('Are you sure you want to delete this alert?'),
       confirmText: t('Delete'),
@@ -55,25 +54,25 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
         navigate(makeAutomationBasePathname(organization.slug));
       },
     });
-  }, [deleteAutomation, automation.id, navigate, organization.slug]);
+  };
 
   return (
     <div>
       <Grid flow="column" align="center" gap="md">
         <Button
-          priority="default"
+          variant="secondary"
           size="sm"
           onClick={toggleDisabled}
           disabled={isUpdating}
         >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
-        <Button priority="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
+        <Button variant="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
           {t('Delete')}
         </Button>
         <Observer>
           {() => (
-            <Button type="submit" priority="primary" size="sm" busy={form.isSaving}>
+            <Button type="submit" variant="primary" size="sm" busy={form.isSaving}>
               {t('Save')}
             </Button>
           )}

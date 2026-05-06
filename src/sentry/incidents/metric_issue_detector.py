@@ -14,6 +14,7 @@ from sentry.incidents.logic import (
     get_alert_resolution,
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
@@ -69,14 +70,7 @@ def schedule_update_project_config(detector: Detector) -> None:
     """
     enabled_features = on_demand_metrics_feature_flags(detector.project.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-    prefilling_for_deprecation = (
-        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
-    )
-    if (
-        "organizations:on-demand-metrics-extraction" not in enabled_features
-        and not prefilling
-        and not prefilling_for_deprecation
-    ):
+    if "organizations:on-demand-metrics-extraction" not in enabled_features and not prefilling:
         return
 
     snuba_query = fetch_snuba_query(detector)
@@ -89,7 +83,7 @@ def schedule_update_project_config(detector: Detector) -> None:
         snuba_query.query,
         None,
         prefilling,
-        prefilling_for_deprecation=prefilling_for_deprecation,
+        prefilling_for_deprecation=False,
     )
     if should_use_on_demand:
         schedule_invalidate_project_config(
@@ -229,8 +223,24 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if "data_sources" in attrs:
             self.validate_eap_rule(attrs)
+            self._validate_metric_subscription_allowed(attrs)
 
         return attrs
+
+    def _validate_metric_subscription_allowed(self, attrs: dict[str, Any]) -> None:
+        organization = self.context.get("organization")
+        if organization is None:
+            raise serializers.ValidationError("Missing organization context")
+
+        for data_source in attrs.get("data_sources", []):
+            dataset = data_source.get("dataset")
+            if dataset is not None and not is_metric_subscription_allowed(
+                dataset.value, organization
+            ):
+                raise serializers.ValidationError(
+                    f"Your organization does not have access to the {dataset.value} dataset "
+                    "for metric alert subscriptions."
+                )
 
     def _validate_transaction_dataset_deprecation(self, dataset: Dataset) -> None:
         organization = self.context.get("organization")

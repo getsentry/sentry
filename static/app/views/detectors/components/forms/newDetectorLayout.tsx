@@ -6,18 +6,19 @@ import type {FormProps} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
 import type {
   BaseDetectorUpdatePayload,
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
-import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {DetectorNameField} from 'sentry/views/detectors/components/forms/common/detectorNameField';
+import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   children: React.ReactNode;
@@ -47,6 +48,7 @@ export function NewDetectorLayout<
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const {projects} = useProjects();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const initialProjectId = useMemo(() => {
     const queryProjectId = location.query.project as string | undefined;
@@ -94,29 +96,38 @@ export function NewDetectorLayout<
   };
 
   return (
-    <EditLayout formProps={formProps}>
-      <EditLayout.Header maxWidth={maxWidth}>
-        <EditLayout.HeaderContent>
-          <NewDetectorBreadcrumbs detectorType={detectorType} />
-        </EditLayout.HeaderContent>
+    <EditLayoutDeprecated formProps={formProps}>
+      <EditLayoutDeprecated.Header maxWidth={maxWidth}>
+        <EditLayoutDeprecated.HeaderContent>
+          {hasPageFrame ? (
+            <TopBar.Slot name="title">
+              <DetectorFormBreadcrumbs />
+            </TopBar.Slot>
+          ) : (
+            <DetectorFormBreadcrumbs />
+          )}
+        </EditLayoutDeprecated.HeaderContent>
 
         <div>
           <MonitorFeedbackButton />
         </div>
 
-        <EditLayout.HeaderFields>
-          <DetectorNameField />
-          {previewChart ?? <div />}
-        </EditLayout.HeaderFields>
-      </EditLayout.Header>
+        {previewChart && (
+          <EditLayoutDeprecated.HeaderFields>
+            {previewChart}
+          </EditLayoutDeprecated.HeaderFields>
+        )}
+      </EditLayoutDeprecated.Header>
 
-      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
+        {children}
+      </EditLayoutDeprecated.Body>
 
       <NewDetectorFooter
         maxWidth={maxWidth}
         disabledCreate={disabledCreate}
         extras={extraFooterButton}
       />
-    </EditLayout>
+    </EditLayoutDeprecated>
   );
 }

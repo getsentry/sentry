@@ -17,8 +17,11 @@ import type {
 } from 'sentry/types/organization';
 import {SessionStatus} from 'sentry/types/organization';
 import {defined, percent} from 'sentry/utils';
-import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
-import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
+import {
+  getCrashFreePercent,
+  getSessionStatusPercent,
+} from 'sentry/views/explore/releases/utils';
+import {sessionTerm} from 'sentry/views/explore/releases/utils/sessionTerm';
 
 /**
  * If the time window is less than or equal 10, seconds will be displayed on the graphs
@@ -54,7 +57,7 @@ export function getSeriesSum(
   field: SessionFieldWithOperation,
   intervals: SessionApiResponse['intervals'] = []
 ) {
-  const dataPointsSums: number[] = new Array(intervals.length).fill(0);
+  const dataPointsSums = Array.from<number>({length: intervals.length}).fill(0);
   const groupSeries = groups.map(group => group.series[field]);
 
   groupSeries.forEach(series => {

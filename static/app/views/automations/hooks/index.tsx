@@ -1,4 +1,10 @@
-import {queryOptions, skipToken} from '@tanstack/react-query';
+import {
+  queryOptions,
+  skipToken,
+  useMutation,
+  useQueryClient,
+  type UseMutationOptions,
+} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
@@ -16,13 +22,8 @@ import type {
 } from 'sentry/types/workflowEngine/dataConditions';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey, UseMutationOptions} from 'sentry/utils/queryClient';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -319,22 +320,27 @@ export function useUpdateAutomationsMutation() {
   });
 }
 
+interface SendTestNotificationVariables {
+  actions: Array<Omit<Action, 'id'>>;
+  projectSlug?: string;
+}
+
 export function useSendTestNotification(
-  options?: UseMutationOptions<void, RequestError, Array<Omit<Action, 'id'>>>
+  options?: UseMutationOptions<void, RequestError, SendTestNotificationVariables>
 ) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<void, RequestError, Array<Omit<Action, 'id'>>>({
-    mutationFn: data =>
+  return useMutation<void, RequestError, SendTestNotificationVariables>({
+    mutationFn: ({actions, projectSlug}) =>
       api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
           path: {organizationIdOrSlug: org.slug},
         }),
         {
           method: 'POST',
-          data: {actions: data},
+          data: {actions, projectSlug},
         }
       ),
     ...options,
@@ -343,14 +349,14 @@ export function useSendTestNotification(
         queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(
-        tn('Notification fired!', 'Notifications sent!', variables.length)
+        tn('Notification fired!', 'Notifications sent!', variables.actions.length)
       );
       options?.onSuccess?.(data, variables, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ||
-          tn('Notification failed', 'Notifications failed', variables.length)
+          tn('Notification failed', 'Notifications failed', variables.actions.length)
       );
       options?.onError?.(error, variables, onMutateResult, context);
     },

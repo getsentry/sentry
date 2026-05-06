@@ -26,6 +26,7 @@ import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -126,6 +127,11 @@ function DashboardInner({
   const api = useApi();
 
   const {selection} = usePageFilters();
+  const {projects} = useProjects();
+  const selectedProjectSlugs =
+    !selection.projects.length || selection.projects.includes(-1)
+      ? []
+      : projects.filter(p => selection.projects.includes(Number(p.id))).map(p => p.slug);
 
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -138,7 +144,7 @@ function DashboardInner({
     isEditingDashboard,
     dateRange: selection.datetime,
     environments: selection.environments,
-    projects: selection.projects,
+    projectSlugs: selectedProjectSlugs,
   });
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
@@ -303,29 +309,26 @@ function DashboardInner({
     [organization, dashboard.widgets, onEditWidget]
   );
 
-  const handleChangeSplitDataset = useCallback(
-    (widget: Widget, index: number) => {
-      const widgetCopy = cloneDeep({
-        ...widget,
-        id: undefined,
-      });
+  const handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
 
-      const nextList = [...dashboard.widgets];
-      const nextWidgetData = {
-        ...widgetCopy,
-        widgetType: WidgetType.TRANSACTIONS,
-        datasetSource: DatasetSource.USER,
-        id: widget.id,
-      };
-      nextList[index] = nextWidgetData;
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
 
-      onUpdate(nextList);
-      if (!isEditingDashboard) {
-        handleUpdateWidgetList(nextList);
-      }
-    },
-    [dashboard.widgets, onUpdate, isEditingDashboard, handleUpdateWidgetList]
-  );
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
 
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
@@ -442,7 +445,7 @@ function DashboardInner({
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             icon={<IconResize />}
           />
         }
@@ -493,6 +496,7 @@ const AddWidgetWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
+// eslint-disable-next-line @sentry/no-calling-components-as-functions
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${p => p.theme.space.xl};
 

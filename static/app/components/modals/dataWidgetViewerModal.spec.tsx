@@ -89,10 +89,10 @@ async function renderModal({
       Footer={stubEl as ModalRenderProps['Footer']}
       Body={stubEl as ModalRenderProps['Body']}
       CloseButton={stubEl}
-      closeModal={() => undefined}
+      closeModal={() => {}}
       organization={organization}
       widget={widget}
-      onEdit={() => undefined}
+      onEdit={() => {}}
       dashboardFilters={dashboardFilters}
       widgetLegendState={widgetLegendState}
     />,

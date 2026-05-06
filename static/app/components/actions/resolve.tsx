@@ -36,7 +36,7 @@ function SetupReleasesPrompt() {
         )}
       </div>
       <LinkButton
-        priority="primary"
+        variant="primary"
         external
         size="xs"
         href="https://docs.sentry.io/product/releases/setup/"
@@ -174,7 +174,7 @@ export function ResolveActions({
         }
       >
         <Button
-          priority="primary"
+          variant="primary"
           size="xs"
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
@@ -291,7 +291,7 @@ export function ResolveActions({
           <Button
             {...triggerProps}
             size={size}
-            priority={priority}
+            variant={priority}
             aria-label={t('More resolve options')}
             icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
             disabled={isDisabled}
@@ -350,7 +350,7 @@ export function ResolveActions({
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
       <ButtonBar>
         <Button
-          priority={priority}
+          variant={priority}
           size={size}
           tooltipProps={{
             delay: 1000,

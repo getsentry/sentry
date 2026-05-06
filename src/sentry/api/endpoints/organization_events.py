@@ -22,7 +22,12 @@ from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
@@ -107,10 +112,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
-            "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
             "organizations:on-demand-metrics-extraction-experimental",
@@ -151,6 +154,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -212,7 +216,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         save_discover_dataset_decision = True
 
-        dataset = self.get_dataset(request)
+        dataset = self.get_dataset(request, organization)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)

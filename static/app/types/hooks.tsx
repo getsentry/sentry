@@ -18,6 +18,7 @@ import type {
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {AutofixContentProps} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
+import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -109,10 +110,6 @@ type ProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
-type ContinuousProfilingBetaAlertBannerProps = {
-  organization: Organization;
-};
-
 type ContinuousProfilingBillingRequirementBannerProps = {
   project: Project;
 };
@@ -199,8 +196,6 @@ type ComponentHooks = {
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
-  'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
-  'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
   'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
@@ -299,6 +294,7 @@ export type FeatureDisabledHooks = {
  * Interface chrome hooks.
  */
 type InterfaceChromeHooks = {
+  'cmdk:global-settings-actions': GenericComponentHook;
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
   'sidebar:billing-status': GenericOrganizationComponentHook;
@@ -362,6 +358,7 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
+  'react-hook:use-scm-feature-meta': () => UseScmFeatureMetaResult;
 };
 
 /**

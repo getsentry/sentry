@@ -22,6 +22,7 @@ from sentry.incidents.metric_issue_detector import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.environment import Environment
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import (
@@ -129,6 +130,18 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
         ]
 
 
+# on-demand-metrics-extraction excluded from base features: it also triggers
+# the "must use generic_metrics" check in SnubaQueryValidator, which would
+# break transaction-dataset deprecation tests. Tests that use the
+# PerformanceMetrics dataset add it explicitly via @with_feature.
+_VALIDATOR_BASE_FEATURES = {
+    k: v
+    for k, v in METRIC_SUBSCRIPTION_FEATURE_FLAGS.items()
+    if k != "organizations:on-demand-metrics-extraction"
+}
+
+
+@with_feature(_VALIDATOR_BASE_FEATURES)
 class TestMetricAlertsDetectorValidator(BaseValidatorTest):
     def setUp(self) -> None:
         super().setUp()
@@ -570,7 +583,12 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
-    @with_feature("organizations:discover-saved-queries-deprecation")
+    @with_feature(
+        {
+            "organizations:discover-saved-queries-deprecation": True,
+            "organizations:on-demand-metrics-extraction": True,
+        }
+    )
     def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
         data = {
             **self.valid_data,
@@ -618,6 +636,26 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
         ):
             validator.save()
+
+    def test_am1_org_transactions_dataset_allowed(self) -> None:
+        """AM1 orgs (no dynamic-sampling or on-demand-metrics) can't create detectors with generic_metrics dataset."""
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.PerformanceMetrics.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["data_sources"][0]["dataset"] == Dataset.Transactions
 
 
 class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
@@ -1515,6 +1553,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         updated_detector = update_validator.save()
         assert updated_detector.name == "Updated Detector Name"
 
+    @with_feature("organizations:on-demand-metrics-extraction")
     def test_transaction_dataset_deprecation_generic_metrics_update(self) -> None:
         data = {
             **self.valid_data,

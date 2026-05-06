@@ -100,7 +100,7 @@ function Grid(props: GridProps) {
       ref={ref}
       style={size === 'small' ? undefined : {paddingRight: props.actionBarWidth + 12}}
       onBlur={e => {
-        if (ref.current?.contains(e.relatedTarget as Node)) {
+        if (ref.current?.contains(e.relatedTarget)) {
           return;
         }
 

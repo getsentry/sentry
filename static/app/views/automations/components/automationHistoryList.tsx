@@ -5,10 +5,10 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
-import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -120,12 +120,15 @@ export function AutomationHistoryList({
             <SimpleTable.RowCell>
               <StyledLink
                 to={{
-                  pathname: `/organizations/${org.slug}/issues/${row.group.id}/events/${row.eventId}/`,
+                  pathname: `/organizations/${org.slug}/issues/${row.group.id}/`,
                   query: {project: row.group.project.id},
                 }}
               >
                 <Flex gap="xs" align="center">
-                  <PlatformIcon platform={row.group.platform} size={16} />
+                  <PlatformIcon
+                    platform={row.group.project.platform ?? 'default'}
+                    size={16}
+                  />
                   <TruncatedText>
                     {row.group.title ? row.group.title : `#${row.group.id}`}
                   </TruncatedText>

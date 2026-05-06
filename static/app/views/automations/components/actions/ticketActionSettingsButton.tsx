@@ -31,7 +31,8 @@ export function TicketActionSettingsButton() {
         // Overwrite the choices because the user's pick is in this list.
         if (
           field.name in formData &&
-          fetchedFieldOptionsCache?.hasOwnProperty(field.name)
+          fetchedFieldOptionsCache &&
+          Object.hasOwn(fetchedFieldOptionsCache, field.name)
         ) {
           field.choices = fetchedFieldOptionsCache[field.name];
         }
@@ -48,14 +49,14 @@ export function TicketActionSettingsButton() {
 
   // Find saved action data from the API response
   const savedActionData = useMemo(() => {
-    if (!automation) return undefined;
+    if (!automation) return;
 
     for (const af of automation.actionFilters) {
       const found = af.actions?.find(a => a.id === action.id);
       if (found) return found.data;
     }
 
-    return undefined;
+    return;
   }, [automation, action.id]);
 
   const additionalFields =

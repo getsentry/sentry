@@ -80,7 +80,9 @@ def test_basic(kafka_slice_id: int | None) -> None:
 
             (_, msg, _) = messages[0]
 
-            assert orjson.loads(msg.value) == {
+            result = orjson.loads(msg.value)
+            assert result.pop("flush_id")
+            assert result == {
                 "spans": [
                     {
                         "attributes": {

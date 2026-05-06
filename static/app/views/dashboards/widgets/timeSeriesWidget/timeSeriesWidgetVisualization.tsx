@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {SeriesOption, YAXisComponentOption} from 'echarts';
+import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -10,12 +10,13 @@ import type {
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
+import unescape from 'lodash/unescape';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
+import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {
   useChartXRangeSelection,
@@ -35,7 +36,6 @@ import {defined, escape} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
-import {useIsShortViewport} from 'sentry/utils/useIsShortViewport';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -46,9 +46,10 @@ import type {
   Release,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
@@ -89,6 +90,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   legendSelection?: LegendSelection;
 
   /**
+   * Whether new options fully replace previous chart options.
+   */
+  notMerge?: boolean;
+
+  /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
@@ -124,10 +130,21 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Default: `auto`
    */
   showXAxis?: 'auto' | 'never';
+
+  /**
+   * Defines the Y axis visibility.
+   *
+   * - `auto`: Show the Y axis (or axes when multiple scales are used).
+   * - `never`: Hide the Y axis while keeping axes in the option so series
+   *   `yAxisIndex` references remain valid.
+   *
+   * Default: `auto`
+   */
+  showYAxis?: 'auto' | 'never';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
-  if (props.plottables.every(plottable => plottable.isEmpty)) {
+  if (!plottablesCanBeVisualized(props.plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
 
@@ -135,7 +152,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
-  const isShortViewport = useIsShortViewport();
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const unregisterRef = useRef<(() => void) | null>(null);
   const {register: registerWithWidgetSyncContext, groupName} = useWidgetSyncContext();
@@ -247,11 +263,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
-  const yAxisSplitNumber = isShortViewport ? 2 : 5;
-
   const leftYAxis = TimeSeriesWidgetYAxis(
     {
-      splitNumber: yAxisSplitNumber,
       axisLabel: {
         formatter: (value: number) =>
           formatYAxisValue(value, leftYAxisType, unitForType[leftYAxisType] ?? undefined),
@@ -265,7 +278,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const rightYAxis = rightYAxisType
     ? TimeSeriesWidgetYAxis(
         {
-          splitNumber: yAxisSplitNumber,
           axisLabel: {
             formatter: (value: number) =>
               formatYAxisValue(
@@ -351,7 +363,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        const alias = aliases[seriesName];
+        // seriesName may be HTML-escaped, so we need to unescape it before looking up the alias
+        // to ensure the lookup works correctly for series with characters that are escaped.
+        const alias = aliases[unescape(seriesName)];
         if (alias) {
           // The alias value comes from `plottable.label` and is not
           // HTML-escaped. Escape it for safe insertion into raw HTML
@@ -397,10 +411,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
-  // find min/max timestamp of *all* timeSeries
+  // find min/max timestamp of *all* timeSeries. Drop null boundaries from
+  // non-time-bounded plottables (e.g. `Thresholds`) before sorting —
+  // `Array.prototype.sort`'s default lexicographic comparator stringifies
+  // `null` to `"null"`, which sorts after any timestamp and would end up as
+  // `latestTimeStamp`, leaving release bubbles with no `maxTime` to bucket.
   const allBoundaries = props.plottables
     .flatMap(plottable => [plottable.start, plottable.end])
-    .toSorted();
+    .filter(defined)
+    .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
 
@@ -423,6 +442,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   if (releaseBubbleYAxis) {
     yAxes.push(releaseBubbleYAxis);
   }
+
+  const showYAxisProp = props.showYAxis ?? 'auto';
+  const showYAxis = showYAxisProp === 'auto';
+  const chartYAxes = showYAxis ? yAxes : yAxes.map(() => HIDDEN_AXIS);
 
   const releaseSeries =
     props.releases && props.showReleaseAs !== 'none'
@@ -488,7 +511,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         splitNumber: 5,
         ...releaseBubbleXAxis,
       }
-    : HIDDEN_X_AXIS;
+    : HIDDEN_AXIS;
 
   // Hiding the X axis removes all chart elements under the X axis line. This
   // will cut off the bottom of the lowest Y axis label. To create space for
@@ -684,6 +707,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
+          notMerge={props.notMerge}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -717,7 +741,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             formatter: formatTooltip,
           }}
           xAxis={xAxis}
-          yAxes={yAxes}
+          yAxes={chartYAxes}
           {...chartZoomProps}
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
@@ -771,12 +795,12 @@ function getPlottableEventDataIndex(
 
 // Hide every part of the axis so ECharts will remove those elements and also
 // remove the visual space they would take up if they were there.
-const HIDDEN_X_AXIS = {
+const HIDDEN_AXIS = {
   show: false,
   splitLine: {show: false},
   axisLine: {show: false},
   axisTick: {show: false},
   axisLabel: {show: false},
-};
+} satisfies XAXisComponentOption | YAXisComponentOption;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;

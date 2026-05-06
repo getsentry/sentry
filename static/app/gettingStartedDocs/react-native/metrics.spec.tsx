@@ -28,7 +28,7 @@ function renderMockRequests({
 }
 
 describe('getting started with react-native', () => {
-  it.isKnownFlake('shows React Native metrics onboarding content', async () => {
+  it('shows React Native metrics onboarding content', async () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture({platform: 'react-native'});
     renderMockRequests({organization, project});
@@ -46,15 +46,15 @@ describe('getting started with react-native', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: /configure sentry/i})).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', {name: /send metrics and verify/i})
+      screen.getByRole('heading', {name: /send application metrics and verify/i})
     ).toBeInTheDocument();
 
     // Goes to the configure step
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
     expect(await screen.findByText(/Metrics are enabled by default/)).toBeInTheDocument();
 
     // Goes to the verify step
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
     expect(await screen.findByText(/Sentry\.metrics\.count/)).toBeInTheDocument();
     expect(screen.getByText(/Sentry\.metrics\.gauge/)).toBeInTheDocument();
   });

@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from '@sentry/scraps/button';
@@ -18,8 +19,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -70,8 +70,6 @@ export function NotificationSettingsByEntity({
   if (!organization && organizations.length === 1) {
     organization = organizations[0];
   }
-  const orgSlug = organization?.slug;
-
   // loads all the projects for an org
   const {
     data: projects,
@@ -79,21 +77,17 @@ export function NotificationSettingsByEntity({
     isSuccess,
     isError,
     refetch,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-        path: {organizationIdOrSlug: orgSlug!},
-      }),
-      {
-        host: organization?.links?.regionUrl,
-        query: {
-          all_projects: '1',
-          collapse: ['latestDeploys', 'unusedFeatures'],
-        },
+  } = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
+      host: organization?.links?.regionUrl,
+      query: {
+        all_projects: '1',
+        collapse: ['latestDeploys', 'unusedFeatures'],
       },
-    ],
-    {staleTime: Infinity, enabled: Boolean(organization)}
-  );
+      staleTime: Infinity,
+    }),
+  });
 
   // always loading all projects even though we only need it sometimes
   const entities = entityType === 'project' ? projects || [] : organizations;
@@ -171,7 +165,7 @@ export function NotificationSettingsByEntity({
             <Button
               aria-label={t('Delete')}
               size="sm"
-              priority="default"
+              variant="secondary"
               icon={<IconDelete />}
               onClick={() => handleRemoveNotificationOption(option.id)}
             />
@@ -281,7 +275,7 @@ export function NotificationSettingsByEntity({
               />
               <Button
                 disabled={!selectedEntityId || !selectedValue}
-                priority="primary"
+                variant="primary"
                 onClick={handleAdd}
                 icon={<IconAdd />}
                 aria-label={t('Add override')}

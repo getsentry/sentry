@@ -115,6 +115,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   connectors: number[] | undefined;
 
   /**
+   * The parent node in the current visible tree.
+   */
+  visibleParent: BaseNode | null | undefined;
+
+  /**
    * The extra options for the node. Examples include the organization to check for enabled features.
    */
   extra: TraceTreeNodeExtra | null;
@@ -417,6 +422,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   invalidate() {
     this.connectors = undefined;
     this.depth = undefined;
+    this.visibleParent = undefined;
   }
 
   getNextTraversalNodes(): BaseNode[] {
@@ -471,7 +477,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
         result = node;
         return true;
       }
-      return undefined;
+      return;
     });
     return result;
   }

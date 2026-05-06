@@ -74,7 +74,7 @@ export class VirtualizedViewManager {
   // of the container, we need to precompute the number of intervals we need to render.
   // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
   // original size.
-  interval_bars = new Array(Math.ceil(window.innerWidth / 100) * 3).fill(0);
+  interval_bars = Array.from({length: Math.ceil(window.innerWidth / 100) * 3}).fill(0);
   indicators: Array<
     {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
   > = [];
@@ -102,7 +102,7 @@ export class VirtualizedViewManager {
 
   row_depth_padding = 22;
 
-  private scrollbar_width = 0;
+  scrollbar_width = 0;
   // the transformation matrix that is used to render scaled elements to the DOM
   private span_to_px: mat3 = mat3.create();
   private readonly ROW_PADDING_PX = 16;
@@ -240,7 +240,7 @@ export class VirtualizedViewManager {
     }
 
     this.view.trace_physical_space.width =
-      span_list * this.view.trace_container_physical_space.width;
+      span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
 
     this.scheduler.dispatch('set trace view', {
       x: this.view.trace_view.x,
@@ -259,6 +259,40 @@ export class VirtualizedViewManager {
       return;
     }
     this.scrollbar_width = width;
+
+    // Re-dispatch the container content box so that the trace_physical_space is
+    // recomputed accounting for the new scrollbar width using the same box
+    // model as ResizeObserver's contentRect.
+    const containerPhysicalSpace = this.getContainerContentPhysicalSpace();
+    if (containerPhysicalSpace) {
+      this.scheduler.dispatch('set container physical space', containerPhysicalSpace);
+    }
+  }
+
+  private getContainerContentPhysicalSpace():
+    | [x: number, y: number, width: number, height: number]
+    | null {
+    if (!this.container) {
+      return null;
+    }
+
+    const rect = this.container.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      return null;
+    }
+
+    const getBoxSize = (value: string) => Number.parseFloat(value) || 0;
+    const styles = window.getComputedStyle(this.container);
+    const paddingX = getBoxSize(styles.paddingLeft) + getBoxSize(styles.paddingRight);
+    const paddingY = getBoxSize(styles.paddingTop) + getBoxSize(styles.paddingBottom);
+    const borderX =
+      getBoxSize(styles.borderLeftWidth) + getBoxSize(styles.borderRightWidth);
+    const borderY =
+      getBoxSize(styles.borderTopWidth) + getBoxSize(styles.borderBottomWidth);
+    const width = Math.max(rect.width - paddingX - borderX, 0);
+    const height = Math.max(rect.height - paddingY - borderY, 0);
+
+    return [0, 0, width, height];
   }
 
   registerContainerRef(container: HTMLElement | null) {

@@ -1,10 +1,12 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -60,13 +62,6 @@ export function useEventWaiter({
 }: UseEventWaiterOptions): FirstEvent {
   const shouldPoll = !disabled && !!organization && !!project;
 
-  const projectUrl = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-    path: {
-      organizationIdOrSlug: organization.slug,
-      projectIdOrSlug: project.slug,
-    },
-  });
-
   const issuesUrl = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
     {
@@ -78,17 +73,19 @@ export function useEventWaiter({
   );
 
   // Poll the project endpoint to detect when the first event arrives
-  const projectQuery = useApiQuery<Project>([projectUrl], {
+  const projectQuery = useQuery({
+    ...makeDetailedProjectApiOptions({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+    }),
     refetchInterval: query => {
       if (!shouldPoll) {
         return false;
       }
       // Stop polling once the first event has been detected
-      if (query.state.data) {
-        const [projectData] = query.state.data;
-        if (getFirstEvent(eventType, projectData)) {
-          return false;
-        }
+      const projectData = query.state.data?.json;
+      if (projectData && getFirstEvent(eventType, projectData)) {
+        return false;
       }
       return pollInterval;
     },
