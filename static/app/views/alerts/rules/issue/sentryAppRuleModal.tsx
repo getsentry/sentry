@@ -5,11 +5,10 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  SentryAppExternalForm,
+import SentryAppExternalForm, {
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-import {LegacySentryAppExternalForm} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.legacy';
+import {SentryAppExternalFormNew} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
 
 type Props = ModalRenderProps & {
   appName: string;
@@ -46,7 +45,7 @@ export function SentryAppRuleModal({
       </Header>
       <Body>
         {useNewForm ? (
-          <SentryAppExternalForm
+          <SentryAppExternalFormNew
             sentryAppInstallationUuid={sentryAppInstallationUuid}
             appName={appName}
             config={formConfig}
@@ -56,7 +55,7 @@ export function SentryAppRuleModal({
             resetValues={{settings: resetValues?.settings}}
           />
         ) : (
-          <LegacySentryAppExternalForm
+          <SentryAppExternalForm
             sentryAppInstallationUuid={sentryAppInstallationUuid}
             appName={appName}
             config={formConfig}

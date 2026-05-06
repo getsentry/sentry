@@ -1,44 +1,29 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentProps,
-} from 'react';
-import * as Sentry from '@sentry/react';
-import {queryOptions, useMutation} from '@tanstack/react-query';
+import {Component} from 'react';
+import debounce from 'lodash/debounce';
 
-import {Flex} from '@sentry/scraps/layout';
+import type {GeneralSelectValue} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
-import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import type {Client} from 'sentry/api';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import type {Field, FieldValue, OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import type {Choices, Choice, SelectValue} from 'sentry/types/core';
-import {fetchMutation} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
+import {replaceAtArrayIndex} from 'sentry/utils/array/replaceAtArrayIndex';
+import {withApi} from 'sentry/utils/withApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
-const hasValue = (value: unknown) => !!value || value === 0;
+const hasValue = (value: any) => !!value || value === 0;
 
 // See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
-export type FieldFromSchema = {
-  label: string;
-  name: string;
+export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   type: 'select' | 'textarea' | 'text';
-  autosize?: boolean;
-  choices?: Choices;
+  async?: boolean;
+  choices?: Array<[any, string]>;
   default?: 'issue.title' | 'issue.description';
-  defaultValue?: unknown;
   depends_on?: string[];
-  disabled?: boolean;
-  help?: string;
-  maxRows?: number;
-  multiple?: boolean;
-  placeholder?: string;
-  required?: boolean;
   skip_load_on_open?: boolean;
   uri?: string;
 };
@@ -52,39 +37,37 @@ export type SchemaFormConfig = {
 
 type SentryAppSetting = {
   name: string;
-  value: unknown;
+  value: any;
   label?: string;
 };
 
-type OnSubmitSuccess = (
-  response: any,
-  instance?: unknown,
-  id?: string,
-  change?: {new: unknown; old: unknown}
-) => void;
-
-type ResetValues = {
-  [key: string]: any;
-  settings?: SentryAppSetting[];
+// only need required_fields and optional_fields
+type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
+  optionsByField: Map<string, Array<{label: string; value: any}>>;
+  selectedOptions: Record<string, GeneralSelectValue>;
 };
-
-type FieldGroups = Omit<SchemaFormConfig, 'uri' | 'description'>;
 
 type Props = {
   action: 'create' | 'link';
+  api: Client;
   appName: string;
   config: SchemaFormConfig;
   element: 'issue-link' | 'alert-rule-action';
-  onSubmitSuccess: OnSubmitSuccess;
+  onSubmitSuccess: (
+    response: any,
+    instance: FormModel,
+    id?: string,
+    change?: {new: FieldValue; old: FieldValue}
+  ) => void;
   sentryAppInstallationUuid: string;
   /**
    * Additional form data to submit with the request
    */
-  extraFields?: Record<string, unknown>;
+  extraFields?: Record<string, any>;
   /**
    * Additional body parameters to submit with the request
    */
-  extraRequestBody?: Record<string, unknown>;
+  extraRequestBody?: Record<string, any>;
   /**
    * Function to provide fields with pre-written data if a default is specified
    */
@@ -92,804 +75,409 @@ type Props = {
   /**
    * Object containing reset values for fields if previously entered, in case this form is unmounted
    */
-  resetValues?: ResetValues;
+  resetValues?: {
+    [key: string]: any;
+    settings?: SentryAppSetting[];
+  };
 };
 
-function cloneSchemaFields(
-  fields?: FieldFromSchema[],
-  getFieldDefault?: (field: FieldFromSchema) => string
-) {
-  return (
-    fields?.map(field => {
-      const nextField: FieldFromSchema = {
-        ...field,
-        choices: field.choices ? [...field.choices] : field.choices,
-        depends_on: field.depends_on ? [...field.depends_on] : field.depends_on,
-      };
+/**
+ *  This component is the result of a refactor of sentryAppExternalIssueForm.tsx.
+ *  Most of it contains a direct copy of the code from that original file (comments included)
+ *  to allow for an abstract way of turning Sentry App Schema -> Form UI, rather than being
+ *  specific to Issue Linking.
+ *
+ *  See (#28465) for more details.
+ */
+class SentryAppExternalForm extends Component<Props, State> {
+  state: State = {optionsByField: new Map(), selectedOptions: {}};
 
-      if (nextField.default && getFieldDefault) {
-        nextField.defaultValue = getFieldDefault(nextField);
-      }
-
-      return nextField;
-    }) ?? []
-  );
-}
-
-function cloneSchemaConfig(
-  config: SchemaFormConfig,
-  getFieldDefault?: (field: FieldFromSchema) => string
-): FieldGroups {
-  return {
-    required_fields: cloneSchemaFields(config.required_fields, getFieldDefault),
-    optional_fields: cloneSchemaFields(config.optional_fields, getFieldDefault),
-  };
-}
-
-function cloneFieldGroups(fieldGroups: FieldGroups): FieldGroups {
-  return {
-    required_fields: cloneSchemaFields(fieldGroups.required_fields),
-    optional_fields: cloneSchemaFields(fieldGroups.optional_fields),
-  };
-}
-
-function normalizeChoices(
-  choices: readonly Choice[] | undefined
-): Array<[string, string]> {
-  return (
-    choices?.map(
-      ([value, label]) => [String(value), choiceLabelToString(label)] as [string, string]
-    ) ?? []
-  );
-}
-
-function omitValues(
-  values: Record<string, unknown>,
-  fieldNames: Set<string>
-): Record<string, unknown> {
-  const nextValues = {...values};
-
-  for (const fieldName of fieldNames) {
-    delete nextValues[fieldName];
+  componentDidMount() {
+    this.resetStateFromProps();
   }
 
-  return nextValues;
-}
-
-function getTriggerFieldValues(
-  values: Record<string, unknown>,
-  triggerFieldNames: Set<string>
-): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(values).filter(([name]) => triggerFieldNames.has(name))
-  );
-}
-
-function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
-  const ref = useRef<{serializedValue: string; value: T} | null>(null);
-
-  if (ref.current?.serializedValue !== serializedValue) {
-    ref.current = {serializedValue, value};
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.action !== this.props.action) {
+      this.model.reset();
+      this.resetStateFromProps();
+    }
   }
 
-  return ref.current.value;
-}
+  model = new FormModel();
 
-function getAllSchemaFields(fieldGroups: FieldGroups) {
-  return [...(fieldGroups.required_fields ?? []), ...(fieldGroups.optional_fields ?? [])];
-}
+  // reset the state when we mount or the action changes
+  resetStateFromProps() {
+    const {config, action, extraFields, element} = this.props;
+    this.setState({
+      required_fields: config.required_fields,
+      optional_fields: config.optional_fields,
+    });
 
-function findSchemaField(fieldGroups: FieldGroups, fieldName: string) {
-  return getAllSchemaFields(fieldGroups).find(field => field.name === fieldName);
-}
+    this.model.reset();
 
-function updateSchemaFieldChoices(
-  fieldGroups: FieldGroups,
-  fieldName: string,
-  choices: Choices
-): FieldGroups {
-  const normalizedChoices = normalizeChoices(choices);
-  const updateGroup = (fields?: FieldFromSchema[]) =>
-    fields?.map(field =>
-      field.name === fieldName ? {...field, choices: normalizedChoices} : field
-    ) ?? [];
-
-  return {
-    required_fields: updateGroup(fieldGroups.required_fields),
-    optional_fields: updateGroup(fieldGroups.optional_fields),
-  };
-}
-
-function getSavedSetting(resetValues: ResetValues | undefined, fieldName: string) {
-  return resetValues?.settings?.find(setting => setting.name === fieldName);
-}
-
-function getResetInitialValues(resetValues: ResetValues | undefined) {
-  return Object.fromEntries(
-    (resetValues?.settings ?? []).map(setting => [setting.name, setting.value])
-  );
-}
-
-function choiceLabelToString(label: Choice[1]) {
-  return typeof label === 'string' || typeof label === 'number' ? String(label) : '';
-}
-
-function mergeFieldChoices(
-  field: FieldFromSchema,
-  resetValues: ResetValues | undefined
-): Array<[string, string]> {
-  const choices = normalizeChoices(field.choices);
-
-  const savedSetting = getSavedSetting(resetValues, field.name);
-  const savedValue = savedSetting?.value;
-  if (
-    (typeof savedValue === 'string' || typeof savedValue === 'number') &&
-    savedSetting?.label &&
-    !choices.some(([value]) => value === String(savedValue))
-  ) {
-    return [[String(savedValue), savedSetting.label], ...choices];
+    // For alert-rule-actions, the forms are entirely custom, extra fields are
+    // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
+    if (element === 'alert-rule-action') {
+      const defaultResetValues = this.props.resetValues?.settings || [];
+      const initialData = defaultResetValues.reduce((acc, curr) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        acc[curr.name] = curr.value;
+        return acc;
+      }, {});
+      this.model.setInitialData({...initialData});
+    } else {
+      this.model.setInitialData({
+        ...extraFields,
+        // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
+        action,
+        uri: config.uri,
+      });
+    }
+    // let the state update before we try and load the dependent options
+    setTimeout(() => {
+      this.tryAndLoadDependentOptions();
+    }, 0);
   }
 
-  return choices;
-}
+  tryAndLoadDependentOptions = () => {
+    const {required_fields, optional_fields} = this.state;
 
-function toSelectValues(
-  choices: ReadonlyArray<[string, string]>
-): Array<SelectValue<string>> {
-  return choices.map(([value, label]) => ({value, label}));
-}
-
-function getBaseFieldDefaultValue(
-  field: FieldFromSchema,
-  externalDefaultValues: Record<string, unknown>,
-  resetValues: ResetValues | undefined
-) {
-  if (Object.prototype.hasOwnProperty.call(externalDefaultValues, field.name)) {
-    return externalDefaultValues[field.name];
-  }
-
-  let defaultValue = field.defaultValue;
-
-  const resetValue = getSavedSetting(resetValues, field.name);
-  if (resetValue) {
-    defaultValue = resetValue.value;
-  }
-
-  return defaultValue;
-}
-
-function getEffectiveFieldValue({
-  currentFormValues,
-  externalDefaultValues,
-  fieldGroups,
-  fieldName,
-  resetValues,
-}: {
-  currentFormValues: Record<string, unknown>;
-  externalDefaultValues: Record<string, unknown>;
-  fieldGroups: FieldGroups;
-  fieldName: string;
-  resetValues?: ResetValues;
-}) {
-  if (Object.prototype.hasOwnProperty.call(currentFormValues, fieldName)) {
-    return currentFormValues[fieldName];
-  }
-
-  const field = findSchemaField(fieldGroups, fieldName);
-  if (!field) {
-    return;
-  }
-
-  return getBaseFieldDefaultValue(field, externalDefaultValues, resetValues);
-}
-
-export function SentryAppExternalForm({
-  action,
-  appName,
-  config,
-  element,
-  onSubmitSuccess,
-  sentryAppInstallationUuid,
-  extraFields,
-  extraRequestBody,
-  getFieldDefault,
-  resetValues,
-}: Props) {
-  const api = useApi({persistInFlight: true});
-  const serializedExtraFields = JSON.stringify(extraFields ?? {});
-  const serializedExtraRequestBody = JSON.stringify(extraRequestBody ?? {});
-  const serializedResetValues = JSON.stringify(resetValues ?? {});
-  const nextResolvedFieldGroups = cloneSchemaConfig(config, getFieldDefault);
-  const serializedResolvedFieldGroups = JSON.stringify(nextResolvedFieldGroups);
-
-  const normalizedExtraFields = useSerializedValueMemo(
-    extraFields ?? {},
-    serializedExtraFields
-  );
-  const normalizedExtraRequestBody = useSerializedValueMemo(
-    extraRequestBody ?? {},
-    serializedExtraRequestBody
-  );
-  const normalizedResetValues = useSerializedValueMemo(
-    resetValues,
-    serializedResetValues
-  );
-  const resolvedFieldGroups = useSerializedValueMemo(
-    nextResolvedFieldGroups,
-    serializedResolvedFieldGroups
-  );
-
-  const [fieldGroups, setFieldGroups] = useState<FieldGroups>(() =>
-    cloneFieldGroups(resolvedFieldGroups)
-  );
-  const currentFormValuesRef = useRef<Record<string, unknown>>({});
-  const [dynamicFieldValues, setDynamicFieldValues] = useState<Record<string, unknown>>(
-    {}
-  );
-  const [formInitialValues, setFormInitialValues] = useState<Record<string, unknown>>({});
-  const [externalDefaultValues, setExternalDefaultValues] = useState<
-    Record<string, unknown>
-  >({});
-  const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
-  const dependentFetchVersionRef = useRef(0);
-  const [isFetchingDependentFields, setIsFetchingDependentFields] = useState(false);
-  const [formVersion, setFormVersion] = useState(0);
-
-  const fetchFieldChoices = useCallback(
-    async ({
-      currentValues,
-      defaultValues,
-      field,
-      input,
-      nextFieldGroups,
-    }: {
-      currentValues: Record<string, unknown>;
-      defaultValues: Record<string, unknown>;
-      field: FieldFromSchema;
-      input: string;
-      nextFieldGroups: FieldGroups;
-    }) => {
-      if (!field.uri) {
-        return {choices: field.choices ?? [], defaultValue: undefined};
-      }
-
-      const query: Record<string, unknown> = {
-        ...normalizedExtraRequestBody,
-        query: input,
-        uri: field.uri,
-      };
-
-      if (field.depends_on?.length) {
-        const dependentData = Object.fromEntries(
-          field.depends_on.map(dependentField => [
-            dependentField,
-            getEffectiveFieldValue({
-              currentFormValues: currentValues,
-              externalDefaultValues: defaultValues,
-              fieldGroups: nextFieldGroups,
-              fieldName: dependentField,
-              resetValues: normalizedResetValues,
-            }),
-          ])
-        );
-        query.dependentData = JSON.stringify(dependentData);
-      }
-
-      const response = await api.requestPromise(
-        `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
-        {query}
-      );
-
-      return {
-        choices: Array.isArray(response?.choices) ? (response.choices as Choices) : [],
-        defaultValue: response?.defaultValue,
-      };
-    },
-    [api, normalizedExtraRequestBody, normalizedResetValues, sentryAppInstallationUuid]
-  );
-
-  useEffect(() => {
-    let isCancelled = false;
-    const requestVersion = dependentFetchVersionRef.current + 1;
-    const nextFieldGroups = cloneFieldGroups(resolvedFieldGroups);
-    const nextTriggerFieldNames = new Set(
-      getAllSchemaFields(nextFieldGroups).flatMap(field => field.depends_on ?? [])
+    // first find every field where we don't load the values on open
+    const fieldsToLoad = [...(required_fields || []), ...(optional_fields || [])].filter(
+      field =>
+        field.skip_load_on_open || (field.depends_on && field.depends_on.length > 0)
     );
-    const nextInitialValues =
-      element === 'alert-rule-action' ? getResetInitialValues(normalizedResetValues) : {};
 
-    dependentFetchVersionRef.current = requestVersion;
-    setFieldGroups(nextFieldGroups);
-    currentFormValuesRef.current = nextInitialValues;
-    setDynamicFieldValues(
-      getTriggerFieldValues(nextInitialValues, nextTriggerFieldNames)
-    );
-    setFormInitialValues(nextInitialValues);
-    setExternalDefaultValues({});
-    setAsyncOptionsCache({});
-    setIsFetchingDependentFields(false);
-
-    const initializeDependentFields = async () => {
-      const fieldsToPrefetch = getAllSchemaFields(nextFieldGroups).filter(
-        field =>
-          field.depends_on?.length &&
-          field.depends_on.every(dependentField =>
-            hasValue(
-              getEffectiveFieldValue({
-                currentFormValues: {},
-                externalDefaultValues: {},
-                fieldGroups: nextFieldGroups,
-                fieldName: dependentField,
-                resetValues: normalizedResetValues,
-              })
-            )
-          )
-      );
-
-      if (!fieldsToPrefetch.length) {
-        return;
-      }
-
-      let results: Array<{
-        choices: Choices;
-        fieldName: string;
-        defaultValue?: unknown;
-      }>;
-      try {
-        results = await Promise.all(
-          fieldsToPrefetch.map(async field => ({
-            fieldName: field.name,
-            ...(await fetchFieldChoices({
-              currentValues: {},
-              defaultValues: {},
-              field,
-              input: '',
-              nextFieldGroups,
-            })),
-          }))
-        );
-      } catch (error) {
-        Sentry.captureException(error, {
-          tags: {
-            sentry_app: appName,
-            form_element: element,
-            form_action: action,
-          },
-          extra: {
-            sentryAppInstallationUuid,
-            configUri: config.uri,
-            fieldsToPrefetch: fieldsToPrefetch.map(field => field.name),
-          },
+    fieldsToLoad.forEach(field => {
+      if (field.depends_on && field.depends_on.length > 0) {
+        // check that we can load this field
+        const isReadyToLoad = field.depends_on.every(dependentField => {
+          return !!this.model.getValue(dependentField);
         });
-        return;
-      }
-
-      if (isCancelled || requestVersion !== dependentFetchVersionRef.current) {
-        return;
-      }
-
-      let updatedFieldGroups = nextFieldGroups;
-      const nextDefaultValues: Record<string, unknown> = {};
-
-      for (const result of results) {
-        updatedFieldGroups = updateSchemaFieldChoices(
-          updatedFieldGroups,
-          result.fieldName,
-          result.choices
-        );
-
-        if (result.defaultValue !== undefined) {
-          nextDefaultValues[result.fieldName] = result.defaultValue;
+        // if ready to load, trigger a field change to trigger the api request to load options
+        if (isReadyToLoad) {
+          this.handleFieldChange(field.depends_on[0]!);
         }
       }
+    });
+  };
 
-      setFieldGroups(updatedFieldGroups);
-      setFormInitialValues({
-        ...nextInitialValues,
-        ...nextDefaultValues,
-      });
-      setExternalDefaultValues(nextDefaultValues);
-      setFormVersion(version => version + 1);
-    };
+  onSubmitError = () => {
+    const {action, appName} = this.props;
+    addErrorMessage(t('Unable to %s %s %s.', action, appName, this.getElementText()));
+  };
 
-    void initializeDependentFields();
+  getOptions = (field: FieldFromSchema, input: string) =>
+    new Promise(resolve => {
+      this.debouncedOptionLoad(field, input, resolve);
+    });
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    action,
-    appName,
-    config.uri,
-    element,
-    fetchFieldChoices,
-    normalizedResetValues,
-    resolvedFieldGroups,
-    sentryAppInstallationUuid,
-  ]);
+  getElementText = () => {
+    const {element} = this.props;
+    switch (element) {
+      case 'issue-link':
+        return 'issue';
+      case 'alert-rule-action':
+        return 'alert';
+      default:
+        return 'connection';
+    }
+  };
 
-  const triggerFieldNames = useMemo(
-    () =>
-      new Set(getAllSchemaFields(fieldGroups).flatMap(field => field.depends_on ?? [])),
-    [fieldGroups]
-  );
+  getDefaultOptions = (field: FieldFromSchema) => {
+    const savedOption = (this.props.resetValues?.settings || []).find(
+      value => value.name === field.name
+    );
+    const currentOptions = (field.choices || []).map(([value, label]) => ({
+      value,
+      label,
+    }));
 
-  const adapterFields = useMemo((): JsonFormAdapterFieldConfig[] => {
-    const mapField = (
-      field: FieldFromSchema,
-      required: boolean
-    ): JsonFormAdapterFieldConfig => {
-      const defaultValue = getBaseFieldDefaultValue(
-        field,
-        externalDefaultValues,
-        normalizedResetValues
-      );
+    const shouldAddSavedOption =
+      // We only render saved options if they have preserved the label, otherwise it appears unselcted.
+      // The next time the user saves, the label should be preserved.
+      savedOption?.value &&
+      savedOption?.label &&
+      // The option isn't in the current options already
+      !currentOptions.some(option => option.value === savedOption?.value);
 
-      const disabled =
-        field.disabled ||
-        !!field.depends_on?.some(
-          dependentField =>
-            !hasValue(
-              getEffectiveFieldValue({
-                currentFormValues: dynamicFieldValues,
-                externalDefaultValues,
-                fieldGroups,
-                fieldName: dependentField,
-                resetValues: normalizedResetValues,
-              })
-            )
-        );
+    return shouldAddSavedOption
+      ? [{value: savedOption.value, label: savedOption.label}, ...currentOptions]
+      : currentOptions;
+  };
 
-      switch (field.type) {
-        case 'text':
-          return {
-            default: defaultValue,
-            disabled,
-            help: field.help,
-            label: field.label,
-            name: field.name,
-            placeholder: field.placeholder,
-            required,
-            type: 'string',
-            updatesForm: triggerFieldNames.has(field.name),
-          };
-        case 'textarea':
-          return {
-            autosize: field.autosize,
-            default: defaultValue,
-            disabled,
-            help: field.help,
-            label: field.label,
-            maxRows: field.maxRows,
-            name: field.name,
-            placeholder: field.placeholder,
-            required,
-            type: 'textarea',
-            updatesForm: triggerFieldNames.has(field.name),
-          };
-        case 'select':
-          return {
-            choices: mergeFieldChoices(field, normalizedResetValues),
-            default: defaultValue,
-            disabled,
-            help: field.help,
-            label: field.label,
-            multiple: field.multiple,
-            name: field.name,
-            placeholder: field.placeholder ?? 'Type to search',
-            required,
-            type: 'select',
-            updatesForm: triggerFieldNames.has(field.name),
-          };
-        default:
-          return {
-            default: defaultValue,
-            disabled,
-            help: field.help,
-            label: field.label,
-            name: field.name,
-            placeholder: field.placeholder,
-            required,
-            type: 'string',
-            updatesForm: triggerFieldNames.has(field.name),
-          };
-      }
-    };
+  getDefaultFieldValue = (field: FieldFromSchema) => {
+    // Interpret the default if a getFieldDefault function is provided.
+    const {resetValues, getFieldDefault} = this.props;
+    let defaultValue = field?.defaultValue;
 
-    return [
-      ...(fieldGroups.required_fields ?? []).map(field => mapField(field, true)),
-      ...(fieldGroups.optional_fields ?? []).map(field => mapField(field, false)),
-    ];
-  }, [
-    dynamicFieldValues,
-    externalDefaultValues,
-    fieldGroups,
-    normalizedResetValues,
-    triggerFieldNames,
-  ]);
-
-  const customAsyncQueryOptions = useMemo(() => {
-    const nextQueryOptions: NonNullable<
-      ComponentProps<typeof BackendJsonSubmitForm>['customAsyncQueryOptions']
-    > = {};
-
-    for (const field of getAllSchemaFields(fieldGroups)) {
-      if (field.type !== 'select' || !field.uri) {
-        continue;
-      }
-
-      nextQueryOptions[field.name] = debouncedInput =>
-        // eslint-disable-next-line @tanstack/query/exhaustive-deps -- field/default state drives the request key; refs and state setters should not affect cache identity.
-        queryOptions({
-          initialData: toSelectValues(mergeFieldChoices(field, normalizedResetValues)),
-          queryKey: [
-            'sentry-app-external-request',
-            sentryAppInstallationUuid,
-            field.name,
-            field.uri,
-            debouncedInput,
-            JSON.stringify(mergeFieldChoices(field, normalizedResetValues)),
-            dynamicFieldValues,
-            externalDefaultValues,
-            serializedExtraRequestBody,
-          ],
-          queryFn: async (): Promise<Array<SelectValue<string>>> => {
-            if (!debouncedInput) {
-              return toSelectValues(mergeFieldChoices(field, normalizedResetValues));
-            }
-
-            const {choices} = await fetchFieldChoices({
-              currentValues: currentFormValuesRef.current,
-              defaultValues: externalDefaultValues,
-              field,
-              input: debouncedInput,
-              nextFieldGroups: fieldGroups,
-            });
-
-            setAsyncOptionsCache(prev => ({
-              ...prev,
-              [field.name]: normalizeChoices(choices),
-            }));
-
-            return toSelectValues(
-              choices.map(
-                ([value, label]) =>
-                  [String(value), choiceLabelToString(label)] as [string, string]
-              )
-            );
-          },
-        });
+    // Override this default if a reset value is provided
+    if (field.default && getFieldDefault) {
+      defaultValue = getFieldDefault(field);
     }
 
-    return nextQueryOptions;
-  }, [
-    dynamicFieldValues,
-    externalDefaultValues,
-    fetchFieldChoices,
-    fieldGroups,
-    normalizedResetValues,
-    sentryAppInstallationUuid,
-    serializedExtraRequestBody,
-  ]);
+    const reset = resetValues?.settings?.find(value => value.name === field.name);
 
-  const handleValueChange = useCallback(
-    (fieldName: string, value: unknown) => {
-      currentFormValuesRef.current = {
-        ...currentFormValuesRef.current,
-        [fieldName]: value,
-      };
-      if (triggerFieldNames.has(fieldName)) {
-        setDynamicFieldValues(prev => ({...prev, [fieldName]: value}));
-      }
+    if (reset) {
+      defaultValue = reset.value;
+    }
+    return defaultValue;
+  };
+
+  debouncedOptionLoad = debounce(
+    // debounce is used to prevent making a request for every input change and
+    // instead makes the requests every 200ms
+    async (field: FieldFromSchema, input, resolve) => {
+      const choices = await this.makeExternalRequest(field, input);
+      // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
+      const options = choices.map(([value, label]) => ({value, label}));
+      const optionsByField = new Map(this.state.optionsByField);
+      optionsByField.set(field.name, options);
+      this.setState({
+        optionsByField,
+      });
+      return resolve(options);
     },
-    [triggerFieldNames]
+    200,
+    {trailing: true}
   );
 
-  const handleFieldChange = useCallback(
-    async (fieldName: string, value: unknown) => {
-      const impactedFields = getAllSchemaFields(fieldGroups).filter(field =>
-        field.depends_on?.includes(fieldName)
-      );
+  makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
+    const {extraRequestBody = {}, sentryAppInstallationUuid} = this.props;
+    const query: Record<string, any> = {
+      ...extraRequestBody,
+      uri: field.uri,
+      query: input,
+    };
 
-      if (!impactedFields.length) {
-        return;
+    if (field.depends_on) {
+      const dependentData = field.depends_on.reduce((accum, dependentField: string) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        accum[dependentField] = this.model.getValue(dependentField);
+        return accum;
+      }, {});
+      // stringify the data
+      query.dependentData = JSON.stringify(dependentData);
+    }
+
+    const {choices, defaultValue} = await this.props.api.requestPromise(
+      `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
+      {query}
+    );
+
+    // If there is a default choice prepopulate the select with it
+    if (defaultValue) {
+      this.model.setValue(field.name, defaultValue);
+    }
+
+    return choices || [];
+  };
+
+  /**
+   * This function determines which fields need to be reset and new options fetched
+   * based on the dependencies defined with the depends_on attribute.
+   * This is done because the autoload flag causes fields to load at different times
+   * if you have multiple dependent fields while this solution updates state at once.
+   */
+  handleFieldChange = async (id: string) => {
+    const config = this.state;
+
+    let requiredFields = config.required_fields || [];
+    let optionalFields = config.optional_fields || [];
+
+    const fieldList = requiredFields.concat(optionalFields);
+
+    // could have multiple impacted fields
+    const impactedFields = fieldList.filter(({depends_on}) => {
+      if (!depends_on) {
+        return false;
       }
+      // must be dependent on the field we just set
+      return depends_on.includes(id);
+    });
 
-      const impactedFieldNames = new Set(impactedFields.map(field => field.name));
-      const requestVersion = dependentFetchVersionRef.current + 1;
-      const nextCurrentValues = omitValues(
-        {...currentFormValuesRef.current, [fieldName]: value},
-        impactedFieldNames
-      );
-      const nextDefaultValues = {...externalDefaultValues};
+    // load all options in parallel
+    const choiceArray = await Promise.all(
+      impactedFields.map(field => {
+        // reset all impacted fields first
+        const defaultValue = this.getDefaultFieldValue(field);
+        this.model.setValue(field.name || '', defaultValue || '', {quiet: true});
+        return this.makeExternalRequest(field, '');
+      })
+    );
 
-      for (const impactedFieldName of impactedFieldNames) {
-        delete nextDefaultValues[impactedFieldName];
-      }
+    this.setState(state => {
+      // pull the field lists from latest state
+      requiredFields = state.required_fields || [];
+      optionalFields = state.optional_fields || [];
+      // iterate through all the impacted fields and get new values
+      impactedFields.forEach((impactedField, i) => {
+        const choices = choiceArray[i];
+        const requiredIndex = requiredFields.indexOf(impactedField);
+        const optionalIndex = optionalFields.indexOf(impactedField);
 
-      dependentFetchVersionRef.current = requestVersion;
-      currentFormValuesRef.current = nextCurrentValues;
-      setDynamicFieldValues(getTriggerFieldValues(nextCurrentValues, triggerFieldNames));
-      setFormInitialValues(nextCurrentValues);
-      setExternalDefaultValues(nextDefaultValues);
-      setIsFetchingDependentFields(true);
+        const updatedField = {...impactedField, choices};
 
-      try {
-        const results = await Promise.all(
-          impactedFields.map(async field => ({
-            fieldName: field.name,
-            ...(await fetchFieldChoices({
-              currentValues: nextCurrentValues,
-              defaultValues: nextDefaultValues,
-              field,
-              input: '',
-              nextFieldGroups: fieldGroups,
-            })),
-          }))
-        );
-
-        if (requestVersion !== dependentFetchVersionRef.current) {
-          return;
-        }
-
-        let updatedFieldGroups = fieldGroups;
-        const updatedDefaultValues = {...nextDefaultValues};
-
-        for (const result of results) {
-          updatedFieldGroups = updateSchemaFieldChoices(
-            updatedFieldGroups,
-            result.fieldName,
-            result.choices
+        // immutably update the lists with the updated field depending where we got it from
+        if (requiredIndex > -1) {
+          requiredFields = replaceAtArrayIndex(
+            requiredFields,
+            requiredIndex,
+            updatedField
           );
-
-          if (result.defaultValue !== undefined) {
-            updatedDefaultValues[result.fieldName] = result.defaultValue;
-          }
+        } else if (optionalIndex > -1) {
+          optionalFields = replaceAtArrayIndex(
+            optionalFields,
+            optionalIndex,
+            updatedField
+          );
         }
+      });
+      return {
+        required_fields: requiredFields,
+        optional_fields: optionalFields,
+      };
+    });
+  };
 
-        const mergedFormValues = {
-          ...omitValues(currentFormValuesRef.current, impactedFieldNames),
-          ...updatedDefaultValues,
-        };
+  createPreserveOptionFunction = (name: string) => (option: any, _event: any) => {
+    this.setState({
+      selectedOptions: {
+        ...this.state.selectedOptions,
+        [name]: option,
+      },
+    });
+  };
 
-        currentFormValuesRef.current = mergedFormValues;
-        setFieldGroups(updatedFieldGroups);
-        setDynamicFieldValues(getTriggerFieldValues(mergedFormValues, triggerFieldNames));
-        setFormInitialValues(mergedFormValues);
-        setExternalDefaultValues(updatedDefaultValues);
-        setFormVersion(version => version + 1);
-      } finally {
-        if (requestVersion === dependentFetchVersionRef.current) {
-          setIsFetchingDependentFields(false);
+  renderField = (field: FieldFromSchema, required: boolean) => {
+    // This function converts the field we get from the backend into
+    // the field we need to pass down
+    let fieldToPass: Field = {
+      ...field,
+      inline: false,
+      stacked: true,
+      flexibleControlStateSize: true,
+      required,
+    };
+    if (field?.uri && field?.async) {
+      fieldToPass.type = 'select_async';
+    }
+    if (['select', 'select_async'].includes(fieldToPass.type || '')) {
+      // find the options from state to pass down
+      const defaultOptions = this.getDefaultOptions(field);
+      const options = this.state.optionsByField.get(field.name) || defaultOptions;
+
+      fieldToPass = {
+        ...fieldToPass,
+        options,
+        defaultOptions,
+        defaultValue: this.getDefaultFieldValue(field),
+        // filter by what the user is typing
+        filterOption: createFilter({}),
+        allowClear: !required,
+        placeholder: 'Type to search',
+      } as Field;
+      if (field.depends_on) {
+        // check if this is dependent on other fields which haven't been set yet
+        const shouldDisable = field.depends_on.some(
+          dependentField => !hasValue(this.model.getValue(dependentField))
+        );
+        if (shouldDisable) {
+          fieldToPass = {...fieldToPass, disabled: true};
         }
       }
-    },
-    [externalDefaultValues, fetchFieldChoices, fieldGroups, triggerFieldNames]
-  );
-
-  const choicesByField = useMemo(() => {
-    const lookup: Record<string, Choices> = {};
-
-    for (const field of getAllSchemaFields(fieldGroups)) {
-      if (field.type !== 'select') {
-        continue;
-      }
-      lookup[field.name] = mergeFieldChoices(field, normalizedResetValues);
+    }
+    if (['text', 'textarea'].includes(fieldToPass.type || '')) {
+      fieldToPass = {
+        ...fieldToPass,
+        defaultValue: this.getDefaultFieldValue(field),
+      };
     }
 
-    return {
-      ...lookup,
-      ...asyncOptionsCache,
-    };
-  }, [asyncOptionsCache, fieldGroups, normalizedResetValues]);
+    // if we have a uri, we need to set extra parameters
+    const extraProps = field.uri
+      ? {
+          loadOptions: (input: string) => this.getOptions(field, input),
+          async: field?.async ?? true,
+          cache: false,
+          onSelectResetsInput: false,
+          onCloseResetsInput: false,
+          onBlurResetsInput: false,
+          autoload: false,
+          onChangeOption: this.createPreserveOptionFunction(field.name),
+        }
+      : {};
 
-  const submitDisabled = isFetchingDependentFields;
+    return (
+      <FieldFromConfig
+        key={field.name}
+        field={fieldToPass}
+        data-test-id={field.name}
+        {...extraProps}
+      />
+    );
+  };
 
-  const {mutateAsync: createExternalIssue} = useMutation<
-    unknown,
-    Error,
-    Record<string, unknown>
-  >({
-    mutationFn: values =>
-      fetchMutation({
-        url: `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`,
-        method: 'POST',
-        data: {
-          ...normalizedExtraFields,
-          ...values,
-          action,
-          uri: config.uri,
-        },
-      }),
-    onSuccess: response => {
-      onSubmitSuccess(response);
-    },
-    onError: error => {
-      if (!(error instanceof RequestError)) {
-        addErrorMessage(t('Unable to %s %s issue.', action, appName));
-      }
-      Sentry.captureException(error, {
-        tags: {
-          sentry_app: appName,
-          form_element: element,
-          form_action: action,
-        },
-        extra: {
-          sentryAppInstallationUuid,
-          configUri: config.uri,
-        },
-      });
-    },
-  });
-
-  const handleSubmit = useCallback(
-    async (values: Record<string, unknown>) => {
-      if (element === 'alert-rule-action') {
-        const settings = Object.entries(values).map(([name, value]) => {
-          const field = findSchemaField(fieldGroups, name);
+  handleAlertRuleSubmit: OnSubmitCallback = (formData, onSubmitSuccess) => {
+    const {sentryAppInstallationUuid} = this.props;
+    if (this.model.validateForm()) {
+      onSubmitSuccess({
+        // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
+        settings: Object.entries(formData).map(([name, value]) => {
           const savedSetting: SentryAppSetting = {name, value};
-
-          if (field?.uri && !Array.isArray(value)) {
-            const selectedChoice = choicesByField[name]?.find(
-              ([choiceValue]) => choiceValue === value
-            );
-
-            if (selectedChoice) {
-              savedSetting.label = choiceLabelToString(selectedChoice[1]);
-            }
+          const stateOption = this.state.selectedOptions[name];
+          // If the field is a SelectAsync, we need to preserve the label since the next time it's rendered,
+          // we can't be sure the options will contain this selection
+          if (stateOption?.value === value) {
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
+            savedSetting.label = `${stateOption?.label}`;
           }
-
           return savedSetting;
-        });
+        }),
+        sentryAppInstallationUuid,
+        // Used on the backend to explicitly associate with a different rule than those without a custom form.
+        hasSchemaFormConfig: true,
+      });
+    }
+  };
 
-        onSubmitSuccess({
-          hasSchemaFormConfig: true,
-          sentryAppInstallationUuid,
-          settings,
-        });
-        return;
-      }
+  render() {
+    const {sentryAppInstallationUuid, action, element, onSubmitSuccess} = this.props;
 
-      return createExternalIssue(values);
-    },
-    [
-      choicesByField,
-      createExternalIssue,
-      element,
-      fieldGroups,
-      onSubmitSuccess,
-      sentryAppInstallationUuid,
-    ]
-  );
+    const requiredFields = this.state.required_fields || [];
+    const optionalFields = this.state.optional_fields || [];
 
-  const formKey = useMemo(
-    () =>
-      `${action}:${formVersion}:${adapterFields
-        .map(field => `${field.name}:${JSON.stringify(field.default)}`)
-        .join(',')}`,
-    [action, adapterFields, formVersion]
-  );
+    if (!sentryAppInstallationUuid) {
+      return '';
+    }
 
-  if (!sentryAppInstallationUuid) {
-    return null;
+    return (
+      <Form
+        key={action}
+        apiEndpoint={`/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`}
+        apiMethod="POST"
+        // Without defining onSubmit, the Form will send an `apiMethod` request to the above `apiEndpoint`
+        onSubmit={
+          element === 'alert-rule-action' ? this.handleAlertRuleSubmit : undefined
+        }
+        onSubmitSuccess={(...params) => {
+          onSubmitSuccess(...params);
+        }}
+        onSubmitError={this.onSubmitError}
+        onFieldChange={this.handleFieldChange}
+        preventFormResetOnUnmount
+        model={this.model}
+      >
+        {requiredFields.map((field: FieldFromSchema) => {
+          return this.renderField(field, true);
+        })}
+
+        {optionalFields.map((field: FieldFromSchema) => {
+          return this.renderField(field, false);
+        })}
+      </Form>
+    );
   }
-
-  return (
-    <BackendJsonSubmitForm
-      key={formKey}
-      fields={adapterFields}
-      initialValues={formInitialValues}
-      onSubmit={handleSubmit}
-      submitLabel={t('Save Changes')}
-      submitDisabled={submitDisabled}
-      onFieldChange={handleFieldChange}
-      onValueChange={handleValueChange}
-      customAsyncQueryOptions={customAsyncQueryOptions}
-      footer={({SubmitButton, disabled}) => (
-        <Flex justify="end" paddingTop="xl">
-          <SubmitButton disabled={disabled}>{t('Save Changes')}</SubmitButton>
-        </Flex>
-      )}
-    />
-  );
 }
+
+export default withApi(SentryAppExternalForm);

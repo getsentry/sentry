@@ -10,12 +10,11 @@ import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  SentryAppExternalForm,
+import SentryAppExternalForm, {
   type FieldFromSchema,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-import {LegacySentryAppExternalForm} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.legacy';
+import {SentryAppExternalFormNew} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
 
 type Props = {
   action: 'create' | 'link';
@@ -94,7 +93,7 @@ export function SentryAppExternalIssueForm({
 
   if (useNewForm) {
     return (
-      <SentryAppExternalForm
+      <SentryAppExternalFormNew
         sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={appName}
         config={config}
@@ -109,7 +108,7 @@ export function SentryAppExternalIssueForm({
   }
 
   return (
-    <LegacySentryAppExternalForm
+    <SentryAppExternalForm
       sentryAppInstallationUuid={sentryAppInstallation.uuid}
       appName={appName}
       config={config}
