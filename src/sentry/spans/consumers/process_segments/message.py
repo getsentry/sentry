@@ -180,7 +180,8 @@ def _enrich_spans(
 
 @metrics.wraps("spans.consumers.process_segments.add_segment_name")
 def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) -> None:
-    # Prefer sentry.segment.name, then fall back to the v1 description for backwards compatibility.
+    # Prefer sentry.segment.name, then fall back to the v1 description for backwards
+    # compatibility, and finally to the name if all else fails.
     segment_name = (
         attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME)
         or segment.get("description")
