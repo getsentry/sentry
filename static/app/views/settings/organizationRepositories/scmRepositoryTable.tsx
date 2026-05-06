@@ -35,7 +35,7 @@ import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 const REPO_LIST_MAX_HEIGHT = 400;
-const ESTIMATED_REPO_ROW_HEIGHT = 36;
+const ESTIMATED_REPO_ROW_HEIGHT = 32;
 
 /**
  * Fuse match results keyed by `repository.id`, used to highlight the matched
@@ -666,9 +666,7 @@ function VirtualizedRepoList({
       {items}
     </Grid>
   ) : (
-    <Flex {...commonProps} direction="column">
-      {items}
-    </Flex>
+    <Container {...commonProps}>{items}</Container>
   );
 }
 

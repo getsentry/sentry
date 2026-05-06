@@ -10,14 +10,15 @@ import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const schema = z.object({
   enabledCodeReview: z.boolean(),
-  codeReviewTriggers: z.array(z.string()),
+  codeReviewTriggers: z.array(z.enum(['on_new_commit', 'on_ready_for_review'])),
 });
 
 interface Props {
@@ -35,38 +36,40 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
   );
 
   const repoMutationOpts = mutationOptions({
-    mutationFn: (data: {codeReviewTriggers?: string[]; enabledCodeReview?: boolean}) => {
+    mutationFn: (
+      data: Partial<{
+        codeReviewTriggers: CodeReviewTrigger[];
+        enabledCodeReview: boolean;
+      }>
+    ) => {
       return fetchMutation<RepositoryWithSettings[]>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/repos/settings/`,
         data: {...data, repositoryIds: [repoWithSettings.id]},
       });
     },
-    onMutate: (data: {codeReviewTriggers?: string[]; enabledCodeReview?: boolean}) => {
-      const previous =
-        // eslint-disable-next-line @sentry/no-query-data-type-parameters
-        queryClient.getQueryData<
-          [RepositoryWithSettings, string | undefined, Response | undefined]
-        >(repoQueryKey);
+    onMutate: data => {
+      const previous = getApiQueryData<RepositoryWithSettings>(queryClient, repoQueryKey);
       if (previous) {
-        const [repo, statusText, resp] = previous;
-        queryClient.setQueryData(repoQueryKey, [
-          {
-            ...repo,
-            settings: {
-              ...repo.settings,
-              ...data,
-            },
+        setApiQueryData<RepositoryWithSettings>(queryClient, repoQueryKey, {
+          ...previous,
+          settings: {
+            codeReviewTriggers: [],
+            enabledCodeReview: false,
+            ...previous.settings,
+            ...data,
           },
-          statusText,
-          resp,
-        ]);
+        });
       }
       return {previous};
     },
     onError: (_error, _data, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(repoQueryKey, context.previous);
+        setApiQueryData<RepositoryWithSettings>(
+          queryClient,
+          repoQueryKey,
+          context.previous
+        );
       }
     },
     onSettled: () => {

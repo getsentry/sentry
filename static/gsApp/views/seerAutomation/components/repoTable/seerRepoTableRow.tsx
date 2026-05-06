@@ -25,6 +25,7 @@ import {
 } from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -119,9 +120,10 @@ export function SeerRepoTableRow({
                 enabledCodeReview: e.target.checked,
               },
             };
-            queryClient.setQueryData(
+            setApiQueryData<RepositoryWithSettings>(
+              queryClient,
               getRepositoryWithSettingsQueryKey(organization, repository.id),
-              [optimisticData, undefined, undefined]
+              optimisticData
             );
             addLoadingMessage(t('Updating code review for %s', repository.name));
             mutateRepositorySettings(
@@ -133,7 +135,11 @@ export function SeerRepoTableRow({
               },
               {
                 onError: () => {
-                  queryClient.setQueryData(queryKey, [repository, undefined, undefined]);
+                  setApiQueryData<RepositoryWithSettings>(
+                    queryClient,
+                    queryKey,
+                    repository
+                  );
                   addErrorMessage(
                     t('Failed to update code review for %s', repository.name)
                   );
