@@ -6,7 +6,7 @@ const FAIL_ON_REMOVED_KEY = 'sentry:preprod_snapshot_status_checks_fail_on_remov
 const FAIL_ON_CHANGED_KEY = 'sentry:preprod_snapshot_status_checks_fail_on_changed';
 const FAIL_ON_RENAMED_KEY = 'sentry:preprod_snapshot_status_checks_fail_on_renamed';
 
-export function useSnapshotStatusChecks(project: Project) {
+export function getSnapshotStatusChecks(project: Project) {
   const enabled =
     project.preprodSnapshotStatusChecksEnabled ??
     project.options?.[ENABLED_KEY] !== false;

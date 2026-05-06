@@ -1,4 +1,5 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -10,9 +11,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import {useSnapshotStatusChecks} from './useSnapshotStatusChecks';
+import {getSnapshotStatusChecks} from './getSnapshotStatusChecks';
 
 const schema = z.object({
   preprodSnapshotStatusChecksEnabled: z.boolean(),
@@ -32,31 +34,34 @@ type SnapshotStatusCheckField = {
 
 export function SnapshotStatusChecks() {
   const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const project = useProjectFromId({project_id: outletProject.id}) ?? outletProject;
   const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
-    useSnapshotStatusChecks(project);
-  const [statusChecksEnabled, setStatusChecksEnabled] = useState(enabled);
+    getSnapshotStatusChecks(project);
 
   const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
 
-  useEffect(() => {
-    setStatusChecksEnabled(enabled);
-  }, [enabled]);
-
-  const mutationOptions = {
+  const projectMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Schema>) =>
       fetchMutation<Project>({
         url: projectEndpoint,
         method: 'PUT',
         data,
       }),
-    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
-  };
-
-  const enabledMutationOptions = {
-    ...mutationOptions,
-    onError: () => setStatusChecksEnabled(enabled),
-  };
+    onMutate: data => {
+      const previous = ProjectsStore.getById(project.id);
+      ProjectsStore.onUpdateSuccess({id: project.id, ...data});
+      return () => {
+        if (previous) {
+          ProjectsStore.onUpdateSuccess(previous);
+        }
+      };
+    },
+    onSuccess: response => ProjectsStore.onUpdateSuccess(response),
+    onError: (_error, _variables, rollback) => {
+      rollback?.();
+    },
+  });
 
   const failureConditionFields = [
     {
@@ -91,7 +96,7 @@ export function SnapshotStatusChecks() {
         name="preprodSnapshotStatusChecksEnabled"
         schema={schema}
         initialValue={enabled}
-        mutationOptions={enabledMutationOptions}
+        mutationOptions={projectMutationOptions}
       >
         {field => (
           <field.Layout.Row
@@ -100,18 +105,12 @@ export function SnapshotStatusChecks() {
               'Sentry will post status checks based on snapshot changes in your builds.'
             )}
           >
-            <field.Switch
-              checked={field.state.value}
-              onChange={value => {
-                setStatusChecksEnabled(value);
-                field.handleChange(value);
-              }}
-            />
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
 
-      {statusChecksEnabled ? (
+      {enabled ? (
         <Fragment>
           {failureConditionFields.map(({name, initialValue, label, hintText}) => (
             <AutoSaveForm
@@ -119,7 +118,7 @@ export function SnapshotStatusChecks() {
               name={name}
               schema={schema}
               initialValue={initialValue}
-              mutationOptions={mutationOptions}
+              mutationOptions={projectMutationOptions}
             >
               {field => (
                 <field.Layout.Row label={label} hintText={hintText}>
