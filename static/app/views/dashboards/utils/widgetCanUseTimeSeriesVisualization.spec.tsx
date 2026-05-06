@@ -1,16 +1,16 @@
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {widgetUsesTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetUsesTimeSeriesVisualization';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 
 function makeWidget(widgetType: WidgetType | undefined, displayType: DisplayType): any {
   return {widgetType, displayType};
 }
 
-describe('widgetUsesTimeSeriesVisualization', () => {
+describe('widgetCanUseTimeSeriesVisualization', () => {
   it.each([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR, DisplayType.TOP_N])(
     'returns true for %s display type',
     displayType => {
       expect(
-        widgetUsesTimeSeriesVisualization(
+        widgetCanUseTimeSeriesVisualization(
           makeWidget(WidgetType.TRANSACTIONS, displayType)
         )
       ).toBe(true);
@@ -21,7 +21,7 @@ describe('widgetUsesTimeSeriesVisualization', () => {
     'returns true for formerly unsupported widget type %s',
     widgetType => {
       expect(
-        widgetUsesTimeSeriesVisualization(makeWidget(widgetType, DisplayType.LINE))
+        widgetCanUseTimeSeriesVisualization(makeWidget(widgetType, DisplayType.LINE))
       ).toBe(true);
     }
   );
@@ -30,14 +30,14 @@ describe('widgetUsesTimeSeriesVisualization', () => {
     'returns false for non-time-series display type %s',
     displayType => {
       expect(
-        widgetUsesTimeSeriesVisualization(makeWidget(WidgetType.SPANS, displayType))
+        widgetCanUseTimeSeriesVisualization(makeWidget(WidgetType.SPANS, displayType))
       ).toBe(false);
     }
   );
 
   it('returns false when widgetType is undefined', () => {
     expect(
-      widgetUsesTimeSeriesVisualization(makeWidget(undefined, DisplayType.LINE))
+      widgetCanUseTimeSeriesVisualization(makeWidget(undefined, DisplayType.LINE))
     ).toBe(false);
   });
 });

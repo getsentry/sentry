@@ -7,7 +7,7 @@ const SUPPORTED_DISPLAY_TYPES = new Set<DisplayType>([
   DisplayType.TOP_N,
 ]);
 
-export function widgetUsesTimeSeriesVisualization(widget: Widget): boolean {
+export function widgetCanUseTimeSeriesVisualization(widget: Widget): boolean {
   if (!widget.widgetType) {
     return false;
   }

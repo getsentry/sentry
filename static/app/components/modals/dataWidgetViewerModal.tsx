@@ -94,7 +94,7 @@ import {
   widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
-import {widgetUsesTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetUsesTimeSeriesVisualization';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -655,7 +655,7 @@ function DataWidgetViewerModal(props: Props) {
                 : HALF_CONTAINER_HEIGHT
             }
           >
-            {widgetUsesTimeSeriesVisualization(primaryWidget) ? (
+            {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
               <VisualizationWidget
                 selection={modalSelection}
                 dashboardFilters={dashboardFilters}
