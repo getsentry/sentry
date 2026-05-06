@@ -4,11 +4,18 @@ import styled from '@emotion/styled';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {IdBadge} from 'sentry/components/idBadge';
+import {KeyValueData} from 'sentry/components/keyValueData';
+import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
+import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
 interface SidebarGroup {
   count: number;
@@ -61,6 +68,7 @@ interface SnapshotSidebarContentProps {
   searchQuery: string;
   sections: SidebarSection[];
   activeItemKey?: string | null;
+  data?: SnapshotDetailsApiResponse;
   statusCounts?: StatusCounts | null;
 }
 
@@ -73,6 +81,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   statusCounts,
   activeStatuses,
   onToggleStatus,
+  data,
 }: SnapshotSidebarContentProps) {
   const hasActiveFilter = activeStatuses.size > 0;
   const isStatusActive = (status: DiffStatus) =>
@@ -113,6 +122,83 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   };
 
   const hasGroups = sections.some(s => s.groups.length > 0);
+
+  const metadataItems: KeyValueDataContentProps[] = [];
+  if (data) {
+    const {vcs_info, app_id: appId} = data;
+    const project = ProjectsStore.getById(data.project_id);
+    const shortSha = vcs_info?.head_sha?.slice(0, 7);
+
+    if (project) {
+      metadataItems.push({
+        item: {
+          key: 'project',
+          subject: t('Project'),
+          value: <IdBadge project={project} avatarSize={12} />,
+        },
+        disableFormattedData: true,
+      });
+    }
+
+    if (shortSha) {
+      const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
+      metadataItems.push({
+        item: {
+          key: 'commit',
+          subject: t('SHA'),
+          value: shaUrl ? (
+            <ExternalLink href={shaUrl}>{shortSha}</ExternalLink>
+          ) : (
+            shortSha
+          ),
+        },
+        disableFormattedData: true,
+        disableLink: true,
+      });
+    }
+
+    if (vcs_info?.pr_number) {
+      const prUrl = getPrUrl(vcs_info);
+      const prLabel = `#${vcs_info.pr_number}`;
+      metadataItems.push({
+        item: {
+          key: 'pr',
+          subject: t('PR #'),
+          value: prUrl ? <ExternalLink href={prUrl}>{prLabel}</ExternalLink> : prLabel,
+        },
+        disableFormattedData: true,
+        disableLink: true,
+      });
+    }
+
+    if (vcs_info?.head_ref) {
+      const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
+      metadataItems.push({
+        item: {
+          key: 'branch',
+          subject: t('Branch'),
+          value: branchUrl ? (
+            <ExternalLink href={branchUrl}>{vcs_info.head_ref}</ExternalLink>
+          ) : (
+            vcs_info.head_ref
+          ),
+        },
+        disableFormattedData: true,
+        disableLink: true,
+      });
+    }
+
+    if (appId) {
+      metadataItems.push({
+        item: {
+          key: 'app_id',
+          subject: t('App ID'),
+          value: appId,
+        },
+        disableFormattedData: true,
+      });
+    }
+  }
 
   return (
     <Stack height="100%" width="100%">
@@ -225,6 +311,13 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           </Flex>
         )}
       </Stack>
+      {metadataItems.length > 0 && (
+        <MetadataPanel>
+          {metadataItems.map((itemProps, index) => (
+            <KeyValueData.Content key={String(index)} {...itemProps} />
+          ))}
+        </MetadataPanel>
+      )}
     </Stack>
   );
 });
@@ -339,4 +432,14 @@ const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
   }
+`;
+
+const MetadataPanel = styled('div')`
+  flex-shrink: 0;
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space.sm};
+  display: grid;
+  column-gap: ${p => p.theme.space.lg};
+  grid-template-columns: fit-content(50%) 1fr;
+  font-size: ${p => p.theme.font.size.sm};
 `;

@@ -4,7 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -161,7 +161,7 @@ export function SnapshotHeaderActions({
     <Flex align="center" gap="md">
       {data.approval_info &&
         (isApproved ? (
-          <Flex align="center" gap="xl">
+          <Flex align="center" gap="xl" display={{xs: 'none', md: 'flex'}}>
             <Flex align="center" gap="xs">
               <Tag variant="success" icon={<IconCheckmark />}>
                 {isAutoApproved ? t('Auto-approved') : t('Approved')}
@@ -184,9 +184,11 @@ export function SnapshotHeaderActions({
           </Flex>
         ) : (
           <Flex align="center" gap="sm">
-            <Tag variant="warning" icon={<IconTimer />}>
-              {t('Requires approval')}
-            </Tag>
+            <Container display={{'2xs': 'none', md: 'block'}}>
+              <Tag variant="warning" icon={<IconTimer />}>
+                {t('Requires approval')}
+              </Tag>
+            </Container>
             <Button
               size="sm"
               variant="primary"

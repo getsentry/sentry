@@ -659,6 +659,8 @@ export default function SnapshotsPage() {
         flexShrink={0}
         overflow="auto"
         borderRight="primary"
+        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+        maxWidth={{sm: '300px', md: 'none'}}
         style={{
           width: sidebarWidth,
           height: hasPageFrameFeature
@@ -675,6 +677,7 @@ export default function SnapshotsPage() {
           statusCounts={statusCounts}
           activeStatuses={activeStatuses}
           onToggleStatus={handleToggleStatus}
+          data={data}
         />
       </Flex>
       <DragHandle
@@ -747,7 +750,7 @@ export default function SnapshotsPage() {
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
       <Stack flex={1} onClick={handleDeselectSnapshot}>
-        <SnapshotHeaderContent data={data} />
+        <SnapshotHeaderContent />
         <TopBar.Slot name="actions">
           <SnapshotHeaderActions
             data={data}
@@ -768,6 +771,10 @@ const DragHandle = styled('div')`
   position: relative;
   display: grid;
   place-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;

@@ -519,7 +519,11 @@ function SingleViewLayout({
               </SnapshotCardFrame>
             </DarkAware>
           </Flex>
-          <Container flexShrink={0} onClick={e => e.stopPropagation()}>
+          <Container
+            flexShrink={0}
+            onClick={e => e.stopPropagation()}
+            display={{'2xs': 'none', xs: 'none', sm: 'block'}}
+          >
             <NavGutter>
               <Tooltip title={t('Previous (↑)')} skipWrapper>
                 <Button
@@ -741,6 +745,16 @@ const SingleViewScroll = styled('div')`
   padding-left: 0;
   display: flex;
   flex-direction: column;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
+      p.theme.breakpoints.md}) {
+    padding-left: ${p => p.theme.space.xl};
+  }
 `;
 
 const NavGutter = styled('div')`
@@ -817,6 +831,10 @@ const ProgressCounter = styled(Text)`
 
 const ToolbarProgressBar = styled(ProgressBar)`
   width: 50px;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: none;
+  }
 `;
 
 const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
@@ -860,7 +878,7 @@ function ToolbarContainer({
         align="center"
         justify="between"
         gap="md"
-        padding="md xl md 0"
+        padding={{xs: 'md xl', md: 'md xl md 0'}}
         background="primary"
         onClick={e => e.stopPropagation()}
       >
@@ -875,7 +893,7 @@ function ToolbarContainer({
               {diffControls}
             </Flex>
           )}
-          {soloDiffToggle}
+          <Flex display={{'2xs': 'none', xs: 'none', sm: 'flex'}}>{soloDiffToggle}</Flex>
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />
