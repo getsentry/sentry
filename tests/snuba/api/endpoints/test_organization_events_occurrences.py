@@ -511,55 +511,84 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             q["sql"] for q in ctx.captured_queries if Group._meta.db_table in q["sql"]
         ]
 
+
+    def _create_occurrence_with_arrays(self, occurrence_count: int = 1) -> tuple[list, list[dict]]:
+        occurrences = []
+        expected: list[dict] = []
+        for i in range(occurrence_count):
+            filenames = [f"sentry/module_{i}/urls.py", f"django/views_{i}/base.py"]
+            http_url = f"https://example.com/items/{i}"
+            colnos = [12 + i, i]
+            col_nums = [str(c) for c in colnos]
+            in_app = True if i % 2 else False
+            event_id = uuid.uuid4().hex
+            trace_id = uuid.uuid4().hex
+            group = self.create_group(project=self.project)
+            occ = self.create_eap_occurrence(
+                event_id=event_id,
+                group_id=group.id,
+                trace_id=trace_id,
+                project=self.project,
+                attributes={
+                    "fingerprint": [f"exception-stack-array-{i}"],
+                    "request": {"url": http_url},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "value": "bad value",
+                                "mechanism": {"type": "generic", "handled": True},
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "abs_path": f"/app/{filenames[0]}",
+                                            "filename": filenames[0],
+                                            "module": f"sentry.module_{i}.urls",
+                                            "function": "dispatch",
+                                            "in_app": in_app,
+                                            "lineno": 45,
+                                            "colno": colnos[0],
+                                        },
+                                        {
+                                            "abs_path": f"/usr/lib/{filenames[1]}",
+                                            "filename": filenames[1],
+                                            "module": f"django.views_{i}.base",
+                                            "function": "handler",
+                                            "in_app": in_app,
+                                            "lineno": 200,
+                                            "colno": colnos[1],
+                                        },
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                },
+            )
+            occurrences.append(occ)
+            expected.append(
+                {
+                    "filenames": filenames,
+                    "http_url": http_url,
+                    "col_nums": col_nums,
+                    "event_id": event_id,
+                    "group_id": group.id,
+                    "in_app": in_app,
+                }
+            )
+        self.store_eap_items(occurrences)
+
+        return occurrences, expected
+
     @pytest.mark.xfail(reason="flaky: integer vs string type mismatch in EAP array attributes")
     def test_eap_occurrence_stores_exception_stack_as_array_attributes(self) -> None:
-        expected_filenames = ["sentry/web/urls.py", "django/views/base.py"]
-        expected_http_url = "https://example.com/items/123"
-        event_id = uuid.uuid4().hex
-        trace_id = uuid.uuid4().hex
-        group = self.create_group(project=self.project)
-        occ = self.create_eap_occurrence(
-            event_id=event_id,
-            group_id=group.id,
-            trace_id=trace_id,
-            project=self.project,
-            attributes={
-                "fingerprint": ["exception-stack-array"],
-                "request": {"url": expected_http_url},
-                "exception": {
-                    "values": [
-                        {
-                            "type": "ValueError",
-                            "value": "bad value",
-                            "mechanism": {"type": "generic", "handled": True},
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "abs_path": "/app/sentry/web/urls.py",
-                                        "filename": "sentry/web/urls.py",
-                                        "module": "sentry.web.urls",
-                                        "function": "dispatch",
-                                        "in_app": True,
-                                        "lineno": 45,
-                                        "colno": 12,
-                                    },
-                                    {
-                                        "abs_path": "/usr/lib/django/views/base.py",
-                                        "filename": "django/views/base.py",
-                                        "module": "django.views.base",
-                                        "function": "handler",
-                                        "in_app": False,
-                                        "lineno": 200,
-                                        "colno": 0,
-                                    },
-                                ]
-                            },
-                        }
-                    ]
-                },
-            },
-        )
-        expected_col_nums = ["12", "0"]
+        occurrences, expected = self._create_occurrence_with_arrays(occurrence_count=1)
+        occ = occurrences[0]
+        expected_filenames = expected[0]["filenames"]
+        expected_http_url = expected[0]["http_url"]
+        expected_col_nums = expected[0]["col_nums"]
+        event_id = expected[0]["event_id"]
+
         assert occ.attributes["http_url"].WhichOneof("value") == "string_value"
         assert occ.attributes["http_url"].string_value == expected_http_url
 
@@ -572,8 +601,6 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             if v.WhichOneof("value") == "string_value"
         ]
         assert decoded_filenames == expected_filenames
-
-        self.store_eap_items([occ])
 
         response = self.request_with_feature_flag(
             {
@@ -592,3 +619,24 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert data[0].get("http.url") == expected_http_url
         # EAP converts all non-string arrays to strings.
         assert data[0].get("stack.colno") == expected_col_nums
+
+
+    def test_eap_occurrences_array_includes_query(self) -> None:
+        """Test array `includes` query """
+        occurrences, expected = self._create_occurrence_with_arrays(occurrence_count=2)
+        occ = occurrences[0] # Remove
+        assert occ.attributes["http_url"].WhichOneof("value") == "string_value"
+        # TODO: Test tag vs first order member confusion on occ object
+        file_names = [exp["filenames"] for exp in expected]
+        col_nums = [exp["col_nums"] for exp in expected]
+        response = self.request_with_feature_flag(
+            {
+                # stack.filename -> frame_filenames (array); http.url -> http_url (string)
+                "field": ["id", "stack.filename", "http.url", "stack.colno"],
+                "query": f"tags[colno, array][*]: {col_nums[0]}",
+                "statsPeriod": "1h",
+                "project": [self.project.id],
+            }
+        )
+        data = response.data.get("data", [])
+        assert len(data) == 1
