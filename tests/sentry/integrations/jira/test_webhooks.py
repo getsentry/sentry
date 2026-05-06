@@ -217,20 +217,26 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
+    @with_feature("organizations:jira-issue-updated-payload-logging")
     @patch("sentry.integrations.jira.webhooks.issue_updated.sentry_sdk.capture_exception")
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    @patch("sentry.integrations.jira.webhooks.issue_updated._payload_logging_enabled")
+    @patch("sentry.integrations.jira.webhooks.issue_updated.logger")
     def test_payload_logging_failure_does_not_skip_handlers(
         self,
-        mock_payload_logging_enabled: MagicMock,
+        mock_logger: MagicMock,
         mock_sync_group_assignee_inbound: MagicMock,
         mock_capture_exception: MagicMock,
     ) -> None:
-        # The diagnostic payload-logging path makes RPC calls that could fail
-        # transiently. Those failures must not prevent the real webhook
-        # handlers from running.
-        error = RuntimeError("transient RPC failure")
-        mock_payload_logging_enabled.side_effect = error
+        # The diagnostic payload-logging path can fail transiently (e.g. a
+        # broken `extra=` payload, or a flaky logging backend). Those failures
+        # must not prevent the real webhook handlers from running.
+        error = RuntimeError("simulated payload logging failure")
+
+        def raising_info(event_name: str, *args: object, **kwargs: object) -> None:
+            if event_name == "jira.issue-updated.payload":
+                raise error
+
+        mock_logger.info.side_effect = raising_info
 
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",

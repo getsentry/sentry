@@ -16,7 +16,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
 from sentry.integrations.utils.scope import bind_org_context_from_integration
-from sentry.organizations.services.organization import RpcOrganization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -27,20 +26,6 @@ from .base import JiraWebhookBase
 logger = logging.getLogger(__name__)
 
 PAYLOAD_LOGGING_FEATURE = "organizations:jira-issue-updated-payload-logging"
-
-
-def _payload_logging_enabled(org: RpcOrganization | None) -> bool:
-    """True if `org` is non-None and has the
-    `jira-issue-updated-payload-logging` feature enabled.
-
-    `org` is the org `bind_org_context_from_integration` resolved this Jira
-    integration to. It is `None` when the integration is linked to zero orgs
-    or to multiple orgs; we deliberately skip payload logging in the
-    multi-org (ambiguous) case rather than dumping one tenant's webhook
-    payload into our logs because a different tenant on the same Jira
-    workspace flipped the flag.
-    """
-    return org is not None and features.has(PAYLOAD_LOGGING_FEATURE, org)
 
 
 @cell_silo_endpoint
@@ -96,17 +81,18 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
 
         data = request.data
 
-        # Temporary: when a linked org has the
+        # Temporary: when the linked org has the
         # `jira-issue-updated-payload-logging` feature enabled, log the full
         # webhook payload so we can see exactly what Jira sends us (especially
         # for `project` changes, which we want to use to update the linked
-        # Jira issue link in Sentry).
+        # Jira issue link in Sentry). Skip the check (and the log) for ambiguous
+        # multi-tenant Jira installations, where `org is None`.
         #
         # This is purely diagnostic, so swallow any failure (including transient
         # RPC errors from the feature-flag check) rather than letting it skip
         # the real `handle_assignee_change` / `handle_status_change` calls below.
         try:
-            if _payload_logging_enabled(org):
+            if org is not None and features.has(PAYLOAD_LOGGING_FEATURE, org):
                 issue = data.get("issue") or {}
                 fields = issue.get("fields") or {}
                 changelog_items = (data.get("changelog") or {}).get("items") or []
