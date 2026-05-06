@@ -16,7 +16,6 @@ import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 
 export function DashboardsSecondaryNavigation() {
   const organization = useOrganization();
@@ -80,17 +79,13 @@ export function DashboardsSecondaryNavigation() {
               title={t('Starred Dashboards')}
             >
               <ErrorBoundary mini>
-                {organization.features.includes('dashboards-starred-reordering') ? (
-                  <DashboardsNavigationItems initialDashboards={starredDashboards} />
-                ) : (
-                  <StarredDashboardItems
-                    dashboards={starredDashboards}
-                    projects={projects}
-                    organizationSlug={organization.slug}
-                    organizationId={organization.id}
-                    userId={user.id}
-                  />
-                )}
+                <StarredDashboardItems
+                  dashboards={starredDashboards}
+                  projects={projects}
+                  organizationSlug={organization.slug}
+                  organizationId={organization.id}
+                  userId={user.id}
+                />
               </ErrorBoundary>
             </SecondaryNavigation.Section>
           </Fragment>

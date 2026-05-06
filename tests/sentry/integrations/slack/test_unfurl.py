@@ -470,7 +470,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -522,7 +521,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:performance-view",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -580,7 +578,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:performance-view",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -640,7 +637,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:performance-view",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -689,7 +685,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:performance-view",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -728,7 +723,6 @@ class UnfurlTest(TestCase):
         with self.feature(
             [
                 "organizations:incidents",
-                "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:metric-alert-chartcuterie",
             ]
@@ -955,7 +949,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1021,7 +1014,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1073,7 +1065,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1141,7 +1132,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1202,7 +1192,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1246,7 +1235,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1304,7 +1292,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1338,7 +1325,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1375,7 +1361,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1428,7 +1413,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):
@@ -1483,7 +1467,6 @@ class UnfurlTest(TestCase):
 
         with self.feature(
             [
-                "organizations:discover",
                 "organizations:discover-basic",
             ]
         ):

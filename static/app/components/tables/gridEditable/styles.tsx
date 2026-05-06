@@ -169,6 +169,10 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
       p.isFirst ? 'transparent' : p.theme.tokens.border.primary};
     border-right-color: ${p => p.theme.tokens.border.primary};
   }
+
+  svg {
+    min-width: 12px;
+  }
 `;
 
 /**

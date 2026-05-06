@@ -196,8 +196,10 @@ export function unescapeAsteriskSearchValue(value: string): string {
 
 export function formatFilterValue({
   token,
+  valueType,
 }: {
   token: TokenResult<Token.FILTER>['value'];
+  valueType?: FieldValueType;
 }): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
@@ -214,6 +216,9 @@ export function formatFilterValue({
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);
     default:
+      if (valueType === FieldValueType.CURRENCY && token.text) {
+        return `$${token.text}`;
+      }
       return token.text;
   }
 }
@@ -229,7 +234,9 @@ export function getFilterValueType(
   fieldDefinition: FieldDefinition | null
 ): FieldValueType {
   if (isAggregateFilterToken(token)) {
-    const args = token.key.args?.args.map(arg => arg.value?.value ?? null);
+    const args = token.key.args?.args.map(
+      arg => arg.value?.value ?? arg.value?.text ?? null
+    );
 
     if (fieldDefinition?.parameterDependentValueType && args) {
       return fieldDefinition.parameterDependentValueType(args);

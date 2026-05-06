@@ -40,7 +40,6 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
                 name="Santry",
                 slug="santry",
                 owner=rpc_user,
-                owning_user_id=rpc_user.id,
                 is_test=is_test,
                 create_default_team=create_default_team,
             ),
@@ -54,9 +53,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             org: Organization = Organization.objects.get(id=organization_id)
             assert org.slug == provisioning_options.provision_options.slug
             assert org.name == provisioning_options.provision_options.name
-            assert (
-                org.get_default_owner().id == provisioning_options.provision_options.owning_user_id
-            )
+            assert org.get_default_owner().id == provisioning_options.provision_options.owner.id
         assert org.is_test == provisioning_options.provision_options.is_test
 
     def assert_has_default_team_and_membership(self, organization_id: int, user_id: int) -> None:
