@@ -84,7 +84,7 @@ Update the invoice creation flow to populate address fields:
 def create_invoice(customer_id: int, invoice_data: dict) -> Invoice:
     # Fetch current billing details
     billing_details = get_billing_details(customer_id)
-    
+
     # Create invoice with address snapshot
     invoice = Invoice(
         customer_id=customer_id,
@@ -102,7 +102,7 @@ def create_invoice(customer_id: int, invoice_data: dict) -> Invoice:
         # ... other invoice fields
         **invoice_data
     )
-    
+
     invoice.save()
     return invoice
 ```
@@ -127,7 +127,7 @@ def render_invoice_pdf(invoice: Invoice) -> bytes:
         },
         # ... other context
     }
-    
+
     return generate_pdf('invoice_template.html', context)
 ```
 
@@ -143,7 +143,7 @@ def backfill_invoice_addresses():
     Uses billing details as they are NOW (not perfect but better than nothing).
     """
     invoices = Invoice.objects.filter(address_line1__isnull=True)
-    
+
     for invoice in invoices:
         billing_details = get_billing_details(invoice.customer_id)
         invoice.address_line1 = billing_details.address_line1
@@ -153,7 +153,7 @@ def backfill_invoice_addresses():
         invoice.postal_code = billing_details.postal_code
         invoice.region = billing_details.region
         invoice.save(update_fields=[
-            'address_line1', 'address_line2', 'city', 
+            'address_line1', 'address_line2', 'city',
             'country_code', 'postal_code', 'region'
         ])
 ```
@@ -214,7 +214,7 @@ The Invoice model should have these fields (may already exist):
 ```python
 class Invoice(Model):
     # ... existing fields ...
-    
+
     # Structured address fields (snapshot from billing details at creation time)
     address_line1 = models.CharField(max_length=255, null=True, blank=True)
     address_line2 = models.CharField(max_length=255, null=True, blank=True)
@@ -222,7 +222,7 @@ class Invoice(Model):
     country_code = models.CharField(max_length=2, null=True, blank=True)  # ISO 3166-1 alpha-2
     postal_code = models.CharField(max_length=20, null=True, blank=True)
     region = models.CharField(max_length=100, null=True, blank=True)  # State/Province
-    
+
     # Additional billing context
     company_name = models.CharField(max_length=255, null=True, blank=True)
     display_address = models.TextField(null=True, blank=True)  # Pre-formatted address string
