@@ -114,8 +114,8 @@ describe('SentryAppDetails', () => {
     });
 
     await userEvent.click(await screen.findByTestId('detail-actions'));
-    await userEvent.click(await screen.findByText('Disable App'));
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(await screen.findByRole('option', {name: /Disable App/}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
