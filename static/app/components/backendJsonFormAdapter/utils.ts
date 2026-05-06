@@ -45,7 +45,7 @@ export function transformChoices(
 }
 
 export function getDisabledProp(field: JsonFormAdapterFieldConfig): boolean | string {
-  if (field.disabledReason) {
+  if (field.disabled && field.disabledReason) {
     return field.disabledReason;
   }
   return field.disabled ?? false;

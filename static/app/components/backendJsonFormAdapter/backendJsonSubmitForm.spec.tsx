@@ -164,6 +164,28 @@ describe('BackendJsonSubmitForm', () => {
       expect(screen.getByRole('textbox', {name: /title/i})).toBeDisabled();
     });
 
+    it('does not disable field when disabledReason is set without disabled', () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'title',
+              type: 'string',
+              label: 'Title',
+              disabled: false,
+              disabledReason: 'Not editable right now',
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Save"
+        />,
+        {organization: org}
+      );
+
+      expect(screen.getByRole('textbox', {name: /title/i})).toBeEnabled();
+      expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
+    });
+
     it('converts disabledReason to disabled string', async () => {
       render(
         <BackendJsonSubmitForm
@@ -172,6 +194,7 @@ describe('BackendJsonSubmitForm', () => {
               name: 'title',
               type: 'string',
               label: 'Title',
+              disabled: true,
               disabledReason: 'Not editable right now',
             },
           ]}

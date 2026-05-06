@@ -135,6 +135,26 @@ describe('BackendJsonAutoSaveForm', () => {
     expect(screen.getByRole('checkbox')).toBeDisabled();
   });
 
+  it('does not disable field when disabledReason is set without disabled', () => {
+    render(
+      <BackendJsonAutoSaveForm
+        field={{
+          name: 'sync_enabled',
+          type: 'boolean',
+          label: 'Enable Sync',
+          disabled: false,
+          disabledReason: 'Feature not available',
+        }}
+        initialValue={false}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    expect(screen.getByRole('checkbox')).toBeEnabled();
+    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
+  });
+
   it('converts disabledReason to disabled string', async () => {
     render(
       <BackendJsonAutoSaveForm
@@ -142,6 +162,7 @@ describe('BackendJsonAutoSaveForm', () => {
           name: 'sync_enabled',
           type: 'boolean',
           label: 'Enable Sync',
+          disabled: true,
           disabledReason: 'Feature not available',
         }}
         initialValue={false}
