@@ -68,8 +68,12 @@ def assert_any_analytics_event(
     for recorded_event in recorded_events:
         if type(expected_event) is not type(recorded_event):
             continue
-        assert_event_equal(expected_event, recorded_event, exclude_fields)
-        return
+        try:
+            assert_event_equal(expected_event, recorded_event, exclude_fields)
+            return
+        except AssertionError as err:
+            # Store the last failing match to include in the final output
+            field_error = str(err)
 
     raise AssertionError(f"Event {expected_event} not found. {field_error}.")
 
