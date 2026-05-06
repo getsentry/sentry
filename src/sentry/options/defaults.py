@@ -3385,6 +3385,11 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.process-segments.semantic-partitioning",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
