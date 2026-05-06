@@ -553,10 +553,7 @@ function getOptimalPosition(
 export function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{
-    left: number;
-    top: number;
-  }>({
+  const [position, setPosition] = useState({
     left: 0,
     top: 0,
   });

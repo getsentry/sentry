@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import logging
-from enum import StrEnum
 from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -415,10 +414,6 @@ class SummarizeIssueRequest(TypedDict):
     experiment_variant: NotRequired[str | None]
 
 
-class RCASource(StrEnum):
-    LIGHTWEIGHT = "LIGHTWEIGHT"
-
-
 class LightweightRCAClusterRequest(TypedDict):
     group_id: int
     issue: dict[str, Any]
@@ -430,13 +425,11 @@ class LightweightRCAClusterRequest(TypedDict):
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
-    rca_source: str
 
 
 class SupergroupsGetByGroupIdsRequest(TypedDict):
     organization_id: int
     group_ids: list[int]
-    rca_source: str
 
 
 class SupergroupDetailData(TypedDict):

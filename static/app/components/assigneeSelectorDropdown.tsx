@@ -555,7 +555,7 @@ export function AssigneeSelectorDropdown({
           <Flex gap="md">
             <MenuComponents.CTAButton
               disabled={loading}
-              onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.preventDefault();
                 openInviteMembersModal({source: 'assignee_selector'});
               }}

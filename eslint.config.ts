@@ -416,9 +416,7 @@ export default typescript.config([
       'wrap-iife': ['error', 'any'],
       yoda: 'error',
       'no-cond-assign': ['error', 'always'],
-
-      // TODO: Evaluate which rules we could practically fix violations from & enable
-      'no-prototype-builtins': 'off',
+      'no-prototype-builtins': 'error',
     },
   },
   {
@@ -612,7 +610,6 @@ export default typescript.config([
           '@typescript-eslint/no-mixed-enums': 'off',
           '@typescript-eslint/no-redundant-type-constituents': 'off',
           '@typescript-eslint/no-unnecessary-condition': 'off',
-          '@typescript-eslint/no-unnecessary-type-arguments': 'off',
           '@typescript-eslint/no-unnecessary-type-conversion': 'off',
           '@typescript-eslint/no-unsafe-argument': 'off',
           '@typescript-eslint/no-unsafe-assignment': 'off',

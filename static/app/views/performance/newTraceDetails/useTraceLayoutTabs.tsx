@@ -103,7 +103,7 @@ export function useTraceLayoutTabs({
       ? TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]
       : TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
 
-  const [currentTab, setCurrentTab] = useState<Tab['slug']>(initialTab.slug);
+  const [currentTab, setCurrentTab] = useState(initialTab.slug);
 
   const onTabChange = useCallback(
     (slug: Tab['slug']) => {

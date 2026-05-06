@@ -8,6 +8,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
@@ -196,6 +197,7 @@ function DataCategoryUsageBreakdownInfo({
   metricHistory,
   activeProductTrial,
 }: DataCategoryUsageBreakdownInfoProps) {
+  const organization = useOrganization();
   const {planDetails: plan} = subscription;
   const productCanUsePayg =
     plan.onDemandCategories.includes(category) &&
@@ -236,6 +238,8 @@ function DataCategoryUsageBreakdownInfo({
       0);
 
   const otherSpend = calculateSeerUserSpend(metricHistory);
+
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
   const formattedOtherSpend =
     otherSpend > 0 ? (
       <UsageBreakdownField
@@ -243,9 +247,15 @@ function DataCategoryUsageBreakdownInfo({
         value={displayPriceWithCents({
           cents: otherSpend,
         })}
-        help={t(
-          'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
-        )}
+        help={
+          hasGitLabSupport
+            ? t(
+                'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
+              )
+            : t(
+                'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
+              )
+        }
       />
     ) : undefined;
 

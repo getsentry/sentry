@@ -325,10 +325,7 @@ function PrimaryNavigationUnreadIndicator({
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
-  const indicatorPosition: Pick<
-    ContainerProps<'div'>,
-    'top' | 'right' | 'left'
-  > = hasPageFrame
+  const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = hasPageFrame
     ? layout === 'mobile'
       ? {top: '0', right: '0'}
       : {top: '0', right: '0'}

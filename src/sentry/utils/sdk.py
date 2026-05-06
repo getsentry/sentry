@@ -311,20 +311,17 @@ class Dsns(NamedTuple):
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
-    sdk_options["send_client_reports"] = True
     sdk_options["add_full_stack"] = True
-    sdk_options["enable_http_request_source"] = True
     sdk_options["traces_sampler"] = traces_sampler
-    sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
+    sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["enable_logs"] = True
+    sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=options.get("sdk_http2_experiment.enabled"),
-        before_send_log=before_send_log,
-        enable_logs=True,
-        enable_metrics=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN

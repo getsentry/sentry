@@ -911,7 +911,8 @@ SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
         "substatus",
-        "detector",
+        "detector",  # TODO - delete this once the UI has been updated
+        "monitor",
         "bookmarked_by",
         "assigned_to",
         "for_review",
@@ -935,6 +936,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         *SKIP_SNUBA_FIELDS,
         "last_seen",
         "times_seen",
+        "user_count",
         "date",
         "timestamp",  # We merge this with start/end, so don't want to include it as its own
         # condition

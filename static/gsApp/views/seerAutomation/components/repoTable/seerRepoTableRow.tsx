@@ -25,6 +25,7 @@ import {
 } from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -75,7 +76,12 @@ export function SeerRepoTableRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Stack gap="xs">
-          <Link to={{...location, query: {...location.query, repoId: repository.id}}}>
+          <Link
+            to={{
+              pathname: `/settings/${organization.slug}/seer/repos/${repository.id}/`,
+              query: location.query,
+            }}
+          >
             <Flex align="center">
               <strong>{repository.name}</strong>
               {repository.status !== RepositoryStatus.ACTIVE && (
@@ -114,9 +120,10 @@ export function SeerRepoTableRow({
                 enabledCodeReview: e.target.checked,
               },
             };
-            queryClient.setQueryData(
+            setApiQueryData<RepositoryWithSettings>(
+              queryClient,
               getRepositoryWithSettingsQueryKey(organization, repository.id),
-              [optimisticData, undefined, undefined]
+              optimisticData
             );
             addLoadingMessage(t('Updating code review for %s', repository.name));
             mutateRepositorySettings(
@@ -128,7 +135,12 @@ export function SeerRepoTableRow({
               },
               {
                 onError: () => {
-                  queryClient.setQueryData(queryKey, [repository, undefined, undefined]);
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+                  setApiQueryData<RepositoryWithSettings>(
+                    queryClient,
+                    queryKey,
+                    repository
+                  );
                   addErrorMessage(
                     t('Failed to update code review for %s', repository.name)
                   );

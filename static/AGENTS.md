@@ -35,7 +35,7 @@
 
 ### Frontend API Calls
 
-Prefer `apiOptions` with `useQuery` from TanStack Query for type-safe, consistent API calls:
+Use `apiOptions` with `useQuery` from TanStack Query. **Do not use `useApiQuery`, `getApiQueryData`, or `setApiQueryData`** — they are deprecated.
 
 ```typescript
 import {skipToken, useQuery} from '@tanstack/react-query';
@@ -58,7 +58,12 @@ const query = useQuery(
 );
 ```
 
-Existing code might use `useApiQuery` from `sentry/utils/queryClient` — prefer `apiOptions` for new code.
+Key rules:
+
+- **`staleTime` is required** — you must choose a value (`0`, a number in ms, `Infinity`, or `'static'`).
+- **Build abstractions over `apiOptions`**, not over `useQuery`. Return the options object so consumers can pass it to `useQuery`, `useQueries`, `prefetchQuery`, etc.
+- **Cache stores `{json, headers}`**, not just the body. `apiOptions` uses `select` to extract `.json` by default, but `getQueryData`, `setQueryData`, `retry` functions, and `predicate` callbacks all receive the raw `ApiResponse<T>` shape.
+- **never** use `api.requestPromise` for a Query - it returns the wrong structure. If you must make a manual `queryFn`, use `apiFetch`.
 
 #### Accessing response headers (pagination, hit counts)
 

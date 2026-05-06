@@ -37,7 +37,7 @@ export function useShiftFocusToChild(
   state: ListState<ParseResultToken>
 ) {
   const onFocus = useCallback(
-    (e: React.FocusEvent<HTMLDivElement, Element>) => {
+    (e: React.FocusEvent<HTMLDivElement>) => {
       shiftFocusToChild(e.currentTarget, item, state);
     },
     [item, state]
@@ -54,8 +54,9 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
       return 'true';
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
-    case FieldValueType.CURRENCY:
       return '100';
+    case FieldValueType.CURRENCY:
+      return '10';
     case FieldValueType.DATE:
       return '-24h';
     case FieldValueType.DURATION:

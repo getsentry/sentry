@@ -24,8 +24,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:advanced-search": True,
         # Enable anomaly detection alerts
         "organizations:anomaly-detection-alerts": False,
-        # Enable multiple Apple app-store-connect sources per project.
-        "organizations:app-store-connect-multiple": False,
         # Enable change alerts for an org
         "organizations:change-alerts": True,
         # The overall flag for codecov integration, gated by plans.
@@ -133,6 +131,12 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "projects:servicehooks": False,
     }
 
+    # Permanent organization features that are controlled via flagpole
+    permanent_flagpole_organization_features = {
+        # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
+        "organizations:workflow-engine-log-evaluations": False,
+    }
+
     for org_feature, default in permanent_organization_features.items():
         manager.add(
             org_feature,
@@ -149,6 +153,15 @@ def register_permanent_features(manager: FeatureManager) -> None:
             FeatureHandlerStrategy.INTERNAL,
             default=default,
             api_expose=True,
+        )
+
+    for org_feature, default in permanent_flagpole_organization_features.items():
+        manager.add(
+            org_feature,
+            OrganizationFeature,
+            FeatureHandlerStrategy.FLAGPOLE,
+            default=default,
+            api_expose=False,
         )
 
     # Enable support for multiple regions, and org slug subdomains (customer-domains).

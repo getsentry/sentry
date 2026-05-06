@@ -40,7 +40,7 @@ function getWebVitalScoreCount(data: CountScores, webVital: WebVitals | 'total')
 }
 
 function hasWebVitalScore(data: CountScores, webVital: WebVitals): boolean {
-  if (data.hasOwnProperty(`count_scores(measurements.score.${webVital})`)) {
+  if (Object.hasOwn(data, `count_scores(measurements.score.${webVital})`)) {
     return getWebVitalScoreCount(data, webVital) > 0;
   }
   return false;

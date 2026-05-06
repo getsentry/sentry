@@ -10,7 +10,7 @@ function getCurrentTab({
   matches,
   params,
 }: {
-  matches: Array<UIMatch<unknown, unknown>>;
+  matches: UIMatch[];
   params: Record<string, string | undefined>;
 }) {
   const currentMatch = matches[matches.length - 1];
@@ -32,7 +32,7 @@ function getCurrentRouteInfo({
 }: {
   eventId: string | undefined;
   groupId: string;
-  matches: Array<UIMatch<unknown, unknown>>;
+  matches: UIMatch[];
   organization: Organization;
   params: Record<string, string | undefined>;
 }): {
