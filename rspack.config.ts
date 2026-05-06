@@ -94,6 +94,11 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
 
+// Silence proxy logs, they can be noisy and not interesting
+// eslint-disable-next-line no-console
+const proxyLoggerQuiet = {info: () => {}, warn: console.warn, error: console.error};
+const regionPathPattern = /^\/region\/([^/]+)/;
+
 const require = createRequire(import.meta.url);
 
 // When deploy previews are enabled always enable experimental SPA mode --
@@ -681,6 +686,7 @@ if (
             '/api/0/assistant/**',
           ],
           target: controlSiloAddress,
+          logger: proxyLoggerQuiet,
         },
       ];
     }
@@ -701,10 +707,12 @@ if (
             '/api/0/relays/outcomes/**',
           ],
           target: relayAddress,
+          logger: proxyLoggerQuiet,
         },
         {
           context: ['!/_static/dist/sentry/**'],
           target: backendAddress,
+          logger: proxyLoggerQuiet,
         },
       ],
     };
@@ -777,6 +785,7 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        logger: proxyLoggerQuiet,
         router: req => {
           const host = req.headers.host!.split(':')[0]!;
           const orgSlug = extractSlug(host);
@@ -800,13 +809,13 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        logger: proxyLoggerQuiet,
         pathRewrite: {
           '^/region/[^/]*': '',
         },
-        router: (req: any) => {
-          const regionPathPattern = /^\/region\/([^/]+)/;
+        router: req => {
           const regionname = (req.url ?? '').match(regionPathPattern);
-          if (regionname) {
+          if (regionname?.[1]) {
             return `https://${regionname[1]}.sentry.io`;
           }
           return 'https://sentry.io';
