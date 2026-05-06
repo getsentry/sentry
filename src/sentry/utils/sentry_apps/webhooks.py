@@ -139,20 +139,18 @@ def _notify_webhook_disabled(
     if not email or "@" not in email:
         return
 
+    if not set_dedup_key(sentry_app, circuit_breaker):
+        return
+
     live_run = features.has(
         "organizations:sentry-app-webhook-circuit-breaker-live-run",
         owner_org,
     )
     if not live_run:
-        if not set_dedup_key(sentry_app, circuit_breaker):
-            return
         logger.info(
             "sentry_app.webhook.circuit_breaker.would_email",
             extra={"slug": sentry_app.slug},
         )
-        return
-
-    if not set_dedup_key(sentry_app, circuit_breaker):
         return
 
     data = SentryAppWebhookDisabled(
