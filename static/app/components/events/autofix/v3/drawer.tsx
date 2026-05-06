@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -38,7 +38,16 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
     [aiAutofix.runState?.blocks]
   );
 
+  // For autoscroll, we only want to turn it on if we ever encounter a processing state.
+  // If not, it indicates the users is viewing an already completed autofix, so we do
+  // not want to enable autoscroll.
+  const enableAutoScroll = useRef(false);
+  if (aiAutofix.runState?.status === 'processing') {
+    enableAutoScroll.current = true;
+  }
+
   const {containerRef, onScrollHandler} = useAutoScroll({
+    enabled: enableAutoScroll.current,
     key: aiAutofix.runState,
   });
 

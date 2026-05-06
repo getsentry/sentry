@@ -19,6 +19,7 @@ export function ArtifactLoadingDetails({
   blocks,
 }: ArtifactLoadingDetailsProps) {
   const {containerRef, onScrollHandler} = useAutoScroll({
+    enabled: true,
     key: blocks,
   });
 
