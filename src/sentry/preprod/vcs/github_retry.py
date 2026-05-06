@@ -10,6 +10,7 @@ from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,13 @@ def _is_retryable(exc: Exception) -> bool:
     return False
 
 
+def _error_tags(exc: Exception) -> dict[str, str]:
+    tags: dict[str, str] = {"error_type": type(exc).__name__}
+    if isinstance(exc, ApiError) and exc.code:
+        tags["status_code"] = str(exc.code)
+    return tags
+
+
 def github_api_call_with_retries(
     fn: Callable[[], T],
     *,
@@ -36,22 +44,43 @@ def github_api_call_with_retries(
 ) -> T:
     for attempt in range(1, max_attempts + 1):
         try:
-            return fn()
+            result = fn()
         except Exception as e:
             if attempt == max_attempts or not _is_retryable(e):
+                if attempt > 1:
+                    metrics.incr(
+                        "preprod.github_retry.exhausted",
+                        tags={"caller": log_prefix, **_error_tags(e)},
+                        sample_rate=1.0,
+                    )
                 raise
 
             delay = 2**attempt
-            extra = {
-                "attempt": attempt,
-                "max_attempts": max_attempts,
-                "delay_seconds": delay,
-                "error_type": type(e).__name__,
-            }
-            if isinstance(e, ApiError):
-                extra["status_code"] = e.code
-            logger.warning("%s.retrying", log_prefix, extra=extra)
+            tags = {"caller": log_prefix, **_error_tags(e)}
+            metrics.incr(
+                "preprod.github_retry.retried",
+                tags={**tags, "attempt": str(attempt)},
+                sample_rate=1.0,
+            )
+            logger.warning(
+                "%s.retrying",
+                log_prefix,
+                extra={
+                    "attempt": attempt,
+                    "max_attempts": max_attempts,
+                    "delay_seconds": delay,
+                    **tags,
+                },
+            )
 
             time.sleep(delay)
+        else:
+            if attempt > 1:
+                metrics.incr(
+                    "preprod.github_retry.success_after_retry",
+                    tags={"caller": log_prefix, "attempts": str(attempt)},
+                    sample_rate=1.0,
+                )
+            return result
 
     raise AssertionError("unreachable")
