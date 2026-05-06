@@ -100,7 +100,7 @@ class TestReplacementAttributeFiltering:
         assert len(result) == 1
         assert result[0]["name"] == attr_name
 
-    def test_replacement_attribute_hidden_when_deprecated_source_present(self) -> None:
+    def test_replacement_attribute_shown_alongside_deprecated_source(self) -> None:
         result = convert_rpc_attribute_to_json(
             [
                 {"name": "gen_ai.usage.prompt_tokens", "value": {"valInt": "42"}},
@@ -112,7 +112,7 @@ class TestReplacementAttributeFiltering:
 
         names = [r["name"] for r in result]
         assert "gen_ai.usage.prompt_tokens" in names
-        assert "gen_ai.usage.input_tokens" not in names
+        assert "gen_ai.usage.input_tokens" in names
 
     def test_replacement_array_shown_when_no_deprecated_source(self) -> None:
         result = convert_rpc_attribute_to_json(
