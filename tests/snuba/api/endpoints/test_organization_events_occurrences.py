@@ -511,7 +511,6 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             q["sql"] for q in ctx.captured_queries if Group._meta.db_table in q["sql"]
         ]
 
-
     def _create_occurrence_with_arrays(self, occurrence_count: int = 1) -> tuple[list, list[dict]]:
         occurrences = []
         expected: list[dict] = []
@@ -564,6 +563,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                         ]
                     },
                 },
+                tags={"array_tags": ["eap_items", "occurrences"]},
             )
             occurrences.append(occ)
             expected.append(
@@ -620,20 +620,18 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         # EAP converts all non-string arrays to strings.
         assert data[0].get("stack.colno") == expected_col_nums
 
-
     def test_eap_occurrences_array_includes_query(self) -> None:
-        """Test array `includes` query """
+        """Test array `includes` query"""
         occurrences, expected = self._create_occurrence_with_arrays(occurrence_count=2)
-        occ = occurrences[0] # Remove
+        occ = occurrences[0]  # Remove
         assert occ.attributes["http_url"].WhichOneof("value") == "string_value"
-        # TODO: Test tag vs first order member confusion on occ object
+
         file_names = [exp["filenames"] for exp in expected]
         col_nums = [exp["col_nums"] for exp in expected]
         response = self.request_with_feature_flag(
             {
-                # stack.filename -> frame_filenames (array); http.url -> http_url (string)
                 "field": ["id", "stack.filename", "http.url", "stack.colno"],
-                "query": f"tags[colno, array][*]: {col_nums[0]}",
+                "query": f"tags[colno, array][*]: {col_nums[0][0]}",
                 "statsPeriod": "1h",
                 "project": [self.project.id],
             }

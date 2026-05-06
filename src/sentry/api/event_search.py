@@ -79,6 +79,7 @@ filter = date_filter
        / has_in_filter
        / has_filter
        / is_filter
+       / array_includes_filter
        / text_in_filter
        / text_filter
 
@@ -162,7 +163,7 @@ raw_aggregate_param              = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param           = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
 explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key / explicit_boolean_tag_key
 
-search_key             = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key/ array_includes_tag_key/ array_includes_attr_key / key / quoted_key
+search_key             = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
 text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key  / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
@@ -181,6 +182,9 @@ has_in_list            = open_bracket has_item (spaces comma spaces !comma has_i
 array_includes_suffix = open_bracket "*" closed_bracket
 array_includes_tag_key = explicit_array_tag_key array_includes_suffix
 array_includes_attr_key = (key/ quoted_key) array_includes_suffix
+
+array_includes_key = array_includes_attr_key / array_includes_tag_key
+array_includes_filter = negation? array_includes_key sep wildcard_op? operator? search_value
 
 # NOTE: These wildcard operators are internal implementation details and
 # should not be included in product docs. Users should use `*` instead.
@@ -1867,6 +1871,62 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             if index != len(all_filters) - 1:
                 tokens.append(joining_operator)
         return ParenExpression(tokens)
+
+    def visit_explicit_array_tag_key(
+        self,
+        node: Node,
+        children: tuple[
+            Node,  # "tags"
+            str,  # '['
+            str,  # escaped_key
+            str,  # ' '
+            Node,  # ','
+            str,  # ' '
+            Node,  # "array"
+            str,  # ']'
+        ],
+    ) -> SearchKey:
+        return SearchKey(f"tags[{children[2]},array]")
+
+    def visit_array_includes_suffix(self, node: Node, children: object) -> str:
+        return "[*]"
+
+    def visit_array_includes_tag_key(
+        self,
+        node: Node,
+        children: tuple[SearchKey, str],  #  "[*]")
+    ) -> SearchKey:
+        inner, suffix = children
+        return SearchKey(f"{inner.name}{suffix}")
+
+    def visit_array_includes_attr_key(
+        self,
+        node: Node,
+        children: tuple[Any, str],
+    ) -> SearchKey:
+        inner, suffix = children
+        if isinstance(inner, list):
+            inner = inner[0]
+        return SearchKey(f"{inner}{suffix}")
+
+    def visit_array_includes_key(self, node: Node, children: tuple[SearchKey]) -> SearchKey:
+        return children[0]
+
+    def visit_array_includes_filter(
+        self,
+        node: Node,
+        children: tuple[
+            Node | tuple[Node],  # negation
+            SearchKey,
+            Node,  # :
+            Node | Sequence[Node],  # wildcard_op
+            Node | tuple[str],  # operator
+            SearchValue,
+        ],
+    ) -> SearchFilter:
+        # Identical rule shape to text_filter; semantics here are equals with
+        # the array-includes meaning carried by the [*] suffix on search_key.name.
+        return self.visit_text_filter(node, children)
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
         return children or node
