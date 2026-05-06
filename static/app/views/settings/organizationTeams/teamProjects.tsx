@@ -48,6 +48,7 @@ export default function TeamProjects() {
       query: {
         query: `team:${team.slug}`,
         cursor: location.query.cursor,
+        collapse: ['latestDeploys', 'unusedFeatures'],
       },
       staleTime: 0,
     }),
@@ -61,7 +62,10 @@ export default function TeamProjects() {
   } = useQuery(
     apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`},
+      query: {
+        query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`,
+        collapse: ['latestDeploys', 'unusedFeatures'],
+      },
       staleTime: 0,
     })
   );

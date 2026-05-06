@@ -1,6 +1,7 @@
 import {Fragment, type ReactNode, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
+import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, type ButtonProps, LinkButton} from '@sentry/scraps/button';
@@ -34,7 +35,7 @@ import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 const REPO_LIST_MAX_HEIGHT = 400;
-const ESTIMATED_REPO_ROW_HEIGHT = 36;
+const ESTIMATED_REPO_ROW_HEIGHT = 32;
 
 /**
  * Fuse match results keyed by `repository.id`, used to highlight the matched
@@ -367,6 +368,39 @@ interface InstallationActionsProps {
   onUninstall?: (installation: ScmInstallation) => void;
 }
 
+function getRepoCountTooltip(
+  installation: ScmInstallation,
+  onInstallationSync: ((installation: ScmInstallation) => void) | undefined,
+  lastSync: string | undefined
+): ReactNode {
+  const {reposLoading, isSyncing} = installation;
+
+  if (reposLoading) {
+    return t('Loading repositories');
+  }
+  if (isSyncing) {
+    return t('Re-syncing in the background…');
+  }
+
+  const syncNowButton = onInstallationSync ? (
+    <Button size="xs" variant="link" onClick={() => onInstallationSync(installation)}>
+      {t('Sync now')}
+    </Button>
+  ) : null;
+
+  if (lastSync) {
+    return tct('Repositories last synced to Sentry [date]. [syncNow]', {
+      date: (
+        <strong>
+          <TimeSince disabledAbsoluteTooltip date={lastSync} />
+        </strong>
+      ),
+      syncNow: syncNowButton,
+    });
+  }
+  return tct('Repositories not yet synced. [syncNow]', {syncNow: syncNowButton});
+}
+
 function InstallationActions({
   installation,
   providerName,
@@ -389,31 +423,12 @@ function InstallationActions({
   const rawLastSync = integration.configData?.last_sync;
   const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
 
-  const syncNowButton =
-    onInstallationSync && !isSyncing ? (
-      <Button size="xs" variant="link" onClick={() => onInstallationSync(installation)}>
-        {t('Sync now')}
-      </Button>
-    ) : null;
-
   const isLoading = reposLoading || isSyncing;
-
-  const repoCountTooltip = reposLoading
-    ? t('Loading repositories')
-    : isSyncing
-      ? t('Re-syncing in the background…')
-      : lastSync
-        ? tct('Repositories last synced to Sentry [date]. [syncNow]', {
-            date: (
-              <strong>
-                <TimeSince disabledAbsoluteTooltip date={lastSync} />
-              </strong>
-            ),
-            syncNow: syncNowButton,
-          })
-        : tct('Repositories not yet synced. [syncNow]', {
-            syncNow: syncNowButton,
-          });
+  const repoCountTooltip = getRepoCountTooltip(
+    installation,
+    onInstallationSync,
+    lastSync
+  );
 
   return (
     <Fragment>
@@ -535,12 +550,7 @@ function VirtualizedRepoList({
         : repositories.filter(r => repoMatches[r.id]);
     const hasMapping = (id: string) =>
       (mappedProjectSlugsByRepoId?.[id]?.length ?? 0) > 0;
-    return [...filtered].sort((a, b) => {
-      const aHas = hasMapping(a.id);
-      const bHas = hasMapping(b.id);
-      if (aHas !== bHas) return aHas ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
+    return sortBy(filtered, [r => !hasMapping(r.id), r => r.name]);
   }, [repositories, repoMatches, mappedProjectSlugsByRepoId]);
 
   const virtualizer = useVirtualizer({
@@ -670,9 +680,7 @@ function VirtualizedRepoList({
       {items}
     </Grid>
   ) : (
-    <Flex {...commonProps} direction="column">
-      {items}
-    </Flex>
+    <Container {...commonProps}>{items}</Container>
   );
 }
 
