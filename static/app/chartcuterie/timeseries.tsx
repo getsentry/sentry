@@ -42,14 +42,19 @@ const MAX_LEGEND_ITEMS = 4;
  * overflowing, so the legend never wraps off the reserved single row.
  */
 function buildBoundedLegend(names: string[]) {
-  if (names.length <= MAX_LEGEND_ITEMS) {
-    return {data: names, indicatorSeries: []};
+  // Dedupe first: grouped multi-yAxis responses produce one TimeSeries per
+  // (group, yAxis) pair, but `formatTimeSeriesLabel` returns just the group
+  // when groupBy is present. Without dedup, duplicates would consume cap
+  // slots and inflate the "+N more" count.
+  const uniqueNames = Array.from(new Set(names));
+  if (uniqueNames.length <= MAX_LEGEND_ITEMS) {
+    return {data: uniqueNames, indicatorSeries: []};
   }
   const visibleCount = MAX_LEGEND_ITEMS - 1;
-  const hiddenCount = names.length - visibleCount;
+  const hiddenCount = uniqueNames.length - visibleCount;
   const indicatorName = `+${hiddenCount} more`;
   return {
-    data: [...names.slice(0, visibleCount), {name: indicatorName, icon: 'none'}],
+    data: [...uniqueNames.slice(0, visibleCount), {name: indicatorName, icon: 'none'}],
     // Empty line series gives ECharts a name to match the legend entry to.
     // No data points means nothing is plotted; `silent` suppresses tooltips.
     indicatorSeries: [
