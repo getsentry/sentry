@@ -17,9 +17,6 @@ SKIP_TTL_SECONDS = int(timedelta(days=3, hours=12).total_seconds())
 KEY_PREFIX = "seer:night-shift:skip:"
 
 
-# Both functions degrade gracefully if Redis is unavailable: this cache is an
-# optimization, and a failure must not tank the night-shift run that just
-# spent real LLM compute producing actionable verdicts.
 def mark_skipped(group_id: int) -> None:
     try:
         _client().set(key(group_id), "1", ex=SKIP_TTL_SECONDS)
