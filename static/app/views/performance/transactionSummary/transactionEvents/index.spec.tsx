@@ -216,16 +216,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
     );
   });
 
-  it('should render legacy component when EAP feature is not enabled', async () => {
-    const data = initializeData();
-
-    renderWithLayout(data);
-
-    expect(await screen.findByText('event id')).toBeInTheDocument();
-    expect(screen.queryByText('Span ID')).not.toBeInTheDocument();
-  });
-
-  it('should render EAP component when performance-transaction-summary-eap feature is enabled', async () => {
+  it('should render EAP component', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
@@ -241,9 +232,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
       match: [(_, options) => options.query?.field?.includes('span_id')],
     });
 
-    const data = initializeData({
-      features: ['performance-view', 'performance-transaction-summary-eap'],
-    });
+    const data = initializeData({features: ['performance-view']});
 
     renderWithLayout(data);
 
