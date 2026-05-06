@@ -14,7 +14,6 @@ from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 
 from sentry import features, options
@@ -180,7 +179,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def aggregation_defs(self) -> Sequence[str] | Expression:
+    def aggregation_defs(self) -> Mapping[str, Any]:
         """This method should return a dict of key:value
         where key is a field name for your aggregation
         and value is the aggregation function"""
@@ -383,7 +382,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             selected_columns,
             aggregations,
             organization,
-            project_ids,
+            list(project_ids),
             environments,
             group_ids,
             filters,
@@ -456,7 +455,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        group_categories = group_categories_from_search_filters(search_filters)
+        group_categories = group_categories_from_search_filters(search_filters or ())
 
         query_params_for_categories = {}
 
@@ -1090,7 +1089,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
+                environment_ids=[environment.id for environment in environments]
+                if environments
+                else None,
                 organization=projects[0].organization,
                 sort_field=sort_field,
                 cursor=cursor,
@@ -1248,24 +1249,23 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            kwargs = {}
-            if not too_many_candidates:
-                kwargs["group_ids"] = group_ids
 
             snuba_groups, snuba_total = self.snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
+                environment_ids=[environment.id for environment in environments]
+                if environments
+                else None,
                 organization=projects[0].organization,
                 sort_field=sort_field,
+                group_ids=group_ids if not too_many_candidates else None,
                 limit=sample_size,
                 offset=0,
                 get_sample=True,
                 search_filters=search_filters,
                 actor=actor,
                 referrer=referrer,
-                **kwargs,
             )
             snuba_count = len(snuba_groups)
 
