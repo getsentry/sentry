@@ -610,6 +610,19 @@ export type Charge = {
   stripeID: string | null;
 };
 
+/**
+ * Invoice base type with address fields.
+ *
+ * IMPORTANT: Invoice address fields should be populated from BillingDetails
+ * at the time of invoice creation to create an immutable snapshot.
+ * This ensures invoices display the correct billing address even if the
+ * customer later updates their billing details.
+ *
+ * PDF rendering should use these address fields directly from the invoice,
+ * NOT fetch from current billing details.
+ *
+ * See: /src/sentry/billing/platform/INVOICE_ADDRESS_DESIGN.md
+ */
 export type InvoiceBase = StructuredAddress & {
   amount: number;
   amountBilled: number | null;
