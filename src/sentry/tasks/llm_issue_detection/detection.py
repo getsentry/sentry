@@ -319,7 +319,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
             if not body.get("has_budget", True):
                 logger.info(
                     "llm_issue_detection.budget_exceeded",
-                    extra={"organization_id": org_id},
+                    extra={"organization_id": org_id, "plan_tier": plan_tier},
                 )
                 return
         except json.JSONDecodeError:

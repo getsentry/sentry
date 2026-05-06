@@ -196,6 +196,21 @@ describe('SnapshotMainContent', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Copy metadata as JSON'}));
 
     const copiedJson = mockCopy.mock.calls.at(-1)?.[0];
-    expect(JSON.parse(copiedJson)).toEqual(renamedPair);
+    expect(JSON.parse(copiedJson)).toEqual({
+      base_image: {
+        display_name: 'Button / light old',
+        height: 180,
+        image_file_name: 'button.light.old.png',
+        width: 320,
+      },
+      diff: null,
+      head_image: {
+        display_name: 'Button / light',
+        group: 'components',
+        height: 180,
+        image_file_name: 'button.light.png',
+        width: 320,
+      },
+    });
   });
 });

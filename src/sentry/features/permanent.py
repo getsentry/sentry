@@ -24,8 +24,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:advanced-search": True,
         # Enable anomaly detection alerts
         "organizations:anomaly-detection-alerts": False,
-        # Enable multiple Apple app-store-connect sources per project.
-        "organizations:app-store-connect-multiple": False,
         # Enable change alerts for an org
         "organizations:change-alerts": True,
         # The overall flag for codecov integration, gated by plans.

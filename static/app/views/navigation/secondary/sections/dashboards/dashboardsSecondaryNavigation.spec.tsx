@@ -11,7 +11,9 @@ describe('DashboardsSecondaryNavigation', () => {
   let organization: Organization;
 
   beforeEach(() => {
-    organization = OrganizationFixture();
+    organization = OrganizationFixture({
+      features: ['dashboards-prebuilt-insights-dashboards'],
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/starred/',
@@ -46,6 +48,8 @@ describe('DashboardsSecondaryNavigation', () => {
 
     expect(screen.getAllByRole('link').map(el => el.textContent)).toEqual([
       'All Dashboards',
+      'Custom Dashboards',
+      'Sentry Built',
       'Dashboard 9999',
       'Dashboard 1',
     ]);

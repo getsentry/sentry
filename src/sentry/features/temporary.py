@@ -137,8 +137,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Starfish: extract metrics from the spans
     manager.add("organizations:indexed-spans-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # These flags follow the pattern expected by IntegrationProvider.requires_feature_flag's usage on the config endpoint
-    # Enable integration functionality to work deployment integrations like Vercel
-    manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     manager.add("organizations:integrations-claude-code", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-cursor", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-github-copilot-agent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -509,7 +507,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:traces-overlay-charts-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Conversation focused views in AI Insights
     manager.add("organizations:gen-ai-conversations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:on-demand-gen-metrics-deprecation-query-prefill", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables Conduit demo endpoint and UI
     manager.add("organizations:conduit-demo", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable hard timeout alarm for webhooks
@@ -560,6 +557,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:relay-minidump-attachment-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of minidumps to the objectstore.
     manager.add("projects:relay-minidump-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables the uploading of playstation attachments to the objectstore.
+    manager.add("projects:relay-playstation-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
