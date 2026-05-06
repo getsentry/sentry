@@ -153,6 +153,7 @@ explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
 explicit_boolean_tag_key = "tags" open_bracket escaped_key spaces comma spaces "boolean" closed_bracket
+explicit_array_tag_key =   "tags" open_bracket escaped_key spaces comma spaces "array" closed_bracket
 
 aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
 function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
@@ -161,8 +162,8 @@ raw_aggregate_param              = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param           = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
 explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key / explicit_boolean_tag_key
 
-search_key             = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
-text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
+search_key             = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key/ array_includes_tag_key/ array_includes_attr_key / key / quoted_key
+text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key  / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
@@ -175,6 +176,11 @@ numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma 
 
 has_item               = text_key / search_value
 has_in_list            = open_bracket has_item (spaces comma spaces !comma has_item?)* closed_bracket &end_value
+
+
+array_includes_suffix = open_bracket "*" closed_bracket
+array_includes_tag_key = explicit_array_tag_key array_includes_suffix
+array_includes_attr_key = (key/ quoted_key) array_includes_suffix
 
 # NOTE: These wildcard operators are internal implementation details and
 # should not be included in product docs. Users should use `*` instead.
