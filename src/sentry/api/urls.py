@@ -119,7 +119,6 @@ from sentry.core.endpoints.organization_projects import (
 from sentry.core.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
-from sentry.core.endpoints.organization_region import OrganizationRegionEndpoint
 from sentry.core.endpoints.organization_request_project_creation import (
     OrganizationRequestProjectCreation,
 )
@@ -173,10 +172,6 @@ from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
-from sentry.dashboards.endpoints.organization_dashboards_starred import (
-    OrganizationDashboardsStarredEndpoint,
-    OrganizationDashboardsStarredOrderEndpoint,
-)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -1594,16 +1589,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboard-widget-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/$",
-        OrganizationDashboardsStarredEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-starred",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
-        OrganizationDashboardsStarredOrderEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-starred-order",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/generate/$",
         OrganizationDashboardGenerateEndpoint.as_view(),
         name="sentry-api-0-organization-dashboards-generate",
@@ -2718,11 +2703,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-organization-prompts-activity",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/region/$",
-        OrganizationRegionEndpoint.as_view(),
-        name="sentry-api-0-organization-region",
     ),
     # Trigger relocation
     re_path(

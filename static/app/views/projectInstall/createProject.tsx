@@ -191,7 +191,7 @@ export function CreateProject() {
     };
   }, [autoFill, defaultTeam, createdProject]);
 
-  const [formData, setFormData] = useState<FormData>(initialData);
+  const [formData, setFormData] = useState(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
   const hasUserModifiedProjectName = useRef(false);
 

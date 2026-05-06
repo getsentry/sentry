@@ -325,7 +325,11 @@ export function ContinuousFlamegraph(): ReactElement {
     }
 
     return LOADING_OR_FALLBACK_SPAN_TREE;
-  }, [transactionResult]);
+  }, [
+    transactionResult.isPending,
+    transactionResult.data.transactionSpan,
+    transactionResult.data.childSpans,
+  ]);
 
   const spanChart = useMemo(() => {
     if (!profile || !spanTree || !transactionResult.isEnabled) {
@@ -341,7 +345,14 @@ export function ContinuousFlamegraph(): ReactElement {
         configSpaceQueryParam
       ),
     });
-  }, [spanTree, profile, profileGroup, transactionResult, configSpaceQueryParam]);
+  }, [
+    spanTree,
+    profile,
+    profileGroup,
+    transactionResult.isEnabled,
+    transactionResult.data.transactionSpan,
+    configSpaceQueryParam,
+  ]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
@@ -391,7 +402,9 @@ export function ContinuousFlamegraph(): ReactElement {
     sorting,
     flamegraphProfiles.threadId,
     view,
-    transactionResult,
+    transactionResult.data.transactionSpan,
+    transactionResult.isEnabled,
+    transactionResult.isPending,
     configSpaceQueryParam,
   ]);
 
@@ -671,14 +684,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      flamegraph,
-      flamegraphCanvas,
-      flamegraphTheme,
-      profile,
-      transactionResult,
-      configSpaceQueryParam,
-    ]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, profile, configSpaceQueryParam]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -890,7 +896,7 @@ export function ContinuousFlamegraph(): ReactElement {
       flamegraphTheme.SIZES,
       profileTimestamp,
       configSpaceQueryParam,
-      transactionResult,
+      transactionResult.data.transactionSpan,
     ]
   );
 

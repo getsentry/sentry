@@ -75,6 +75,8 @@ function ApiTokens() {
       addErrorMessage(t('Unable to remove token. Please try again.'));
 
       if (context?.previous) {
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<InternalAppApiToken[]>(
           queryClient,
           API_TOKEN_QUERY_KEY,

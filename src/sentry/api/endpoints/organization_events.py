@@ -216,7 +216,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         save_discover_dataset_decision = True
 
-        dataset = self.get_dataset(request)
+        dataset = self.get_dataset(request, organization)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)

@@ -524,7 +524,7 @@ export function findSuggestedColumns(
     }
 
     if (
-      !oldFilters.hasOwnProperty(key) || // new filter key
+      !Object.hasOwn(oldFilters, key) || // new filter key
       isSimpleFilter(key, oldFilters[key] || [], attributes) // existing filter key turned complex
     ) {
       keys.add(normalizeKey(key));
@@ -534,14 +534,14 @@ export function findSuggestedColumns(
 
   const oldHas = new Set(oldFilters.has);
   for (const key of newFilters.has || []) {
-    if (oldFilters.hasOwnProperty(key) || oldHas.has(key)) {
+    if (Object.hasOwn(oldFilters, key) || oldHas.has(key)) {
       // old condition, don't add column
       continue;
     }
 
     // if there's a simple filter on the key, don't add column
     if (
-      newFilters.hasOwnProperty(key) &&
+      Object.hasOwn(newFilters, key) &&
       isSimpleFilter(key, newFilters[key] || [], attributes)
     ) {
       continue;

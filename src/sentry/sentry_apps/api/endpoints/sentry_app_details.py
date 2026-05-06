@@ -168,6 +168,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
                 popularity=result.get("popularity"),
+                is_disabled=result.get("isDisabled"),
             ).run(user=request.user)
 
             return Response(

@@ -71,13 +71,13 @@ export function BreadcrumbsDrawer({
 
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
-  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+  const [sort, setSort] = useLocalStorageState(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
   const {getFocusProps} = useFocusControl(initialFocusControl);
 
-  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );

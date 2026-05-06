@@ -199,6 +199,43 @@ class OrganizationsControlListTest(OrganizationIndexTest):
 
         assert [item["id"] for item in response.data] == [str(larger_org.id), str(smaller_org.id)]
 
+    def test_response_compatible_with_cell(self) -> None:
+        # The control listing is being built out to replace the cell listing.
+        # Until that swap happens, every field the control side returns must
+        # match the cell side for the same org so we can cut over without
+        # breaking clients.
+        self.create_organization(cell="us", owner=self.user, name="My Org", slug="my-org")
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            control_response = self.get_success_response()
+        with assume_test_silo_mode(SiloMode.CELL):
+            cell_response = self.get_success_response()
+
+        assert len(control_response.data) == 1
+        assert len(cell_response.data) == 1
+
+        # TODO(cells): fields the control serializer doesn't return yet. Remove
+        # entries as they're ported — once empty, drop the filter and assert
+        # full equality.
+        missing_fields = {
+            "allowMemberInvite",
+            "allowMemberProjectCreation",
+            "allowSuperuserAccess",
+            "avatar",
+            "dateCreated",
+            "extraOptions",
+            "features",
+            "hasAuthProvider",
+            "isEarlyAdopter",
+            "links",
+            "require2FA",
+            "requireEmailVerification",
+            "status",
+        }
+        assert control_response.data[0] == {
+            k: v for k, v in cell_response.data[0].items() if k not in missing_fields
+        }
+
 
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"

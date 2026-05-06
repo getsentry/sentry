@@ -13,7 +13,6 @@ from sentry.dashboards.endpoints.organization_dashboards import (
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardLastVisited,
 )
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -21,7 +20,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -151,49 +149,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 expected = list(reversed(expected))
 
             assert values == expected
-
-    def test_get_sortby_recently_viewed_user_last_visited(self) -> None:
-        dashboard_a = Dashboard.objects.create(
-            title="A",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        dashboard_b = Dashboard.objects.create(
-            title="B",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_a,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=5),
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_b,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=0),
-        )
-
-        for forward_sort in [True, False]:
-            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
-
-            with self.feature("organizations:dashboards-starred-reordering"):
-                response = self.client.get(self.url, data={"sort": sorting})
-
-            assert response.status_code == 200
-            values = [row["title"] for row in response.data]
-            expected = ["B", "A"]
-
-            if not forward_sort:
-                expected = list(reversed(expected))
-
-            # Only A, B are sorted by their last visited entry, Dashboard 1
-            # and Dashboard 2 are by default sorted by their date created
-            assert values == expected + ["Dashboard 2", "Dashboard 1"]
 
     def test_get_sortby_mydashboards(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -886,93 +841,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         visited_at = [row.get("lastVisited") for row in response.data]
         assert visited_at == [now, one_hour_ago]
-
-    def test_get_with_last_visited(self) -> None:
-        # Clean up existing dashboards setup for this test.
-        Dashboard.objects.all().delete()
-
-        Dashboard.objects.create(
-            title="Dashboard without last visited",
-            organization=self.organization,
-            created_by_id=self.user.id,
-        )
-        dashboard_2 = Dashboard.objects.create(
-            title="Dashboard with last visited",
-            organization=self.organization,
-            created_by_id=self.user.id,
-        )
-        now = before_now(minutes=0)
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_2,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=now,
-        )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-
-        titles = [row["title"] for row in response.data]
-        assert titles == [
-            "Dashboard with last visited",
-            "Dashboard without last visited",
-        ]
-
-        visited_at = [row.get("lastVisited") for row in response.data]
-        assert visited_at == [now, None]
-
-    def test_get_recently_viewed_sort_with_favorites_from_other_user(self) -> None:
-        other_user = self.create_user(username="other_user")
-        self.create_member(organization=self.organization, user=other_user)
-
-        Dashboard.objects.all().delete()
-        dashboard_1 = Dashboard.objects.create(
-            title="Dashboard 1",
-            created_by_id=other_user.id,
-            organization=self.organization,
-        )
-
-        # Both users have the same dashboard in their favorites
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=self.user.id,
-            dashboard=dashboard_1,
-        )
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=other_user.id,
-            dashboard=dashboard_1,
-        )
-
-        # Both users have recently visited the dashboard
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_1,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=0),
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_1,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=other_user.id
-            ),
-            last_visited=before_now(minutes=2),
-        )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.client.get(
-                self.url, data={"sort": "recentlyViewed", "pin": "favorites"}
-            )
-        assert response.status_code == 200, response.content
-
-        # Assert that the dashboard did not receive a duplicate entry due to being
-        # favorited by another user
-        assert len(response.data) == 1
-        self.assert_equal_dashboards(dashboard_1, response.data[0])
 
     def test_post(self) -> None:
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
@@ -2005,80 +1873,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         starred_dashboard = response.data[1]
         assert starred_dashboard["projects"] == []
-
-    def test_automatically_favorites_dashboard_when_isFavorited_is_true(self) -> None:
-        data = {
-            "title": "Dashboard with errors widget",
-            "isFavorited": True,
-        }
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 201, response.data
-        dashboard = Dashboard.objects.get(
-            organization=self.organization, title="Dashboard with errors widget"
-        )
-        assert response.data["isFavorited"] is True
-
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization, user_id=self.user.id, dashboard=dashboard
-            )
-            is not None
-        )
-
-    def test_does_not_automatically_favorite_dashboard_when_isFavorited_is_false(self) -> None:
-        data = {
-            "title": "Dashboard with errors widget",
-            "isFavorited": False,
-        }
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 201, response.data
-        dashboard = Dashboard.objects.get(
-            organization=self.organization, title="Dashboard with errors widget"
-        )
-        assert response.data["isFavorited"] is False
-
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization, user_id=self.user.id, dashboard=dashboard
-            )
-            is None
-        )
-
-    def test_order_by_most_favorited(self) -> None:
-        Dashboard.objects.all().delete()
-
-        # A mapping from dashboard title to the number of times it was favorited
-        dashboards = {
-            "Dashboard 1": 0,
-            "Dashboard 2": 2,
-            "Dashboard 3": 1,
-        }
-
-        # Set up a favorite entry for each dashboard by the number of times it was favorited
-        for title, favorited in dashboards.items():
-            dashboard = self.create_dashboard(title=title, organization=self.organization)
-            if favorited:
-                for _ in range(favorited):
-                    user = self.create_user()
-                    DashboardFavoriteUser.objects.create(
-                        dashboard=dashboard,
-                        user_id=user.id,
-                        organization=self.organization,
-                    )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request(
-                "get", self.url, {"sort": "mostFavorited", "pin": "favorites"}
-            )
-
-        assert response.status_code == 200, response.content
-        assert [dashboard["title"] for dashboard in response.data] == [
-            "Dashboard 2",
-            "Dashboard 3",
-            "Dashboard 1",
-        ]
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:

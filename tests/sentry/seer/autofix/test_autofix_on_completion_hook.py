@@ -7,6 +7,7 @@ from sentry.seer.agent.client_models import (
     FilePatch,
     MemoryBlock,
     Message,
+    RepoPRState,
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import AutofixStep
@@ -253,6 +254,69 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
         )
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_push_changes_skips_when_all_unsynced_repos_errored(self, mock_push_changes):
+        """Does not re-push when every un-synced repo is already in pr_creation_status='error'."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+                pr_creation_error="No write access to repository test-repo",
+            )
+        }
+        AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        mock_push_changes.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_push_changes_pushes_when_any_unsynced_repo_not_errored(self, mock_push_changes):
+        """Still pushes when a repo with diffs has no PR state yet (e.g. newly added)."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+                MemoryBlock(
+                    id="block-code-changes-2",
+                    message=Message(
+                        role="assistant",
+                        content="more code changes",
+                        metadata={"step": "code_changes"},
+                    ),
+                    timestamp="2026-02-10T00:00:00Z",
+                    merged_file_patches=[
+                        AgentFilePatch(
+                            repo_name="other-repo",
+                            patch=FilePatch(path="x.py", type="M", added=1, removed=0),
+                        )
+                    ],
+                ),
+            ],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+                pr_creation_error="No write access to repository test-repo",
+            )
+        }
+        AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        mock_push_changes.assert_called_once()
 
 
 class TestPipelineConstants(TestCase):
