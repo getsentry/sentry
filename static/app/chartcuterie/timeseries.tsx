@@ -22,6 +22,25 @@ const FONT_SIZE = 28;
 const CHART_SIZE = {width: 1200, height: 400};
 
 /**
+ * Maximum legend entries shown on the static unfurl image. Anything beyond
+ * this is collapsed into a "+N more" indicator so the legend stays on a
+ * single row (the unfurl is non-interactive, so pagination/wrapping aren't
+ * useful — users click through to the live chart to see everything).
+ */
+const MAX_LEGEND_ITEMS = 4;
+
+function buildBoundedLegendData(names: string[]) {
+  if (names.length <= MAX_LEGEND_ITEMS) {
+    return names;
+  }
+  const hiddenCount = names.length - MAX_LEGEND_ITEMS;
+  return [
+    ...names.slice(0, MAX_LEGEND_ITEMS),
+    {name: `+${hiddenCount} more`, icon: 'none'},
+  ];
+}
+
+/**
  * Builds a y-axis axisLabel formatter from the first timeseries metadata.
  */
 function makeYAxisFormatter(timeSeries: TimeSeries[]) {
@@ -52,6 +71,9 @@ export const makeTimeseriesCharts = (
     backgroundColor: theme.tokens.background.primary,
     legend: Legend({
       theme,
+      // 'plain' disables ECharts' built-in legend pagination, which is non-functional
+      // on a static unfurl image. Overflow is bounded via `data` below (see MAX_LEGEND_ITEMS).
+      type: 'plain',
       icon: 'roundRect',
       itemHeight: 16,
       itemWidth: 16,
@@ -64,11 +86,6 @@ export const makeTimeseriesCharts = (
         lineHeight: FONT_SIZE * 1.1,
         fontFamily: DEFAULT_FONT_FAMILY,
       },
-      pageTextStyle: {
-        fontSize: FONT_SIZE,
-        fontFamily: DEFAULT_FONT_FAMILY,
-      },
-      pageIconSize: FONT_SIZE * 0.6,
     }),
     yAxis: YAxis({
       theme,
@@ -125,6 +142,10 @@ export const makeTimeseriesCharts = (
 
         return {
           ...defaults,
+          legend: {
+            ...defaults.legend,
+            data: buildBoundedLegendData(timeSeries.map(ts => formatTimeSeriesLabel(ts))),
+          },
           yAxis,
           xAxis,
           useUTC: true,
@@ -160,6 +181,10 @@ export const makeTimeseriesCharts = (
 
       return {
         ...defaults,
+        legend: {
+          ...defaults.legend,
+          data: buildBoundedLegendData(sorted.map(ts => formatTimeSeriesLabel(ts))),
+        },
         yAxis,
         xAxis,
         useUTC: true,
