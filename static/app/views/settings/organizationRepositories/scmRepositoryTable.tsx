@@ -1,6 +1,7 @@
 import {Fragment, type ReactNode, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
+import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, type ButtonProps, LinkButton} from '@sentry/scraps/button';
@@ -535,12 +536,7 @@ function VirtualizedRepoList({
         : repositories.filter(r => repoMatches[r.id]);
     const hasMapping = (id: string) =>
       (mappedProjectSlugsByRepoId?.[id]?.length ?? 0) > 0;
-    return [...filtered].sort((a, b) => {
-      const aHas = hasMapping(a.id);
-      const bHas = hasMapping(b.id);
-      if (aHas !== bHas) return aHas ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
+    return sortBy(filtered, [r => !hasMapping(r.id), r => r.name]);
   }, [repositories, repoMatches, mappedProjectSlugsByRepoId]);
 
   const virtualizer = useVirtualizer({
