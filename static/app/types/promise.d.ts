@@ -1,5 +1,5 @@
 interface Promise<T> {
-  then<TFul, TRej = never>(
+  then<TFul = T, TRej = never>(
     onfulfilled?: ((value: T) => TFul | PromiseLike<TFul>) | null,
     onrejected?: ((reason: unknown) => TRej | PromiseLike<TRej>) | null
   ): Promise<TFul | TRej>;
