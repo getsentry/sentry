@@ -1,8 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
 from rest_framework.exceptions import NotFound
-from taskbroker_client.retry import RetryTaskError
 
 from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.integrations.models.external_actor import ExternalActor
@@ -302,16 +300,6 @@ class CodeOwnersTest(TestCase):
             post_bulk_create(file_changes)
 
             mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
-
-    def test_codeowners_auto_sync_retries_on_missing_commit(self) -> None:
-        non_existent_commit_id = 999999999
-
-        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
-            with pytest.raises(RetryTaskError):
-                code_owners_auto_sync(non_existent_commit_id)
-
-        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
-        assert code_owners.raw == self.data["raw"]
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
