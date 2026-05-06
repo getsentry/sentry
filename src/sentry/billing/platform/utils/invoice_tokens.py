@@ -79,7 +79,7 @@ class InvoiceTokenGenerator:
 
             return invoice_id
 
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, TypeError):
             return None
 
 
