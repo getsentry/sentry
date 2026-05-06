@@ -261,8 +261,13 @@ function AutofixEmptyState({
   const [startingRun, setStartingRun] = useState(false);
   const handleStartRootCause = async () => {
     setStartingRun(true);
-    await startStep('root_cause');
-    setStartingRun(false);
+    try {
+      await startStep('root_cause');
+    } catch {
+      return;
+    } finally {
+      setStartingRun(false);
+    }
     openSeerDrawer();
   };
 
