@@ -27,6 +27,7 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {isEventedProfile, isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -93,7 +94,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
     return search.formatString();
   }, [props.query, isEAP]);
 
-  const {data, status} = useAggregateFlamegraphQuery({
+  const {data, error, status} = useAggregateFlamegraphQuery({
     query,
     ...(isEAP ? {dataSource: 'spans' as const} : {}),
   });
@@ -181,6 +182,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   {visualization === 'flamegraph' ? (
                     <AggregateFlamegraph
                       status={status}
+                      queryError={status === 'error' ? error : null}
                       filter={frameFilter}
                       onResetFilter={onResetFrameFilter}
                       canvasPoolManager={canvasPoolManager}
@@ -204,7 +206,10 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   </RequestStateMessageContainer>
                 ) : status === 'error' ? (
                   <RequestStateMessageContainer>
-                    {t('There was an error loading the flamegraph.')}
+                    {getRequestErrorUserMessage(
+                      error,
+                      t('There was an error loading the flamegraph.')
+                    )}
                   </RequestStateMessageContainer>
                 ) : isEmpty(data) && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
