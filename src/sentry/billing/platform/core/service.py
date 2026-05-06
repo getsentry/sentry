@@ -129,7 +129,7 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
                 tags={**metric_tags, "error_type": type(e).__name__},
             )
 
-            logger.exception(
+            logger.info(
                 "billing.service.method.error",
                 extra={
                     "service": service_name,

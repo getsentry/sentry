@@ -16,8 +16,8 @@ type Props = {
 };
 
 export function RequestIntegrationButton(props: Props) {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [isSent, setIsSent] = useState<boolean>(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSent, setIsSent] = useState(false);
 
   const openRequestModal = () => {
     setIsOpen(true);

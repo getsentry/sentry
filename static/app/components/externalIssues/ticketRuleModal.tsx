@@ -116,7 +116,7 @@ export function TicketRuleModal({
   const initialConfigQuery = useMemo(() => {
     return (instance.dynamic_form_fields || [])
       .filter(field => field.updatesForm)
-      .filter(field => instance.hasOwnProperty(field.name))
+      .filter(field => Object.hasOwn(instance, field.name))
       .reduce(
         (accumulator, {name}) => {
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -160,7 +160,7 @@ export function TicketRuleModal({
 
   const validAndSavableFieldNames = useMemo(() => {
     return issueConfigFieldsCache
-      .filter(field => field.hasOwnProperty('name'))
+      .filter(field => Object.hasOwn(field, 'name'))
       .map(field => field.name);
   }, [issueConfigFieldsCache]);
 
@@ -228,7 +228,7 @@ export function TicketRuleModal({
         [key: string]: any;
         integration?: string | number;
       } = {};
-      if (instance?.hasOwnProperty('integration')) {
+      if (instance && Object.hasOwn(instance, 'integration')) {
         formData.integration = instance.integration;
       }
       formData.dynamic_form_fields = issueConfigFieldsCache;
@@ -271,7 +271,7 @@ export function TicketRuleModal({
   const onFieldChange = useCallback(
     (fieldName: string, value: unknown) => {
       setShowInstanceValues(false);
-      if (dynamicFieldValues.hasOwnProperty(fieldName)) {
+      if (Object.hasOwn(dynamicFieldValues, fieldName)) {
         setLastChangedField({[fieldName]: value});
         setDynamicFieldValue(fieldName, value as FieldValue);
         refetchWithDynamicFields({

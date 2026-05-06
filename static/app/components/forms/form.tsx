@@ -77,7 +77,7 @@ export interface FormProps extends Pick<
    */
   submitDisabled?: boolean;
   submitLabel?: string;
-  submitPriority?: ButtonProps['priority'];
+  submitVariant?: ButtonProps['variant'];
 }
 
 export function getSubmitButtonTitle(form: FormModel) {
@@ -137,7 +137,7 @@ export function Form({
   skipPreventDefault,
   submitDisabled,
   submitLabel,
-  submitPriority,
+  submitVariant,
 }: FormProps) {
   const [formModel] = useState(() => {
     const resolvedModel = model ?? new FormModel();
@@ -254,7 +254,7 @@ export function Form({
                   <Button
                     tooltipProps={{title: getSubmitButtonTitle(formModel)}}
                     data-test-id="form-submit"
-                    priority={submitPriority ?? 'primary'}
+                    variant={submitVariant ?? 'primary'}
                     disabled={
                       formModel.isFormIncomplete ||
                       formModel.isError ||

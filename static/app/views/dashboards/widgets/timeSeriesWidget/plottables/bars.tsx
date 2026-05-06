@@ -19,6 +19,8 @@ interface BarsConfig extends ContinuousTimeSeriesConfig {
   stack?: string;
 }
 
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
   onHighlight(dataIndex: number): void {
     const {config = {}} = this;

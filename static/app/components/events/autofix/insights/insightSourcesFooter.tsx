@@ -87,7 +87,7 @@ export function InsightSourcesFooter({
           >
             <SourceCard
               size="xs"
-              priority={shouldBePrimary ? 'primary' : 'default'}
+              variant={shouldBePrimary ? 'primary' : 'secondary'}
               onClick={sourceCard.onClick}
               icon={sourceCard.icon}
               isHighlighted={shouldBePrimary}

@@ -5,7 +5,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-def _stacktrace(package: str) -> dict:
+def _stacktrace(package: str) -> dict[str, object]:
     return {
         "frames": [
             {

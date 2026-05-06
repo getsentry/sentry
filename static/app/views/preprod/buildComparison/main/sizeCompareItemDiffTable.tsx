@@ -209,7 +209,7 @@ export function SizeCompareItemDiffTable({
                           {diffItem.path}
                         </Text>
                         <CopyToClipboardButton
-                          priority="transparent"
+                          variant="transparent"
                           size="zero"
                           text={diffItem.path}
                           style={{flexShrink: 0}}

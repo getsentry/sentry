@@ -648,7 +648,7 @@ export class Client {
           // Not related to errors in responses
         }
       )
-      .catch(error => {
+      .catch((error: Error) => {
         // eslint-disable-next-line no-console
         console.error(error);
 

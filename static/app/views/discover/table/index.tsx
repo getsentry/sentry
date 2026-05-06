@@ -254,7 +254,7 @@ class Table extends PureComponent<TableProps, TableState> {
           setSplitDecision?.(splitDecision);
         }
       })
-      .catch(err => {
+      .catch((err: any) => {
         metric.measure({
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,

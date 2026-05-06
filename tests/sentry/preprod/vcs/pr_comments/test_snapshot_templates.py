@@ -354,7 +354,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         )
 
         assert (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |"
             in result
         )
 
@@ -392,7 +392,7 @@ class FormatSnapshotPrCommentNoBaseTest(SnapshotPrCommentTestBase):
         )
 
         assert (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |"
             in result
         )
 

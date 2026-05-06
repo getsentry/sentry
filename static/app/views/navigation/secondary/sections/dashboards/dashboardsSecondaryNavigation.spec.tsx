@@ -11,9 +11,7 @@ describe('DashboardsSecondaryNavigation', () => {
   let organization: Organization;
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: ['dashboards-starred-reordering'],
-    });
+    organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/starred/',
@@ -21,7 +19,7 @@ describe('DashboardsSecondaryNavigation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/starred/`,
+      url: `/organizations/${organization.slug}/dashboards/`,
       body: [
         DashboardListItemFixture({
           id: '9999',
@@ -32,6 +30,7 @@ describe('DashboardsSecondaryNavigation', () => {
           title: 'Dashboard 1',
         }),
       ],
+      match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
     });
   });
 

@@ -9,11 +9,13 @@ import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStarte
 import {t, tct} from 'sentry/locale';
 
 export enum SiblingOption {
-  ANGULARV10 = 'angularV10',
+  ANGULARV14 = 'angularV14',
   ANGULARV12 = 'angularV12',
+  ANGULARV10 = 'angularV10',
   REACT = 'react',
   VUE3 = 'vue3',
   VUE2 = 'vue2',
+  NUXT = 'nuxt',
 }
 
 export const platformOptions: PlatformOptions = {
@@ -21,30 +23,29 @@ export const platformOptions: PlatformOptions = {
     label: t('Sibling Package'),
     items: [
       {
-        label: t('Angular 12+'),
-        value: SiblingOption.ANGULARV12,
+        label: t('Angular 14+'),
+        value: SiblingOption.ANGULARV14,
       },
       {
-        label: t('Angular 10 & 11'),
-        value: SiblingOption.ANGULARV10,
+        label: t('Angular 12 & 13'),
+        value: SiblingOption.ANGULARV12,
       },
       {
         label: t('React'),
         value: SiblingOption.REACT,
       },
       {
-        label: t('Vue 3'),
+        label: t('Vue'),
         value: SiblingOption.VUE3,
       },
       {
-        label: t('Vue 2'),
-        value: SiblingOption.VUE2,
+        label: t('Nuxt'),
+        value: SiblingOption.NUXT,
       },
     ],
   },
 };
 
-// Note: platformOptions is defined in index.tsx where it's used
 export type PlatformOptions = {
   siblingOption: PlatformOption<SiblingOption>;
 };
@@ -52,85 +53,34 @@ export type Params = DocsParams<PlatformOptions>;
 
 const isAngular = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.ANGULARV10 ||
+  siblingOption === SiblingOption.ANGULARV12 ||
+  siblingOption === SiblingOption.ANGULARV14;
+
+// Angular 12 & 13 use the legacy SDK API (V0)
+const isLegacyAngular = (siblingOption: string): boolean =>
+  siblingOption === SiblingOption.ANGULARV10 ||
   siblingOption === SiblingOption.ANGULARV12;
 
 const isVue = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.VUE2 || siblingOption === SiblingOption.VUE3;
 
-function getPerformanceIntegration(siblingOption: string): string {
-  return isVue(siblingOption)
-    ? 'routingInstrumentation: SentryVue.vueRouterInstrumentation(router),'
-    : isAngular(siblingOption)
-      ? 'routingInstrumentation: SentryAngular.routingInstrumentation,'
-      : '';
-}
-
-const performanceAngularErrorHandler = `,
-{
-  provide: SentryAngular.TraceService,
-  deps: [Router],
-},
-{
-  provide: APP_INITIALIZER,
-  useFactory: () => () => {},
-  deps: [SentryAngular.TraceService],
-  multi: true,
-},`;
-
-function getSiblingImportsSetupConfiguration(siblingOption: string): string {
-  switch (siblingOption) {
-    case SiblingOption.VUE3:
-      return `import {createApp} from "vue";
-          import {createRouter} from "vue-router";`;
-    case SiblingOption.VUE2:
-      return `import Vue from "vue";
-          import Router from "vue-router";`;
-    default:
-      return '';
-  }
-}
-
-function getVueConstSetup(siblingOption: string): string {
-  switch (siblingOption) {
-    case SiblingOption.VUE3:
-      return `
-          const app = createApp({
-            // ...
-          });
-          const router = createRouter({
-            // ...
-          });
-          `;
-    case SiblingOption.VUE2:
-      return `
-          Vue.use(Router);
-
-          const router = new Router({
-            // ...
-          });
-          `;
-    default:
-      return '';
-  }
-}
-
 const getIntegrations = (params: Params): string[] => {
-  const integrations: string[] = ['Sentry.browserTracingIntegration()'];
+  const siblingOption = params.platformOptions.siblingOption;
+  const integrations: string[] = [];
 
   if (params.isPerformanceSelected) {
-    integrations.push(`
-          new ${getSiblingImportName(params.platformOptions.siblingOption)}.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          ${getPerformanceIntegration(params.platformOptions.siblingOption)}
-          })`);
+    integrations.push(
+      isLegacyAngular(siblingOption)
+        ? 'new Sentry.BrowserTracing()'
+        : 'Sentry.browserTracingIntegration()'
+    );
   }
 
   if (params.isReplaySelected) {
     integrations.push(
-      `new ${getSiblingImportName(params.platformOptions.siblingOption)}.Replay(${getReplayConfigOptions(
-        params.replayOptions
-      )})`
+      isLegacyAngular(siblingOption)
+        ? `new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)})`
+        : `Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})`
     );
   }
 
@@ -146,12 +96,15 @@ const getIntegrations = (params: Params): string[] => {
 };
 
 const getDynamicParts = (params: Params): string[] => {
+  const siblingOption = params.platformOptions.siblingOption;
   const dynamicParts: string[] = [];
 
   if (params.isPerformanceSelected) {
     dynamicParts.push(`
       // Tracing
-      tracesSampleRate: 1.0 //  Capture 100% of the transactions`);
+      tracesSampleRate: 1.0, // Capture 100% of the transactions
+      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
 
   if (params.isReplaySelected) {
@@ -161,20 +114,63 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
+  // Logs requires @sentry/capacitor 2.0.0 or newer (Angular 14+ only for Angular)
+  if (params.isLogsSelected) {
+    if (isLegacyAngular(siblingOption)) {
+      dynamicParts.push(`
+      // Logs requires Angular 14 or newer.`);
+    } else {
+      dynamicParts.push(`
+      // Enable logs to be sent to Sentry
+      enableLogs: true`);
+    }
+  }
+
   return dynamicParts;
 };
 
 const getStaticParts = (params: Params): string[] => {
   const staticParts = [`dsn: "${params.dsn.public}"`];
 
-  if (params.platformOptions.siblingOption === SiblingOption.VUE2) {
-    staticParts.unshift('Vue');
-  } else if (params.platformOptions.siblingOption === SiblingOption.VUE3) {
-    staticParts.unshift('app');
+  if (isVue(params.platformOptions.siblingOption)) {
+    staticParts.push(`siblingOptions: {
+    vueOptions: {
+      app: app,
+      attachErrorHandler: false,
+      attachProps: true,
+    },
+  }`);
   }
 
   return staticParts;
 };
+
+function getSiblingImportsSetupConfiguration(siblingOption: string): string {
+  if (siblingOption === SiblingOption.VUE3 || siblingOption === SiblingOption.VUE2) {
+    return `import { createApp } from "vue";`;
+  }
+  return '';
+}
+
+function getVueConstSetup(siblingOption: string): string {
+  if (siblingOption === SiblingOption.VUE3 || siblingOption === SiblingOption.VUE2) {
+    return `
+const app = createApp(App);
+`;
+  }
+  return '';
+}
+
+const angularNgModuleAlwaysProviders = `{
+  provide: SentryAngular.TraceService,
+  deps: [Router],
+},
+{
+  provide: APP_INITIALIZER,
+  useFactory: () => () => {},
+  deps: [SentryAngular.TraceService],
+  multi: true,
+},`;
 
 export function getSetupConfiguration({
   params,
@@ -213,13 +209,11 @@ export function getSetupConfiguration({
     type: 'code',
     language: 'javascript',
     code: `${getSiblingImportsSetupConfiguration(siblingOption)}
-    import * as Sentry from '@sentry/capacitor';
-    import * as ${getSiblingImportName(siblingOption)} from '${getNpmPackage(
-      siblingOption
-    )}';
-    ${getVueConstSetup(siblingOption)}
-    Sentry.init({
-      ${config}
+import * as Sentry from '@sentry/capacitor';
+import * as ${getSiblingImportName(siblingOption)} from '${getNpmPackage(siblingOption)}';
+${getVueConstSetup(siblingOption)}
+Sentry.init({
+  ${config}
 },
 // Forward the init method from ${getNpmPackage(params.platformOptions.siblingOption)}
 ${getSiblingImportName(siblingOption)}.init
@@ -233,6 +227,13 @@ ${getSiblingImportName(siblingOption)}.init
         "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler."
       ),
     });
+
+    // Angular 12 & 13 always include TraceService; Angular 14+ makes it conditional on performance
+    const traceServiceProviders =
+      isLegacyAngular(siblingOption) || params.isPerformanceSelected
+        ? angularNgModuleAlwaysProviders
+        : '';
+
     configuration.push({
       type: 'code',
       language: 'javascript',
@@ -247,7 +248,7 @@ providers: [
 {
   provide: ErrorHandler,
   useValue: SentryAngular.createErrorHandler(),
-}${params.isPerformanceSelected ? performanceAngularErrorHandler : ' '}
+}${traceServiceProviders ? `,\n${traceServiceProviders}` : ''}
 ],
 // ...
 })
@@ -260,11 +261,13 @@ export class AppModule {}`,
 
 export function getNpmPackage(siblingOption: string): string {
   const packages: Record<SiblingOption, string> = {
-    [SiblingOption.ANGULARV10]: '@sentry/angular',
+    [SiblingOption.ANGULARV14]: '@sentry/angular',
     [SiblingOption.ANGULARV12]: '@sentry/angular-ivy',
+    [SiblingOption.ANGULARV10]: '@sentry/angular',
     [SiblingOption.REACT]: '@sentry/react',
     [SiblingOption.VUE3]: '@sentry/vue',
     [SiblingOption.VUE2]: '@sentry/vue',
+    [SiblingOption.NUXT]: '@sentry/nuxt',
   };
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return packages[siblingOption];
@@ -272,14 +275,17 @@ export function getNpmPackage(siblingOption: string): string {
 
 export function getSiblingName(siblingOption: string): string {
   switch (siblingOption) {
-    case SiblingOption.ANGULARV10:
+    case SiblingOption.ANGULARV14:
     case SiblingOption.ANGULARV12:
+    case SiblingOption.ANGULARV10:
       return 'Angular';
     case SiblingOption.REACT:
       return 'React';
     case SiblingOption.VUE2:
     case SiblingOption.VUE3:
       return 'Vue';
+    case SiblingOption.NUXT:
+      return 'Nuxt';
     default:
       return '';
   }
@@ -287,14 +293,17 @@ export function getSiblingName(siblingOption: string): string {
 
 export function getSiblingImportName(siblingOption: string): string {
   switch (siblingOption) {
-    case SiblingOption.ANGULARV10:
+    case SiblingOption.ANGULARV14:
     case SiblingOption.ANGULARV12:
+    case SiblingOption.ANGULARV10:
       return 'SentryAngular';
     case SiblingOption.REACT:
       return 'SentryReact';
     case SiblingOption.VUE2:
     case SiblingOption.VUE3:
       return 'SentryVue';
+    case SiblingOption.NUXT:
+      return 'SentryNuxt';
     default:
       return '';
   }

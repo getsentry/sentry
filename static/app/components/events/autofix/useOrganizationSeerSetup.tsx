@@ -4,7 +4,6 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface OrganizationSeerSetupResponse {
@@ -23,10 +22,7 @@ export function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey 
 }
 
 export function useOrganizationSeerSetup(
-  options: Omit<
-    UseApiQueryOptions<OrganizationSeerSetupResponse, RequestError>,
-    'staleTime'
-  > = {}
+  options: Omit<UseApiQueryOptions<OrganizationSeerSetupResponse>, 'staleTime'> = {}
 ) {
   const organization = useOrganization();
   const orgSlug = organization.slug;

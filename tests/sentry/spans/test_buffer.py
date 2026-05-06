@@ -1589,6 +1589,58 @@ def test_flush_lock_mixed_contention(
         assert len(rv_a) + len(rv_b) == expected_flushed_segments
 
 
+@mock.patch("sentry.spans.buffer.Project")
+def test_flush_lock_detaches_subsegment(mock_project_model, buffer: SpansBuffer) -> None:
+    """
+    Tests that a span that arrives while a segment is being flushed detaches
+    to a new segment rather than merge into the locked segment.
+    """
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    root_span = Span(
+        payload=_payload("b" * 16),
+        trace_id="a" * 32,
+        span_id="b" * 16,
+        parent_span_id=None,
+        segment_id=None,
+        is_segment_span=True,
+        project_id=1,
+    )
+    concurrent_span = Span(
+        payload=_payload("c" * 16),
+        trace_id="a" * 32,
+        span_id="c" * 16,
+        parent_span_id="b" * 16,
+        segment_id=None,
+        project_id=1,
+    )
+
+    normal_key = _segment_id(1, "a" * 32, "b" * 16)
+
+    with override_options(
+        {
+            "spans.buffer.enforce-segment-size": True,
+            "spans.buffer.flusher.flush-lock-ttl": 20,
+        }
+    ):
+        buffer.process_spans([root_span], now=0)
+        rv = buffer.flush_segments(now=11)
+        buffer.process_spans([concurrent_span], now=12)
+        buffer.done_flush_segments(rv)
+        rv2 = buffer.flush_segments(now=120)
+
+    detached_keys = [k for k in rv2 if k != normal_key]
+    assert len(detached_keys) == 1
+    detached_segment = rv2[detached_keys[0]]
+    assert len(detached_segment.spans) == 1
+    assert detached_segment.spans[0].payload["span_id"] == "c" * 16
+
+    buffer.done_flush_segments(rv2)
+
+
 # --- Distributed payload keys tests ---
 
 

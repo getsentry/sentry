@@ -16,7 +16,7 @@ interface Props {
  * entire data set at some point and a cache is full.
  */
 export function useWasSearchSpaceExhausted({query, isLoading, pageLinks}: Props) {
-  const [wasSearchSpaceExhausted, setWasSearchSpaceExhausted] = useState<boolean>(false);
+  const [wasSearchSpaceExhausted, setWasSearchSpaceExhausted] = useState(false);
 
   useEffect(() => {
     if (query === '' && !isLoading) {

@@ -652,7 +652,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -725,7 +725,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -1187,7 +1187,7 @@ function SaveQueryButton({
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
   const handleCreate = useCallback(
-    (event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>) => {
+    (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       event.stopPropagation();
       if (!queryName) {
@@ -1207,7 +1207,7 @@ function SaveQueryButton({
     [api, organization, eventView, yAxis, queryName]
   );
 
-  const handleUpdate = (event: React.MouseEvent<Element>) => {
+  const handleUpdate = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     handleUpdateSavedQuery(api, organization, eventView, yAxis).then((sq: SavedQuery) => {
@@ -1348,15 +1348,6 @@ function DiscoverPageFilters({
       </PageFilterBar>
       {hasPageFrameFeature && (
         <Flex gap="md" align="center">
-          <SaveQueryButton
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
-          />
           {!shouldHideCreateAlert && (
             <Feature organization={organization} features="incidents">
               {({hasFeature}) =>
@@ -1390,6 +1381,15 @@ function DiscoverPageFilters({
             yAxis={yAxis}
             isHomepage={isHomepage}
             setSavedQuery={setSavedQuery}
+          />
+          <SaveQueryButton
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            savedQuery={savedQuery}
+            yAxis={yAxis}
+            setSavedQuery={setSavedQuery}
+            errorCode={errorCode}
           />
         </Flex>
       )}
