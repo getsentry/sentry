@@ -99,6 +99,11 @@ interface LocalMultiMetricsQueryParamsProviderProps {
    * Gates insert-before-equation behavior in `addMetricQuery`.
    */
   hasEquations?: boolean;
+  /**
+   * Called after every mutation with the new set of queries (including labels).
+   * Allows the consumer to react to query changes without effects.
+   */
+  onQueriesChange?: (queries: BaseMetricQuery[]) => void;
 }
 
 /**
@@ -118,9 +123,18 @@ export function LocalMultiMetricsQueryParamsProvider({
   children,
   initialQueries,
   hasEquations,
+  onQueriesChange,
 }: LocalMultiMetricsQueryParamsProviderProps) {
-  const [queries, setQueries] = useState<BaseMetricQuery[]>(() =>
+  const [queries, setLocalQueries] = useState<BaseMetricQuery[]>(() =>
     initialQueries.length > 0 ? initialQueries : [defaultMetricQuery()]
+  );
+
+  const setQueries = useCallback(
+    (nextQueries: BaseMetricQuery[]) => {
+      setLocalQueries(nextQueries);
+      onQueriesChange?.(nextQueries);
+    },
+    [onQueriesChange]
   );
 
   const value = useMetricQueriesController({queries, setQueries, hasEquations});

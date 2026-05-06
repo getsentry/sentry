@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import noop from 'lodash/noop';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -10,9 +10,10 @@ import {
   EQUATION_PREFIX,
   explodeFieldString,
   generateFieldAsString,
+  type Column,
 } from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
@@ -27,6 +28,7 @@ import {
   unresolveExpression,
 } from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
+import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {
   defaultMetricQuery,
   type BaseMetricQuery,
@@ -76,6 +78,25 @@ function computeEquationReferencedLabels(
   return extractReferenceLabels(new Expression(unresolvedText, labelSet));
 }
 
+function dispatchYAxisUpdate(
+  yAxis: string,
+  displayType: DisplayType | undefined,
+  fields: Column[] | undefined,
+  dispatch: (...args: any[]) => void
+) {
+  const actionType = getTraceMetricAggregateActionType(displayType);
+  const column = explodeFieldString(yAxis);
+  if (actionType === BuilderStateAction.SET_Y_AXIS) {
+    dispatch({type: actionType, payload: [column]});
+  } else if (actionType === BuilderStateAction.SET_CATEGORICAL_AGGREGATE) {
+    dispatch({type: actionType, payload: [column]});
+  } else {
+    const currentNonAggregates =
+      fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
+    dispatch({type: actionType, payload: [...currentNonAggregates, column]});
+  }
+}
+
 interface MetricsEquationVisualizeProps {
   onEquationRemoved: () => void;
 }
@@ -85,13 +106,16 @@ export function MetricsEquationVisualize({
 }: MetricsEquationVisualizeProps) {
   const organization = useOrganization();
   const hasEquations = canUseMetricsEquationsInDashboards(organization);
-  const {state} = useWidgetBuilderContext();
+  const {state, dispatch} = useWidgetBuilderContext();
 
   const aggregateSource = getTraceMetricAggregateSource(
     state.displayType,
     state.yAxis,
     state.fields
   );
+  const currentAggregate = aggregateSource?.[0]
+    ? generateFieldAsString(aggregateSource[0])
+    : '';
 
   const initialQueries = useMemo(() => {
     const firstField = aggregateSource?.[0];
@@ -124,20 +148,75 @@ export function MetricsEquationVisualize({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [selectedLabel, setSelectedLabel] = useState<string | undefined>(() => {
+    const labels = assignSequentialLabels(initialQueries);
+    const matchIdx = initialQueries.findIndex(
+      q => q.queryParams.visualizes[0]?.yAxis === currentAggregate
+    );
+    return matchIdx >= 0 ? labels[matchIdx] : labels[0];
+  });
+
+  const handleQueriesChange = useCallback(
+    (newQueries: BaseMetricQuery[]) => {
+      const hasEquation = newQueries.some(q =>
+        isVisualizeEquation(q.queryParams.visualizes[0]!)
+      );
+
+      if (!hasEquation) {
+        const firstFunction = newQueries.find(q =>
+          isVisualizeFunction(q.queryParams.visualizes[0]!)
+        );
+        if (firstFunction) {
+          setSelectedLabel(firstFunction.label);
+          const yAxis = firstFunction.queryParams.visualizes[0]?.yAxis;
+          if (yAxis) {
+            dispatchYAxisUpdate(yAxis, state.displayType, state.fields, dispatch);
+          }
+        }
+        dispatch({type: BuilderStateAction.SET_QUERY, payload: ['']});
+        onEquationRemoved();
+        return;
+      }
+
+      let selected = newQueries.find(q => q.label === selectedLabel);
+      if (!selected && newQueries.length > 0) {
+        selected = newQueries[0];
+        setSelectedLabel(selected!.label);
+        dispatch({
+          type: BuilderStateAction.SET_QUERY,
+          payload: [selected!.queryParams.query],
+        });
+      }
+      if (selected) {
+        const yAxis = selected.queryParams.visualizes[0]?.yAxis;
+        if (yAxis) {
+          dispatchYAxisUpdate(yAxis, state.displayType, state.fields, dispatch);
+        }
+      }
+    },
+    [selectedLabel, state.displayType, state.fields, dispatch, onEquationRemoved]
+  );
+
   return (
     <LocalMultiMetricsQueryParamsProvider
       initialQueries={initialQueries}
       hasEquations={hasEquations}
+      onQueriesChange={handleQueriesChange}
     >
-      <MetricsEquationVisualizeContent onEquationRemoved={onEquationRemoved} />
+      <MetricsEquationVisualizeContent
+        selectedLabel={selectedLabel}
+        setSelectedLabel={setSelectedLabel}
+      />
     </LocalMultiMetricsQueryParamsProvider>
   );
 }
 
 function MetricsEquationVisualizeContent({
-  onEquationRemoved,
+  selectedLabel,
+  setSelectedLabel,
 }: {
-  onEquationRemoved: () => void;
+  selectedLabel: string | undefined;
+  setSelectedLabel: (label: string | undefined) => void;
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
   const metricQueries = useMultiMetricsQueryParams();
@@ -145,82 +224,30 @@ function MetricsEquationVisualizeContent({
   const addAggregate = useAddMetricQuery({type: 'aggregate'});
   const addEquation = useAddMetricQuery({type: 'equation'});
 
-  const aggregateSource = getTraceMetricAggregateSource(
-    state.displayType,
-    state.yAxis,
-    state.fields
-  );
-  const currentAggregate = aggregateSource?.[0]
-    ? generateFieldAsString(aggregateSource[0])
-    : '';
-
-  const [selectedLabel, setSelectedLabel] = useState<string | undefined>(() => {
-    const match = metricQueries.find(
-      q => q.queryParams.visualizes[0]?.yAxis === currentAggregate
-    );
-    return match?.label ?? metricQueries[0]?.label;
-  });
-
-  const syncWidgetBuilderYAxis = useCallback(
-    (yAxis: string) => {
-      const actionType = getTraceMetricAggregateActionType(state.displayType);
-      const column = explodeFieldString(yAxis);
-      if (actionType === BuilderStateAction.SET_Y_AXIS) {
-        dispatch({type: actionType, payload: [column]});
-      } else if (actionType === BuilderStateAction.SET_CATEGORICAL_AGGREGATE) {
-        dispatch({type: actionType, payload: [column]});
-      } else {
-        const currentNonAggregates =
-          state.fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
-        dispatch({type: actionType, payload: [...currentNonAggregates, column]});
-      }
-    },
-    [state.displayType, state.fields, dispatch]
-  );
-
-  const syncWidgetBuilderFilter = useCallback(
-    (query: string) => {
-      dispatch({type: BuilderStateAction.SET_QUERY, payload: [query]});
-    },
-    [dispatch]
-  );
-
-  const handleFilterChange = useCallback(
-    (newQueryParams: ReadableQueryParams) => {
-      syncWidgetBuilderFilter(newQueryParams.query);
-    },
-    [syncWidgetBuilderFilter]
-  );
-
   const onRowSelection = useCallback(
     (label: string) => {
       setSelectedLabel(label);
       const query = metricQueries.find(q => q.label === label);
       if (query) {
-        syncWidgetBuilderFilter(query.queryParams.query);
+        dispatch({
+          type: BuilderStateAction.SET_QUERY,
+          payload: [query.queryParams.query],
+        });
+        const yAxis = query.queryParams.visualizes[0]?.yAxis;
+        if (yAxis) {
+          dispatchYAxisUpdate(yAxis, state.displayType, state.fields, dispatch);
+        }
       }
     },
-    [metricQueries, syncWidgetBuilderFilter]
+    [metricQueries, setSelectedLabel, state.displayType, state.fields, dispatch]
   );
 
-  const selectedQuery = metricQueries.find(q => q.label === selectedLabel);
-  const selectedYAxis = selectedQuery?.queryParams.visualizes[0]?.yAxis;
-
-  useEffect(() => {
-    if (!selectedQuery && metricQueries.length > 0) {
-      setSelectedLabel(metricQueries[0]!.label);
-      syncWidgetBuilderFilter(metricQueries[0]!.queryParams.query);
-    }
-  }, [selectedQuery, metricQueries, syncWidgetBuilderFilter]);
-
-  const syncYAxisRef = useRef(syncWidgetBuilderYAxis);
-  syncYAxisRef.current = syncWidgetBuilderYAxis;
-
-  useEffect(() => {
-    if (selectedYAxis) {
-      syncYAxisRef.current(selectedYAxis);
-    }
-  }, [selectedYAxis]);
+  const handleFilterChange = useCallback(
+    (newQueryParams: ReadableQueryParams) => {
+      dispatch({type: BuilderStateAction.SET_QUERY, payload: [newQueryParams.query]});
+    },
+    [dispatch]
+  );
 
   const functionQueries = useMemo(
     () => metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)),
@@ -238,14 +265,6 @@ function MetricsEquationVisualizeContent({
     () => new Set(equationReferencedLabels),
     [equationReferencedLabels]
   );
-
-  const hasEquationRow = Boolean(equationQuery);
-  useEffect(() => {
-    if (!hasEquationRow) {
-      setEquationReferencedLabels([]);
-      onEquationRemoved();
-    }
-  }, [hasEquationRow, onEquationRemoved]);
 
   return (
     <Stack gap="lg" flex="1">
@@ -428,7 +447,7 @@ function MetricToolbar({
         </Flex>
       </Flex>
 
-      <Flex align="center">
+      <Flex align="center" height="36px">
         <DeleteMetricButton
           disabledReason={isFunction ? deleteDisabledReason : undefined}
         />
