@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {
@@ -15,7 +15,7 @@ import {
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {ProjectSeerContainer as ProjectSeer} from 'sentry/views/settings/projectSeer';
 
 // Needed to mock useVirtualizer lists.
@@ -32,11 +32,11 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
 }));
 
 describe('ProjectSeer', () => {
-  let project: Project;
+  let project: DetailedProject;
   let organization: Organization;
 
   beforeEach(() => {
-    project = ProjectFixture();
+    project = DetailedProjectFixture();
     organization = OrganizationFixture();
 
     // Mock the seer setup check endpoint
@@ -300,7 +300,7 @@ describe('ProjectSeer', () => {
   });
 
   it('can update the autofix autorun threshold setting', async () => {
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'high', // Start from high
       seerScannerAutomation: true,
@@ -350,7 +350,7 @@ describe('ProjectSeer', () => {
   });
 
   it('can update the project scanner automation setting', async () => {
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       seerScannerAutomation: false, // Start from off
     };
@@ -389,7 +389,7 @@ describe('ProjectSeer', () => {
   });
 
   it('can update the automation stopping point setting', async () => {
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'medium',
       seerScannerAutomation: true,
@@ -453,7 +453,7 @@ describe('ProjectSeer', () => {
       features: [],
     });
 
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'medium',
       seerScannerAutomation: true,
@@ -572,7 +572,7 @@ describe('ProjectSeer', () => {
       features: ['integrations-claude-code'],
     });
 
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'medium',
       seerScannerAutomation: true,
@@ -682,7 +682,7 @@ describe('ProjectSeer', () => {
 
   describe('Auto Create PR Setting', () => {
     it('does not render when stopping point is not cursor_handoff', async () => {
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
@@ -711,7 +711,7 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
@@ -790,7 +790,7 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
@@ -898,7 +898,7 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
@@ -988,7 +988,7 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
@@ -1111,7 +1111,7 @@ describe('ProjectSeer', () => {
         features: ['integrations-claude-code'],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
@@ -1193,7 +1193,7 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,

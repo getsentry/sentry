@@ -11,7 +11,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {
   addProjectFeaturesHandler,
   buildSentryFeaturesHandler,
@@ -22,7 +22,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-export const ProjectRouteContext = createContext<Project | null>(null);
+export const ProjectRouteContext = createContext<DetailedProject | null>(null);
 
 interface ProjectRouteProviderProps {
   children: React.ReactNode;

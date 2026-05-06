@@ -166,7 +166,11 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     }
 
     const isAutomationDisabled =
+      // TODO(project-types): seerScannerAutomation is on DetailedProject
+      // @ts-expect-error -- needs DetailedProject
       project.seerScannerAutomation === false ||
+      // TODO(project-types): autofixAutomationTuning is on DetailedProject
+      // @ts-expect-error -- needs DetailedProject
       project.autofixAutomationTuning === 'off';
 
     if (isAutomationDisabled) {

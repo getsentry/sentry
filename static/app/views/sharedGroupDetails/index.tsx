@@ -71,7 +71,7 @@ function SharedGroupDetails() {
   // Backend only provides {slug, name} for the organization.
   // Add features: [] for OrganizationContext compatibility.
   const org: SharedViewOrganization = {
-    ...group.project.organization,
+    ...group.project.organization!,
     features: [],
   };
 

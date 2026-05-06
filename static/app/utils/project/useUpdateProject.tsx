@@ -1,16 +1,16 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Variables extends Partial<Project> {}
+interface Variables extends Partial<DetailedProject> {}
 
 type Context =
   | {
-      previousProject: Project;
+      previousProject: DetailedProject;
       error?: never;
     }
   | {
@@ -27,22 +27,22 @@ export function useUpdateProject(project: Project) {
     projectSlug: project.slug,
   });
 
-  return useMutation<Project, Error, Variables, Context>({
+  return useMutation<DetailedProject, Error, Variables, Context>({
     onMutate: (data: Variables) => {
       const fromCache = queryClient.getQueryData(queryKey)?.json;
       const fromStore = ProjectsStore.getById(project.id);
       const fromProp = project;
 
-      const isValidProjectWithOptions = (obj: unknown): obj is Project =>
+      const isValidProjectWithOptions = (obj: unknown): obj is DetailedProject =>
         obj !== null &&
         typeof obj === 'object' &&
-        typeof (obj as Project).options === 'object' &&
-        (obj as Project).options !== null;
+        typeof (obj as DetailedProject).options === 'object' &&
+        (obj as DetailedProject).options !== null;
 
       const previousProject =
         (isValidProjectWithOptions(fromCache) ? fromCache : null) ||
         (isValidProjectWithOptions(fromStore) ? fromStore : null) ||
-        fromProp;
+        (isValidProjectWithOptions(fromProp) ? fromProp : null);
 
       if (!previousProject) {
         return {error: new Error('Previous project not found')};
@@ -69,7 +69,7 @@ export function useUpdateProject(project: Project) {
       return {previousProject};
     },
     mutationFn: (data: Variables) => {
-      return fetchMutation<Project>({
+      return fetchMutation<DetailedProject>({
         method: 'PUT',
         url: `/projects/${organization.slug}/${project.slug}/`,
         data: {...data},

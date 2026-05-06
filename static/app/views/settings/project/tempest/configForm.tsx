@@ -5,7 +5,7 @@ import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const schema = z.object({
@@ -23,10 +23,10 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
       <AutoSaveForm
         name="tempestFetchScreenshots"
         schema={schema}
-        initialValue={project.tempestFetchScreenshots ?? false}
+        initialValue={(project as DetailedProject).tempestFetchScreenshots ?? false}
         mutationOptions={{
           mutationFn: data =>
-            fetchMutation<Project>({
+            fetchMutation<DetailedProject>({
               url: `/projects/${organization.slug}/${project.slug}/`,
               method: 'PUT',
               data,

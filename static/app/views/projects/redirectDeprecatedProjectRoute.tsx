@@ -90,7 +90,7 @@ class ProjectDetailsInner extends Component<DetailsProps, DetailsState> {
 
   getOrganizationId() {
     if (this.state.project) {
-      return this.state.project.organization.id;
+      return this.state.project.organization?.id ?? null;
     }
     return null;
   }

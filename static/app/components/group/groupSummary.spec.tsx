@@ -2,7 +2,7 @@ import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +11,7 @@ import {GroupSummary} from 'sentry/components/group/groupSummary';
 describe('GroupSummary', () => {
   const mockEvent = EventFixture();
   const mockGroup = GroupFixture();
-  const mockProject = ProjectFixture();
+  const mockProject = DetailedProjectFixture();
   const organization = OrganizationFixture({
     hideAiFeatures: false,
     features: ['gen-ai-features'],

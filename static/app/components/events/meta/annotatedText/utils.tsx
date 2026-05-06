@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 import {tct} from 'sentry/locale';
 import type {ChunkType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import {getRuleDescription} from 'sentry/views/settings/components/dataScrubbing/utils';
 
@@ -113,7 +113,9 @@ export function getTooltipText({
     );
   }
 
-  const rules = convertRelayPiiConfig(project?.relayPiiConfig);
+  const rules = convertRelayPiiConfig(
+    (project as DetailedProject | undefined)?.relayPiiConfig
+  );
   const rule = rules.find(({id}) => String(id) === ruleId);
 
   return (

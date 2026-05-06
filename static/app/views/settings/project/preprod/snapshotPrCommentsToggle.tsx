@@ -8,10 +8,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {getSnapshotPrComments} from './getSnapshotPrComments';
@@ -34,8 +33,7 @@ type PrCommentField = {
 
 export function SnapshotPrCommentsToggle() {
   const organization = useOrganization();
-  const {project: outletProject} = useProjectSettingsOutlet();
-  const project = useProjectFromId({project_id: outletProject.id}) ?? outletProject;
+  const {project} = useProjectSettingsOutlet();
   const {enabled, postOnAdded, postOnRemoved, postOnChanged, postOnRenamed} =
     getSnapshotPrComments(project);
 
@@ -43,7 +41,7 @@ export function SnapshotPrCommentsToggle() {
 
   const projectMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Schema>) =>
-      fetchMutation<Project>({
+      fetchMutation<DetailedProject>({
         url: projectEndpoint,
         method: 'PUT',
         data,

@@ -1,4 +1,4 @@
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -20,7 +20,7 @@ describe('SnapshotPrCommentsToggle', () => {
   });
 
   it('renders default values when the project has no preprod options', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
     render(<SnapshotPrCommentsToggle />, {
       organization,
       outletContext: {project},
@@ -36,7 +36,7 @@ describe('SnapshotPrCommentsToggle', () => {
   });
 
   it('shows per-category toggles when enabled with correct defaults', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotPrCommentsEnabled: true,
     });
@@ -64,7 +64,7 @@ describe('SnapshotPrCommentsToggle', () => {
   });
 
   it('reflects project values from explicit fields', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotPrCommentsEnabled: true,
       preprodSnapshotPrCommentsPostOnAdded: true,
@@ -93,7 +93,7 @@ describe('SnapshotPrCommentsToggle', () => {
   });
 
   it('saves post_on_changed when toggled off', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotPrCommentsEnabled: true,
     });
@@ -126,7 +126,7 @@ describe('SnapshotPrCommentsToggle', () => {
   });
 
   it('saves post_on_renamed when toggled on', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotPrCommentsEnabled: true,
     });
@@ -159,7 +159,7 @@ describe('SnapshotPrCommentsToggle', () => {
   });
 
   it('immediately hides post condition toggles when PR comments are disabled', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotPrCommentsEnabled: true,
     });
@@ -199,7 +199,7 @@ describe('SnapshotPrCommentsToggle', () => {
   });
 
   it('hides per-category toggles and shows a hint when PR comments are disabled', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotPrCommentsEnabled: false,
     });

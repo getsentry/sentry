@@ -1,6 +1,6 @@
 import {TeamFixture} from 'sentry-fixture/team';
 
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 
 export function ProjectFixture(params: Partial<Project> = {}): Project {
   const team = TeamFixture();
@@ -9,7 +9,6 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     slug: 'project-slug',
     name: 'Project Name',
     access: ['project:read'],
-    allowedDomains: ['*'],
     hasAccess: true,
     isMember: true,
     isBookmarked: false,
@@ -18,13 +17,8 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     environments: [],
     features: [],
     dateCreated: new Date().toISOString(),
-    digestsMaxDelay: 0,
-    digestsMinDelay: 0,
-    dynamicSamplingBiases: null,
     firstEvent: null,
     firstTransactionEvent: false,
-    groupingConfig: '',
-    hasCustomMetrics: false,
     hasFeedbacks: false,
     hasNewFeedbacks: false,
     hasMinifiedStackTrace: false,
@@ -46,11 +40,24 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     hasInsightsAgentMonitoring: false,
     hasInsightsMCP: false,
     isInternal: false,
+    ...params,
+  };
+}
+
+export function DetailedProjectFixture(
+  params: Partial<DetailedProject> = {}
+): DetailedProject {
+  return {
+    ...ProjectFixture(params),
     organization: {id: '3', slug: 'org-slug'},
     plugins: [],
     processingIssues: 0,
+    allowedDomains: ['*'],
+    digestsMaxDelay: 0,
+    digestsMinDelay: 0,
+    dynamicSamplingBiases: null,
+    groupingConfig: '',
     relayPiiConfig: '',
-    relayCustomMetricCardinalityLimit: null,
     resolveAge: 0,
     safeFields: [],
     scrapeJavaScript: true,

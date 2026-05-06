@@ -27,7 +27,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
@@ -46,7 +46,7 @@ function useOpenEditHighlightsModal({
   event,
 }: {
   event: Event;
-  detailedProject?: Project;
+  detailedProject?: DetailedProject;
 }) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -124,12 +124,12 @@ function HighlightsData({
   });
 
   const highlightContext = useMemo(
-    () => detailedProject?.highlightContext ?? project?.highlightContext ?? {},
-    [detailedProject, project]
+    () => detailedProject?.highlightContext ?? {},
+    [detailedProject]
   );
   const highlightTags = useMemo(
-    () => detailedProject?.highlightTags ?? project?.highlightTags ?? [],
-    [detailedProject, project]
+    () => detailedProject?.highlightTags ?? [],
+    [detailedProject]
   );
 
   // The API will return default values for tags/context. The only way to have none is to set it to
@@ -201,7 +201,7 @@ function HighlightsData({
       content={content}
       event={event}
       tagKey={content.originalTag.key}
-      project={detailedProject ?? project}
+      project={detailedProject!}
       config={{
         disableActions: content.value === EMPTY_HIGHLIGHT_DEFAULT,
         disableRichValue: content.value === EMPTY_HIGHLIGHT_DEFAULT,
