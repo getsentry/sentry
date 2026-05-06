@@ -324,6 +324,7 @@
     "onlyBuiltDependencies": [
       "@sentry-internal/node-cpu-profiler",
       "@sentry/cli",
+      "@swc/core",
       "core-js",
       "esbuild",
       "odiff-bin",
