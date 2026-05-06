@@ -365,7 +365,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
           [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
           // Dashboards
-          [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
+          [`${ORG}/dashboards/`, 'Dashboards', 'Custom Dashboards'],
           // Insights
           [`${ORG}/insights/frontend/`, 'Insights', 'Frontend'],
           [`${ORG}/insights/backend/`, 'Insights', 'Backend'],
@@ -466,7 +466,7 @@ describe('desktop navigation', () => {
           ['/explore/logs/', 'Explore', 'Logs'],
           ['/explore/replays/', 'Explore', 'Replays'],
           // Dashboards
-          ['/dashboards/', 'Dashboards', 'All Dashboards'],
+          ['/dashboards/', 'Dashboards', 'Custom Dashboards'],
           // Insights
           ['/insights/frontend/', 'Insights', 'Frontend'],
           ['/insights/backend/', 'Insights', 'Backend'],
