@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import multiprocessing.context
+import multiprocessing.process
 import threading
 import time
 from collections.abc import Callable, Mapping
@@ -517,15 +518,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self.next_step.join(timeout)
 
-        # Wait for all processes to finish
+        # Wait for all processes to finish, then kill them
         for process_index, process in self.processes.items():
-            if deadline is not None:
-                remaining_time = deadline - time.time()
-                if remaining_time <= 0:
-                    break
-
             while process.is_alive() and (deadline is None or deadline > time.time()):
                 time.sleep(0.1)
 
-            if isinstance(process, multiprocessing.Process):
-                process.terminate()
+            if isinstance(process, multiprocessing.process.BaseProcess):
+                if process.is_alive():
+                    metrics.incr("spans.buffer.flusher.killed_live_process")
+                process.kill()
