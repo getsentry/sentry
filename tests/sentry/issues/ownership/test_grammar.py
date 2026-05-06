@@ -1253,7 +1253,7 @@ class GetInvalidOwnerDetailsTest(TestCase):
         project = self.create_project()
         bad_owners = [Owner(type="team", identifier="nonexistent")]
         messages = get_invalid_owner_details(bad_owners, project.id)
-        assert messages == ["Team #nonexistent is not a member of this organization."]
+        assert messages == [f"Team #nonexistent does not have access to project '{project.slug}'."]
 
     def test_team_in_org_but_not_on_project(self) -> None:
         project = self.create_project(slug="my-project")
@@ -1290,7 +1290,7 @@ class GetInvalidOwnerDetailsTest(TestCase):
         ]
         messages = get_invalid_owner_details(bad_owners, project.id)
         assert messages == [
-            "Team #ghost-team is not a member of this organization.",
+            "Team #ghost-team does not have access to project 'my-proj'.",
             "Team #org-team does not have access to project 'my-proj'.",
             "User nobody@example.com is not a member of this organization.",
         ]

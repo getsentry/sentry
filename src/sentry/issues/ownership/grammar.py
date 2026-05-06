@@ -462,7 +462,6 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Acto
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.models.team import Team
 
     if not owners:
         return {}
@@ -532,21 +531,10 @@ def get_invalid_owner_details(bad_owners: Sequence[Owner], project_id: int) -> l
     messages: list[str] = []
 
     team_owners = [o for o in bad_owners if o.type == "team"]
-    if team_owners:
-        team_slugs = [o.identifier for o in team_owners]
-        org_team_slugs = set(
-            Team.objects.filter(
-                slug__in=team_slugs,
-                organization_id=organization_id,
-            ).values_list("slug", flat=True)
+    for owner in team_owners:
+        messages.append(
+            f"Team #{owner.identifier} does not have access to project '{project_slug}'."
         )
-        for owner in team_owners:
-            if owner.identifier in org_team_slugs:
-                messages.append(
-                    f"Team #{owner.identifier} does not have access to project '{project_slug}'."
-                )
-            else:
-                messages.append(f"Team #{owner.identifier} is not a member of this organization.")
 
     user_owners = [o for o in bad_owners if o.type == "user"]
     if user_owners:
