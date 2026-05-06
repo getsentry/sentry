@@ -59,9 +59,9 @@ export interface ProjectSummary extends AvatarProject {
   hasTraceMetrics: boolean;
   id: string;
   isBookmarked: boolean;
-  isInternal: boolean;
   isMember: boolean;
   name: string;
+  platforms: PlatformKey[];
   team: Team;
   teams: Team[];
   hasUserReports?: boolean;
@@ -94,6 +94,7 @@ export interface DetailedProject extends ProjectSummary {
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
   groupingConfig: string;
+  isInternal: boolean;
   organization: Pick<Organization, 'id' | 'slug'>;
   plugins: Plugin[];
   processingIssues: number;

@@ -12,6 +12,7 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     hasAccess: true,
     isMember: true,
     isBookmarked: false,
+    platforms: [],
     team,
     teams: [],
     environments: [],
@@ -39,7 +40,6 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     hasInsightsQueues: false,
     hasInsightsAgentMonitoring: false,
     hasInsightsMCP: false,
-    isInternal: false,
     ...params,
   };
 }
@@ -57,6 +57,7 @@ export function DetailedProjectFixture(
     digestsMinDelay: 0,
     dynamicSamplingBiases: null,
     groupingConfig: '',
+    isInternal: false,
     relayPiiConfig: '',
     resolveAge: 0,
     safeFields: [],
