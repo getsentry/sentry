@@ -245,7 +245,7 @@ describe('SearchQueryBuilder', () => {
         render(
           <SearchQueryBuilder
             {...defaultProps}
-            getFieldDefinition={getNullableStringFieldDefinition}
+            fieldDefinitionGetter={getNullableStringFieldDefinition}
             filterKeys={{
               ...defaultProps.filterKeys,
               nullable_string: {
