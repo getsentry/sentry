@@ -98,9 +98,8 @@ def validate_id(self, value):
 
 
 def is_table_display_type(display_type):
-    return (
-        display_type
-        == DashboardWidgetDisplayTypes.as_text_choices()[DashboardWidgetDisplayTypes.TABLE][0]
+    return display_type == DashboardWidgetDisplayTypes.get_type_name(
+        DashboardWidgetDisplayTypes.TABLE
     )
 
 
@@ -411,16 +410,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         if data.get("display_type") == DashboardWidgetDisplayTypes.TEXT:
             return self._validate_text_widget(data)
-
-        if (
-            not data.get("id")
-            and data.get("display_type") in DashboardWidgetDisplayTypes.DEPRECATED_TYPES
-        ):
-            raise serializers.ValidationError(
-                {
-                    "display_type": f"{DashboardWidgetDisplayTypes.get_type_name(data['display_type'])} is no longer a supported display type."
-                }
-            )
 
         query_errors = []
         all_columns: set[str] = set()

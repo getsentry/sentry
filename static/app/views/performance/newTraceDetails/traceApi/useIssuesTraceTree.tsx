@@ -40,7 +40,7 @@ export function useIssuesTraceTree({
   const traceState = useTraceState();
   const organization = useOrganization();
 
-  const [tree, setTree] = useState<IssuesTraceTree>(IssuesTraceTree.Empty());
+  const [tree, setTree] = useState(IssuesTraceTree.Empty());
 
   useEffect(() => {
     const status = getTraceViewQueryStatus(trace.status);

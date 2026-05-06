@@ -193,7 +193,7 @@ export function ConversationAggregatesBar({
                 }
                 triggerProps={{
                   size: 'zero',
-                  priority: 'transparent',
+                  variant: 'transparent',
                   showChevron: false,
                 }}
                 items={aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => ({
@@ -248,7 +248,7 @@ export function ConversationSummary({
         <Tooltip title={t('Copy conversation ID')}>
           <Button
             size="zero"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy conversation ID')}
             icon={<IconCopy size="xs" />}
             onClick={handleCopyConversationId}
@@ -285,7 +285,7 @@ export function ConversationSummary({
                 }
                 triggerProps={{
                   size: 'zero',
-                  priority: 'transparent',
+                  variant: 'transparent',
                   showChevron: false,
                 }}
                 items={traces.slice(VISIBLE_TRACE_COUNT).map(trace => ({

@@ -1,8 +1,4 @@
-import {
-  queryOptions,
-  type QueryClient,
-  type QueryFunctionContext,
-} from '@tanstack/react-query';
+import {queryOptions, type QueryFunctionContext} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
@@ -12,9 +8,10 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {safeParseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
 type AttributeType = {
   attributeSource: {
@@ -92,90 +89,15 @@ export function traceItemAttributeKeysOptions({
 
   return queryOptions({
     ...baseOptions,
-    queryFn: async (ctx: QueryFunctionContext<ApiQueryKey>) => {
-      return findEmptyPrefixMatch(ctx.client, ctx.queryKey) ?? originalQueryFn(ctx);
+    queryFn: (ctx: QueryFunctionContext<ApiQueryKey>) => {
+      return (
+        findFreshEmptyPrefixSearchCacheMatch({
+          client: ctx.client,
+          currentKey: ctx.queryKey,
+        }) ?? originalQueryFn(ctx)
+      );
     },
   });
-}
-
-// If an earlier request with a shorter `substringMatch` (and otherwise-identical params)
-// returned an empty list, any longer search that has that value as a prefix is guaranteed
-// to also be empty — the backend does a substring filter. Reuse the cached empty response
-// instead of re-fetching.
-function findEmptyPrefixMatch(
-  client: QueryClient,
-  currentKey: ApiQueryKey
-): ApiResponse<AttributeType[]> | undefined {
-  const currentSearch = getPrefixSearchCacheKey(currentKey);
-  if (!currentSearch) {
-    return undefined;
-  }
-
-  for (const query of client.getQueryCache().getAll()) {
-    if (query.isStale()) {
-      continue;
-    }
-    const cachedSearch = getPrefixSearchCacheKey(query.queryKey);
-    if (
-      !cachedSearch ||
-      !(
-        cachedSearch.url === currentSearch.url &&
-        cachedSearch.queryFingerprint === currentSearch.queryFingerprint &&
-        cachedSearch.optionsFingerprint === currentSearch.optionsFingerprint &&
-        currentSearch.substringMatch.startsWith(cachedSearch.substringMatch) &&
-        cachedSearch.substringMatch.length < currentSearch.substringMatch.length
-      )
-    ) {
-      continue;
-    }
-
-    const data = query.state.data as ApiResponse<AttributeType[]> | undefined;
-    if (!!data && Array.isArray(data.json) && data.json.length === 0) {
-      return data;
-    }
-  }
-
-  return undefined;
-}
-
-type PrefixSearchCacheKey = {
-  optionsFingerprint: string;
-  queryFingerprint: string;
-  substringMatch: string;
-  url: string;
-};
-
-function getPrefixSearchCacheKey(queryKey: unknown): PrefixSearchCacheKey | undefined {
-  if (!Array.isArray(queryKey) || queryKey.length < 2 || queryKey.length > 3) {
-    return undefined;
-  }
-
-  const parsed = safeParseQueryKey(queryKey);
-  if (parsed?.version !== 'v2' || parsed.isInfinite || !parsed.options) {
-    return undefined;
-  }
-
-  const query = getRecord(parsed.options.query);
-  const substringMatch = query?.substringMatch;
-  if (!query || typeof substringMatch !== 'string' || substringMatch.length === 0) {
-    return undefined;
-  }
-
-  const {substringMatch: _ignoredSubstring, ...queryWithoutSubstring} = query;
-  const {query: _ignoredQuery, ...optionsWithoutQuery} = parsed.options;
-
-  return {
-    url: parsed.url,
-    substringMatch,
-    queryFingerprint: JSON.stringify(queryWithoutSubstring),
-    optionsFingerprint: JSON.stringify(optionsWithoutQuery),
-  };
-}
-
-function getRecord(value: unknown): Record<string, unknown> | undefined {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
 }
 
 type TraceItemTagCollections = {

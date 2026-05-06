@@ -13,34 +13,26 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
     AiAutofixCodeChangesStartedEvent,
-    AiAutofixImpactAssessmentCompletedEvent,
-    AiAutofixImpactAssessmentStartedEvent,
     AiAutofixPhaseEvent,
     AiAutofixPrCreatedStartedEvent,
     AiAutofixRootCauseCompletedEvent,
     AiAutofixRootCauseStartedEvent,
     AiAutofixSolutionCompletedEvent,
     AiAutofixSolutionStartedEvent,
-    AiAutofixTriageCompletedEvent,
-    AiAutofixTriageStartedEvent,
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import (
-    ImpactAssessmentArtifact,
     RootCauseArtifact,
     SolutionArtifact,
-    TriageArtifact,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
     code_changes_prompt,
-    impact_assessment_prompt,
     root_cause_prompt,
     solution_prompt,
-    triage_prompt,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -62,6 +54,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _UNSET: Any = object()
+UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
 
 
 class NoSeerQuotaException(Exception):
@@ -74,8 +67,6 @@ class AutofixStep(StrEnum):
     ROOT_CAUSE = "root_cause"
     SOLUTION = "solution"
     CODE_CHANGES = "code_changes"
-    IMPACT_ASSESSMENT = "impact_assessment"
-    TRIAGE = "triage"
 
     @staticmethod
     def from_autofix_stopping_point(
@@ -139,18 +130,6 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
         started_event=AiAutofixCodeChangesStartedEvent,
         completed_event=AiAutofixCodeChangesCompletedEvent,
     ),
-    AutofixStep.IMPACT_ASSESSMENT: StepConfig(
-        artifact_schema=ImpactAssessmentArtifact,
-        prompt_fn=impact_assessment_prompt,
-        started_event=AiAutofixImpactAssessmentStartedEvent,
-        completed_event=AiAutofixImpactAssessmentCompletedEvent,
-    ),
-    AutofixStep.TRIAGE: StepConfig(
-        artifact_schema=TriageArtifact,
-        prompt_fn=triage_prompt,
-        started_event=AiAutofixTriageStartedEvent,
-        completed_event=AiAutofixTriageCompletedEvent,
-    ),
 }
 
 
@@ -199,14 +178,6 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
             False: SeerActionType.CODING_STARTED,
             True: SeerActionType.CODING_COMPLETED,
         },
-        AutofixStep.IMPACT_ASSESSMENT: {
-            False: SeerActionType.IMPACT_ASSESSMENT_STARTED,
-            True: SeerActionType.IMPACT_ASSESSMENT_COMPLETED,
-        },
-        AutofixStep.TRIAGE: {
-            False: SeerActionType.TRIAGE_STARTED,
-            True: SeerActionType.TRIAGE_COMPLETED,
-        },
     }
     return step_to_action_type[step][is_completed]
 
@@ -232,6 +203,22 @@ def get_autofix_agent_client(
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
     )
+
+
+def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
+    group_id = state.metadata.get("group_id") if state.metadata else None
+    if group_id != group.id:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+
+def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> SeerRunState:
+    try:
+        state = client.get_run(run_id)
+    except ValueError:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+    _validate_run_belongs_to_group(state, group)
+    return state
 
 
 def trigger_autofix_agent(
@@ -268,6 +255,17 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
+    client = get_autofix_agent_client(
+        group,
+        intelligence_level=intelligence_level,
+        reasoning_effort=(
+            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
+        ),
+        enable_coding=config.enable_coding,
+    )
+    if run_id is not None:
+        _get_group_run_state(client, group, run_id)
+
     if config.started_event is not None:
         analytics.record(
             config.started_event(
@@ -277,14 +275,6 @@ def trigger_autofix_agent(
                 referrer=referrer.value,
             )
         )
-    client = get_autofix_agent_client(
-        group,
-        intelligence_level=intelligence_level,
-        reasoning_effort=(
-            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
-        ),
-        enable_coding=config.enable_coding,
-    )
 
     prompt = build_step_prompt(step, group, user_context)
     prompt_metadata = {
@@ -543,7 +533,7 @@ def trigger_coding_agent_handoff(
         }
 
     client = get_autofix_agent_client(group)
-    state = client.get_run(run_id)
+    state = _get_group_run_state(client, group, run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
@@ -623,14 +613,9 @@ def trigger_push_changes(
     client = get_autofix_agent_client(group)
 
     if state is None:
-        try:
-            state = client.get_run(run_id)
-        except ValueError:
-            raise SeerPermissionError("Unknown run id for group")
-
-    group_id = state.metadata.get("group_id") if state.metadata else None
-    if group_id != group.id:
-        raise SeerPermissionError("Unknown run id for group")
+        state = _get_group_run_state(client, group, run_id)
+    else:
+        _validate_run_belongs_to_group(state, group)
 
     analytics.record(
         AiAutofixPrCreatedStartedEvent(

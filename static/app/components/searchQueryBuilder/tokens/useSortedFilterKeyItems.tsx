@@ -298,7 +298,12 @@ export function useSortedFilterKeyItems({
         }
 
         const {key} = filterSearchKeyItem.item;
-        return createItem(allKeysLookup[key]!, getFieldDefinition(key));
+        return createItem(
+          allKeysLookup[key]!,
+          getFieldDefinition(key),
+          undefined,
+          filterValue
+        );
       });
 
     // Partition so async-only keys always appear below static keys,

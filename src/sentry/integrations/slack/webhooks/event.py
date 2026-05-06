@@ -440,6 +440,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     "text": text,
                     "slack_user_id": slack_request.user_id,
                     "bot_user_id": bot_user_id,
+                    "attachments": data.get("attachments"),
                     "conversation_type": conversation_type,
                 }
             )

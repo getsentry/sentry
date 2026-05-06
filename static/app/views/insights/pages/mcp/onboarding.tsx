@@ -108,7 +108,7 @@ function WaitingIndicator({project}: {project: Project}) {
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button priority="primary" busy={fetching} onClick={reloadProjects}>
+    <Button variant="primary" busy={fetching} onClick={reloadProjects}>
       {t('View MCP Monitoring')}
     </Button>
   ) : (

@@ -123,7 +123,7 @@ export function useCreateNotificationAction({
     undefined
   );
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
-  const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState<boolean>(false);
+  const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
 
   useEffect(() => {
     // Initializes form state based on the first default action and available integrations.

@@ -84,7 +84,6 @@ const AM1_TEAM_FEATURES = [
 const AM1_BUSINESS_FEATURES = [
   ...AM1_TEAM_FEATURES,
   'anomaly-detection-alerts',
-  'app-store-connect-multiple',
   'baa',
   'change-alerts',
   'custom-inbound-filters',

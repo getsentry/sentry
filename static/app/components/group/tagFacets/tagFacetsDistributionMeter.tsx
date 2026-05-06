@@ -51,7 +51,7 @@ export function TagFacetsDistributionMeter({
   const colors = theme.chart.getColorPalette(4);
   const location = useLocation();
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<boolean>(!!expandByDefault);
+  const [expanded, setExpanded] = useState(!!expandByDefault);
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
   const topSegments = segments.slice(0, MAX_SEGMENTS);
 

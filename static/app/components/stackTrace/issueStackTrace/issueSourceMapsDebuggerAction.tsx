@@ -72,7 +72,7 @@ export function IssueSourceMapsDebuggerAction() {
   return (
     <Button
       size="zero"
-      priority="default"
+      variant="secondary"
       onClick={mouseEvent => {
         mouseEvent.stopPropagation();
         trackAnalytics(

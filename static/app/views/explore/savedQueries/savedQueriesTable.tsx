@@ -78,7 +78,7 @@ export function SavedQueriesTable({
 
   // Initialize starredIds state when queries have been fetched
   useEffect(() => {
-    if (isFetched === true) {
+    if (isFetched) {
       setStarredIds(data?.filter(row => row.starred).map(row => row.id) ?? []);
     }
   }, [isFetched, data]);

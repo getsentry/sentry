@@ -212,7 +212,7 @@ function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
         variant="info"
         trailingItems={
           <Feature features="discover-basic">
-            <LinkButton priority="default" size="xs" to={discoverUrl}>
+            <LinkButton variant="secondary" size="xs" to={discoverUrl}>
               {t('Open in Discover')}
             </LinkButton>
           </Feature>

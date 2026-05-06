@@ -168,7 +168,7 @@ function Content({datePageFilterProps}: ContentProps) {
             trigger={triggerProps => (
               <Button
                 {...triggerProps}
-                priority={shouldHighlightSaveButton ? 'primary' : 'default'}
+                variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
                 aria-label={t('Save')}
                 onClick={e => {
                   e.stopPropagation();

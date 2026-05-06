@@ -48,13 +48,12 @@ def send_email(source: str, email: str) -> None:
         options.get(key) is None
         for key in ["mail.host", "mail.port", "mail.username", "mail.password"]
     ):
-        click.echo("Unable to send email with current configuration!")
+        click.echo("Email will not actually send with current configuration!")
         click.echo(
             "Please update .sentry/config.yml:"
             "\n  - remove `mail.backend` (if set to 'dummy' or 'console')"
             "\n  - set `mail.host`, `mail.port`, `mail.username` and `mail.password`"
         )
-        return
 
     email_target = GenericNotificationTarget(
         provider_key=NotificationProviderKey.EMAIL,

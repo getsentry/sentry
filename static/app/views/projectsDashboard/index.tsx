@@ -7,7 +7,6 @@ import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -18,15 +17,10 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
-import {t, tctCode} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
-import {
-  PageAlert,
-  PageAlertProvider,
-  usePageAlert,
-} from 'sentry/utils/performance/contexts/pageAlert';
 import {
   onRenderCallback,
   Profiler,
@@ -150,25 +144,6 @@ function Dashboard() {
   const {teams: userTeams, isLoading: loadingTeams, isError} = useUserTeams();
   const isAllTeams = location.query.team === '';
   const selectedTeams = getTeamParams(location.query.team ?? 'myteams');
-  const {setPageInfo, pageAlert} = usePageAlert();
-
-  const msg = useMemo(
-    () =>
-      tctCode(
-        'Project Details pages will be removed soon. You can edit project settings and create new projects in [settingsLink:Settings].',
-        {
-          settingsLink: <Link to={`/settings/${organization.slug}/projects/`} />,
-        }
-      ),
-    [organization.slug]
-  );
-
-  useEffect(() => {
-    if (pageAlert?.message !== msg) {
-      setPageInfo(msg);
-    }
-  }, [setPageInfo, pageAlert, msg]);
-
   const {teams: allTeams} = useTeamsById({
     ids: selectedTeams.filter(team => team !== 'myteams'),
   });
@@ -316,7 +291,6 @@ function Dashboard() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">
-          <PageAlert />
           <SearchAndSelectorWrapper>
             <TeamFilter
               selectedTeams={selectedTeams}
@@ -347,9 +321,7 @@ function OrganizationDashboard() {
   return (
     <Stack flex={1}>
       <NoProjectMessage organization={organization}>
-        <PageAlertProvider>
-          <Dashboard />
-        </PageAlertProvider>
+        <Dashboard />
       </NoProjectMessage>
     </Stack>
   );

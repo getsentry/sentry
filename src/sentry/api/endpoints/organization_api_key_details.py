@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.models.apikey import ApiKey
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class ApiKeySerializer(serializers.ModelSerializer):
@@ -41,11 +44,16 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
     }
     permission_classes = (OrganizationAdminPermission,)
 
-    def convert_args(self, request: Request, api_key_id: str, *args, **kwargs):
+    def convert_args(
+        self, request: Request, api_key_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
+        validated_api_key_id = to_valid_int_id("api_key_id", api_key_id, raise_404=True)
         try:
-            kwargs["api_key"] = ApiKey.objects.get(id=api_key_id, organization_id=organization.id)
+            kwargs["api_key"] = ApiKey.objects.get(
+                id=validated_api_key_id, organization_id=organization.id
+            )
         except ApiKey.DoesNotExist:
             raise ResourceDoesNotExist
 

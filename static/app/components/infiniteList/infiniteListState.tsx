@@ -7,9 +7,9 @@ import {t} from 'sentry/locale';
 interface Props<Data> {
   children: React.ReactNode;
   queryResult:
-    | Pick<UseQueryResult<ApiResult<Data>, Error>, 'status' | 'error' | 'isFetching'>
+    | Pick<UseQueryResult<ApiResult<Data>>, 'status' | 'error' | 'isFetching'>
     | Pick<
-        UseInfiniteQueryResult<Data, Error>,
+        UseInfiniteQueryResult<Data>,
         'status' | 'error' | 'isFetching' | 'isFetchingNextPage'
       >;
   backgroundUpdatingMessage?: () => React.ReactNode;

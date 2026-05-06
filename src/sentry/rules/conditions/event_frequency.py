@@ -496,8 +496,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         if generic_issue_ids and organization_id:
             generic_sums = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_sums,
-                # this isn't necessarily performance, just any non-error category
-                model=get_issue_tsdb_group_model(GroupCategory.PERFORMANCE),
+                model=get_issue_tsdb_group_model(GroupCategory.DB_QUERY),
                 group_ids=generic_issue_ids,
                 organization_id=organization_id,
                 start=start,
@@ -571,8 +570,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         if generic_issue_ids and organization_id:
             generic_totals = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_distinct_counts_totals,
-                # this isn't necessarily performance, just any non-error category
-                model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
+                model=get_issue_tsdb_user_group_model(GroupCategory.DB_QUERY),
                 group_ids=generic_issue_ids,
                 organization_id=organization_id,
                 start=start,
@@ -694,7 +692,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         if generic_issue_ids and organization_id:
             error_totals = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_distinct_counts_totals,
-                model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
+                model=get_issue_tsdb_user_group_model(GroupCategory.DB_QUERY),
                 group_ids=generic_issue_ids,
                 organization_id=organization_id,
                 start=start,

@@ -265,7 +265,7 @@ export function mockSpansResponse(
   spans: TraceTree.Span[],
   project_slug: string,
   event_id: string
-): jest.Mock<any, any> {
+): jest.Mock {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore MockApiClient is not defined in the global scope
   return MockApiClient.addMockResponse({

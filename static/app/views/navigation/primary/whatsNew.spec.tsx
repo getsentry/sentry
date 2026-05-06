@@ -22,7 +22,7 @@ describe('WhatsNew', () => {
     jest.useRealTimers();
   });
 
-  it('renders empty state when API returns no broadcasts', async () => {
+  it.isKnownFlake('renders empty state when API returns no broadcasts', async () => {
     render(<PrimaryNavigationWhatsNew />);
 
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));

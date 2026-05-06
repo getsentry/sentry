@@ -13,7 +13,7 @@ from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestEx
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
-from sentry import analytics, nodestore
+from sentry import analytics, nodestore, options
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
     AlertRuleUiComponentWebhookSentEvent,
 )
@@ -56,7 +56,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
-from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryApp, RpcSentryAppInstallation
 from sentry.sentry_apps.services.app.service import (
     app_service,
     get_by_application_id,
@@ -189,7 +189,7 @@ def send_alert_webhook_v2(
     sentry_app_id: int,
     instance_id: str,
     group_id: int,
-    occurrence_id: str,
+    occurrence_id: str | None = None,
     additional_payload_key: str | None = None,
     additional_payload: Mapping[str, Any] | None = None,
     **kwargs: Any,
@@ -213,6 +213,10 @@ def send_alert_webhook_v2(
         sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
         if sentry_app is None:
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SENTRY_APP)
+
+        if _is_sentry_app_disabled_for_webhooks(sentry_app):
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.APP_DISABLED)
+            return
 
         installations = app_service.get_many(
             filter=dict(
@@ -287,7 +291,7 @@ def _process_resource_change(
     *,
     action: str,
     sender: str,
-    instance_id: int,
+    instance_id: str,
     **kwargs: Any,
 ) -> None:
     # The class is serialized as a string when enqueueing the class.
@@ -311,13 +315,13 @@ def _process_resource_change(
 
         if sender == "Error" and project_id and group_id:
             # Read event from nodestore as Events are heavy in task messages.
-            nodedata = nodestore.backend.get(Event.generate_node_id(project_id, str(instance_id)))
+            nodedata = nodestore.backend.get(Event.generate_node_id(project_id, instance_id))
             if not nodedata:
                 raise SentryAppSentryError(
                     message=f"{SentryAppWebhookFailureReason.MISSING_EVENT}",
                 )
             instance = Event(
-                project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
+                project_id=project_id, group_id=group_id, event_id=instance_id, data=nodedata
             )
 
         # We may run into a race condition where this task executes before the
@@ -435,7 +439,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
 @retry_decorator
 @sentry_sdk.trace(name="process_resource_change_bound")
 def process_resource_change_bound(
-    action: str, sender: str, instance_id: int, **kwargs: Any
+    action: str, sender: str, instance_id: str, **kwargs: Any
 ) -> None:
     _process_resource_change(action=action, sender=sender, instance_id=instance_id, **kwargs)
 
@@ -588,7 +592,7 @@ def build_comment_webhook(
     installation_id: int,
     issue_id: int,
     type: str,
-    user_id: int,
+    user_id: int | None,
     data: dict[str, Any],
     **kwargs: Any,
 ) -> None:
@@ -740,11 +744,21 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         )
 
 
+def _is_sentry_app_disabled_for_webhooks(sentry_app: RpcSentryApp) -> bool:
+    if not options.get("sentry-apps.disabled-enforcement"):
+        return False
+    return sentry_app.is_disabled
+
+
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
         event_type=SentryAppEventType(event),
     ).capture() as lifecycle:
+        if _is_sentry_app_disabled_for_webhooks(installation.sentry_app):
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.APP_DISABLED)
+            return
+
         servicehook: ServiceHook | None = _load_service_hook(
             installation.organization_id, installation.id
         )
@@ -962,6 +976,10 @@ def send_metric_alert_webhook(
         sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
         if sentry_app is None:
             lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_SENTRY_APP)
+            return
+
+        if _is_sentry_app_disabled_for_webhooks(sentry_app):
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.APP_DISABLED)
             return
 
         installations = app_service.get_many(

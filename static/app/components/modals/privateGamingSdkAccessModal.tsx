@@ -58,7 +58,7 @@ export function PrivateGamingSdkAccessModal({
   onSubmit,
   origin,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
-  const [gamingPlatforms, setGamingPlatforms] = useState<GamingPlatform[]>(
+  const [gamingPlatforms, setGamingPlatforms] = useState(
     gamingPlatform ? [gamingPlatform] : []
   );
   const [submittedPlatforms, setSubmittedPlatforms] = useState<GamingPlatform[]>([]);
