@@ -131,10 +131,11 @@ def set_dedup_key(sentry_app: SentryApp | RpcSentryApp, circuit_breaker: Circuit
 def _get_notification_recipients(
     sentry_app: SentryApp | RpcSentryApp,
 ) -> list[str]:
-    return app_service.get_notification_emails_for_sentry_app(
+    emails = app_service.get_notification_emails_for_sentry_app(
         organization_id=sentry_app.owner_id,
         creator_label=sentry_app.creator_label,
     )
+    return emails[:1]
 
 
 def _notify_webhook_disabled(

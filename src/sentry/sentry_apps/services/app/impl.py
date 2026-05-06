@@ -58,13 +58,13 @@ def _is_valid_creator_email(email: str, organization_id: int) -> bool:
     )
 
 
-def _get_org_owner_email(organization_id: int) -> list[str]:
+def _get_org_owner_emails(organization_id: int) -> list[str]:
     return list(
         OrganizationMemberMapping.objects.filter(
             organization_id=organization_id,
             role=organization_roles.get_top_dog().id,
             user__is_active=True,
-        ).values_list("user__email", flat=True)[:1]
+        ).values_list("user__email", flat=True)
     )
 
 
@@ -464,4 +464,4 @@ class DatabaseBackedAppService(AppService):
             if _is_valid_creator_email(creator_label, organization_id):
                 return [creator_label]
 
-        return _get_org_owner_email(organization_id)
+        return _get_org_owner_emails(organization_id)
