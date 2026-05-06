@@ -192,28 +192,20 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
 
     for workflow_id, workflow in workflows.items():
         alert_workflow = alert_rule_workflows_map.get(workflow_id)
+        label = workflow.name
+        data: dict[str, Any] = {"actions": [{"workflow_id": workflow_id}]}
+
         if alert_workflow:
             if rule := bulk_rules.get(alert_workflow.rule_id):
                 assert rule.project_id == project.id, "Rule must belong to Project"
-                try:
-                    rule.data["actions"][0]["legacy_rule_id"] = rule.id
-                    rule.data["actions"][0]["workflow_id"] = workflow_id
-                except KeyError:
-                    # This shouldn't happen, but isn't a deal breaker if it does
-                    sentry_sdk.capture_exception(
-                        Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
-                        level="warning",
-                    )
-                rules[workflow_id] = rule
-                continue
+                label = rule.label
+                data["actions"][0]["legacy_rule_id"] = rule.id
 
-        # Create synthetic Rule when no AlertRuleWorkflow or no Rule found
         rules[workflow_id] = Rule(
-            label=workflow.name,
+            label=label,
             id=workflow_id,
             project_id=project.id,
-            # We need to do this so that the links are built correctly downstream
-            data={"actions": [{"workflow_id": workflow_id}]},
+            data=data,
         )
 
     return rules
