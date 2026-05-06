@@ -26,7 +26,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.safe import get_path
@@ -457,12 +456,7 @@ def test_project_config_with_trace_health_checks_enabled(
     default_project.organization.date_added = old_date
     default_project.date_added = old_date
 
-    with Feature(
-        {
-            "organizations:dynamic-sampling": True,
-            "organizations:ds-health-checks-trace-based": True,
-        }
-    ):
+    with Feature({"organizations:dynamic-sampling": True}):
         with patch(
             "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
             return_value=0.1,
