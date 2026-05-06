@@ -549,7 +549,7 @@ const appConfig: Configuration = {
     // Prefers local modules over node_modules
     preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
+    extensions: ['.tsx', '.ts', '.js', '.json', '.less'],
     symlinks: true,
   },
   output: {
