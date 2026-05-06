@@ -1623,7 +1623,6 @@ def test_flush_lock_detaches_subsegment(mock_project_model, buffer: SpansBuffer)
 
     with override_options(
         {
-            "spans.buffer.enforce-segment-size": True,
             "spans.buffer.flusher.flush-lock-ttl": 20,
         }
     ):
