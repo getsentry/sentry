@@ -43,16 +43,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-<<<<<<< dominikbuszowiecki/dain-1637-rename-all-dashboards-tab-to-custom-dashboards
-import {
-  OWNED_CURSOR_KEY,
-  OwnedDashboardsTable,
-} from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import {type DashboardsLayout, DashboardsTab} from 'sentry/views/dashboards/manage/types';
 import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboardsTab';
-=======
-import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
->>>>>>> master
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
