@@ -223,8 +223,6 @@ class OrganizationsControlListTest(OrganizationIndexTest):
             "allowSuperuserAccess",
             "avatar",
             "dateCreated",
-            "extraOptions",
-            "features",
             "hasAuthProvider",
             "isEarlyAdopter",
             "links",
