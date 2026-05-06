@@ -17,7 +17,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
 import {
   generateLogExportRowCountOptions,
-  ROW_COUNT_VALUE_DEFAULT,
   ROW_COUNT_VALUE_SYNC_LIMIT,
 } from 'sentry/views/explore/logs/exports/generateLogExportRowCountOptions';
 import {useLogsExportEstimatedRowCount} from 'sentry/views/explore/logs/exports/useLogsExportEstimatedRowCount';
@@ -57,10 +56,11 @@ export function LogsExportModal({
     [queryInfo]
   );
   const handleDataExport = useDataExport();
-  const rowCountOptions = generateLogExportRowCountOptions(estimatedRowCount);
+  const {rowCountDefault, rowCountOptions} =
+    generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
     format: 'csv',
-    limit: ROW_COUNT_VALUE_DEFAULT,
+    limit: rowCountDefault.value,
   };
 
   const form = useScrapsForm({
@@ -140,9 +140,7 @@ export function LogsExportModal({
                   options={rowCountOptions}
                   onChange={field.handleChange}
                   value={field.state.value}
-                  defaultValue={rowCountOptions.find(
-                    option => option.value === ROW_COUNT_VALUE_DEFAULT
-                  )}
+                  defaultValue={rowCountDefault}
                 />
               </field.Layout.Stack>
             )}
