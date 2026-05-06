@@ -10,7 +10,6 @@ from typing import Any, Literal, NamedTuple, NotRequired, Optional, Self, TypedD
 
 from django.utils.functional import cached_property
 
-from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,

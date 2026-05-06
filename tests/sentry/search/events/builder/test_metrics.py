@@ -31,7 +31,6 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers import Feature
 
 pytestmark = pytest.mark.sentry_metrics
 
