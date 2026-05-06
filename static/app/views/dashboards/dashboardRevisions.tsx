@@ -70,6 +70,7 @@ function DashboardRevisionsModal({
   const [selectedRevisionId, setSelectedRevisionId] = useState(NEWEST_VERSION_ID);
   const {data: revisions, isPending, isError} = useDashboardRevisions({dashboardId});
   const displayedRevisions = revisions?.slice(0, MAX_DISPLAYED_REVISIONS) ?? [];
+  const showList = !isPending && !isError;
   const isNewestVersionSelected = selectedRevisionId === NEWEST_VERSION_ID;
   const selectedRevision = isNewestVersionSelected
     ? null
@@ -102,47 +103,54 @@ function DashboardRevisionsModal({
       <Header closeButton>
         <Heading as="h4">{t('Edit History')}</Heading>
       </Header>
-      <Body $noPadding>
+      <Body $noPadding={showList}>
         {isPending && <LoadingIndicator />}
         {isError && (
           <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
         )}
-        {isRestoreError && (
-          <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
-        )}
-        {!isPending && !isError && (
-          <Flex
-            direction="column"
-            maxHeight="min(560px, calc(100vh - 350px))"
-            overflowY="auto"
-          >
-            <RevisionListItem
-              isCurrentVersion
-              isSelected={isNewestVersionSelected}
-              onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
-              revisionSource={revisions?.[0]?.source ?? 'edit'}
-              createdBy={revisions?.[0]?.createdBy ?? dashboard.createdBy ?? null}
-              dateCreated={null}
-              dashboardId={dashboardId}
-              baseRevisionId={displayedRevisions[0]?.id ?? null}
-              snapshotOverride={dashboard}
-            />
-            {displayedRevisions.map((revision, index) => (
+        {showList && (
+          <Fragment>
+            {isRestoreError && (
+              <Flex
+                paddingLeft={{xs: '2xl', md: '3xl'}}
+                paddingRight={{xs: '2xl', md: '3xl'}}
+              >
+                <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
+              </Flex>
+            )}
+            <Flex
+              direction="column"
+              maxHeight="min(560px, calc(100vh - 350px))"
+              overflowY="auto"
+            >
               <RevisionListItem
-                key={revision.id}
-                isSelected={revision.id === selectedRevisionId}
-                onSelect={() => setSelectedRevisionId(revision.id)}
-                // Each revision is saved before the operation that produces it,
-                // so the label and author for this entry come from the following revision.
-                revisionSource={revisions?.[index + 1]?.source ?? 'edit'}
-                createdBy={revisions?.[index + 1]?.createdBy ?? null}
-                dateCreated={revision.dateCreated}
+                isCurrentVersion
+                isSelected={isNewestVersionSelected}
+                onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
+                revisionSource={revisions?.[0]?.source ?? 'edit'}
+                createdBy={revisions?.[0]?.createdBy ?? dashboard.createdBy ?? null}
+                dateCreated={null}
                 dashboardId={dashboardId}
-                revisionId={revision.id}
-                baseRevisionId={revisions?.[index + 1]?.id ?? null}
+                baseRevisionId={displayedRevisions[0]?.id ?? null}
+                snapshotOverride={dashboard}
               />
-            ))}
-          </Flex>
+              {displayedRevisions.map((revision, index) => (
+                <RevisionListItem
+                  key={revision.id}
+                  isSelected={revision.id === selectedRevisionId}
+                  onSelect={() => setSelectedRevisionId(revision.id)}
+                  // Each revision is saved before the operation that produces it,
+                  // so the label and author for this entry come from the following revision.
+                  revisionSource={revisions?.[index + 1]?.source ?? 'edit'}
+                  createdBy={revisions?.[index + 1]?.createdBy ?? null}
+                  dateCreated={revision.dateCreated}
+                  dashboardId={dashboardId}
+                  revisionId={revision.id}
+                  baseRevisionId={revisions?.[index + 1]?.id ?? null}
+                />
+              ))}
+            </Flex>
+          </Fragment>
         )}
       </Body>
       {displayedRevisions.length ? (
