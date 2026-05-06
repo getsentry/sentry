@@ -268,6 +268,13 @@ def _parse_metrics_url(
         if sort_field:
             sort_values.append(f"-{sort_field}" if kind == "desc" else sort_field)
 
+    # A stale aggregateSortBys (e.g. left over from a previous yAxis or referencing
+    # a different metric than the one being visualized) should be dropped so the
+    # unfurl falls back to the default `-yAxes[0]` topEvents sort, matching the
+    # frontend's validateAggregateSort.
+    if sort_values and not _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
+        sort_values = []
+
     query = metric_parsed.get("query") or None
 
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type

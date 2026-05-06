@@ -1945,6 +1945,87 @@ class UnfurlTest(TestCase):
             "p50(value,my.metric,distribution,millisecond)",
         ]
 
+    def test_unfurl_explore_metrics_drops_aggregate_sort_referencing_unknown_field(
+        self,
+    ) -> None:
+        # The metric JSON's `aggregateSortBys` can reference a metric/function that
+        # isn't in the active `aggregateFields` yAxes (e.g. left over from a prior
+        # visualization). Mirror the frontend's validateAggregateSort by dropping
+        # the stale sort so events-timeseries falls back to `-yAxes[0]`.
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22yAxes%22%3A%5B%22p95(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A"
+            "%22sum(value%2Cother.metric%2Cdistribution%2Cmillisecond)%22%2C%22kind%22%3A%22desc%22%7D%5D%7D"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == [
+            "p95(value,my.metric,distribution,millisecond)",
+        ]
+        assert args["query"].getlist("sort") == []
+
+    def test_unfurl_explore_metrics_drops_aggregate_sort_when_aggregate_function_differs(
+        self,
+    ) -> None:
+        # Same metric expression but the sort uses a different aggregate function
+        # than the visualized yAxis (sum vs p95). The frontend treats these as
+        # different sort targets, so the unfurl must drop the stale sort too.
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22yAxes%22%3A%5B%22p95(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A"
+            "%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%2C%22kind%22%3A%22desc%22%7D%5D%7D"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == []
+
+    def test_unfurl_explore_metrics_keeps_aggregate_sort_when_field_matches_yaxis(
+        self,
+    ) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22groupBy%22%3A%22browser.name%22%7D%2C"
+            "%7B%22yAxes%22%3A%5B%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A"
+            "%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%2C%22kind%22%3A%22desc%22%7D%5D%7D"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == [
+            "-sum(value,my.metric,distribution,millisecond)",
+        ]
+
+    def test_unfurl_explore_metrics_keeps_aggregate_sort_when_field_matches_groupby(
+        self,
+    ) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/metrics/"
+            "?metric=%7B%22aggregateFields%22%3A%5B"
+            "%7B%22groupBy%22%3A%22browser.name%22%7D%2C"
+            "%7B%22yAxes%22%3A%5B%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D"
+            "%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A%22browser.name%22%2C%22kind%22%3A%22asc%22%7D%5D%7D"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("sort") == ["browser.name"]
+
     def test_unfurl_explore_aggregate_field_takes_precedence_over_visualize(self) -> None:
         url = (
             "https://sentry.io/organizations/org1/explore/traces/"
