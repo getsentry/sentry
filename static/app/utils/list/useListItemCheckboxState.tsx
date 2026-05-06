@@ -155,39 +155,11 @@ export function ListItemCheckboxProvider({
   );
 }
 
-export function useListItemCheckboxContext(props?: PublicProps) {
-  const [localState, localSetState] = useState<State>({ids: new Set()});
-  const context = useContext(ListItemCheckboxContext);
+export function useListItemCheckboxContext(): ListItemCheckboxState {
+  const {state, setState, hits, knownIds, queryKeyRef} = useContext(
+    ListItemCheckboxContext
+  );
 
-  const setState = context.setState ?? localSetState;
-  const state = context.state ?? localState;
-
-  const localQueryKeyRef = useRef(props?.queryKey);
-  const serializedPropsKey = JSON.stringify(props?.queryKey);
-  useEffect(() => {
-    if (props?.queryKey !== undefined) {
-      localQueryKeyRef.current = props.queryKey;
-      setState({ids: new Set()});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serializedPropsKey]);
-
-  return useListItemCheckboxState({
-    state,
-    setState,
-    hits: props?.hits ?? context.hits,
-    knownIds: props?.knownIds ?? context.knownIds,
-    queryKeyRef: props?.queryKey === undefined ? context.queryKeyRef : localQueryKeyRef,
-  });
-}
-
-function useListItemCheckboxState({
-  hits,
-  knownIds,
-  queryKeyRef,
-  state,
-  setState,
-}: MergedProps): ListItemCheckboxState {
   const selectAll = useCallback(() => {
     // Record that the virtual "all" list is enabled.
     setState({all: true});
