@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import patch
-
-from django.urls import reverse
-
 from sentry.billing.platform.utils.invoice_tokens import generate_invoice_access_token
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
