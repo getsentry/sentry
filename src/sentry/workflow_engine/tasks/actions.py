@@ -2,6 +2,7 @@ from dataclasses import asdict
 
 from django.db.models import Value
 from taskbroker_client.retry import Retry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
@@ -9,7 +10,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker import namespaces
 from sentry.utils import metrics
 from sentry.utils.exceptions import timeout_grouping_context
@@ -74,14 +75,24 @@ def build_trigger_action_task_params(
     name="sentry.workflow_engine.tasks.trigger_action",
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=30,
-    retry=Retry(times=3, delay=5),
+    retry=Retry(
+        times=3,
+        delay=5,
+        on=(Exception, ProcessingDeadlineExceeded),
+        ignore=(
+            Action.DoesNotExist,
+            Group.DoesNotExist,
+            Project.DoesNotExist,
+            ProjectNotActiveError,
+            Workflow.DoesNotExist,
+        ),
+    ),
     silo_mode=SiloMode.CELL,
-)
-@retry(
-    timeouts=True,
-    raise_on_no_retries=False,
-    ignore_and_capture=(Action.DoesNotExist, Group.DoesNotExist),
-    ignore=(Project.DoesNotExist, ProjectNotActiveError, Workflow.DoesNotExist),
+    silenced_exceptions=(
+        Project.DoesNotExist,
+        ProjectNotActiveError,
+        Workflow.DoesNotExist,
+    ),
 )
 def trigger_action(
     action_id: int,

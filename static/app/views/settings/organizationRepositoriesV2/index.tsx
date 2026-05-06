@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react';
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery, useQueryClient} from '@tanstack/react-query';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sortBy from 'lodash/sortBy';
@@ -19,6 +19,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {
   Integration,
+  OrganizationIntegration,
   Repository,
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
@@ -30,13 +31,86 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ConnectProviderDropdown} from 'sentry/views/settings/organizationRepositories/connectProviderDropdown';
 import {NoIntegrationsEmptyState} from 'sentry/views/settings/organizationRepositories/noIntegrationsEmptyState';
-import type {ScmInstallation} from 'sentry/views/settings/organizationRepositories/scmRepositoryTable';
-import {ScmRepositoryTable} from 'sentry/views/settings/organizationRepositories/scmRepositoryTable';
+import {
+  InstallationOverrideProvider,
+  type ScmInstallation,
+  ScmRepositoryTable,
+  type InstallationWrapperProps,
+} from 'sentry/views/settings/organizationRepositories/scmRepositoryTable';
 import {useRepoSearch} from 'sentry/views/settings/organizationRepositories/useRepoSearch';
 import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
 
 import {useDeleteIntegration} from './useDeleteIntegration';
 import {useInstallationSettings} from './useInstallationSettings';
+
+function ConnectedInstallation({installation, children}: InstallationWrapperProps) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  const hasAccess = hasEveryAccess(['org:integrations'], {organization});
+
+  const reposOptions = organizationRepositoriesInfiniteOptions({
+    organization,
+    staleTime: 0,
+  });
+  const integrationsOptions = organizationIntegrationsQueryOptions({
+    organization,
+  });
+
+  // XXX: We have to fetch each integration to load the configData. This is not
+  // provided by the integrations list query.
+  const {data: integrationWithConfig} = useQuery(
+    apiOptions.as<OrganizationIntegration>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          integrationId: installation.integration.id,
+        },
+        staleTime: 60_000,
+      }
+    )
+  );
+
+  const {openSettings} = useInstallationSettings(integrationWithConfig);
+
+  const handleDelete = useDeleteIntegration({
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: integrationsOptions.queryKey});
+      queryClient.invalidateQueries({queryKey: reposOptions.queryKey});
+    },
+  });
+
+  // Settings cannot be opened until we've loaded the integrationWithConfig
+  const settingsButtonProps = {
+    disabled: integrationWithConfig === undefined,
+  };
+
+  const uninstallButtonProps = hasAccess
+    ? undefined
+    : {
+        disabled: true,
+        tooltipProps: {
+          title: t(
+            'You must be an organization owner, manager or admin to uninstall this provider'
+          ),
+        },
+      };
+
+  const overrides = {
+    integration: integrationWithConfig ?? installation.integration,
+    onSettings: openSettings,
+    settingsButtonProps,
+    onUninstall: () => handleDelete(installation.integration),
+    uninstallButtonProps,
+  } as const;
+
+  return (
+    <InstallationOverrideProvider value={overrides}>
+      {children}
+    </InstallationOverrideProvider>
+  );
+}
 
 const SCM_PROVIDER_ORDER = [
   'github',
@@ -49,7 +123,6 @@ const SCM_PROVIDER_ORDER = [
 
 export function OrganizationRepositoriesV2() {
   const organization = useOrganization();
-  const hasAccess = hasEveryAccess(['org:integrations'], {organization});
   const [searchTerm, setSearchTerm] = useState('');
 
   const providersQuery = useQuery(
@@ -69,6 +142,9 @@ export function OrganizationRepositoriesV2() {
 
   const scmProviderKeys = useMemo(() => scmProviders.map(p => p.key), [scmProviders]);
 
+  // XXX: We avoid passing includeConfig here as it significantly slows down
+  // the request. We'll load the config for each SCM integration in the
+  // ConnectedInstallation component.
   const integrationsQuery = useQuery(
     organizationIntegrationsQueryOptions({organization})
   );
@@ -126,11 +202,6 @@ export function OrganizationRepositoriesV2() {
     codeMappingsQuery.hasNextPage ||
     codeMappingsQuery.isFetchingNextPage;
 
-  const {configByIntegrationId, openInstallationSettings} = useInstallationSettings({
-    scmIntegrations,
-    hasAccess,
-  });
-
   const installationsByProviderKey = useMemo(() => {
     const installations = scmIntegrations.map<ScmInstallation>(integration => ({
       integration,
@@ -139,19 +210,6 @@ export function OrganizationRepositoriesV2() {
       manageUrl: getProviderConfigUrl(integration) ?? undefined,
       mappedProjectSlugsByRepoId,
       mappingsLoading,
-      settingsButtonProps: {
-        disabled: configByIntegrationId[integration.id] === undefined,
-      },
-      uninstallButtonProps: hasAccess
-        ? undefined
-        : {
-            disabled: true,
-            tooltipProps: {
-              title: t(
-                'You must be an organization owner, manager or admin to uninstall this provider'
-              ),
-            },
-          },
     }));
     return groupBy(installations, i => i.integration.provider.key);
   }, [
@@ -160,21 +218,12 @@ export function OrganizationRepositoriesV2() {
     reposLoading,
     mappedProjectSlugsByRepoId,
     mappingsLoading,
-    configByIntegrationId,
-    hasAccess,
   ]);
 
   const handleAddIntegration = (_data: Integration) => {
     integrationsQuery.refetch();
     reposQuery.refetch();
   };
-
-  const handleDeleteIntegration = useDeleteIntegration({
-    onSuccess: () => {
-      integrationsQuery.refetch();
-      reposQuery.refetch();
-    },
-  });
 
   const repoMatches = useRepoSearch(allRepos, searchTerm);
 
@@ -247,8 +296,7 @@ export function OrganizationRepositoriesV2() {
                   provider={provider}
                   installations={installationsByProviderKey[provider.key]!}
                   repoMatches={repoMatches}
-                  onUninstall={inst => handleDeleteIntegration(inst.integration)}
-                  onSettings={inst => openInstallationSettings(inst.integration)}
+                  installationWrapper={ConnectedInstallation}
                 />
               ))
           )}

@@ -690,6 +690,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for fetching projects in the endpoints.
+register(
+    "relay.endpoint-fetch-config.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
@@ -3340,6 +3348,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.flusher.log-flushed-segments",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
@@ -3376,6 +3389,11 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.process-segments.semantic-partitioning",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(

@@ -65,7 +65,7 @@ class SelectAsyncControl<TData = unknown> extends Component<
   api: Client | null;
   cache: Record<string, unknown>;
 
-  doQuery = debounce((cb: (...args: [RequestError] | [null, TData]) => void) => {
+  doQuery = debounce((cb: (...args: [Error] | [null, TData]) => void) => {
     const {url, onQuery} = this.props;
     const {query} = this.state;
 
@@ -79,7 +79,7 @@ class SelectAsyncControl<TData = unknown> extends Component<
       })
       .then(
         data => cb(null, data),
-        err => cb(err)
+        (err: Error) => cb(err)
       );
   }, 250);
 

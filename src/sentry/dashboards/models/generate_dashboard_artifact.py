@@ -15,7 +15,6 @@ DISPLAY_TYPE_BLOCKLIST: set[str] = {
     "rage_and_dead_clicks",
     "wheel",
     "agents_traces_table",
-    "stacked_area",
 }
 
 # Most of these are deprecated, not selectable in the UI, or don't make sense for generated dashboards.
