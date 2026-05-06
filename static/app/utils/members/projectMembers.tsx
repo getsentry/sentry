@@ -19,10 +19,7 @@ interface ProjectMembersQueryOptions {
   projectIds?: readonly ProjectId[] | null;
 }
 
-export function projectMembersQueryOptions({
-  orgSlug,
-  projectIds,
-}: ProjectMembersQueryOptions) {
+function projectMembersQueryOptions({orgSlug, projectIds}: ProjectMembersQueryOptions) {
   return apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/users/', {
     path: {organizationIdOrSlug: orgSlug},
     query: {project: normalizeProjectIds(projectIds)},

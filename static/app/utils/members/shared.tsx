@@ -53,17 +53,16 @@ export type IndexedMembersByProject = Record<string, User[]>;
  * project slugs to users in that project.
  */
 export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
-  return members.reduce<IndexedMembersByProject>((acc, member) => {
-    for (const project of member.projects) {
-      if (!acc.hasOwnProperty(project)) {
-        acc[project] = [];
-      }
-      if (member.user) {
-        acc[project]!.push(member.user);
-      }
+  const result: IndexedMembersByProject = {};
+  for (const member of members) {
+    if (!member.user) {
+      continue;
     }
-    return acc;
-  }, {});
+    for (const project of member.projects) {
+      (result[project] ??= []).push(member.user);
+    }
+  }
+  return result;
 }
 
 function getMembersQuery({ids, search, limit}: FetchMemberOptions = {}) {

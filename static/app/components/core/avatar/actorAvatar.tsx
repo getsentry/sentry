@@ -83,13 +83,13 @@ function AsyncMemberAvatar({actor, ...props}: AsyncMemberAvatarProps) {
     () => (canRenderActor ? [] : [actor.id]),
     [actor.id, canRenderActor]
   );
-  const {data: members = [], isPending} = useMembers({
+  const {data: members = [], isLoading} = useMembers({
     enabled: !canRenderActor,
     ids,
   });
   const member = members.find(u => u.id === actor.id);
 
-  if (isPending) {
+  if (isLoading) {
     const size = `${props.size}px`;
     return <Placeholder shape="circle" width={size} height={size} />;
   }
