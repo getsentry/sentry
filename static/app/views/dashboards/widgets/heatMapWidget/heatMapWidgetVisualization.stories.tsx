@@ -6,7 +6,6 @@ import {CodeBlock} from '@sentry/scraps/code';
 import * as Storybook from 'sentry/stories';
 
 import {sampleLatencyHeatMap} from './fixtures/sampleLatencyHeatMap';
-import {sampleValueHeatMap} from './fixtures/sampleValueHeatMap';
 import {HeatMap} from './plottables/heatMap';
 import {HeatMapWidgetVisualization} from './heatMapWidgetVisualization';
 
@@ -27,10 +26,6 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
         <LargeWidget>
           <HeatMapWidgetVisualization plottables={[new HeatMap(sampleLatencyHeatMap)]} />
         </LargeWidget>
-
-        <LargeWidget>
-          <HeatMapWidgetVisualization plottables={[new HeatMap(sampleValueHeatMap)]} />
-        </LargeWidget>
       </Fragment>
     );
   });
@@ -44,14 +39,15 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
           <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />. At least one of the{' '}
           <code>plottables</code> must be a <code>HeatMap</code> instance.
         </p>
-
-        <CodeBlock language="jsx">
-          {`
+        <p>
+          <CodeBlock language="jsx">
+            {`
 <HeatMapWidgetVisualization
   plottables={[new HeatMap(heatMapData)]}
 />
           `}
-        </CodeBlock>
+          </CodeBlock>
+        </p>
 
         <p>
           The <code>HeatMap</code> class accepts a <code>HeatMapSeries</code> object.
