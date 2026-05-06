@@ -23,6 +23,7 @@ import {
   getHighlightTagData,
   HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -64,15 +65,19 @@ function useOpenEditHighlightsModal({
   );
 
   const openEditHighlightsModal = () => {
+    if (!detailedProject) {
+      return;
+    }
+
     trackAnalytics('highlights.issue_details.edit_clicked', {organization});
     openModal(
       deps => (
         <EditHighlightsModal
           event={event}
-          highlightContext={detailedProject?.highlightContext ?? {}}
-          highlightTags={detailedProject?.highlightTags ?? []}
-          highlightPreset={detailedProject?.highlightPreset}
-          project={detailedProject!}
+          highlightContext={detailedProject.highlightContext ?? {}}
+          highlightTags={detailedProject.highlightTags ?? []}
+          highlightPreset={detailedProject.highlightPreset}
+          project={detailedProject}
           {...deps}
         />
       ),
@@ -83,12 +88,15 @@ function useOpenEditHighlightsModal({
   return {openEditHighlightsModal, editProps};
 }
 
-function EditHighlightsButton({project, event}: {event: Event; project: Project}) {
-  const organization = useOrganization();
-  const {isPending, data: detailedProject} = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
+function EditHighlightsButton({
+  detailedProject,
+  event,
+  isLoading,
+}: {
+  event: Event;
+  isLoading: boolean;
+  detailedProject?: DetailedProject;
+}) {
   const {openEditHighlightsModal, editProps} = useOpenEditHighlightsModal({
     detailedProject,
     event,
@@ -99,7 +107,7 @@ function EditHighlightsButton({project, event}: {event: Event; project: Project}
       icon={<IconEdit />}
       onClick={openEditHighlightsModal}
       tooltipProps={{title: editProps.title}}
-      disabled={isPending || editProps.disabled}
+      disabled={isLoading || !detailedProject || editProps.disabled}
     >
       {t('Edit')}
     </Button>
@@ -107,17 +115,16 @@ function EditHighlightsButton({project, event}: {event: Event; project: Project}
 }
 
 function HighlightsData({
+  detailedProject,
   event,
   project,
-}: Pick<HighlightsDataSectionProps, 'event' | 'project'>) {
+}: Pick<HighlightsDataSectionProps, 'event' | 'project'> & {
+  detailedProject: DetailedProject;
+}) {
   const organization = useOrganization();
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
-  const {isPending, data: detailedProject} = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
   const {openEditHighlightsModal, editProps} = useOpenEditHighlightsModal({
     detailedProject,
     event,
@@ -201,7 +208,7 @@ function HighlightsData({
       content={content}
       event={event}
       tagKey={content.originalTag.key}
-      project={detailedProject!}
+      project={detailedProject}
       config={{
         disableActions: content.value === EMPTY_HIGHLIGHT_DEFAULT,
         disableRichValue: content.value === EMPTY_HIGHLIGHT_DEFAULT,
@@ -223,11 +230,7 @@ function HighlightsData({
 
   return (
     <HighlightContainer columnCount={columnCount} ref={containerRef}>
-      {isPending ? (
-        <EmptyHighlights>
-          <HighlightsLoadingIndicator size={50} />
-        </EmptyHighlights>
-      ) : hasDisabledHighlights ? (
+      {hasDisabledHighlights ? (
         <EmptyHighlights>
           <EmptyHighlightsContent>
             {t("There's nothing here...")}
@@ -247,7 +250,28 @@ function HighlightsData({
   );
 }
 
+function HighlightsLoading() {
+  return (
+    <HighlightContainer columnCount={1}>
+      <EmptyHighlights>
+        <HighlightsLoadingIndicator size={50} />
+      </EmptyHighlights>
+    </HighlightContainer>
+  );
+}
+
 export function HighlightsDataSection({event, project}: HighlightsDataSectionProps) {
+  const organization = useOrganization();
+  const {
+    isPending,
+    isError,
+    refetch,
+    data: detailedProject,
+  } = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
   return (
     <InterimSection
       key="event-highlights"
@@ -263,12 +287,29 @@ export function HighlightsDataSection({event, project}: HighlightsDataSectionPro
       data-test-id="event-highlights"
       actions={
         <ErrorBoundary mini>
-          <EditHighlightsButton project={project} event={event} />
+          <EditHighlightsButton
+            detailedProject={detailedProject}
+            event={event}
+            isLoading={isPending}
+          />
         </ErrorBoundary>
       }
     >
       <ErrorBoundary mini message={t('There was an error loading event highlights')}>
-        <HighlightsData event={event} project={project} />
+        {isError ? (
+          <LoadingError
+            message={t('There was an error loading event highlights')}
+            onRetry={refetch}
+          />
+        ) : isPending || !detailedProject ? (
+          <HighlightsLoading />
+        ) : (
+          <HighlightsData
+            event={event}
+            project={project}
+            detailedProject={detailedProject}
+          />
+        )}
       </ErrorBoundary>
     </InterimSection>
   );
