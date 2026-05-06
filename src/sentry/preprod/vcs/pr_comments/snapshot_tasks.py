@@ -33,7 +33,7 @@ FEATURE_FLAG = "organizations:preprod-snapshot-pr-comments"
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_pr_comment",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=5, delay=60 * 5),
 )
@@ -102,9 +102,11 @@ def create_preprod_snapshot_pr_comment_task(
         )
         return
 
+    db_alias = router.db_for_write(CommitComparison)
     api_error: Exception | None = None
+    comment_id: str | None = None
 
-    with transaction.atomic(router.db_for_write(CommitComparison)):
+    with transaction.atomic(db_alias):
         all_for_pr = list(
             CommitComparison.objects.select_for_update()
             .filter(
@@ -122,7 +124,6 @@ def create_preprod_snapshot_pr_comment_task(
                 f"CommitComparison {commit_comparison.id} was deleted before lock acquisition"
             )
 
-        # Gather snapshot data
         all_artifacts = list(artifact.get_sibling_artifacts_for_commit())
 
         artifact_ids = [a.id for a in all_artifacts]
@@ -195,50 +196,62 @@ def create_preprod_snapshot_pr_comment_task(
         )
 
         existing_comment_id = find_existing_comment_id(all_for_pr, "snapshots")
+        cc_id = cc.id
 
-        try:
-            if existing_comment_id:
-                github_api_call_with_retries(
-                    lambda: client.update_comment(
-                        repo=cc.head_repo_name,
-                        issue_id=str(cc.pr_number),
-                        comment_id=str(existing_comment_id),
-                        data={"body": comment_body},
-                    ),
-                    log_prefix="preprod.snapshot_pr_comments",
-                )
-                comment_id = existing_comment_id
-                logger.info(
-                    "preprod.snapshot_pr_comments.create.updated",
-                    extra={"artifact_id": artifact.id, "comment_id": comment_id},
-                )
-            else:
-                resp = github_api_call_with_retries(
-                    lambda: client.create_comment(
-                        repo=cc.head_repo_name,
-                        issue_id=str(cc.pr_number),
-                        data={"body": comment_body},
-                    ),
-                    log_prefix="preprod.snapshot_pr_comments",
-                )
-                comment_id = str(resp["id"])
-                logger.info(
-                    "preprod.snapshot_pr_comments.create.created",
-                    extra={"artifact_id": artifact.id, "comment_id": comment_id},
-                )
-        except Exception as e:
-            extra: dict[str, Any] = {
-                "artifact_id": artifact.id,
-                "organization_id": organization.id,
-                "error_type": type(e).__name__,
-            }
-            if isinstance(e, ApiError):
-                extra["status_code"] = e.code
-            logger.exception("preprod.snapshot_pr_comments.create.failed", extra=extra)
-            save_pr_comment_result(cc, "snapshots", success=False, error=e)
-            api_error = e
+    try:
+        if existing_comment_id:
+            github_api_call_with_retries(
+                lambda: client.update_comment(
+                    repo=commit_comparison.head_repo_name,
+                    issue_id=str(commit_comparison.pr_number),
+                    comment_id=str(existing_comment_id),
+                    data={"body": comment_body},
+                ),
+                log_prefix="preprod.snapshot_pr_comments",
+            )
+            comment_id = existing_comment_id
+            logger.info(
+                "preprod.snapshot_pr_comments.create.updated",
+                extra={"artifact_id": artifact.id, "comment_id": comment_id},
+            )
         else:
-            save_pr_comment_result(cc, "snapshots", success=True, comment_id=comment_id)
+            resp = github_api_call_with_retries(
+                lambda: client.create_comment(
+                    repo=commit_comparison.head_repo_name,
+                    issue_id=str(commit_comparison.pr_number),
+                    data={"body": comment_body},
+                ),
+                log_prefix="preprod.snapshot_pr_comments",
+            )
+            comment_id = str(resp["id"])
+            logger.info(
+                "preprod.snapshot_pr_comments.create.created",
+                extra={"artifact_id": artifact.id, "comment_id": comment_id},
+            )
+    except Exception as e:
+        extra: dict[str, Any] = {
+            "artifact_id": artifact.id,
+            "organization_id": organization.id,
+            "error_type": type(e).__name__,
+        }
+        if isinstance(e, ApiError):
+            extra["status_code"] = e.code
+        logger.exception("preprod.snapshot_pr_comments.create.failed", extra=extra)
+        api_error = e
+
+    try:
+        with transaction.atomic(db_alias):
+            cc = CommitComparison.objects.select_for_update().get(id=cc_id)
+            if api_error is not None:
+                save_pr_comment_result(cc, "snapshots", success=False, error=api_error)
+            else:
+                save_pr_comment_result(cc, "snapshots", success=True, comment_id=comment_id)
+    except CommitComparison.DoesNotExist:
+        logger.info(
+            "preprod.snapshot_pr_comments.create.cc_deleted_during_api_call",
+            extra={"cc_id": cc_id, "artifact_id": artifact.id},
+        )
+        return
 
     if api_error is not None:
         raise api_error

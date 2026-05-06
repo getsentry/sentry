@@ -5,7 +5,11 @@ import time
 from collections.abc import Callable
 from typing import TypeVar
 
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import (
+    ApiConnectionResetError,
+    ApiError,
+    ApiRateLimitedError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +19,11 @@ RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 
 
 def _is_retryable(exc: Exception) -> bool:
-    if isinstance(exc, ApiRateLimitedError):
+    if isinstance(exc, (ApiRateLimitedError, ApiConnectionResetError)):
         return True
     if isinstance(exc, ApiError) and exc.code and exc.code in RETRYABLE_STATUS_CODES:
         return True
-    if isinstance(exc, (ConnectionError, TimeoutError, OSError)):
+    if isinstance(exc, (ConnectionError, TimeoutError)):
         return True
     return False
 
@@ -50,4 +54,4 @@ def github_api_call_with_retries(
 
             time.sleep(delay)
 
-    raise Exception("unreachable")
+    raise AssertionError("unreachable")

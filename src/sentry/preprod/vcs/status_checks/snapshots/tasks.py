@@ -51,7 +51,7 @@ FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_rena
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=5, delay=60 * 5),
 )
