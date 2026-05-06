@@ -9,11 +9,10 @@ import {
   useState,
 } from 'react';
 
+import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {toArray} from 'sentry/utils/array/toArray';
-import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
-type ListCheckboxQueryKeyValue = undefined | ApiQueryKey | InfiniteApiQueryKey;
-export type ListCheckboxQueryKeyRef = RefObject<ListCheckboxQueryKeyValue>;
+export type ListCheckboxQueryKeyRef = RefObject<undefined | QueryKeyEndpointOptions>;
 
 interface PublicProps {
   /**
@@ -27,12 +26,15 @@ interface PublicProps {
   knownIds: string[];
 
   /**
-   * The query key that fetches the list.
+   * The cache-key that identifies the query & results.
    *
-   * The selection will be reset when then query key changes. Therefore be
+   * When the key changes, the selection will be reset. Therefore be
    * mindful of query params like `cursor` creating a new query key.
+   *
+   * This is not the same as ApiQueryKey. But you could use:
+   * `safeParseQueryKey(apiQueryKey)?.options`.
    */
-  queryKey: ListCheckboxQueryKeyValue;
+  queryKey: undefined | QueryKeyEndpointOptions;
 }
 
 interface InternalProps {
@@ -118,16 +120,12 @@ export interface ListItemCheckboxState {
 
 const defaultQueryKeyRef: ListCheckboxQueryKeyRef = {current: undefined};
 
-const ListItemCheckboxContext = createContext<{
-  hits: number;
-  knownIds: string[];
-  queryKeyRef: ListCheckboxQueryKeyRef;
-  setState?: Dispatch<SetStateAction<State>>;
-  state?: State;
-}>({
+const ListItemCheckboxContext = createContext<MergedProps>({
   hits: 0,
   knownIds: [],
   queryKeyRef: defaultQueryKeyRef,
+  setState: () => {},
+  state: {ids: new Set()},
 });
 
 export function ListItemCheckboxProvider({
@@ -137,10 +135,7 @@ export function ListItemCheckboxProvider({
   queryKey,
 }: {
   children: React.ReactNode;
-  hits: number;
-  knownIds: string[];
-  queryKey: ListCheckboxQueryKeyValue;
-}) {
+} & PublicProps) {
   const [state, setState] = useState<State>({ids: new Set()});
   const queryKeyRef = useRef(queryKey);
 

@@ -17,6 +17,7 @@ import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListStat
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
@@ -46,7 +47,7 @@ export function FeedbackList({onItemSelect}: Props) {
   const checkboxState = useListItemCheckboxContext({
     hits: Number(queryResult.data?.pages[0]?.headers['X-Hits'] ?? issues.length),
     knownIds: issues.map(issue => issue.id),
-    queryKey: listApiOptions.queryKey,
+    queryKey: safeParseQueryKey(listApiOptions.queryKey)?.options,
   });
 
   return (

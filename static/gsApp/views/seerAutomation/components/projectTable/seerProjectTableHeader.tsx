@@ -15,7 +15,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   useListItemCheckboxContext,
@@ -118,9 +117,7 @@ export function ProjectTableHeader({
     selectAll,
     selectedIds,
   } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current
-    ? parseQueryKey(queryKeyRef.current).options
-    : undefined;
+  const queryOptions = queryKeyRef.current;
   const queryString = queryOptions?.query?.query as string | undefined;
 
   const projectIds = useMemo(

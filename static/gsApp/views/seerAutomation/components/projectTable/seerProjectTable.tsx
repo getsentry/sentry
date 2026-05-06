@@ -33,6 +33,7 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
@@ -169,6 +170,7 @@ export function SeerProjectTable() {
   const queryKey = [
     'seer-projects',
     {query: {query: searchTerm, sort, agent: agentFilter}},
+    {infinite: false},
   ] as unknown as ApiQueryKey;
 
   const sortedProjects = useMemo(() => {
@@ -273,7 +275,7 @@ export function SeerProjectTable() {
     <ListItemCheckboxProvider
       hits={filteredProjects.length}
       knownIds={filteredProjects.map(project => project.id)}
-      queryKey={queryKey}
+      queryKey={safeParseQueryKey(queryKey)?.options}
     >
       <Stack gap="lg">
         <Flex gap="md">

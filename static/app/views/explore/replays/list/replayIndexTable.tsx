@@ -11,7 +11,11 @@ import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
-import {type ApiQueryKey, parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {
+  type ApiQueryKey,
+  parseQueryKey,
+  safeParseQueryKey,
+} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -82,7 +86,7 @@ export function ReplayIndexTable({
       <ListItemCheckboxProvider
         hits={hasMoreResults ? replays.length + 1 : replays.length}
         knownIds={replays.map(replay => replay.id)}
-        queryKey={queryKey}
+        queryKey={safeParseQueryKey(queryKey)?.options}
       >
         {needsSDKUpdateForClickSearch ? (
           <Fragment>
