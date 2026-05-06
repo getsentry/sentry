@@ -217,7 +217,7 @@ export interface CategoricalSeries {
  * This is the broadest set of types supported - any value type that can come
  * from the API. The plottable layer constrains this to plottable types.
  */
-export type HeatMapValueType = AttributeValueType;
+type HeatMapValueType = AttributeValueType;
 export type HeatMapValueUnit = AttributeValueUnit;
 
 /**
