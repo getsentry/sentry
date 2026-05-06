@@ -127,8 +127,8 @@ function AnimatedPendingText({text}: {text: string}) {
       <motion.span
         key={index}
         style={{display: 'inline-block', whiteSpace: 'pre'}}
-        initial={isNew ? {opacity: 0, y: '-0.25lh'} : false}
-        animate={{opacity: 1, y: 0}}
+        initial={isNew ? {opacity: 0, filter: 'blur(4px) contrast(20)'} : false}
+        animate={{opacity: 1, filter: 'blur(0px) contrast(1)'}}
         transition={{...theme.motion.framer.enter.fast, delay}}
       >
         {segment}
