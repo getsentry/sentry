@@ -12,18 +12,14 @@ from sentry.scm.types import PullRequestEvent
 
 @scm_event_stream.listen_for_pull_request
 def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
+    # Identify the event, associate it with repo, integration, and organization
+
     # @todo(When we remove the old handlers for GitHub) Remove this check, and process GitHub webhooks
     if e.subscription_event["type"] != "gitlab":
         return
 
-    # Do a milion checks to decide wether to process this event
-
-    # @todo(NOW) Implement the milion checks, like in ./handlers.py and ./pull_request.py
-
     if e.action not in ["opened", "reopened"]:
         return
-
-    # Process the event
 
     if e.subscription_event["type"] == "gitlab":
         sentry_meta = e.subscription_event["sentry_meta"]
@@ -44,7 +40,13 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
             external_id=f"{gitlab_host_name}:{e.pull_request['repo_id']}",
         )
     else:
-        assert False
+        assert False, f"Unsupported provider: {e.subscription_event['type']}"
+
+    # Do a milion checks to decide wether to process this event
+
+    # @todo(NOW) Implement the milion checks, like in ./handlers.py and ./pull_request.py
+
+    # Process the event
 
     scm = make_scm(organization_id, repository.id, referrer="seer")
     if isinstance(scm, CreatePullRequestReactionProtocol):
