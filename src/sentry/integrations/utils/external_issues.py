@@ -10,6 +10,7 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_llm_generate_request,
 )
+from sentry.services.eventstore.models import GroupEvent
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
@@ -29,8 +30,9 @@ Return a JSON object with "title" and "description" keys. Return only the JSON, 
 MAX_CONTEXT_LENGTH = 2000
 
 
-def _build_event_context(group: Group) -> str:
-    event = group.get_latest_event()
+def _build_event_context(group: Group, event: Any | None = None) -> str:
+    if event is None:
+        event = group.get_latest_event()
     title = group.title or ""
     culprit = group.culprit or ""
 
@@ -56,10 +58,10 @@ def _build_event_context(group: Group) -> str:
 
 
 def _make_generate_external_issue_details_request(
-    group: Group, viewer_context: SeerViewerContext | None = None
+    group: Group, event: Any | None = None, viewer_context: SeerViewerContext | None = None
 ) -> dict[str, str] | None:
     logging_ctx: dict[str, Any] = {"group_id": group.id, "viewer_context": viewer_context}
-    context = _build_event_context(group)
+    context = _build_event_context(group, event=event)
 
     body = LlmGenerateRequest(
         provider="gemini",
@@ -84,7 +86,11 @@ def _make_generate_external_issue_details_request(
         logger.warning("external_issues.seer_request_failed", extra=logging_ctx)
         return None
 
-    data = response.json()
+    try:
+        data = response.json()
+    except (json.JSONDecodeError, ValueError):
+        logger.warning("external_issues.seer_response_json_failed", extra=logging_ctx)
+        return None
     content = data.get("content")
     try:
         content = json.loads(content)
@@ -109,9 +115,11 @@ class GeneratedIssueDetails(NamedTuple):
 
 
 def maybe_generate_external_issue_details(
-    group: Group, user: User | RpcUser
+    *, group: Group, user: User | RpcUser, event: GroupEvent | None = None
 ) -> GeneratedIssueDetails:
     organization = group.organization
+    if not features.has("organizations:gen-ai-features", organization, actor=user):
+        return GeneratedIssueDetails()
     if organization.get_option("sentry:hide_ai_features", False):
         return GeneratedIssueDetails()
     if not features.has("organizations:external-issues-ai-generate", organization, actor=user):
@@ -119,9 +127,12 @@ def maybe_generate_external_issue_details(
 
     try:
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user.id)
-        result = _make_generate_external_issue_details_request(group, viewer_context=viewer_context)
+        result = _make_generate_external_issue_details_request(
+            group, event=event, viewer_context=viewer_context
+        )
     # Open except block is wide but allows us to fallback to default title/description if anything fails.
     except Exception:
+        logger.error("external_issues.generate_issue_details_failed")
         return GeneratedIssueDetails()
 
     if not result:

@@ -165,7 +165,9 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         default_title = self.get_group_title(group, event, **kwargs)
         default_description = self.get_group_description(group, event, **kwargs)
 
-        llm_title, llm_description = maybe_generate_external_issue_details(group, user)
+        llm_title, llm_description = maybe_generate_external_issue_details(
+            group=group, user=user, event=event
+        )
         title = llm_title if llm_title else default_title
         description = (
             f"**{default_title}**\n\n{llm_description}\n\n---\n\n{default_description}"

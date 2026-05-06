@@ -778,7 +778,9 @@ class IssueDefaultTest(TestCase):
     def test_hide_ai_features_skips_ai(self, mock_request: MagicMock) -> None:
         self.group.organization.update_option("sentry:hide_ai_features", True)
 
-        with self.feature("organizations:external-issues-ai-generate"):
+        with self.feature(
+            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
+        ):
             config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
@@ -789,7 +791,9 @@ class IssueDefaultTest(TestCase):
     def test_ai_exception_falls_back(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 
-        with self.feature("organizations:external-issues-ai-generate"):
+        with self.feature(
+            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
+        ):
             config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")

@@ -106,7 +106,7 @@ class GenerateExternalIssueDetailsTest(TestCase):
 
     @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
     def test_feature_flag_disabled_returns_empty(self, mock_request: MagicMock) -> None:
-        result = maybe_generate_external_issue_details(self.group, self.user)
+        result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
         assert result == GeneratedIssueDetails()
         mock_request.assert_not_called()
@@ -115,8 +115,18 @@ class GenerateExternalIssueDetailsTest(TestCase):
     def test_hide_ai_features_returns_empty(self, mock_request: MagicMock) -> None:
         self.group.organization.update_option("sentry:hide_ai_features", True)
 
+        with self.feature(
+            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
+        ):
+            result = maybe_generate_external_issue_details(group=self.group, user=self.user)
+
+        assert result == GeneratedIssueDetails()
+        mock_request.assert_not_called()
+
+    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    def test_gen_ai_features_disabled_returns_empty(self, mock_request: MagicMock) -> None:
         with self.feature("organizations:external-issues-ai-generate"):
-            result = maybe_generate_external_issue_details(self.group, self.user)
+            result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
         assert result == GeneratedIssueDetails()
         mock_request.assert_not_called()
@@ -125,8 +135,10 @@ class GenerateExternalIssueDetailsTest(TestCase):
     def test_exception_returns_empty(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 
-        with self.feature("organizations:external-issues-ai-generate"):
-            result = maybe_generate_external_issue_details(self.group, self.user)
+        with self.feature(
+            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
+        ):
+            result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
         assert result == GeneratedIssueDetails()
 
@@ -138,7 +150,9 @@ class GenerateExternalIssueDetailsTest(TestCase):
         }
         mock_request.return_value = mock_response
 
-        with self.feature("organizations:external-issues-ai-generate"):
-            result = maybe_generate_external_issue_details(self.group, self.user)
+        with self.feature(
+            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
+        ):
+            result = maybe_generate_external_issue_details(group=self.group, user=self.user)
 
         assert result == GeneratedIssueDetails(title="AI Title", description="AI Description")
