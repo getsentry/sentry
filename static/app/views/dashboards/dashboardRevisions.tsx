@@ -103,7 +103,7 @@ function DashboardRevisionsModal({
       <Header closeButton>
         <Heading as="h4">{t('Edit History')}</Heading>
       </Header>
-      <Body $noPadding={showList}>
+      <Body noPadding={showList}>
         {isPending && <LoadingIndicator />}
         {isError && (
           <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>

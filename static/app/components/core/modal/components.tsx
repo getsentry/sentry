@@ -49,11 +49,13 @@ function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
   );
 }
 
-const ModalBody = styled('section')<{$noPadding?: boolean}>`
+const ModalBody = styled('section', {
+  shouldForwardProp: prop => prop !== 'noPadding',
+})<{noPadding?: boolean}>`
   font-size: ${p => p.theme.font.size.md};
 
   ${p =>
-    p.$noPadding &&
+    p.noPadding &&
     css`
       margin: 0 -${p.theme.space['2xl']};
 
