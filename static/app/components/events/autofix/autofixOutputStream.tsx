@@ -26,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 function StreamContentText({stream}: {stream: string}) {
   const [displayedText, setDisplayedText] = useState('');
 
+  const displayedTextRef = useRef('');
   const accumulatedTextRef = useRef('');
   const previousStreamPropRef = useRef('');
   const currentIndexRef = useRef(0);
@@ -35,19 +36,21 @@ function StreamContentText({stream}: {stream: string}) {
     const newText = stream;
     const previousStream = previousStreamPropRef.current;
     const separator = '\n\n==========\n\n';
+    const currentDisplayed = displayedTextRef.current;
 
-    const currentSegmentDisplayed = displayedText.slice(
+    const currentSegmentDisplayed = currentDisplayed.slice(
       accumulatedTextRef.current.length
     );
     const isReset =
       newText !== previousStream && !newText.startsWith(currentSegmentDisplayed);
 
     if (isReset) {
-      if (displayedText === previousStream) {
-        accumulatedTextRef.current = displayedText + separator;
+      if (currentDisplayed === previousStream) {
+        accumulatedTextRef.current = currentDisplayed + separator;
         currentIndexRef.current = accumulatedTextRef.current.length;
       } else {
         const fullPreviousTextWithSeparator = previousStream + separator;
+        displayedTextRef.current = fullPreviousTextWithSeparator;
         startTransition(() => {
           setDisplayedText(fullPreviousTextWithSeparator);
         });
@@ -62,7 +65,8 @@ function StreamContentText({stream}: {stream: string}) {
 
     if (currentIndexRef.current > combinedText.length) {
       currentIndexRef.current = combinedText.length;
-      if (displayedText !== combinedText) {
+      if (currentDisplayed !== combinedText) {
+        displayedTextRef.current = combinedText;
         startTransition(() => {
           setDisplayedText(combinedText);
         });
@@ -73,8 +77,10 @@ function StreamContentText({stream}: {stream: string}) {
     if (currentIndexRef.current < combinedText.length) {
       intervalId = window.setInterval(() => {
         if (currentIndexRef.current < combinedText.length) {
+          const nextText = combinedText.slice(0, currentIndexRef.current + 1);
+          displayedTextRef.current = nextText;
           startTransition(() => {
-            setDisplayedText(combinedText.slice(0, currentIndexRef.current + 1));
+            setDisplayedText(nextText);
           });
           currentIndexRef.current++;
         } else {
@@ -89,7 +95,8 @@ function StreamContentText({stream}: {stream: string}) {
         window.clearInterval(intervalId);
       }
     };
-  }, [stream, displayedText]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stream]);
 
   return <StreamContent>{displayedText}</StreamContent>;
 }
