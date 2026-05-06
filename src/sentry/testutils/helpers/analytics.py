@@ -66,14 +66,12 @@ def assert_any_analytics_event(
     recorded_events = get_all_analytics_events(mock_record)
     field_error = ""
     for recorded_event in recorded_events:
-        try:
-            assert_event_equal(expected_event, recorded_event, exclude_fields)
-            return
-        except AssertionError as err:
-            field_error = str(err)
-            pass
+        if type(expected_event) is not type(recorded_event):
+            continue
+        assert_event_equal(expected_event, recorded_event, exclude_fields)
+        return
 
-    raise AssertionError(f"Event {expected_event} not found. {field_error}")
+    raise AssertionError(f"Event {expected_event} not found. {field_error}.")
 
 
 def assert_not_analytics_event(
