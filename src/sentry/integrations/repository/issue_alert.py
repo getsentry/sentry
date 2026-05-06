@@ -12,7 +12,6 @@ from sentry.integrations.repository.base import (
     BaseNotificationMessage,
     NotificationMessageValidationError,
 )
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 
 _default_logger: Logger = getLogger(__name__)
@@ -21,7 +20,6 @@ _default_logger: Logger = getLogger(__name__)
 @dataclass(frozen=True)
 class IssueAlertNotificationMessage(BaseNotificationMessage):
     # TODO: https://github.com/getsentry/sentry/issues/66751
-    rule_fire_history: RuleFireHistory | None = None
     rule_action_uuid: str | None = None
     open_period_start: datetime | None = None
 
@@ -37,7 +35,6 @@ class IssueAlertNotificationMessage(BaseNotificationMessage):
                 if instance.parent_notification_message
                 else None
             ),
-            rule_fire_history=instance.rule_fire_history,
             rule_action_uuid=instance.rule_action_uuid,
             open_period_start=instance.open_period_start,
             date_added=instance.date_added,
@@ -48,15 +45,12 @@ class NewIssueAlertNotificationMessageValidationError(NotificationMessageValidat
     pass
 
 
-class RuleFireHistoryAndRuleActionUuidActionValidationError(
-    NewIssueAlertNotificationMessageValidationError
-):
-    message = "both rule fire history and rule action uuid need to exist together with a reference"
+class RuleActionUuidValidationError(NewIssueAlertNotificationMessageValidationError):
+    message = "rule action uuid is required when a message identifier is set"
 
 
 @dataclass
 class NewIssueAlertNotificationMessage(BaseNewNotificationMessage):
-    rule_fire_history_id: int | None = None
     rule_action_uuid: str | None = None
     open_period_start: datetime | None = None
 
@@ -65,16 +59,8 @@ class NewIssueAlertNotificationMessage(BaseNewNotificationMessage):
         if error is not None:
             return error
 
-        if self.message_identifier is not None:
-            # If a message_identifier exists, that means a successful notification happened for a rule action and fire
-            # This means that neither of them can be empty
-            if self.rule_fire_history_id is None or self.rule_action_uuid is None:
-                return RuleFireHistoryAndRuleActionUuidActionValidationError()
-
-        # We can create a NotificationMessage if it has both, or neither, of rule fire history and action.
-        # The following is an XNOR check for rule fire history and action
-        if (self.rule_fire_history_id is not None) != (self.rule_action_uuid is not None):
-            return RuleFireHistoryAndRuleActionUuidActionValidationError()
+        if self.message_identifier is not None and self.rule_action_uuid is None:
+            return RuleActionUuidValidationError()
 
         return None
 
@@ -105,8 +91,6 @@ class IssueAlertNotificationMessageRepository:
 
     def get_parent_notification_message(
         self,
-        rule_id: int,
-        group_id: int,
         rule_action_uuid: str,
         open_period_start: datetime | None = None,
     ) -> IssueAlertNotificationMessage | None:
@@ -119,8 +103,6 @@ class IssueAlertNotificationMessageRepository:
             instance: NotificationMessage = (
                 self._model.objects.filter(base_filter)
                 .filter(
-                    rule_fire_history__rule__id=rule_id,
-                    rule_fire_history__group__id=group_id,
                     rule_action_uuid=rule_action_uuid,
                     open_period_start=open_period_start,
                 )
@@ -134,8 +116,6 @@ class IssueAlertNotificationMessageRepository:
                 "Failed to get parent notification for issue rule",
                 exc_info=e,
                 extra={
-                    "rule_id": rule_id,
-                    "group_id": group_id,
                     "rule_action_uuid": rule_action_uuid,
                 },
             )
@@ -153,7 +133,6 @@ class IssueAlertNotificationMessageRepository:
                 error_code=data.error_code,
                 message_identifier=data.message_identifier,
                 parent_notification_message_id=data.parent_notification_message_id,
-                rule_fire_history_id=data.rule_fire_history_id,
                 rule_action_uuid=data.rule_action_uuid,
                 open_period_start=data.open_period_start,
             )
@@ -168,8 +147,6 @@ class IssueAlertNotificationMessageRepository:
 
     def get_all_parent_notification_messages_by_filters(
         self,
-        group_ids: list[int] | None = None,
-        project_ids: list[int] | None = None,
         open_period_start: datetime | None = None,
     ) -> Generator[IssueAlertNotificationMessage]:
         """
@@ -179,15 +156,13 @@ class IssueAlertNotificationMessageRepository:
         control the usage of memory in the application.
         It is up to the caller to iterate over all the data, or store in memory if they need all objects concurrently.
         """
-        group_id_filter = Q(rule_fire_history__group_id__in=group_ids) if group_ids else Q()
-        project_id_filter = Q(rule_fire_history__project_id__in=project_ids) if project_ids else Q()
         open_period_start_filter = (
             Q(open_period_start=open_period_start) if open_period_start else Q()
         )
 
-        query = self._model.objects.filter(
-            group_id_filter & project_id_filter & open_period_start_filter
-        ).filter(self._parent_notification_message_base_filter())
+        query = self._model.objects.filter(open_period_start_filter).filter(
+            self._parent_notification_message_base_filter()
+        )
 
         try:
             for instance in query:
