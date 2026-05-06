@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import noop from 'lodash/noop';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
@@ -60,7 +60,7 @@ import {
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-const GRID_COLUMNS = '24px 24px 1fr 40px';
+const GRID_COLUMNS = 'auto 1fr 40px';
 
 function computeEquationReferencedLabels(
   equationQuery: MetricQuery | undefined,
@@ -222,15 +222,14 @@ function MetricsEquationVisualizeContent({
   }, [hasEquationRow, onEquationRemoved]);
 
   return (
-    <Stack gap="md" flex="1">
+    <Stack gap="lg" flex="1">
       {functionQueries.map(metricQuery => {
         const isReferenced = referencedLabels.has(metricQuery.label ?? '');
-        const deleteDisabledReason =
-          functionQueries.length <= 1
+        const deleteDisabledReason = isReferenced
+          ? t('This metric is used in an equation')
+          : functionQueries.length <= 1
             ? t('At least one metric is required')
-            : isReferenced
-              ? t('This metric is used in an equation')
-              : undefined;
+            : undefined;
         return (
           <RowProvider key={metricQuery.label ?? ''} metricQuery={metricQuery}>
             <MetricToolbar
@@ -341,8 +340,8 @@ function MetricToolbar({
   const isEquation = isVisualizeEquation(visualize);
 
   return (
-    <Flex gap="md" data-test-id="metric-toolbar" align="start">
-      <Flex gap="md" align="center" flex="0 0 auto">
+    <Grid columns={GRID_COLUMNS} gap="md" align="start" data-test-id="metric-toolbar">
+      <Flex align="center" gap="md" width="fit-content">
         <Radio
           name="metricAggregateRow"
           checked={isSelected}
@@ -358,35 +357,35 @@ function MetricToolbar({
           aria-role="presentation"
         />
       </Flex>
-      <Flex flex="1" minWidth={0} gap="md" wrap="wrap" align="center">
+
+      <Flex gap="md" wrap="wrap" align="center" minWidth="0">
         {isFunction ? (
-          <Flex wrap="nowrap" width="100%" gap="md" flex="1">
-            <Flex flex="2">
+          <Fragment>
+            <Flex flex="2" minWidth="0">
               <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
             </Flex>
-            <Flex flex="1">
+            <Flex flex="1" minWidth="0">
               <AggregateDropdown traceMetric={traceMetric} singleSelect />
             </Flex>
-          </Flex>
+          </Fragment>
         ) : isEquation ? (
-          <Flex flex="3" minWidth="250px">
-            <EquationBuilder
-              expression={visualize.expression.text}
-              referenceMap={referenceMap}
-              handleExpressionChange={handleExpressionChange}
-            />
-          </Flex>
+          <EquationBuilder
+            expression={visualize.expression.text}
+            referenceMap={referenceMap}
+            handleExpressionChange={handleExpressionChange}
+          />
         ) : null}
-        <Flex flex="1" minWidth="250px">
+        <Flex flex="1 1 100%" minWidth="0">
           <Filter traceMetric={traceMetric} skipTraceMetricFilter={isEquation} />
         </Flex>
       </Flex>
+
       <Flex align="center">
         <DeleteMetricButton
           disabledReason={isFunction ? deleteDisabledReason : undefined}
         />
       </Flex>
-    </Flex>
+    </Grid>
   );
 }
 
