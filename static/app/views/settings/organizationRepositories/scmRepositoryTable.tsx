@@ -368,6 +368,39 @@ interface InstallationActionsProps {
   onUninstall?: (installation: ScmInstallation) => void;
 }
 
+function getRepoCountTooltip(
+  installation: ScmInstallation,
+  onInstallationSync: ((installation: ScmInstallation) => void) | undefined,
+  lastSync: string | undefined
+): ReactNode {
+  const {reposLoading, isSyncing} = installation;
+
+  if (reposLoading) {
+    return t('Loading repositories');
+  }
+  if (isSyncing) {
+    return t('Re-syncing in the background…');
+  }
+
+  const syncNowButton = onInstallationSync ? (
+    <Button size="xs" variant="link" onClick={() => onInstallationSync(installation)}>
+      {t('Sync now')}
+    </Button>
+  ) : null;
+
+  if (lastSync) {
+    return tct('Repositories last synced to Sentry [date]. [syncNow]', {
+      date: (
+        <strong>
+          <TimeSince disabledAbsoluteTooltip date={lastSync} />
+        </strong>
+      ),
+      syncNow: syncNowButton,
+    });
+  }
+  return tct('Repositories not yet synced. [syncNow]', {syncNow: syncNowButton});
+}
+
 function InstallationActions({
   installation,
   providerName,
@@ -390,31 +423,12 @@ function InstallationActions({
   const rawLastSync = integration.configData?.last_sync;
   const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
 
-  const syncNowButton =
-    onInstallationSync && !isSyncing ? (
-      <Button size="xs" variant="link" onClick={() => onInstallationSync(installation)}>
-        {t('Sync now')}
-      </Button>
-    ) : null;
-
   const isLoading = reposLoading || isSyncing;
-
-  const repoCountTooltip = reposLoading
-    ? t('Loading repositories')
-    : isSyncing
-      ? t('Re-syncing in the background…')
-      : lastSync
-        ? tct('Repositories last synced to Sentry [date]. [syncNow]', {
-            date: (
-              <strong>
-                <TimeSince disabledAbsoluteTooltip date={lastSync} />
-              </strong>
-            ),
-            syncNow: syncNowButton,
-          })
-        : tct('Repositories not yet synced. [syncNow]', {
-            syncNow: syncNowButton,
-          });
+  const repoCountTooltip = getRepoCountTooltip(
+    installation,
+    onInstallationSync,
+    lastSync
+  );
 
   return (
     <Fragment>
