@@ -2603,7 +2603,7 @@ describe('useWidgetBuilderState', () => {
       });
 
       // The URL description is moved into local textContent state
-      expect(result.current.state.textContent as string).toBe('existing description');
+      expect(result.current.state.textContent!).toBe('existing description');
       // And cleared from the URL-backed description field
       expect(result.current.state.description).toBeUndefined();
     });
@@ -2628,7 +2628,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.textContent as string).toBe('text widget content');
+      expect(result.current.state.textContent!).toBe('text widget content');
 
       act(() => {
         result.current.dispatch({
@@ -2662,7 +2662,7 @@ describe('useWidgetBuilderState', () => {
 
       jest.runAllTimers();
 
-      expect(result.current.state.textContent as string).toBe('new text content');
+      expect(result.current.state.textContent!).toBe('new text content');
       // Text content must not be written to the URL to avoid excessive URL length
       expect(mockNavigate).not.toHaveBeenCalled();
     });

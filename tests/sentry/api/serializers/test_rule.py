@@ -1,10 +1,15 @@
-import pytest
 import responses
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework import serializers
 
+# Explicit imports so selective testing can detect when these handlers change.
+# They register via @action_handler_registry.register at import time (startup
+# side-effect), so without these the static scanner has no edge from handler
+# files to this test file.
+import sentry.integrations.github.handlers  # noqa: F401
+import sentry.integrations.github_enterprise.handlers  # noqa: F401
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.integrations.models import OrganizationIntegration
@@ -895,8 +900,8 @@ class WorkflowRuleSerializerTest(TestCase):
             include_legacy_rule_id=False,
             include_workflow_id=False,
         )
-        with pytest.raises(ValidationError):
-            self.assert_equal_serializers(rule)
+
+        self.assert_equal_serializers(rule)
 
     @responses.activate
     def test_sentry_app_render_label_no_installation(self) -> None:

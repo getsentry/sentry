@@ -1,3 +1,4 @@
+import {useQueryClient} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -11,7 +12,6 @@ import {
 } from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
@@ -419,9 +419,7 @@ describe('seerAgentHooks', () => {
         result.current.mutate('seer', {});
       });
 
-      const cached = result.current.queryClient.getQueryData(queryKey) as ReturnType<
-        typeof makeInitialCacheData
-      >;
+      const cached = result.current.queryClient.getQueryData(queryKey)!;
       expect(cached.pages[0]!.json[0]).toMatchObject({
         projectId: '1',
         autofixAutomationTuning: 'medium',
@@ -446,9 +444,7 @@ describe('seerAgentHooks', () => {
         result.current.mutate('none', {});
       });
 
-      const cached = result.current.queryClient.getQueryData(queryKey) as ReturnType<
-        typeof makeInitialCacheData
-      >;
+      const cached = result.current.queryClient.getQueryData(queryKey)!;
       expect(cached.pages[0]!.json[0]).toMatchObject({
         projectId: '1',
         autofixAutomationTuning: 'off',
@@ -474,9 +470,7 @@ describe('seerAgentHooks', () => {
       });
 
       await waitFor(() => {
-        const cached = result.current.queryClient.getQueryData(queryKey) as ReturnType<
-          typeof makeInitialCacheData
-        >;
+        const cached = result.current.queryClient.getQueryData(queryKey)!;
         expect(cached.pages[0]!.json[0]).toMatchObject({
           projectId: '1',
           autofixAutomationTuning: 'medium',

@@ -55,7 +55,7 @@ import {
   isWebVitalFrame,
   NodeType,
 } from 'sentry/utils/replays/types';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface ReplayReaderParams {
   /**

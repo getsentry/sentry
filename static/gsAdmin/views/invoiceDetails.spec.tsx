@@ -106,7 +106,7 @@ describe('InvoiceDetails', () => {
     });
 
     it('requires billing admin permission', async () => {
-      ConfigStore.set('user', UserFixture({permissions: new Set([])}));
+      ConfigStore.set('user', UserFixture({permissions: new Set()}));
 
       const invoice = InvoiceFixture({isClosed: false});
       MockApiClient.addMockResponse({

@@ -37,7 +37,7 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
       {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
         <Flex align="center" justify="center" padding="0 lg">
           <Button
-            priority="default"
+            variant="secondary"
             size="xs"
             onClick={indicator.options.undo}
             icon={<IconRefresh size="xs" />}

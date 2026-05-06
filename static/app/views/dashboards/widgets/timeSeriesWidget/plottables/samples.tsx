@@ -18,7 +18,7 @@ import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/se
 import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
 
-import {BaselineMarkLine} from './baselineMarkline';
+import {createBaselineMarkLine} from './baselineMarkline';
 import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
 
 type ScatterPlotDatum = [timestamp: string, value: number, id: string];
@@ -254,7 +254,7 @@ export class Samples implements Plottable {
         return symbol;
       },
       markLine: config.baselineValue
-        ? BaselineMarkLine({
+        ? createBaselineMarkLine({
             theme,
             value: config.baselineValue,
             label: config.baselineLabel,

@@ -1,0 +1,157 @@
+import {useCallback} from 'react';
+import styled from '@emotion/styled';
+import classNames from 'classnames';
+
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
+import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
+import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
+import {MessageFormatter} from 'sentry/views/explore/replays/detail/console/messageFormatter';
+import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+
+interface Props extends ReturnType<typeof useCrumbHandlers> {
+  currentHoverTime: number | undefined;
+  currentTime: number;
+  frame: BreadcrumbFrame;
+  index: number;
+  onDimensionChange: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>
+  ) => void;
+  startTimestampMs: number;
+  dataIndex?: number;
+  expandPaths?: string[];
+  ref?: React.Ref<HTMLDivElement>;
+}
+
+export function ConsoleLogRow({
+  currentHoverTime,
+  currentTime,
+  dataIndex,
+  expandPaths,
+  frame,
+  onMouseEnter,
+  onMouseLeave,
+  index,
+  onClickTimestamp,
+  onDimensionChange,
+  startTimestampMs,
+  ref,
+}: Props) {
+  const handleDimensionChange = useCallback(
+    (path: any, expandedState: any) => onDimensionChange?.(index, path, expandedState),
+    [onDimensionChange, index]
+  );
+
+  const hasOccurred = currentTime >= frame.offsetMs;
+  const isBeforeHover =
+    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
+
+  return (
+    <ConsoleLog
+      ref={ref}
+      data-index={dataIndex}
+      className={classNames({
+        beforeCurrentTime: hasOccurred,
+        afterCurrentTime: !hasOccurred,
+        beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
+        afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
+      })}
+      hasOccurred={hasOccurred}
+      level={(frame as ConsoleFrame).level}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
+    >
+      <ConsoleLevelIcon level={(frame as ConsoleFrame).level} />
+      <Message>
+        <ErrorBoundary mini>
+          <MessageFormatter
+            expandPaths={expandPaths}
+            frame={frame}
+            onExpand={handleDimensionChange}
+          />
+        </ErrorBoundary>
+      </Message>
+      <TimestampButton
+        onClick={event => {
+          event.stopPropagation();
+          onClickTimestamp(frame);
+        }}
+        startTimestampMs={startTimestampMs}
+        timestampMs={frame.timestampMs}
+      />
+    </ConsoleLog>
+  );
+}
+
+const ConsoleLog = styled('div')<{
+  hasOccurred: boolean;
+  level: undefined | string;
+}>`
+  display: grid;
+  grid-template-columns: 12px 1fr max-content;
+  gap: ${p => p.theme.space.sm};
+  align-items: baseline;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
+
+  background-color: ${p =>
+    p.level === 'warning'
+      ? p.theme.colors.yellow100
+      : p.level === 'error'
+        ? p.theme.colors.red100
+        : 'inherit'};
+
+  color: ${p => p.theme.colors.gray500};
+
+  /*
+  Show the timestamp button "Play" icon when we hover the row.
+  This is a really generic selector that could find many things, but for now it
+  only targets the one thing that we expect.
+  */
+  &:hover button > svg {
+    visibility: visible;
+  }
+`;
+
+const ICONS = {
+  [BreadcrumbLevelType.ERROR]: (
+    <Tooltip title={BreadcrumbLevelType.ERROR}>
+      <IconClose size="xs" variant="danger" />
+    </Tooltip>
+  ),
+  [BreadcrumbLevelType.WARNING]: (
+    <Tooltip title={BreadcrumbLevelType.WARNING}>
+      <IconWarning variant="warning" size="xs" />
+    </Tooltip>
+  ),
+  [BreadcrumbLevelType.INFO]: (
+    <Tooltip title={BreadcrumbLevelType.INFO}>
+      <IconInfo variant="primary" size="xs" />
+    </Tooltip>
+  ),
+};
+
+const MediumFontSize = styled('span')`
+  font-size: ${p => p.theme.font.size.md};
+`;
+
+function ConsoleLevelIcon({level}: {level: string | undefined}) {
+  return level && level in ICONS ? (
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    <MediumFontSize>{ICONS[level]}</MediumFontSize>
+  ) : (
+    <i />
+  );
+}
+
+const Message = styled('div')`
+  font-family: ${p => p.theme.font.family.mono};
+
+  white-space: pre-wrap;
+  word-break: break-word;
+`;

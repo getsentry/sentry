@@ -1,8 +1,9 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Variables extends Partial<Project> {}
@@ -28,7 +29,7 @@ export function useUpdateProject(project: Project) {
 
   return useMutation<Project, Error, Variables, Context>({
     onMutate: (data: Variables) => {
-      const fromCache = queryClient.getQueryData<ApiResponse<Project>>(queryKey)?.json;
+      const fromCache = queryClient.getQueryData(queryKey)?.json;
       const fromStore = ProjectsStore.getById(project.id);
       const fromProp = project;
 
@@ -60,7 +61,7 @@ export function useUpdateProject(project: Project) {
 
       // Update caches optimistically
       ProjectsStore.onUpdateSuccess(updatedProject);
-      queryClient.setQueryData<ApiResponse<Project>>(queryKey, prev => ({
+      queryClient.setQueryData(queryKey, prev => ({
         headers: prev?.headers ?? {},
         json: updatedProject,
       }));
@@ -77,7 +78,7 @@ export function useUpdateProject(project: Project) {
     onError: (_error, _variables, context) => {
       if (context?.previousProject) {
         ProjectsStore.onUpdateSuccess(context.previousProject);
-        queryClient.setQueryData<ApiResponse<Project>>(queryKey, prev => ({
+        queryClient.setQueryData(queryKey, prev => ({
           headers: prev?.headers ?? {},
           json: context.previousProject,
         }));

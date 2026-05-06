@@ -250,7 +250,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
     .filter(team => team === 'myteams' || !isNaN(team));
 };
 
-export const decodeProjects = (location: Location): number[] => {
+const decodeProjects = (location: Location): number[] => {
   if (!location.query?.project) {
     return [];
   }
@@ -1099,7 +1099,7 @@ export class EventView {
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
+  getQuery(inputQuery?: string | string[] | null): string {
     const queryParts: string[] = [];
 
     if (this.query) {

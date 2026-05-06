@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location, Query} from 'history';
+import {useQuery} from '@tanstack/react-query';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -12,22 +13,21 @@ import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MergedList} from './mergedList';
 
 type Props = {
   groupId: Group['id'];
-  location: Location<Query>;
+  location: Location;
   project: Project;
 };
 
 export function GroupMergedView(props: Props) {
   const organization = useOrganization();
   const [mergedItems, setMergedItems] = useState<Fingerprint[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [mergedLinks, setMergedLinks] = useState<string | undefined>(undefined);
   const {project, groupId, location} = props;
 
@@ -41,8 +41,8 @@ export function GroupMergedView(props: Props) {
       if (items) {
         setMergedItems(items);
         setMergedLinks(links);
-        setIsLoading(typeof l === 'undefined' ? false : l);
-        setError(typeof e === 'undefined' ? false : e);
+        setIsLoading(l === undefined ? false : l);
+        setError(e === undefined ? false : e);
       }
     },
     []

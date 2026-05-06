@@ -160,7 +160,7 @@ export class ContinuousProfile extends Profile {
     throw new Error('Not implemented');
   }
 
-  build(): ContinuousProfile {
+  build(): this {
     this.duration = Math.max(
       this.duration,
       this.weights.reduce((a, b) => a + b, 0)

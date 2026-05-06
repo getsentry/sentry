@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from unittest import mock
 from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry import audit_log
+from sentry.analytics.events.data_consent_org_creation import (
+    AggregatedDataConsentOrganizationCreatedEvent,
+)
+from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.apitoken import ApiToken
@@ -17,9 +23,12 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import (
     assume_test_silo_mode,
     cell_silo_test,
@@ -189,6 +198,43 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         response = self.get_success_response(sortBy="members")
 
         assert [item["id"] for item in response.data] == [str(larger_org.id), str(smaller_org.id)]
+
+    def test_response_compatible_with_cell(self) -> None:
+        # The control listing is being built out to replace the cell listing.
+        # Until that swap happens, every field the control side returns must
+        # match the cell side for the same org so we can cut over without
+        # breaking clients.
+        self.create_organization(cell="us", owner=self.user, name="My Org", slug="my-org")
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            control_response = self.get_success_response()
+        with assume_test_silo_mode(SiloMode.CELL):
+            cell_response = self.get_success_response()
+
+        assert len(control_response.data) == 1
+        assert len(cell_response.data) == 1
+
+        # TODO(cells): fields the control serializer doesn't return yet. Remove
+        # entries as they're ported — once empty, drop the filter and assert
+        # full equality.
+        missing_fields = {
+            "allowMemberInvite",
+            "allowMemberProjectCreation",
+            "allowSuperuserAccess",
+            "avatar",
+            "dateCreated",
+            "extraOptions",
+            "features",
+            "hasAuthProvider",
+            "isEarlyAdopter",
+            "links",
+            "require2FA",
+            "requireEmailVerification",
+            "status",
+        }
+        assert control_response.data[0] == {
+            k: v for k, v in cell_response.data[0].items() if k not in missing_fields
+        }
 
 
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
@@ -387,6 +433,34 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         )
         self.assert_org_member_mapping(org_member=org_member)
 
+    @mock.patch("sentry.analytics.record")
+    def test_success_analytics_recorded(self, mock_record: mock.MagicMock) -> None:
+        self.login_as(user=self.user)
+
+        with outbox_runner():
+            response = self.get_success_response(name="org name", aggregatedDataConsent=True)
+        assert response.status_code == 201
+
+        org = Organization.objects.get(slug="org-name")
+
+        assert_any_analytics_event(
+            mock_record,
+            OrganizationCreatedEvent(
+                id=org.id,
+                actor_id=self.user.id,
+                name=org.name,
+                slug=org.slug,
+            ),
+        )
+        assert_any_analytics_event(
+            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
+        )
+        assert_org_audit_log_exists(
+            organization=org,
+            event=audit_log.get_event_id("ORG_ADD"),
+        )
+        assert org.get_option("sentry:aggregated_data_consent") is True
+
     def test_data_consent(self) -> None:
         data = {"name": "hello world original", "agreeTerms": True}
         response = self.get_success_response(**data)
@@ -403,6 +477,46 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.name == data["name"]
         assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
+
+    @override_options({"provision_organization_in_cell.record_analytics": True})
+    @mock.patch("sentry.analytics.record")
+    def test_success_analytics_in_rpc_call(self, mock_record: mock.MagicMock) -> None:
+        self.login_as(user=self.user)
+
+        with outbox_runner():
+            data = {
+                "name": "org name",
+                "aggregatedDataConsent": True,
+                "agreeTerms": True,
+                "defaultTeam": True,
+            }
+            response = self.get_success_response(**data)
+        assert response.status_code == 201
+
+        org = Organization.objects.get(slug="org-name")
+
+        assert_any_analytics_event(
+            mock_record,
+            OrganizationCreatedEvent(
+                id=org.id,
+                actor_id=self.user.id,
+                name=org.name,
+                slug=org.slug,
+            ),
+        )
+        assert_any_analytics_event(
+            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
+        )
+        assert_org_audit_log_exists(
+            organization=org,
+            event=audit_log.get_event_id("ORG_ADD"),
+        )
+        assert org.get_option("sentry:aggregated_data_consent") is True
+        assert org.get_option("sentry:streamline_ui_only") is True
+        assert OrganizationMember.objects.filter(
+            organization_id=org.id, user_id=self.user.id
+        ).exists()
+        assert Team.objects.filter(organization_id=org.id).exists()
 
     def test_streamline_only_is_true(self) -> None:
         """

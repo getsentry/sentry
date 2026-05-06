@@ -38,7 +38,7 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
   [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
   [TraceLayoutTabKeys.METRICS]: {
     slug: TraceLayoutTabKeys.METRICS,
-    label: t('Metrics'),
+    label: t('Application Metrics'),
   },
   [TraceLayoutTabKeys.AI_SPANS]: {
     slug: TraceLayoutTabKeys.AI_SPANS,
@@ -103,7 +103,7 @@ export function useTraceLayoutTabs({
       ? TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]
       : TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
 
-  const [currentTab, setCurrentTab] = useState<Tab['slug']>(initialTab.slug);
+  const [currentTab, setCurrentTab] = useState(initialTab.slug);
 
   const onTabChange = useCallback(
     (slug: Tab['slug']) => {

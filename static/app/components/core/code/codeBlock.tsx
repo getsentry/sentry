@@ -182,7 +182,7 @@ export function CodeBlock({
           <CopyButton
             type="button"
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={handleCopy}
             tooltipProps={{position: 'left', title: tooltipTitle}}
             onMouseLeave={() => setTooltipState('copy')}
@@ -271,6 +271,7 @@ const FileName = styled('span')`
 const TabsWrapper = styled('div')`
   padding: 0;
   display: flex;
+  overflow-x: auto;
 `;
 
 const Tab = styled('button')<{isSelected: boolean}>`

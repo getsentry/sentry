@@ -41,7 +41,7 @@ function getStatusLabel(status: number): string {
 }
 
 export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [expandedRows, setExpandedRows] = useState(new Set());
 
   const toggleRow = (id: number) => {
     setExpandedRows(prev => {
@@ -127,7 +127,7 @@ export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
           <td key="expand">
             <Button
               size="zero"
-              priority="transparent"
+              variant="transparent"
               onClick={() => toggleRow(row.id)}
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               aria-label={isExpanded ? 'Collapse row' : 'Expand row'}

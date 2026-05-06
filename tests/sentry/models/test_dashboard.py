@@ -153,11 +153,8 @@ class DashboardFavoriteUserTest(TestCase):
             self.organization, self.user.id, [should_be_first.id, should_be_second.id]
         )
 
-        for favorite_dashboard in [second_favorite_dashboard, first_favorite_dashboard]:
-            favorite_dashboard.refresh_from_db()
-
-        assert second_favorite_dashboard.position == 1
-        assert first_favorite_dashboard.position == 0
+        assert DashboardFavoriteUser.objects.get(id=second_favorite_dashboard.id).position == 1
+        assert DashboardFavoriteUser.objects.get(id=first_favorite_dashboard.id).position == 0
 
     def test_deletes_and_increments_existing_positions(self) -> None:
         first_dashboard = self.create_dashboard(

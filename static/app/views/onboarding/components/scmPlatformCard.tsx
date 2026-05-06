@@ -3,6 +3,8 @@ import {PlatformIcon} from 'platformicons';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {getPlatformKind, type PlatformKind} from 'sentry/data/platformKinds';
+import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 
 import {ScmCardButton} from './scmCardButton';
@@ -15,6 +17,13 @@ interface ScmPlatformCardProps {
   platform: PlatformKey;
   type: string;
 }
+
+const KIND_LABELS: Record<PlatformKind, string> = {
+  language: t('Language'),
+  framework: t('Framework'),
+  library: t('Library'),
+  platform: t('Platform'),
+};
 
 export function ScmPlatformCard({
   platform,
@@ -33,7 +42,7 @@ export function ScmPlatformCard({
               {name}
             </Text>
             <Text variant="muted" size="sm" textWrap="nowrap">
-              {type}
+              {KIND_LABELS[getPlatformKind(platform, type)]}
             </Text>
           </Stack>
         </Grid>

@@ -5,8 +5,8 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
-import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -33,34 +33,15 @@ export function useGroupByFields({
 }: UseGroupByFieldsProps): Array<SelectOption<string>> {
   return useMemo(() => {
     const seen = new Set<string>();
-    const options = [
-      ...Object.entries(numberTags)
-        .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
-        .map(([_, tag]) => optionFromTag(tag, traceItemType)),
-      ...Object.entries(stringTags)
-        .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
-        .map(([_, tag]) => optionFromTag(tag, traceItemType)),
-      ...Object.entries(booleanTags)
-        .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
-        .map(([_, tag]) => optionFromTag(tag, traceItemType)),
-      ...groupBys
-        .filter(
-          groupBy =>
-            groupBy &&
-            !(groupBy in numberTags) &&
-            !(groupBy in stringTags) &&
-            !(groupBy in booleanTags)
-        )
-        .map(groupBy =>
-          optionFromTag(
-            {key: groupBy, name: prettifyTagKey(groupBy), kind: FieldKind.TAG},
-            traceItemType
-          )
-        ),
-    ]
+    const options = buildAttributeOptions({
+      numberTags: filterDisallowed(numberTags),
+      stringTags: filterDisallowed(stringTags),
+      booleanTags: filterDisallowed(booleanTags),
+      traceItemType,
+      extraColumns: groupBys.filter(column => !DISALLOWED_GROUP_BY_FIELDS.has(column)),
+      extraColumnKind: FieldKind.TAG,
+    })
       .filter(option => {
-        // Filtering by value here, so it's based off of explicit tags i.e. `key`
-        // or `tags[<key>, <boolean | number | string>]
         if (seen.has(option.value)) return false;
         seen.add(option.value);
         return true;
@@ -84,9 +65,9 @@ export function useGroupByFields({
         ? []
         : [
             {
-              label: <Disabled>{t('\u2014')}</Disabled>,
+              label: <Disabled>{t('—')}</Disabled>,
               value: UNGROUPED,
-              textValue: t('\u2014'),
+              textValue: t('—'),
             },
           ]),
       ...options,
@@ -105,6 +86,12 @@ const TRACE_ITEM_FIELD_DEFINITION_TYPE: Partial<
 // Some fields don't make sense to allow users to group by as they create
 // very high cardinality groupings and is not useful.
 const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);
+
+function filterDisallowed(tags: TagCollection): TagCollection {
+  return Object.fromEntries(
+    Object.entries(tags).filter(([key]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
+  );
+}
 
 const Disabled = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};

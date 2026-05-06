@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+import logging
 
 import sentry_sdk
 from django.db import router, transaction
@@ -9,15 +9,13 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, features
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.rule import WorkflowEngineRuleEndpoint
 from sentry.api.endpoints.project_rules import (
-    ProjectRulePostData,
     find_duplicate_rule,
-    format_request_data,
 )
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
@@ -45,14 +43,14 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
-from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
-from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectRuleDetailsPutSerializer(serializers.Serializer):
@@ -192,7 +190,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
-    def put(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
         ## Deprecated
         🚧 Use [Update an Alert by ID](/api/monitors/update-an-alert-by-id) instead.
@@ -206,48 +204,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-        if isinstance(rule, Workflow):
-            workflow = rule
-            organization = project.organization
-
-            data = request.data.copy()
-
-            if not data.get("filterMatch"):
-                # if filterMatch is not passed, don't overwrite it with default value, use the saved dcg type
-                wdcg = WorkflowDataConditionGroup.objects.filter(workflow=workflow).first()
-                if wdcg:
-                    data["filterMatch"] = wdcg.condition_group.logic_type
-
-            request_data = format_request_data(cast(ProjectRulePostData, data), project)
-            if not request_data.get("config", {}).get("frequency"):
-                request_data["config"] = workflow.config
-
-            validator = WorkflowValidator(
-                data=request_data,
-                context={
-                    "organization": organization,
-                    "request": request,
-                    "workflow": workflow,
-                },
-            )
-            validator.is_valid(raise_exception=True)
-
-            with transaction.atomic(router.db_for_write(Workflow)):
-                validator.update(workflow, validator.validated_data)
-                self.create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=workflow.id,
-                    event=audit_log.get_event_id("WORKFLOW_EDIT"),
-                    data=workflow.get_audit_log_data(),
-                )
-
-            workflow.refresh_from_db()
-            return Response(
-                serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
-                status=200,
-            )
-
         report_used_legacy_models()
         rule_data_before = dict(rule.data)
         if rule.environment_id:
@@ -378,6 +334,19 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
             )
+            if features.has(
+                "organizations:workflow-engine-rule-serializers", project.organization
+            ) or features.has(
+                "organizations:workflow-engine-issue-alert-endpoints-put", project.organization
+            ):
+                try:
+                    workflow = AlertRuleWorkflow.objects.get(rule_id=updated_rule.id).workflow
+                    return Response(
+                        serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
+                    )
+                except AlertRuleWorkflow.DoesNotExist:
+                    logger.info("alertruleworkflow-doesnotexist", extra={"rule_id": rule.id})
+                    return Response(serialize(updated_rule, request.user))
 
             return Response(serialize(updated_rule, request.user))
 

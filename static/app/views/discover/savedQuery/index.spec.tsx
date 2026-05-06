@@ -57,9 +57,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
     });
 
     errorsQuery = {
-      ...(getAllViews(organization).find(
-        view => view.name === 'Errors by Title'
-      ) as NewQuery),
+      ...getAllViews(organization).find(view => view.name === 'Errors by Title')!,
       yAxis: ['count()'],
       display: DisplayModes.DEFAULT,
     };

@@ -2,6 +2,7 @@ import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import * as Sentry from '@sentry/react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
@@ -10,11 +11,7 @@ import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/docume
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
-import {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
 
 import {routes} from 'admin/routes';
 

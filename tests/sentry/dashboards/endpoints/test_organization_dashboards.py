@@ -13,8 +13,6 @@ from sentry.dashboards.endpoints.organization_dashboards import (
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardLastVisited,
-    DashboardTombstone,
 )
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -22,7 +20,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -68,33 +65,10 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_get(self) -> None:
         response = self.do_request("get", self.url)
         assert response.status_code == 200, response.content
-        assert len(response.data) == 3
-
-        assert "default-overview" == response.data[0]["id"]
-        self.assert_equal_dashboards(self.dashboard, response.data[1])
-        self.assert_equal_dashboards(self.dashboard_2, response.data[2])
-
-    def test_get_default_overview_has_widget_preview_field(self) -> None:
-        response = self.do_request("get", self.url)
-        assert response.status_code == 200, response.content
-        assert "default-overview" == response.data[0]["id"]
-
-        default_overview_data = Dashboard.get_prebuilt(
-            self.organization, self.user, "default-overview"
-        )
-        default_overview = response.data[0]
-        assert default_overview["widgetPreview"] == [
-            {"displayType": w["displayType"], "layout": None}
-            for w in default_overview_data["widgets"]
-        ]
-
-    def test_get_with_tombstone(self) -> None:
-        DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
-        response = self.do_request("get", self.url)
-        assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
-        assert "default-overview" not in [r["id"] for r in response.data]
+        self.assert_equal_dashboards(self.dashboard, response.data[0])
+        self.assert_equal_dashboards(self.dashboard_2, response.data[1])
 
     def test_get_query(self) -> None:
         dashboard = Dashboard.objects.create(
@@ -152,7 +126,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if not forward_sort:
                 expected = ["Dashboard 2", "Dashboard 1", "A"]
 
-            assert values == ["General"] + expected
+            assert values == expected
 
     def test_get_sortby_recently_viewed(self) -> None:
         Dashboard.objects.create(
@@ -174,50 +148,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if not forward_sort:
                 expected = list(reversed(expected))
 
-            assert values == ["General"] + expected
-
-    def test_get_sortby_recently_viewed_user_last_visited(self) -> None:
-        dashboard_a = Dashboard.objects.create(
-            title="A",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        dashboard_b = Dashboard.objects.create(
-            title="B",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_a,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=5),
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_b,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=0),
-        )
-
-        for forward_sort in [True, False]:
-            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
-
-            with self.feature("organizations:dashboards-starred-reordering"):
-                response = self.client.get(self.url, data={"sort": sorting})
-
-            assert response.status_code == 200
-            values = [row["title"] for row in response.data]
-            expected = ["B", "A"]
-
-            if not forward_sort:
-                expected = list(reversed(expected))
-
-            # Only A, B are sorted by their last visited entry, Dashboard 1
-            # and Dashboard 2 are by default sorted by their date created
-            assert values == ["General"] + expected + ["Dashboard 2", "Dashboard 1"]
+            assert values == expected
 
     def test_get_sortby_mydashboards(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -473,7 +404,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         values = [row["title"] for row in response.data]
         # sorted by title by default
-        assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 6", "Dashboard 7"]
+        assert values == ["Dashboard 1", "Dashboard 2", "Dashboard 6", "Dashboard 7"]
 
     def test_get_exclude_favorites_with_sort(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -524,7 +455,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
 
         values = [row["title"] for row in response.data]
-        assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 7", "Dashboard 6"]
+        assert values == ["Dashboard 1", "Dashboard 2", "Dashboard 7", "Dashboard 6"]
 
     def test_pin_favorites_with_my_dashboards_sort(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -824,13 +755,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.client.get(self.url, data={"filter": "shared"})
         assert response.status_code == 200, response.content
         values = [row["title"] for row in response.data]
-        assert values == ["General", "Dashboard User 2"]
+        assert values == ["Dashboard User 2"]
 
         self.login_as(user_2)
         response = self.client.get(self.url, data={"filter": "shared"})
         assert response.status_code == 200, response.content
         values = [row["title"] for row in response.data]
-        assert values == ["General", "Dashboard User 1"]
+        assert values == ["Dashboard User 1"]
 
     def test_get_shared_dashboards_across_organizations(self) -> None:
         # The test user is a member of just the single org.
@@ -861,7 +792,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.client.get(self.url, data={"filter": "shared"})
         assert response.status_code == 200, response.content
         values = [row["title"] for row in response.data]
-        assert values == ["General", "Initial dashboard"]
+        assert values == ["Initial dashboard"]
 
     def test_get_with_filters(self) -> None:
         Dashboard.objects.create(
@@ -900,107 +831,16 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         response = self.client.get(self.url, data={"sort": "recentlyViewed"})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 3
+        assert len(response.data) == 2
 
         titles = [row["title"] for row in response.data]
         assert titles == [
-            "General",
             "Dashboard visited most recently",
             "Dashboard visited oldest",
         ]
 
-        # Only "Dashboard with last visited" has a last visited timestamp.
         visited_at = [row.get("lastVisited") for row in response.data]
-        assert visited_at == [None, now, one_hour_ago]
-
-    def test_get_with_last_visited(self) -> None:
-        # Clean up existing dashboards setup for this test.
-        Dashboard.objects.all().delete()
-
-        Dashboard.objects.create(
-            title="Dashboard without last visited",
-            organization=self.organization,
-            created_by_id=self.user.id,
-        )
-        dashboard_2 = Dashboard.objects.create(
-            title="Dashboard with last visited",
-            organization=self.organization,
-            created_by_id=self.user.id,
-        )
-        now = before_now(minutes=0)
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_2,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=now,
-        )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 3
-
-        titles = [row["title"] for row in response.data]
-        assert titles == [
-            "General",
-            "Dashboard with last visited",
-            "Dashboard without last visited",
-        ]
-
-        # Only "Dashboard with last visited" has a last visited timestamp.
-        visited_at = [row.get("lastVisited") for row in response.data]
-        assert visited_at == [None, now, None]
-
-    def test_get_recently_viewed_sort_with_favorites_from_other_user(self) -> None:
-        other_user = self.create_user(username="other_user")
-        self.create_member(organization=self.organization, user=other_user)
-
-        Dashboard.objects.all().delete()
-        dashboard_1 = Dashboard.objects.create(
-            title="Dashboard 1",
-            created_by_id=other_user.id,
-            organization=self.organization,
-        )
-
-        # Both users have the same dashboard in their favorites
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=self.user.id,
-            dashboard=dashboard_1,
-        )
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=other_user.id,
-            dashboard=dashboard_1,
-        )
-
-        # Both users have recently visited the dashboard
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_1,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=0),
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_1,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=other_user.id
-            ),
-            last_visited=before_now(minutes=2),
-        )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.client.get(
-                self.url, data={"sort": "recentlyViewed", "pin": "favorites"}
-            )
-        assert response.status_code == 200, response.content
-
-        # Assert that the dashboard did not receive a duplicate entry due to being
-        # favorited by another user
-        assert len(response.data) == 1
-        self.assert_equal_dashboards(dashboard_1, response.data[0])
+        assert visited_at == [now, one_hour_ago]
 
     def test_post(self) -> None:
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
@@ -1943,8 +1783,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert "permissions" in dashboard, (
                 f"Permissions field not found in dashboard: {dashboard}"
             )
-        self.assert_equal_dashboards(self.dashboard, response.data[1])
-        assert response.data[1]["permissions"] is None
+        self.assert_equal_dashboards(self.dashboard, response.data[0])
+        assert response.data[0]["permissions"] is None
 
     def test_dasboard_list_permissions_is_valid(self) -> None:
         team1 = self.create_team(organization=self.organization)
@@ -1965,9 +1805,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         response = self.do_request("get", self.url)
         assert response.status_code == 200, response.content
-        assert len(response.data) == 4
-        assert response.data[3]["permissions"]["isEditableByEveryone"] is False
-        assert response.data[3]["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
+        assert len(response.data) == 3
+        assert response.data[2]["permissions"]["isEditableByEveryone"] is False
+        assert response.data[2]["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
 
     def test_gets_dashboard_favorited_with_dashboard_list(self) -> None:
         self.dashboard.favorited_by = [self.user.id]
@@ -1977,10 +1817,10 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         for dashboard in response.data:
             assert "isFavorited" in dashboard
-        self.assert_equal_dashboards(self.dashboard, response.data[1])
-        assert response.data[1]["isFavorited"] is True
-        assert response.data[0]["isFavorited"] is False  # general template
-        assert response.data[2]["isFavorited"] is False  # dashboard_2 w/ no favorites set
+
+        favorited = next(d for d in response.data if d["isFavorited"] is True)
+        self.assert_equal_dashboards(self.dashboard, favorited)
+        assert all(not d["isFavorited"] for d in response.data if d["id"] != str(self.dashboard.id))
 
     def test_post_errors_widget_with_is_filter(self) -> None:
         data: dict[str, Any] = {
@@ -2028,88 +1868,11 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("get", self.url)
         assert response.status_code == 200, response.content
 
-        overview_dashboard = response.data[0]
-        assert overview_dashboard["projects"] == []
-
-        current_dashboard = response.data[1]
+        current_dashboard = response.data[0]
         assert current_dashboard["projects"] == [project.id]
 
-        starred_dashboard = response.data[2]
+        starred_dashboard = response.data[1]
         assert starred_dashboard["projects"] == []
-
-    def test_automatically_favorites_dashboard_when_isFavorited_is_true(self) -> None:
-        data = {
-            "title": "Dashboard with errors widget",
-            "isFavorited": True,
-        }
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 201, response.data
-        dashboard = Dashboard.objects.get(
-            organization=self.organization, title="Dashboard with errors widget"
-        )
-        assert response.data["isFavorited"] is True
-
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization, user_id=self.user.id, dashboard=dashboard
-            )
-            is not None
-        )
-
-    def test_does_not_automatically_favorite_dashboard_when_isFavorited_is_false(self) -> None:
-        data = {
-            "title": "Dashboard with errors widget",
-            "isFavorited": False,
-        }
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 201, response.data
-        dashboard = Dashboard.objects.get(
-            organization=self.organization, title="Dashboard with errors widget"
-        )
-        assert response.data["isFavorited"] is False
-
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization, user_id=self.user.id, dashboard=dashboard
-            )
-            is None
-        )
-
-    def test_order_by_most_favorited(self) -> None:
-        Dashboard.objects.all().delete()
-
-        # A mapping from dashboard title to the number of times it was favorited
-        dashboards = {
-            "Dashboard 1": 0,
-            "Dashboard 2": 2,
-            "Dashboard 3": 1,
-        }
-
-        # Set up a favorite entry for each dashboard by the number of times it was favorited
-        for title, favorited in dashboards.items():
-            dashboard = self.create_dashboard(title=title, organization=self.organization)
-            if favorited:
-                for _ in range(favorited):
-                    user = self.create_user()
-                    DashboardFavoriteUser.objects.create(
-                        dashboard=dashboard,
-                        user_id=user.id,
-                        organization=self.organization,
-                    )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request(
-                "get", self.url, {"sort": "mostFavorited", "pin": "favorites"}
-            )
-
-        assert response.status_code == 200, response.content
-        assert [dashboard["title"] for dashboard in response.data] == [
-            "Dashboard 2",
-            "Dashboard 3",
-            "Dashboard 1",
-        ]
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:
@@ -2172,24 +1935,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         # 2 prebuilt + 1 user dashboard
         response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Prebuilt"})
         assert response.status_code == 201
-
-    def test_prebuilt_dashboard_is_shown_when_favorites_pinned_and_no_dashboards(self) -> None:
-        # The prebuilt dashboard should not show up when filtering by owned dashboards
-        # because it is not created by the user
-        response = self.do_request("get", self.url, {"pin": "favorites", "filter": "owned"})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert not any(
-            dashboard["title"] == "General" and dashboard["id"] == "default-overview"
-            for dashboard in response.data
-        )
-
-        # If there are no other dashboards when fetching with pinned dashboards
-        # the prebuilt dashboard should show up
-        response = self.do_request("get", self.url, {"pin": "favorites", "filter": "shared"})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["title"] == "General"
 
     def test_endpoint_creates_prebuilt_dashboards_when_none_exist(self) -> None:
         prebuilt_count = Dashboard.objects.filter(

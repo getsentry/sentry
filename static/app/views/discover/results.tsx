@@ -1,6 +1,7 @@
 import {Component, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -9,6 +10,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
@@ -36,7 +38,6 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {CursorHandler} from 'sentry/components/pagination';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -64,7 +65,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -360,7 +361,7 @@ export class Results extends Component<Props, State> {
     const {api, organization, location} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
-    if (confirmedQuery === false || !eventView.isValid()) {
+    if (!confirmedQuery || !eventView.isValid()) {
       return;
     }
 
@@ -651,7 +652,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -724,7 +725,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -733,7 +734,7 @@ export class Results extends Component<Props, State> {
               {
                 traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
                 FAQLink: (
-                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                  <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                 ),
               }
             )}
@@ -979,12 +980,15 @@ function DiscoverContextMenu({
     [organization.slug]
   );
 
+  const hasDiscoverQueryFeature = organization.features.includes('discover-query');
+
   const {data: homepageQuery} = useApiQuery<SavedQuery | undefined>(homepageQueryKey, {
     staleTime: 0,
+    enabled: hasDiscoverQueryFeature,
   });
 
   const normalizedHomepageQuery = homepageQuery
-    ? (getSavedQueryWithDataset(homepageQuery) as SavedQuery)
+    ? getSavedQueryWithDataset(homepageQuery)!
     : undefined;
 
   const isDefault =
@@ -1183,7 +1187,7 @@ function SaveQueryButton({
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
   const handleCreate = useCallback(
-    (event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>) => {
+    (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       event.stopPropagation();
       if (!queryName) {
@@ -1203,7 +1207,7 @@ function SaveQueryButton({
     [api, organization, eventView, yAxis, queryName]
   );
 
-  const handleUpdate = (event: React.MouseEvent<Element>) => {
+  const handleUpdate = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     handleUpdateSavedQuery(api, organization, eventView, yAxis).then((sq: SavedQuery) => {
@@ -1344,15 +1348,6 @@ function DiscoverPageFilters({
       </PageFilterBar>
       {hasPageFrameFeature && (
         <Flex gap="md" align="center">
-          <SaveQueryButton
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
-          />
           {!shouldHideCreateAlert && (
             <Feature organization={organization} features="incidents">
               {({hasFeature}) =>
@@ -1386,6 +1381,15 @@ function DiscoverPageFilters({
             yAxis={yAxis}
             isHomepage={isHomepage}
             setSavedQuery={setSavedQuery}
+          />
+          <SaveQueryButton
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            savedQuery={savedQuery}
+            yAxis={yAxis}
+            setSavedQuery={setSavedQuery}
+            errorCode={errorCode}
           />
         </Flex>
       )}

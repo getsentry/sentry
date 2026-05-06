@@ -55,6 +55,16 @@ DATASET_OPTIONS = {
     "transactions": transactions,
 }
 DEPRECATED_LABELS = {"ourlogs"}
+FEATURE_FLAGGED_DATASETS = {
+    SupportedTraceItemType.OCCURRENCES.value,
+    SupportedTraceItemType.REPLAYS.value,
+}
+# Labels that we're okay showing to users; not behind a feature flag and not deprecated
+PUBLIC_DATASET_LABELS = sorted(
+    key
+    for key in DATASET_OPTIONS.keys()
+    if key not in DEPRECATED_LABELS and key not in FEATURE_FLAGGED_DATASETS
+)
 RPC_DATASETS = {
     Occurrences,
     OurLogs,

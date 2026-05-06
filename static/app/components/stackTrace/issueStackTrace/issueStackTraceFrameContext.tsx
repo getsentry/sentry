@@ -54,7 +54,7 @@ export function IssueStackTraceFrameContext() {
 
   const scmContext = useMemo(() => {
     if (!sourceContextData?.context?.length) {
-      return undefined;
+      return;
     }
     return sourceContextData.context;
   }, [sourceContextData]);

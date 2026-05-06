@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -22,7 +23,7 @@ import {
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  makeAutofixQueryKey,
+  autofixApiOptions,
   useAutofixData,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
@@ -32,7 +33,6 @@ import {IconChat, IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -282,7 +282,7 @@ export function AutofixChanges({
               {t('Code Changes')}
               <Button
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 tooltipProps={{title: t('Chat with Seer')}}
                 onClick={handleSelectFirstChange}
                 analyticsEventName="Autofix: Changes Chat"
@@ -375,7 +375,7 @@ export function AutofixChanges({
                 (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
                     size="xs"
-                    priority="primary"
+                    variant="primary"
                     icon={<IconOpen size="xs" />}
                     href={step.changes[0].pull_request.pr_url}
                     external
@@ -390,7 +390,7 @@ export function AutofixChanges({
                           <LinkButton
                             key={`${change.repo_external_id}-${idx}`}
                             size="xs"
-                            priority="primary"
+                            variant="primary"
                             icon={<IconOpen size="xs" />}
                             href={change.pull_request.pr_url}
                             external
@@ -545,10 +545,10 @@ function CreatePRsButton({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       setHasClicked(true);
     },
@@ -569,7 +569,7 @@ function CreatePRsButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={createPRs}
       icon={hasClicked && <LoadingIndicator size={14} />}
       size="sm"
@@ -628,10 +628,10 @@ function CreateBranchButton({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {
@@ -735,7 +735,7 @@ function SetupAndCreatePRsButton({
   ) {
     return (
       <Button
-        priority="primary"
+        variant="primary"
         onClick={() => {
           openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
         }}

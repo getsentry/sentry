@@ -4,13 +4,13 @@ import dataclasses
 import uuid
 from collections import defaultdict
 from collections.abc import Generator, Sequence
-from typing import Any, Literal, overload
+from typing import Any, Literal, Protocol, overload
 
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
-from sentry.search.events.types import SnubaParams
-from sentry.snuba import discover, issue_platform
+from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.snuba import discover, errors, issue_platform, transactions
 from sentry.snuba.dataset import Dataset
 
 MAX_REPLAY_COUNT = 51
@@ -21,6 +21,28 @@ MAX_VALS_PROVIDED = {
 }
 
 FILTER_HAS_A_REPLAY = ' AND !replay.id:""'
+
+
+class _DatasetQueryFunc(Protocol):
+    def __call__(
+        self,
+        *,
+        selected_columns: list[str],
+        query: str,
+        snuba_params: SnubaParams,
+        limit: int,
+        offset: int | None,
+        functions_acl: list[str] | None,
+        referrer: str,
+    ) -> EventsResponse: ...
+
+
+_DATASET_QUERY_FUNCS: dict[Dataset, _DatasetQueryFunc] = {
+    Dataset.Discover: discover.query,
+    Dataset.Events: errors.query,
+    Dataset.Transactions: transactions.query,
+    Dataset.IssuePlatform: issue_platform.query,
+}
 
 
 @overload
@@ -83,18 +105,16 @@ def _get_replay_id_mappings(
     If select_column is replay_id, return an identity map of replay_id -> [replay_id].
     The keys of the returned dict are UUIDs, represented as 32 char hex strings (all '-'s stripped)
     """
-    if data_source == Dataset.Discover:
-        search_query_func = discover.query
-    elif data_source == Dataset.IssuePlatform:
-        search_query_func = issue_platform.query  # type: ignore[assignment]
-    else:
+    if data_source not in _DATASET_QUERY_FUNCS:
         raise ValueError("Invalid data source")
+    search_query_func = _DATASET_QUERY_FUNCS[data_source]
 
     select_column, column_value = _get_select_column(query)
-    query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
+    if data_source != Dataset.IssuePlatform:
+        query = query + FILTER_HAS_A_REPLAY
 
     if select_column == "replay_id":
-        # just return a mapping of replay_id:replay_id instead of hitting discover.
+        # just return a mapping of replay_id:replay_id instead of hitting the dataset.
         identity_map = {}
         for replay_id in column_value:
             # raises ValueError if invalid. Strips '-'

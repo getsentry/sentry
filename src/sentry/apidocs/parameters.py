@@ -184,7 +184,6 @@ Valid query fields include:
 - `slug`: The organization slug
 - `status`: The organization's current status (one of `active`, `pending_deletion`, or `deletion_in_progress`)
 - `email` or `member_id`: Filter your organizations by the emails or [organization member IDs](/api/organizations/list-an-organizations-members/) of specific members included
-- `platform`: Filter your organizations to those with at least one project using this platform
 - `query`: Filter your organizations by name, slug, and members that contain this substring
 
 Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,thing-two@example.com] AND query:bar)`
@@ -199,7 +198,6 @@ Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,th
 
 Valid fields include:
 - `members`: By number of members
-- `projects`: By number of projects
 - `events`: By number of events in the past 24 hours
 """,
     )
@@ -354,9 +352,9 @@ class IssueParams:
 
     VIEW_SORT = OpenApiParameter(
         name="sort",
-        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Date Added' (`inbox`).",
+        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), 'Date Added' (`inbox`), and 'Recommended' (`recommended`).",
         default="date",
-        enum=["date", "new", "trends", "freq", "user", "inbox"],
+        enum=["date", "new", "trends", "freq", "user", "inbox", "recommended"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -651,9 +649,19 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         required=True,
         type=str,
         description="Which dataset to query, changing datasets changes the available fields that can be queried",
-        # Hardcoding this since our full list of datasets includes some that probably will get deprecated as more stuff
-        # moves to EAP
-        enum=["profile_functions", "logs", "spans", "uptime_results"],
+        # Not every key in DATASET_OPTIONS is listed here — internal,
+        # metrics-layer, and deprecated aliases (e.g. "ourlogs",
+        # "metricsEnhanced", "spansIndexed") are intentionally omitted so
+        # the public API surface stays stable as backends migrate to EAP.
+        enum=[
+            "discover",
+            "errors",
+            "logs",
+            "profile_functions",
+            "spans",
+            "transactions",
+            "uptime_results",
+        ],
     )
     INTERVAL = OpenApiParameter(
         name="interval",

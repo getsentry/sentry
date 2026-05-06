@@ -308,7 +308,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
             icon={<IconClose />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            priority="transparent"
+            variant="transparent"
           />
         ) : layout === 'mobile' ? null : (
           <Button
@@ -316,7 +316,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            priority={isCollapsed ? 'primary' : 'transparent'}
+            variant={isCollapsed ? 'primary' : 'transparent'}
             analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
             analyticsEventKey="sidebar_secondary_toggle_button_clicked"
             analyticsParams={{
@@ -363,7 +363,7 @@ function SectionTitle(props: SectionTitleProps) {
           <Button
             {...p}
             size="sm"
-            priority="transparent"
+            variant="transparent"
             onClick={() => props.setIsCollapsed(!props.isCollapsed)}
           >
             <Text bold ellipsis align="left">
@@ -846,7 +846,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   // We need to hold a copy of the local state because dnd-kit does not play well
   // with the optimistic updates and async state.
   // See: https://github.com/clauderic/dnd-kit/issues/921
-  const [items, setItems] = useState<T[]>(props.items);
+  const [items, setItems] = useState(props.items);
   useEffect(() => {
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setItems(props.items);
@@ -996,7 +996,7 @@ function SecondaryNavigationReorderableLink({
   );
 }
 
-function GrabHandle(props: FlexProps<'div'>) {
+function GrabHandle(props: FlexProps) {
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
 

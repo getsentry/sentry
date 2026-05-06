@@ -1,3 +1,5 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -9,12 +11,10 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface HighlightsSettingsFormProps {
@@ -42,7 +42,7 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
     apiMethod: 'PUT',
     apiEndpoint: `/projects/${organization.slug}/${projectSlug}/`,
     onSubmitSuccess: (updatedProject: Project) => {
-      queryClient.setQueryData<ApiResponse<Project>>(
+      queryClient.setQueryData(
         makeDetailedProjectQueryKey({
           orgSlug: organization.slug,
           projectSlug: project.slug,

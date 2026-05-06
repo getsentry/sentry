@@ -219,8 +219,8 @@ export type IssueEventParameters = {
   };
   'issue_views.reordered_views': Record<string, unknown>;
   'issue_views.reset.clicked': Record<string, unknown>;
-  'issue_views.save.clicked': Record<string, unknown>;
-  'issue_views.save_as.clicked': Record<string, unknown>;
+  'issue_views.save.clicked': {source: 'button' | 'cmdk'};
+  'issue_views.save_as.clicked': {source: 'button' | 'cmdk'};
   'issue_views.save_as.created': {
     ai_title_shown: boolean;
     ai_title_used: boolean;

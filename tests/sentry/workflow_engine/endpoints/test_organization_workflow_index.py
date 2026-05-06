@@ -671,6 +671,17 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert response.data == serialize(new_workflow)
 
+    def test_create_workflow__no_config(self) -> None:
+        del self.valid_workflow["config"]
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+
     def test_create_workflow__with_triggers(self) -> None:
         # TODO: the basic condition is not actually a trigger, it's an actionFilter
         # we should restrict the Condition types to be passed through a trigger

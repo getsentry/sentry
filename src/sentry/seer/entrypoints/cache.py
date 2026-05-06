@@ -20,6 +20,7 @@ class CacheHaltReason(StrEnum):
 
 AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
 AGENT_CACHE_TIMEOUT_SECONDS = 60 * 60  # 1 hour
+PENDING_MENTION_CACHE_TIMEOUT_SECONDS = 15 * 60  # 15 minutes
 
 
 class SeerOperatorAutofixCache[CachePayloadT]:
@@ -211,11 +212,6 @@ class SeerOperatorAgentCache[CachePayloadT]:
         return f"seer:agent:{entrypoint_key}:{run_id}"
 
     @classmethod
-    def _get_legacy_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
-        # TODO: remove once the rename has fully propagated.
-        return f"seer:explorer:{entrypoint_key}:{run_id}"
-
-    @classmethod
     def set(cls, *, entrypoint_key: str, run_id: int, cache_payload: CachePayloadT) -> None:
         with SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_AGENT,
@@ -232,14 +228,76 @@ class SeerOperatorAgentCache[CachePayloadT]:
             entrypoint_key=entrypoint_key,
         ).capture() as lifecycle:
             cache_key = cls._get_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
-            legacy_cache_key = cls._get_legacy_cache_key(
-                entrypoint_key=entrypoint_key, run_id=run_id
-            )
-            lifecycle.add_extras(
-                {"run_id": run_id, "cache_key": cache_key, "legacy_cache_key": legacy_cache_key}
-            )
-            cache_payload = cache.get(cache_key) or cache.get(legacy_cache_key)
+            lifecycle.add_extras({"run_id": run_id, "cache_key": cache_key})
+            cache_payload = cache.get(cache_key)
             if not cache_payload:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
+            return cache_payload
+
+
+class SeerOperatorPendingMentionCache[CachePayloadT]:
+    """
+    Cache for entrypoint task kwargs stashed when an @-mention cannot proceed
+    (e.g., identity not linked), so we can re-dispatch after the blocker clears.
+
+    Keyed on (entrypoint_key, integration_id, user_ext_id).
+    """
+
+    @classmethod
+    def _get_cache_key(cls, *, entrypoint_key: str, integration_id: int, user_ext_id: str) -> str:
+        return f"seer:pending_mention:{entrypoint_key}:{integration_id}:{user_ext_id}"
+
+    @classmethod
+    def set(
+        cls,
+        *,
+        entrypoint_key: str,
+        integration_id: int,
+        user_ext_id: str,
+        cache_payload: CachePayloadT,
+    ) -> None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_PENDING_MENTION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_cache_key(
+                entrypoint_key=entrypoint_key,
+                integration_id=integration_id,
+                user_ext_id=user_ext_id,
+            )
+            lifecycle.add_extras(
+                {
+                    "integration_id": integration_id,
+                    "user_ext_id": user_ext_id,
+                    "cache_key": cache_key,
+                }
+            )
+            cache.set(cache_key, cache_payload, timeout=PENDING_MENTION_CACHE_TIMEOUT_SECONDS)
+
+    @classmethod
+    def pop(
+        cls, *, entrypoint_key: str, integration_id: int, user_ext_id: str
+    ) -> CachePayloadT | None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_POP_PENDING_MENTION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_cache_key(
+                entrypoint_key=entrypoint_key,
+                integration_id=integration_id,
+                user_ext_id=user_ext_id,
+            )
+            lifecycle.add_extras(
+                {
+                    "integration_id": integration_id,
+                    "user_ext_id": user_ext_id,
+                    "cache_key": cache_key,
+                }
+            )
+            cache_payload = cache.get(cache_key)
+            if cache_payload is None:
+                lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
+                return None
+            cache.delete(cache_key)
             return cache_payload

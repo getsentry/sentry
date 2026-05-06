@@ -69,12 +69,6 @@ type PositioningStrategyOpts = {
 };
 
 interface PageOverlayProps extends React.ComponentProps<'div'> {
-  /**
-   * When a background with an anchorRef is provided, you can customize the
-   * positioning strategy for the wrapper by passing in a custom function here
-   * that resolves the X and Y position.
-   */
-  positioningStrategy: (opts: PositioningStrategyOpts) => {x: number; y: number};
   text: (opts: ContentOpts) => React.ReactNode;
   animateDelay?: number;
   /**
@@ -98,6 +92,12 @@ interface PageOverlayProps extends React.ComponentProps<'div'> {
    * anchor
    */
   customWrapper?: React.ComponentType;
+  /**
+   * When a background with an anchorRef is provided, you can customize the
+   * positioning strategy for the wrapper by passing in a custom function here
+   * that resolves the X and Y position.
+   */
+  positioningStrategy?: (opts: PositioningStrategyOpts) => {x: number; y: number};
 }
 
 /**
@@ -123,7 +123,7 @@ const defaultPositioning = ({mainRect, anchorRect}: PositioningStrategyOpts) => 
  * to a safe space in the background.
  */
 export function PageOverlay({
-  positioningStrategy = defaultPositioning,
+  positioningStrategy,
   text,
   animateDelay,
   background: BackgroundComponent,
@@ -134,6 +134,7 @@ export function PageOverlay({
   const contentRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<SVGForeignObjectElement>(null);
+  const strategy = positioningStrategy ?? defaultPositioning;
 
   useEffect(() => {
     if (contentRef.current === null || anchorRef.current === null) {
@@ -165,7 +166,7 @@ export function PageOverlay({
       const wrapperRect = wrapperRef.current.getBoundingClientRect();
 
       // Compute the position of the wrapper
-      const {x, y} = positioningStrategy({mainRect, anchorRect, wrapperRect});
+      const {x, y} = strategy({mainRect, anchorRect, wrapperRect});
 
       const transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
       wrapperRef.current.style.transform = transform;
@@ -186,7 +187,7 @@ export function PageOverlay({
     }
 
     return () => bgResizeObserver?.disconnect();
-  }, [positioningStrategy]);
+  }, [strategy]);
 
   const Wrapper = customWrapper ?? DefaultWrapper;
 

@@ -48,10 +48,15 @@ class RepoExistsError(SentryAPIException):
         message: str | None = None,
         detail: Any = None,
         repos: list[RepositoryConfig] | None = None,
+        existing_repo: RpcRepository | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(code=code, message=message, detail=detail, **kwargs)
         self.repos = repos
+        # Populated when create_repository found an existing ACTIVE row matching
+        # the config. Callers that can treat the race as a success (e.g. the
+        # REST dispatch) should check this before surfacing the 400.
+        self.existing_repo = existing_repo
 
     def __str__(self) -> str:
         if self.repos:
@@ -192,6 +197,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 integration_id=integration_id,
                 external_id=external_id,
             )
+            active_repo: RpcRepository | None = None
             if repositories:
                 # We anticipate to only update one repository, but we update any duplicates as well.
                 for repo in repositories:
@@ -201,8 +207,16 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                         organization_id=organization.id,
                         update=repo,
                     )
+                    if active_repo is None and repo.status == ObjectStatus.ACTIVE:
+                        active_repo = repo
 
-            raise RepoExistsError(repos=[result])
+            # Concurrent writer (e.g. link_all_repos) already created the row.
+            # Surface the active match on the exception so callers that want to
+            # treat the race as success (dispatch) can, while callers that
+            # prefer the historical "skip and try again" behavior (the GitHub
+            # push webhook) stay unaffected by catching RepoExistsError as
+            # before.
+            raise RepoExistsError(repos=[result], existing_repo=active_repo)
 
         return result, repo
 
@@ -307,9 +321,15 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
         try:
             result, repo = self.create_repository(repo_config=config, organization=organization)
-        except RepoExistsError:
+        except RepoExistsError as exc:
             metrics.incr("sentry.integration_repo_provider.repo_exists")
-            raise
+            if exc.existing_repo is None or not exc.repos:
+                raise
+            # A concurrent writer created the row before we could; return it
+            # as if our create had succeeded so repo_linked/analytics still
+            # fire from the normal success path.
+            repo = exc.existing_repo
+            result = exc.repos[0]
         except Exception as e:
             return self.handle_api_error(e)
 

@@ -1,6 +1,7 @@
 import logging
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -52,7 +53,9 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             raise SubscriptionNotFound
 
         try:
-            return QuerySubscription.objects.get(id=int(data_source.source_id))
+            return QuerySubscription.objects.select_related("project").get(
+                id=int(data_source.source_id)
+            )
         except ValueError:
             raise SubscriptionNotFound
 
@@ -80,9 +83,11 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             )
             raise ResourceDoesNotExist
 
-        subscription = QuerySubscription.objects.filter(
-            snuba_query_id=alert_rule.snuba_query_id
-        ).first()
+        subscription = (
+            QuerySubscription.objects.select_related("project")
+            .filter(snuba_query_id=alert_rule.snuba_query_id)
+            .first()
+        )
         if not subscription:
             raise SubscriptionNotFound
         logger.info(
@@ -149,6 +154,9 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
                 {"detail": f"Could not find query subscription for {model_type}"},
                 status=404,
             )
+
+        if not request.access.has_project_access(query_subscription.project):
+            raise PermissionDenied
 
         data = get_anomaly_threshold_data_from_seer(
             subscription=query_subscription, start=start_float, end=end_float

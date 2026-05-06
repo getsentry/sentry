@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DASHBOARD_ONLY_SPAN_ATTRIBUTES,
@@ -85,7 +85,7 @@ function useTraceItemAttributeConfig({
   const projectIds =
     rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
-  const {data, isLoading: attributesLoading} = useQuery({
+  const {data, isFetching: attributesLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
@@ -98,6 +98,7 @@ function useTraceItemAttributeConfig({
     }),
     enabled,
     select: selectTraceItemTagCollection(),
+    placeholderData: keepPreviousData,
   });
 
   const booleanBaseKeys = useMemo(() => {

@@ -70,6 +70,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     comparison_type: str
     state: PreprodArtifact.ArtifactState
     vcs_info: BuildDetailsVcsInfo
+    app_id: str | None = None
 
     # Solo fields (comparison_type == SOLO)
     images: list[SnapshotImageResponse] = []

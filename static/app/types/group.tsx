@@ -238,7 +238,6 @@ export const AI_DETECTED_ISSUE_TYPES = new Set<IssueType>([
   IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
   IssueType.AI_DETECTED_SECURITY,
   IssueType.AI_DETECTED_CODE_HEALTH,
-  IssueType.AI_DETECTED_GENERAL,
 ]);
 
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
@@ -305,7 +304,7 @@ export enum IssueTitle {
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
 }
 
-export const ISSUE_TYPE_TO_ISSUE_TITLE = {
+const ISSUE_TYPE_TO_ISSUE_TITLE = {
   error: IssueTitle.ERROR,
 
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -596,6 +595,7 @@ export enum GroupActivityType {
   SET_RESOLVED_BY_AGE = 'set_resolved_by_age',
   SET_RESOLVED_IN_RELEASE = 'set_resolved_in_release',
   SET_RESOLVED_IN_COMMIT = 'set_resolved_in_commit',
+  REFERENCED_IN_COMMIT = 'referenced_in_commit',
   SET_RESOLVED_IN_PULL_REQUEST = 'set_resolved_in_pull_request',
   SET_UNRESOLVED = 'set_unresolved',
   SET_IGNORED = 'set_ignored',
@@ -763,6 +763,13 @@ interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
+interface GroupActivityReferencedInCommit extends GroupActivityBase {
+  data: {
+    commit?: Commit;
+  };
+  type: GroupActivityType.REFERENCED_IN_COMMIT;
+}
+
 interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
     pullRequest?: PullRequest;
@@ -899,6 +906,7 @@ export type GroupActivity =
   | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
+  | GroupActivityReferencedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen
   | GroupActivityMerge

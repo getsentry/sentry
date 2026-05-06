@@ -1,0 +1,95 @@
+from datetime import timedelta
+
+from django.urls import reverse
+
+from sentry.testutils.helpers.datetime import before_now
+from tests.snuba.api.endpoints.test_organization_events import (
+    OrganizationEventsEndpointTestBase,
+)
+
+
+class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
+    endpoint = "sentry-api-0-organization-events-heatmap"
+    dataset = "tracemetrics"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.start = self.day_ago = before_now(days=1).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.end = self.start + timedelta(hours=6)
+        self.two_days_ago = self.day_ago - timedelta(days=1)
+        self.features = {"organizations:data-browsing-heat-map-widget": True}
+
+        self.url = reverse(
+            self.endpoint,
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
+        )
+
+    def _do_request(self, data, url=None, features=None):
+        with self.feature(self.features):
+            return self.client.get(self.url if url is None else url, data=data, format="json")
+
+    def test_simple(self) -> None:
+        metric_values = [6, 0, 6, 3, 0, 3]
+
+        trace_metrics = []
+        for hour, value in enumerate(metric_values):
+            for i in range(value):
+                trace_metrics.append(
+                    self.create_trace_metric(
+                        "foo",
+                        120 * (i + 1),
+                        "counter",
+                        timestamp=self.start + timedelta(hours=hour),
+                    )
+                )
+        self.store_eap_items(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=6),
+                "yAxis": "value",
+                "xBuckets": 6,
+                "yBuckets": 6,
+                "query": "metric.name:foo metric.type:counter",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        expected_response = []
+        for time in range(6):
+            for yAxis in range(6):
+                expected_response.append(
+                    {
+                        "xAxis": (self.start.timestamp() + (3600 * time)) * 1000,
+                        "yAxis": 120 + 100 * yAxis,
+                        "zAxis": 1 if time in [0, 2] or (time in [3, 5] and yAxis < 3) else 0,
+                    }
+                )
+        assert response.data["values"] == expected_response
+        assert response.data["meta"] == {
+            "dataset": "tracemetrics",
+            "xAxis": {
+                "name": "time",
+                "start": self.start.timestamp() * 1000,
+                "end": self.end.timestamp() * 1000,
+                "bucketCount": 6,
+                "bucketSize": 3600,
+            },
+            "yAxis": {
+                "name": "value",
+                "start": 120,
+                "end": 720,
+                "bucketCount": 6,
+                "bucketSize": 100,
+            },
+            "zAxis": {
+                "name": "count()",
+                "start": 0,
+                "end": 1,
+            },
+        }

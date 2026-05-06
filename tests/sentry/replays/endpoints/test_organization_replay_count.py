@@ -20,6 +20,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -293,6 +294,82 @@ class OrganizationReplayCountEndpointTest(
         }
         assert response.status_code == 200, response.content
         assert response.data == expected
+
+    def test_simple_events(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay2_id,
+            )
+        )
+        event_a = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay2_id}},
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+
+        query = {
+            "query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]",
+            "data_source": Dataset.Events.value,
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        expected = {
+            event_a.group.id: 1,
+            event_b.group.id: 1,
+        }
+        assert response.status_code == 200, response.content
+        assert response.data == expected
+
+    def test_simple_transactions(self) -> None:
+        replay1_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        transaction_data = load_data("transaction", timestamp=self.min_ago)
+        transaction_data["transaction"] = "t-1"
+        transaction_data["contexts"]["replay"] = {"replay_id": replay1_id}
+        self.store_event(transaction_data, project_id=self.project.id)
+
+        query = {
+            "query": "transaction:[t-1]",
+            "data_source": Dataset.Transactions.value,
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {"t-1": 1}
 
     def test_invalid_data_source(self) -> None:
         query = {

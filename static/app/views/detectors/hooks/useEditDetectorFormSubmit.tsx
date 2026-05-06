@@ -2,12 +2,14 @@ import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
   Detector,
 } from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
@@ -75,7 +77,11 @@ export function useEditDetectorFormSubmit<
 
         onSubmitSuccess?.(resultDetector);
       } catch (error) {
-        addErrorMessage(t('Unable to update monitor'));
+        addErrorMessage(
+          (error instanceof RequestError
+            ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
+            : null) ?? t('Unable to update monitor')
+        );
 
         if (onError) {
           onError(error);

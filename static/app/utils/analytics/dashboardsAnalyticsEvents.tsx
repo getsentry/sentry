@@ -11,6 +11,7 @@ type DashboardsEventParametersWidgetBuilder = {
     globalFilterCount: number;
     issuesRatio: number;
     logRatio: number;
+    metricsRatio: number;
     title: string;
     tracingRatio: number;
   };

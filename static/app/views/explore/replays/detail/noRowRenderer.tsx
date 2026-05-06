@@ -1,0 +1,28 @@
+import type {ReactNode} from 'react';
+
+import {Button} from '@sentry/scraps/button';
+
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {StyledEmptyStateWarning as EmptyState} from 'sentry/views/explore/replays/detail/emptyState';
+
+type Props = {
+  children: ReactNode;
+  clearSearchTerm: () => void;
+  unfilteredItems: unknown[];
+};
+
+export function NoRowRenderer({children, unfilteredItems, clearSearchTerm}: Props) {
+  return unfilteredItems.length === 0 ? (
+    <EmptyState>
+      <p>{children}</p>
+    </EmptyState>
+  ) : (
+    <EmptyState>
+      <p>{t('No results found')}</p>
+      <Button icon={<IconClose variant="primary" />} onClick={clearSearchTerm}>
+        {t('Clear filters')}
+      </Button>
+    </EmptyState>
+  );
+}

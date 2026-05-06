@@ -1,9 +1,10 @@
 import {useNavigate} from 'react-router-dom';
+import {useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';

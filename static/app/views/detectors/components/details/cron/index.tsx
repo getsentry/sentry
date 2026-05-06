@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -23,7 +24,6 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {toArray} from 'sentry/utils/array/toArray';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -89,8 +89,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
       if (!query.state.data) {
         return false;
       }
-      const [cronDetector] = query.state.data;
-      const monitor = cronDetector.dataSources[0].queryObj;
+      const monitor = query.state.data.json.dataSources[0].queryObj;
       return getMonitorRefetchInterval(monitor, new Date());
     },
   });
@@ -282,7 +281,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                       text={dataSource.queryObj.slug}
                       aria-label={t('Copy monitor slug to clipboard')}
                       size="zero"
-                      priority="transparent"
+                      variant="transparent"
                     />
                   </Flex>
                 }

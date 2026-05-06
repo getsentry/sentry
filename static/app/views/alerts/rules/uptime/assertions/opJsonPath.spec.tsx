@@ -151,7 +151,7 @@ describe('AssertionOpJsonPath', () => {
 
   it('enables < and > comparisons for numeric operand values', async () => {
     function Stateful() {
-      const [state, setState] = useState<UptimeJsonPathOp>({
+      const [state, setState] = useState({
         ...makeJsonPathOp({
           operator: defaultOperator,
           operand: defaultOperand,
@@ -251,7 +251,7 @@ describe('AssertionOpJsonPath', () => {
 
   it('resets glob operand to literal when < or > comparison is selected', async () => {
     function Stateful() {
-      const [state, setState] = useState<UptimeJsonPathOp>(
+      const [state, setState] = useState(
         makeJsonPathOp({
           id: 'test-id-1',
           value: '$.count',

@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -19,7 +20,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -56,7 +57,7 @@ function AccountClose() {
   const api = useApi();
 
   const [organizations, setOrganizations] = useState<OwnedOrg[]>([]);
-  const [orgsToRemove, setOrgsToRemove] = useState<Set<string>>(new Set());
+  const [orgsToRemove, setOrgsToRemove] = useState(new Set<string>());
   const [isLoading, setIsLoading] = useState(true);
   const leaveRedirectTimeout = useRef<number | undefined>(undefined);
 

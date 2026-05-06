@@ -24,9 +24,8 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
+import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
-import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import type {EventSpanData} from './useReplaysFromTransaction';
 import {useReplaysFromTransaction} from './useReplaysFromTransaction';
@@ -104,10 +103,7 @@ function ReplaysContent({
   }
   const playlistQuery = usePlaylistQuery('transactionReplays', eventView);
 
-  const newLocation = useMemo(
-    () => ({query: {}}) as Location<ReplayListLocationQuery>,
-    []
-  );
+  const newLocation = useMemo(() => ({query: {}}) as Location, []);
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.sm})`);
 

@@ -296,7 +296,7 @@ function AutofixEmptyState({
         size="md"
         icon={<IconBug />}
         aria-label={t('Start Analysis')}
-        priority="primary"
+        variant="primary"
         to={seerDrawerLink}
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
@@ -387,8 +387,8 @@ function AutofixPreviews({
       <LinkButton
         size="md"
         icon={<IconSeer />}
-        aria-label={t('Open Seer')}
-        priority="primary"
+        aria-label={t('Open Autofix')}
+        variant="primary"
         to={seerDrawerLink}
         onClick={openSeerDrawer}
         analyticsEventKey="issue_details.seer_opened"
@@ -407,7 +407,7 @@ function AutofixPreviews({
           referrer,
         }}
       >
-        {t('Open Seer')}
+        {t('Open Autofix')}
       </LinkButton>
     </Flex>
   );

@@ -168,7 +168,7 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
         trigger={triggerProps => (
           <OverflowMenuTrigger
             {...triggerProps}
-            priority="transparent"
+            variant="transparent"
             icon={<IconEllipsis />}
             aria-label={t('More tabs')}
           />

@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SOURCE_MAP_ERROR_TYPES_QUERY} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/constants';
 
 interface CountResult {
   data: Array<{'count_unique(event_id)': number}>;
@@ -27,6 +28,7 @@ export function useImpactedEventsCount({project}: Options): ImpactedEventsCount 
       query: {
         dataset: 'processing_errors',
         field: ['count_unique(event_id)'],
+        query: SOURCE_MAP_ERROR_TYPES_QUERY,
         statsPeriod: '30d',
         project: project.id,
         referrer: 'api.issues.sourcemap-configuration.impact-events-count',

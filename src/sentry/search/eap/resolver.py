@@ -961,6 +961,7 @@ class SearchResolver:
         column: str,
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
+        default_value: float | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedFunction,
         VirtualColumnDefinition | None,
@@ -969,7 +970,9 @@ class SearchResolver:
         resolve function"""
         match = fields.is_function(column)
         if match:
-            return self.resolve_function(column, match, public_alias_override)
+            return self.resolve_function(
+                column, match, public_alias_override, default_value=default_value
+            )
         else:
             return self.resolve_attribute(column, public_alias_override)
 
@@ -1086,6 +1089,7 @@ class SearchResolver:
         column: str,
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
+        default_value: float | None = None,
     ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
         if match is None:
             match = fields.is_function(column)
@@ -1099,7 +1103,8 @@ class SearchResolver:
         if public_alias_override is not None:
             alias = public_alias_override
 
-        if alias in self._resolved_function_cache:
+        # Don't use cache if default_value is passed
+        if alias in self._resolved_function_cache and default_value is None:
             return self._resolved_function_cache[alias]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
 
@@ -1211,11 +1216,15 @@ class SearchResolver:
             snuba_params=self.params,
             query_result_cache=self._query_result_cache,
             search_config=self.config,
+            default_value=default_value,
         )
 
         resolved_context = None
-        self._resolved_function_cache[alias] = (resolved_function, resolved_context)
-        return self._resolved_function_cache[alias]
+        if default_value is None:
+            self._resolved_function_cache[alias] = (resolved_function, resolved_context)
+            return self._resolved_function_cache[alias]
+        else:
+            return resolved_function, resolved_context
 
     def resolve_equations(
         self, equations: list[str]
@@ -1320,44 +1329,19 @@ class SearchResolver:
             return Column(literal=LiteralValue(val_double=operation)), []
 
         # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
-        col, context = self.resolve_column(operation)
+        # Columns in equations must pass default_value=0 otherwise they may become a null and ruin the entire formula
+        col, context = self.resolve_column(operation, default_value=0)
         contexts = [context] if context is not None else []
         proto_definition = col.proto_definition
 
         if isinstance(proto_definition, AttributeKey):
             return Column(key=proto_definition), contexts
 
-        # Because all aggregations in snuba by default have orNull on them, when an aggregate evaluates to 0 instead it
-        # becomes null. This is a problem with equations on aggregates since any operation on a null value in clickhouse
-        # resolves to null, so if one term of your equation is null the entire equation becomes null. Instead we want to
-        # treat these nulls like 0 to do this for an equation like (a + b), where a may be null sometimes we change the
-        # equation instead to be ((a + 0) + (b + 0)) and use the default_value option on BinaryFormulas so that when a
-        # is null instead we get 0 + b as expected instead of null + b
         if isinstance(proto_definition, AttributeAggregation):
-            return (
-                Column(
-                    formula=Column.BinaryFormula(
-                        op=constants.ARITHMETIC_OPERATOR_MAP["plus"],
-                        left=Column(literal=LiteralValue(val_double=0)),
-                        right=Column(aggregation=proto_definition),
-                        default_value_double=0,
-                    )
-                ),
-                contexts,
-            )
+            return Column(aggregation=proto_definition), contexts
 
         if isinstance(proto_definition, AttributeConditionalAggregation):
-            return (
-                Column(
-                    formula=Column.BinaryFormula(
-                        op=constants.ARITHMETIC_OPERATOR_MAP["plus"],
-                        left=Column(literal=LiteralValue(val_double=0)),
-                        right=Column(conditional_aggregation=proto_definition),
-                        default_value_double=0,
-                    )
-                ),
-                contexts,
-            )
+            return Column(conditional_aggregation=proto_definition), contexts
 
         if isinstance(proto_definition, Column.BinaryFormula):
             return Column(formula=proto_definition), contexts

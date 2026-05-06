@@ -5,7 +5,7 @@
 // decide between server (sync) and browser (useInsertionEffect) code paths.
 // If document is defined, Emotion uses useInsertionEffect which doesn't fire
 // during renderToString, and CSS extraction silently produces empty styles.
-if (typeof globalThis.window === 'undefined') {
+if (globalThis.window === undefined) {
   const makeStorage = () => {
     const store = new Map<string, string>();
     return {

@@ -40,7 +40,7 @@ export interface StyleDeclaration {
 /**
  * Information about a CSS property in a style declaration.
  */
-export interface StyleProperty {
+interface StyleProperty {
   /**
    * Canonical CSS property name in kebab-case (e.g., 'background-color').
    */
@@ -107,7 +107,7 @@ export interface TokenInfo {
 /**
  * Context information for a style declaration.
  */
-export interface StyleContext {
+interface StyleContext {
   /**
    * The filename where this declaration was found.
    */
@@ -147,7 +147,7 @@ export interface ThemeBinding {
 /**
  * Raw AST node references for a style declaration.
  */
-export interface StyleRawNodes {
+interface StyleRawNodes {
   /**
    * The containing node (template literal, object expression, etc.).
    */

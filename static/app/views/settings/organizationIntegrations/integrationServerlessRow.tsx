@@ -112,7 +112,7 @@ export function IntegrationServerlessRow({
       return serverlessFunction.enabled ? t('Latest') : t('Disabled');
     }
     return (
-      <UpdateButton size="sm" priority="primary" onClick={handleUpdate}>
+      <UpdateButton size="sm" variant="primary" onClick={handleUpdate}>
         {t('Update')}
       </UpdateButton>
     );

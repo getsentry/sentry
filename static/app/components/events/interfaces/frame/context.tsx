@@ -113,7 +113,7 @@ export function Context({
 
   const scmContext: Frame['context'] | undefined = useMemo(() => {
     if (!sourceContextData?.context?.length) {
-      return undefined;
+      return;
     }
     return sourceContextData.context;
   }, [sourceContextData]);

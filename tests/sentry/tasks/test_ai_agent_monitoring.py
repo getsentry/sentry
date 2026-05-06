@@ -1,15 +1,10 @@
 import pytest
 import responses
 
-from sentry.relay.config.ai_model_costs import (
-    AI_MODEL_COSTS_CACHE_KEY,
-    AI_MODEL_METADATA_CACHE_KEY,
-    AIModelMetadataConfig,
-)
+from sentry.relay.config.ai_model_costs import AI_MODEL_METADATA_CACHE_KEY, AIModelMetadataConfig
 from sentry.tasks.ai_agent_monitoring import (
     MODELS_DEV_API_URL,
     OPENROUTER_MODELS_API_URL,
-    fetch_ai_model_costs,
     fetch_ai_model_metadata,
 )
 from sentry.testutils.cases import TestCase
@@ -21,13 +16,6 @@ def _get_metadata_from_cache() -> AIModelMetadataConfig | None:
     Utility function to retrieve LLM model metadata from cache.
     """
     return cache.get(AI_MODEL_METADATA_CACHE_KEY)
-
-
-def _get_legacy_costs_from_cache():
-    """
-    Utility function to retrieve legacy AI model costs from cache.
-    """
-    return cache.get(AI_MODEL_COSTS_CACHE_KEY)
 
 
 MOCK_OPENROUTER_API_RESPONSE = {
@@ -190,7 +178,6 @@ class FetchAIModelMetadataTest(TestCase):
         super().setUp()
         # Clear cache before each test
         cache.delete(AI_MODEL_METADATA_CACHE_KEY)
-        cache.delete(AI_MODEL_COSTS_CACHE_KEY)
 
     def _mock_openrouter_api_response(self, mock_response: dict):
         responses.add(
@@ -630,50 +617,6 @@ class FetchAIModelMetadataTest(TestCase):
             gpt4o_mini_normalized["costs"]["outputPerToken"]
             == gpt4o_mini_prefix_glob["costs"]["outputPerToken"]
         )
-
-    @responses.activate
-    def test_fetch_ai_model_metadata_does_not_write_legacy_cache(self) -> None:
-        """Test that the new task only writes the new cache, not the legacy one"""
-        self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
-        self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
-
-        fetch_ai_model_metadata()
-
-        # New cache should be populated
-        new_data = _get_metadata_from_cache()
-        assert new_data is not None
-        assert new_data.get("version") == 1
-
-        # Legacy cache should NOT be populated by this task
-        legacy_data = _get_legacy_costs_from_cache()
-        assert legacy_data is None
-
-    @responses.activate
-    def test_fetch_ai_model_costs_independent(self) -> None:
-        """Test that the legacy task writes only the legacy cache, independently"""
-        self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
-        self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
-
-        fetch_ai_model_costs()
-
-        # Legacy cache should be populated
-        legacy_data = _get_legacy_costs_from_cache()
-        assert legacy_data is not None
-        assert legacy_data.get("version") == 2
-
-        legacy_models = legacy_data.get("models")
-        assert legacy_models is not None
-
-        # Legacy format: flat cost fields, no nested "costs", no contextSize
-        gpt4 = legacy_models["gpt-4"]
-        assert gpt4.get("inputPerToken") == 0.0000003
-        assert gpt4.get("outputPerToken") == 0.00000165
-        assert "costs" not in gpt4
-        assert "contextSize" not in gpt4
-
-        # New cache should NOT be populated by this task
-        new_data = _get_metadata_from_cache()
-        assert new_data is None
 
     def test_normalize_model_id(self) -> None:
         """Test model ID normalization with various date and version formats"""

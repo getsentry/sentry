@@ -11,6 +11,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const theme = ThemeFixture();
 
@@ -99,6 +100,38 @@ describe('getFieldRenderer', () => {
     );
 
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
+  });
+
+  it('renders gen_ai.output.messages assistant content', () => {
+    const renderer = getFieldRenderer(
+      SpanFields.GEN_AI_OUTPUT_MESSAGES,
+      {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'string'},
+      false
+    );
+    data[SpanFields.GEN_AI_OUTPUT_MESSAGES] = JSON.stringify([
+      {role: 'assistant', content: 'Output response'},
+    ]);
+
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('Output response')).toBeInTheDocument();
+  });
+
+  it('renders empty gen_ai.output.messages values as no value', () => {
+    const renderer = getFieldRenderer(
+      SpanFields.GEN_AI_OUTPUT_MESSAGES,
+      {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'string'},
+      false
+    );
+    data[SpanFields.GEN_AI_OUTPUT_MESSAGES] = '';
+
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
   it('can render boolean fields', () => {

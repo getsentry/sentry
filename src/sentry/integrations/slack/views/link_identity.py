@@ -7,6 +7,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.utils.notifications import SlackCommandResponse
 from sentry.integrations.slack.views.linkage import SlackIdentityLinkageView
+from sentry.middleware.integrations.tasks import route_slack_seer_event
+from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
+from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.web.frontend.base import control_silo_view
 
 from . import build_linking_url as base_build_linking_url
@@ -54,3 +58,31 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
             "channel_id": params["channel_id"],
             "team_id": integration.external_id,
         }
+
+    def notify_on_success(
+        self, external_id: str, params: Mapping[str, Any], integration: Integration | None
+    ) -> None:
+        super().notify_on_success(external_id, params, integration)
+        if integration is None:
+            return
+
+        cached = SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
+            entrypoint_key=str(SeerEntrypointKey.SLACK),
+            integration_id=integration.id,
+            user_ext_id=external_id,
+        )
+        if cached is None:
+            return
+
+        route_slack_seer_event.apply_async(
+            kwargs={
+                "payload": cached["payload"],
+                "integration_id": cached["integration_id"],
+                "slack_user_id": cached["slack_user_id"],
+                "channel_id": cached["channel_id"],
+                "thread_ts": cached["thread_ts"],
+                "message_ts": cached["message_ts"],
+                "event_type": cached["event_type"],
+                "message_text": cached["message_text"],
+            }
+        )

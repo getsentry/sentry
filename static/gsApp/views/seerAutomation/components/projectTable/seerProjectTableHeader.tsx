@@ -17,7 +17,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
 import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -26,7 +29,7 @@ import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/ut
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>>;
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
@@ -118,7 +121,7 @@ export function ProjectTableHeader({
   const queryOptions = queryKeyRef.current
     ? parseQueryKey(queryKeyRef.current).options
     : undefined;
-  const queryString = queryOptions?.query?.query;
+  const queryString = queryOptions?.query?.query as string | undefined;
 
   const projectIds = useMemo(
     () => (selectedIds === 'all' ? projects.map(project => project.id) : selectedIds),
@@ -222,8 +225,8 @@ export function ProjectTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap" gap="md">
+        <FullGridAlert variant="info" system>
+          <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
             <a onClick={selectAll}>
               {queryString
@@ -238,23 +241,15 @@ export function ProjectTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap">
-            <span>
-              {queryString
-                ? tct('Selected all [count] projects matching: [queryString].', {
-                    count: countSelected,
-                    queryString: <var>{queryString}</var>,
-                  })
-                : countSelected > projects.length
-                  ? t('Selected all %s+ projects.', projects.length)
-                  : tn(
-                      'Selected %s project.',
-                      'Selected all %s projects.',
-                      countSelected
-                    )}
-            </span>
-          </Flex>
+        <FullGridAlert variant="info" system>
+          {queryString
+            ? tct('Selected all [count] projects matching: [queryString].', {
+                count: countSelected,
+                queryString: <var>{queryString}</var>,
+              })
+            : countSelected > projects.length
+              ? t('Selected all %s+ projects.', projects.length)
+              : tn('Selected %s project.', 'Selected all %s projects.', countSelected)}
         </FullGridAlert>
       ) : null}
     </Fragment>
@@ -265,7 +260,7 @@ function SelectAllCheckbox({
   listItemCheckboxState: {deselectAll, isAllSelected, selectedIds, selectAll},
   projects,
 }: {
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
   projects: Project[];
 }) {
   return (

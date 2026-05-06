@@ -75,7 +75,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
   const tableHeaders = getTableHeaders(organization);
 
   const repoMap = useMemo(
-    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo]) ?? []),
+    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo])),
     [preference]
   );
 
@@ -149,7 +149,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
             </Flex>
             <Button
               disabled={!canWrite}
-              priority="primary"
+              variant="primary"
               icon={<IconAdd />}
               onClick={handleAddRepoClick}
             >
@@ -165,7 +165,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
       <Flex justify="end">
         <Button
           disabled={!canWrite}
-          priority="primary"
+          variant="primary"
           icon={<IconAdd />}
           onClick={handleAddRepoClick}
         >

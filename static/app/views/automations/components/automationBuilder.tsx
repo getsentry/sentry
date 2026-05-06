@@ -111,7 +111,7 @@ export function AutomationBuilder() {
         ))}
         <span>
           <PurpleTextButton
-            priority="transparent"
+            variant="transparent"
             icon={<IconAdd />}
             size="xs"
             onClick={() => actions.addIf()}

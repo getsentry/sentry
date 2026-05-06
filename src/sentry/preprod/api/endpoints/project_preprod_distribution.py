@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class PutDistribution(BaseModel):
-    error_code: int = Field(ge=0, le=3)
+    error_code: PreprodArtifact.InstallableAppErrorCode
     error_message: str
 
 

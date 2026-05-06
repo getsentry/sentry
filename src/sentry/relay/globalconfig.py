@@ -1,12 +1,7 @@
 from typing import Any, TypedDict
 
 import sentry.options
-from sentry.relay.config.ai_model_costs import (
-    AIModelCosts,
-    AIModelMetadataConfig,
-    ai_model_costs_config,
-    ai_model_metadata_config,
-)
+from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, ai_model_metadata_config
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.relay.config.metric_extraction import (
     MetricExtractionGroups,
@@ -24,12 +19,14 @@ RELAY_OPTIONS: list[str] = [
     "relay.eap-outcomes.rollout-rate",
     "relay.eap-span-outcomes.rollout-rate",
     "relay.unreal-report-expansion.rollout-rate",
+    "relay.minidump-endpoint-fetch-config.rollout-rate",
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
     "relay.sessions-eap.rollout-rate",
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
     "relay.objectstore-attachments.sample-rate",
+    "relay.endpoint-fetch-config.enabled",
 ]
 
 
@@ -44,9 +41,6 @@ class SpanOpDefaults(TypedDict):
 
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
-    aiModelCosts: (
-        AIModelCosts | None
-    )  # TODO(constantinius): Remove once all consumers use aiModelMetadata
     aiModelMetadata: AIModelMetadataConfig | None
     metricExtraction: MetricExtractionGroups
     filters: GenericFiltersConfig | None
@@ -86,7 +80,6 @@ def get_global_config() -> GlobalConfig:
 
     global_config: GlobalConfig = {
         "measurements": get_measurements_config(),
-        "aiModelCosts": ai_model_costs_config(),  # TODO(constantinius): Remove once all consumers use aiModelMetadata
         "aiModelMetadata": ai_model_metadata_config(),
         "metricExtraction": global_metric_extraction_groups(),
         "spanOpDefaults": span_op_defaults(),

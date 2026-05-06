@@ -28,7 +28,7 @@ function coerceNumber(value: string | undefined | null) {
   const originalValue = value;
 
   if (value === undefined) {
-    return undefined;
+    return;
   }
 
   if (value === null) {
@@ -88,7 +88,7 @@ const getCustomReferrer = () => {
     // this can happen if we have an invalid query string
     // e.g. unencoded "%"
   }
-  return undefined;
+  return;
 };
 
 const getOrganizationId = (

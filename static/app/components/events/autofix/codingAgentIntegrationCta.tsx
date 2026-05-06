@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -13,7 +15,6 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -38,8 +39,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const organization = useOrganization();
     const user = useUser();
 
-    const {preference, isFetching: isLoadingPreferences} =
-      useProjectSeerPreferences(project);
+    const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
+    const preference = data?.preference;
     const {mutate: updateProjectSeerPreferences, isPending: isUpdatingPreferences} =
       useUpdateProjectSeerPreferences(project);
     const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
@@ -150,7 +151,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
             <div>
               <LinkButton
                 href={`/settings/${organization.slug}/integrations/${config.pluginId}/`}
-                priority="default"
+                variant="secondary"
                 size="sm"
                 onClick={handleInstallClick}
               >
@@ -193,7 +194,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
               )}
             </Text>
             <div>
-              <Button onClick={handleSetupClick} priority="default" size="sm">
+              <Button onClick={handleSetupClick} variant="secondary" size="sm">
                 {t('Set Seer to hand off to %s', config.displayName)}
               </Button>
             </div>

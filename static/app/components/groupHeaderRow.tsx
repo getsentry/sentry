@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -12,10 +13,9 @@ import {IconStar} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
-import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import {EventTitleError} from './eventTitleError';
@@ -46,15 +46,13 @@ function usePreloadGroupOnHover({
   const {hoverProps} = useHover({
     onHoverStart: () => {
       timeoutRef.current = setTimeout(() => {
-        queryClient.prefetchQuery({
-          queryKey: makeFetchGroupQueryKey({
+        queryClient.prefetchQuery(
+          groupApiOptions({
             groupId,
             organizationSlug: organization.slug,
             environments: selection.environments,
-          }),
-          queryFn: fetchDataQuery,
-          staleTime: 30_000,
-        });
+          })
+        );
       }, 300);
     },
     onHoverEnd: () => {

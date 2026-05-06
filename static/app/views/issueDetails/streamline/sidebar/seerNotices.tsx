@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
@@ -32,7 +33,6 @@ import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
@@ -92,11 +92,8 @@ function CustomStepButtons({
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
-  const {
-    preference,
-    isLoading: isLoadingPreferences,
-    codeMappingRepos,
-  } = useProjectSeerPreferences(project);
+  const {data, isLoading: isLoadingPreferences} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
   const {data: codingAgentIntegrations} = useQuery(
@@ -299,7 +296,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <LinkButton
                     href={`/settings/${organization.slug}/integrations/?category=source%20code%20management&search=github`}
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Set Up Integration')}
                   </LinkButton>
@@ -339,7 +336,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <LinkButton
                     to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Configure Repos')}
                   </LinkButton>
@@ -376,7 +373,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <LinkButton
                     to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                     size="sm"
-                    priority="primary"
+                    variant="primary"
                   >
                     {t('Enable Automation')}
                   </LinkButton>
@@ -508,7 +505,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       <Button
                         onClick={handleSetupCursorHandoff}
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                       >
                         {t('Set Seer to hand off to Cursor')}
                       </Button>
@@ -516,7 +513,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       <LinkButton
                         href={`/settings/${organization.slug}/integrations/cursor/`}
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                       >
                         {t('Install Cursor Integration')}
                       </LinkButton>

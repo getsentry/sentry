@@ -11,7 +11,7 @@ import type {
   ErrorFrame,
   RawReplayError,
 } from 'sentry/utils/replays/types';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function hydrateErrors(
   replayRecord: HydratedReplayRecord,

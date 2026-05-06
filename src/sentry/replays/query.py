@@ -122,9 +122,9 @@ def query_replay_id_by_prefix(
     Using a string prefix, query for a full replay ID in the given time range and project list, returning the first matching ID.
     Date range is chunked into 14 day intervals, newest to oldest, to avoid timeouts.
 
-    TODO: This query ignores the replay_id column index and can do large scans. At the moment it's only used for the Seer Explorer replay details tool.
+    TODO: This query ignores the replay_id column index and can do large scans. At the moment it's only used for the Seer Agent replay details tool.
     This is a good candidate for optimization, which can be done with a materialized string column for the first 8 chars, and a secondary index.
-    Alternatively we can try more consistent ways of passing the full ID to Explorer.
+    Alternatively we can try more consistent ways of passing the full ID to the agent.
     """
 
     if len(replay_id_prefix) < 8 or len(replay_id_prefix) >= 32:

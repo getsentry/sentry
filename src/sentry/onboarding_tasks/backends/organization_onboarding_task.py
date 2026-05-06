@@ -32,11 +32,11 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         )
 
     def create_or_update_onboarding_task(self, organization, user, task, values):
-        return self.Model.objects.create_or_update(
+        return self.Model.objects.update_or_create(
             organization=organization,
             task=task,
-            values=values,
-            defaults={"user_id": user.id},
+            defaults=values,
+            create_defaults={"user_id": user.id, **values},
         )
 
     def complete_onboarding_task(

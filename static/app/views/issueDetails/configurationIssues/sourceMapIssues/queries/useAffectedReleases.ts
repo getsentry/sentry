@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SOURCE_MAP_ERROR_TYPES_QUERY} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/constants';
 
 type ReleaseRow = {release: string} & {'count_unique(event_id)': number};
 
@@ -34,7 +35,7 @@ export function useAffectedReleases({project}: Options): AffectedReleasesResult 
       query: {
         dataset: 'processing_errors',
         field: ['release', 'count_unique(event_id)'],
-        query: 'has:release',
+        query: `${SOURCE_MAP_ERROR_TYPES_QUERY} has:release`,
         sort: '-count_unique(event_id)',
         per_page: 5,
         statsPeriod: '30d',
