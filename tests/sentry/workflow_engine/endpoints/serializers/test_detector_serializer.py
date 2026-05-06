@@ -1,6 +1,9 @@
 from datetime import timedelta
 from unittest import mock
 
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
@@ -205,6 +208,51 @@ class TestDetectorSerializer(TestCase):
         result = serialize(detector)
 
         assert result["latestGroup"]["id"] == str(group2.id)
+
+    def test_serialize_latest_group_uses_narrow_distinct_query(self) -> None:
+        detectors = [
+            self.create_detector(
+                project_id=self.project.id,
+                name=f"Test Detector {i}",
+                type=MetricIssue.slug,
+            )
+            for i in range(2)
+        ]
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        group3 = self.create_group(project=self.project)
+
+        old_detector_group = self.create_detector_group(detector=detectors[0], group=group1)
+        latest_detector_group = self.create_detector_group(detector=detectors[0], group=group2)
+        only_detector_group = self.create_detector_group(detector=detectors[1], group=group3)
+
+        old_detector_group.date_added = before_now(seconds=30)
+        latest_detector_group.date_added = before_now(seconds=20)
+        only_detector_group.date_added = before_now(seconds=10)
+        old_detector_group.save()
+        latest_detector_group.save()
+        only_detector_group.save()
+
+        with CaptureQueriesContext(connection) as queries:
+            result = serialize(detectors)
+
+        latest_groups_by_detector_id = {
+            serialized["id"]: serialized["latestGroup"]["id"] for serialized in result
+        }
+        assert latest_groups_by_detector_id == {
+            str(detectors[0].id): str(group2.id),
+            str(detectors[1].id): str(group3.id),
+        }
+
+        distinct_detector_group_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if "workflow_engine_detectorgroup" in query["sql"] and "DISTINCT ON" in query["sql"]
+        ]
+        assert len(distinct_detector_group_queries) == 1
+        latest_group_query = distinct_detector_group_queries[0]
+        assert "sentry_groupedmessage" not in latest_group_query
+        assert "sentry_project" not in latest_group_query
 
     def test_serialize_normalizes_migrated_detection_type(self) -> None:
         detector = self.create_detector(
