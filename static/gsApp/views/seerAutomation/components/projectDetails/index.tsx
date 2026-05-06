@@ -7,6 +7,7 @@ import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -26,7 +27,7 @@ const DEFAULT_PREFERENCE: ProjectSeerPreferences = {
 
 export function SeerProjectDetails({project}: {project: Project}) {
   const organization = useOrganization();
-  const {data, isPending} = useProjectSeerPreferences(project);
+  const {data, isPending, isError} = useProjectSeerPreferences(project);
   const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   const canWrite = hasEveryAccess(['project:write'], {organization, project});
@@ -56,6 +57,8 @@ export function SeerProjectDetails({project}: {project: Project}) {
       )}
       {isPending ? (
         <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError message={t('Failed to load Seer settings')} />
       ) : (
         <Stack gap="2xl">
           <AutofixRepositories
