@@ -205,11 +205,11 @@ export function getPredefinedValues({
   token: TokenResult<Token.FILTER>;
   key?: Tag;
 }): SuggestionSection[] | null {
-  if (!key) {
+  if (!key && !fieldDefinition) {
     return null;
   }
 
-  const definedValues = key.values ?? fieldDefinition?.values;
+  const definedValues = key?.values ?? fieldDefinition?.values;
   const valueType = getFilterValueType(token, fieldDefinition);
 
   if (!definedValues?.length) {
@@ -378,7 +378,7 @@ function useFilterSuggestions({
   // This is because the way keys are fetched doesn't guarantee that we have
   // every key loaded. So we should try to fetch values for it even if it
   // doesn't exist in the list of available keys.
-  const shouldFetchValues = key ? !key.predefined && predefinedValues === null : true;
+  const shouldFetchValues = predefinedValues === null && (key ? !key.predefined : true);
   const shouldUseDefaultSuggestionOrder = shouldUseDefaultNumericSuggestions(
     filterValue,
     valueType

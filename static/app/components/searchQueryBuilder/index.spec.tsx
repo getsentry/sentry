@@ -4135,6 +4135,26 @@ describe('SearchQueryBuilder', () => {
         ]);
         expect(screen.queryByRole('option', {name: '$10k'})).not.toBeInTheDocument();
       });
+
+      it('currency value suggestions work when the key only has a field definition', async () => {
+        render(
+          <SearchQueryBuilder
+            {...currencyProps}
+            filterKeys={{}}
+            initialQuery="cost:>100"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: cost'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+
+        expect(await screen.findByRole('option', {name: '$10'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$50'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$100'})).toBeInTheDocument();
+      });
     });
 
     describe('date', () => {
