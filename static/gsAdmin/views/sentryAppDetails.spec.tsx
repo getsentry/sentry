@@ -57,6 +57,7 @@ describe('SentryAppDetails', () => {
       },
     });
 
+    await userEvent.click(await screen.findByTestId('detail-actions'));
     expect(await screen.findByText('Disable App')).toBeInTheDocument();
     expect(screen.queryByText('disabled')).not.toBeInTheDocument();
   });
@@ -81,8 +82,9 @@ describe('SentryAppDetails', () => {
       },
     });
 
+    expect(await screen.findByText('disabled')).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('detail-actions'));
     expect(await screen.findByText('Enable App')).toBeInTheDocument();
-    expect(screen.getByText('disabled')).toBeInTheDocument();
   });
 
   it('calls PUT with isDisabled when disable action is used', async () => {
@@ -111,6 +113,7 @@ describe('SentryAppDetails', () => {
       },
     });
 
+    await userEvent.click(await screen.findByTestId('detail-actions'));
     await userEvent.click(await screen.findByText('Disable App'));
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
