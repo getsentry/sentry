@@ -1,4 +1,3 @@
-import json  # noqa: S003
 import logging
 from collections import defaultdict
 from datetime import datetime
@@ -25,6 +24,12 @@ from sentry.search.events.types import SAMPLING_MODES
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.ai_message_normalizer import (
+    FILTERED,
+    extract_assistant_output,
+    normalize_to_messages,
+    stringify_message_content,
+)
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
@@ -62,61 +67,18 @@ def _compute_timestamp_ms(finish_ts: float) -> int:
     return int(finish_ts * 1000) if finish_ts else 0
 
 
-FILTERED = "[Filtered]"
-
-
-def _parse_messages(messages: str | list | None) -> list | None:
-    if not messages:
-        return None
-    if isinstance(messages, str):
-        try:
-            messages = json.loads(messages)
-        except (json.JSONDecodeError, TypeError):
-            return None
-    if not isinstance(messages, list):
-        return None
-    return messages
-
-
-def _looks_like_json(raw: str) -> bool:
-    """Mirrors the frontend's looksLikeJson: detects values that may parse as JSON."""
-    stripped = raw.strip()
-    if not stripped:
-        return False
-    return stripped[0] in ("[", "{", '"')
-
-
-def _extract_content_from_parts(msg: dict) -> str | None:
-    """Extract text content from a message with parts format, concatenating multiple text parts."""
-    parts = msg.get("parts", [])
-    if not isinstance(parts, list):
-        return None
-
-    text_contents = []
-    for part in parts:
-        if isinstance(part, dict) and part.get("type") == "text":
-            content = part.get("content")
-            if content:
-                text_contents.append(content)
-
-    return "\n".join(text_contents) if text_contents else None
-
-
-def _extract_first_user_message(messages: str | list | None) -> str | None:
+def _extract_first_user_message(messages: Any) -> str | None:
     """Extract first user message, handling both old (content) and new (parts) formats."""
     if isinstance(messages, str) and messages == FILTERED:
         return FILTERED
-    parsed = _parse_messages(messages)
+    parsed = normalize_to_messages(messages, "user")
     if not parsed:
         return None
     for msg in parsed:
-        if isinstance(msg, dict) and msg.get("role") == "user":
-            # Try old format first (content field)
-            content = msg.get("content")
+        if msg.get("role") == "user":
+            content = stringify_message_content(msg.get("content"))
             if content:
                 return content
-            # Try new parts format
-            return _extract_content_from_parts(msg)
     return None
 
 
@@ -140,43 +102,6 @@ def _get_first_input_message(row: dict) -> str | None:
     return None
 
 
-def _extract_assistant_text(value: Any) -> str | None:
-    """
-    Extracts the assistant text response from a gen_ai.output.messages value.
-
-    Mirrors the frontend's extractAssistantOutput so all shapes the SDKs emit
-    are handled: plain strings, JSON-encoded strings, and arrays of messages
-    in either content or parts format.
-    """
-    # Plain non-JSON string: the entire value is the assistant's response.
-    if isinstance(value, str) and not _looks_like_json(value):
-        return value if value.strip() else None
-
-    parsed: Any = value
-    if isinstance(value, str):
-        try:
-            parsed = json.loads(value)
-        except (json.JSONDecodeError, TypeError):
-            return None
-
-    # JSON-encoded scalar string, e.g. '"Hello"' parses to "Hello".
-    if isinstance(parsed, str):
-        return parsed if parsed.strip() else None
-
-    if not isinstance(parsed, list):
-        return None
-
-    for msg in reversed(parsed):
-        if isinstance(msg, dict) and msg.get("role") == "assistant":
-            content = msg.get("content")
-            if isinstance(content, str) and content:
-                return content
-            parts_content = _extract_content_from_parts(msg)
-            if parts_content:
-                return parts_content
-    return None
-
-
 def _get_last_output(row: dict) -> str | None:
     """
     Gets output text from output attributes, checking in priority order.
@@ -186,7 +111,7 @@ def _get_last_output(row: dict) -> str | None:
     if output_messages:
         if output_messages == FILTERED:
             return FILTERED
-        text = _extract_assistant_text(output_messages)
+        text = extract_assistant_output(output_messages, "assistant")["response_text"]
         if text:
             return text
 

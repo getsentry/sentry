@@ -30,7 +30,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {ComparisonState, DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  ComparisonState,
+  DiffStatus,
+  getImageName,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -51,6 +55,10 @@ import {
 
 function imageGroupKey(img: SnapshotImage): string {
   return img.group ?? img.image_file_name;
+}
+
+function imageGroupDisplayName(img: SnapshotImage): string {
+  return img.group ?? getImageName(img);
 }
 
 function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
@@ -264,6 +272,7 @@ export default function SnapshotsPage() {
             type,
             key: `${type}:${groupKey}`,
             name: groupKey,
+            displayName: imageGroupDisplayName(groupedPairs[0]!.head_image),
             pairs: groupedPairs,
           });
         }
@@ -274,7 +283,13 @@ export default function SnapshotsPage() {
         type: 'added' | 'removed' | 'unchanged'
       ) => {
         for (const [groupKey, images] of groupByKey(imgs, imageGroupKey)) {
-          items.push({type, key: `${type}:${groupKey}`, name: groupKey, images});
+          items.push({
+            type,
+            key: `${type}:${groupKey}`,
+            name: groupKey,
+            displayName: imageGroupDisplayName(images[0]!),
+            images,
+          });
         }
       };
 
@@ -297,6 +312,7 @@ export default function SnapshotsPage() {
         type: 'solo' as const,
         key: `solo:${groupKey}`,
         name: groupKey,
+        displayName: imageGroupDisplayName(images[0]!),
         images,
       }));
   }, [data, comparisonType]);
@@ -349,7 +365,11 @@ export default function SnapshotsPage() {
 
   const sidebarSections = useMemo<SidebarSection[]>(() => {
     function toGroup(item: SidebarItem) {
-      return {key: item.key, name: item.name, count: itemVariantCount(item)};
+      return {
+        key: item.key,
+        displayName: item.displayName,
+        count: itemVariantCount(item),
+      };
     }
 
     if (comparisonType !== 'diff') {
@@ -366,7 +386,7 @@ export default function SnapshotsPage() {
     ];
     const byType = new Map<
       DiffStatus,
-      Array<{count: number; key: string; name: string}>
+      Array<{count: number; displayName: string; key: string}>
     >();
     for (const type of sectionOrder) {
       byType.set(type, []);
