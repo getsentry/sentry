@@ -1,3 +1,4 @@
+import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
@@ -16,7 +17,10 @@ import {
   getStoreCrashReportsValues,
   SettingScope,
 } from 'sentry/utils/crashReports';
-import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {
+  makeDetailedProjectQueryKey,
+  useDetailedProject,
+} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 interface StoreCrashReportsConfigProps {
@@ -32,6 +36,7 @@ export function StoreCrashReportsConfig({
   projectSlug,
   organization,
 }: StoreCrashReportsConfigProps) {
+  const queryClient = useQueryClient();
   const {data: project, isPending: isPendingProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug,
@@ -65,7 +70,13 @@ export function StoreCrashReportsConfig({
             }),
             data,
           }),
-        onSuccess: data => ProjectsStore.onUpdateSuccess(data),
+        onSuccess: data => {
+          ProjectsStore.onUpdateSuccess(data);
+          queryClient.setQueryData(
+            makeDetailedProjectQueryKey({orgSlug: organization.slug, projectSlug}),
+            prev => ({headers: prev?.headers ?? {}, json: data})
+          );
+        },
         onError: () => addErrorMessage(t('Unable to save change')),
       }}
     >
