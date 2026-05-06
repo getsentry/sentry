@@ -106,16 +106,22 @@ def send_issue_unresolved_webhook_helper(
 
 @project_created.connect(weak=False)
 def send_project_created_webhook(project, user_id=None, **kwargs):
+    from django.db import router, transaction
+
     from sentry.api.serializers import serialize
     from sentry.utils import json
 
     serialized = json.loads(json.dumps(serialize(project)))
-    broadcast_webhooks_for_organization.delay(
-        resource_name="project",
-        event_name=ProjectActionType.CREATED.value,
-        organization_id=project.organization_id,
-        payload={"project": serialized},
-    )
+
+    def _send():
+        broadcast_webhooks_for_organization.delay(
+            resource_name="project",
+            event_name=ProjectActionType.CREATED.value,
+            organization_id=project.organization_id,
+            payload={"project": serialized},
+        )
+
+    transaction.on_commit(_send, using=router.db_for_write(Project))
 
 
 @comment_created.connect(weak=False)
