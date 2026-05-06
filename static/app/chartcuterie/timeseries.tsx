@@ -29,15 +29,33 @@ const CHART_SIZE = {width: 1200, height: 400};
  */
 const MAX_LEGEND_ITEMS = 4;
 
-function buildBoundedLegendData(names: string[]) {
+/**
+ * Builds the legend.data array and a synthetic placeholder series for the
+ * "+N more" overflow indicator.
+ *
+ * ECharts silently drops legend.data entries that don't match a series name
+ * (see LegendView.js — items are only drawn when getSeriesByName matches or a
+ * legendVisualProvider claims them). So to render an overflow indicator we
+ * must also push an empty series whose name matches.
+ *
+ * The slice keeps the total entry count at MAX_LEGEND_ITEMS even when
+ * overflowing, so the legend never wraps off the reserved single row.
+ */
+function buildBoundedLegend(names: string[]) {
   if (names.length <= MAX_LEGEND_ITEMS) {
-    return names;
+    return {data: names, indicatorSeries: []};
   }
-  const hiddenCount = names.length - MAX_LEGEND_ITEMS;
-  return [
-    ...names.slice(0, MAX_LEGEND_ITEMS),
-    {name: `+${hiddenCount} more`, icon: 'none'},
-  ];
+  const visibleCount = MAX_LEGEND_ITEMS - 1;
+  const hiddenCount = names.length - visibleCount;
+  const indicatorName = `+${hiddenCount} more`;
+  return {
+    data: [...names.slice(0, visibleCount), {name: indicatorName, icon: 'none'}],
+    // Empty line series gives ECharts a name to match the legend entry to.
+    // No data points means nothing is plotted; `silent` suppresses tooltips.
+    indicatorSeries: [
+      {type: 'line' as const, name: indicatorName, data: [], silent: true},
+    ],
+  };
 }
 
 /**
@@ -140,17 +158,18 @@ export const makeTimeseriesCharts = (
           return plottable?.toSeries(plottingOptions) ?? [];
         });
 
+        const legend = buildBoundedLegend(
+          timeSeries.map(ts => formatTimeSeriesLabel(ts))
+        );
+
         return {
           ...defaults,
-          legend: {
-            ...defaults.legend,
-            data: buildBoundedLegendData(timeSeries.map(ts => formatTimeSeriesLabel(ts))),
-          },
+          legend: {...defaults.legend, data: legend.data},
           yAxis,
           xAxis,
           useUTC: true,
           color,
-          series,
+          series: [...series, ...legend.indicatorSeries],
         };
       }
 
@@ -179,17 +198,16 @@ export const makeTimeseriesCharts = (
         return plottable?.toSeries(plottingOptions) ?? [];
       });
 
+      const legend = buildBoundedLegend(sorted.map(ts => formatTimeSeriesLabel(ts)));
+
       return {
         ...defaults,
-        legend: {
-          ...defaults.legend,
-          data: buildBoundedLegendData(sorted.map(ts => formatTimeSeriesLabel(ts))),
-        },
+        legend: {...defaults.legend, data: legend.data},
         yAxis,
         xAxis,
         useUTC: true,
         color,
-        series,
+        series: [...series, ...legend.indicatorSeries],
       };
     },
     ...CHART_SIZE,
