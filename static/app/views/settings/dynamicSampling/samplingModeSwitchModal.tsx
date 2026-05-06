@@ -1,3 +1,5 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -11,10 +13,11 @@ import {
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
 interface Props {
   /**
@@ -36,18 +39,10 @@ function SamplingModeSwitchModal({
   samplingMode,
   initialTargetRate = 1,
 }: Props & ModalRenderProps) {
-  const {mutateAsync: updateOrganization, isPending} = useUpdateOrganization({
-    onMutate: () => {
-      addLoadingMessage(t('Switching sampling mode...'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Changes applied.'));
-      closeModal();
-    },
-    onError: () => {
-      addErrorMessage(t('Unable to save changes. Please try again.'));
-    },
-  });
+  const organization = useOrganization();
+  const {mutateAsync: updateOrganization, isPending} = useMutation(
+    useOrganizationMutationOptions(organization)
+  );
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -62,7 +57,16 @@ function SamplingModeSwitchModal({
       if (samplingMode === 'organization') {
         changes.targetSampleRate = parsePercent(value.targetSampleRate);
       }
-      return updateOrganization(changes).catch(() => {});
+      addLoadingMessage(t('Switching sampling mode...'));
+      return updateOrganization(changes, {
+        onSuccess: () => {
+          addSuccessMessage(t('Changes applied.'));
+          closeModal();
+        },
+        onError: () => {
+          addErrorMessage(t('Unable to save changes. Please try again.'));
+        },
+      }).catch(() => {});
     },
   });
 

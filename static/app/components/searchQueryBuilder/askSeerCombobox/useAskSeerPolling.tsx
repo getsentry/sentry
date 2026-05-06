@@ -93,7 +93,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
-        const sessionData = query.state.data?.[0]?.session ?? null;
+        const sessionData = query.state.data?.json?.session ?? null;
         if (isPolling(sessionData, waitingForResponse)) {
           return POLL_INTERVAL;
         }
@@ -162,6 +162,8 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
     setWaitingForResponse(false);
     setStartFailed(false);
     if (queryKey) {
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<AskSeerPollingResponse<T>>(
         queryClient,
         queryKey,

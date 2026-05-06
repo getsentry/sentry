@@ -56,8 +56,7 @@ export function ProjectSampling() {
     [sampleRatesQuery.data]
   );
 
-  const [savedProjectRates, setSavedProjectRates] =
-    useState<Record<string, string>>(projectRates);
+  const [savedProjectRates, setSavedProjectRates] = useState(projectRates);
 
   const form = useScrapsForm({
     ...defaultFormOptions,

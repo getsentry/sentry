@@ -137,12 +137,19 @@ describe('SnapshotMainContent', () => {
       headBranch: 'feature/snapshot-updates',
       isSoloView: false,
       listItems: [
-        {key: 'changed-buttons', name: 'Buttons', pairs: [changedPair], type: 'changed'},
+        {
+          key: 'changed-buttons',
+          name: 'Buttons',
+          displayName: 'Buttons',
+          pairs: [changedPair],
+          type: 'changed',
+        },
       ],
       onNavigateSingleView,
       selectedItem: {
         key: 'changed-buttons',
         name: 'Buttons',
+        displayName: 'Buttons',
         pairs: [changedPair],
         type: 'changed',
       },
@@ -151,7 +158,7 @@ describe('SnapshotMainContent', () => {
 
     expect(screen.getByText('Buttons')).toBeInTheDocument();
     expect(screen.getByText('Button / light')).toBeInTheDocument();
-    expect(screen.getByText(/Modified/)).toBeInTheDocument();
+    expect(screen.getByText(/Changed/)).toBeInTheDocument();
     expect(screen.getByText('feature/snapshot-updates')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Pick overlay color'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Split'})).toBeChecked();
@@ -174,6 +181,7 @@ describe('SnapshotMainContent', () => {
       selectedItem: {
         key: 'renamed-buttons',
         name: 'Buttons',
+        displayName: 'Buttons',
         pairs: [renamedPair],
         type: 'renamed',
       },

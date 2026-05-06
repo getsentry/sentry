@@ -44,6 +44,13 @@ export function transformChoices(
   return choices.map(([value, label]) => ({value, label}));
 }
 
+export function getDisabledProp(field: JsonFormAdapterFieldConfig): boolean | string {
+  if (field.disabled && field.disabledReason) {
+    return field.disabledReason;
+  }
+  return field.disabled ?? false;
+}
+
 export function getDefaultForField(field: JsonFormAdapterFieldConfig): unknown {
   switch (field.type) {
     case 'boolean':

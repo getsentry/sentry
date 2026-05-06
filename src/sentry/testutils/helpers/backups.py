@@ -99,7 +99,7 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
+from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
@@ -512,13 +512,6 @@ class ExhaustiveFixtures(Fixtures):
             rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
         )
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
-        NeglectedRule.objects.create(
-            rule=rule,
-            organization=org,
-            disable_date=timezone.now(),
-            sent_initial_email_date=timezone.now(),
-            sent_final_email_date=timezone.now(),
-        )
 
         # Environment*
         self.create_environment(project=project)

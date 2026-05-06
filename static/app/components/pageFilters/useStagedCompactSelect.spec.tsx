@@ -340,7 +340,7 @@ describe('useStagedCompactSelect', () => {
 
     function TestComponent() {
       const defaultValue = ['one'] as string[];
-      const [value, setValue] = useState<string[]>(defaultValue);
+      const [value, setValue] = useState(defaultValue);
       const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
       const options = useTestOptions(toggleOptionRef);
       const handleChange = (newValue: string[]) => {
@@ -686,7 +686,7 @@ describe('useStagedCompactSelect', () => {
       const onChange = jest.fn();
 
       function TestComponent() {
-        const [value, setValue] = useState<string[]>(['one', 'two', 'three']);
+        const [value, setValue] = useState(['one', 'two', 'three']);
         const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
         const options = useTestOptions(toggleOptionRef);
         const handleChange = (newValue: string[]) => {

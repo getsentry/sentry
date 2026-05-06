@@ -297,7 +297,7 @@ export function ExternalIssueForm({
 
   const onFieldChange = useCallback(
     (fieldName: string, value: unknown) => {
-      if (dynamicFieldValues.hasOwnProperty(fieldName)) {
+      if (Object.hasOwn(dynamicFieldValues, fieldName)) {
         setLastChangedField({[fieldName]: value});
         setDynamicFieldValue(fieldName, value);
         refetchWithDynamicFields({

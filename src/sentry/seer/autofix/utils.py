@@ -888,7 +888,6 @@ def is_issue_category_eligible(group: Group) -> bool:
 
     return group.issue_category in {
         GroupCategory.ERROR,
-        GroupCategory.PERFORMANCE,
         GroupCategory.MOBILE,
         GroupCategory.FRONTEND,
         GroupCategory.DB_QUERY,

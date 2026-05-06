@@ -13,7 +13,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Region} from 'sentry/types/system';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
@@ -23,14 +22,14 @@ import {PageHeader} from 'admin/components/pageHeader';
 
 export function LaunchpadAdminPage() {
   const api = useApi();
-  const [rerunArtifactId, setRerunArtifactId] = useState<string>('');
-  const [deleteArtifactId, setDeleteArtifactId] = useState<string>('');
-  const [fetchInfoArtifactId, setFetchInfoArtifactId] = useState<string>('');
-  const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState<string>('');
-  const [downloadArtifactId, setDownloadArtifactId] = useState<string>('');
+  const [rerunArtifactId, setRerunArtifactId] = useState('');
+  const [deleteArtifactId, setDeleteArtifactId] = useState('');
+  const [fetchInfoArtifactId, setFetchInfoArtifactId] = useState('');
+  const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState('');
+  const [downloadArtifactId, setDownloadArtifactId] = useState('');
   const [fetchedArtifactInfo, setFetchedArtifactInfo] = useState<any>(null);
   const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
+  const [region, setRegion] = useState(regions[0] ?? null);
 
   const {mutate: rerunAnalysis} = useMutation({
     mutationFn: () => {

@@ -12,8 +12,8 @@ import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SidebarGroup {
   count: number;
+  displayName: string;
   key: string;
-  name: string;
 }
 
 export interface SidebarSection {
@@ -38,7 +38,7 @@ const STATUS_PILLS: ReadonlyArray<{
   label: string;
   status: DiffStatus;
 }> = [
-  {status: DiffStatus.CHANGED, color: 'accent', label: t('modified')},
+  {status: DiffStatus.CHANGED, color: 'accent', label: t('changed')},
   {status: DiffStatus.REMOVED, color: 'danger', label: t('removed')},
   {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
@@ -46,7 +46,7 @@ const STATUS_PILLS: ReadonlyArray<{
 ];
 
 const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
-  [DiffStatus.CHANGED]: {color: 'accent', label: t('Modified')},
+  [DiffStatus.CHANGED]: {color: 'accent', label: t('Changed')},
   [DiffStatus.ADDED]: {color: 'success', label: t('Added')},
   [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
   [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
@@ -184,7 +184,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
                     ellipsis
                     onPointerEnter={setTitleOnOverflow}
                   >
-                    {group.name}
+                    {group.displayName}
                   </Text>
                 </Flex>
                 <CountBadge>

@@ -52,7 +52,7 @@ type SeerNightShiftRun = {
 
 function SeerWorkflows() {
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState(new Set());
 
   const {data, isPending, isError, refetch} = useQuery(
     apiOptions.as<SeerNightShiftRun[]>()(

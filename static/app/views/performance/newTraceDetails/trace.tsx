@@ -123,7 +123,7 @@ export function Trace({
   const traceDispatch = useTraceStateDispatch();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
 
-  const rerenderRef = useRef<TraceProps['rerender']>(rerender);
+  const rerenderRef = useRef(rerender);
   rerenderRef.current = rerender;
 
   const treePromiseStatusRef = useRef<Map<
@@ -135,10 +135,10 @@ export function Trace({
     treePromiseStatusRef.current = new Map();
   }
 
-  const treeRef = useRef<TraceTree>(trace);
+  const treeRef = useRef(trace);
   treeRef.current = trace;
 
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<
@@ -185,11 +185,7 @@ export function Trace({
   }, [manager, scheduler]);
 
   const onNodeZoomIn = useCallback(
-    (
-      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
-      node: BaseNode,
-      value: boolean
-    ) => {
+    (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {
       event.stopPropagation();
       rerenderRef.current();
 
@@ -218,11 +214,7 @@ export function Trace({
   );
 
   const onNodeExpand = useCallback(
-    (
-      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
-      node: BaseNode,
-      value: boolean
-    ) => {
+    (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {
       event.stopPropagation();
 
       node.expand(value, treeRef.current);
@@ -480,14 +472,14 @@ function RenderTraceRow(props: {
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: BaseNode;
-  onExpand: (event: React.MouseEvent<Element>, node: BaseNode, value: boolean) => void;
+  onExpand: (event: React.MouseEvent, node: BaseNode, value: boolean) => void;
   onRowClick: (
     node: BaseNode,
     event: React.MouseEvent<HTMLElement>,
     index: number
   ) => void;
   onRowKeyDown: (event: React.KeyboardEvent, index: number, node: BaseNode) => void;
-  onZoomIn: (event: React.MouseEvent<Element>, node: BaseNode, value: boolean) => void;
+  onZoomIn: (event: React.MouseEvent, node: BaseNode, value: boolean) => void;
   organization: Organization;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<Project['slug'], Project['platform']>;

@@ -22,10 +22,9 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
-    SPEC_VERSION_TWO_FLAG,
     MetricSpecType,
     OnDemandMetricSpec,
 )
@@ -33,7 +32,6 @@ from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.discover import user_misery_formula
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -2108,39 +2106,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    # Once we delete the current spec version this test will fail and we can delete it
-    def test_on_demand_builder_with_new_spec(self) -> None:
-        field = "count()"
-        query = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
-        # As expected, it does not include the environment tag
-        expected_str_hash = "None;{'name': 'event.duration', 'op': 'gt', 'value': 0.0}"
-        assert spec._query_str_for_hash == expected_str_hash
-
-        # Because we call the builder with the feature flag we will get the environment to be included
-        with Feature(SPEC_VERSION_TWO_FLAG):
-            query_builder = TimeseriesMetricQueryBuilder(
-                self.params,
-                dataset=Dataset.PerformanceMetrics,
-                interval=3600,
-                query=query,
-                selected_columns=[field],
-                config=QueryBuilderConfig(
-                    on_demand_metrics_enabled=True,
-                    on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
-                ),
-            )
-            spec_in_use: OnDemandMetricSpec | None = (
-                query_builder._on_demand_metric_spec_map[field]
-                if query_builder._on_demand_metric_spec_map
-                else None
-            )
-            assert spec_in_use
-            # It does include the environment tag
-            assert spec_in_use._query_str_for_hash == f"{expected_str_hash};['environment']"
-            # This proves that we're picking up the new spec version
-            assert spec_in_use.spec_version.flags == {"include_environment_tag"}
-
     def test_on_demand_builder_with_not_event_type_error(self) -> None:
         field = "count()"
         query = "!event.type:error"
@@ -2934,101 +2899,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 "p75_measurements_lcp": 1125.0,
             },
         ]
-
-    def _test_user_misery(
-        self, user_to_frustration: list[tuple[str, bool]], expected_user_misery: float
-    ) -> None:
-        threshold = 300
-        field = f"user_misery({threshold})"
-        query_s = "transaction.duration:>=10"
-        # You can only query this function if you have the feature flag for the org
-        spec_type = MetricSpecType.SIMPLE_QUERY
-        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=spec_type)
-
-        for hour in range(0, 2):
-            for name, frustrated in user_to_frustration:
-                tags = (
-                    {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
-                    if frustrated
-                    else {"query_hash": spec.query_hash}
-                )
-                self.store_transaction_metric(
-                    value=name,
-                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                    # It's a set on demand because of using the users field
-                    internal_metric=TransactionMRI.SET_ON_DEMAND.value,
-                    entity=EntityKey.MetricsSets.value,
-                    tags=tags,
-                    timestamp=self.start + datetime.timedelta(hours=hour),
-                )
-
-        def create_query_builder():
-            return TimeseriesMetricQueryBuilder(
-                self.params,
-                dataset=Dataset.PerformanceMetrics,
-                interval=3600,
-                query=query_s,
-                selected_columns=[field],
-                config=QueryBuilderConfig(
-                    on_demand_metrics_enabled=True, on_demand_metrics_type=spec_type
-                ),
-            )
-
-        with Feature({SPEC_VERSION_TWO_FLAG: False}):
-            # user_misery was added in spec version 2, querying without it results in fallback.
-            with pytest.raises(IncompatibleMetricsQuery):
-                create_query_builder()
-
-        with Feature(SPEC_VERSION_TWO_FLAG):
-            query = create_query_builder()
-            assert query._on_demand_metric_spec_map
-            selected_spec = query._on_demand_metric_spec_map[field]
-            metrics_query = query._get_metrics_query_from_on_demand_spec(
-                spec=selected_spec, require_time_range=True
-            )
-
-            assert len(metrics_query.select) == 1
-            assert metrics_query.select[0].op == "on_demand_user_misery"
-            assert metrics_query.where
-            assert metrics_query.where[0].lhs.name == "query_hash"
-            # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
-            assert metrics_query.where[0].rhs == "f9a20ff3"
-            assert metrics_query.where[0].rhs == spec.query_hash
-
-        result = query.run_query("test_query")
-        assert result["data"][:3] == [
-            {
-                "time": self.start.isoformat(),
-                "user_misery_300": expected_user_misery,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "user_misery_300": expected_user_misery,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "user_misery_300": 0,
-            },
-        ]
-        self.assertCountEqual(
-            result["meta"],
-            [
-                {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "user_misery_300", "type": "Float64"},
-            ],
-        )
-
-    def test_run_query_with_on_demand_user_misery(self) -> None:
-        self._test_user_misery(
-            [("happy user", False), ("sad user", True)],
-            user_misery_formula(1, 2),
-        )
-
-    def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
-        self._test_user_misery(
-            [("happy user", False), ("ok user", False)],
-            user_misery_formula(0, 2),
-        )
 
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):

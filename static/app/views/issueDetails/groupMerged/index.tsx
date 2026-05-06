@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -19,15 +19,15 @@ import {MergedList} from './mergedList';
 
 type Props = {
   groupId: Group['id'];
-  location: Location<Query>;
+  location: Location;
   project: Project;
 };
 
 export function GroupMergedView(props: Props) {
   const organization = useOrganization();
   const [mergedItems, setMergedItems] = useState<Fingerprint[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [mergedLinks, setMergedLinks] = useState<string | undefined>(undefined);
   const {project, groupId, location} = props;
 

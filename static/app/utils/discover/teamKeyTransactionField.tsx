@@ -59,7 +59,7 @@ function TeamKeyTransactionField({
           <OverlayTrigger.IconButton
             {...triggerProps}
             disabled={disabled}
-            priority="transparent"
+            variant="transparent"
             size="zero"
             icon={
               <IconStar
