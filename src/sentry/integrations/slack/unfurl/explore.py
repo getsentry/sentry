@@ -182,9 +182,12 @@ def _parse_traces_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryD
 
 
 def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
-    """Logs visualizations live in aggregateField; query/sort use logs-specific keys
-    and sorts target table columns rather than aggregate fields, so they're not
-    validated against yAxes/groupBys."""
+    """Logs visualizations live in aggregateField; query/sort use logs-specific
+    keys. `logsSortBys` targets table columns (typically `timestamp`), so when
+    the unfurl is in topEvents mode (groupBys present) it would feed
+    events-timeseries a sort field that isn't an aggregate, returning no data.
+    Drop it in that case so the unfurl falls back to the default `-yAxes[0]`
+    aggregate sort, matching the Explore UI."""
     y_axes, group_bys, chart_type = _parse_aggregate_field_entries(
         raw_query.getlist("aggregateField")
     )
@@ -195,7 +198,7 @@ def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDic
     query_values = raw_query.getlist("logsQuery")
     query = query_values[0] if query_values else None
 
-    sort_values = raw_query.getlist("logsSortBys")
+    sort_values = [] if group_bys else raw_query.getlist("logsSortBys")
 
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 

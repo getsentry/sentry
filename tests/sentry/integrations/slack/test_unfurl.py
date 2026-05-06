@@ -2165,6 +2165,26 @@ class UnfurlTest(TestCase):
         assert api_params["dataset"] == "logs"
         assert api_params["yAxis"] == "sum(payload_size)"
 
+    def test_map_explore_query_args_logs_drops_table_sort_when_groupby_present(self) -> None:
+        # In aggregate mode the Explore UI keeps `logsSortBys` (a table sort,
+        # typically `-timestamp`) in the URL even though the chart's topEvents
+        # ranking is by the aggregate. Forwarding the table sort as `sort` to
+        # events-timeseries would feed it a non-aggregate sort field and return
+        # no data, so drop it and let `unfurl_explore` default to `-yAxes[0]`.
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+            "?aggregateField=%7B%22groupBy%22%3A%22browser.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+            "&logsSortBys=-timestamp&mode=aggregate"
+            f"&project={self.project.id}&statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("groupBy") == ["browser.name"]
+        assert args["query"].getlist("sort") == []
+
     def test_map_explore_query_args_logs_query_and_sort(self) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D&logsQuery=severity%3Aerror&logsSortBys=-timestamp&project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
