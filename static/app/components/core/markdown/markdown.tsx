@@ -1,6 +1,8 @@
 import React, {useEffect, useRef, useState} from 'react';
 import type {ComponentType, ReactNode} from 'react';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {MarkedLexer} from 'sentry/utils/marked/marked';
 
 import {renderToken} from './renderToken';
@@ -37,10 +39,15 @@ interface MarkdownProps {
 }
 
 export function Markdown({raw, components = {}}: MarkdownProps) {
-  if (typeof raw === 'string') {
-    return <StaticMarkdown raw={raw} components={components} />;
-  }
-  return <StreamingMarkdown raw={raw} components={components} />;
+  return (
+    <Stack gap="lg" flex={1} maxWidth="72ch">
+      {typeof raw === 'string' ? (
+        <StaticMarkdown raw={raw} components={components} />
+      ) : (
+        <StreamingMarkdown raw={raw} components={components} />
+      )}
+    </Stack>
+  );
 }
 
 function StaticMarkdown({
