@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import noop from 'lodash/noop';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {t} from 'sentry/locale';
@@ -61,8 +60,7 @@ import {
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-const FUNCTION_GRID_COLUMNS = '24px 24px 3fr 2fr 6fr 40px';
-const EQUATION_GRID_COLUMNS = '24px 24px 5fr 6fr 40px';
+const GRID_COLUMNS = '24px 24px 1fr 40px';
 
 function computeEquationReferencedLabels(
   equationQuery: MetricQuery | undefined,
@@ -85,7 +83,6 @@ interface MetricsEquationVisualizeProps {
  * TODO: The filter should propagate to all sub components automatically.
  * - If the equation is removed we.. choose the first filter to set in the filter bar? Not sure.
  * - Fix orderby with equation with widget builder
- * - Fix responsiveness of the fields in the equation visulize
  * - Filters aren't submitting when changed in the selected metric by radio button
  */
 export function MetricsEquationVisualize({
@@ -226,7 +223,6 @@ function MetricsEquationVisualizeContent({
 
   return (
     <Stack gap="md" flex="1">
-      {functionQueries.length > 0 && <FunctionColumnHeaders />}
       {functionQueries.map(metricQuery => {
         const isReferenced = referencedLabels.has(metricQuery.label ?? '');
         const deleteDisabledReason =
@@ -249,7 +245,6 @@ function MetricsEquationVisualizeContent({
       })}
       {equationQuery && (
         <Fragment>
-          <EquationColumnHeader />
           <RowProvider metricQuery={equationQuery}>
             <MetricToolbar
               metricQuery={equationQuery}
@@ -301,71 +296,6 @@ function RowProvider({
   );
 }
 
-function FunctionColumnHeaders() {
-  return (
-    <Grid width="100%" align="center" gap="md" columns={FUNCTION_GRID_COLUMNS}>
-      <div style={{gridColumn: 'span 2'}} />
-      <div>
-        <Tooltip
-          title={t('The application metric to aggregate in this row.')}
-          showUnderline
-        >
-          <SectionLabel>{t('Application Metric')}</SectionLabel>
-        </Tooltip>
-      </div>
-      <div>
-        <Tooltip title={t('The aggregation operation to apply.')} showUnderline>
-          <SectionLabel>{t('Operation')}</SectionLabel>
-        </Tooltip>
-      </div>
-      <div>
-        <Tooltip
-          title={t('Restrict this application metric to events matching a filter.')}
-          showUnderline
-        >
-          <SectionLabel>{t('Filter')}</SectionLabel>
-        </Tooltip>
-      </div>
-      <div />
-    </Grid>
-  );
-}
-
-function EquationColumnHeader() {
-  return (
-    <Grid width="100%" align="center" gap="md" columns={EQUATION_GRID_COLUMNS}>
-      <div style={{gridColumn: 'span 2'}} />
-      <div>
-        <Tooltip
-          title={t(
-            'Combine the application metrics above with an arithmetic expression.'
-          )}
-          showUnderline
-        >
-          <SectionLabel>{t('Equation')}</SectionLabel>
-        </Tooltip>
-      </div>
-      <div>
-        <Tooltip
-          title={t('Restrict this equation to events matching a filter.')}
-          showUnderline
-        >
-          <SectionLabel>{t('Filter')}</SectionLabel>
-        </Tooltip>
-      </div>
-      <div />
-    </Grid>
-  );
-}
-
-function SectionLabel({children}: {children: React.ReactNode}) {
-  return (
-    <span style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--gray300)'}}>
-      {children}
-    </span>
-  );
-}
-
 function MetricToolbar({
   metricQuery,
   referenceMap,
@@ -407,52 +337,56 @@ function MetricToolbar({
     }
   };
 
+  const isFunction = isVisualizeFunction(visualize);
+  const isEquation = isVisualizeEquation(visualize);
+
   return (
-    <Grid
-      width="100%"
-      align="center"
-      gap="md"
-      columns={
-        isVisualizeFunction(visualize) ? FUNCTION_GRID_COLUMNS : EQUATION_GRID_COLUMNS
-      }
-      data-test-id="metric-toolbar"
-    >
-      <Radio
-        name="metricAggregateRow"
-        checked={isSelected}
-        onChange={() =>
-          onRowSelection(isVisualizeEquation(visualize) ? EQUATION_LABEL : queryLabel)
-        }
-        aria-label={t('Use row %s as the widget aggregate', queryLabel)}
-        disabled={isVisualizeFunction(visualize) && traceMetric.name === ''}
-      />
-      <VisualizeLabel
-        label={queryLabel}
-        visualize={visualize}
-        onClick={noop}
-        disableCollapse
-      />
-      {isVisualizeFunction(visualize) ? (
-        <Fragment>
-          <Flex minWidth={0}>
-            <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+    <Flex gap="md" data-test-id="metric-toolbar" align="start">
+      <Flex gap="md" align="center" flex="0 0 auto">
+        <Radio
+          name="metricAggregateRow"
+          checked={isSelected}
+          onChange={() => onRowSelection(isEquation ? EQUATION_LABEL : queryLabel)}
+          aria-label={t('Use row %s as the widget aggregate', queryLabel)}
+          disabled={isFunction && traceMetric.name === ''}
+        />
+        <VisualizeLabel
+          label={queryLabel}
+          visualize={visualize}
+          onClick={noop}
+          disableCollapse
+          aria-role="presentation"
+        />
+      </Flex>
+      <Flex flex="1" minWidth={0} gap="md" wrap="wrap" align="center">
+        {isFunction ? (
+          <Flex wrap="nowrap" width="100%" gap="md" flex="1">
+            <Flex flex="2">
+              <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+            </Flex>
+            <Flex flex="1">
+              <AggregateDropdown traceMetric={traceMetric} singleSelect />
+            </Flex>
           </Flex>
-          <AggregateDropdown traceMetric={traceMetric} singleSelect />
-          <Filter traceMetric={traceMetric} />
-          <DeleteMetricButton disabledReason={deleteDisabledReason} />
-        </Fragment>
-      ) : isVisualizeEquation(visualize) ? (
-        <Fragment>
-          <EquationBuilder
-            expression={visualize.expression.text}
-            referenceMap={referenceMap}
-            handleExpressionChange={handleExpressionChange}
-          />
-          <Filter traceMetric={traceMetric} skipTraceMetricFilter />
-          <DeleteMetricButton />
-        </Fragment>
-      ) : null}
-    </Grid>
+        ) : isEquation ? (
+          <Flex flex="3" minWidth="250px">
+            <EquationBuilder
+              expression={visualize.expression.text}
+              referenceMap={referenceMap}
+              handleExpressionChange={handleExpressionChange}
+            />
+          </Flex>
+        ) : null}
+        <Flex flex="1" minWidth="250px">
+          <Filter traceMetric={traceMetric} skipTraceMetricFilter={isEquation} />
+        </Flex>
+      </Flex>
+      <Flex align="center">
+        <DeleteMetricButton
+          disabledReason={isFunction ? deleteDisabledReason : undefined}
+        />
+      </Flex>
+    </Flex>
   );
 }
 
