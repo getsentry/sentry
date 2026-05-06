@@ -23,7 +23,7 @@ export interface OrganizationSummary {
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
-  features: string[];
+  // features: string[];
   hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
