@@ -11,8 +11,14 @@ import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/se
 
 import type {HeatMapPlottable, PlottableTimeSeriesValueType} from './heatMapPlottable';
 
-type HeatMapPlottingOptions = {
+export type HeatMapPlottingOptions = {
   theme: Theme;
+  /**
+   * The Z-axis scale type. `'log'` applies `Math.log1p` to Z values so the
+   * color gradient distributes logarithmically. Useful when the Z range is
+   * very wide and low values would otherwise be invisible.
+   */
+  scale?: 'linear' | 'log';
 };
 
 export class HeatMap implements HeatMapPlottable {
@@ -41,16 +47,21 @@ export class HeatMap implements HeatMapPlottable {
     return this.heatMapSeries.meta.yAxis.valueUnit;
   }
 
-  toSeries(_plottingOptions: HeatMapPlottingOptions): SeriesOption[] {
+  toSeries(plottingOptions: HeatMapPlottingOptions): SeriesOption[] {
     const {heatMapSeries} = this;
+    const {scale = 'linear'} = plottingOptions;
 
     return [
       {
         name: 'heatmap', // Only one heat map is allowed per visualization, so this name doesn't have to be unique
         type: 'heatmap',
         data: heatMapSeries.values.map(item => {
-          // NOTE: This isn't heavy, but maybe worth caching anyway
-          return [item.xAxis, item.yAxis, item.zAxis ?? ECHARTS_MISSING_DATA_VALUE];
+          const zValue = item.zAxis ?? ECHARTS_MISSING_DATA_VALUE;
+          return [
+            item.xAxis,
+            item.yAxis,
+            scale === 'log' && typeof zValue === 'number' ? Math.log1p(zValue) : zValue,
+          ];
         }),
         emphasis: {
           disabled: true,

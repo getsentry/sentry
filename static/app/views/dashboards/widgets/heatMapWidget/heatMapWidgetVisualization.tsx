@@ -18,6 +18,10 @@ interface HeatMapWidgetVisualizationProps {
    * An single `HeatMap` object to render on the chart, and any number of other compatible Heat Map plottables.
    */
   plottables: [HeatMap, ...HeatMapPlottable[]];
+  /**
+   * Experimental! Specify the Z-axis scale type. Logarithmic scales can be much more useful for values with a high range.
+   */
+  scale?: 'linear' | 'log';
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
@@ -34,9 +38,12 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   // TODO: Would be wise to guard against Y-axis type mismatches, we don't want
   // to support multi-axis here.
 
+  const {scale = 'linear'} = props;
+
   const series = plottables.flatMap(plottable =>
     plottable.toSeries({
       theme,
+      scale,
     })
   );
 
@@ -45,7 +52,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   const yAxisDataType = heatMapPlottable.yAxisValueType;
   const yAxisDataUnit = heatMapPlottable.yAxisValueUnit;
 
-  const Zmax = heatMapPlottable.Zend;
+  const Zmax =
+    scale === 'log' ? Math.log1p(heatMapPlottable.Zend) : heatMapPlottable.Zend;
 
   return (
     <Flex direction="column" height="100%">
@@ -80,6 +88,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           type: 'category',
           animation: false,
           axisLabel: {
+            hideOverlap: true,
             formatter: value => {
               // NOTE: ECharts requires a `"category"` Y-axis for heat maps, but we _know_ that we only support continuous values for the Y-axis. We need to parse the value here.
               return formatYAxisValue(
