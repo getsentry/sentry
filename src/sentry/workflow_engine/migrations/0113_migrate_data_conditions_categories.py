@@ -86,6 +86,12 @@ def migrate_data_condition_issue_category(
                 front_end_comparison: dict[str, object] = {"value": 14}
                 mobile_comparison: dict[str, object] = {"value": 15}
 
+                include = comparison.get("include")
+                if include:
+                    http_client_comparison["include"] = include
+                    front_end_comparison["include"] = include
+                    mobile_comparison["include"] = include
+
                 DataCondition.objects.create(
                     type="issue_category",
                     condition_result=True,
