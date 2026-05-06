@@ -311,7 +311,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(js|jsx|ts|tsx)$/,
+        test: /\.(?:tsx?|jsx?)$/,
         // core-js: Avoids recompiling core-js based on usage imports
         // react-select: Ships pre-compiled ESM with emotion's keyframes already
         // compiled via swc. Re-processing with @swc/plugin-emotion causes
@@ -353,7 +353,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.css/,
+        test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
       {
@@ -371,7 +371,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
         type: 'asset',
       },
     ],
