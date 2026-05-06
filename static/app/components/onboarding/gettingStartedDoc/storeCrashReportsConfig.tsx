@@ -1,21 +1,32 @@
-import styled from '@emotion/styled';
+import {z} from 'zod';
+
+import {AutoSaveForm} from '@sentry/scraps/form';
+import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Form} from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
-import {formGroups as projectSecurityAndPrivacyGroups} from 'sentry/data/forms/projectSecurityAndPrivacyGroups';
+import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {
+  formatStoreCrashReports,
+  getStoreCrashReportsValues,
+  SettingScope,
+} from 'sentry/utils/crashReports';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 interface StoreCrashReportsConfigProps {
   organization: Organization;
   projectSlug: Project['slug'];
 }
+
+const schema = z.object({
+  storeCrashReports: z.number().nullable(),
+});
 
 export function StoreCrashReportsConfig({
   projectSlug,
@@ -31,44 +42,56 @@ export function StoreCrashReportsConfig({
     return <Placeholder height="72px" />;
   }
 
-  const storeCrashReportsField = projectSecurityAndPrivacyGroups
-    .flatMap(group => group.fields)
-    .find(field => field.name === 'storeCrashReports');
-
-  if (!project || !storeCrashReportsField) {
+  if (!project || !organization.features.includes('event-attachments')) {
     return null;
   }
 
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+
   return (
-    <Form
-      saveOnBlur
-      allowUndo
-      initialData={project}
-      apiMethod="PUT"
-      apiEndpoint={`/projects/${organization.slug}/${projectSlug}/`}
-      onSubmitSuccess={data => {
-        // This will update our project global state
-        ProjectsStore.onUpdateSuccess(data);
+    <AutoSaveForm
+      name="storeCrashReports"
+      schema={schema}
+      initialValue={project.storeCrashReports}
+      mutationOptions={{
+        mutationFn: (data: Partial<Project>) =>
+          fetchMutation<Project>({
+            method: 'PUT',
+            url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectSlug,
+              },
+            }),
+            data,
+          }),
+        onSuccess: data => ProjectsStore.onUpdateSuccess(data),
+        onError: () => addErrorMessage(t('Unable to save change')),
       }}
-      onSubmitError={() => addErrorMessage('Unable to save change')}
     >
-      <StyledJsonForm
-        features={new Set(organization.features)}
-        additionalFieldProps={{organization, project}}
-        disabled={!hasEveryAccess(['project:write'], {organization, project})}
-        forms={[
-          {
-            title: '', // we do not want to show the panel's header
-            fields: [storeCrashReportsField],
-          },
-        ]}
-      />
-    </Form>
+      {field => (
+        <field.Layout.Row
+          label={t('Store Minidumps As Attachments')}
+          hintText={tct(
+            'Store minidumps as attachments for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
+            {
+              organizationSettingsLink: (
+                <Link to={`/settings/${organization.slug}/security-and-privacy/`} />
+              ),
+            }
+          )}
+        >
+          <field.Select
+            value={field.state.value}
+            onChange={field.handleChange}
+            disabled={!hasAccess}
+            options={getStoreCrashReportsValues(SettingScope.PROJECT).map(value => ({
+              value,
+              label: formatStoreCrashReports(value, organization.storeCrashReports),
+            }))}
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveForm>
   );
 }
-
-const StyledJsonForm = styled(JsonForm)`
-  ${Panel} {
-    margin-bottom: 0;
-  }
-`;
