@@ -98,20 +98,16 @@ _SENTRY_APP_WEBHOOK_RETRY_IGNORE = (
     ValueError,
     RestrictedIPAddress,
 )
+# List of exceptions to silence for reporting, though we retry on some.
 _SENTRY_APP_WEBHOOK_SILENCED = (
-    # on_silent: retried but not reported
     ChunkedEncodingError,
     Timeout,
     ApiHostError,
     ApiTimeoutError,
     ConnectionError,
     HTTPError,
-    # ignore: not retried and not reported
-    ClientError,
-    SentryAppSentryError,
-    AssertionError,
-    ValueError,
-    RestrictedIPAddress,
+    # Anything not retriable should be silenced by default
+    *_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
 )
 
 # We call some models by a different name, publicly, than their class name.
