@@ -64,6 +64,7 @@ def build_test_message_blocks(
     notes: str | None = None,
     rule: IssueAlertRule | None = None,
     legacy_rule_id: int | None = None,
+    workflow_id: int | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -79,7 +80,9 @@ def build_test_message_blocks(
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
     if rule:
-        if legacy_rule_id:
+        if workflow_id:
+            title_link += f"&workflow_id={workflow_id}&alert_type=issue"
+        elif legacy_rule_id:
             title_link += f"&alert_rule_id={legacy_rule_id}&alert_type=issue"
         else:
             title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
@@ -87,7 +90,9 @@ def build_test_message_blocks(
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
 
     if rule:
-        if legacy_rule_id:
+        if workflow_id:
+            block_id = f'{{"issue":{group.id},"rule":{workflow_id}}}'
+        elif legacy_rule_id:
             block_id = f'{{"issue":{group.id},"rule":{legacy_rule_id}}}'
         else:
             block_id = f'{{"issue":{group.id},"rule":{rule.id}}}'
@@ -212,7 +217,9 @@ def build_test_message_blocks(
         blocks.append(notes_section)
 
     if rule:
-        if legacy_rule_id:
+        if workflow_id:
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/monitors/alerts/{workflow_id}/|{rule.label}>    Short ID: {group.qualified_short_id}"
+        elif legacy_rule_id:
             context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{legacy_rule_id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
         else:
             context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
@@ -348,7 +355,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             rule=rule,
-            legacy_rule_id=rule.data["actions"][0]["legacy_rule_id"],
+            workflow_id=rule.data["actions"][0]["workflow_id"],
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(

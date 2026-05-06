@@ -12,7 +12,12 @@ from sentry.digests.notifications import (
     split_key,
     unsplit_key,
 )
-from sentry.digests.types import NotificationWithRuleObjects, Record, RecordWithRuleObjects
+from sentry.digests.types import (
+    IdentifierKey,
+    NotificationWithRuleObjects,
+    Record,
+    RecordWithRuleObjects,
+)
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -39,7 +44,9 @@ class BindRecordsTestCase(TestCase):
 
     @cached_property
     def record(self) -> Record:
-        return event_to_record(self.event, (self.rule,), self.notification_uuid)
+        return event_to_record(
+            self.event, (self.rule,), self.notification_uuid, identifier_key=IdentifierKey.RULE
+        )
 
     @property
     def group_mapping(self) -> dict[int, Group]:

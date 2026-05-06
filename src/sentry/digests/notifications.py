@@ -80,7 +80,8 @@ def event_to_record(
     event: Event | GroupEvent,
     rules: Sequence[Rule],
     notification_uuid: str | None = None,
-    identifier_key: IdentifierKey = IdentifierKey.RULE,
+    *,
+    identifier_key: IdentifierKey,
 ) -> Record:
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)

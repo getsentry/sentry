@@ -12,6 +12,7 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
+from sentry.digests.types import IdentifierKey
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -61,7 +62,10 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
         assert event is not None
         backend.add(
-            self.key, event_to_record(event, [self.rule]), increment_delay=0, maximum_delay=0
+            self.key,
+            event_to_record(event, [self.rule], identifier_key=IdentifierKey.WORKFLOW),
+            increment_delay=0,
+            maximum_delay=0,
         )
 
     def run_test(
@@ -117,12 +121,13 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert isinstance(message, EmailMultiAlternatives)
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
+        workflow_id = self.rule.data["actions"][0]["workflow_id"]
         assert_any_analytics_event(
             mock_record,
             EmailNotificationSent(
                 category="digest",
                 notification_uuid="ANY",
-                alert_id=self.rule.id,
+                alert_id=workflow_id,
                 project_id=self.project.id,
                 organization_id=self.organization.id,
                 id=0,
@@ -292,13 +297,17 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         notification_uuid = str(uuid.uuid4())
         backend.add(
             key,
-            event_to_record(event1, [rule], notification_uuid),
+            event_to_record(
+                event1, [rule], notification_uuid, identifier_key=IdentifierKey.WORKFLOW
+            ),
             increment_delay=0,
             maximum_delay=0,
         )
         backend.add(
             key,
-            event_to_record(event2, [rule], notification_uuid),
+            event_to_record(
+                event2, [rule], notification_uuid, identifier_key=IdentifierKey.WORKFLOW
+            ),
             increment_delay=0,
             maximum_delay=0,
         )
@@ -315,11 +324,12 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         assert len(blocks) == 7
         assert blocks[0]["text"]["text"] == fallback_text
 
+        workflow_id = rule.data["actions"][0]["workflow_id"]
         assert event1.group
-        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
+        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&workflow_id={workflow_id}&alert_type=issue|*{event1.group.title}*>"
 
         assert event2.group
-        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
+        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&workflow_id={workflow_id}&alert_type=issue|*{event2.group.title}*>"
 
         # digest order not definitive
         try:
@@ -366,7 +376,9 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             )
             backend.add(
                 key,
-                event_to_record(event, [rule], notification_uuid),
+                event_to_record(
+                    event, [rule], notification_uuid, identifier_key=IdentifierKey.WORKFLOW
+                ),
                 increment_delay=0,
                 maximum_delay=0,
             )

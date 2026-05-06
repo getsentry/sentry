@@ -17,6 +17,7 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
+from sentry.digests.types import IdentifierKey
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
@@ -1467,7 +1468,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         rule = project.rule_set.all().order_by("id")[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE),
+                event_to_record(event2, (rule,), identifier_key=IdentifierKey.RULE),
+            ),
         )
 
         with self.tasks():
@@ -1523,7 +1528,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         rule = project.rule_set.all().order_by("id")[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE),
+                event_to_record(event2, (rule,), identifier_key=IdentifierKey.RULE),
+            ),
         )
 
         features = ["organizations:session-replay"]
@@ -1562,7 +1571,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE),
+                event_to_record(event2, (rule,), identifier_key=IdentifierKey.RULE),
+            ),
         )
 
         with self.tasks():
@@ -1600,7 +1613,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule2,)))
+            project,
+            (
+                event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE),
+                event_to_record(event2, (rule2,), identifier_key=IdentifierKey.WORKFLOW),
+            ),
         )
 
         with self.tasks():
@@ -1650,7 +1667,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule2,)))
+            project,
+            (
+                event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE),
+                event_to_record(event2, (rule2,), identifier_key=IdentifierKey.WORKFLOW),
+            ),
         )
 
         with self.tasks():
@@ -1696,7 +1717,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule2,)))
+            project,
+            (
+                event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE),
+                event_to_record(event2, (rule2,), identifier_key=IdentifierKey.WORKFLOW),
+            ),
         )
 
         with self.tasks():
@@ -1721,7 +1746,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all().order_by("id")[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        digest = build_digest(
+            self.project, (event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE),)
+        )
         self.adapter.notify_digest(
             self.project,
             digest,
@@ -1749,7 +1776,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         rule = self.project.rule_set.all().order_by("id")[0]
 
         digest = build_digest(
-            self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            self.project,
+            (
+                event_to_record(event, (rule,), identifier_key=IdentifierKey.RULE),
+                event_to_record(event2, (rule,), identifier_key=IdentifierKey.RULE),
+            ),
         )
 
         with self.tasks():
@@ -1790,7 +1821,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         rule = self.create_project_rule(name="a rule", action_data=[action_data])
 
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(event, (rule,), identifier_key=IdentifierKey.WORKFLOW),
+                event_to_record(event2, (rule,), identifier_key=IdentifierKey.WORKFLOW),
+            ),
         )
 
         with self.tasks():
