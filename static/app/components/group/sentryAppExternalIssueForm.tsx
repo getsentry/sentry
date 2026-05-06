@@ -12,6 +12,7 @@ import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   SentryAppExternalForm,
+  type FieldFromSchema,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 import {LegacySentryAppExternalForm} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.legacy';
@@ -50,7 +51,7 @@ export function SentryAppExternalIssueForm({
     onSubmitSuccess(issue);
   };
 
-  const getFieldDefault = (field: any) => {
+  const getFieldDefault = (field: FieldFromSchema) => {
     if (field.type === 'textarea') {
       field.maxRows = 10;
       field.autosize = true;
