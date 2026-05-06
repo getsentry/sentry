@@ -67,6 +67,7 @@ QUERY_TYPE_VALID_DATASETS = {
         Dataset.Transactions,
         Dataset.PerformanceMetrics,
         Dataset.EventsAnalyticsPlatform,
+        Dataset.SpansIndexed,
     },
     SnubaQuery.Type.CRASH_RATE: {Dataset.Metrics},
 }

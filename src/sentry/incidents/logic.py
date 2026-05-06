@@ -505,6 +505,7 @@ query_datasets_to_type = {
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
     Dataset.EventsAnalyticsPlatform: SnubaQuery.Type.PERFORMANCE,
+    Dataset.SpansIndexed: SnubaQuery.Type.PERFORMANCE,
 }
 
 
