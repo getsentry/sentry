@@ -66,6 +66,7 @@ from sentry.search.eap.types import (
 from sentry.search.eap.utils import (
     can_expose_attribute,
     get_secondary_aliases,
+    is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_to_sentry_conventions,
 )
@@ -556,10 +557,15 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     attribute_type,
                     trace_item_type,
                 )
-                # Remove anything where the public alias doesn't match the substring.
-                # This can happen when the public alias is different, but that's handled by
-                # aliased_attributes.
-                if substring_match in attr_key["name"] if substring_match else True:
+                if (
+                    not is_sentry_convention_replacement_attribute(
+                        attr_key["name"], trace_item_type
+                    )
+                    # Remove anything where the public alias doesn't match the substring
+                    # This can happen when the public alias is different, but that's handled by
+                    # aliased_attributes
+                    and (substring_match in attr_key["name"] if substring_match else True)
+                ):
                     attribute_keys[attr_key["key"]] = attr_key
         # We need to exclude any aliased attributes here since because of pagination they might have already been seen
         # earlier
