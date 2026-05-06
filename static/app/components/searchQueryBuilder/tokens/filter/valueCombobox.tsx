@@ -362,6 +362,7 @@ function useFilterSuggestions({
   const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
   const key = filterKeys[keyName];
   const fieldDefinition = getFieldDefinition(keyName);
+  const valueType = getFilterValueType(token, fieldDefinition);
   const predefinedValues = useMemo(
     () =>
       getPredefinedValues({
@@ -417,7 +418,7 @@ function useFilterSuggestions({
 
       return {
         label:
-          typeof label === 'string' ? (
+          typeof label === 'string' && valueType === FieldValueType.STRING ? (
             <HighlightText text={label} query={filterValue} />
           ) : (
             label
@@ -442,7 +443,7 @@ function useFilterSuggestions({
         },
       };
     },
-    [canSelectMultipleValues, filterValue]
+    [canSelectMultipleValues, filterValue, valueType]
   );
 
   const suggestionGroups = useMemo(() => {
