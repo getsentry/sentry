@@ -6,6 +6,7 @@ import {CodeBlock} from '@sentry/scraps/code';
 import * as Storybook from 'sentry/stories';
 
 import {sampleLatencyHeatMap} from './fixtures/sampleLatencyHeatMap';
+import {sampleValueHeatMap} from './fixtures/sampleValueHeatMap';
 import {HeatMap} from './plottables/heatMap';
 import {HeatMapWidgetVisualization} from './heatMapWidgetVisualization';
 
@@ -25,6 +26,10 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
 
         <LargeWidget>
           <HeatMapWidgetVisualization plottables={[new HeatMap(sampleLatencyHeatMap)]} />
+        </LargeWidget>
+
+        <LargeWidget>
+          <HeatMapWidgetVisualization plottables={[new HeatMap(sampleValueHeatMap)]} />
         </LargeWidget>
       </Fragment>
     );
