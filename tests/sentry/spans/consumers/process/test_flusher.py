@@ -241,7 +241,7 @@ def test_flusher_join_timeout_kills_all_processes() -> None:
 
     # Track which process indices had kill() called
     kill_called_for: set[int] = set()
-    flusher = None  # Will be set below, needed for patched_kill closure
+    flusher: SpanFlusher | None = None  # Will be set below, needed for patched_kill closure
 
     # Patch BaseProcess.kill to track calls (SpawnProcess inherits from this)
     original_kill = multiprocessing.process.BaseProcess.kill
@@ -289,5 +289,6 @@ def test_flusher_join_timeout_kills_all_processes() -> None:
         finally:
             # Clean up: forcibly kill any leaked processes
             for process in flusher.processes.values():
+                assert isinstance(process, multiprocessing.process.BaseProcess)
                 if process.is_alive():
                     original_kill(process)
