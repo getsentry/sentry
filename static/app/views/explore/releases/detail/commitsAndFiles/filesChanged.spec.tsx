@@ -89,28 +89,17 @@ describe('FilesChanged', () => {
 
   it('should render no files changed', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
-        release.version
-      )}/repositories/`,
-      body: repos,
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/releases/${encodeURIComponent(
         release.version
       )}/commitfiles/`,
       body: [],
     });
     renderComponent();
-    expect(await screen.findByText(/There are no changed files/)).toBeInTheDocument();
+    const emptyState = await screen.findByTestId('empty-state');
+    expect(emptyState).toHaveTextContent(/There are no changed files/);
   });
 
   it('should render list of files changed', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
-        release.version
-      )}/repositories/`,
-      body: repos,
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/releases/${encodeURIComponent(
         release.version
