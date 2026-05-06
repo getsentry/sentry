@@ -327,7 +327,7 @@ export function getWidgetReleasesUrl(
 }
 
 export function flattenErrors(
-  data: ValidationError | string,
+  data: Record<string, unknown> | string,
   update: FlatValidationError
 ): FlatValidationError {
   if (typeof data === 'string') {

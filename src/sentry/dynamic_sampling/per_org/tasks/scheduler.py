@@ -8,6 +8,7 @@ from django.db.models import F
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
+from sentry.dynamic_sampling.per_org.tasks.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
@@ -17,7 +18,6 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
-from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -97,15 +97,11 @@ def schedule_per_org_calculations() -> None:
 )
 @track_dynamic_sampling
 def run_calculations_per_org_task(org_id: OrganizationId) -> TelemetryStatus | None:
-    try:
-        organization = Organization.objects.get_from_cache(id=org_id)
-    except Organization.DoesNotExist:
-        return TelemetryStatus.ORG_NOT_FOUND
-
-    if not has_dynamic_sampling(organization):
+    config = get_configuration(org_id)
+    if not config.is_enabled:
         return TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
 
-    org_volume = get_eap_organization_volume(organization)
+    org_volume = get_eap_organization_volume(config)
     if org_volume is None:
         return TelemetryStatus.NO_VOLUME
 

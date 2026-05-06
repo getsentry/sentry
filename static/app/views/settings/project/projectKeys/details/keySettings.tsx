@@ -116,6 +116,7 @@ export function KeySettings({
               params={params}
               data={data}
               disabled={!hasAccess}
+              project={project}
               updateData={updateData}
             />
 

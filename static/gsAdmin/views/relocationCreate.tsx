@@ -9,6 +9,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -50,7 +51,7 @@ function RelocationForm() {
             host: region.url,
           })
           .catch(error => {
-            if (error.status === 403) {
+            if (error instanceof RequestError && error.status === 403) {
               addErrorMessage(PROMO_CODE_ERROR_MSG);
 
               // Ensure that the wrapping `catch` block doesn't try to re-print this error message.

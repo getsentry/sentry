@@ -30,6 +30,7 @@ from sentry.search.eap.types import (
 )
 from sentry.search.eap.utils import (
     can_expose_attribute,
+    get_deprecated_source_internal_names,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_search_type_for_internal_column,
@@ -112,6 +113,8 @@ def convert_rpc_attribute_to_json(
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     seen_sentry_conventions: set[str] = set()
+    all_internal_names = {attr["name"] for attr in attributes}
+
     for attribute in attributes:
         internal_name = attribute["name"]
 
@@ -127,23 +130,42 @@ def convert_rpc_attribute_to_json(
 
         if column_type is None and output_value is None:
             continue
-        if column_type == "array" and not include_arrays:
-            continue
 
         output_type: ScalarType | Literal["array"] = "str"
+        external_name = None
         if column_type == "array":
             translate_type = translate_search_type_for_internal_column(
                 internal_name, trace_item_type
             )
-            output_type = "array"
+            if translate_type:
+                external_name, _, _ = translate_internal_to_public_alias(
+                    internal_name, translate_type, trace_item_type
+                )
+            if not include_arrays:
+                convention_name = (
+                    translate_to_sentry_conventions(external_name, trace_item_type)
+                    if use_sentry_conventions and external_name
+                    else external_name
+                )
+                if (
+                    translate_type != "string"
+                    or not isinstance(output_value, list)
+                    or not convention_name
+                    or not is_sentry_convention_replacement_attribute(
+                        convention_name, trace_item_type
+                    )
+                ):
+                    continue
+                output_value = json.dumps(output_value)
+            else:
+                output_type = "array"
         else:
             translate_type = column_type
             output_type = python_scalar_type or output_type
-        external_name = None
-        if translate_type:
-            external_name, _, _ = translate_internal_to_public_alias(
-                internal_name, translate_type, trace_item_type
-            )
+            if translate_type:
+                external_name, _, _ = translate_internal_to_public_alias(
+                    internal_name, translate_type, trace_item_type
+                )
 
         if use_sentry_conventions and external_name:
             external_name = translate_to_sentry_conventions(external_name, trace_item_type)
@@ -154,7 +176,11 @@ def convert_rpc_attribute_to_json(
             if external_name and is_sentry_convention_replacement_attribute(
                 external_name, trace_item_type
             ):
-                continue
+                deprecated_names = get_deprecated_source_internal_names(
+                    external_name, trace_item_type
+                )
+                if not deprecated_names.isdisjoint(all_internal_names):
+                    continue
 
         if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith("sentry."):
             internal_name = internal_name.replace("sentry.", "", count=1)

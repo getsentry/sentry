@@ -1,4 +1,4 @@
-import {useEffect, useEffectEvent} from 'react';
+import {useContext, useEffect, useEffectEvent} from 'react';
 import {Outlet, useOutletContext} from 'react-router-dom';
 
 import {Button} from '@sentry/scraps/button';
@@ -16,13 +16,24 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import ProjectContext from 'sentry/views/projects/projectContext';
+import {
+  ProjectRouteContext,
+  ProjectRouteProvider,
+} from 'sentry/views/projects/projectRouteContext';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 
-type ProjectSettingsOutletContext = {
+interface ProjectSettingsOutletContext {
   project: Project;
-};
+}
+
+interface InnerProjectSettingsLayoutProps {
+  organization: Organization;
+}
+
+interface ProjectSettingsLayoutContentProps extends InnerProjectSettingsLayoutProps {
+  project: Project;
+}
 
 function ProjectSettingsOutlet(props: ProjectSettingsOutletContext) {
   return <Outlet context={props} />;
@@ -32,13 +43,10 @@ export function useProjectSettingsOutlet() {
   return useOutletContext<ProjectSettingsOutletContext>();
 }
 
-function InnerProjectSettingsLayout({
+function ProjectSettingsLayoutContent({
   organization,
   project,
-}: {
-  organization: Organization;
-  project: Project;
-}) {
+}: ProjectSettingsLayoutContentProps) {
   // set analytics params for route based analytics
   useRouteAnalyticsParams({
     project_id: project.id,
@@ -54,6 +62,14 @@ function InnerProjectSettingsLayout({
       <ProjectSettingsOutlet project={project} />
     </SettingsLayout>
   );
+}
+
+function InnerProjectSettingsLayout({organization}: InnerProjectSettingsLayoutProps) {
+  const project = useContext(ProjectRouteContext);
+
+  return project ? (
+    <ProjectSettingsLayoutContent organization={organization} project={project} />
+  ) : null;
 }
 
 export default function ProjectSettingsLayout() {
@@ -97,11 +113,9 @@ export default function ProjectSettingsLayout() {
 
   return (
     <AnalyticsArea name="project">
-      <ProjectContext projectSlug={params.projectId}>
-        {({project}) => (
-          <InnerProjectSettingsLayout organization={organization} project={project} />
-        )}
-      </ProjectContext>
+      <ProjectRouteProvider projectSlug={params.projectId}>
+        <InnerProjectSettingsLayout organization={organization} />
+      </ProjectRouteProvider>
     </AnalyticsArea>
   );
 }
