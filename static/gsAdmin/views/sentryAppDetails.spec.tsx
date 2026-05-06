@@ -87,7 +87,7 @@ describe('SentryAppDetails', () => {
     expect(await screen.findByText('Enable App')).toBeInTheDocument();
   });
 
-  it('shows isDisabled detail label', async () => {
+  it('renders isDisabled detail row for a disabled app', async () => {
     const sentryApp = {
       ...SentryAppFixture({slug: 'test-app', status: 'unpublished'}),
       owner: {slug: 'test-org'},
@@ -107,6 +107,6 @@ describe('SentryAppDetails', () => {
       },
     });
 
-    expect(await screen.findByText('isDisabled')).toBeInTheDocument();
+    expect(await screen.findByText('isDisabled:')).toBeInTheDocument();
   });
 });
