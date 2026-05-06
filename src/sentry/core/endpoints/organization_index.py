@@ -1,6 +1,5 @@
 import logging
 
-import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Q, Subquery
@@ -377,6 +376,8 @@ class OrganizationIndexEndpoint(Endpoint):
             },
             "ip_address": request.META["REMOTE_ADDR"],
             "provisioning_user_id": request.user.id,
+            "sender": "in-app",
+            "referrer": "in-app",
         }
 
         try:
