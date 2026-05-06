@@ -115,7 +115,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               seriesIndex: 0,
               pieces: [
                 {value: 0, opacity: 0},
-                {min: 0, opacity: 1},
+                {gt: 0, opacity: 1},
               ],
             },
             // All values are plotted against a palette

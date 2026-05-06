@@ -238,18 +238,7 @@ interface HeatMapItem {
   zAxis: number | null;
 }
 
-/**
- * Metadata for a heat map series X-axis. Right now this axis is always time.
- */
-interface HeatMapSeriesXAxisMeta {
-  /**
-   * The total count of buckets on this axis. Matches what was requested, if were requested
-   */
-  bucketCount: number;
-  /**
-   * The size of the buckets on this axis.
-   */
-  bucketSize: number;
+interface BoundedMeta {
   /**
    * The largest value of data on the axis
    */
@@ -264,10 +253,7 @@ interface HeatMapSeriesXAxisMeta {
   start: number;
 }
 
-/**
- * Metadata for a heat map series Y axis. Right now this is the only axis that is configurable by the user, so it returns the value type and unit.
- */
-interface HeatMapSeriesYAxisMeta {
+interface BucketedMeta {
   /**
    * The total count of buckets on this axis. Matches what was requested, if were requested
    */
@@ -276,18 +262,24 @@ interface HeatMapSeriesYAxisMeta {
    * The size of the buckets on this axis.
    */
   bucketSize: number;
-  /**
-   * The largest value of data on the axis
-   */
-  end: number;
+}
+
+interface NamedMeta {
   /**
    * The name of the series. Corresponds to what it's plotting. Could be `"time"` or something like `"count()"`
    */
   name: string;
-  /**
-   * The smallest value of data on the axis
-   */
-  start: number;
+}
+
+/**
+ * Metadata for a heat map series X-axis. Right now this axis is always time.
+ */
+interface HeatMapSeriesXAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {}
+
+/**
+ * Metadata for a heat map series Y axis. Right now this is the only axis that is configurable by the user, so it returns the value type and unit.
+ */
+interface HeatMapSeriesYAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {
   /**
    * The type of the values (e.g., "duration", "number")
    */
@@ -301,20 +293,7 @@ interface HeatMapSeriesYAxisMeta {
 /**
  * Metadata for a heat map series Z axis. Right now this is always a count.
  */
-interface HeatMapSeriesZAxisMeta {
-  /**
-   * The largest value of data on the axis
-   */
-  end: number;
-  /**
-   * The name of the series. Corresponds to what it's plotting. Could be `"time"` or something like `"count()"`
-   */
-  name: string;
-  /**
-   * The smallest value of data on the axis
-   */
-  start: number;
-}
+interface HeatMapSeriesZAxisMeta extends NamedMeta, BoundedMeta {}
 
 /**
  * Metadata for a heat map series.
