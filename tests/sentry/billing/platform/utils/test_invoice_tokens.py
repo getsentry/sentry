@@ -3,8 +3,6 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-import pytest
-
 from sentry.billing.platform.utils.invoice_tokens import (
     InvoiceTokenGenerator,
     generate_invoice_access_token,
