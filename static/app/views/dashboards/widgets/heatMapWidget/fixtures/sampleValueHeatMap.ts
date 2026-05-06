@@ -15,7 +15,7 @@ export const sampleValueHeatMap: HeatMapSeries = {
       end: 5163777,
       bucketCount: 14,
       bucketSize: 368768.428571429,
-      valueType: 'number',
+      valueType: 'integer',
       valueUnit: null,
     },
     zAxis: {
