@@ -1090,10 +1090,17 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('a:b{enter}');
 
       expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
-      expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('row', {
+          name: `a:${WildcardOperators.CONTAINS}b`,
+        })
+      ).toBeInTheDocument();
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
-      expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
+      expect(mockOnChange).toHaveBeenCalledWith(
+        `foo a:${WildcardOperators.CONTAINS}b`,
+        expect.anything()
+      );
     });
 
     it('adds default value for filter when typing <filter>:', async () => {
@@ -1164,6 +1171,19 @@ describe('SearchQueryBuilder', () => {
         'browser.name:Firefox',
         expect.anything()
       );
+    });
+
+    it('defaults to contains when adding a default-string filter', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
+
+      expect(
+        screen.getByRole('row', {
+          name: `custom_tag_name:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
     });
 
     it('does not switch operator to "is" when filter already has a value', async () => {
@@ -1322,7 +1342,7 @@ describe('SearchQueryBuilder', () => {
       );
 
       const browserNameFilter = await screen.findByRole('row', {
-        name: '!browser.name:""',
+        name: `!browser.name:${WildcardOperators.CONTAINS}""`,
       });
       expect(browserNameFilter).toBeInTheDocument();
     });
