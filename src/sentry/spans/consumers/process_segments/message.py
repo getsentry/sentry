@@ -2,7 +2,7 @@ import logging
 import types
 import uuid
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -32,7 +32,7 @@ from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data, make_compatible
-from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
+from sentry.spans.consumers.process_segments.types import Attribute, CompatibleSpan, attribute_value
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
@@ -180,17 +180,26 @@ def _enrich_spans(
 
 @metrics.wraps("spans.consumers.process_segments.add_segment_name")
 def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) -> None:
-    segment_name = segment.get("name")
+    # Prefer sentry.segment.name, then fall back to the v1 description for backwards
+    # compatibility, and finally to the name if all else fails.
+    segment_name = (
+        attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME)
+        or segment.get("description")
+        or segment.get("name")
+    )
     if not segment_name:
         return
 
     for span in spans:
         if not attribute_value(span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME):
             span["attributes"] = span.get("attributes") or {}
-            span["attributes"][ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME] = {  # type: ignore[index]
-                "type": "string",
-                "value": segment_name,
-            }
+            span["attributes"][ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME] = cast(  # type: ignore[index]
+                Attribute,
+                {
+                    "type": "string",
+                    "value": segment_name,
+                },
+            )
 
 
 @metrics.wraps("spans.consumers.process_segments.compute_breakdowns")
