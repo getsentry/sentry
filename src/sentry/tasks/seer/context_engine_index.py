@@ -14,11 +14,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
-from sentry.seer.autofix.utils import (
-    bulk_read_preferences_from_sentry_db,
-    get_autofix_repos_from_project_code_mappings,
-)
-from sentry.seer.explorer.context_engine_utils import (
+from sentry.seer.agent.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
     ProjectEventCounts,
     get_event_counts_for_org_projects,
@@ -27,15 +23,19 @@ from sentry.seer.explorer.context_engine_utils import (
     get_top_span_ops_for_org_projects,
     get_top_transactions_for_org_projects,
 )
-from sentry.seer.explorer.explorer_service_map_utils import (
+from sentry.seer.agent.service_map_utils import (
     _build_nodes,
     _query_service_dependencies,
     _send_to_seer,
 )
+from sentry.seer.autofix.utils import (
+    bulk_read_preferences_from_sentry_db,
+    get_autofix_repos_from_project_code_mappings,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    ExplorerIndexOrgRepoRequest,
-    ExplorerIndexSentryKnowledgeRequest,
+    AgentIndexOrgRepoRequest,
+    AgentIndexSentryKnowledgeRequest,
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
     RepoDetails,
@@ -290,9 +290,7 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
 
     viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_org_repo_knowledge_index_request(
-        ExplorerIndexOrgRepoRequest(
-            org_id=organization.id, repos=list(org_repo_definitions.values())
-        ),
+        AgentIndexOrgRepoRequest(org_id=organization.id, repos=list(org_repo_definitions.values())),
         timeout=30,
         viewer_context=viewer_context,
     )
@@ -408,7 +406,7 @@ def schedule_context_engine_indexing_tasks() -> None:
 )
 def index_sentry_knowledge() -> None:
     response = make_index_sentry_knowledge_request(
-        body=ExplorerIndexSentryKnowledgeRequest(replace_existing=True)
+        body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
     )
 
     if response.status >= 400:

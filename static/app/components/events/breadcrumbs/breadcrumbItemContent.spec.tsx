@@ -18,7 +18,7 @@ describe('BreadcrumbItemContent', () => {
       data: {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6},
     };
     render(<BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />);
-    expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
+    expect(screen.getByText(breadcrumb.message!)).toBeInTheDocument();
     expect(screen.getByText('6 items')).toBeInTheDocument();
   });
 
@@ -36,7 +36,7 @@ describe('BreadcrumbItemContent', () => {
       },
     };
     render(<BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />);
-    expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
+    expect(screen.getByText(breadcrumb.message!)).toBeInTheDocument();
     // Link is rendered in a span between method and status code
     expect(
       screen.getByText(`${breadcrumb.data?.method}: [${breadcrumb.data?.status_code}]`)
@@ -57,7 +57,7 @@ describe('BreadcrumbItemContent', () => {
     render(<BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />);
     // .token denotes Prism tokens for special formatting
     expect(
-      screen.getByText(breadcrumb.message as string, {selector: '.token'})
+      screen.getByText(breadcrumb.message!, {selector: '.token'})
     ).toBeInTheDocument();
     expect(screen.getByText('6 items')).toBeInTheDocument();
   });
@@ -81,7 +81,7 @@ describe('BreadcrumbItemContent', () => {
     const item = render(
       <BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />
     );
-    expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
+    expect(screen.getByText(breadcrumb.message!)).toBeInTheDocument();
     expect(
       screen.getByText(`${breadcrumb?.data?.type}: ${breadcrumb?.data?.value}`)
     ).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe('BreadcrumbItemContent', () => {
         fullyExpanded={false}
       />
     );
-    expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
+    expect(screen.getByText(breadcrumb.message!)).toBeInTheDocument();
     expect(screen.getByText(breadcrumb?.data?.value)).toBeInTheDocument();
     expect(screen.getByText('6 items')).toBeInTheDocument();
     itemWithoutType.unmount();
@@ -117,7 +117,7 @@ describe('BreadcrumbItemContent', () => {
         fullyExpanded={false}
       />
     );
-    expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
+    expect(screen.getByText(breadcrumb.message!)).toBeInTheDocument();
     expect(screen.getByText(breadcrumb?.data?.type)).toBeInTheDocument();
     expect(screen.getByText('6 items')).toBeInTheDocument();
     itemWithoutValue.unmount();

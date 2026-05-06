@@ -53,7 +53,7 @@ export function useMouseTracking<T extends Element>({
   onMouseLeave,
   ...rest
 }: Opts<T>) {
-  const controller = useRef<AbortController>(new AbortController());
+  const controller = useRef(new AbortController());
 
   const handlePositionChange = useCallback(
     async (e: MouseEvent<T>) => {

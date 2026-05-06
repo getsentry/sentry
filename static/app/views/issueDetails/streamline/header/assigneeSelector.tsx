@@ -158,6 +158,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         label: t('Assign to'),
         icon: currentAssigneeIcon,
       }}
+      limit={4}
     >
       {user && (
         <CMDKAction

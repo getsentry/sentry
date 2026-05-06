@@ -52,13 +52,11 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             workflow=self.workflow, action=action, group=self.group
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action}
-        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
-            self.workflow.id,
-        }
+        assert set(action_to_workflow_id.values()) == {self.workflow.id}
 
         for status in [status_1, status_2]:
             status.refresh_from_db()
@@ -85,7 +83,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action, action_3}
@@ -103,13 +101,13 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )  # shared action
         self.create_workflow_data_condition_group(workflow, action_group)
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # dedupes action if both workflows will fire it
         assert set(triggered_actions) == {self.action}
-        # Dedupes action so we have a single workflow_id -> environment to fire with
-        assert getattr(triggered_actions[0], "workflow_id") == self.workflow.id
+        # Dedupes action so we have a single workflow_id to fire with
+        assert action_to_workflow_id[self.action.id] == self.workflow.id
 
         assert WorkflowActionGroupStatus.objects.filter(action=self.action).count() == 2
 
@@ -127,14 +125,12 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status.update(date_updated=timezone.now() - timedelta(hours=1))
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # fires one action for the workflow that can fire it
         assert set(triggered_actions) == {self.action}
-        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
-            self.workflow.id
-        }
+        assert set(action_to_workflow_id.values()) == {self.workflow.id}
 
         assert WorkflowActionGroupStatus.objects.filter(action=self.action).count() == 2
 
@@ -280,7 +276,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
@@ -300,12 +296,12 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
         assert set(triggered_actions) == {self.action}
-        assert getattr(triggered_actions[0], "workflow_id") == workflow.id
+        assert action_to_workflow_id[self.action.id] == workflow.id
 
     def test_skips_action_with_no_workflow(self) -> None:
         orphan_group = self.create_data_condition_group(logic_type="any-short")
@@ -316,7 +312,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         # No WorkflowDataConditionGroup links orphan_group to any workflow
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
             {self.action_group, orphan_group}, self.event_data
         )
 

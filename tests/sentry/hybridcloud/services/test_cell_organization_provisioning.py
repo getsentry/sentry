@@ -25,6 +25,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_cells
 from sentry.users.models.user import User
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 @control_silo_test(cells=create_test_cells("us"))
@@ -32,11 +33,14 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
     def get_provisioning_args(
         self, user: User, is_test: bool = False, create_default_team: bool = True
     ) -> OrganizationProvisioningOptions:
+        rpc_user = serialize_generic_user(user)
+        assert rpc_user
         return OrganizationProvisioningOptions(
             provision_options=OrganizationOptions(
                 name="Santry",
                 slug="santry",
-                owning_user_id=user.id,
+                owner=rpc_user,
+                owning_user_id=rpc_user.id,
                 is_test=is_test,
                 create_default_team=create_default_team,
             ),

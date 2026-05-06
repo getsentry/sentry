@@ -1,9 +1,8 @@
 import type {Series} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 // Import the field mapping from dashboard config
 import {FIELD_TO_METRICS_EXPRESSION} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
@@ -75,13 +74,12 @@ export function getReleasesSeriesQueryOptions({
   statsPeriod,
   start,
   end,
-}: ReleaseSeriesQueryOptions): ApiQueryKey {
+}: ReleaseSeriesQueryOptions) {
   const field = fieldsToDerivedMetrics(aggregate);
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/metrics/data/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
+  return apiOptions.as<SessionApiResponse>()(
+    '/organizations/$organizationIdOrSlug/metrics/data/',
     {
+      path: {organizationIdOrSlug: organization.slug},
       query: {
         field: [field],
         includeSeries: 1,
@@ -96,6 +94,7 @@ export function getReleasesSeriesQueryOptions({
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
       },
-    },
-  ];
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 }

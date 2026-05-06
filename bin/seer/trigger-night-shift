@@ -9,7 +9,11 @@ import sys
 
 from sentry import options
 from sentry.models.organization import Organization
-from sentry.tasks.seer.night_shift.cron import run_night_shift_for_org
+from sentry.seer.models.night_shift import SeerNightShiftRun
+from sentry.tasks.seer.night_shift.cron import (
+    SeerNightShiftRunOptionsPartial,
+    run_night_shift_for_org,
+)
 
 
 def _positive_int(value: str) -> int:
@@ -34,15 +38,28 @@ def _get_explorer_url(org_id: int, run_id: int) -> str | None:
 
 def main(org_id: int, max_candidates: int | None) -> None:
     sys.stdout.write(f"> Running night shift for organization {org_id}...\n")
-    agent_run_id = run_night_shift_for_org(org_id, max_candidates=max_candidates)
+    run_options: SeerNightShiftRunOptionsPartial = {"source": "manual"}
+    if max_candidates is not None:
+        run_options["max_candidates"] = max_candidates
+    run_id = run_night_shift_for_org(org_id, options=run_options)
     sys.stdout.write("> Done.\n")
 
-    if agent_run_id is not None:
-        explorer_url = _get_explorer_url(org_id, agent_run_id)
-        if explorer_url:
-            sys.stdout.write(f"> Explorer run: {explorer_url}\n")
-        else:
-            sys.stdout.write(f"> Explorer run ID: {agent_run_id}\n")
+    if run_id is None:
+        return
+
+    agent_run_id = (
+        SeerNightShiftRun.objects.values_list("extras", flat=True)
+        .get(id=run_id)
+        .get("agent_run_id")
+    )
+    if agent_run_id is None:
+        return
+
+    explorer_url = _get_explorer_url(org_id, agent_run_id)
+    if explorer_url:
+        sys.stdout.write(f"> Explorer run: {explorer_url}\n")
+    else:
+        sys.stdout.write(f"> Explorer run ID: {agent_run_id}\n")
 
 
 if __name__ == "__main__":

@@ -3,8 +3,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {makeProjectSeerPreferencesQueryKey} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
@@ -12,7 +11,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {processInChunks} from 'sentry/utils/array/procesInChunks';
-import {fetchDataQuery, fetchMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -28,12 +27,11 @@ export function useBulkMutateSelectedAgent() {
         items: projects,
         chunkSize: 15,
         fn: async project => {
-          const [preferencesData] = await queryClient.fetchQuery({
-            queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-            queryFn: fetchDataQuery<SeerPreferencesResponse>,
+          const preferencesData = await queryClient.fetchQuery({
+            ...projectSeerPreferencesApiOptions(organization.slug, project.slug),
             staleTime: 0,
           });
-          const preference = preferencesData?.preference;
+          const preference = preferencesData.json.preference;
 
           const handoff: ProjectSeerPreferences['automation_handoff'] =
             integration !== 'seer' && integration
@@ -81,9 +79,9 @@ export function useBulkMutateSelectedAgent() {
         }).queryKey,
       });
       for (const project of projects) {
-        queryClient.invalidateQueries({
-          queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
-        });
+        queryClient.invalidateQueries(
+          projectSeerPreferencesApiOptions(organization.slug, project.slug)
+        );
       }
 
       const failures = results.filter(r => r.status === 'rejected');

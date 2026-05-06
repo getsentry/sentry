@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.eventstore import backend as eventstore
 from sentry.models.group import DEFAULT_TYPE_ID
 from sentry.tasks.seer.backfill_supergroups_lightweight import (
     backfill_supergroups_lightweight_for_org,
@@ -177,13 +178,69 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
     )
     @patch("sentry.tasks.seer.backfill_supergroups_lightweight.bulk_snuba_queries")
     def test_skips_old_groups_with_no_events(self, mock_snuba, mock_request):
-        """Old groups are still fetched from DB but skipped when Snuba returns no events."""
-        self.group.last_seen = datetime.now(UTC) - timedelta(days=91)
+        """Groups inside the age window but with no Snuba events are skipped."""
+        # Inside the 90-day DB cutoff so the group reaches Snuba; this exercises
+        # the secondary skip path (e.g. events aged out of Snuba retention).
+        self.group.last_seen = datetime.now(UTC) - timedelta(days=30)
         self.group.save(update_fields=["last_seen"])
 
         mock_snuba.return_value = [{"data": []}]
 
         backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        mock_request.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    @patch("sentry.tasks.seer.backfill_supergroups_lightweight.bulk_snuba_queries")
+    def test_skips_groups_older_than_max_age(self, mock_snuba, mock_request):
+        self.group.last_seen = datetime.now(UTC) - timedelta(days=91)
+        self.group.save(update_fields=["last_seen"])
+
+        backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        # DB-level filter — Snuba is never queried for stale groups.
+        mock_snuba.assert_not_called()
+        mock_request.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    def test_processes_groups_within_max_age(self, mock_request):
+        mock_request.return_value = MagicMock(status=200)
+        self.group.last_seen = datetime.now(UTC) - timedelta(days=89)
+        self.group.save(update_fields=["last_seen"])
+
+        backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        mock_request.assert_called_once()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    def test_skips_security_report_event_types(self, mock_request):
+        mock_request.return_value = MagicMock(status=200)
+
+        # Bind real node data, then stamp the event as a security report so the
+        # task's get_event_type() check trips. Avoids fighting Relay
+        # normalization to mint a real CSP fixture in the test.
+        original_bind = eventstore.bind_nodes
+
+        def bind_and_mark_csp(events):
+            original_bind(events)
+            for event in events:
+                if event.data:
+                    event.data["type"] = "csp"
+
+        with patch(
+            "sentry.tasks.seer.backfill_supergroups_lightweight.eventstore.bind_nodes",
+            side_effect=bind_and_mark_csp,
+        ):
+            backfill_supergroups_lightweight_for_org(self.organization.id)
 
         mock_request.assert_not_called()
 

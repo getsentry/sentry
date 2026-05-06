@@ -257,7 +257,7 @@ describe('getWidgetMetricsUrl', () => {
       expect(params.metric).toBeDefined();
       const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
 
-      const parsedMetrics = metrics.map(metric => JSON.parse(metric as string));
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
       expect(parsedMetrics).toHaveLength(3);
       expect(parsedMetrics.map(m => m.metric)).toEqual([
         {name: 'test_metric_a', type: 'duration'},
@@ -306,7 +306,7 @@ describe('getWidgetMetricsUrl', () => {
       expect(metrics).toHaveLength(4);
 
       // Should be grouped by aggregate (all avg together, then all p95 together)
-      const parsedMetrics = metrics.map(metric => JSON.parse(metric as string));
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
       const avgMetrics = parsedMetrics.filter(m =>
         m.aggregateFields[0].yAxes[0].includes('avg')
       );
@@ -354,7 +354,7 @@ describe('getWidgetMetricsUrl', () => {
       const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
       expect(metrics).toHaveLength(2);
 
-      const parsedMetrics = metrics.map(metric => JSON.parse(metric as string));
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
       expect(parsedMetrics[0].query).toContain('http.status_code:200');
       expect(parsedMetrics[1].query).toContain('http.status_code:500');
     });

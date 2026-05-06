@@ -34,7 +34,7 @@ export function FeatureDisabledModal({
         />
       </Body>
       <Footer>
-        <Button priority="primary" onClick={closeModal}>
+        <Button variant="primary" onClick={closeModal}>
           {t('Got it')}
         </Button>
       </Footer>

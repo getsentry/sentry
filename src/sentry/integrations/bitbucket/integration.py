@@ -205,6 +205,9 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         _, source_path = parse_bitbucket_src_url(repo.url, url)
         return source_path
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name", "scopes", "uuid", "type"]
+
     # Bitbucket only methods
 
     @property

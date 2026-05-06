@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {makeCloseButton} from '@sentry/scraps/modal';
+
 import {createTeam} from 'sentry/actionCreators/teams';
-import {makeCloseButton} from 'sentry/components/globalModal/components';
 import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 
 jest.mock('sentry/actionCreators/teams', () => ({

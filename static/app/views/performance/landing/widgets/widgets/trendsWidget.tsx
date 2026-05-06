@@ -69,7 +69,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
   const trendFunctionField = TrendFunctionField.P95;
 
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
 
   const eventView = _eventView.clone();
   eventView.fields = fields;

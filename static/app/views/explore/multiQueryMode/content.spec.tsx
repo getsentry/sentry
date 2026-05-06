@@ -920,7 +920,6 @@ describe('MultiQueryModeContent', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'spans',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -934,7 +933,6 @@ describe('MultiQueryModeContent', () => {
             sampling: 'NORMAL',
             sort: '-timestamp',
             statsPeriod: '7d',
-            topEvents: undefined,
             yAxis: ['count(span.duration)'],
           }),
         })
@@ -974,7 +972,6 @@ describe('MultiQueryModeContent', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'spans',
             disableAggregateExtrapolation: '0',
             environment: [],

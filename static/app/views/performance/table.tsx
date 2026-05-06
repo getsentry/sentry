@@ -4,13 +4,13 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
@@ -292,7 +292,7 @@ export function Table({
           dataRow['http.method'] as string,
         ]);
       }
-      if (dataRow.hasOwnProperty('transaction.op')) {
+      if (Object.hasOwn(dataRow, 'transaction.op')) {
         existingQuery.removeFilter('!transaction.op');
         existingQuery.removeFilter('transaction.op');
         if (dataRow['transaction.op']) {

@@ -108,7 +108,7 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
           )}
         </p>
         <ButtonWrapper>
-          <Button data-test-id="form-submit" priority="primary" type="submit">
+          <Button data-test-id="form-submit" variant="primary" type="submit">
             {t('Restore Organization')}
           </Button>
         </ButtonWrapper>

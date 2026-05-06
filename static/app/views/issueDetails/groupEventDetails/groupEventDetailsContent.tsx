@@ -105,7 +105,7 @@ export function EventDetailsContent({
     !isNativePlatform(event.platform);
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
-    const {entries = []} = event;
+    const {entries} = event;
     return entries.reduce<Partial<EntryMap>>((entryMap, entry) => {
       (entryMap as Record<string, Entry>)[entry.type] = entry;
       return entryMap;

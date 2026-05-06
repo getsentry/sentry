@@ -58,7 +58,7 @@ type Props = {
 
 export function GenericField({
   config,
-  formData = {},
+  formData,
   formErrors = {},
   formState,
   onChange,

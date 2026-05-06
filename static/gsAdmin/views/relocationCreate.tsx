@@ -165,7 +165,7 @@ function RelocationForm() {
           aria-label="promo-code-input"
           placeholder=""
         />
-        <SubmitButton priority="primary" type="submit">
+        <SubmitButton variant="primary" type="submit">
           Submit
         </SubmitButton>
       </form>

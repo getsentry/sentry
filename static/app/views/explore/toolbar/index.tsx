@@ -28,7 +28,7 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   return (
     <Container
       data-test-id="explore-span-toolbar"
-      minWidth={typeof width === 'undefined' ? undefined : `${width}px`}
+      minWidth={width === undefined ? undefined : `${width}px`}
     >
       <ToolbarVisualize
         visualizes={visualizes}

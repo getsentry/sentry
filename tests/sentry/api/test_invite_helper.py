@@ -65,7 +65,11 @@ class ApiInviteHelperTest(TestCase):
         member_id = invite_context.invite_organization_member_id
         assert member_id is not None
 
-        # Without this member_id, don't delete the organization member
+        # Re-invoking accept_invite after the invite was already accepted is a
+        # no-op and must NOT delete any OrganizationMember — token validation
+        # on the cleanup path prevents the caller's own membership (or any
+        # other member) from being removed without a matching pending-invite
+        # token.
         invite_context.invite_organization_member_id = None
         helper = ApiInviteHelper(self.request, invite_context, None)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -74,13 +78,14 @@ class ApiInviteHelperTest(TestCase):
         assert om.email is None
         assert om.user_id == self.user.id
 
-        # With the member_id, ensure it's deleted
+        # Even when invite_organization_member_id points back at the caller's
+        # own (already-accepted) OM, no deletion occurs: the OM is no longer
+        # pending and its token was cleared on accept.
         invite_context.invite_organization_member_id = member_id
         helper = ApiInviteHelper(self.request, invite_context, None)
         with assume_test_silo_mode(SiloMode.CONTROL):
             helper.accept_invite(self.user)
-        with pytest.raises(OrganizationMember.DoesNotExist):
-            OrganizationMember.objects.get(id=self.member.id)
+        assert OrganizationMember.objects.filter(id=self.member.id).exists()
 
     def test_accept_invite_with_optional_SSO(self) -> None:
         ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")

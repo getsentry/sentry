@@ -165,11 +165,11 @@ pnpm run fix
 #### Testing
 
 ```bash
-# Run JavaScript tests (always use CI flag)
-CI=true pnpm test <file_path>
+# Run JavaScript tests
+pnpm test-ci <file_path>
 
 # Run specific test file(s)
-CI=true pnpm test components/avatar.spec.tsx
+pnpm test-ci components/avatar.spec.tsx
 ```
 
 ### Git worktrees

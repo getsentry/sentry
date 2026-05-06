@@ -92,7 +92,7 @@ type ContractPricingTier = {
   start?: string;
 };
 
-export type ContractTieredPricingRate = {
+type ContractTieredPricingRate = {
   tiers?: ContractPricingTier[];
 };
 
@@ -111,7 +111,7 @@ export type ContractSharedSKUBudget = {
   skus?: string[];
 };
 
-export type ContractMetadata = {
+type ContractMetadata = {
   id?: string;
   organizationId?: string;
 };
@@ -120,7 +120,7 @@ type ContractAddress = {
   countryCode?: string;
 };
 
-export type ContractBillingConfig = {
+type ContractBillingConfig = {
   address?: ContractAddress;
   billingType?: string;
   channel?: string;
@@ -128,7 +128,7 @@ export type ContractBillingConfig = {
   contractStartDate?: ContractDate;
 };
 
-export type ContractPricingConfig = {
+type ContractPricingConfig = {
   basePriceCents?: string;
   billingPeriodEndDate?: ContractDate;
   billingPeriodStartDate?: ContractDate;

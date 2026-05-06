@@ -38,7 +38,7 @@ export function hydrateBreadcrumbs(
           timestampMs: time.getTime(),
         };
       } catch {
-        return undefined;
+        return;
       }
     })
     .filter(isBreadcrumbFrame);

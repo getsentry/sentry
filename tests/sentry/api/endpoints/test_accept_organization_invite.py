@@ -349,6 +349,70 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert OrganizationMember.objects.filter(id=other_om.id).exists()
         self.assert_org_member_mapping(org_member=other_om)
 
+    def test_non_member_cannot_delete_other_members_membership(self) -> None:
+        attacker = self.create_user("attacker@example.com")
+        self.login_as(attacker)
+
+        victim = self.create_user("victim@example.com")
+        victim_om = Factories.create_member(
+            user=victim, organization=self.organization, role="owner"
+        )
+
+        path = self._get_path(
+            "sentry-api-0-organization-accept-organization-invite",
+            [victim_om.id, "bogustoken"],
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 400
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            assert OrganizationMember.objects.filter(id=victim_om.id).exists()
+        self.assert_org_member_mapping(org_member=victim_om)
+
+    def test_existing_member_cannot_delete_other_members_membership(self) -> None:
+        attacker = self.create_user("attacker@example.com")
+        Factories.create_member(user=attacker, organization=self.organization, role="member")
+        self.login_as(attacker)
+
+        victim = self.create_user("victim@example.com")
+        victim_om = Factories.create_member(
+            user=victim, organization=self.organization, role="owner"
+        )
+
+        path = self._get_path(
+            "sentry-api-0-organization-accept-organization-invite",
+            [victim_om.id, "bogustoken"],
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 400
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            assert OrganizationMember.objects.filter(id=victim_om.id).exists()
+        self.assert_org_member_mapping(org_member=victim_om)
+
+    def test_existing_member_cannot_delete_pending_invite_with_bogus_token(self) -> None:
+        attacker = self.create_user("attacker@example.com")
+        Factories.create_member(user=attacker, organization=self.organization, role="member")
+        self.login_as(attacker)
+
+        pending_om = Factories.create_member(
+            email="pending@example.com",
+            role="member",
+            token="correcttoken",
+            organization=self.organization,
+        )
+
+        path = self._get_path(
+            "sentry-api-0-organization-accept-organization-invite",
+            [pending_om.id, "bogustoken"],
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 400
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            assert OrganizationMember.objects.filter(id=pending_om.id).exists()
+        self.assert_org_member_mapping(org_member=pending_om)
+
     def test_can_accept_when_user_has_2fa(self) -> None:
         urls = self._get_urls()
 

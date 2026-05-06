@@ -19,6 +19,8 @@ export function trackEngagementAnalytics(
     WidgetType.RELEASE,
   ]);
   const logWidgetTypes = new Set<string | undefined>([WidgetType.LOGS]);
+  const metricsWidgetTypes = new Set<string | undefined>([WidgetType.TRACEMETRICS]);
+
   const tracingWidgetTypes = new Set<string | undefined>([
     WidgetType.TRANSACTIONS,
     WidgetType.SPANS,
@@ -26,6 +28,7 @@ export function trackEngagementAnalytics(
   let issuesWidgetCount = 0.0;
   let logWidgetCount = 0.0;
   let tracingWidgetCount = 0.0;
+  let metricsWidgetCount = 0.0;
   for (const widget of widgets) {
     if (issuesWidgetTypes.has(widget.widgetType)) {
       issuesWidgetCount += 1.0;
@@ -33,6 +36,8 @@ export function trackEngagementAnalytics(
       logWidgetCount += 1.0;
     } else if (tracingWidgetTypes.has(widget.widgetType)) {
       tracingWidgetCount += 1.0;
+    } else if (metricsWidgetTypes.has(widget.widgetType)) {
+      metricsWidgetCount += 1.0;
     }
   }
   const analyticsPayload = {
@@ -41,6 +46,7 @@ export function trackEngagementAnalytics(
     tracingRatio: tracingWidgetCount / widgets.length,
     issuesRatio: issuesWidgetCount / widgets.length,
     logRatio: logWidgetCount / widgets.length,
+    metricsRatio: metricsWidgetCount / widgets.length,
     globalFilterCount,
   };
   trackAnalytics('dashboards_views.engagement.load', analyticsPayload);

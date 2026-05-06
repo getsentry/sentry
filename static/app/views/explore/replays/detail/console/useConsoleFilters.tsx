@@ -35,7 +35,7 @@ function getFilterableField(frame: BreadcrumbFrame) {
     const consoleFrame = frame;
     return consoleFrame.level;
   }
-  return undefined;
+  return;
 }
 
 const FILTERS = {

@@ -28,7 +28,7 @@ type GroupEventAttachmentsTypeFilter =
   | 'event.applecrashreport'
   | 'event.screenshot';
 
-interface GroupEventAttachmentsQuery {
+type GroupEventAttachmentsQuery = {
   cursor?: string;
   end?: DateString;
   environment?: string[] | string;
@@ -38,7 +38,7 @@ interface GroupEventAttachmentsQuery {
   start?: DateString;
   statsPeriod?: string;
   types?: GroupEventAttachmentsTypeFilter | GroupEventAttachmentsTypeFilter[];
-}
+};
 
 export interface FetchGroupEventAttachmentsApiOptionsParams {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';

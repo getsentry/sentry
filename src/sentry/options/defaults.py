@@ -419,7 +419,17 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
 register(
     "objectstore.config",
-    default={"base_url": "http://127.0.0.1:8888"},
+    default={
+        "base_url": "http://127.0.0.1:8888",
+        # Test-only token generator with no permissions. Only active when no real
+        # objectstore config is deployed. Exists so mint_token() does not raise in
+        # test/dev environments that lack signing keys.
+        "token_generator": {
+            "kid": "test",
+            "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
+            "permissions": [],
+        },
+    },
     flags=FLAG_NOSTORE,
 )
 
@@ -717,8 +727,6 @@ register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_
 register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Issue Summary on Alerts (timeout in seconds)
-register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register(
     "seer.max_num_autofix_autotriggered_per_hour",
@@ -1233,7 +1241,7 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Explorer context engine indexing options
+# Agent context engine indexing options
 register(
     "explorer.context_engine_indexing.enable",
     default=False,
@@ -2369,6 +2377,36 @@ register(
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
 register("dynamic-sampling.config.killswitch", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Killswitch for the per-org dynamic sampling pipeline. When set to True, the
+# scheduled entry point exits before it can enqueue work.
+register(
+    "dynamic-sampling.per_org.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
+# organization id. A value of 0.0 disables the pipeline for every org; 1.0
+# enables it for every org. Intermediate values select a stable hash-based
+# subset so toggling the rate up and down does not reshuffle which orgs run.
+register(
+    "dynamic-sampling.per_org.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sample rate for metrics emitted by the per-org dynamic sampling pipeline
+# (status counters, org_status counters, duration timer). 1.0 emits every
+# event; lower values drop events proportionally. Use this to reduce metric
+# volume/cost when the pipeline is rolled out to many organizations.
+register(
+    "dynamic-sampling.per_org.metrics-sample-rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
 # there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
@@ -3249,6 +3287,18 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# TTL (in seconds) for the per-segment lock acquired at flush time to
+# prevent two flushers from producing the same segment concurrently.
+# The lock is never explicitly released and only expires via this TTL.
+# Pick a value larger than the expected flush+produce latency but smaller than
+# `spans.buffer.root-timeout` so a re-entered segment isn't blocked from its
+# next flush cycle. If set to 0, no locks will be acquired.
+register(
+    "spans.buffer.flusher.flush-lock-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
@@ -3392,6 +3442,16 @@ register(
     type=Dict,
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch list of NotificationSource values that should be blocked from being
+# dispatched by the notification platform's NotificationService. Values must match
+# the string values of `sentry.notifications.platform.types.NotificationSource`.
+register(
+    "notifications.platform.killswitch.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Options - End
 
@@ -3592,22 +3652,6 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Tuning knobs for the periodic open-period-activity cleanup task.
-# time_limit is a wall-clock budget checked *between* batches, so a single
-# batch that exceeds it will still run to completion. Setting it to 0
-# prevents any batches from running.
-register(
-    "workflow_engine.open_period_activity_cleanup.time_limit_seconds",
-    type=Float,
-    default=5.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "workflow_engine.open_period_activity_cleanup.batch_size",
-    type=Int,
-    default=10000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3664,6 +3708,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "uptime.use-detectors-by-data-source-cache",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Configures the list of public IP addresses that are returned from the
 # `uptime-ips` API. This does NOT control what actual IPs are used to make the
 # check, we simply have this as an option so that we can quickly update this
@@ -3700,6 +3751,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Routes the seen-stats / TSDB conditions through `get_snuba_column_name`
+# so a column-name-vs-tag-name collision (e.g. user tag named `platform`)
+# resolves to the tag, matching the issue surfacing query. Without this,
+# `resolve_column`'s DATASET_FIELDS shortcut treats user-typed bare column
+# names as column references and the badge disagrees with surfacing.
+register(
+    "issues.search.use-tag-aware-condition-resolver",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rate limiting for the occurrence consumer
 register(
     "issues.occurrence-consumer.rate-limit.quota",
@@ -3716,14 +3779,6 @@ register(
 )
 register(
     "eventstore.adjacent_event_ids_use_snql",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Bug fix for prev/next event navigation
-register(
-    "eventstore.adjacent_event_ids_apply_query_conditions",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3967,12 +4022,11 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Allow list for projects with LLM issue detection enabled
 register(
-    "issue-detection.llm-detection.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "issue-detection.llm-detection.traces-per-invocation",
+    type=Dict,
+    default={"team": 1, "business": 1},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls whether deletion from EAP is enabled.
@@ -4013,6 +4067,14 @@ register(
     "sentry-apps.webhook.restricted-webhook-sending",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enforce is_disabled field on sentry app endpoints and webhooks.
+register(
+    "sentry-apps.disabled-enforcement",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4101,6 +4163,16 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Cells
+
+# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
+register(
+    "provision_organization_in_cell.record_analytics",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # SCM

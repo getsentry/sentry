@@ -3,10 +3,7 @@ from unittest.mock import patch
 from sentry.grouping.ingest.seer import maybe_send_seer_for_new_model_training
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
-from sentry.seer.similarity.config import (
-    SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE,
-    SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE,
-)
+from sentry.seer.similarity.config import SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 
@@ -30,28 +27,27 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             mock_get_similarity_data.assert_not_called()
 
     def test_does_nothing_when_no_rollout(self) -> None:
-        """Should not send request when no new version is being rolled out"""
+        """Should not send request when no version is being rolled out"""
         with (
-            patch("sentry.seer.similarity.config.SEER_GROUPING_NEW_VERSION", None),
             patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", None),
             patch(
                 "sentry.grouping.ingest.seer.get_similarity_data_from_seer"
             ) as mock_get_similarity_data,
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
         ):
             maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
             mock_get_similarity_data.assert_not_called()
 
     def test_does_nothing_when_training_model_already_sent(self) -> None:
-        """Should not send request when seer_latest_training_model already matches new version"""
+        """Should not send request when seer_latest_training_model already matches current version"""
         with (
             patch(
                 "sentry.grouping.ingest.seer.get_similarity_data_from_seer"
             ) as mock_get_similarity_data,
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
         ):
             metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
-            metadata.seer_latest_training_model = "v2"
+            metadata.seer_latest_training_model = "v2.1"
             metadata.save()
 
             maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
@@ -62,9 +58,10 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2")
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                return_value=([], "v2.1"),
             ) as mock_get_similarity_data,
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
         ):
             metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
             assert metadata.seer_latest_training_model is None
@@ -79,36 +76,49 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
 
             # Should update seer_latest_training_model without touching seer_model
             metadata = GroupHashMetadata.objects.get(id=metadata.id)
-            assert metadata.seer_latest_training_model == "v2"
+            assert metadata.seer_latest_training_model == "v2.1"
             assert metadata.seer_model is None
 
     def test_sends_request_when_training_model_is_old_version(self) -> None:
         """Should send training request when seer_latest_training_model has an old version"""
-        with (
-            patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
-            patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2")
-            ) as mock_get_similarity_data,
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
-        ):
-            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
-            metadata.seer_latest_training_model = "v1"
-            metadata.save()
+        for old_version in ["v1", "v2"]:
+            with self.subTest(old_version=old_version):
+                event = save_new_event({"message": f"event-{old_version}"}, self.project)
+                grouphash = GroupHash.objects.get(
+                    hash=event.get_primary_hash(), project_id=self.project.id
+                )
+                with (
+                    patch(
+                        "sentry.grouping.ingest.seer.should_call_seer_for_grouping",
+                        return_value=True,
+                    ),
+                    patch(
+                        "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                        return_value=([], "v2.1"),
+                    ) as mock_get_similarity_data,
+                    self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
+                ):
+                    metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=grouphash)
+                    metadata.seer_latest_training_model = old_version
+                    metadata.save()
 
-            maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
+                    maybe_send_seer_for_new_model_training(
+                        event, grouphash, event.get_grouping_variants()
+                    )
 
-            mock_get_similarity_data.assert_called_once()
-            metadata.refresh_from_db()
-            assert metadata.seer_latest_training_model == "v2"
+                    mock_get_similarity_data.assert_called_once()
+                    metadata.refresh_from_db()
+                    assert metadata.seer_latest_training_model == "v2.1"
 
     def test_sends_request_when_sent_to_old_seer_model(self) -> None:
         """Should send training request when seer_model is old and training model is unset"""
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2")
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                return_value=([], "v2.1"),
             ) as mock_get_similarity_data,
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
         ):
             metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
             metadata.seer_model = "v1"
@@ -124,7 +134,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
 
             # Should update seer_latest_training_model without touching seer_model
             metadata = GroupHashMetadata.objects.get(id=metadata.id)
-            assert metadata.seer_latest_training_model == "v2"
+            assert metadata.seer_latest_training_model == "v2.1"
             assert metadata.seer_model == "v1"
 
     def test_does_not_send_duplicate_request(self) -> None:
@@ -132,9 +142,10 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2")
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                return_value=([], "v2.1"),
             ) as mock_get_similarity_data,
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
         ):
             metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
             assert metadata.seer_latest_training_model is None
@@ -145,7 +156,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
 
             mock_get_similarity_data.reset_mock()
 
-            # Second call should not send because seer_latest_training_model was updated to v2
+            # Second call should not send because seer_latest_training_model was updated
             maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
             mock_get_similarity_data.assert_not_called()
 
@@ -160,7 +171,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
                 side_effect=test_exception,
             ),
             patch("sentry.grouping.ingest.seer.sentry_sdk.capture_exception"),
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
         ):
             metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
             assert metadata.seer_latest_training_model is None
@@ -178,7 +189,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             patch(
                 "sentry.grouping.ingest.seer.get_similarity_data_from_seer"
             ) as mock_get_similarity_data,
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
         ):
             metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
             assert metadata.seer_latest_training_model is None
@@ -199,7 +210,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
                 side_effect=test_exception,
             ),
             patch("sentry.grouping.ingest.seer.sentry_sdk.capture_exception") as mock_capture,
-            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
         ):
             metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
             assert metadata.seer_latest_training_model is None
@@ -216,26 +227,3 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
                     "grouphash": self.grouphash.hash,
                 },
             )
-
-    def test_retrains_for_next_model_when_already_trained_for_new(self) -> None:
-        """v2 -> v2.1 transition: grouphash trained for v2, project now on v2.1"""
-        with (
-            patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
-            patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-                return_value=([], "v2.1"),
-            ) as mock_get_similarity_data,
-            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
-        ):
-            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
-            metadata.seer_latest_training_model = "v2"
-            metadata.save()
-
-            maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
-
-            mock_get_similarity_data.assert_called_once()
-            call_args = mock_get_similarity_data.call_args
-            assert call_args[0][0]["model"].value == "v2.1"
-
-            metadata.refresh_from_db()
-            assert metadata.seer_latest_training_model == "v2.1"

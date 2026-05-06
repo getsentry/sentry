@@ -13,7 +13,7 @@ jest.mock('react-dom', () => ({
 }));
 
 const organization = OrganizationFixture({
-  features: ['seer-explorer'],
+  features: ['seer-explorer', 'gen-ai-features'],
   hideAiFeatures: false,
   openMembership: true,
 });
@@ -52,7 +52,7 @@ describe('ExplorerFloatingActionButton', () => {
     it('does not render when feature flag is disabled', () => {
       const {container} = renderFAB({
         organization: OrganizationFixture({
-          features: [],
+          features: ['gen-ai-features'],
           hideAiFeatures: false,
           openMembership: true,
         }),
@@ -63,9 +63,31 @@ describe('ExplorerFloatingActionButton', () => {
     it('does not render when open membership is disabled', () => {
       const {container} = renderFAB({
         organization: OrganizationFixture({
-          features: ['seer-explorer'],
+          features: ['seer-explorer', 'gen-ai-features'],
           hideAiFeatures: false,
           openMembership: false,
+        }),
+      });
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('does not render when hideAiFeatures is true', () => {
+      const {container} = renderFAB({
+        organization: OrganizationFixture({
+          features: ['seer-explorer', 'gen-ai-features'],
+          hideAiFeatures: true,
+          openMembership: true,
+        }),
+      });
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('does not render when gen-ai-features feature flag is disabled', () => {
+      const {container} = renderFAB({
+        organization: OrganizationFixture({
+          features: ['seer-explorer'],
+          hideAiFeatures: false,
+          openMembership: true,
         }),
       });
       expect(container).toBeEmptyDOMElement();

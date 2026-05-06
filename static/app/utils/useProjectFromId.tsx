@@ -9,5 +9,5 @@ export function useProjectFromId({project_id}: Props) {
   if (project_id) {
     return projects.find(p => p.id === project_id) ?? undefined;
   }
-  return undefined;
+  return;
 }

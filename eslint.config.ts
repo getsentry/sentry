@@ -315,7 +315,6 @@ export default typescript.config([
     name: 'eslint/rules',
     // https://eslint.org/docs/latest/rules/
     rules: {
-      'array-callback-return': 'error',
       'block-scoped-var': 'error',
       eqeqeq: 'error',
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
@@ -417,9 +416,7 @@ export default typescript.config([
       'wrap-iife': ['error', 'any'],
       yoda: 'error',
       'no-cond-assign': ['error', 'always'],
-
-      // TODO: Evaluate which rules we could practically fix violations from & enable
-      'no-prototype-builtins': 'off',
+      'no-prototype-builtins': 'error',
     },
   },
   {
@@ -433,7 +430,7 @@ export default typescript.config([
       'import/no-duplicates': 'error',
       'import/no-extraneous-dependencies': [
         'error',
-        {includeTypes: true, devDependencies: ['!eslint.config.ts']},
+        {includeTypes: true, devDependencies: true},
       ],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
@@ -612,9 +609,7 @@ export default typescript.config([
           '@typescript-eslint/no-misused-spread': 'off',
           '@typescript-eslint/no-mixed-enums': 'off',
           '@typescript-eslint/no-redundant-type-constituents': 'off',
-          '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'off',
           '@typescript-eslint/no-unnecessary-condition': 'off',
-          '@typescript-eslint/no-unnecessary-type-arguments': 'off',
           '@typescript-eslint/no-unnecessary-type-conversion': 'off',
           '@typescript-eslint/no-unsafe-argument': 'off',
           '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -622,8 +617,6 @@ export default typescript.config([
           '@typescript-eslint/no-unsafe-enum-comparison': 'off',
           '@typescript-eslint/no-unsafe-member-access': 'off',
           '@typescript-eslint/no-unsafe-return': 'off',
-          '@typescript-eslint/no-useless-default-assignment': 'off',
-          '@typescript-eslint/non-nullable-type-assertion-style': 'off',
           '@typescript-eslint/prefer-array-find': 'off',
           '@typescript-eslint/prefer-array-index-of': 'off',
           '@typescript-eslint/prefer-find': 'off',
@@ -796,14 +789,14 @@ export default typescript.config([
     extends: [unicorn.configs.unopinionated],
     rules: {
       'unicorn/custom-error-definition': 'error',
+      'unicorn/no-instanceof-array': 'error',
+      'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
 
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-instanceof-array': 'error',
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
@@ -817,7 +810,6 @@ export default typescript.config([
       // TODO: Evaluate which rules we could practically fix violations from & enable
       'unicorn/consistent-date-clone': 'off',
       'unicorn/consistent-existence-index-check': 'off',
-      'unicorn/escape-case': 'off',
       'unicorn/import-style': 'off',
       'unicorn/no-array-for-each': 'off',
       'unicorn/no-array-method-this-argument': 'off',
@@ -831,7 +823,6 @@ export default typescript.config([
       'unicorn/no-object-as-default-parameter': 'off',
       'unicorn/no-process-exit': 'off',
       'unicorn/no-thenable': 'off',
-      'unicorn/no-typeof-undefined': 'off',
       'unicorn/no-unnecessary-array-flat-depth': 'off',
       'unicorn/no-unnecessary-array-splice-count': 'off',
       'unicorn/no-unnecessary-slice-end': 'off',

@@ -1,18 +1,17 @@
 import {Fragment, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {GroupOpenPeriod} from 'sentry/types/group';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
+import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
 export function useMetricIssueAlertId({groupId}: {groupId: string}): string | undefined {
   /**
@@ -27,19 +26,17 @@ export function useMetricIssueAlertId({groupId}: {groupId: string}): string | un
 
   const hasMetricDetector = detectorId && detectorType === 'metric_alert';
 
-  const {data: event} = useApiQuery<Event>(
-    getGroupEventQueryKey({
+  const {data: event} = useQuery({
+    ...groupEventApiOptions({
       orgSlug: organization.slug,
       groupId,
       eventId: user.options.defaultIssueEvent,
       environments: [],
     }),
-    {
-      staleTime: Infinity,
-      enabled: !hasMetricDetector,
-      retry: false,
-    }
-  );
+    staleTime: Infinity,
+    enabled: !hasMetricDetector,
+    retry: false,
+  });
 
   // Fall back to the fetched event in case the provider doesn't have the detector details
   const fallback =

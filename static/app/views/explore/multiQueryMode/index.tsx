@@ -1,11 +1,8 @@
-import {Fragment} from 'react';
-
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -19,7 +16,6 @@ import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export default function MultiQueryMode() {
@@ -29,7 +25,6 @@ export default function MultiQueryMode() {
 
   const id = getIdFromLocation(location);
   const {data: savedQuery} = useGetSavedQuery(id);
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <Feature
@@ -38,59 +33,30 @@ export default function MultiQueryMode() {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">
-              <Breadcrumbs
-                crumbs={[
-                  {label: t('Explore')},
-                  {
-                    label: t('Traces'),
-                    to: makeTracesPathname({organization, path: '/'}),
-                  },
-                  {label: title ? title : t('Compare Queries')},
-                ]}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="actions">
-              <StarSavedQueryButton />
-              {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-            </TopBar.Slot>
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-          </Fragment>
-        ) : (
-          <Layout.Header unified>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {label: t('Explore')},
-                  {
-                    label: t('Traces'),
-                    to: makeTracesPathname({organization, path: '/'}),
-                  },
-                  {label: t('Compare Queries')},
-                ]}
-              />
-              <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Grid flow="column" align="center" gap="md">
-                <StarSavedQueryButton />
-                {defined(id) && savedQuery?.isPrebuilt === false && (
-                  <SavedQueryEditMenu />
-                )}
-                <FeedbackButton />
-              </Grid>
-            </Layout.HeaderActions>
-          </Layout.Header>
-        )}
+        <TopBar.Slot name="title">
+          <Breadcrumbs
+            crumbs={[
+              {label: t('Explore')},
+              {
+                label: t('Traces'),
+                to: makeTracesPathname({organization, path: '/'}),
+              },
+              {label: title ? title : t('Compare Queries')},
+            ]}
+          />
+        </TopBar.Slot>
+        <TopBar.Slot name="actions">
+          <StarSavedQueryButton />
+          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
         <Stack flex={1}>
           <MultiQueryModeContent />
         </Stack>

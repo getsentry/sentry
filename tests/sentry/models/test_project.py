@@ -628,6 +628,24 @@ class ProjectTest(APITestCase, TestCase):
         assert workflow.organization_id == to_org.id
         assert when_condition_group.organization_id == to_org.id
 
+    def test_transfer_to_organization_nulls_detector_owner(self) -> None:
+        from_user = self.create_user()
+        from_org = self.create_organization(owner=from_user)
+        team = self.create_team(organization=from_org)
+        project = self.create_project(teams=[team])
+
+        to_user = self.create_user()
+        to_org = self.create_organization(owner=to_user)
+
+        detector = self.create_detector(project=project, owner_team_id=team.id, owner_user_id=None)
+
+        project.transfer_to(organization=to_org)
+
+        detector.refresh_from_db()
+
+        assert detector.owner_team_id is None
+        assert detector.owner_user_id is None
+
 
 class CopyProjectSettingsTest(TestCase):
     def setUp(self) -> None:

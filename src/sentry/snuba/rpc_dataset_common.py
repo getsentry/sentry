@@ -50,7 +50,7 @@ from sentry.models.project import Project
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.rpc_utils import and_trace_item_filters
+from sentry.search.eap.rpc_utils import and_trace_item_filters, anyvalue_to_python
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.types import (
     CONFIDENCES,
@@ -464,11 +464,11 @@ class RPCBase:
         **_context_kwargs: Any,
     ) -> None:
         for index, result in enumerate(column_value.results):
-            result_value: str | int | float | None
+            result_value: Any
             if result.is_null:
                 result_value = None
             else:
-                result_value = getattr(result, str(result.WhichOneof("value")))
+                result_value = anyvalue_to_python(result)
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
@@ -492,15 +492,14 @@ class RPCBase:
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
-        # Mapping from public alias to resolved column so we know type etc.
-        columns_by_name = {col.public_alias: col for col in table_request.columns}
-
+        by_public_alias = {col.public_alias: col for col in table_request.columns}
         for column_value in rpc_response.column_values:
             attribute = column_value.attribute_name
             # Skip internal sort columns used for virtual context ordering
             if attribute in table_request.sort_column_aliases:
                 continue
-            if attribute not in columns_by_name:
+            resolved_column = by_public_alias.get(attribute)
+            if resolved_column is None:
                 logger.warning(
                     "A column was returned by the rpc but not a known column",
                     extra={
@@ -509,8 +508,8 @@ class RPCBase:
                     },
                 )
                 continue
-            resolved_column = columns_by_name[attribute]
-            final_meta["fields"][attribute] = resolved_column.search_type
+            output_key = resolved_column.public_alias
+            final_meta["fields"][output_key] = resolved_column.search_type
 
             # When there's no aggregates reliabilities is an empty array
             has_reliability = len(column_value.reliabilities) > 0
@@ -526,12 +525,12 @@ class RPCBase:
             cls.process_column_values(
                 column_value,
                 final_data,
-                attribute,
+                output_key,
                 resolved_column,
                 **context_kwargs,
             )
             if has_reliability:
-                cls.process_column_confidence(column_value, final_confidence, attribute)
+                cls.process_column_confidence(column_value, final_confidence, output_key)
 
         if debug:
             set_debug_meta(final_meta, rpc_response.meta, table_request.rpc_request)

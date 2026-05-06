@@ -12,6 +12,7 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
@@ -22,12 +23,10 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {Pagination} from 'sentry/components/pagination';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
@@ -43,18 +42,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import {
-  OWNED_CURSOR_KEY,
-  OwnedDashboardsTable,
-} from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
 import {
@@ -83,25 +77,13 @@ function getDashboardsOverviewLayout(): DashboardsLayout {
 
   return dashboardsLayout === GRID || dashboardsLayout === TABLE
     ? dashboardsLayout
-    : GRID;
+    : TABLE;
 }
 
-function getSortOptions({
-  organization,
-  dashboardsLayout,
-  isOnlyPrebuilt,
-}: {
-  dashboardsLayout: DashboardsLayout;
-  isOnlyPrebuilt: boolean;
-  organization: Organization;
-}) {
+function getSortOptions({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
   const options = [];
 
-  if (
-    !isOnlyPrebuilt &&
-    (!organization.features.includes('dashboards-starred-reordering') ||
-      dashboardsLayout === GRID)
-  ) {
+  if (!isOnlyPrebuilt) {
     options.push({label: t('My Dashboards'), value: 'mydashboards'});
   }
 
@@ -110,36 +92,16 @@ function getSortOptions({
     {label: t('Dashboard Name (Z-A)'), value: '-title'},
     {label: t('Date Created (Newest)'), value: '-dateCreated'},
     {label: t('Date Created (Oldest)'), value: 'dateCreated'},
-    {label: t('Most Popular'), value: 'mostPopular'}
+    {label: t('Most Popular'), value: 'mostPopular'},
+    {label: t('Recently Viewed'), value: 'recentlyViewed'}
   );
-
-  if (organization.features.includes('dashboards-starred-reordering')) {
-    options.push({label: t('Most Starred'), value: 'mostFavorited'});
-  }
-
-  options.push({label: t('Recently Viewed'), value: 'recentlyViewed'});
 
   return options;
 }
 
-function getDefaultSort({
-  organization,
-  dashboardsLayout,
-  isOnlyPrebuilt,
-}: {
-  dashboardsLayout: DashboardsLayout;
-  isOnlyPrebuilt: boolean;
-  organization: Organization;
-}) {
+function getDefaultSort({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
   if (isOnlyPrebuilt) {
     return DEFAULT_PREBUILT_SORT;
-  }
-
-  if (
-    organization.features.includes('dashboards-starred-reordering') &&
-    dashboardsLayout === TABLE
-  ) {
-    return 'recentlyViewed';
   }
 
   return 'mydashboards';
@@ -173,11 +135,7 @@ function ManageDashboards() {
 
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
 
-  const sortOptions = getSortOptions({
-    organization,
-    dashboardsLayout,
-    isOnlyPrebuilt,
-  });
+  const sortOptions = getSortOptions({isOnlyPrebuilt});
 
   const {
     data: dashboardsResponse,
@@ -199,12 +157,7 @@ function ManageDashboards() {
       },
     }),
     select: selectJsonWithHeaders,
-    enabled:
-      (hasProjectAccess || !projectsLoaded) &&
-      !(
-        organization.features.includes('dashboards-starred-reordering') &&
-        dashboardsLayout === TABLE
-      ),
+    enabled: hasProjectAccess || !projectsLoaded,
   });
   const dashboardsWithoutPrebuiltConfigs = dashboardsResponse?.json;
 
@@ -230,16 +183,6 @@ function ManageDashboards() {
       }),
     [dashboardsWithoutPrebuiltConfigs]
   );
-
-  const ownedDashboards = useOwnedDashboards({
-    query: decodeScalar(location.query.query, ''),
-    cursor: decodeScalar(location.query[OWNED_CURSOR_KEY], ''),
-    sort: getActiveSort()!.value,
-    enabled:
-      (hasProjectAccess || !projectsLoaded) &&
-      organization.features.includes('dashboards-starred-reordering') &&
-      dashboardsLayout === TABLE,
-  });
 
   const dashboardsPageLinks = dashboardsResponse?.headers.Link ?? '';
 
@@ -311,11 +254,7 @@ function ManageDashboards() {
 
   useEffect(() => {
     const urlSort = decodeScalar(location.query.sort);
-    const defaultSort = getDefaultSort({
-      organization,
-      dashboardsLayout,
-      isOnlyPrebuilt,
-    });
+    const defaultSort = getDefaultSort({isOnlyPrebuilt});
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
       // in the URL
@@ -335,11 +274,7 @@ function ManageDashboards() {
   ]);
 
   function getActiveSort() {
-    const defaultSort = getDefaultSort({
-      organization,
-      dashboardsLayout,
-      isOnlyPrebuilt,
-    });
+    const defaultSort = getDefaultSort({isOnlyPrebuilt});
     const urlSort = decodeScalar(location.query.sort, defaultSort);
 
     if (urlSort) {
@@ -468,7 +403,7 @@ function ManageDashboards() {
                         <Button
                           {...triggerProps}
                           data-test-id="dashboard-create"
-                          priority="primary"
+                          variant="primary"
                           icon={<IconAdd />}
                         >
                           {t('Create Dashboard')}
@@ -490,7 +425,7 @@ function ManageDashboards() {
                         event.preventDefault();
                         onCreate();
                       }}
-                      priority="primary"
+                      variant="primary"
                       icon={<IconAdd />}
                       disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                       tooltipProps={{
@@ -532,12 +467,6 @@ function ManageDashboards() {
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
-      />
-    ) : organization.features.includes('dashboards-starred-reordering') ? (
-      <OwnedDashboardsTable
-        dashboards={ownedDashboards.data?.json ?? []}
-        isLoading={ownedDashboards.isLoading}
-        pageLinks={ownedDashboards.data?.headers.Link}
       />
     ) : (
       <DashboardTable
@@ -643,7 +572,7 @@ function ManageDashboards() {
                                 location,
                               });
                             }}
-                            priority="primary"
+                            variant="primary"
                             icon={<IconAdd />}
                           >
                             {t('Import Dashboard from JSON')}
@@ -704,7 +633,7 @@ function ManageDashboards() {
                                         {...triggerProps}
                                         data-test-id="dashboard-create"
                                         size="sm"
-                                        priority="primary"
+                                        variant="primary"
                                         icon={<IconAdd />}
                                       >
                                         {t('Create Dashboard')}
@@ -727,7 +656,7 @@ function ManageDashboards() {
                                       onCreate();
                                     }}
                                     size="sm"
-                                    priority="primary"
+                                    variant="primary"
                                     icon={<IconAdd />}
                                     disabled={
                                       hasReachedDashboardLimit || isLoadingDashboardsLimit
@@ -754,7 +683,7 @@ function ManageDashboards() {
                               });
                             }}
                             size="sm"
-                            priority="primary"
+                            variant="primary"
                             icon={<IconAdd />}
                           >
                             {t('Import Dashboard from JSON')}
@@ -770,10 +699,7 @@ function ManageDashboards() {
                     <div ref={dashboardGridRef} id="dashboard-list-container">
                       {renderDashboards()}
                     </div>
-                    {!(
-                      organization.features.includes('dashboards-starred-reordering') &&
-                      dashboardsLayout === TABLE
-                    ) && renderPagination()}
+                    {renderPagination()}
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>

@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any, Union
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import PERFORMANCE_ISSUE_CATEGORIES, GroupCategory
 
 # TODO(mgaeta): Continue fleshing out these types.
 SlackAttachment = dict[str, Any]
@@ -27,6 +27,7 @@ class SlackAction(StrEnum):
     LINK_TO_SEER = "link_to_seer"
 
     SEER_AUTOFIX_START = "seer_autofix_start"
+    SEER_AUTOFIX_HANDOFF = "seer_autofix_handoff"
     SEER_AUTOFIX_VIEW_IN_SENTRY = "seer_autofix_view_in_sentry"
     SEER_AUTOFIX_VIEW_PR = "seer_autofix_view_pr"
 
@@ -51,13 +52,19 @@ LEVEL_TO_EMOJI = {
 ACTION_EMOJI = [":white_circle:"]
 
 CATEGORY_TO_EMOJI = {
-    GroupCategory.PERFORMANCE: [":large_blue_circle:", ":chart_with_upwards_trend:"],
+    **{
+        category: [":large_blue_circle:", ":chart_with_upwards_trend:"]
+        for category in PERFORMANCE_ISSUE_CATEGORIES
+    },
     GroupCategory.FEEDBACK: [":large_blue_circle:", ":busts_in_silhouette:"],
-    GroupCategory.CRON: [":large_yellow_circle:", ":spiral_calendar_pad:"],
+    GroupCategory.OUTAGE: [":large_yellow_circle:", ":spiral_calendar_pad:"],
 }
 
 ACTIONED_CATEGORY_TO_EMOJI: dict[GroupCategory, list[str]] = {
-    GroupCategory.PERFORMANCE: [ACTION_EMOJI[0], ":chart_with_upwards_trend:"],
+    **{
+        category: [ACTION_EMOJI[0], ":chart_with_upwards_trend:"]
+        for category in PERFORMANCE_ISSUE_CATEGORIES
+    },
     GroupCategory.FEEDBACK: [ACTION_EMOJI[0], ":busts_in_silhouette:"],
-    GroupCategory.CRON: [ACTION_EMOJI[0], ":spiral_calendar_pad:"],
+    GroupCategory.OUTAGE: [ACTION_EMOJI[0], ":spiral_calendar_pad:"],
 }

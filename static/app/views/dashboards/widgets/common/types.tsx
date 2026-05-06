@@ -83,7 +83,7 @@ type GroupBy = {
 
 // Aliases - allows divergence later if unique cases arise
 export type TimeSeriesGroupBy = GroupBy;
-export type CategoricalGroupBy = GroupBy;
+type CategoricalGroupBy = GroupBy;
 
 /**
  * Time series data. Unlike other time series abstractions, this is tightly supported by both the backend and the frontend. The `/events-timeseries/` endpoint uses this as the respone data, and `TimeSeriesWidgetVisualization` plottable objects accept this as the backing data.
@@ -178,7 +178,7 @@ export interface CategoricalItem {
 /**
  * Metadata for a categorical series.
  */
-export interface CategoricalSeriesMeta {
+interface CategoricalSeriesMeta {
   /**
    * The type of the values (e.g., "duration", "number")
    */

@@ -43,6 +43,7 @@ ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 
 GroupId: TypeAlias = int
 DataConditionGroupId: TypeAlias = int
+ActionId: TypeAlias = int
 WorkflowId: TypeAlias = int
 
 
@@ -296,6 +297,15 @@ class ActionHandler:
     @classmethod
     def get_config_transformer(cls) -> ConfigTransformer | None:
         return None
+
+    @classmethod
+    def serialize_data(cls, data: dict[str, Any]) -> dict[str, Any]:
+        from sentry.api.serializers.rest_framework.base import (
+            convert_dict_key_case,
+            snake_to_camel_case,
+        )
+
+        return convert_dict_key_case(data, snake_to_camel_case)
 
     @staticmethod
     def execute(invocation: ActionInvocation) -> None:

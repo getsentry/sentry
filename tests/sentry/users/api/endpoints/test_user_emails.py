@@ -62,6 +62,21 @@ class UserEmailsTest(APITestCase):
         assert user.email == "altemail1@example.com"
         assert user.username == "altemail1@example.com"
 
+    def test_change_primary_email_updates_email_unique(self) -> None:
+        user = self.create_user(email="unique@example.com", is_test_user=False)
+        self.login_as(user=user)
+        url = reverse("sentry-api-0-user-emails", kwargs={"user_id": user.id})
+        UserEmail.objects.create(user=user, email="newprimary@example.com", is_verified=True)
+
+        assert user.email_unique == "unique@example.com"
+
+        response = self.client.put(url, data={"email": "newprimary@example.com"})
+        assert response.status_code == 200, response.data
+
+        user = User.objects.get(id=user.id)
+        assert user.email == "newprimary@example.com"
+        assert user.email_unique == "newprimary@example.com"
+
     def test_change_unverified_secondary_to_primary(self) -> None:
         UserEmail.objects.create(user=self.user, email="altemail1@example.com", is_verified=False)
         response = self.client.put(self.url, data={"email": "altemail1@example.com"})

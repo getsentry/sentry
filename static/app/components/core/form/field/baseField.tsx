@@ -89,7 +89,7 @@ function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = ref.current;
     if (!el) {
-      return undefined;
+      return;
     }
 
     function onBlur() {

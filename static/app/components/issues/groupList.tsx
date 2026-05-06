@@ -2,11 +2,12 @@ import {Fragment, useCallback, useEffect, useEffectEvent, useMemo, useState} fro
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {Pagination} from '@sentry/scraps/pagination';
+
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -353,9 +354,10 @@ export function GroupList({
                 </GroupPlaceholder>
               ))
             : groups.map(group => {
-                const members = memberList?.hasOwnProperty(group.project.slug)
-                  ? memberList[group.project.slug]
-                  : undefined;
+                const members =
+                  memberList && Object.hasOwn(memberList, group.project.slug)
+                    ? memberList[group.project.slug]
+                    : undefined;
 
                 return (
                   <StreamGroup

@@ -6,6 +6,7 @@ import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraph
 import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import {SpanFields} from 'sentry/views/insights/types';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[] | undefined): string {
@@ -94,11 +95,12 @@ export class SpanChartRenderer2D {
   }
 
   getColorForFrame(span: SpanChartNode): number[] | CanvasPattern {
-    if (span.node.span.op === 'missing-instrumentation') {
+    if (span.node.span[SpanFields.SPAN_OP] === 'missing-instrumentation') {
       return this.pattern;
     }
     return (
-      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
+      this.colors.get(span.node.span[SpanFields.SPAN_ID]) ??
+      this.theme.COLORS.FRAME_FALLBACK_COLOR
     );
   }
 
@@ -183,13 +185,14 @@ export class SpanChartRenderer2D {
       );
 
       const color =
-        this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
+        this.colors.get(span.node.span[SpanFields.SPAN_ID]) ??
+        this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
       // Reset any transforms that may have been applied before.
       // If we dont do it, it sometimes causes the canvas to be drawn with a translation
       this.context.setTransform(1, 0, 0, 1, 0, 0);
 
-      if (span.node.span.op === 'missing span instrumentation') {
+      if (span.node.span[SpanFields.SPAN_OP] === 'missing span instrumentation') {
         this.context.beginPath();
         this.context.rect(
           rect.x + BORDER_WIDTH / 2,
@@ -204,7 +207,7 @@ export class SpanChartRenderer2D {
         this.context.beginPath();
 
         this.context.fillStyle =
-          this.isSearching && !this.searchResults.has(span.node.span.span_id)
+          this.isSearching && !this.searchResults.has(span.node.span[SpanFields.SPAN_ID])
             ? colorComponentsToRgba(this.theme.COLORS.FRAME_FALLBACK_COLOR)
             : colorComponentsToRgba(color);
 

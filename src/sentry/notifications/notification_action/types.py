@@ -244,6 +244,7 @@ class BaseIssueAlertHandler(ABC):
             # attempt to find legacy_rule_id from the alert rule workflow
             alert_rule_workflow = AlertRuleWorkflow.objects.filter(
                 workflow_id=workflow_id,
+                rule_id__isnull=False,
             ).first()
             if alert_rule_workflow:
                 try:

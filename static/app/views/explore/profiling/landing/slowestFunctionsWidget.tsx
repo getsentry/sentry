@@ -10,6 +10,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -21,7 +22,6 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {ScoreBar} from 'sentry/components/scoreBar';
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -31,7 +31,6 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -45,9 +44,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -242,7 +239,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                   trigger={triggerProps => (
                     <OverlayTrigger.Button
                       {...triggerProps}
-                      priority="transparent"
+                      variant="transparent"
                       size="zero"
                     />
                   )}
@@ -319,7 +316,7 @@ interface SlowestFunctionEntryProps<F extends BreakdownFunction> {
   query: string;
   setExpanded: () => void;
   totalDuration: number;
-  stats?: UseApiQueryResult<EventsStatsSeries<ChartFunctions<F>>, RequestError>;
+  stats?: ReturnType<typeof useProfileTopEventsStats<ChartFunctions<F>>>;
 }
 
 const BARS = 10;
@@ -410,7 +407,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
-          priority="transparent"
+          variant="transparent"
           onClick={setExpanded}
         />
         {project && (
@@ -441,7 +438,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           position="bottom-end"
           triggerProps={{
             icon: <IconEllipsis size="xs" />,
-            priority: 'transparent',
+            variant: 'transparent',
             showChevron: false,
             size: 'xs',
             'aria-label': t('Example Profiles'),
@@ -475,7 +472,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
 interface FunctionChartProps<F extends BreakdownFunction> {
   breakdownFunction: F;
   func: EventsResultsDataRow<FunctionsField>;
-  stats?: UseApiQueryResult<EventsStatsSeries<ChartFunctions<F>>, RequestError>;
+  stats?: ReturnType<typeof useProfileTopEventsStats<string>>;
 }
 
 function FunctionChart<F extends BreakdownFunction>({

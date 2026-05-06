@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useRef} from 'react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
@@ -42,6 +42,8 @@ export const useOpenSeerDrawer = ({
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
+  const locationRef = useRef(location); // prevents stale location in onClose
+  locationRef.current = location; // sync on every render
   const organization = useOrganization();
 
   const openSeerDrawer = useCallback(() => {
@@ -71,9 +73,9 @@ export const useOpenSeerDrawer = ({
       onClose: () => {
         navigate(
           {
-            pathname: location.pathname,
+            pathname: locationRef.current.pathname,
             query: {
-              ...location.query,
+              ...locationRef.current.query,
               seerDrawer: undefined,
             },
           },
@@ -81,7 +83,7 @@ export const useOpenSeerDrawer = ({
         );
       },
     });
-  }, [openDrawer, event, group, project, location, navigate, organization]);
+  }, [openDrawer, event, group, project, navigate, organization]);
 
   return {openSeerDrawer};
 };

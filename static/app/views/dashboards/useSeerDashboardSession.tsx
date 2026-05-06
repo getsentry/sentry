@@ -95,7 +95,7 @@ export function useSeerDashboardSession({
       retry: false,
       enabled: !!seerRunId && enabled,
       refetchInterval: query => {
-        const status = query.state.data?.[0]?.session?.status;
+        const status = query.state.data?.json?.session?.status;
         if (statusIsTerminal(status)) {
           if (completedAtRef.current === null) {
             completedAtRef.current = Date.now();

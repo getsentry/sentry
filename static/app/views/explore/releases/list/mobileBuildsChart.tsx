@@ -59,7 +59,7 @@ export function MobileBuildsChart({
   organizationSlug,
 }: MobileBuildsChartProps) {
   const navigate = useNavigate();
-  const [metric, setMetric] = useState<SizeMetric>(SizeMetric.INSTALL_SIZE);
+  const [metric, setMetric] = useState(SizeMetric.INSTALL_SIZE);
 
   const {series, seriesBuildLookup, minTime, maxTime, hasTimestamps} = useMemo(() => {
     const grouped = new Map<string, BuildDetailsApiResponse[]>();
@@ -195,7 +195,7 @@ export function MobileBuildsChart({
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}
-                priority="transparent"
+                variant="transparent"
                 size="zero"
               />
             )}

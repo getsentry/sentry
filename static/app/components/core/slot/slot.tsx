@@ -8,6 +8,32 @@ import {
   useRef,
 } from 'react';
 import {createPortal} from 'react-dom';
+import * as Sentry from '@sentry/react';
+
+const NOOP_REF_CALLBACK: React.RefCallback<HTMLElement | null> = () => {};
+const EMPTY_STATE: SlotReducerState<any> = {};
+const NOOP_DISPATCH: React.Dispatch<SlotReducerAction<any>> = () => {};
+
+const reportedMissingProvider = new Set<string>();
+
+function reportMissingProvider(component: string, slotName: string): void {
+  const key = `${component}:${slotName}`;
+  if (reportedMissingProvider.has(key)) {
+    return;
+  }
+  reportedMissingProvider.add(key);
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('slot.component', component);
+    scope.setTag('slot.name', slotName);
+    scope.setFingerprint(['slot-missing-provider', component, slotName]);
+    Sentry.captureException(
+      new Error(
+        `<Slot.${component}> for slot "${slotName}" rendered without a <Slot.Provider>`
+      )
+    );
+  });
+}
 
 type Slot = string;
 type SlotValue = {counter: number; element: HTMLElement | null};
@@ -132,16 +158,20 @@ function makeSlotConsumer<T extends Slot>(options: {
 
   function SlotConsumer(props: SlotConsumerProps<T>): React.ReactNode {
     const ctx = useContext(context);
-    if (!ctx) {
-      throw new Error('SlotContext not found');
-    }
-
-    const [state, dispatch] = ctx;
+    const [state, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
     const {name} = props;
     useLayoutEffect(() => {
+      if (dispatch === NOOP_DISPATCH) {
+        return;
+      }
       dispatch({type: 'increment counter', name});
       return () => dispatch({type: 'decrement counter', name});
     }, [dispatch, name]);
+
+    if (!ctx) {
+      reportMissingProvider('Consumer', name);
+      return null;
+    }
 
     // Provide outletNameContext from the consumer so that portaled children
     // (which don't descend through the outlet in the component tree) can still
@@ -176,15 +206,13 @@ function makeSlotOutlet<T extends Slot>(
 ) {
   function SlotOutlet(props: SlotOutletProps<T>): React.ReactNode {
     const ctx = useContext(context);
-
-    if (!ctx) {
-      throw new Error('SlotContext not found');
-    }
-
-    const [, dispatch] = ctx;
+    const [, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
     const {name} = props;
     const ref = useCallback(
       (element: HTMLElement | null) => {
+        if (dispatch === NOOP_DISPATCH) {
+          return;
+        }
         if (!element) {
           dispatch({type: 'unregister', name});
           return;
@@ -193,6 +221,11 @@ function makeSlotOutlet<T extends Slot>(
       },
       [dispatch, name]
     );
+
+    if (!ctx) {
+      reportMissingProvider('Outlet', name);
+      return props.children({ref: NOOP_REF_CALLBACK});
+    }
 
     return (
       <outletNameContext.Provider value={name}>
@@ -211,11 +244,13 @@ function makeSlotFallback<T extends Slot>(
 ) {
   function SlotFallback({children}: SlotFallbackProps): React.ReactNode {
     const ctx = useContext(context);
+    const name = useContext(outletNameContext);
+
     if (!ctx) {
-      throw new Error('SlotContext not found');
+      reportMissingProvider('Fallback', name ?? 'unknown');
+      return null;
     }
 
-    const name = useContext(outletNameContext);
     if (name === null) {
       throw new Error('Slot.Fallback must be rendered inside Slot.Outlet');
     }

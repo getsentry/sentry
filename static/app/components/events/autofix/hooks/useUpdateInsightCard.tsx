@@ -1,7 +1,7 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -40,10 +40,10 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       addLoadingMessage(t('Rethinking this...'));
     },

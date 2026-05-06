@@ -1,13 +1,10 @@
-import {useEffect, useState} from 'react';
+import {z} from 'zod';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  BooleanField,
-  type BooleanFieldProps,
-} from 'sentry/components/forms/fields/booleanField';
-import {t, tct} from 'sentry/locale';
+import {AutoSaveForm} from '@sentry/scraps/form';
+
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -17,16 +14,20 @@ import {
   SpendVisibilityEvents,
   trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
-import {
-  SPIKE_PROTECTION_ERROR_MESSAGE,
-  SPIKE_PROTECTION_OPTION_DISABLED,
-} from 'getsentry/views/spikeProtection/constants';
+import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 
-interface SpikeProtectionProjectToggleProps extends Omit<BooleanFieldProps, 'name'> {
+const spikeProtectionSchema = z.object({
+  enabled: z.boolean(),
+});
+
+interface SpikeProtectionProjectToggleProps {
   project: Project;
   subscription: Subscription;
   analyticsView?: SpendVisibilityBaseParams['view'];
   disabled?: boolean;
+  help?: React.ReactNode;
+  label?: React.ReactNode;
+  onChange?: (value: boolean) => void;
 }
 
 // If the project option is True, the feature is disabled
@@ -39,57 +40,67 @@ function SpikeProtectionProjectToggle({
   analyticsView,
   disabled = false,
   onChange,
-  ...fieldProps
+  label,
+  help,
 }: SpikeProtectionProjectToggleProps) {
-  const api = useApi();
   const organization = useOrganization();
-  const [isToggleEnabled, setIsToggleEnabled] = useState(
-    isSpikeProtectionEnabled(project)
-  );
 
-  // Reload from props if new project state is received
-  useEffect(() => {
-    setIsToggleEnabled(isSpikeProtectionEnabled(project));
-  }, [project]);
+  const testId = `${project.slug}-spike-protection-toggle`;
 
-  async function toggleFeature(newValue: boolean, event: React.FormEvent) {
-    const endpoint = `/organizations/${organization.slug}/spike-protections/`;
-    setIsToggleEnabled(newValue);
-    try {
-      await api.requestPromise(endpoint, {
-        method: newValue ? 'POST' : 'DELETE',
-        data: {projects: [project.slug]},
-      });
-      addSuccessMessage(
-        tct('[action] spike protection for [project]', {
-          action: newValue ? t('Enabled') : t('Disabled'),
-          project: project.slug,
-        })
-      );
-      trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_PROJECT_TOGGLED, {
-        organization,
-        subscription,
-        project_id: project.id,
-        value: newValue,
-        view: analyticsView,
-      });
-      onChange?.(newValue, event);
-    } catch {
-      setIsToggleEnabled(!newValue);
-      addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
-    }
-  }
-
-  const identifier = `${project.slug}-spike-protection-toggle`;
   return (
-    <BooleanField
-      onChange={toggleFeature}
-      value={isToggleEnabled}
-      data-test-id={identifier}
-      name={identifier}
-      disabled={disabled}
-      {...fieldProps}
-    />
+    <div>
+      <AutoSaveForm
+        name="enabled"
+        schema={spikeProtectionSchema}
+        initialValue={isSpikeProtectionEnabled(project)}
+        mutationOptions={{
+          mutationFn: data =>
+            fetchMutation({
+              url: `/organizations/${organization.slug}/spike-protections/`,
+              method: data.enabled ? 'POST' : 'DELETE',
+              data: {projects: [project.slug]},
+            }),
+          onSuccess: (_data, variables) => {
+            const newValue = variables.enabled;
+            ProjectsStore.onUpdateSuccess({
+              ...project,
+              options: {
+                ...project.options,
+                [SPIKE_PROTECTION_OPTION_DISABLED]: !newValue,
+              },
+            });
+            trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_PROJECT_TOGGLED, {
+              organization,
+              subscription,
+              project_id: project.id,
+              value: newValue,
+              view: analyticsView,
+            });
+            onChange?.(newValue);
+          },
+        }}
+      >
+        {field =>
+          label || help ? (
+            <field.Layout.Row label={label} hintText={help}>
+              <field.Switch
+                data-test-id={testId}
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          ) : (
+            <field.Switch
+              data-test-id={testId}
+              checked={field.state.value}
+              onChange={field.handleChange}
+              disabled={disabled}
+            />
+          )
+        }
+      </AutoSaveForm>
+    </div>
   );
 }
 

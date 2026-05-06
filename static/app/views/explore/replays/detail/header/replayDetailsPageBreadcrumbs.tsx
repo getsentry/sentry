@@ -95,7 +95,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             >
               <LinkButton
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 icon={<IconChevron direction="left" size="xs" />}
                 disabled={!previousReplay}
                 aria-label={t('Previous replay based on search query')}
@@ -122,7 +122,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             >
               <LinkButton
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 icon={<IconChevron direction="right" size="xs" />}
                 disabled={!nextReplay}
                 aria-label={t('Next replay based on search query')}
@@ -171,7 +171,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 icon={<IconCopy size="xs" variant="muted" />}
               />
             )}
@@ -183,7 +183,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               }}
               data-test-id="refresh-button"
               size="zero"
-              priority="link"
+              variant="link"
               onClick={doRefresh}
               icon={<IconRefresh size="xs" variant="accent" />}
             >

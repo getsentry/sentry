@@ -1,19 +1,26 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any
+
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.hybridcloud.outbox.category import OutboxCategory
 
 from . import AvatarBase
 
 
+# TODO(cells): Inherit from ReplicatedCellModel once RPC methods deployed
 @cell_silo_model
 class OrganizationAvatar(AvatarBase):
     """
     An OrganizationAvatar associates an Organization with their avatar photo File
     and contains their preferences for avatar type.
     """
+
+    category = OutboxCategory.ORGANIZATION_AVATAR_UPDATE
 
     AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"))
 
@@ -32,3 +39,28 @@ class OrganizationAvatar(AvatarBase):
 
     def get_cache_key(self, size) -> str:
         return f"org_avatar:{self.organization_id}:{size}"
+
+    def handle_async_replication(self, shard_identifier: int) -> None:
+        # TODO(cells): Uncomment implementation once RPC methods deployed
+        pass
+
+        # from sentry.hybridcloud.services.replica import control_replica_service
+
+        # control_replica_service.upsert_organization_avatar_replica(
+        #     organization_id=self.organization_id,
+        #     avatar_type=self.avatar_type,
+        #     avatar_ident=self.ident,
+        # )
+
+    @classmethod
+    def handle_async_deletion(
+        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
+    ) -> None:
+        # TODO(cells): Uncomment implementation once RPC methods deployed
+        pass
+
+        # from sentry.hybridcloud.services.replica import control_replica_service
+
+        # control_replica_service.delete_organization_avatar_replica(
+        #     organization_id=shard_identifier,
+        # )

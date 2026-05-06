@@ -224,12 +224,7 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
 
   useHotkeys([
     {
-      match: 'command+alt+c',
-      callback: handleCopyIssueDetailsAsMarkdown,
-      skipPreventDefault: NODE_ENV === 'development',
-    },
-    {
-      match: 'ctrl+alt+c',
+      match: 'mod+alt+c',
       callback: handleCopyIssueDetailsAsMarkdown,
       skipPreventDefault: NODE_ENV === 'development',
     },

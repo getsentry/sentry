@@ -38,6 +38,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -50,6 +51,7 @@ from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiPaginationTruncated,
     IntegrationError,
 )
@@ -61,10 +63,16 @@ from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 
+def _api_base_url(url: str) -> str:
+    if url.endswith(".ghe.com"):
+        return f"https://api.{url}"
+    return f"https://{url}/api/v3"
+
+
 def get_user_info(url, access_token):
     with http.build_session() as session:
         resp = session.get(
-            f"https://{url}/api/v3/user",
+            f"{_api_base_url(url)}/user",
             headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
             verify=False,
         )
@@ -210,6 +218,25 @@ class GitHubEnterpriseIntegration(
         )
 
     # IntegrationInstallation methods
+
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
+        if (
+            exc.json
+            and isinstance(exc.json, dict)
+            and RATE_LIMITED_MESSAGE in exc.json.get("message", "")
+        ):
+            metrics.incr("github_enterprise.link_all_repos.rate_limited_error")
+            return True
+        return False
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiForbiddenError):
+            if self.is_rate_limited_error(exc):
+                return "rate_limited"
+            if "suspended" in str(exc):
+                return "installation_suspended"
+            return "unauthorized"
+        return super().is_broken_integration_error(exc)
 
     def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):
@@ -712,9 +739,10 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 )
             )
         )
+        base = _api_base_url(installation_data["url"])
         with http.build_session() as session:
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/app/installations/{installation_id}",
+                f"{base}/app/installations/{installation_id}",
                 headers=headers,
                 verify=installation_data["verify_ssl"],
             )
@@ -722,7 +750,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             installation_resp = resp.json()
 
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/user/installations",
+                f"{base}/user/installations",
                 headers={
                     "Accept": GITHUB_API_ACCEPT_HEADER,
                     "Authorization": f"token {access_token}",
