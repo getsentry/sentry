@@ -53,6 +53,13 @@ export function StoreCrashReportsConfig({
 
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
+  const standardValues = getStoreCrashReportsValues(SettingScope.PROJECT);
+  // Some projects have a legacy value not in the standard options. Include it
+  // so the saved setting is visible instead of rendering blank.
+  const values = standardValues.includes(project.storeCrashReports)
+    ? standardValues
+    : [...standardValues, project.storeCrashReports];
+
   return (
     <AutoSaveForm
       name="storeCrashReports"
@@ -96,7 +103,7 @@ export function StoreCrashReportsConfig({
             value={field.state.value}
             onChange={field.handleChange}
             disabled={!hasAccess}
-            options={getStoreCrashReportsValues(SettingScope.PROJECT).map(value => ({
+            options={values.map(value => ({
               value,
               label: formatStoreCrashReports(value, organization.storeCrashReports),
             }))}
