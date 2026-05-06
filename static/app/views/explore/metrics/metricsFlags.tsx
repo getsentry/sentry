@@ -19,9 +19,7 @@ export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
 };
 
 export const canUseMetricsAlertsUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) && organization.features.includes('tracemetrics-alerts')
-  );
+  return canUseMetricsUI(organization);
 };
 
 export const canUseMetricsStatsBytesUI = (organization: Organization) => {

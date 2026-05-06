@@ -501,7 +501,6 @@ describe('Incident Rules Form', () => {
         'performance-view',
         'visibility-explore-view',
         'tracemetrics-enabled',
-        'tracemetrics-alerts',
       ];
       const rule = MetricRuleFixture();
       createWrapper({
@@ -629,7 +628,6 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'tracemetrics-enabled',
-        'tracemetrics-alerts',
         'tracemetrics-equations-in-explore',
         'tracemetrics-equations-in-alerts',
       ];

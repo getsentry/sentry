@@ -216,7 +216,6 @@ describe('AlertWizard', () => {
         'performance-view',
         'visibility-explore-view',
         'tracemetrics-enabled',
-        'tracemetrics-alerts',
       ],
       access: ['org:write', 'alerts:write'],
     });
