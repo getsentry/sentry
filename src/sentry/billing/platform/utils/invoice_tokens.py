@@ -26,7 +26,7 @@ class InvoiceTokenGenerator:
         Args:
             secret: Secret key for HMAC. Defaults to SECRET_KEY from settings.
         """
-        self.secret = secret or settings.SECRET_KEY
+        self.secret: str = secret or str(settings.SECRET_KEY)
 
     def generate_token(self, invoice_id: str, valid_days: int = 90) -> str:
         """
