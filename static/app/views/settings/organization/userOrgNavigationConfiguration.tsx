@@ -2,6 +2,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
@@ -74,8 +75,8 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          index: true,
           keywords: [t('slug'), t('org slug'), t('organization slug')],
+          index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
         },
@@ -175,20 +176,50 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t('Set up feature flag integrations'),
         },
         {
-          path: `${organizationSettingsPathPrefix}/seer/`,
-          title: t('Seer'),
-          description: t(
-            "Manage settings for Seer's automated analysis across your organization"
-          ),
-          id: 'seer',
-        },
-        {
           path: `${organizationSettingsPathPrefix}/console-sdk-invites/`,
           title: t('Console SDK Invites'),
           description: t('Manage access to our private console SDK repositories'),
           show: ({organization}) =>
             !!organization && (organization.enabledConsolePlatforms?.length ?? 0) > 0,
           id: 'console-sdk-invites',
+        },
+      ],
+    },
+    {
+      id: 'settings-seer',
+      name: t('Seer'),
+      items: [
+        {
+          path: `${organizationSettingsPathPrefix}/seer/`,
+          title: t('Issue Scans & Fixes'),
+          description: t("Manage Seer's automated issue analysis across your projects"),
+          id: 'seer-autofix-legacy',
+          index: true,
+          show: ({organization}) => !!organization && !showNewSeer(organization),
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/projects/`,
+          title: t('Autofix'),
+          description: t("Manage Seer's automated issue analysis across your projects"),
+          id: 'seer-autofix-new',
+          show: ({organization}) => !!organization && showNewSeer(organization),
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/repos/`,
+          title: t('Code Review'),
+          description: t("Manage Seer's automated code review settings"),
+          id: 'seer-code-review',
+          show: ({organization}) =>
+            !!organization &&
+            (organization.features.includes('seat-based-seer-enabled') ||
+              organization.features.includes('code-review-beta')),
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/advanced/`,
+          title: t('Advanced Settings'),
+          description: t('Configure advanced Seer settings'),
+          id: 'seer-advanced',
+          show: ({organization}) => !!organization && showNewSeer(organization),
         },
       ],
     },

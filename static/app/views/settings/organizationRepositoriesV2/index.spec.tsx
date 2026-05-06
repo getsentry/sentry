@@ -236,6 +236,57 @@ describe('OrganizationRepositoriesV2', () => {
     ).toBeEnabled();
   });
 
+  describe('sync', () => {
+    it('clicking Sync now fires a POST to the repo-sync endpoint', async () => {
+      setupDefaultMocks();
+
+      const syncRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repo-sync/`,
+        method: 'POST',
+        body: {},
+      });
+
+      render(<OrganizationRepositoriesV2 />);
+
+      await userEvent.hover(await screen.findByText('0 repositories'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Sync now'}));
+
+      await waitFor(() => expect(syncRequest).toHaveBeenCalledTimes(1));
+    });
+
+    it('does not show Sync now when the user lacks org:integrations access', async () => {
+      setupDefaultMocks();
+
+      render(<OrganizationRepositoriesV2 />, {
+        organization: OrganizationFixture({access: []}),
+      });
+
+      await userEvent.hover(await screen.findByText('0 repositories'));
+      await screen.findByText('Repositories not yet synced.');
+      expect(screen.queryByRole('button', {name: 'Sync now'})).not.toBeInTheDocument();
+    });
+
+    it('shows re-syncing tooltip state while sync is in progress', async () => {
+      setupDefaultMocks();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repo-sync/`,
+        method: 'POST',
+        body: {},
+      });
+
+      render(<OrganizationRepositoriesV2 />);
+
+      await userEvent.hover(await screen.findByText('0 repositories'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Sync now'}));
+
+      await userEvent.hover(screen.getByText('0 repositories'));
+      expect(
+        await screen.findByText('Re-syncing in the background…')
+      ).toBeInTheDocument();
+    });
+  });
+
   it('opens a settings drawer with backend fields and POSTs changes to the integration endpoint', async () => {
     const integration = OrganizationIntegrationsFixture({
       id: '1',

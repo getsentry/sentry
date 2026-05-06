@@ -438,7 +438,7 @@ class ResourceChangeBoundsTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        delay.assert_called_once_with(action="created", sender="Group", instance_id=group.id)
+        delay.assert_called_once_with(action="created", sender="Group", instance_id=str(group.id))
 
     @with_feature("organizations:integrations-event-hooks")
     @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
@@ -4144,7 +4144,7 @@ class PostProcessGroupFeedbackTest(
         )
 
         mock_delay.assert_called_once_with(
-            action="created", sender="Group", instance_id=event.group.id
+            action="created", sender="Group", instance_id=str(event.group.id)
         )
 
 

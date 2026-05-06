@@ -72,7 +72,7 @@ import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+import {RESERVED_EVENT_IDS, useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -566,6 +566,40 @@ function GroupDetailsContentError({
   }
 }
 
+function getIssueDetailContextHint(
+  view: 'specific-event' | 'events-list' | 'issue-overview'
+): string {
+  const tools =
+    'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
+    'get_event_details(event_id?, issue_id?) for a specific error event; ' +
+    'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.';
+  const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
+
+  if (view === 'specific-event') {
+    return (
+      'Sentry issue detail page. The user is viewing a specific event — ' +
+      'call get_event_details(event_id) with the eventId below to see what they see. ' +
+      shortIdNote +
+      tools
+    );
+  }
+
+  if (view === 'events-list') {
+    return (
+      'Sentry issue events list. The user is browsing all events for this issue. ' +
+      'Use telemetry_live_search to query events matching this issue. ' +
+      shortIdNote +
+      tools
+    );
+  }
+
+  return (
+    'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
+    shortIdNote +
+    tools
+  );
+}
+
 function GroupDetailsContentInner({
   children,
   group,
@@ -642,13 +676,17 @@ function GroupDetailsContentInner({
 
   useEngagedViewTracking({group, project});
 
+  const {eventId: eventIdParam} = useParams<{eventId?: string}>();
+
+  let issueView: 'specific-event' | 'events-list' | 'issue-overview' = 'issue-overview';
+  if (eventIdParam && !RESERVED_EVENT_IDS.has(eventIdParam)) {
+    issueView = 'specific-event';
+  } else if (currentTab === Tab.EVENTS) {
+    issueView = 'events-list';
+  }
+
   useLLMContext({
-    contextHint:
-      'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
-      'shortId is the human-readable issue identifier (e.g. PROJ-123). ' +
-      'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
-      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
-      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+    contextHint: getIssueDetailContextHint(issueView),
     shortId: group.shortId,
     title: group.title,
     level: group.level,

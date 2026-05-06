@@ -95,7 +95,10 @@ describe('OrganizationAuthTokensIndex', () => {
     expect(projectsMock).toHaveBeenCalledTimes(1);
     expect(projectsMock).toHaveBeenCalledWith(
       PROJECTS_ENDPOINT,
-      expect.objectContaining({method: 'GET', query: {query: `id:${project.id}`}})
+      expect.objectContaining({
+        method: 'GET',
+        query: {collapse: ['latestDeploys', 'unusedFeatures'], query: `id:${project.id}`},
+      })
     );
   });
 

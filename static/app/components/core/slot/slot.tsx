@@ -1,42 +1,60 @@
 import {
   createContext,
+  use,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from 'react';
 import {createPortal} from 'react-dom';
 import * as Sentry from '@sentry/react';
+
+import {KNOWN_BRIDGED_CONTEXTS} from './knownContexts';
 
 const NOOP_REF_CALLBACK: React.RefCallback<HTMLElement | null> = () => {};
 const EMPTY_STATE: SlotReducerState<any> = {};
 const NOOP_DISPATCH: React.Dispatch<SlotReducerAction<any>> = () => {};
 
-const reportedMissingProvider = new Set<string>();
+const reportedSlotWarnings = new Set<string>();
 
-function reportMissingProvider(component: string, slotName: string): void {
-  const key = `${component}:${slotName}`;
-  if (reportedMissingProvider.has(key)) {
+function reportSlotWarning(
+  type: 'missing-provider' | 'missing-outlet',
+  component: string,
+  slotName: string,
+  message: string
+): void {
+  const key = `${type}:${component}:${slotName}`;
+  if (reportedSlotWarnings.has(key)) {
     return;
   }
-  reportedMissingProvider.add(key);
+  reportedSlotWarnings.add(key);
+
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.warn(message);
+    return;
+  }
+
   Sentry.withScope(scope => {
     scope.setLevel('warning');
     scope.setTag('slot.component', component);
     scope.setTag('slot.name', slotName);
-    scope.setFingerprint(['slot-missing-provider', component, slotName]);
-    Sentry.captureException(
-      new Error(
-        `<Slot.${component}> for slot "${slotName}" rendered without a <Slot.Provider>`
-      )
-    );
+    scope.setFingerprint([`slot-${type}`, component, slotName]);
+    Sentry.captureException(new Error(message));
   });
 }
 
 type Slot = string;
-type SlotValue = {counter: number; element: HTMLElement | null};
+type ContextBridge = {context: React.Context<any>; value: unknown};
+type SlotValue = {
+  contextBridges: ContextBridge[];
+  counter: number;
+  element: HTMLElement | null;
+};
 
 type SlotReducerState<T extends Slot> = Partial<Record<T, SlotValue>>;
 type SlotReducerAction<T extends Slot> =
@@ -56,6 +74,15 @@ type SlotReducerAction<T extends Slot> =
   | {
       name: T;
       type: 'unregister';
+    }
+  | {
+      contextBridges: ContextBridge[];
+      name: T;
+      type: 'set context bridges';
+    }
+  | {
+      name: T;
+      type: 'remove context bridges';
     };
 
 type SlotReducer<T extends Slot> = React.Reducer<
@@ -79,6 +106,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
         return {
           ...state,
           [action.name]: {
+            contextBridges: currentSlot?.contextBridges ?? [],
             element: currentSlot?.element ?? null,
             counter: (currentSlot?.counter ?? 0) + 1,
           },
@@ -101,6 +129,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
         return {
           ...state,
           [action.name]: {
+            contextBridges: state[action.name]?.contextBridges ?? [],
             counter: state[action.name]?.counter ?? 0,
             element: action.element,
           },
@@ -113,8 +142,31 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
         return {
           ...state,
           [action.name]: {
+            contextBridges: currentSlot?.contextBridges ?? [],
             counter: currentSlot?.counter ?? 0,
             element: null,
+          },
+        };
+      }
+      case 'set context bridges': {
+        const currentSlot = state[action.name];
+        return {
+          ...state,
+          [action.name]: {
+            contextBridges: action.contextBridges,
+            counter: currentSlot?.counter ?? 0,
+            element: currentSlot?.element ?? null,
+          },
+        };
+      }
+      case 'remove context bridges': {
+        const currentSlot = state[action.name];
+        return {
+          ...state,
+          [action.name]: {
+            contextBridges: [],
+            counter: currentSlot?.counter ?? 0,
+            element: currentSlot?.element ?? null,
           },
         };
       }
@@ -149,17 +201,38 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
   useSlotOutletRef: () => React.RefObject<HTMLElement | null>;
 };
 
+function useContextBridges(): ContextBridge[] {
+  const values = KNOWN_BRIDGED_CONTEXTS.map(ctx => use(ctx));
+  const [prev, setPrev] = useState<ContextBridge[]>([]);
+
+  const changed =
+    prev.length !== KNOWN_BRIDGED_CONTEXTS.length ||
+    prev.some((bridge, i) => bridge.value !== values[i]);
+
+  if (changed) {
+    const next = KNOWN_BRIDGED_CONTEXTS.map((ctx, i) => ({
+      context: ctx,
+      value: values[i],
+    }));
+    setPrev(next);
+    return next;
+  }
+
+  return prev;
+}
+
 function makeSlotConsumer<T extends Slot>(options: {
   context: React.Context<SlotContextValue<T> | null>;
   outletNameContext: React.Context<T | null>;
-  providers?: React.ComponentType<{children: React.ReactNode}>;
 }) {
-  const {context, outletNameContext, providers: Providers} = options;
+  const {context, outletNameContext} = options;
 
   function SlotConsumer(props: SlotConsumerProps<T>): React.ReactNode {
     const ctx = useContext(context);
     const [state, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
     const {name} = props;
+    const element = state[name]?.element;
+
     useLayoutEffect(() => {
       if (dispatch === NOOP_DISPATCH) {
         return;
@@ -168,29 +241,49 @@ function makeSlotConsumer<T extends Slot>(options: {
       return () => dispatch({type: 'decrement counter', name});
     }, [dispatch, name]);
 
+    useEffect(() => {
+      if (ctx && !element) {
+        reportSlotWarning(
+          'missing-outlet',
+          'Consumer',
+          name,
+          `<Slot.Consumer name="${name}"> could not find a registered <Slot.Outlet> element. ` +
+            `Ensure a <Slot.Outlet name="${name}"> is rendered inside the same <Slot.Provider>.`
+        );
+      }
+    }, [ctx, element, name]);
+
     if (!ctx) {
-      reportMissingProvider('Consumer', name);
+      reportSlotWarning(
+        'missing-provider',
+        'Consumer',
+        name,
+        `<Slot.Consumer> for slot "${name}" rendered without a <Slot.Provider>`
+      );
       return null;
     }
 
-    // Provide outletNameContext from the consumer so that portaled children
-    // (which don't descend through the outlet in the component tree) can still
-    // read which slot they belong to via useSlotOutletRef.
-    const wrappedChildren = (
+    if (!element) {
+      return null;
+    }
+
+    // Provide initial internal outlet context
+    let content: React.ReactNode = (
       <outletNameContext.Provider value={name}>
         {props.children}
       </outletNameContext.Provider>
     );
 
-    const element = state[name]?.element;
-    const content = Providers ? (
-      <Providers>{wrappedChildren}</Providers>
-    ) : (
-      wrappedChildren
-    );
-
-    if (!element) {
-      return null;
+    const bridges = state[name]?.contextBridges;
+    if (bridges) {
+      content = bridges
+        .toReversed()
+        .reduce(
+          (children, bridge) => (
+            <bridge.context value={bridge.value}>{children}</bridge.context>
+          ),
+          content
+        );
     }
 
     return createPortal(content, element);
@@ -208,6 +301,14 @@ function makeSlotOutlet<T extends Slot>(
     const ctx = useContext(context);
     const [, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
     const {name} = props;
+
+    const contextBridges = useContextBridges();
+
+    useLayoutEffect(() => {
+      dispatch({type: 'set context bridges', name, contextBridges});
+      return () => dispatch({type: 'remove context bridges', name});
+    }, [dispatch, name, contextBridges]);
+
     const ref = useCallback(
       (element: HTMLElement | null) => {
         if (dispatch === NOOP_DISPATCH) {
@@ -223,7 +324,12 @@ function makeSlotOutlet<T extends Slot>(
     );
 
     if (!ctx) {
-      reportMissingProvider('Outlet', name);
+      reportSlotWarning(
+        'missing-provider',
+        'Outlet',
+        name,
+        `<Slot.Outlet> for slot "${name}" rendered without a <Slot.Provider>`
+      );
       return props.children({ref: NOOP_REF_CALLBACK});
     }
 
@@ -247,7 +353,12 @@ function makeSlotFallback<T extends Slot>(
     const name = useContext(outletNameContext);
 
     if (!ctx) {
-      reportMissingProvider('Fallback', name ?? 'unknown');
+      reportSlotWarning(
+        'missing-provider',
+        'Fallback',
+        name ?? 'unknown',
+        `<Slot.Fallback> for slot "${name ?? 'unknown'}" rendered without a <Slot.Provider>`
+      );
       return null;
     }
 
@@ -303,10 +414,7 @@ function makeUseSlotOutletRef<T extends Slot>(
   };
 }
 
-export function slot<T extends readonly Slot[]>(
-  names: T,
-  options?: {providers?: React.ComponentType<{children: React.ReactNode}>}
-): SlotModule<T[number]> {
+export function slot<T extends readonly Slot[]>(names: T): SlotModule<T[number]> {
   type SlotName = T[number];
 
   const SlotContext = createContext<SlotContextValue<SlotName> | null>(null);
@@ -315,7 +423,6 @@ export function slot<T extends readonly Slot[]>(
   const Slot = makeSlotConsumer<SlotName>({
     context: SlotContext,
     outletNameContext: OutletNameContext,
-    providers: options?.providers,
   }) as SlotModule<SlotName>;
   Slot.Provider = makeSlotProvider<SlotName>(SlotContext);
   Slot.Outlet = makeSlotOutlet<SlotName>(SlotContext, OutletNameContext);

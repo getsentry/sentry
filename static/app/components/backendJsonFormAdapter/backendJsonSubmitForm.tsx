@@ -18,7 +18,7 @@ import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {JsonFormAdapterFieldConfig} from './types';
-import {getDefaultForField, transformChoices} from './utils';
+import {getDefaultForField, getDisabledProp, transformChoices} from './utils';
 
 /**
  * API client without base URL prefix, needed for async select fields
@@ -237,7 +237,7 @@ export function BackendJsonSubmitForm({
                           <fieldApi.Switch
                             checked={fieldApi.state.value as boolean}
                             onChange={handleChange}
-                            disabled={field.disabled}
+                            disabled={getDisabledProp(field)}
                           />
                         </fieldApi.Layout.Stack>
                       );
@@ -253,7 +253,7 @@ export function BackendJsonSubmitForm({
                             value={(fieldApi.state.value as string) ?? ''}
                             onChange={handleChange}
                             placeholder={field.placeholder}
-                            disabled={field.disabled}
+                            disabled={getDisabledProp(field)}
                           />
                         </fieldApi.Layout.Stack>
                       );
@@ -268,7 +268,7 @@ export function BackendJsonSubmitForm({
                             value={fieldApi.state.value as number}
                             onChange={handleChange}
                             placeholder={field.placeholder}
-                            disabled={field.disabled}
+                            disabled={getDisabledProp(field)}
                           />
                         </fieldApi.Layout.Stack>
                       );
@@ -327,7 +327,7 @@ export function BackendJsonSubmitForm({
                                 onChange={(value: Array<string | number>) =>
                                   handleChange(value)
                                 }
-                                disabled={field.disabled}
+                                disabled={getDisabledProp(field)}
                                 queryOptions={asyncQueryOptions}
                               />
                             </fieldApi.Layout.Stack>
@@ -345,7 +345,7 @@ export function BackendJsonSubmitForm({
                                   (fieldApi.state.value ?? null) as string | number | null
                                 }
                                 onChange={(value: string | number) => handleChange(value)}
-                                disabled={field.disabled}
+                                disabled={getDisabledProp(field)}
                                 queryOptions={asyncQueryOptions}
                               />
                             ) : (
@@ -357,7 +357,7 @@ export function BackendJsonSubmitForm({
                                 onChange={(value: string | number | null) =>
                                   handleChange(value)
                                 }
-                                disabled={field.disabled}
+                                disabled={getDisabledProp(field)}
                                 queryOptions={asyncQueryOptions}
                               />
                             )}
@@ -376,7 +376,7 @@ export function BackendJsonSubmitForm({
                               value={(fieldApi.state.value as string[]) ?? []}
                               onChange={(value: string[]) => handleChange(value)}
                               options={transformChoices(field.choices)}
-                              disabled={field.disabled}
+                              disabled={getDisabledProp(field)}
                             />
                           </fieldApi.Layout.Stack>
                         );
@@ -392,7 +392,7 @@ export function BackendJsonSubmitForm({
                               value={(fieldApi.state.value ?? null) as string | null}
                               onChange={(value: string) => handleChange(value)}
                               options={transformChoices(field.choices)}
-                              disabled={field.disabled}
+                              disabled={getDisabledProp(field)}
                             />
                           ) : (
                             <fieldApi.Select
@@ -400,7 +400,7 @@ export function BackendJsonSubmitForm({
                               value={(fieldApi.state.value ?? null) as string | null}
                               onChange={(value: string | null) => handleChange(value)}
                               options={transformChoices(field.choices)}
-                              disabled={field.disabled}
+                              disabled={getDisabledProp(field)}
                             />
                           )}
                         </fieldApi.Layout.Stack>
@@ -417,7 +417,7 @@ export function BackendJsonSubmitForm({
                             value={(fieldApi.state.value as string) ?? ''}
                             onChange={handleChange}
                             placeholder={field.placeholder}
-                            disabled={field.disabled}
+                            disabled={getDisabledProp(field)}
                           />
                         </fieldApi.Layout.Stack>
                       );
@@ -435,7 +435,7 @@ export function BackendJsonSubmitForm({
                             value={(fieldApi.state.value as string) ?? ''}
                             onChange={handleChange}
                             placeholder={field.placeholder}
-                            disabled={field.disabled}
+                            disabled={getDisabledProp(field)}
                             type={
                               field.type === 'string' || field.type === 'text'
                                 ? 'text'
@@ -455,7 +455,7 @@ export function BackendJsonSubmitForm({
                               config={field}
                               value={tableValue}
                               onAdd={handleChange}
-                              disabled={field.disabled}
+                              disabled={!!getDisabledProp(field)}
                             />
                           </fieldApi.Layout.Row>
                           <TableBody
@@ -463,7 +463,7 @@ export function BackendJsonSubmitForm({
                             value={tableValue}
                             onUpdate={handleChange}
                             onSave={() => {}}
-                            disabled={field.disabled}
+                            disabled={!!getDisabledProp(field)}
                           />
                         </Stack>
                       );
@@ -476,13 +476,13 @@ export function BackendJsonSubmitForm({
                             config={field}
                             value={mapperValue}
                             onDelete={handleChange}
-                            disabled={field.disabled}
+                            disabled={!!getDisabledProp(field)}
                           />
                           <ProjectMapperAddRow
                             config={field}
                             value={mapperValue}
                             onAdd={handleChange}
-                            disabled={field.disabled}
+                            disabled={!!getDisabledProp(field)}
                           />
                         </Stack>
                       );
@@ -509,7 +509,7 @@ export function BackendJsonSubmitForm({
                                 }));
                               }}
                               onChange={handleChange}
-                              disabled={field.disabled}
+                              disabled={!!getDisabledProp(field)}
                             />
                           </fieldApi.Layout.Row>
                           <ChoiceMapperTable
@@ -518,7 +518,7 @@ export function BackendJsonSubmitForm({
                             labels={fieldLabels}
                             onUpdate={handleChange}
                             onSave={() => {}}
-                            disabled={field.disabled}
+                            disabled={!!getDisabledProp(field)}
                           />
                         </Stack>
                       );

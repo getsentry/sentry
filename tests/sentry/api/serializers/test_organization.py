@@ -77,7 +77,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-codeowners",
-            "integrations-deployment",
             "integrations-enterprise-alert-rule",
             "integrations-enterprise-incident-management",
             "integrations-event-hooks",

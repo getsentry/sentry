@@ -13,6 +13,8 @@ from rest_framework.serializers import ValidationError
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.services.eventstore.models import EventSubjectTemplateData
 from sentry.types.actor import Actor, ActorType
 from sentry.users.services.user.service import user_service
@@ -460,7 +462,6 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Acto
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.models.team import Team
 
     if not owners:
         return {}
@@ -519,6 +520,58 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Acto
     return {o: actors.get((o.type, o.identifier.lower())) for o in owners}
 
 
+def get_invalid_owner_details(bad_owners: Sequence[Owner], project_id: int) -> list[str]:
+    if not bad_owners:
+        return []
+
+    project_slug, organization_id = Project.objects.values_list("slug", "organization_id").get(
+        id=project_id
+    )
+
+    messages: list[str] = []
+
+    team_owners = [o for o in bad_owners if o.type == "team"]
+    for owner in team_owners:
+        messages.append(
+            f"Team #{owner.identifier} does not have access to project '{project_slug}'."
+        )
+
+    user_owners = [o for o in bad_owners if o.type == "user"]
+    if user_owners:
+        emails = [o.identifier for o in user_owners]
+        existing_users = user_service.get_many(filter=dict(emails=emails, is_active=True))
+        existing_email_to_user_id: dict[str, int] = {}
+        for user in existing_users:
+            existing_email_to_user_id[user.email.lower()] = user.id
+            for useremail in user.useremails:
+                existing_email_to_user_id[useremail.email.lower()] = user.id
+
+        existing_user_ids = set(existing_email_to_user_id.values())
+
+        org_member_user_ids = (
+            set(
+                OrganizationMember.objects.filter(
+                    user_id__in=existing_user_ids,
+                    organization_id=organization_id,
+                ).values_list("user_id", flat=True)
+            )
+            if existing_user_ids
+            else set()
+        )
+
+        for owner in user_owners:
+            user_id = existing_email_to_user_id.get(owner.identifier.lower())
+            if user_id is not None and user_id in org_member_user_ids:
+                messages.append(
+                    f"User {owner.identifier} does not have access to project '{project_slug}'."
+                )
+            else:
+                messages.append(f"User {owner.identifier} is not a member of this organization.")
+
+    messages.sort()
+    return messages
+
+
 def remove_deleted_owners_from_schema(
     rules: list[OwnershipRule], owners_id: dict[str, int]
 ) -> None:
@@ -567,21 +620,18 @@ def create_schema_from_issue_owners(
     owners_id = {}
     actors = resolve_actors(owners, project_id)
 
-    bad_actors = []
+    bad_owners: list[Owner] = []
     for owner, actor in actors.items():
         if actor is None:
-            if owner.type == "user":
-                bad_actors.append(owner.identifier)
-            elif owner.type == "team":
-                bad_actors.append(f"#{owner.identifier}")
+            bad_owners.append(owner)
         else:
             owners_id[owner.identifier] = actor.id
 
-    if bad_actors and remove_deleted_owners:
+    if bad_owners and remove_deleted_owners:
         remove_deleted_owners_from_schema(schema["rules"], owners_id)
-    elif bad_actors:
-        bad_actors.sort()
-        raise ValidationError({"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))})
+    elif bad_owners:
+        error_messages = get_invalid_owner_details(bad_owners, project_id)
+        raise ValidationError({"raw": "Invalid rule owners: {}".format(" ".join(error_messages))})
 
     add_owner_ids_to_schema(schema["rules"], owners_id)
 
