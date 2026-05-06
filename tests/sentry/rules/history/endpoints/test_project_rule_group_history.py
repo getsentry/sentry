@@ -1,13 +1,13 @@
 from datetime import datetime
 
 from sentry.api.serializers import serialize
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import AlertRuleWorkflow
+from sentry.workflow_engine.models import AlertRuleWorkflow, WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
@@ -28,29 +28,29 @@ class RuleGroupHistorySerializerTest(TestCase):
 
 
 @freeze_time()
+@with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"
 
     def test(self) -> None:
-        history = []
         rule = self.create_project_rule()
+        workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+
+        history = []
         for i in range(3):
             history.append(
-                RuleFireHistory(
-                    project=rule.project,
-                    rule=rule,
+                WorkflowFireHistory(
+                    workflow=workflow,
                     group=self.group,
                     date_added=before_now(days=i + 1),
                 )
             )
         group_2 = self.create_group()
         history.append(
-            RuleFireHistory(
-                project=rule.project, rule=rule, group=group_2, date_added=before_now(days=1)
-            )
+            WorkflowFireHistory(workflow=workflow, group=group_2, date_added=before_now(days=1))
         )
         self.login_as(self.user)
-        RuleFireHistory.objects.bulk_create(history)
+        WorkflowFireHistory.objects.bulk_create(history)
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
