@@ -15,6 +15,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 type UpdateParams = {
@@ -38,7 +39,7 @@ export function update(api: Client, params: UpdateParams) {
         ProjectsStore.onUpdateSuccess(data);
         return data;
       },
-      err => {
+      (err: Error) => {
         ProjectsStatsStore.onUpdateError(err, params.projectId);
         throw err;
       }
@@ -138,11 +139,11 @@ export function transferProject(
           })
         );
       },
-      err => {
+      (err: RequestError) => {
         let message = '';
         // Handle errors with known failures
-        if (err.status >= 400 && err.status < 500 && err.responseJSON) {
-          message = err.responseJSON?.detail;
+        if (err.status && err.status >= 400 && err.status < 500 && err.responseJSON) {
+          message = err.responseJSON.detail as string;
         }
 
         if (message) {

@@ -27,6 +27,20 @@ type RawMessage = {
   roleExplicit?: boolean;
 };
 
+type UnknownRecord = Record<string, unknown>;
+
+type PartBuckets = {
+  hasRenderableTextPart: boolean;
+  objectParts: unknown[];
+  textParts: string[];
+  toolCalls: unknown[];
+  toolResponses: UnknownRecord[];
+};
+
+// Keep this parser mirrored with src/sentry/utils/ai_message_normalizer.py.
+// AI SDKs emit inconsistent shapes and their specs keep changing, so update both
+// parsers together whenever adding or changing a supported format.
+
 /**
  * Normalizes AI attribute values into a list of messages.
  *
@@ -45,21 +59,15 @@ export function normalizeToMessages(
   raw: string,
   {defaultRole}: {defaultRole: string}
 ): NormalizedResult {
-  const {fixedInvalidJson, messages: rawMessages} = parseAndDetect(raw, defaultRole);
-
-  const normalized: AIMessage[] = [];
-  for (const msg of rawMessages) {
-    const role = msg.role ?? defaultRole;
-    const content = resolveMessageContent(msg, role);
-    if (content === undefined || content === null || content === '') {
-      continue;
-    }
-    normalized.push({role, content});
-  }
+  const {fixedInvalidJson, messages: rawMessages} = rawMessagesFromAttribute(
+    raw,
+    defaultRole
+  );
+  const messages = normalizeRawMessages(rawMessages, defaultRole);
 
   return {
     fixedInvalidJson,
-    messages: normalized.length > 0 ? normalized : null,
+    messages: messages.length > 0 ? messages : null,
   };
 }
 
@@ -75,25 +83,53 @@ export function extractAssistantOutput(
   raw: string,
   {defaultRole}: {defaultRole: string}
 ): AIOutputResult {
-  const {fixedInvalidJson, messages: rawMessages} = parseAndDetect(raw, defaultRole);
+  const {fixedInvalidJson, messages: rawMessages} = rawMessagesFromAttribute(
+    raw,
+    defaultRole
+  );
 
-  const empty: AIOutputResult = {
+  if (rawMessages.length === 0) {
+    return emptyOutput(fixedInvalidJson);
+  }
+
+  const selected = selectAssistantMessages(rawMessages);
+  return outputFromMessages(selected, fixedInvalidJson);
+}
+
+function emptyOutput(fixedInvalidJson: boolean): AIOutputResult {
+  return {
     fixedInvalidJson,
     responseText: null,
     responseObject: null,
     toolCalls: null,
   };
-  if (rawMessages.length === 0) {
-    return empty;
+}
+
+function normalizeRawMessages(
+  rawMessages: RawMessage[],
+  defaultRole: string
+): AIMessage[] {
+  const normalized: AIMessage[] = [];
+  for (const msg of rawMessages) {
+    const role = msg.role ?? defaultRole;
+    const content = resolveMessageContent(msg, role);
+    if (content === undefined || content === null || content === '') {
+      continue;
+    }
+    normalized.push({role, content});
   }
+  return normalized;
+}
 
-  const selected = selectAssistantMessages(rawMessages);
-
+function outputFromMessages(
+  messages: RawMessage[],
+  fixedInvalidJson: boolean
+): AIOutputResult {
   const textParts: string[] = [];
   const toolCallParts: unknown[] = [];
   const objectParts: unknown[] = [];
-  for (const msg of selected) {
-    collectOutputExtras(msg, {textParts, toolCallParts, objectParts});
+  for (const msg of messages) {
+    appendOutputFromMessage(msg, {textParts, toolCallParts, objectParts});
   }
 
   return {
@@ -107,30 +143,34 @@ export function extractAssistantOutput(
   };
 }
 
-function parseAndDetect(
+function rawMessagesFromAttribute(
   raw: string,
   defaultRole: string
 ): {fixedInvalidJson: boolean; messages: RawMessage[]} {
-  if (!looksLikeJson(raw)) {
-    return {
-      fixedInvalidJson: false,
-      messages: raw.trim() ? [{role: defaultRole, content: raw}] : [],
-    };
-  }
-
-  const {parsed, fixedInvalidJson}: {fixedInvalidJson: boolean; parsed: unknown} =
-    parseJsonWithFix(raw);
-  if (parsed === null) {
+  const {fixedInvalidJson, parsed} = parseAttribute(raw);
+  if (parsed === undefined) {
     return {fixedInvalidJson, messages: []};
   }
 
-  return {fixedInvalidJson, messages: detectShape(parsed, defaultRole)};
+  return {
+    fixedInvalidJson,
+    messages: rawMessagesFromValue(parsed, defaultRole),
+  };
+}
+
+function parseAttribute(raw: string): {fixedInvalidJson: boolean; parsed: unknown} {
+  if (!looksLikeJson(raw)) {
+    return {fixedInvalidJson: false, parsed: raw};
+  }
+  const {parsed, fixedInvalidJson}: {fixedInvalidJson: boolean; parsed: unknown} =
+    parseJsonWithFix(raw);
+  return {fixedInvalidJson, parsed: parsed ?? undefined};
 }
 
 /**
  * Maps an already-parsed value onto a list of raw messages.
  */
-function detectShape(value: unknown, defaultRole: string): RawMessage[] {
+function rawMessagesFromValue(value: unknown, defaultRole: string): RawMessage[] {
   if (typeof value === 'string') {
     return value.trim() ? [{role: defaultRole, content: value}] : [];
   }
@@ -183,14 +223,14 @@ function unwrapMessagesField(value: UnknownRecord, defaultRole: string): RawMess
     return result;
   }
   if (typeof inner === 'string') {
-    try {
-      const innerParsed: unknown = JSON.parse(inner);
-      result.push(...detectShape(innerParsed, defaultRole));
-    } catch {
+    const innerParsed = parseJsonString(inner);
+    if (innerParsed === undefined) {
       if (inner.trim()) {
         result.push({role: defaultRole, content: inner});
       }
+      return result;
     }
+    result.push(...rawMessagesFromValue(innerParsed, defaultRole));
   }
   return result;
 }
@@ -233,6 +273,13 @@ function toRawMessage(item: unknown, defaultRole: string): RawMessage | null {
       content: item.content,
     };
   }
+  if (item.completion !== undefined) {
+    return {
+      role: role ?? defaultRole,
+      roleExplicit: role !== undefined,
+      content: item.completion,
+    };
+  }
   return null;
 }
 
@@ -240,7 +287,7 @@ function resolveMessageContent(msg: RawMessage, role: string): unknown {
   if (msg.parts) {
     return collapseParts(msg.parts);
   }
-  const parsed = tryParseJsonRecursive(msg.content);
+  const parsed = parseJsonContentPreservingPrimitives(msg.content);
   return role === 'tool' ? parsed : renderTextContent(parsed);
 }
 
@@ -254,30 +301,74 @@ function renderTextContent(content: unknown): unknown {
  * structured objects, then tool_calls, then tool_call_responses.
  */
 function collapseParts(parts: unknown[]): unknown {
-  const hasText = parts.some(part => getPartType(part) === 'text');
-  const hasFile = parts.some(part => isFileContentPartType(getPartType(part)));
-  if (hasText || hasFile) {
-    return extractTextFromContentParts(parts);
-  }
+  const buckets = bucketParts(parts);
 
-  const objectParts = parts.filter(part => getPartType(part) === 'object');
-  if (objectParts.length > 0) {
-    return objectParts.length === 1 ? objectParts[0] : objectParts;
+  if (buckets.hasRenderableTextPart) {
+    return buckets.textParts.join('\n');
   }
-
-  const toolCalls = parts.filter(part => getPartType(part) === 'tool_call');
-  if (toolCalls.length > 0) {
-    return toolCalls;
+  if (buckets.objectParts.length > 0) {
+    return buckets.objectParts.length === 1
+      ? buckets.objectParts[0]
+      : buckets.objectParts;
   }
-
-  const toolResponses = parts.filter(part => getPartType(part) === 'tool_call_response');
-  if (toolResponses.length > 0) {
-    return toolResponses
-      .map(response => (isRecord(response) ? response.result : undefined))
-      .join('\n');
+  if (buckets.toolCalls.length > 0) {
+    return buckets.toolCalls;
+  }
+  if (buckets.toolResponses.length > 0) {
+    return buckets.toolResponses.map(response => response.result).join('\n');
   }
 
   return undefined;
+}
+
+function bucketParts(parts: unknown[]): PartBuckets {
+  const buckets: PartBuckets = {
+    hasRenderableTextPart: false,
+    textParts: [],
+    objectParts: [],
+    toolCalls: [],
+    toolResponses: [],
+  };
+  for (const part of parts) {
+    if (!isRecord(part)) {
+      continue;
+    }
+
+    const partType = getPartType(part);
+    if (isFileContentPartType(partType)) {
+      buckets.hasRenderableTextPart = true;
+      buckets.textParts.push(redactedFileContent(part));
+      continue;
+    }
+    if (partType === 'text') {
+      buckets.hasRenderableTextPart = true;
+      const text = getTextPartContent(part, {trim: true});
+      if (text) {
+        buckets.textParts.push(text);
+      }
+      continue;
+    }
+    if (!partType) {
+      const text = getTextPartContent(part, {trim: true});
+      if (text) {
+        buckets.textParts.push(text);
+      }
+      continue;
+    }
+    if (partType === 'object') {
+      buckets.objectParts.push(part);
+      continue;
+    }
+    if (partType === 'tool_call') {
+      buckets.toolCalls.push(part);
+      continue;
+    }
+    if (partType === 'tool_call_response') {
+      buckets.toolResponses.push(part);
+    }
+  }
+
+  return buckets;
 }
 
 function selectAssistantMessages(rawMessages: RawMessage[]): RawMessage[] {
@@ -288,36 +379,22 @@ function selectAssistantMessages(rawMessages: RawMessage[]): RawMessage[] {
   return [rawMessages[rawMessages.length - 1]!];
 }
 
-function collectOutputExtras(
+function appendOutputFromMessage(
   msg: RawMessage,
   buckets: {objectParts: unknown[]; textParts: string[]; toolCallParts: unknown[]}
 ): void {
-  const {textParts, toolCallParts, objectParts} = buckets;
+  const {textParts, objectParts} = buckets;
 
   if (msg.parts) {
-    for (const part of msg.parts) {
-      const partType = getPartType(part);
-      if (partType === 'text' && isRecord(part)) {
-        const text = getStringField(part, 'content') ?? getStringField(part, 'text');
-        if (text) {
-          textParts.push(text);
-        }
-      } else if (partType === 'tool_call') {
-        toolCallParts.push(part);
-      } else if (partType === 'object') {
-        objectParts.push(part);
-      } else if (isFileContentPartType(partType) && isRecord(part)) {
-        textParts.push(`\n\n[redacted content of type "${getMimeType(part)}"]\n\n`);
-      }
-    }
+    appendOutputFromParts(msg.parts, buckets);
     return;
   }
 
-  const content = msg.content;
+  const content = parseJsonContentPreservingPrimitives(msg.content);
   if (content === undefined || content === null) {
     return;
   }
-  if (typeof content === 'string') {
+  if (typeof content === 'string' && content) {
     textParts.push(content);
   } else if (Array.isArray(content)) {
     const extracted = extractTextFromContentParts(content);
@@ -329,10 +406,56 @@ function collectOutputExtras(
   }
 }
 
+function appendOutputFromParts(
+  parts: unknown[],
+  buckets: {objectParts: unknown[]; textParts: string[]; toolCallParts: unknown[]}
+): void {
+  const {textParts, toolCallParts, objectParts} = buckets;
+  for (const part of parts) {
+    const partType = getPartType(part);
+    if (partType === 'text' && isRecord(part)) {
+      const text = getStringField(part, 'content') ?? getStringField(part, 'text');
+      if (text) {
+        textParts.push(text);
+      }
+      continue;
+    }
+    if (partType === 'tool_call') {
+      toolCallParts.push(part);
+      continue;
+    }
+    if (partType === 'object') {
+      objectParts.push(part);
+      continue;
+    }
+    if (isFileContentPartType(partType) && isRecord(part)) {
+      textParts.push(redactedFileContent(part));
+    }
+  }
+}
+
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const FILE_CONTENT_PART_TYPES = new Set<string>(FILE_CONTENT_PARTS);
 type FileContentPartType = (typeof FILE_CONTENT_PARTS)[number];
-type UnknownRecord = Record<string, unknown>;
+
+function parseJsonContentPreservingPrimitives(value: unknown): unknown {
+  const parsed = tryParseJsonRecursive(value);
+  if (
+    typeof value === 'string' &&
+    (parsed === null || typeof parsed === 'number' || typeof parsed === 'boolean')
+  ) {
+    return value;
+  }
+  return parsed;
+}
+
+function parseJsonString(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
 
 function looksLikeJson(raw: string): boolean {
   const trimmed = raw.trim();
@@ -344,27 +467,7 @@ function looksLikeJson(raw: string): boolean {
 }
 
 function extractTextFromContentParts(parts: unknown[]): string {
-  const texts: string[] = [];
-  for (const part of parts) {
-    if (!isRecord(part)) {
-      continue;
-    }
-
-    const partType = getPartType(part);
-    if (isFileContentPartType(partType)) {
-      texts.push(`\n\n[redacted content of type "${getMimeType(part)}"]\n\n`);
-      continue;
-    }
-    // Accept untyped items with `text` or `content` (older Anthropic-style
-    // [{text: '...'}] arrays) as well as explicit `type: 'text'` parts.
-    if (!partType || partType === 'text') {
-      const text = getStringField(part, 'text') ?? getStringField(part, 'content');
-      if (text) {
-        texts.push(text.trim());
-      }
-    }
-  }
-  return texts.join('\n');
+  return bucketParts(parts).textParts.join('\n');
 }
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -386,4 +489,16 @@ function isFileContentPartType(value: unknown): value is FileContentPartType {
 
 function getMimeType(record: UnknownRecord): string {
   return getStringField(record, 'mime_type') ?? 'unknown';
+}
+
+function getTextPartContent(
+  record: UnknownRecord,
+  options: {trim?: boolean} = {}
+): string | undefined {
+  const text = getStringField(record, 'text') ?? getStringField(record, 'content');
+  return options.trim ? text?.trim() : text;
+}
+
+function redactedFileContent(record: UnknownRecord): string {
+  return `\n\n[redacted content of type "${getMimeType(record)}"]\n\n`;
 }

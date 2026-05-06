@@ -477,12 +477,12 @@ export function useInfiniteLogsQuery({
       let response = await apiFetch<EventsLogsResult>({
         ...fetchContext,
         queryKey: [
-          {infinite: false, version: 'v2'},
           url,
           {
             ...baseOptions,
             query: getParamBasedQuery(baseOptions?.query, pageParam),
           },
+          {infinite: false},
         ],
       });
 
@@ -498,12 +498,12 @@ export function useInfiniteLogsQuery({
         response = await apiFetch<EventsLogsResult>({
           ...fetchContext,
           queryKey: [
-            {infinite: false, version: 'v2'},
             url,
             {
               ...retryOptions,
               query: getParamBasedQuery(retryOptions.query, pageParam),
             },
+            {infinite: false},
           ],
         });
       }

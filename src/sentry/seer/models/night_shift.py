@@ -43,9 +43,7 @@ class SeerNightShiftRunResult(DefaultFieldsModel):
     run = FlexibleForeignKey(
         "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="results"
     )
-    kind = models.CharField(
-        max_length=256, db_default="agentic_triage", choices=NightShiftRunResultKind.choices
-    )
+    kind = models.CharField(max_length=256, choices=NightShiftRunResultKind.choices)
     group = FlexibleForeignKey(
         "sentry.Group", on_delete=models.CASCADE, db_constraint=False, null=True
     )

@@ -200,20 +200,44 @@ def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDic
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
-    """Metrics encodes the entire chart config in a single ``metric`` JSON param,
-    including its own query and aggregateSortBys."""
+def _metric_chart_is_visible(metric_parsed: dict[str, Any]) -> bool:
+    """A metric renders the first aggregateField with `yAxes`. That entry's
+    `visible` flag (defaulting to True) controls whether the chart is shown
+    in the UI; mirror that here so hidden charts are skipped during unfurl."""
+    for agg_field in metric_parsed.get("aggregateFields") or []:
+        if not isinstance(agg_field, dict):
+            continue
+        if isinstance(agg_field.get("yAxes"), list):
+            return agg_field.get("visible", True) is not False
+    # No yAxes entry means we'll fall back to the dataset default, treat as visible.
+    return True
+
+
+def _parse_metrics_url(
+    raw_query: QueryDict, default_y_axis: str
+) -> tuple[QueryDict | None, int | None]:
+    """Metrics encodes each chart in its own `metric` JSON param. Multiple
+    metric params represent multiple charts; pick the first whose visualization
+    is visible (matching the Explore UI's `visible` flag). If none are
+    visible, return `None` to signal no chart should be rendered."""
     metric_list = raw_query.getlist("metric")
     if not metric_list:
         return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
 
-    try:
-        metric_parsed = json.loads(metric_list[0])
-    except (json.JSONDecodeError, TypeError, AttributeError):
-        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+    metric_parsed: dict[str, Any] | None = None
+    for raw_metric in metric_list:
+        try:
+            parsed = json.loads(raw_metric)
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            continue
+        if not isinstance(parsed, dict):
+            continue
+        if _metric_chart_is_visible(parsed):
+            metric_parsed = parsed
+            break
 
-    if not isinstance(metric_parsed, dict):
-        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+    if metric_parsed is None:
+        return None, None
 
     y_axes: list[str] = []
     group_bys: list[str] = []
@@ -249,7 +273,7 @@ def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[Query
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-ExploreParserFn = Callable[[QueryDict, str], tuple[QueryDict, int | None]]
+ExploreParserFn = Callable[[QueryDict, str], tuple[QueryDict | None, int | None]]
 
 
 class ExploreDatasetConfig(TypedDict):
@@ -339,6 +363,10 @@ def _unfurl_explore(
             continue
 
         params = link.args["query"]
+        if params is None:
+            # Parser signaled no chart should be rendered (e.g. all metrics
+            # in the URL are hidden).
+            continue
         chart_type = link.args.get("chart_type")
 
         explore_dataset = link.args.get("dataset", SupportedTraceItemType.SPANS)

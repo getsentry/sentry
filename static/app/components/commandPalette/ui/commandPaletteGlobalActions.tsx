@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
 import {
@@ -56,12 +56,11 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
-import type {AvatarProject, Project} from 'sentry/types/project';
+import type {AvatarProject} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -152,54 +151,59 @@ function ResolvedIdentifierCommandPaletteAction() {
   const isEventId = EVENT_ID_PATTERN.test(query);
   const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
 
-  // `projects` is intentionally omitted from the queryKey:
-  // TanStack serializes the entire key for cache lookups, and
-  // including the full projects array would be too costly —
-  // some orgs have thousands of projects.
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
-  const {data} = useQuery<ResolvedIdentifier | null>({
-    queryKey: ['command-palette-identifier-lookup', organization.slug, query, isShortId],
-    queryFn: async () => {
-      try {
-        if (isShortId) {
-          const shortIdLookup: ShortIdResponse = await QUERY_API_CLIENT.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/shortids/$issueId/', {
-              path: {organizationIdOrSlug: organization.slug, issueId: query},
-            })
-          );
-          const project =
-            projects.find(p => p.slug === shortIdLookup.projectSlug) ??
-            shortIdLookup.group.project;
-          return {
-            details: shortIdLookup.group.metadata?.value,
-            kind: 'issue' as const,
-            project,
-            ...shortIdLookup,
-          };
-        }
-
-        const eventIdLookup: EventIdResponse = await QUERY_API_CLIENT.requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/eventids/$eventId/', {
-            path: {organizationIdOrSlug: organization.slug, eventId: query},
-          })
-        );
-        const project =
-          projects.find(p => p.slug === eventIdLookup.projectSlug) ??
-          ({slug: eventIdLookup.projectSlug} as Project);
-        return {
-          details: eventIdLookup.event.metadata?.value,
-          kind: 'event' as const,
-          project,
-          ...eventIdLookup,
-        };
-      } catch {
-        return null;
+  const {data: shortIdLookup} = useQuery({
+    ...apiOptions.as<ShortIdResponse>()(
+      '/organizations/$organizationIdOrSlug/shortids/$issueId/',
+      {
+        path: isShortId
+          ? {organizationIdOrSlug: organization.slug, issueId: query}
+          : skipToken,
+        staleTime: 30_000,
       }
-    },
-    enabled: isShortId || isEventId,
-    staleTime: 30_000,
+    ),
+    retry: false,
     meta: {cmdk: true},
   });
+
+  const {data: eventIdLookup} = useQuery({
+    ...apiOptions.as<EventIdResponse>()(
+      '/organizations/$organizationIdOrSlug/eventids/$eventId/',
+      {
+        path: isEventId
+          ? {organizationIdOrSlug: organization.slug, eventId: query}
+          : skipToken,
+        staleTime: 30_000,
+      }
+    ),
+    retry: false,
+    meta: {cmdk: true},
+  });
+
+  const data = useMemo<ResolvedIdentifier | null>(() => {
+    if (isShortId && shortIdLookup) {
+      const project =
+        projects.find(p => p.slug === shortIdLookup.projectSlug) ??
+        shortIdLookup.group.project;
+      return {
+        details: shortIdLookup.group.metadata?.value,
+        kind: 'issue',
+        project,
+        ...shortIdLookup,
+      };
+    }
+    if (isEventId && eventIdLookup) {
+      const project = projects.find(p => p.slug === eventIdLookup.projectSlug) ?? {
+        slug: eventIdLookup.projectSlug,
+      };
+      return {
+        details: eventIdLookup.event.metadata?.value,
+        kind: 'event',
+        project,
+        ...eventIdLookup,
+      };
+    }
+    return null;
+  }, [isShortId, isEventId, shortIdLookup, eventIdLookup, projects]);
 
   if (!data) {
     return null;
@@ -248,7 +252,10 @@ export function GlobalCommandPaletteActions() {
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
-      QUERY_API_CLIENT.requestPromise('/auth/superuser/', {method: 'DELETE'}),
+      fetchMutation({
+        url: '/auth/superuser/',
+        method: 'DELETE',
+      }),
     onSuccess: () => window.location.reload(),
   });
 
