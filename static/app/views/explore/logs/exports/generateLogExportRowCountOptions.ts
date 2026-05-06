@@ -4,7 +4,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
 
-const ROW_COUNT_VALUE_DEFAULT = 100;
+export const ROW_COUNT_VALUE_DEFAULT = 500;
 
 /**
  * Keep this in sync with data_export.py on the backend
@@ -12,8 +12,8 @@ const ROW_COUNT_VALUE_DEFAULT = 100;
 export const ROW_COUNT_VALUE_SYNC_LIMIT = QUERY_PAGE_LIMIT;
 
 const ROW_COUNT_VALUES = [
+  100,
   ROW_COUNT_VALUE_DEFAULT,
-  500,
   ROW_COUNT_VALUE_SYNC_LIMIT,
   10_000,
   50_000,
