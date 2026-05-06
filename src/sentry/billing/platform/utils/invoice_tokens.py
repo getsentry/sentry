@@ -58,7 +58,8 @@ class InvoiceTokenGenerator:
             Invoice ID if token is valid, None otherwise
         """
         try:
-            parts = token.split(".")
+            # Split from the right to handle invoice IDs that contain periods
+            parts = token.rsplit(".", 2)
             if len(parts) != 3:
                 return None
 

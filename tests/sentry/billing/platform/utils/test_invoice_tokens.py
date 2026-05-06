@@ -117,3 +117,21 @@ class TestInvoiceTokenGenerator:
         assert token1 != token2
         assert generator.validate_token(token1) == "inv_1"
         assert generator.validate_token(token2) == "inv_2"
+
+    def test_invoice_id_with_periods(self):
+        """Test that invoice IDs containing periods are handled correctly."""
+        generator = InvoiceTokenGenerator(secret="test-secret")
+
+        # Invoice ID with periods (e.g., version numbers or domains)
+        invoice_id = "inv_2024.01.15_v1.0"
+        token = generator.generate_token(invoice_id)
+
+        validated_id = generator.validate_token(token)
+        assert validated_id == invoice_id
+
+        # Another example with multiple periods
+        invoice_id2 = "org.domain.invoice.12345"
+        token2 = generator.generate_token(invoice_id2)
+
+        validated_id2 = generator.validate_token(token2)
+        assert validated_id2 == invoice_id2
