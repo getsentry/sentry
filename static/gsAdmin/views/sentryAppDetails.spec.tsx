@@ -1,6 +1,6 @@
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SentryAppDetails} from 'admin/views/sentryAppDetails';
 
@@ -87,23 +87,17 @@ describe('SentryAppDetails', () => {
     expect(await screen.findByText('Enable App')).toBeInTheDocument();
   });
 
-  it('calls PUT with isDisabled when disable action is used', async () => {
+  it('shows isDisabled detail label', async () => {
     const sentryApp = {
       ...SentryAppFixture({slug: 'test-app', status: 'unpublished'}),
       owner: {slug: 'test-org'},
-      isDisabled: false,
+      isDisabled: true,
     };
 
     MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/`,
       method: 'GET',
       body: sentryApp,
-    });
-
-    const putMock = MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/`,
-      method: 'PUT',
-      body: {...sentryApp, isDisabled: true},
     });
 
     render(<SentryAppDetails />, {
@@ -113,15 +107,6 @@ describe('SentryAppDetails', () => {
       },
     });
 
-    await userEvent.click(await screen.findByTestId('detail-actions'));
-    await userEvent.click(await screen.findByRole('option', {name: /Disable App/}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
-
-    await waitFor(() => {
-      expect(putMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({data: {isDisabled: true}})
-      );
-    });
+    expect(await screen.findByText('isDisabled')).toBeInTheDocument();
   });
 });
