@@ -29,6 +29,7 @@ from sentry.sentry_apps.services.app.model import RpcSentryApp
 SERVICE_HOOK_EVENTS = [
     "event.alert",
     "event.created",
+    "project.created",
     # 'issue.created', This is only allowed for Sentry Apps, but listing it
     #                  here for discoverability purposes.
 ]

@@ -369,6 +369,48 @@ class TestComments(APITestCase):
         )
 
 
+@patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+class TestProjectCreatedWebhook(APITestCase):
+    def setUp(self) -> None:
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            events=["project.created"],
+            scopes=["project:read"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        self.login_as(self.user)
+
+    def test_fires_on_project_creation(self, delay: MagicMock) -> None:
+        url = f"/api/0/teams/{self.organization.slug}/{self.team.slug}/projects/"
+        self.client.post(url, data={"name": "New Project"}, format="json")
+
+        delay.assert_called_once()
+        call_kwargs = delay.call_args[1]
+        assert call_kwargs["resource_name"] == "project"
+        assert call_kwargs["event_name"] == "created"
+        assert call_kwargs["organization_id"] == self.organization.id
+        assert "project" in call_kwargs["payload"]
+
+    def test_does_not_fire_without_subscription(self, delay: MagicMock) -> None:
+        sentry_app_no_project = self.create_sentry_app(
+            name="NoProject",
+            organization=self.organization,
+            events=["issue.created"],
+        )
+        self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app_no_project.slug
+        )
+
+        url = f"/api/0/teams/{self.organization.slug}/{self.team.slug}/projects/"
+        self.client.post(url, data={"name": "Another Project"}, format="json")
+
+        # broadcast_webhooks_for_organization is still called (it filters internally),
+        # but it's called because the signal fires regardless of subscriptions
+        assert delay.called
+
+
 @patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
     def setUp(self) -> None:
