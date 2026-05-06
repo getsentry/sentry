@@ -19,7 +19,13 @@ from sentry.taskworker.namespaces import deletion_tasks
     name="sentry.deletions.tasks.groups.delete_groups_for_project",
     namespace=deletion_tasks,
     retry=Retry(
-        times=MAX_RETRIES, delay=60 * 5, on=(ProcessingDeadlineExceeded,), ignore=(DeleteAborted,)
+        times=MAX_RETRIES,
+        delay=60 * 5,
+        on=(
+            Exception,
+            ProcessingDeadlineExceeded,
+        ),
+        ignore=(DeleteAborted,),
     ),
     silo_mode=SiloMode.CELL,
     silenced_exceptions=(DeleteAborted,),

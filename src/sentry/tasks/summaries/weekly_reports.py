@@ -101,7 +101,13 @@ class WeeklyReportProgressTracker:
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.schedule_organizations",
     namespace=reports_tasks,
-    retry=Retry(times=5, on=(ProcessingDeadlineExceeded,)),
+    retry=Retry(
+        times=5,
+        on=(
+            Exception,
+            ProcessingDeadlineExceeded,
+        ),
+    ),
     processing_deadline_duration=timedelta(minutes=30),
     silo_mode=SiloMode.CELL,
 )
