@@ -229,7 +229,6 @@ class OrganizationsControlListTest(OrganizationIndexTest):
             "isEarlyAdopter",
             "links",
             "require2FA",
-            "requireEmailVerification",
             "status",
         }
         assert control_response.data[0] == {
