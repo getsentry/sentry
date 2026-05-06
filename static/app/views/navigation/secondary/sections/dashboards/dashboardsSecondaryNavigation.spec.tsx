@@ -12,7 +12,10 @@ describe('DashboardsSecondaryNavigation', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['dashboards-starred-reordering'],
+      features: [
+        'dashboards-starred-reordering',
+        'dashboards-prebuilt-insights-dashboards',
+      ],
     });
 
     MockApiClient.addMockResponse({
@@ -46,7 +49,9 @@ describe('DashboardsSecondaryNavigation', () => {
     expect(await screen.findByText('Dashboard 9999')).toBeInTheDocument();
 
     expect(screen.getAllByRole('link').map(el => el.textContent)).toEqual([
+      'All Dashboards',
       'Custom Dashboards',
+      'Sentry Built',
       'Dashboard 9999',
       'Dashboard 1',
     ]);

@@ -171,7 +171,10 @@ function ManageDashboards() {
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const dashboardsTab = getDashboardsTab(hasPrebuiltDashboards, urlFilter);
   const isOnlyPrebuilt = dashboardsTab === DashboardsTab.PREBUILT;
-  const pageTitle = DASHBOARDS_TAB_TITLES[dashboardsTab];
+  const pageTitle =
+    dashboardsTab === DashboardsTab.CUSTOM && !hasPrebuiltDashboards
+      ? t('All Dashboards')
+      : DASHBOARDS_TAB_TITLES[dashboardsTab];
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');

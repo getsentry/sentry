@@ -402,7 +402,9 @@ export function GlobalCommandPaletteActions() {
             />
           )}
           <CMDKAction
-            display={{label: t('Custom Dashboards')}}
+            display={{
+              label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
+            }}
             to={`${prefix}/dashboards/`}
           />
           {hasPrebuiltDashboards && (

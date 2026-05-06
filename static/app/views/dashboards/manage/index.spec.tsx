@@ -15,7 +15,12 @@ import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 jest.mock('sentry/utils/localStorage');
 
-const FEATURES = ['dashboards-basic', 'dashboards-edit', 'discover-query'];
+const FEATURES = [
+  'dashboards-basic',
+  'dashboards-edit',
+  'discover-query',
+  'dashboards-prebuilt-insights-dashboards',
+];
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
