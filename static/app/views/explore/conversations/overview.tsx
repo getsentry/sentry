@@ -18,6 +18,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {
+  SchemaHintsSection,
+  useSchemaHintsExpansion,
+} from 'sentry/views/explore/components/schemaHints/schemaHintsSection';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
@@ -98,9 +102,11 @@ function ConversationsOverviewPage() {
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
+  const {containerProps, isExpanded, onHintsDrawerToggle} = useSchemaHintsExpansion();
+
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
-      <ExploreBodySearch>
+      <ExploreBodySearch {...containerProps}>
         <Layout.Main width="full">
           <Stack gap="md">
             <Flex gap="md" align="center" wrap="wrap">
@@ -125,15 +131,18 @@ function ConversationsOverviewPage() {
               )}
             </Flex>
             {!showOnboarding && !isOnboardingLoading && (
-              <SchemaHintsList
-                supportedAggregates={DISABLE_AGGREGATES}
-                booleanTags={booleanTags}
-                numberTags={numberTags}
-                stringTags={stringTags}
-                isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-                exploreQuery={searchQuery ?? ''}
-                source={SchemaHintsSources.CONVERSATIONS}
-              />
+              <SchemaHintsSection isExpanded={isExpanded}>
+                <SchemaHintsList
+                  supportedAggregates={DISABLE_AGGREGATES}
+                  booleanTags={booleanTags}
+                  numberTags={numberTags}
+                  stringTags={stringTags}
+                  isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+                  exploreQuery={searchQuery ?? ''}
+                  source={SchemaHintsSources.CONVERSATIONS}
+                  onHintsDrawerToggle={onHintsDrawerToggle}
+                />
+              </SchemaHintsSection>
             )}
           </Stack>
         </Layout.Main>

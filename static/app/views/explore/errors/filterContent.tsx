@@ -7,15 +7,20 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {
+  SchemaHintsSection,
+  useSchemaHintsExpansion,
+} from 'sentry/views/explore/components/schemaHints/schemaHintsSection';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {StyledPageFilterBar} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function ErrorsFilterSection() {
+  const {containerProps, isExpanded, onHintsDrawerToggle} = useSchemaHintsExpansion();
+
   return (
-    <Layout.Main width="full">
+    <Layout.Main width="full" {...containerProps}>
       <SearchQueryBuilderProvider
         filterKeys={{}}
         getTagValues={() => Promise.resolve([])}
@@ -43,7 +48,7 @@ export function ErrorsFilterSection() {
             stringSecondaryAliases={{}}
           />
         </Grid>
-        <ExploreSchemaHintsSection>
+        <SchemaHintsSection isExpanded={isExpanded} standaloneBottomBorder>
           <SchemaHintsList
             supportedAggregates={[]}
             booleanTags={{}}
@@ -52,8 +57,9 @@ export function ErrorsFilterSection() {
             isLoading={false}
             exploreQuery=""
             source={SchemaHintsSources.ERRORS}
+            onHintsDrawerToggle={onHintsDrawerToggle}
           />
-        </ExploreSchemaHintsSection>
+        </SchemaHintsSection>
       </SearchQueryBuilderProvider>
     </Layout.Main>
   );

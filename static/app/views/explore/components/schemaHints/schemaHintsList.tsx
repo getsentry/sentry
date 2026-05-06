@@ -1,4 +1,5 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {type CSSProperties, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -28,6 +29,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsDrawer} from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
+import {SCHEMA_HINTS_SECTION_SELECTOR} from 'sentry/views/explore/components/schemaHints/schemaHintsSection';
 import {
   getSchemaHintsListOrder,
   onlyShowSchemaHintsKeys,
@@ -45,12 +47,34 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
+const SKELETON_PLACEHOLDER_WIDTHS = [
+  '8%',
+  '10%',
+  '9%',
+  '11%',
+  '8%',
+  '10%',
+  '9%',
+  '8%',
+  '11%',
+  '9%',
+  '8%',
+  '10%',
+  '9%',
+  '8%',
+];
+
 interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
   booleanTags?: TagCollection;
   isLoading?: boolean;
+  /**
+   * Fires when the schema hints drawer opens or closes. Pass through from
+   * `useSchemaHintsExpansion` so the hints strip stays expanded while the portaled drawer has focus.
+   */
+  onHintsDrawerToggle?: (open: boolean) => void;
   /**
    * The width of all elements to the right of the search bar.
    * This is used to ensure that the search bar is the correct width when the drawer is open.
@@ -147,6 +171,7 @@ export function SchemaHintsList({
   isLoading,
   source = SchemaHintsSources.EXPLORE,
   searchBarWidthOffset,
+  onHintsDrawerToggle,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -315,6 +340,7 @@ export function SchemaHintsList({
     if (hint.key === seeFullListTag.key) {
       if (!isDrawerOpen) {
         setIsDrawerOpen(true);
+        onHintsDrawerToggle?.(true);
         openDrawer(
           () => (
             <SchemaHintsDrawer
@@ -361,6 +387,7 @@ export function SchemaHintsList({
 
             onClose: () => {
               setIsDrawerOpen(false);
+              onHintsDrawerToggle?.(false);
               trackAnalytics('trace.explorer.schema_hints_drawer', {
                 drawer_open: false,
                 organization,
@@ -431,20 +458,14 @@ export function SchemaHintsList({
         aria-label={t('Schema Hints List')}
         style={{overflow: 'hidden'}}
       >
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="11%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="11%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
+        {SKELETON_PLACEHOLDER_WIDTHS.map((width, index) => (
+          <SchemaHintPlaceholder
+            key={index}
+            width={width}
+            height="28px"
+            style={{'--hint-index': index} as CSSProperties}
+          />
+        ))}
       </SchemaHintsContainer>
     );
   }
@@ -454,11 +475,12 @@ export function SchemaHintsList({
       ref={schemaHintsContainerRef}
       aria-label={t('Schema Hints List')}
     >
-      {visibleHints.map(hint => (
+      {visibleHints.map((hint, index) => (
         <SchemaHintOption
           size="xs"
           key={hint.key}
           data-type={hint.key}
+          style={{'--hint-index': index} as CSSProperties}
           onClick={() => onHintClick(hint)}
         >
           {getHintElement(hint)}
@@ -467,6 +489,21 @@ export function SchemaHintsList({
     </SchemaHintsContainer>
   );
 }
+
+const schemaHintsSectionStaggeredFade = css`
+  ${SCHEMA_HINTS_SECTION_SELECTOR} & {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 100ms ease;
+    transition-delay: 0s;
+  }
+
+  ${SCHEMA_HINTS_SECTION_SELECTOR}[data-expanded] & {
+    opacity: 1;
+    pointer-events: auto;
+    transition-delay: calc(var(--hint-index, 0) * 50ms);
+  }
+`;
 
 const SchemaHintsContainer = styled('div')`
   display: flex;
@@ -482,21 +519,12 @@ const SchemaHintsContainer = styled('div')`
 const SchemaHintOption = styled(Button)`
   /* Ensures that filters do not grow outside of the container */
   min-width: fit-content;
+  ${schemaHintsSectionStaggeredFade}
 `;
 
-export const SchemaHintsSection = styled('div')`
-  display: grid;
-  /* This is to ensure the hints section spans all the columns */
-  grid-column: 1/-1;
-  margin-bottom: ${p => p.theme.space.xl};
-  margin-top: -4px;
-  height: fit-content;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
-    margin-bottom: 0;
-    margin-top: 0;
-  }
+const SchemaHintPlaceholder = styled(Placeholder)`
+  flex-shrink: 0;
+  ${schemaHintsSectionStaggeredFade}
 `;
 
 const HintName = styled('span')`

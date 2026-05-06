@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {Grid} from '@sentry/scraps/layout';
 
@@ -26,8 +27,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {
+  SchemaHintsSection,
+  useSchemaHintsExpansion,
+} from 'sentry/views/explore/components/schemaHints/schemaHintsSection';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {
   TraceItemSearchQueryBuilder,
   type TraceItemSearchQueryBuilderProps,
@@ -153,6 +157,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
+  const {containerProps, isExpanded, onHintsDrawerToggle} = useSchemaHintsExpansion();
+
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
@@ -171,7 +177,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           margin={-8}
         >
           {tourProps => (
-            <div {...tourProps}>
+            <div {...mergeProps(tourProps, containerProps)}>
               <Grid
                 gap="md"
                 columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}
@@ -188,7 +194,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
               </Grid>
               {hasCrossEvents ? null : (
-                <ExploreSchemaHintsSection>
+                <SchemaHintsSection isExpanded={isExpanded}>
                   <SchemaHintsList
                     supportedAggregates={
                       mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
@@ -203,8 +209,9 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                     }
                     exploreQuery={query}
                     source={SchemaHintsSources.EXPLORE}
+                    onHintsDrawerToggle={onHintsDrawerToggle}
                   />
-                </ExploreSchemaHintsSection>
+                </SchemaHintsSection>
               )}
             </div>
           )}

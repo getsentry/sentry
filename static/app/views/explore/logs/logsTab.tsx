@@ -29,6 +29,10 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {
+  SchemaHintsSection,
+  useSchemaHintsExpansion,
+} from 'sentry/views/explore/components/schemaHints/schemaHintsSection';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
@@ -53,7 +57,6 @@ import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
-import {ExpandingSchemaHintsSection} from 'sentry/views/explore/logs/expandingSchemaHintsSection';
 import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwitch';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
@@ -176,6 +179,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const {containerProps, isExpanded, onHintsDrawerToggle} = useSchemaHintsExpansion();
 
   return (
     <SearchQueryBuilderProvider
@@ -183,7 +187,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
       aiSearchBadgeType="beta"
       {...searchQueryBuilderProviderProps}
     >
-      <ExploreBodySearch>
+      <ExploreBodySearch {...containerProps}>
         <Layout.Main width="full">
           <LogsFilterSection>
             <StyledPageFilterBar condensed>
@@ -218,7 +222,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          <ExpandingSchemaHintsSection>
+          <SchemaHintsSection isExpanded={isExpanded}>
             <SchemaHintsList
               supportedAggregates={supportedAggregates}
               booleanTags={booleanAttributes}
@@ -232,8 +236,9 @@ const LogsSearchSection = memo(function LogsSearchSection({
               exploreQuery={logsSearchQuery}
               source={SchemaHintsSources.LOGS}
               searchBarWidthOffset={searchBarWidthOffset}
+              onHintsDrawerToggle={onHintsDrawerToggle}
             />
-          </ExpandingSchemaHintsSection>
+          </SchemaHintsSection>
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
