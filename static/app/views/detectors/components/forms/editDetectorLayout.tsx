@@ -18,7 +18,7 @@ import {
   DeleteDetectorAction,
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
-import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {DetectorFormBreadcrumbsDeprecated} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
@@ -77,10 +77,10 @@ export function EditDetectorLayout<
         <EditLayoutDeprecated.HeaderContent>
           {hasPageFrame ? (
             <TopBar.Slot name="title">
-              <DetectorFormBreadcrumbs />
+              <DetectorFormBreadcrumbsDeprecated />
             </TopBar.Slot>
           ) : (
-            <DetectorFormBreadcrumbs />
+            <DetectorFormBreadcrumbsDeprecated />
           )}
         </EditLayoutDeprecated.HeaderContent>
 

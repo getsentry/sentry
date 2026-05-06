@@ -13,7 +13,7 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
-import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {DetectorFormBreadcrumbsDeprecated} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
@@ -101,10 +101,10 @@ export function NewDetectorLayout<
         <EditLayoutDeprecated.HeaderContent>
           {hasPageFrame ? (
             <TopBar.Slot name="title">
-              <DetectorFormBreadcrumbs />
+              <DetectorFormBreadcrumbsDeprecated />
             </TopBar.Slot>
           ) : (
-            <DetectorFormBreadcrumbs />
+            <DetectorFormBreadcrumbsDeprecated />
           )}
         </EditLayoutDeprecated.HeaderContent>
 

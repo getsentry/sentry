@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -6,8 +7,20 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {NewCronDetectorForm} from './index';
+
+function TopBarWrapper({children}: {children: ReactNode}) {
+  return (
+    <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="title">
+        {props => <div {...props} data-test-id="topbar-title-slot" />}
+      </TopBar.Slot.Outlet>
+      {children}
+    </TopBar.Slot.Provider>
+  );
+}
 
 describe('NewCronDetectorForm', () => {
   const organization = OrganizationFixture();
@@ -44,7 +57,9 @@ describe('NewCronDetectorForm', () => {
   const renderForm = (routerConfig?: any) => {
     return render(
       <DetectorFormProvider detectorType="monitor_check_in_failure">
-        <NewCronDetectorForm />
+        <TopBarWrapper>
+          <NewCronDetectorForm />
+        </TopBarWrapper>
       </DetectorFormProvider>,
       {
         organization,

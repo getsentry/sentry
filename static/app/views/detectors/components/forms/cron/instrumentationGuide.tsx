@@ -21,7 +21,6 @@ import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
 import {
   platformGuides,
   type GuideKey,
@@ -40,9 +39,8 @@ const genericIcons: Record<string, React.ReactNode> = {
   http: <IconGlobe size="sm" />,
 };
 
-export function InstrumentationGuide() {
+export function InstrumentationGuide({projectId}: {projectId: string}) {
   const {projects} = useProjects();
-  const projectId = useCronDetectorFormField('projectId');
   const [skipGuideDetection] = useQueryState('skipGuideDetection', parseAsBoolean);
 
   const selectedProject = projects.find(p => p.id === projectId);

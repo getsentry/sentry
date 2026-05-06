@@ -1,10 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {selectEvent} from 'sentry-test/selectEvent';
 
-import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import {Form} from 'sentry/components/forms/form';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {InstrumentationGuide} from './instrumentationGuide';
@@ -15,7 +12,7 @@ describe('InstrumentationGuide', () => {
   });
 
   it('renders the platform dropdown menu', () => {
-    render(<InstrumentationGuide />);
+    render(<InstrumentationGuide projectId="2" />);
 
     expect(screen.getByText('Select Instrumentation Method')).toBeInTheDocument();
 
@@ -24,7 +21,7 @@ describe('InstrumentationGuide', () => {
   });
 
   it('hides "Manually Create a Monitor" button when no guide is selected', () => {
-    render(<InstrumentationGuide />);
+    render(<InstrumentationGuide projectId="2" />);
 
     expect(
       screen.queryByRole('button', {name: 'Manually Create a Monitor'})
@@ -32,7 +29,7 @@ describe('InstrumentationGuide', () => {
   });
 
   it('opens dropdown menu and shows platform options', async () => {
-    render(<InstrumentationGuide />);
+    render(<InstrumentationGuide projectId="2" />);
 
     const dropdown = screen.getByRole('button', {name: 'Select Platform'});
     await userEvent.click(dropdown);
@@ -45,7 +42,7 @@ describe('InstrumentationGuide', () => {
   });
 
   it('selects platform when clicking menu item', async () => {
-    const {router} = render(<InstrumentationGuide />);
+    const {router} = render(<InstrumentationGuide projectId="2" />);
 
     const dropdown = screen.getByRole('button', {name: 'Select Platform'});
     await userEvent.click(dropdown);
@@ -63,7 +60,7 @@ describe('InstrumentationGuide', () => {
   });
 
   it('shows guide content after selecting a platform', async () => {
-    render(<InstrumentationGuide />);
+    render(<InstrumentationGuide projectId="2" />);
 
     // Initially no guide is shown
     expect(screen.queryByText(/Auto-Instrument with/)).not.toBeInTheDocument();
@@ -85,7 +82,7 @@ describe('InstrumentationGuide', () => {
   });
 
   it('clears guide when clicking "Manually Create a Monitor"', async () => {
-    render(<InstrumentationGuide />);
+    render(<InstrumentationGuide projectId="2" />);
 
     // Select a platform first
     const dropdown = screen.getByRole('button', {name: 'Select Platform'});
@@ -115,19 +112,14 @@ describe('InstrumentationGuide', () => {
       const nodeProject = ProjectFixture({id: '7', platform: 'node'});
       ProjectsStore.loadInitialData([nodeProject]);
 
-      render(
-        <Form initialData={{projectId: nodeProject.id}}>
-          <InstrumentationGuide />
-        </Form>,
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: '/test/',
-              query: {skipGuideDetection: 'true'},
-            },
+      render(<InstrumentationGuide projectId={nodeProject.id} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/test/',
+            query: {skipGuideDetection: 'true'},
           },
-        }
-      );
+        },
+      });
 
       // Verify that the guide content is NOT shown
       expect(screen.queryByText(/Auto-Instrument with/)).not.toBeInTheDocument();
@@ -142,19 +134,14 @@ describe('InstrumentationGuide', () => {
       ProjectsStore.loadInitialData([pythonProject, phpProject]);
 
       // Start with PHP guide already selected in query params
-      const {router} = render(
-        <Form initialData={{projectId: pythonProject.id}}>
-          <InstrumentationGuide />
-        </Form>,
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: '/test/',
-              query: {platform: 'php', guide: 'upsert'},
-            },
+      const {router} = render(<InstrumentationGuide projectId={pythonProject.id} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/test/',
+            query: {platform: 'php', guide: 'upsert'},
           },
-        }
-      );
+        },
+      });
 
       // Verify router has correct query params
       expect(router.location.query.platform).toBe('php');
@@ -170,11 +157,7 @@ describe('InstrumentationGuide', () => {
       const pythonProject = ProjectFixture({id: '99', platform: 'python'});
       ProjectsStore.loadInitialData([pythonProject]);
 
-      render(
-        <Form initialData={{projectId: pythonProject.id}}>
-          <InstrumentationGuide />
-        </Form>
-      );
+      render(<InstrumentationGuide projectId={pythonProject.id} />);
 
       // Should auto-select Python platform and show the guide
       expect(await screen.findByText('Auto-Instrument with Python')).toBeInTheDocument();
@@ -184,17 +167,13 @@ describe('InstrumentationGuide', () => {
       const nodeExpressProject = ProjectFixture({id: '98', platform: 'node-express'});
       ProjectsStore.loadInitialData([nodeExpressProject]);
 
-      render(
-        <Form initialData={{projectId: nodeExpressProject.id}}>
-          <InstrumentationGuide />
-        </Form>
-      );
+      render(<InstrumentationGuide projectId={nodeExpressProject.id} />);
 
       // Should fall back to 'node' since 'node-express' has no guide
       expect(await screen.findByText('Auto-Instrument with NodeJS')).toBeInTheDocument();
     });
 
-    it('updates guide when project is changed via form field', async () => {
+    it('updates guide when project changes', async () => {
       const pythonProject = ProjectFixture({
         id: '3',
         slug: 'python-proj',
@@ -203,32 +182,20 @@ describe('InstrumentationGuide', () => {
       const nodeProject = ProjectFixture({id: '4', slug: 'node-proj', platform: 'node'});
       ProjectsStore.loadInitialData([pythonProject, nodeProject]);
 
-      // Start with PHP guide in query params and python project selected
-      render(
-        <Form initialData={{projectId: pythonProject.id}}>
-          <SentryProjectSelectorField
-            name="projectId"
-            label="Project"
-            projects={[pythonProject, nodeProject]}
-          />
-          <InstrumentationGuide />
-        </Form>,
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: '/test/',
-              query: {platform: 'php', guide: 'upsert'},
-            },
+      const {rerender} = render(<InstrumentationGuide projectId={pythonProject.id} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/test/',
+            query: {platform: 'php', guide: 'upsert'},
           },
-        }
-      );
+        },
+      });
 
       // Should initially show PHP guide (from query params)
       expect(await screen.findByText('Auto-Instrument with PHP')).toBeInTheDocument();
 
-      // Change to node project
-      const projectSelector = screen.getByRole('textbox', {name: 'Project'});
-      await selectEvent.select(projectSelector, 'node-proj');
+      // Re-render with node project
+      rerender(<InstrumentationGuide projectId={nodeProject.id} />);
 
       // Should now show NodeJS guide
       expect(await screen.findByText('Auto-Instrument with NodeJS')).toBeInTheDocument();

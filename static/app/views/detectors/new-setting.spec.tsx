@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   CronDetectorFixture,
@@ -22,6 +23,18 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import DetectorNewSettings from 'sentry/views/detectors/new-settings';
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+function TopBarWrapper({children}: {children: ReactNode}) {
+  return (
+    <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="title">
+        {props => <div {...props} data-test-id="topbar-title-slot" />}
+      </TopBar.Slot.Outlet>
+      {children}
+    </TopBar.Slot.Provider>
+  );
+}
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
@@ -1180,10 +1193,15 @@ describe('DetectorEdit', () => {
         body: CronDetectorFixture({id: '999'}),
       });
 
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: cronRouterConfig,
-      });
+      render(
+        <TopBarWrapper>
+          <DetectorNewSettings />
+        </TopBarWrapper>,
+        {
+          organization,
+          initialRouterConfig: cronRouterConfig,
+        }
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
@@ -1225,10 +1243,15 @@ describe('DetectorEdit', () => {
         body: CronDetectorFixture({id: '999'}),
       });
 
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: cronRouterConfig,
-      });
+      render(
+        <TopBarWrapper>
+          <DetectorNewSettings />
+        </TopBarWrapper>,
+        {
+          organization,
+          initialRouterConfig: cronRouterConfig,
+        }
+      );
 
       const description = screen.getByRole('textbox', {name: 'description'});
       await userEvent.type(description, 'This is my cron monitor description');
@@ -1262,10 +1285,15 @@ describe('DetectorEdit', () => {
         },
       });
 
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: cronRouterConfig,
-      });
+      render(
+        <TopBarWrapper>
+          <DetectorNewSettings />
+        </TopBarWrapper>,
+        {
+          organization,
+          initialRouterConfig: cronRouterConfig,
+        }
+      );
 
       const title = await screen.findByText('New Monitor');
       await userEvent.click(title);

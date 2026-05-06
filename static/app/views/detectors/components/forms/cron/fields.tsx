@@ -1,9 +1,9 @@
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import {z} from 'zod';
+
 import type {
   CronDetector,
   CronDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {
   ScheduleType,
   type MonitorConfig,
@@ -23,34 +23,32 @@ export const CRON_DEFAULT_RECOVERY_THRESHOLD = 1;
 // In minutes
 export const CRON_DEFAULT_MAX_RUNTIME = 30;
 
-interface CronDetectorFormData {
-  checkinMargin: number | null;
-  description: string | null;
-  failureIssueThreshold: number;
-  maxRuntime: number | null;
-  name: string;
-  owner: string;
-  projectId: string;
-  recoveryThreshold: number;
-  scheduleCrontab: string;
-  scheduleIntervalUnit: MonitorIntervalUnit;
-  scheduleIntervalValue: number;
-  scheduleType: ScheduleType;
-  timezone: string;
-  workflowIds: string[];
-}
+export const cronDetectorFormSchema = z.object({
+  name: z.string(),
+  projectId: z.string().min(1),
+  owner: z.string().nullable(),
+  description: z.string().nullable(),
+  scheduleType: z.nativeEnum(ScheduleType),
+  scheduleCrontab: z.string().min(1),
+  scheduleIntervalValue: z.number().min(1),
+  scheduleIntervalUnit: z.string(),
+  timezone: z.string().min(1),
+  checkinMargin: z.number().min(1).nullable(),
+  maxRuntime: z.number().min(1).nullable(),
+  failureIssueThreshold: z.number().min(1).max(720),
+  recoveryThreshold: z.number().min(1),
+  workflowIds: z.array(z.string()),
+});
 
-type CronDetectorFormFieldName = keyof CronDetectorFormData;
+export type CronDetectorFormValues = z.input<typeof cronDetectorFormSchema>;
 
-const DEFAULT_CRON_DETECTOR_FORM_DATA_MAP: {
-  [K in CronDetectorFormFieldName]: CronDetectorFormData[K];
-} = {
+export const CRON_DEFAULT_FORM_VALUES: CronDetectorFormValues = {
   checkinMargin: CRON_DEFAULT_CHECKIN_MARGIN,
   description: null,
   failureIssueThreshold: CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
   maxRuntime: CRON_DEFAULT_MAX_RUNTIME,
   name: '',
-  owner: '',
+  owner: null,
   projectId: '',
   recoveryThreshold: CRON_DEFAULT_RECOVERY_THRESHOLD,
   scheduleCrontab: DEFAULT_CRONTAB,
@@ -60,23 +58,9 @@ const DEFAULT_CRON_DETECTOR_FORM_DATA_MAP: {
   timezone: CRON_DEFAULT_TIMEZONE,
   workflowIds: [],
 };
-/**
- * Small helper to automatically get the type of the form field.
- */
-export function useCronDetectorFormField<T extends CronDetectorFormFieldName>(
-  name: T
-): CronDetectorFormData[T] {
-  const value = useFormField(name);
-
-  if (value === '' || !defined(value)) {
-    return DEFAULT_CRON_DETECTOR_FORM_DATA_MAP[name];
-  }
-
-  return value;
-}
 
 export function cronFormDataToEndpointPayload(
-  data: CronDetectorFormData
+  data: CronDetectorFormValues
 ): CronDetectorUpdatePayload {
   const commonConfig = {
     checkin_margin: data.checkinMargin,
@@ -95,7 +79,10 @@ export function cronFormDataToEndpointPayload(
         }
       : {
           ...commonConfig,
-          schedule: [data.scheduleIntervalValue, data.scheduleIntervalUnit] as const,
+          schedule: [
+            data.scheduleIntervalValue,
+            data.scheduleIntervalUnit as MonitorIntervalUnit,
+          ] as const,
           schedule_type: ScheduleType.INTERVAL,
         };
 
@@ -118,7 +105,7 @@ export function cronFormDataToEndpointPayload(
 
 export function cronSavedDetectorToFormData(
   detector: CronDetector
-): CronDetectorFormData {
+): CronDetectorFormValues {
   const dataSource = detector.dataSources?.[0];
 
   const common = {

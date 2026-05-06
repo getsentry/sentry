@@ -35,7 +35,7 @@ import {
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
-import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
+import {IssueOwnershipSectionDeprecated} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
@@ -79,7 +79,7 @@ function MetricDetectorForm() {
       <TemplateSection step={2} />
       <CustomizeMetricSection step={3} />
       <DetectSection step={4} />
-      <IssueOwnershipSection step={5} />
+      <IssueOwnershipSectionDeprecated step={5} />
       <MetricIssuePreview step={6} />
       <AutomateSectionDeprecated step={7} />
     </Stack>

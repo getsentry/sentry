@@ -7,7 +7,7 @@ import {
   EnvironmentField,
   type EnvironmentConfig,
 } from 'sentry/views/detectors/components/forms/common/environmentField';
-import {ProjectField} from 'sentry/views/detectors/components/forms/common/projectField';
+import {ProjectSelectFieldDeprecated} from 'sentry/views/detectors/components/forms/common/projectField';
 
 export type {EnvironmentConfig};
 
@@ -33,7 +33,7 @@ export function ProjectEnvironmentSection({
         description={t('This is where issues will be created.')}
       >
         <Flex gap="md">
-          <ProjectField />
+          <ProjectSelectFieldDeprecated />
           <EnvironmentField
             includeAllEnvironments={environmentConfig.includeAllEnvironments}
             {...(environmentConfig.fieldProps ?? {})}
