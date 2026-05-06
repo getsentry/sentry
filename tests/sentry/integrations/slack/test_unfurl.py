@@ -2081,6 +2081,57 @@ class UnfurlTest(TestCase):
                 f"got {args['query']['interval']}"
             )
 
+    def test_match_link_explore_clamps_too_fine_url_interval_to_ladder_minimum(
+        self,
+    ) -> None:
+        # Mirrors the frontend's useChartIntervalImpl: if the URL's explicit
+        # interval is finer than the ladder minimum for the time range it falls
+        # back to the minimum. Without clamping, a stale `interval=1m` pasted
+        # into a 7d view yields ~10k buckets that events-timeseries rejects.
+        cases = [
+            # 7d → ladder minimum is 30m; 1m must be clamped up.
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+                f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+                f"&interval=1m&project={self.project.id}&statsPeriod=7d",
+                "30m",
+            ),
+            # 30d → ladder minimum is 3h; 5m must be clamped up.
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/"
+                f"?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum(value)%22%5D%7D%5D%7D"
+                f"&interval=5m&project={self.project.id}&statsPeriod=30d",
+                "3h",
+            ),
+            # 14d → ladder minimum is 1h; 1m must be clamped up.
+            (
+                f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/"
+                f"?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D"
+                f"&interval=1m&project={self.project.id}&statsPeriod=14d",
+                "1h",
+            ),
+        ]
+        for url, expected_interval in cases:
+            _, args = match_link(url)
+            assert args is not None
+            assert args["query"]["interval"] == expected_interval, (
+                f"url={url}: expected {expected_interval}, got {args['query']['interval']}"
+            )
+
+    def test_match_link_explore_keeps_url_interval_when_coarser_than_minimum(
+        self,
+    ) -> None:
+        # An explicit interval that is at or above the ladder minimum should be
+        # forwarded as-is — only too-fine intervals are clamped.
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+            f"?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+            f"&interval=6h&project={self.project.id}&statsPeriod=7d"
+        )
+        _, args = match_link(url)
+        assert args is not None
+        assert args["query"]["interval"] == "6h"
+
     def test_match_link_explore_default_interval_for_logs_and_metrics(self) -> None:
         # Logs and metrics use the same useChartInterval default as traces, so
         # the URL → timeseries conversion should pick the same interval for the

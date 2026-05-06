@@ -81,6 +81,21 @@ def _default_interval_for_query(params: QueryDict) -> str:
     return "1m"
 
 
+def _clamp_interval(url_interval: str, minimum_interval: str) -> str:
+    """Match the frontend's `useChartIntervalImpl`: if the URL's explicit
+    interval is finer than the minimum the ladder allows for the selected
+    time range, fall back to the minimum. Stale URLs (e.g. an `interval=1m`
+    pasted from a 1h view into a 7d view) would otherwise produce thousands
+    of buckets that events-timeseries rejects, so the unfurl renders empty."""
+    url_td = parse_stats_period(url_interval)
+    minimum_td = parse_stats_period(minimum_interval)
+    if url_td is None:
+        return minimum_interval
+    if minimum_td is not None and url_td < minimum_td:
+        return minimum_interval
+    return url_interval
+
+
 def _aggregate_sorts_are_valid(
     sort_values: list[str], y_axes: list[str], group_bys: list[str]
 ) -> bool:
@@ -156,8 +171,11 @@ def _build_timeseries_query(
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    if not out.get("interval"):
-        out["interval"] = _default_interval_for_query(out)
+    minimum_interval = _default_interval_for_query(out)
+    url_interval = out.get("interval")
+    out["interval"] = (
+        _clamp_interval(url_interval, minimum_interval) if url_interval else minimum_interval
+    )
 
     return out
 
