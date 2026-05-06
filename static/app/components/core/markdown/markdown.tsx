@@ -110,7 +110,7 @@ function splitAtLastBoundary(text: string): {
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'word'});
 const MARKDOWN_SYNTAX = /^[*`~#]+$/;
 
-const STAGGER_S = 0.04;
+const STAGGER_S = 0.02;
 
 function AnimatedPendingText({text}: {text: string}) {
   const theme = useTheme();
@@ -129,7 +129,7 @@ function AnimatedPendingText({text}: {text: string}) {
         style={{display: 'inline-block', whiteSpace: 'pre'}}
         initial={isNew ? {opacity: 0, y: '-0.25lh'} : false}
         animate={{opacity: 1, y: 0}}
-        transition={{...theme.motion.framer.enter.slow, delay}}
+        transition={{...theme.motion.framer.enter.fast, delay}}
       >
         {segment}
       </motion.span>
