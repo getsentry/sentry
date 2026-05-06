@@ -70,6 +70,7 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/migrate_to_hosted/$'),
   new RegExp('^api/0/sponsored_education_account/$'),
   new RegExp('^organizations/[^/]+/documents/[^/]+/?$'),
+  new RegExp('^invoices/pdf/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/broadcasts/$'),
   new RegExp('^api/0/billing-config/$'),
   new RegExp('^api/0/auth-details/$'),
