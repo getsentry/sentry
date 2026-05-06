@@ -15,11 +15,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
-from sentry.integrations.utils.scope import (
-    bind_org_context_from_integration,
-    get_org_integrations,
-)
-from sentry.models.organization import Organization
+from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -32,22 +29,18 @@ logger = logging.getLogger(__name__)
 PAYLOAD_LOGGING_FEATURE = "organizations:jira-issue-updated-payload-logging"
 
 
-def _payload_logging_enabled(integration_id: int) -> bool:
-    """True if any org linked to this Jira integration has the
+def _payload_logging_enabled(org: RpcOrganization | None) -> bool:
+    """True if `org` is non-None and has the
     `jira-issue-updated-payload-logging` feature enabled.
 
-    A Jira integration can be shared by multiple Sentry orgs, and
-    `features.has` needs an `Organization`, so we walk the linked
-    `OrganizationIntegration` rows and batch the org lookup through the
-    region-silo cache (the endpoint is `@cell_silo_endpoint`, so the
-    region-cache path is always available) to avoid issuing N RPCs on every
-    webhook.
+    `org` is the org `bind_org_context_from_integration` resolved this Jira
+    integration to. It is `None` when the integration is linked to zero orgs
+    or to multiple orgs; we deliberately skip payload logging in the
+    multi-org (ambiguous) case rather than dumping one tenant's webhook
+    payload into our logs because a different tenant on the same Jira
+    workspace flipped the flag.
     """
-    org_ids = [oi.organization_id for oi in get_org_integrations(integration_id)]
-    if not org_ids:
-        return False
-    organizations = Organization.objects.get_many_from_cache(org_ids)
-    return any(features.has(PAYLOAD_LOGGING_FEATURE, org) for org in organizations)
+    return org is not None and features.has(PAYLOAD_LOGGING_FEATURE, org)
 
 
 @cell_silo_endpoint
@@ -95,8 +88,10 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
             method="POST",
         )
         # Integrations and their corresponding RpcIntegrations share the same id,
-        # so we don't need to first convert this to a full Integration object
-        bind_org_context_from_integration(rpc_integration.id, {"webhook": "issue_updated"})
+        # so we don't need to first convert this to a full Integration object.
+        # Capture the bound org so the payload-logging feature check below can
+        # reuse it instead of re-resolving the integration.
+        org = bind_org_context_from_integration(rpc_integration.id, {"webhook": "issue_updated"})
         sentry_sdk.set_tag("integration_id", rpc_integration.id)
 
         data = request.data
@@ -111,7 +106,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
         # RPC errors from the feature-flag check) rather than letting it skip
         # the real `handle_assignee_change` / `handle_status_change` calls below.
         try:
-            if _payload_logging_enabled(rpc_integration.id):
+            if _payload_logging_enabled(org):
                 issue = data.get("issue") or {}
                 fields = issue.get("fields") or {}
                 changelog_items = (data.get("changelog") or {}).get("items") or []
