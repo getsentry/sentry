@@ -17,7 +17,7 @@ const STREAMING_CHUNKS = [
   'def validate_token(token):\n',
   '    now = datetime.now(timezone.utc)\n',
   '    return token.expires_at > now\n```\n\n',
-  'This ensures consistent behavior regardless of server timezone.',
+  'This ensures consistent behavior regardless of server timezone.\n\n',
 ];
 
 export function StreamingDemo() {
@@ -52,7 +52,7 @@ export function StreamingDemo() {
   return (
     <Flex direction="column" gap="lg" flexGrow={1} maxWidth="72ch">
       <Flex gap="md">
-        <Button size="sm" onClick={startStream} disabled={isStreaming}>
+        <Button variant="primary" size="sm" onClick={startStream} disabled={isStreaming}>
           Start Stream
         </Button>
         <Button size="sm" onClick={reset} disabled={!stream}>

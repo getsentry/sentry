@@ -363,8 +363,9 @@ describe('Markdown', () => {
       // Wait for the stable content to render
       expect(await screen.findByText('Complete paragraph')).toBeInTheDocument();
 
-      // Pending text should appear as plain text
-      expect(await screen.findByText('Pending text')).toBeInTheDocument();
+      // Pending text should appear as animated words
+      expect(await screen.findByText('Pending')).toBeInTheDocument();
+      expect(screen.getByText('text')).toBeInTheDocument();
 
       // Resolve to complete the stream
       resolve!('\n\nFinal paragraph');

@@ -1,5 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import type {ComponentType, ReactNode} from 'react';
+import {useTheme} from '@emotion/react';
+import {motion} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -105,6 +107,48 @@ function splitAtLastBoundary(text: string): {
   };
 }
 
+const segmenter = new Intl.Segmenter(undefined, {granularity: 'word'});
+const MARKDOWN_SYNTAX = /^[*`~#]+$/;
+
+const STAGGER_S = 0.04;
+
+function AnimatedPendingText({text}: {text: string}) {
+  const theme = useTheme();
+  const seen = useRef(new Set<number>());
+
+  let newIndex = 0;
+  const children = Array.from(segmenter.segment(text), ({segment, index, isWordLike}) => {
+    if (!isWordLike && MARKDOWN_SYNTAX.test(segment)) {
+      return null;
+    }
+    const isNew = !seen.current.has(index);
+    const delay = isNew ? newIndex++ * STAGGER_S : 0;
+    return (
+      <motion.span
+        key={index}
+        style={{display: 'inline-block', whiteSpace: 'pre'}}
+        initial={isNew ? {opacity: 0, y: '-0.25lh'} : false}
+        animate={{opacity: 1, y: 0}}
+        transition={{...theme.motion.framer.enter.slow, delay}}
+      >
+        {segment}
+      </motion.span>
+    );
+  });
+
+  useEffect(() => {
+    const next = new Set<number>();
+    for (const {index: i, isWordLike} of segmenter.segment(text)) {
+      if (isWordLike) {
+        next.add(i);
+      }
+    }
+    seen.current = next;
+  }, [text]);
+
+  return <span>{children}</span>;
+}
+
 function StreamingMarkdown({
   raw,
   components,
@@ -148,7 +192,7 @@ function StreamingMarkdown({
   return (
     <React.Fragment>
       {stable && <StaticMarkdown raw={stable} components={components} />}
-      {pending && <span>{pending}</span>}
+      {pending && <AnimatedPendingText text={pending} />}
     </React.Fragment>
   );
 }
