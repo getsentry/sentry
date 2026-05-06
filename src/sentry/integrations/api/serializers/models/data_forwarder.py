@@ -6,6 +6,7 @@ from typing import Any, TypedDict
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.access import Access
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.users.models.user import User
@@ -71,7 +72,8 @@ class DataForwarderSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> DataForwarderResponse:
-        include_config = kwargs.get("include_config", False)
+        access: Access | None = kwargs.get("access")
+        has_config_access = access.has_scope("org:write") if access else False
         project_configs = attrs.get("project_configs", set())
 
         return {
@@ -88,14 +90,9 @@ class DataForwarderSerializer(Serializer):
                 for project_config in project_configs
             ],
             "provider": obj.provider,
-            "config": obj.config if include_config else None,
+            "config": obj.config if has_config_access else None,
             "projectConfigs": [
-                serialize(
-                    project_config,
-                    user=user,
-                    include_config=include_config,
-                    access=kwargs.get("access"),
-                )
+                serialize(project_config, user=user, access=access)
                 for project_config in project_configs
             ],
             "dateAdded": obj.date_added,
@@ -112,11 +109,14 @@ class DataForwarderProjectSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> DataForwarderProjectResponse:
-        include_config = kwargs.get("include_config", False)
-        access = kwargs.get("access")
-        has_project_write = include_config or (
-            access is not None and access.has_project_scope(obj.project, "project:write")
-        )
+        access: Access | None = kwargs.get("access")
+        has_config_access = False
+        has_override_access = False
+        if access:
+            has_config_access = access.has_scope("org:write")
+            has_override_access = has_config_access or access.has_project_scope(
+                obj.project, "project:write"
+            )
         return {
             "id": str(obj.id),
             "isEnabled": obj.is_enabled,
@@ -126,8 +126,8 @@ class DataForwarderProjectSerializer(Serializer):
                 "slug": obj.project.slug,
                 "platform": obj.project.platform,
             },
-            "overrides": obj.overrides if has_project_write else {},
-            "effectiveConfig": obj.get_config() if include_config else {},
+            "overrides": obj.overrides if has_override_access else {},
+            "effectiveConfig": obj.get_config() if has_config_access else {},
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
