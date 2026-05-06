@@ -139,17 +139,11 @@ def _notify_webhook_disabled(
     if not email or "@" not in email:
         return
 
-    dry_run_option = options.get("sentry-apps.webhook.circuit-breaker.dry-run")
-    live_run_flag = features.has(
+    live_run = features.has(
         "organizations:sentry-app-webhook-circuit-breaker-live-run",
         owner_org,
     )
-    # live-run flag overrides the dry-run option so we can roll out real
-    # blocking/emailing per app-owner org while still collecting dry-run
-    # data from the rest of the population.
-    dry_run = dry_run_option and not live_run_flag
-
-    if dry_run:
+    if not live_run:
         if not set_dedup_key(sentry_app, circuit_breaker):
             return
         logger.info(
@@ -194,16 +188,11 @@ def _circuit_breaker_allows_request(
     if circuit_breaker is None or circuit_breaker.should_allow_request():
         return True
 
-    dry_run_option = options.get("sentry-apps.webhook.circuit-breaker.dry-run")
-    live_run_flag = owner_org is not None and features.has(
+    live_run = owner_org is not None and features.has(
         "organizations:sentry-app-webhook-circuit-breaker-live-run",
         owner_org,
     )
-    # live-run flag overrides the dry-run option so we can roll out real
-    # blocking/emailing per app-owner org while still collecting dry-run
-    # data from the rest of the population.
-    dry_run = dry_run_option and not live_run_flag
-    if dry_run:
+    if not live_run:
         metrics.incr(
             "sentry_app.webhook.circuit_breaker.would_block",
             tags={"slug": sentry_app.slug},
