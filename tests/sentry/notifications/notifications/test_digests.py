@@ -150,7 +150,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=self.rule.id,
+                alert_id=workflow_id,
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",
