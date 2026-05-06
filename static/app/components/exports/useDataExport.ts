@@ -29,6 +29,7 @@ export interface DataExportPayload {
   queryType: ExportQueryType;
 
   format?: DataExportFormat;
+  limit?: number;
 }
 
 interface UseDataExportOptions {
@@ -85,7 +86,7 @@ export function useDataExport({
   const api = useApi();
 
   return useCallback(
-    async ({format = 'csv', queryInfo, queryType}: DataExportPayload) => {
+    async ({format = 'csv', limit, queryInfo, queryType}: DataExportPayload) => {
       inProgressCallback?.(true);
 
       const result = await api
@@ -98,6 +99,7 @@ export function useDataExport({
             method: 'POST',
             data: {
               format,
+              limit,
               query_info: queryInfo,
               query_type: queryType,
             },

@@ -169,21 +169,17 @@ describe('useDataExport', () => {
 
     await result.current({
       format: 'csv',
-      queryInfo: {
-        ...mockPayload.queryInfo,
-        limit: 10_000,
-      },
+      queryInfo: mockPayload.queryInfo,
       queryType: mockPayload.queryType,
+      limit: 10_000,
     });
 
     expect(exportMock).toHaveBeenCalledWith('/organizations/org-slug/data-export/', {
       data: {
         format: 'csv',
         query_type: mockPayload.queryType,
-        query_info: {
-          ...mockPayload.queryInfo,
-          limit: 10_000,
-        },
+        query_info: mockPayload.queryInfo,
+        limit: 10_000,
       },
       error: expect.any(Function),
       method: 'POST',
