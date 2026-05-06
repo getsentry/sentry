@@ -21,6 +21,12 @@ class ProjectManagementActionType(StrEnum):
     SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
     SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE = "sync_external_issue_comment_update"
 
+    # Search
+    SEARCH_ISSUES = "search_issues"
+    SEARCH_USERS = "search_users"
+    SEARCH_PROJECTS = "search_projects"
+    SEARCH_FIELD_AUTOCOMPLETE = "search_field_autocomplete"
+
 
 class ProjectManagementHaltReason(StrEnum):
     SYNC_INBOUND_ASSIGNEE_NOT_FOUND = "inbound-assignee-not-found"

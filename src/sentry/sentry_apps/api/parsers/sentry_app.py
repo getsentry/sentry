@@ -72,7 +72,7 @@ class URLField(serializers.URLField):
         return url
 
 
-@extend_schema_serializer(exclude_fields=["popularity", "features", "status"])
+@extend_schema_serializer(exclude_fields=["popularity", "features", "status", "isDisabled"])
 class SentryAppParser(Serializer):
     name = serializers.CharField(help_text="The name of the custom integration.")
     author = serializers.CharField(
@@ -122,6 +122,11 @@ class SentryAppParser(Serializer):
         required=False,
         default=False,
         help_text="Marks whether or not the custom integration can be used in an alert rule.",
+    )
+    isDisabled = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        default=None,
     )
     overview = serializers.CharField(
         required=False, allow_null=True, help_text="The custom integration's description."

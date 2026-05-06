@@ -4,7 +4,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 describe('Button', () => {
   it('renders', () => {
-    render(<Button priority="primary">Button</Button>);
+    render(<Button variant="primary">Button</Button>);
   });
 
   it('calls `onClick` callback', async () => {

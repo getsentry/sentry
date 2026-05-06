@@ -150,7 +150,7 @@ export class InstalledIntegration extends Component<Props> {
                       onAddIntegration={() => {}}
                       organization={organization}
                       provider={provider}
-                      priority="primary"
+                      variant="primary"
                       size="sm"
                     />
                   )}

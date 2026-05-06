@@ -189,7 +189,7 @@ export function SpecificDatePicker({
                 </Button>
                 <Button
                   size="xs"
-                  priority="primary"
+                  variant="primary"
                   disabled={!dateString}
                   onClick={() => {
                     handleSave?.(dateString!);

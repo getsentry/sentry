@@ -90,7 +90,17 @@ export function HomePage() {
           This is an internal tool meant to enable Sentry Employees (you!) to better
           assist and resolve issues that may arise for our customers.
         </strong>
-        <div>If you have any questions, ask us in #discuss-admin</div>
+        <div>
+          If you have any questions, ask us in{' '}
+          <a
+            href="https://app.slack.com/client/T024ZCV9U/CQDHVRS2W"
+            target="_blank"
+            rel="noreferrer"
+          >
+            #triage-product
+          </a>
+          .
+        </div>
       </div>
       <Flex justify="center" margin="xl 0">
         <Warning>

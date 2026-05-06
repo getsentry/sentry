@@ -260,7 +260,7 @@ function SetupProfiling({link}: {link: string}) {
               'Profiles can also give you additional context on which functions are getting sampled at the time of these spans.'
             )}
           </TextBlock>
-          <LinkButton size="sm" priority="primary" href={link} external>
+          <LinkButton size="sm" variant="primary" href={link} external>
             {t('Get Started')}
           </LinkButton>
         </span>

@@ -249,7 +249,7 @@ function DataWidgetViewerModal(props: Props) {
     [start, end, selection]
   );
 
-  const [modalSelection, setModalSelection] = useState<PageFilters>(locationPageFilter);
+  const [modalSelection, setModalSelection] = useState(locationPageFilter);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call

@@ -9,7 +9,7 @@ from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
-from sentry import features, release_health, tsdb
+from sentry import features, options, release_health, tsdb
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
@@ -47,7 +47,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import resolve_column, resolve_conditions
+from sentry.utils.snuba import get_snuba_column_name, resolve_column, resolve_conditions
 
 
 def get_actions(group: Group) -> list[tuple[str, str]]:
@@ -597,7 +597,20 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 generic_issue_ids.append(group.id)
 
         error_conditions = resolve_conditions(conditions, resolve_column(Dataset.Discover))
-        issue_conditions = resolve_conditions(conditions, resolve_column(Dataset.IssuePlatform))
+        # IssuePlatform's `resolve_column` mis-resolves user-typed names that
+        # collide with column event_names (e.g. tag `platform` vs the SDK
+        # `platform` column) because of the `DATASET_FIELDS` shortcut. Match
+        # the issue surfacing query, which uses `get_snuba_column_name` —
+        # that resolver correctly falls back to `tags[<name>]`. Gated for
+        # safe rollout. (Discover doesn't hit the buggy branch and stays
+        # on `resolve_column`.)
+        if options.get("issues.search.use-tag-aware-condition-resolver"):
+            issue_conditions = resolve_conditions(
+                conditions,
+                functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform),
+            )
+        else:
+            issue_conditions = resolve_conditions(conditions, resolve_column(Dataset.IssuePlatform))
 
         get_range = functools.partial(
             snuba_tsdb.get_range,

@@ -51,6 +51,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -2109,3 +2110,94 @@ class TestSendMetricAlertWebhook(TestCase):
             if isinstance(call.args[0], AlertRuleUiComponentWebhookSentEvent)
         ]
         assert len(ui_component_calls) == 0
+
+
+DISABLED_OPTION = {"sentry-apps.disabled-enforcement": True}
+
+
+def disable_app(app: SentryApp) -> None:
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        app.update(is_disabled=True)
+
+
+class TestDisabledSentryAppWebhooks(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project()
+        self.user = self.create_user()
+        self.sentry_app = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.resolved", "issue.ignored", "issue.assigned"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app.slug
+        )
+        self.issue = self.create_group(project=self.project)
+
+    @override_options(DISABLED_OPTION)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_workflow_notification_blocked_for_disabled_app(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        disable_app(self.sentry_app)
+        workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+        assert not safe_urlopen.called
+        assert_halt_metric(
+            mock_record=mock_record, error_msg=SentryAppWebhookHaltReason.APP_DISABLED
+        )
+
+    @override_options(DISABLED_OPTION)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_alert_webhook_v2_blocked_for_disabled_app(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        disable_app(self.sentry_app)
+        send_alert_webhook_v2(
+            instance_id=event.event_id,
+            group_id=event.group.id,
+            occurrence_id=None,
+            rule_label="Test Rule",
+            sentry_app_id=self.sentry_app.id,
+        )
+        assert not safe_urlopen.called
+        assert_halt_metric(
+            mock_record=mock_record, error_msg=SentryAppWebhookHaltReason.APP_DISABLED
+        )
+
+    @override_options(DISABLED_OPTION)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_metric_alert_webhook_blocked_for_disabled_app(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        disable_app(self.sentry_app)
+        send_metric_alert_webhook(
+            sentry_app_id=self.sentry_app.id,
+            new_status=IncidentStatus.CRITICAL.value,
+            incident_attachment_json=json.dumps(
+                {
+                    "metric_alert": {"alert_rule": {"triggers": []}},
+                    "description_text": "Something went wrong",
+                    "description_title": "Test Alert",
+                    "web_url": "http://example.com/alert/1",
+                }
+            ),
+            organization_id=self.project.organization.id,
+            project_id=self.project.id,
+            alert_id=42,
+        )
+        assert not safe_urlopen.called
+        assert_halt_metric(
+            mock_record=mock_record, error_msg=SentryAppWebhookHaltReason.APP_DISABLED
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    def test_workflow_notification_still_sends_without_feature_flag(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        disable_app(self.sentry_app)
+        workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+        assert safe_urlopen.called

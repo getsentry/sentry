@@ -38,7 +38,7 @@ export function OnboardingBanner() {
         <Button
           aria-label={t('Dismiss banner')}
           icon={<IconClose variant="accent" />}
-          priority="transparent"
+          variant="transparent"
           onClick={() => dismissPrompt()}
           size="zero"
         />

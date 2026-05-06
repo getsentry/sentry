@@ -44,7 +44,7 @@ export function InstanceLevelOAuthDetails() {
 
   const [clientDetails, setClientDetails] = useState<ClientDetails | null>();
   const [errorMessage, setErrorMessage] = useState<string | null>();
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchClientData = useCallback(async () => {
     try {

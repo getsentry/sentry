@@ -57,17 +57,17 @@ function AllocationForm({
   spendAllocations,
   subscription,
 }: AllocationFormProps) {
-  const [allocationVolume, setAllocationVolume] = useState<number>(0);
+  const [allocationVolume, setAllocationVolume] = useState(0);
   const [errorFields, setErrorFields] = useState<string[]>([]);
-  const [showPrice, setShowPrice] = useState<boolean>(false);
-  const [selectedMetric, setSelectedMetric] = useState<DataCategory>(
+  const [showPrice, setShowPrice] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState(
     initializedData
       ? normalizeBillingMetric(initializedData.billingMetric)
       : initialMetric && getCategoryInfoFromPlural(initialMetric)?.canAllocate
         ? initialMetric
         : DataCategory.ERRORS // default to errors
   );
-  const [targetId, setTargetId] = useState<string | undefined>(
+  const [targetId, setTargetId] = useState(
     initializedData && String(initializedData.targetId)
   );
   const api = useApi();
