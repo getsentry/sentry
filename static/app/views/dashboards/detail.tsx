@@ -284,6 +284,19 @@ class DashboardDetail extends Component<Props, State> {
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 
+  closeFullScreenView = () => {
+    const {location, navigate} = this.props;
+    // Filter out Widget Viewer Modal query params when exiting the Modal
+    const query = omit(location.query, Object.values(WidgetViewerQueryField));
+    navigate(
+      {
+        pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
+        query,
+      },
+      {preventScrollReset: true}
+    );
+  };
+
   checkIfShouldMountWidgetViewerModal() {
     const {
       params: {widgetId},
@@ -291,20 +304,12 @@ class DashboardDetail extends Component<Props, State> {
       dashboard,
       location,
       router,
-      navigate,
     } = this.props;
     const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       // When the releases drawer is triggered from within the full-screen widget viewer modal, close the modal by navigating away from the widget path.
       if (location.query[ReleasesDrawerFields.DRAWER] === 'show') {
-        const query = omit(location.query, Object.values(WidgetViewerQueryField));
-        navigate(
-          {
-            pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
-            query,
-          },
-          {preventScrollReset: true}
-        );
+        this.closeFullScreenView();
         return;
       }
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
@@ -319,15 +324,7 @@ class DashboardDetail extends Component<Props, State> {
           isPrebuiltDashboard: defined(dashboard.prebuiltId),
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
-            // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omit(location.query, Object.values(WidgetViewerQueryField));
-            navigate(
-              {
-                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
-                query,
-              },
-              {preventScrollReset: true}
-            );
+            this.closeFullScreenView();
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
