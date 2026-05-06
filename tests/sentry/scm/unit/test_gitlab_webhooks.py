@@ -179,7 +179,7 @@ def test_deserialize_gitlab_merge_request_event() -> None:
     assert deserialize_gitlab_event(subscription_event) == PullRequestEvent(
         action="opened",
         pull_request={
-            "repo_id": "79787061",
+            "repository_id": "79787061",
             "id": "39",
             "title": "PR to trigger webhook 2026-04-14 07:57:54.235823",
             "description": "Another PR, to trigger the webhook.",
@@ -187,6 +187,7 @@ def test_deserialize_gitlab_merge_request_event() -> None:
             "base": {"ref": "main", "sha": None},
             "is_private_repo": False,
             "author": {"id": "150871", "username": "jacquev6"},
+            "draft": False,
         },
         subscription_event=subscription_event,
     )

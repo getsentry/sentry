@@ -39,6 +39,7 @@ class GitLabPullRequestObjectAttributes(msgspec.Struct, gc=False):
     source_branch: str
     target_branch: str
     action: GitLabPullRequestAction
+    draft: bool
 
 
 class GitLabPullRequestEvent(msgspec.Struct, gc=False):
@@ -63,7 +64,7 @@ def deserialize_gitlab_event(event: SubscriptionEvent) -> EventType | None:
         return PullRequestEvent(
             action=action,
             pull_request={
-                "repo_id": str(e.project.id),
+                "repository_id": str(e.project.id),
                 "id": str(e.object_attributes.iid),
                 "title": e.object_attributes.title,
                 "description": e.object_attributes.description,
@@ -71,6 +72,7 @@ def deserialize_gitlab_event(event: SubscriptionEvent) -> EventType | None:
                 "base": {"ref": e.object_attributes.target_branch, "sha": None},
                 "is_private_repo": e.project.visibility_level != PUBLIC_VISIBILITY_LEVEL,
                 "author": {"id": str(e.user.id), "username": e.user.username},
+                "draft": e.object_attributes.draft,
             },
             subscription_event=event,
         )
