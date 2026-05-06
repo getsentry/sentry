@@ -59,7 +59,6 @@ import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder
 import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {useIsEquationMode} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -67,6 +66,7 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useIsEquationMode} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEquationMode';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
@@ -148,8 +148,7 @@ function WidgetBuilderSlideoutInner({
 
   // Tracks whether the user has entered the metrics equation mode since we
   // do not render the filter bar. The metrics equations UI has filters built in.
-  const isEquationModeFromUrl = useIsEquationMode();
-  const [isInEquationMode, setIsInEquationMode] = useState(isEquationModeFromUrl);
+  const [isInEquationMode, setIsInEquationMode] = useIsEquationMode();
 
   useEffect(() => {
     if (!openWidgetTemplates) {

@@ -1,10 +1,12 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import noop from 'lodash/noop';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {
   EQUATION_PREFIX,
@@ -13,7 +15,7 @@ import {
   type Column,
 } from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
@@ -21,7 +23,6 @@ import {
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {
   extractReferenceLabels,
@@ -222,7 +223,6 @@ function MetricsEquationVisualizeContent({
   const metricQueries = useMultiMetricsQueryParams();
   const referenceMap = useMetricReferences(metricQueries);
   const addAggregate = useAddMetricQuery({type: 'aggregate'});
-  const addEquation = useAddMetricQuery({type: 'equation'});
 
   const onRowSelection = useCallback(
     (label: string) => {
@@ -242,7 +242,7 @@ function MetricsEquationVisualizeContent({
     [metricQueries, setSelectedLabel, state.displayType, state.fields, dispatch]
   );
 
-  const handleFilterChange = useCallback(
+  const handleMetricParamsChange = useCallback(
     (newQueryParams: ReadableQueryParams) => {
       dispatch({type: BuilderStateAction.SET_QUERY, payload: [newQueryParams.query]});
     },
@@ -281,7 +281,7 @@ function MetricsEquationVisualizeContent({
             key={metricQuery.label ?? ''}
             metricQuery={metricQuery}
             isSelected={isSelected}
-            onQueryParamsChange={handleFilterChange}
+            onQueryParamsChange={handleMetricParamsChange}
           >
             <MetricToolbar
               metricQuery={metricQuery}
@@ -297,7 +297,7 @@ function MetricsEquationVisualizeContent({
         <RowProvider
           metricQuery={equationQuery}
           isSelected={selectedLabel === equationQuery.label}
-          onQueryParamsChange={handleFilterChange}
+          onQueryParamsChange={handleMetricParamsChange}
         >
           <MetricToolbar
             metricQuery={equationQuery}
@@ -309,20 +309,15 @@ function MetricsEquationVisualizeContent({
         </RowProvider>
       )}
       <Flex gap="md" align="center">
-        <ToolbarVisualizeAddChart
-          add={addAggregate}
+        <Button
+          icon={<IconAdd />}
+          onClick={addAggregate}
           disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-          label={t('Add Metric')}
-          display="button"
-        />
-        {!equationQuery && (
-          <ToolbarVisualizeAddChart
-            display="button"
-            add={addEquation}
-            disabled={!!equationQuery || metricQueries.length >= MAX_METRICS_ALLOWED}
-            label={t('Add Equation')}
-          />
-        )}
+          aria-label={t('Add Metric')}
+          variant="link"
+        >
+          {t('Add Metric')}
+        </Button>
       </Flex>
     </Stack>
   );
@@ -454,29 +449,4 @@ function MetricToolbar({
       </Flex>
     </Grid>
   );
-}
-
-/**
- * Returns true if the widget builder should show the equation visualize mode.
- * This happens when trace metrics equations are enabled and the current yAxis
- * contains an equation entry.
- */
-export function useIsEquationMode(): boolean {
-  const organization = useOrganization();
-  const {state} = useWidgetBuilderContext();
-
-  if (state.dataset !== WidgetType.TRACEMETRICS) {
-    return false;
-  }
-  if (!canUseMetricsEquationsInDashboards(organization)) {
-    return false;
-  }
-
-  const aggregateSource = getTraceMetricAggregateSource(
-    state.displayType,
-    state.yAxis,
-    state.fields
-  );
-
-  return (aggregateSource ?? []).some(f => f.kind === FieldValueKind.EQUATION);
 }
