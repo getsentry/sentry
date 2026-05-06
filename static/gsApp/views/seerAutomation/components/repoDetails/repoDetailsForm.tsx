@@ -65,6 +65,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
     },
     onError: (_error, _data, context) => {
       if (context?.previous) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<RepositoryWithSettings>(
           queryClient,
           repoQueryKey,
