@@ -29,7 +29,7 @@ describe('SentryAppRuleModal', () => {
 
   const _submit = async () => {
     await userEvent.click(screen.getByText('Save Changes'));
-    return screen.queryAllByText('This field is required');
+    return screen.queryAllByText('Field is required');
   };
 
   const submitSuccess = async () => {
@@ -129,26 +129,26 @@ describe('SentryAppRuleModal', () => {
       });
     });
 
-    it('flags required fields as invalid when submit is clicked with incomplete form', async () => {
+    it('submit button shall be disabled if form is incomplete', async () => {
       createWrapper();
-      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
-      expect(screen.getByRole('textbox', {name: 'Alert Title'})).toHaveAttribute(
-        'aria-invalid',
-        'true'
-      );
+      expect(screen.getByRole('button', {name: 'Save Changes'})).toBeDisabled();
+      await userEvent.hover(screen.getByRole('button', {name: 'Save Changes'}));
+      expect(
+        await screen.findByText('Required fields must be filled out')
+      ).toBeInTheDocument();
     });
 
     it('should submit when "Save Changes" is clicked with valid data', async () => {
       createWrapper();
 
-      const titleInput = screen.getByRole('textbox', {name: 'Alert Title'});
+      const titleInput = screen.getByTestId('title');
       await userEvent.type(titleInput, 'some title');
 
-      const descriptionInput = screen.getByRole('textbox', {name: 'Alert Description'});
+      const descriptionInput = screen.getByTestId('description');
       await userEvent.type(descriptionInput, 'some description');
 
-      const channelInput = screen.getByRole('textbox', {name: 'Team Channel'});
-      await userEvent.click(channelInput);
+      const channelInput = screen.getAllByText('Type to search')[0]!;
+      await userEvent.type(channelInput, '{keyDown}');
       await userEvent.click(screen.getByText('valor'));
 
       // Ensure text fields are persisted on edit
@@ -169,7 +169,7 @@ describe('SentryAppRuleModal', () => {
         url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
         body: {choices: workspaceChoices},
       });
-      const workspaceInput = screen.getByRole('textbox', {name: 'Workspace'});
+      const workspaceInput = screen.getByText('Type to search');
       // Search by value
       await userEvent.type(workspaceInput, workspaceChoices[1]![0]!);
       await waitFor(() => expect(workspaceResponse).toHaveBeenCalled());
@@ -265,10 +265,7 @@ describe('SentryAppRuleModal', () => {
       createWrapper({config: schema, resetValues: defaultValues});
       await waitFor(() => expect(mockApi).not.toHaveBeenCalled());
 
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Task Name'}),
-        'sooo coooool'
-      );
+      await userEvent.type(screen.getByText('Task Name'), 'sooo coooool');
 
       // Now that the title is filled we should get the options
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
@@ -328,11 +325,15 @@ describe('SentryAppRuleModal', () => {
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
 
       // Check if complexity options are loaded
-      const complexityInput = screen.getByRole('textbox', {
-        name: 'What is the estimated complexity?',
+      const complexityInput = screen.getByLabelText('What is the estimated complexity?', {
+        selector: 'input#complexity',
       });
 
-      expect(complexityInput).toBeEnabled();
+      expect(screen.queryByText('Low')).not.toBeInTheDocument();
+      await userEvent.click(complexityInput);
+      expect(screen.getByText('Low')).toBeInTheDocument();
+      expect(screen.getByText('Medium')).toBeInTheDocument();
+      expect(screen.getByText('High')).toBeInTheDocument();
     });
     it('should populate skip_load_on fields with the default value', async () => {
       const mockApi = MockApiClient.addMockResponse({
@@ -391,7 +392,7 @@ describe('SentryAppRuleModal', () => {
 
       // Wait for component to mount and state to update
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
-      expect(await screen.findByText('Low')).toBeInTheDocument();
+      expect(screen.getByText('Low')).toBeInTheDocument();
       expect(screen.queryByText('Medium')).not.toBeInTheDocument();
       expect(screen.queryByText('High')).not.toBeInTheDocument();
     });
@@ -446,7 +447,7 @@ describe('SentryAppRuleModal', () => {
 
       // because we have a default value in title, we should immeadiatly fetch for complexity
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
-      expect(await screen.findByText('High')).toBeInTheDocument();
+      expect(screen.getByText('High')).toBeInTheDocument();
       expect(screen.getByText('YAY')).toBeInTheDocument();
     });
     it('should populate dependent fields with skip_load_on_open if the parent field is loaded with default value', async () => {
@@ -501,7 +502,7 @@ describe('SentryAppRuleModal', () => {
 
       // because we have a default value in title, we should immediately fetch for complexity
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
-      expect(await screen.findByText('High')).toBeInTheDocument();
+      expect(screen.getByText('High')).toBeInTheDocument();
       expect(screen.getByText('YAY')).toBeInTheDocument();
     });
     it('does not make external req for non skip on load fields that dont depend on another field', async () => {
