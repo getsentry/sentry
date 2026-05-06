@@ -79,6 +79,7 @@ import {
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -283,6 +284,19 @@ class DashboardDetail extends Component<Props, State> {
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 
+  closeFullScreenView = () => {
+    const {location, navigate} = this.props;
+    // Filter out Widget Viewer Modal query params when exiting the Modal
+    const query = omit(location.query, Object.values(WidgetViewerQueryField));
+    navigate(
+      {
+        pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
+        query,
+      },
+      {preventScrollReset: true}
+    );
+  };
+
   checkIfShouldMountWidgetViewerModal() {
     const {
       params: {widgetId},
@@ -290,10 +304,14 @@ class DashboardDetail extends Component<Props, State> {
       dashboard,
       location,
       router,
-      navigate,
     } = this.props;
     const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
+      // When the releases drawer is triggered from within the full-screen widget viewer modal, close the modal by navigating away from the widget path.
+      if (location.query[ReleasesDrawerFields.DRAWER] === 'show') {
+        this.closeFullScreenView();
+        return;
+      }
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
@@ -306,15 +324,7 @@ class DashboardDetail extends Component<Props, State> {
           isPrebuiltDashboard: defined(dashboard.prebuiltId),
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
-            // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omit(location.query, Object.values(WidgetViewerQueryField));
-            navigate(
-              {
-                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
-                query,
-              },
-              {preventScrollReset: true}
-            );
+            this.closeFullScreenView();
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(

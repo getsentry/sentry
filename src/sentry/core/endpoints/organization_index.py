@@ -1,6 +1,5 @@
 import logging
 
-import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Q, Subquery
@@ -41,6 +40,7 @@ from sentry.services.organization import (
     PostProvisionOptions,
 )
 from sentry.services.organization.provisioning import organization_provisioning_service
+from sentry.signals import org_setup_complete
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -377,6 +377,8 @@ class OrganizationIndexEndpoint(Endpoint):
             },
             "ip_address": request.META["REMOTE_ADDR"],
             "provisioning_user_id": request.user.id,
+            "sender": "in-app",
+            "referrer": "in-app",
         }
 
         try:
@@ -406,6 +408,10 @@ class OrganizationIndexEndpoint(Endpoint):
                 provisioning_options=provision_args,
             )
             org = Organization.objects.get(id=rpc_org.id)
+
+            org_setup_complete.send_robust(
+                instance=org, user=request.user, sender="in-app", referrer="in-app"
+            )
 
         # TODO(hybrid-cloud): We'll need to catch a more generic error
         # when the internal RPC is implemented.

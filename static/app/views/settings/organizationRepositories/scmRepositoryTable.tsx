@@ -1,4 +1,12 @@
-import {Fragment, type ReactNode, useCallback, useMemo, useRef, useState} from 'react';
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
@@ -92,10 +100,30 @@ export interface ScmInstallation {
    */
   mappingsLoading?: boolean;
   /**
+   * Called when the user clicks the settings button. When omitted the button
+   * is hidden.
+   */
+  onSettings?: () => void;
+  /**
+   * Called when the user clicks "Sync now" in the repository count tag
+   * tooltip. When omitted the button is hidden.
+   */
+  onSync?: () => void;
+  /**
+   * Called when the user clicks the uninstall button. When omitted the button
+   * is hidden.
+   */
+  onUninstall?: () => void;
+  /**
    * Items rendered into the per-installation overflow (`...`) menu. When
    * omitted or empty, the menu trigger is hidden.
    */
   overflowMenuItems?: MenuItemProps[];
+  /**
+   * Renders an action element in the right slot of each repository row.
+   * Only called when `mappedProjectSlugsByRepoId` is set on the installation.
+   */
+  repoActions?: (repo: Repository) => React.ReactNode;
   /**
    * Whether the parent is still fetching the repository list. Drives the
    * "Loading repositories" empty state and shows a loading indicator
@@ -114,6 +142,11 @@ export interface ScmInstallation {
   uninstallButtonProps?: Omit<ButtonProps, 'onClick'>;
 }
 
+export interface InstallationWrapperProps {
+  children: React.ReactNode;
+  installation: ScmInstallation;
+}
+
 interface ScmRepositoryTableProps {
   /**
    * Installations to render, one expand/collapse section per entry.
@@ -124,29 +157,44 @@ interface ScmRepositoryTableProps {
    */
   provider: IntegrationProvider;
   /**
-   * Called when the user clicks "Sync now" in the repository count tag tooltip.
-   * When omitted the button is hidden.
+   * Optional wrapper component rendered around each installation. Useful for
+   * setting up per-installation state — e.g. wiring a sync hook that feeds
+   * `isSyncing` and `onSync` back into the installation via
+   * `InstallationOverrideProvider`.
    */
-  onInstallationSync?: (installation: ScmInstallation) => void;
-  /**
-   * Called when the user clicks the settings button for an installation.
-   * When omitted the button is hidden.
-   */
-  onSettings?: (installation: ScmInstallation) => void;
-  /**
-   * Called when the user clicks the uninstall button for an installation.
-   * When omitted the button is hidden.
-   */
-  onUninstall?: (installation: ScmInstallation) => void;
-  /**
-   * Renders an action element in the right slot of each repository row.
-   * Only called when `mappedProjectSlugsByRepoId` is set on the installation.
-   */
-  repoActions?: (repo: Repository, installation: ScmInstallation) => ReactNode;
+  installationWrapper?: React.ComponentType<InstallationWrapperProps>;
   /**
    * Fuse match results used to filter and highlight repo names.
    */
   repoMatches?: ScmRepoMatches;
+}
+
+export function ScmRepositoryTable({installations, ...rest}: ScmRepositoryTableProps) {
+  const soleInstallation = installations.length === 1 ? installations[0]! : null;
+
+  if (soleInstallation !== null) {
+    return <SingleInstallTable installation={soleInstallation} {...rest} />;
+  }
+
+  return <MultiInstallTable installations={installations} {...rest} />;
+}
+
+interface OverrideProviderProps {
+  children: React.ReactNode;
+  value: Partial<ScmInstallation>;
+}
+
+/**
+ * Provides overrides that are merged into the nearest installation before
+ * rendering. Use inside an `installationWrapper` component to inject
+ * per-installation state (e.g. `isSyncing`, `onSync`) without prop-drilling.
+ */
+export function InstallationOverrideProvider({value, children}: OverrideProviderProps) {
+  return (
+    <ScmInstallationContext.Provider value={value}>
+      {children}
+    </ScmInstallationContext.Provider>
+  );
 }
 
 /**
@@ -183,83 +231,117 @@ function useExpandedInstallations(installations: ScmInstallation[]) {
   return {expandedIds, toggle};
 }
 
-export function ScmRepositoryTable({
+const ScmInstallationContext = createContext<Partial<ScmInstallation>>({});
+
+/**
+ * Returns the installation merged with any overrides from the nearest
+ * `InstallationOverrideProvider`. When no provider is present the context
+ * is empty and the installation is returned as-is.
+ */
+function useMergedInstallation(installation: ScmInstallation): ScmInstallation {
+  const overrides = useContext(ScmInstallationContext);
+  return useMemo(() => ({...installation, ...overrides}), [installation, overrides]);
+}
+
+interface SoloInstallTableProps extends Omit<ScmRepositoryTableProps, 'installations'> {
+  installation: ScmInstallation;
+}
+
+function SingleInstallTable({
+  installation,
+  installationWrapper: Wrapper,
+  ...rest
+}: SoloInstallTableProps) {
+  const content = <SingleInstallTableContent installation={installation} {...rest} />;
+  return Wrapper ? <Wrapper installation={installation}>{content}</Wrapper> : content;
+}
+
+function SingleInstallTableContent({
+  provider,
+  installation,
+  repoMatches,
+}: SoloInstallTableProps) {
+  const merged = useMergedInstallation(installation);
+
+  return (
+    <Panel role="region" aria-label={provider.name}>
+      <TableHeader>
+        <Flex align="center" gap="sm">
+          {getIntegrationIcon(provider.key, 'sm')}
+          <Text bold>{provider.name}</Text>
+          <Text variant="muted">/</Text>
+          <IntegrationSummary installation={merged} />
+        </Flex>
+        <Flex align="center" gap="sm">
+          <InstallationActions installation={merged} providerName={provider.name} />
+        </Flex>
+      </TableHeader>
+      <VirtualizedRepoList
+        installation={merged}
+        repoMatches={repoMatches}
+        providerName={provider.name}
+      />
+    </Panel>
+  );
+}
+
+function MultiInstallTable({
   provider,
   installations,
-  onSettings,
-  onInstallationSync,
-  onUninstall,
-  repoActions,
+  installationWrapper: Wrapper,
   repoMatches,
 }: ScmRepositoryTableProps) {
-  const soleInstallation = installations.length === 1 ? installations[0]! : null;
-
   const {expandedIds, toggle} = useExpandedInstallations(installations);
 
   return (
     <Panel role="region" aria-label={provider.name}>
-      <Flex
-        justify="between"
-        background="secondary"
-        padding="xs lg"
-        radius="sm sm 0 0"
-        borderBottom="secondary"
-        minHeight="36px"
-      >
+      <TableHeader>
         <Flex align="center" gap="sm">
           {getIntegrationIcon(provider.key, 'sm')}
           <Text bold>{provider.name}</Text>
-          {soleInstallation && (
-            <Fragment>
-              <Text variant="muted">/</Text>
-              <IntegrationSummary installation={soleInstallation} />
-            </Fragment>
-          )}
         </Flex>
-        <Flex align="center" gap="sm">
-          {soleInstallation && (
-            <InstallationActions
-              installation={soleInstallation}
-              providerName={provider.name}
-              onUninstall={onUninstall}
-              onSettings={onSettings}
-              onInstallationSync={onInstallationSync}
+      </TableHeader>
+      <Grid role="list" columns="max-content 1fr" gap="0 md">
+        {installations.map(installation => {
+          const hasSearchHits =
+            repoMatches !== undefined &&
+            installation.repositories.some(r => repoMatches[r.id]);
+          const row = (
+            <InstallationRow
+              provider={provider}
+              installation={installation}
+              expanded={hasSearchHits || expandedIds.has(installation.integration.id)}
+              onToggle={() => toggle(installation.integration.id)}
+              repoMatches={repoMatches}
             />
-          )}
-        </Flex>
-      </Flex>
-      {soleInstallation ? (
-        <VirtualizedRepoList
-          installation={soleInstallation}
-          repoMatches={repoMatches}
-          providerName={provider.name}
-          repoActions={repoActions}
-        />
-      ) : (
-        <Grid role="list" columns="max-content 1fr" gap="0 md">
-          {installations.map(installation => {
-            const hasSearchHits =
-              repoMatches !== undefined &&
-              installation.repositories.some(r => repoMatches[r.id]);
-            return (
-              <InstallationSubgrid key={installation.integration.id} role="listitem">
-                <InstallationRow
-                  provider={provider}
-                  installation={installation}
-                  expanded={hasSearchHits || expandedIds.has(installation.integration.id)}
-                  onToggle={() => toggle(installation.integration.id)}
-                  onUninstall={onUninstall}
-                  onSettings={onSettings}
-                  onInstallationSync={onInstallationSync}
-                  repoActions={repoActions}
-                  repoMatches={repoMatches}
-                />
-              </InstallationSubgrid>
-            );
-          })}
-        </Grid>
-      )}
+          );
+          return Wrapper ? (
+            <Wrapper key={installation.integration.id} installation={installation}>
+              <InstallationSubgrid role="listitem">{row}</InstallationSubgrid>
+            </Wrapper>
+          ) : (
+            <InstallationSubgrid key={installation.integration.id} role="listitem">
+              {row}
+            </InstallationSubgrid>
+          );
+        })}
+      </Grid>
     </Panel>
+  );
+}
+
+function TableHeader({children}: {children: React.ReactNode}) {
+  return (
+    <Flex
+      justify="between"
+      background="secondary"
+      padding="xs lg"
+      radius="sm sm 0 0"
+      borderBottom="secondary"
+      minHeight="36px"
+    >
+      {children}
+    </Flex>
   );
 }
 
@@ -268,10 +350,6 @@ interface InstallationRowProps {
   installation: ScmInstallation;
   onToggle: () => void;
   provider: IntegrationProvider;
-  onInstallationSync?: (installation: ScmInstallation) => void;
-  onSettings?: (installation: ScmInstallation) => void;
-  onUninstall?: (installation: ScmInstallation) => void;
-  repoActions?: (repo: Repository, installation: ScmInstallation) => ReactNode;
   repoMatches?: ScmRepoMatches;
 }
 
@@ -280,13 +358,10 @@ function InstallationRow({
   installation,
   expanded,
   onToggle,
-  onUninstall,
-  onSettings,
-  onInstallationSync,
-  repoActions,
   repoMatches,
 }: InstallationRowProps) {
-  const {expandDisabled} = installation;
+  const merged = useMergedInstallation(installation);
+  const {expandDisabled} = merged;
 
   const handleRowClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (expandDisabled) {
@@ -314,7 +389,7 @@ function InstallationRow({
       <RowButton
         role="button"
         tabIndex={expandDisabled ? -1 : 0}
-        aria-label={installation.integration.name}
+        aria-label={merged.integration.name}
         aria-expanded={expandDisabled ? undefined : expanded}
         aria-disabled={expandDisabled || undefined}
         onClick={handleRowClick}
@@ -323,25 +398,18 @@ function InstallationRow({
         <IconChevron direction={expanded && !expandDisabled ? 'down' : 'right'} />
         <Flex column="2" align="center" justify="between" gap="md">
           <Flex align="center" gap="sm">
-            <IntegrationSummary installation={installation} />
+            <IntegrationSummary installation={merged} />
           </Flex>
           <Flex align="center" gap="md">
-            <InstallationActions
-              installation={installation}
-              providerName={provider.name}
-              onUninstall={onUninstall}
-              onSettings={onSettings}
-              onInstallationSync={onInstallationSync}
-            />
+            <InstallationActions installation={merged} providerName={provider.name} />
           </Flex>
         </Flex>
       </RowButton>
       {expanded && !expandDisabled && (
         <VirtualizedRepoList
-          installation={installation}
+          installation={merged}
           repoMatches={repoMatches}
           providerName={provider.name}
-          repoActions={repoActions}
           nested
         />
       )}
@@ -363,17 +431,13 @@ function IntegrationSummary({installation}: {installation: ScmInstallation}) {
 interface InstallationActionsProps {
   installation: ScmInstallation;
   providerName: string;
-  onInstallationSync?: (installation: ScmInstallation) => void;
-  onSettings?: (installation: ScmInstallation) => void;
-  onUninstall?: (installation: ScmInstallation) => void;
 }
 
 function getRepoCountTooltip(
   installation: ScmInstallation,
-  onInstallationSync: ((installation: ScmInstallation) => void) | undefined,
   lastSync: string | undefined
-): ReactNode {
-  const {reposLoading, isSyncing} = installation;
+): React.ReactNode {
+  const {reposLoading, isSyncing, onSync} = installation;
 
   if (reposLoading) {
     return t('Loading repositories');
@@ -382,8 +446,8 @@ function getRepoCountTooltip(
     return t('Re-syncing in the background…');
   }
 
-  const syncNowButton = onInstallationSync ? (
-    <Button size="xs" variant="link" onClick={() => onInstallationSync(installation)}>
+  const syncNowButton = onSync ? (
+    <Button size="xs" variant="link" onClick={onSync}>
       {t('Sync now')}
     </Button>
   ) : null;
@@ -401,13 +465,7 @@ function getRepoCountTooltip(
   return tct('Repositories not yet synced. [syncNow]', {syncNow: syncNowButton});
 }
 
-function InstallationActions({
-  installation,
-  providerName,
-  onInstallationSync,
-  onUninstall,
-  onSettings,
-}: InstallationActionsProps) {
+function InstallationActions({installation, providerName}: InstallationActionsProps) {
   const {
     manageUrl,
     overflowMenuItems,
@@ -416,6 +474,8 @@ function InstallationActions({
     repositories,
     reposLoading,
     isSyncing,
+    onSettings,
+    onUninstall,
     integration,
   } = installation;
 
@@ -424,11 +484,7 @@ function InstallationActions({
   const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
 
   const isLoading = reposLoading || isSyncing;
-  const repoCountTooltip = getRepoCountTooltip(
-    installation,
-    onInstallationSync,
-    lastSync
-  );
+  const repoCountTooltip = getRepoCountTooltip(installation, lastSync);
 
   return (
     <Fragment>
@@ -465,7 +521,7 @@ function InstallationActions({
               variant="transparent"
               icon={<IconDelete />}
               {...uninstallButtonProps}
-              onClick={() => onUninstall(installation)}
+              onClick={onUninstall}
             />
           )}
           {onSettings && (
@@ -475,7 +531,7 @@ function InstallationActions({
               variant="transparent"
               icon={<IconSliders />}
               {...settingsButtonProps}
-              onClick={() => onSettings(installation)}
+              onClick={onSettings}
             />
           )}
           {overflowMenuItems && overflowMenuItems.length > 0 && (
@@ -506,7 +562,7 @@ function RepoMappings({
 }: {
   mappingsLoading: boolean | undefined;
   slugs: string[];
-  action?: ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <Flex align="center" gap="2xs">
@@ -523,7 +579,6 @@ interface VirtualizedRepoListProps {
   installation: ScmInstallation;
   providerName: string;
   nested?: boolean;
-  repoActions?: (repo: Repository, installation: ScmInstallation) => ReactNode;
   repoMatches?: ScmRepoMatches;
 }
 
@@ -531,7 +586,6 @@ function VirtualizedRepoList({
   installation,
   repoMatches,
   providerName,
-  repoActions,
   nested = false,
 }: VirtualizedRepoListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -550,6 +604,7 @@ function VirtualizedRepoList({
         : repositories.filter(r => repoMatches[r.id]);
     const hasMapping = (id: string) =>
       (mappedProjectSlugsByRepoId?.[id]?.length ?? 0) > 0;
+
     return sortBy(filtered, [r => !hasMapping(r.id), r => r.name]);
   }, [repositories, repoMatches, mappedProjectSlugsByRepoId]);
 
@@ -656,7 +711,7 @@ function VirtualizedRepoList({
                   <RepoMappings
                     slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
                     mappingsLoading={mappingsLoading}
-                    action={repoActions?.(repo, installation)}
+                    action={installation.repoActions?.(repo)}
                   />
                 )}
               </RepoRow>

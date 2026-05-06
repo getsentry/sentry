@@ -1,10 +1,10 @@
-import {type CSSProperties, useMemo} from 'react';
+import {type CSSProperties, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -33,6 +33,7 @@ import {
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
@@ -43,7 +44,6 @@ import type {Project} from 'sentry/types/project';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -249,8 +249,6 @@ function AutofixEmptyState({
   project,
   referrer,
 }: AutofixEmptyStateProps) {
-  const seerDrawerLink = useSeerDrawerLink();
-
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -260,8 +258,16 @@ function AutofixEmptyState({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const handleStartRootCause = () => {
-    startStep('root_cause');
+  const [startingRun, setStartingRun] = useState(false);
+  const handleStartRootCause = async () => {
+    setStartingRun(true);
+    try {
+      await startStep('root_cause');
+    } catch {
+      return;
+    } finally {
+      setStartingRun(false);
+    }
     openSeerDrawer();
   };
 
@@ -292,19 +298,19 @@ function AutofixEmptyState({
           <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
         </ImageContainer>
       </Flex>
-      <LinkButton
+      <Button
         size="md"
-        icon={<IconBug />}
+        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
         aria-label={t('Start Analysis')}
         variant="primary"
-        to={seerDrawerLink}
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
+        disabled={startingRun}
       >
         {t('Start Analysis')}
-      </LinkButton>
+      </Button>
     </Flex>
   );
 }
@@ -324,8 +330,6 @@ function AutofixPreviews({
   sections,
   referrer,
 }: AutofixPreviewsProps) {
-  const seerDrawerLink = useSeerDrawerLink();
-
   const hasRootCause =
     sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
@@ -384,12 +388,11 @@ function AutofixPreviews({
         // TODO: maybe send a log?
         return null;
       })}
-      <LinkButton
+      <Button
         size="md"
         icon={<IconSeer />}
         aria-label={t('Open Autofix')}
         variant="primary"
-        to={seerDrawerLink}
         onClick={openSeerDrawer}
         analyticsEventKey="issue_details.seer_opened"
         analyticsEventName="Issue Details: Seer Opened"
@@ -408,20 +411,9 @@ function AutofixPreviews({
         }}
       >
         {t('Open Autofix')}
-      </LinkButton>
+      </Button>
     </Flex>
   );
-}
-
-function useSeerDrawerLink() {
-  const location = useLocation();
-  return {
-    pathname: location.pathname,
-    query: {
-      ...location.query,
-      seerDrawer: true,
-    },
-  };
 }
 
 const ImageContainer = styled(Flex)<{

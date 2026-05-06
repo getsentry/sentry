@@ -47,7 +47,7 @@ export function LogsExportModal({
   const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
   const payload = useMemo(
     () => ({
-      queryType: ExportQueryType.TRACE_ITEM_FULL_EXPORT,
+      queryType: ExportQueryType.EXPLORE,
       queryInfo: {
         ...queryInfo,
         dataset: TraceItemDataset.LOGS,
@@ -83,11 +83,9 @@ export function LogsExportModal({
       if (passedSyncLimit) {
         await handleDataExport({
           format: value.format,
-          queryInfo: {
-            ...payload.queryInfo,
-            limit: value.limit,
-          },
+          queryInfo: payload.queryInfo,
           queryType: payload.queryType,
+          limit: value.limit,
         });
       } else {
         downloadLogs({
