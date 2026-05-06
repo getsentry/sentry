@@ -138,7 +138,7 @@ export function SentryAppDetails() {
           <Link to={`/_admin/customers/${data.owner.slug}/`}>{data.owner.slug}</Link>
         </DetailLabel>
         <DetailLabel title="isAlertable" yesNo={data.isAlertable} />
-        <DetailLabel title="isDisabled" yesNo={data.isDisabled} />
+        <DetailLabel title="Enabled" yesNo={!data.isDisabled} />
         <DetailLabel title="Popularity">{data.popularity}</DetailLabel>
         <DetailLabel title="Scopes">
           {data.scopes.map((scope: any) => (

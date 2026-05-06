@@ -1,8 +1,32 @@
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SentryAppDetails} from 'admin/views/sentryAppDetails';
+
+function renderSentryAppDetails(overrides: Record<string, any> = {}) {
+  const sentryApp = {
+    ...SentryAppFixture({slug: 'test-app', status: 'unpublished'}),
+    owner: {slug: 'test-org'},
+    isDisabled: false,
+    ...overrides,
+  };
+
+  MockApiClient.addMockResponse({
+    url: `/sentry-apps/${sentryApp.slug}/`,
+    method: 'GET',
+    body: sentryApp,
+  });
+
+  render(<SentryAppDetails />, {
+    initialRouterConfig: {
+      location: {pathname: `/_admin/sentry-apps/${sentryApp.slug}/`},
+      route: '/_admin/sentry-apps/:sentryAppSlug/',
+    },
+  });
+
+  return sentryApp;
+}
 
 describe('SentryAppDetails', () => {
   beforeEach(() => {
@@ -10,52 +34,14 @@ describe('SentryAppDetails', () => {
   });
 
   it('renders an unpublished app without crashing', async () => {
-    const sentryApp = {
-      ...SentryAppFixture({
-        slug: 'cursor-staging',
-        status: 'unpublished',
-      }),
-      owner: {slug: 'cursor'},
-    };
-
-    MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/`,
-      method: 'GET',
-      body: sentryApp,
-    });
-
-    render(<SentryAppDetails />, {
-      initialRouterConfig: {
-        location: {
-          pathname: `/_admin/sentry-apps/${sentryApp.slug}/`,
-        },
-        route: '/_admin/sentry-apps/:sentryAppSlug/',
-      },
-    });
+    renderSentryAppDetails();
 
     expect(await screen.findByRole('heading', {name: 'Sentry Apps'})).toBeInTheDocument();
     expect(screen.getAllByText('unpublished')).not.toHaveLength(0);
   });
 
   it('shows disable action for a non-disabled app', async () => {
-    const sentryApp = {
-      ...SentryAppFixture({slug: 'test-app', status: 'unpublished'}),
-      owner: {slug: 'test-org'},
-      isDisabled: false,
-    };
-
-    MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/`,
-      method: 'GET',
-      body: sentryApp,
-    });
-
-    render(<SentryAppDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/_admin/sentry-apps/${sentryApp.slug}/`},
-        route: '/_admin/sentry-apps/:sentryAppSlug/',
-      },
-    });
+    renderSentryAppDetails({isDisabled: false});
 
     await userEvent.click(await screen.findByTestId('detail-actions'));
     expect(await screen.findByText('Disable App')).toBeInTheDocument();
@@ -63,50 +49,37 @@ describe('SentryAppDetails', () => {
   });
 
   it('shows enable action and disabled badge for a disabled app', async () => {
-    const sentryApp = {
-      ...SentryAppFixture({slug: 'test-app', status: 'unpublished'}),
-      owner: {slug: 'test-org'},
-      isDisabled: true,
-    };
-
-    MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/`,
-      method: 'GET',
-      body: sentryApp,
-    });
-
-    render(<SentryAppDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/_admin/sentry-apps/${sentryApp.slug}/`},
-        route: '/_admin/sentry-apps/:sentryAppSlug/',
-      },
-    });
+    renderSentryAppDetails({isDisabled: true});
 
     expect(await screen.findByText('disabled')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('detail-actions'));
     expect(await screen.findByText('Enable App')).toBeInTheDocument();
   });
 
-  it('renders isDisabled detail row for a disabled app', async () => {
-    const sentryApp = {
-      ...SentryAppFixture({slug: 'test-app', status: 'unpublished'}),
-      owner: {slug: 'test-org'},
-      isDisabled: true,
-    };
+  it('renders Enabled detail label', async () => {
+    renderSentryAppDetails({isDisabled: false});
 
-    MockApiClient.addMockResponse({
+    expect(await screen.findByText('Enabled:')).toBeInTheDocument();
+  });
+
+  it('sends isDisabled in mutation when disable action is selected', async () => {
+    const sentryApp = renderSentryAppDetails({isDisabled: false});
+
+    const putMock = MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/`,
-      method: 'GET',
-      body: sentryApp,
+      method: 'PUT',
+      body: {...sentryApp, isDisabled: true},
     });
 
-    render(<SentryAppDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/_admin/sentry-apps/${sentryApp.slug}/`},
-        route: '/_admin/sentry-apps/:sentryAppSlug/',
-      },
-    });
+    await userEvent.click(await screen.findByTestId('detail-actions'));
+    await userEvent.click(await screen.findByRole('option', {name: /Disable App/}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
-    expect(await screen.findByText('isDisabled:')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {isDisabled: true}})
+      );
+    });
   });
 });
