@@ -660,7 +660,7 @@ def merge_export_blobs(data_export_id: int, *, email_notif: bool = True, **kwarg
 
             if not email_notif:
                 # sync mode; propogate the error upwards
-                raise error
+                raise
 
 
 def _set_data_on_scope(data_export: ExportedData) -> None:
