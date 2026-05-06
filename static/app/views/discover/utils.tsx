@@ -7,11 +7,7 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import type {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
@@ -458,7 +454,7 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: OrganizationSummary;
+  organization: Organization;
   aggregations?: Record<string, Aggregation>;
   customMeasurements?: Array<{functions: string[]; key: string}> | null;
   fieldKeys?: string[];

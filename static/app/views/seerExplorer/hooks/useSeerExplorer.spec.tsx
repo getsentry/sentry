@@ -122,7 +122,7 @@ describe('useSeerExplorer', () => {
     });
 
     it('sends structured JSON on dashboard page with feature flag', async () => {
-      (usePageReferrer as jest.Mock).mockReturnValue({
+      jest.mocked(usePageReferrer).mockReturnValue({
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
@@ -157,7 +157,10 @@ describe('useSeerExplorer', () => {
       });
     });
 
-    it('falls back to ASCII screenshot on non-dashboard page', async () => {
+    it('falls back to ASCII screenshot on non-structured-context page', async () => {
+      jest.mocked(usePageReferrer).mockReturnValue({
+        getPageReferrer: () => '/monitors/mobile-builds/',
+      });
       const org = OrganizationFixture({
         features: ['seer-explorer', 'seer-explorer-context-engine'],
       });
@@ -185,7 +188,7 @@ describe('useSeerExplorer', () => {
       });
 
       await waitFor(() => {
-        // usePageReferrer returns '/issues/' by default (from beforeEach) — not in STRUCTURED_CONTEXT_ROUTES
+        // /monitors/mobile-builds/ is not in STRUCTURED_CONTEXT_ROUTES — falls back to ASCII snapshot
         const ctx = postMock.mock.calls[0][1].data.on_page_context;
         expect(() => JSON.parse(ctx)).toThrow();
       });

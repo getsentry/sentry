@@ -164,7 +164,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         issue = self.create_group(project=project)
 
         send_alert_webhook_v2(
-            instance_id=123,
+            instance_id=str(123),
             group_id=issue.id,
             occurrence_id=None,
             rule_label=self.rule.label,
@@ -829,7 +829,7 @@ class TestProcessResourceChange(TestCase):
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
         process_resource_change_bound(
-            action="created", sender="Error", instance_id=123, project_id=1, group_id=1
+            action="created", sender="Error", instance_id=str(123), project_id=1, group_id=1
         )
         assert len(safe_urlopen.mock_calls) == 0
 

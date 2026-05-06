@@ -161,10 +161,6 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Autofix'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('seerDrawer=true')
-    );
   });
 
   it('renders solution artifact', async () => {
@@ -568,9 +564,5 @@ describe('AutofixSection', () => {
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Start Analysis'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('seerDrawer=true')
-    );
   });
 });

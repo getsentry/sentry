@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0009_genericize_night_shift_results
+seer: 0010_drop_legacy_columns
 
-sentry: 1080_backfill_deprecated_dashboard_widget_display_types
+sentry: 1083_remove_dashboardlastvisited
 
 social_auth: 0003_social_auth_json_field
 
