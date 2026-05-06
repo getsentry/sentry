@@ -357,7 +357,6 @@ export function BaseChart({
   utc,
   yAxes,
   xAxes,
-  visualMap: _visualMap,
 
   style,
   ref,
