@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +16,7 @@ from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 @control_silo_endpoint
@@ -27,12 +30,17 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
-    def convert_args(self, request: Request, token_id, *args, **kwargs):
+    def convert_args(
+        self, request: Request, token_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
+        validated_token_id = to_valid_int_id("token_id", token_id, raise_404=True)
         try:
             kwargs["instance"] = OrgAuthToken.objects.get(
-                organization_id=organization.id, id=token_id, date_deactivated__isnull=True
+                organization_id=organization.id,
+                id=validated_token_id,
+                date_deactivated__isnull=True,
             )
         except OrgAuthToken.DoesNotExist:
             raise ResourceDoesNotExist

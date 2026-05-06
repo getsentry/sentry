@@ -54,6 +54,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _UNSET: Any = object()
+UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
 
 
 class NoSeerQuotaException(Exception):
@@ -204,6 +205,22 @@ def get_autofix_agent_client(
     )
 
 
+def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
+    group_id = state.metadata.get("group_id") if state.metadata else None
+    if group_id != group.id:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+
+def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> SeerRunState:
+    try:
+        state = client.get_run(run_id)
+    except ValueError:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+    _validate_run_belongs_to_group(state, group)
+    return state
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -238,6 +255,17 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
+    client = get_autofix_agent_client(
+        group,
+        intelligence_level=intelligence_level,
+        reasoning_effort=(
+            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
+        ),
+        enable_coding=config.enable_coding,
+    )
+    if run_id is not None:
+        _get_group_run_state(client, group, run_id)
+
     if config.started_event is not None:
         analytics.record(
             config.started_event(
@@ -247,14 +275,6 @@ def trigger_autofix_agent(
                 referrer=referrer.value,
             )
         )
-    client = get_autofix_agent_client(
-        group,
-        intelligence_level=intelligence_level,
-        reasoning_effort=(
-            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
-        ),
-        enable_coding=config.enable_coding,
-    )
 
     prompt = build_step_prompt(step, group, user_context)
     prompt_metadata = {
@@ -513,7 +533,7 @@ def trigger_coding_agent_handoff(
         }
 
     client = get_autofix_agent_client(group)
-    state = client.get_run(run_id)
+    state = _get_group_run_state(client, group, run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
@@ -593,14 +613,9 @@ def trigger_push_changes(
     client = get_autofix_agent_client(group)
 
     if state is None:
-        try:
-            state = client.get_run(run_id)
-        except ValueError:
-            raise SeerPermissionError("Unknown run id for group")
-
-    group_id = state.metadata.get("group_id") if state.metadata else None
-    if group_id != group.id:
-        raise SeerPermissionError("Unknown run id for group")
+        state = _get_group_run_state(client, group, run_id)
+    else:
+        _validate_run_belongs_to_group(state, group)
 
     analytics.record(
         AiAutofixPrCreatedStartedEvent(

@@ -56,7 +56,7 @@ export function PreprodBuildsTable({
     display === PreprodBuildsDisplay.DISTRIBUTION
       ? 'https://docs.sentry.io/product/build-distribution/'
       : display === PreprodBuildsDisplay.SNAPSHOT
-        ? 'https://docs.sentry.io/product/snapshot-testing/'
+        ? 'https://docs.sentry.io/product/snapshots/'
         : 'https://docs.sentry.io/product/size-analysis/';
 
   const hasMultiplePlatforms = useMemo(() => {

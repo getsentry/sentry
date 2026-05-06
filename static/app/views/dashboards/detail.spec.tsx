@@ -983,6 +983,33 @@ describe('Dashboards > Detail', () => {
       });
     });
 
+    it('closes full screen modal when releases drawer is opened from that view', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture(widgets, {id: '1', title: 'Custom Errors'}),
+      });
+
+      const {router} = render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/widget/0/',
+          route: DASHBOARD_WIDGET_ROUTE,
+          query: {...initialData.router.location.query, rd: 'show', rdRelease: '1.0.0'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/dashboard/1/');
+      });
+
+      // The releases drawer query param is preserved; widget viewer query fields are stripped
+      expect(router.location.query).toEqual(
+        expect.objectContaining({rd: 'show', rdRelease: '1.0.0'})
+      );
+      expect(openWidgetViewerModal).not.toHaveBeenCalled();
+    });
+
     it('can save dashboard filters in existing dashboard', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',

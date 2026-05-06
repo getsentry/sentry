@@ -1202,13 +1202,13 @@ function MultilineText({
   children: string;
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
-  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
   return (
     <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
+      <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
           <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (
@@ -1315,7 +1315,7 @@ function MultilineJSON({
   value: any;
   maxDefaultDepth?: number;
 }) {
-  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 

@@ -984,8 +984,10 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
                         "auth_identity_id": auth_identity.id,
                         "user_id": auth_identity.user_id,
                         "organization_id": self.organization.id,
+                        "ip_address": self.request.META.get("REMOTE_ADDR"),
                     },
                 )
+                auth.record_suspended_user_rejection("sso_finish")
                 return self.error(ERR_USER_SUSPENDED)
 
             try:

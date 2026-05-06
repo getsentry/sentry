@@ -91,7 +91,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 
-  const sizeRef = useRef<number>(size);
+  const sizeRef = useRef(size);
   sizeRef.current = size;
 
   const onMouseMove = useCallback(
