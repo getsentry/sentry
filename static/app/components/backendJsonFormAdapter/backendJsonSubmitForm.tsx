@@ -367,22 +367,16 @@ export function BackendJsonSubmitForm({
                           >
                             {field.required ? (
                               <fieldApi.SelectAsync
-                                value={
-                                  (fieldApi.state.value ?? null) as string | number | null
-                                }
-                                onChange={(value: string | number) => handleChange(value)}
+                                value={(fieldApi.state.value ?? null) as string | null}
+                                onChange={(value: string) => handleChange(value)}
                                 disabled={getDisabledProp(field)}
                                 queryOptions={asyncQueryOptions}
                               />
                             ) : (
                               <fieldApi.SelectAsync
                                 clearable
-                                value={
-                                  (fieldApi.state.value ?? null) as string | number | null
-                                }
-                                onChange={(value: string | number | null) =>
-                                  handleChange(value)
-                                }
+                                value={(fieldApi.state.value ?? null) as string | null}
+                                onChange={(value: string | null) => handleChange(value)}
                                 disabled={getDisabledProp(field)}
                                 queryOptions={asyncQueryOptions}
                               />

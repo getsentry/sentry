@@ -1,3 +1,5 @@
+import type {ComponentProps} from 'react';
+
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -96,13 +98,17 @@ export function SentryAppExternalIssueForm({
       <SentryAppExternalFormNew
         sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={appName}
-        config={config}
+        config={config as ComponentProps<typeof SentryAppExternalFormNew>['config']}
         action={action}
         element="issue-link"
         extraFields={{groupId: group.id}}
         extraRequestBody={{projectId: group.project.id}}
         onSubmitSuccess={handleSubmitSuccess}
-        getFieldDefault={getFieldDefault}
+        getFieldDefault={
+          getFieldDefault as ComponentProps<
+            typeof SentryAppExternalFormNew
+          >['getFieldDefault']
+        }
       />
     );
   }

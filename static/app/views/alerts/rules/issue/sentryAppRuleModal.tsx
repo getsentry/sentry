@@ -48,10 +48,18 @@ export function SentryAppRuleModal({
           <SentryAppExternalFormNew
             sentryAppInstallationUuid={sentryAppInstallationUuid}
             appName={appName}
-            config={formConfig}
+            config={
+              formConfig as React.ComponentProps<
+                typeof SentryAppExternalFormNew
+              >['config']
+            }
             element="alert-rule-action"
             action="create"
-            onSubmitSuccess={handleSubmitSuccess}
+            onSubmitSuccess={
+              handleSubmitSuccess as React.ComponentProps<
+                typeof SentryAppExternalFormNew
+              >['onSubmitSuccess']
+            }
             resetValues={{settings: resetValues?.settings}}
           />
         ) : (
