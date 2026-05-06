@@ -43,9 +43,7 @@ class InvoiceTokenGenerator:
         expiry = timestamp + (valid_days * 24 * 60 * 60)
 
         message = f"{invoice_id}:{int(expiry)}"
-        signature = hmac.new(
-            self.secret.encode(), message.encode(), hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(self.secret.encode(), message.encode(), hashlib.sha256).hexdigest()
 
         return f"{invoice_id}.{int(expiry)}.{signature}"
 
