@@ -124,7 +124,10 @@ class SentryAppParser(Serializer):
         help_text="Marks whether or not the custom integration can be used in an alert rule.",
     )
     overview = serializers.CharField(
-        required=False, allow_null=True, help_text="The custom integration's description."
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The custom integration's description.",
     )
     verifyInstall = serializers.BooleanField(
         required=False,
