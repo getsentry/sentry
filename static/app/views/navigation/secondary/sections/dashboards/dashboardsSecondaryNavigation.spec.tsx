@@ -12,9 +12,7 @@ describe('DashboardsSecondaryNavigation', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: [
-        'dashboards-prebuilt-insights-dashboards',
-      ],
+      features: ['dashboards-prebuilt-insights-dashboards'],
     });
 
     MockApiClient.addMockResponse({
