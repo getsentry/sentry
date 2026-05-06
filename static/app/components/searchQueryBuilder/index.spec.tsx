@@ -3447,6 +3447,22 @@ describe('SearchQueryBuilder', () => {
         expect(doesNotEndWithOption).toBeInTheDocument();
       });
 
+      it('default-string filters have wildcard operator options', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="custom_tag_name:hello" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {
+            name: 'Edit operator for filter: custom_tag_name',
+          })
+        );
+
+        expect(await screen.findByRole('option', {name: 'contains'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
+      });
+
       it('replaces the value for fields that do not allow multiple values', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="release.version:1.0.0" />
