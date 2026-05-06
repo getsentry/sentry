@@ -4096,7 +4096,7 @@ describe('SearchQueryBuilder', () => {
         expect(combobox).toHaveAttribute('placeholder', '$0.00');
       });
 
-      it('currency value suggestions include k/m/b shorthand', async () => {
+      it('currency value suggestions use currency defaults and include k/m/b shorthand', async () => {
         render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: cost'})
@@ -4107,10 +4107,33 @@ describe('SearchQueryBuilder', () => {
         await userEvent.clear(combobox);
 
         await waitFor(() => {
-          expect(screen.getByRole('option', {name: '$100k'})).toBeInTheDocument();
+          expect(screen.getByRole('option', {name: '$10'})).toBeInTheDocument();
         });
-        expect(screen.getByRole('option', {name: '$100m'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '$100b'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$50'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$100'})).toBeInTheDocument();
+
+        await userEvent.keyboard('7');
+
+        expect(await screen.findByRole('option', {name: '$7k'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$7m'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$7b'})).toBeInTheDocument();
+      });
+
+      it('currency value suggestions keep showing defaults for a default value', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>10" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: cost'})
+        );
+
+        expect(await screen.findByRole('option', {name: '$10'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$50'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '$100'})).toBeInTheDocument();
+        expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+          '$10',
+          '$50',
+          '$100',
+        ]);
+        expect(screen.queryByRole('option', {name: '$10k'})).not.toBeInTheDocument();
       });
     });
 

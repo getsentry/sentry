@@ -43,6 +43,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueComboboxContext';
 import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
+import {shouldUseDefaultNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
 import type {
   SuggestionItem,
   SuggestionSection,
@@ -362,6 +363,7 @@ function useFilterSuggestions({
   const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
   const key = filterKeys[keyName];
   const fieldDefinition = getFieldDefinition(keyName);
+  const valueType = getFilterValueType(token, fieldDefinition);
   const predefinedValues = useMemo(
     () =>
       getPredefinedValues({
@@ -377,6 +379,10 @@ function useFilterSuggestions({
   // every key loaded. So we should try to fetch values for it even if it
   // doesn't exist in the list of available keys.
   const shouldFetchValues = key ? !key.predefined && predefinedValues === null : true;
+  const shouldUseDefaultSuggestionOrder = shouldUseDefaultNumericSuggestions(
+    filterValue,
+    valueType
+  );
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,
@@ -469,9 +475,18 @@ function useFilterSuggestions({
 
     return groups.map(group => ({
       ...group,
-      suggestions: sortSuggestionsByFzf(group.suggestions, filterValue),
+      suggestions: shouldUseDefaultSuggestionOrder
+        ? group.suggestions
+        : sortSuggestionsByFzf(group.suggestions, filterValue),
     }));
-  }, [data, predefinedValues, shouldFetchValues, key?.key, filterValue]);
+  }, [
+    data,
+    predefinedValues,
+    shouldFetchValues,
+    key?.key,
+    filterValue,
+    shouldUseDefaultSuggestionOrder,
+  ]);
 
   const suggestionSectionItems = useFrozenSuggestionSectionItems({
     createItem,
@@ -1045,6 +1060,9 @@ export function SearchQueryBuilderValueCombobox({
             maxOptions={50}
             openOnFocus
             customMenu={customMenu}
+            shouldFilterResults={
+              !shouldUseDefaultNumericSuggestions(filterValue, valueType)
+            }
             shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
           >
             {suggestionSectionItems.map(section => (

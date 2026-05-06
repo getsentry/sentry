@@ -4,6 +4,7 @@ import {FieldValueType} from 'sentry/utils/fields';
 const NUMERIC_REGEX = /^-?\d+(\.\d+)?$/;
 const NUMERIC_UNITS = ['k', 'm', 'b'] as const;
 const DEFAULT_NUMERIC_VALUES = ['100', '100k', '100m', '100b'] as const;
+const DEFAULT_CURRENCY_VALUES = ['10', '50', '100'] as const;
 
 function isNumeric(value: string) {
   return NUMERIC_REGEX.test(value);
@@ -13,15 +14,37 @@ function labelForValue(value: string, valueType?: FieldValueType) {
   return valueType === FieldValueType.CURRENCY ? `$${value}` : undefined;
 }
 
+function getDefaultValues(valueType?: FieldValueType) {
+  return valueType === FieldValueType.CURRENCY
+    ? DEFAULT_CURRENCY_VALUES
+    : DEFAULT_NUMERIC_VALUES;
+}
+
+export function shouldUseDefaultNumericSuggestions(
+  inputValue: string,
+  valueType?: FieldValueType
+) {
+  if (!inputValue) {
+    return true;
+  }
+
+  return (
+    valueType === FieldValueType.CURRENCY &&
+    DEFAULT_CURRENCY_VALUES.includes(
+      inputValue as (typeof DEFAULT_CURRENCY_VALUES)[number]
+    )
+  );
+}
+
 export function getNumericSuggestions(
   inputValue: string,
   valueType?: FieldValueType
 ): SuggestionSection[] {
-  if (!inputValue) {
+  if (shouldUseDefaultNumericSuggestions(inputValue, valueType)) {
     return [
       {
         sectionText: '',
-        suggestions: DEFAULT_NUMERIC_VALUES.map(value => ({
+        suggestions: getDefaultValues(valueType).map(value => ({
           value,
           label: labelForValue(value, valueType),
         })),
