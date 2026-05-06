@@ -27,9 +27,13 @@ import {getDefaultForField, getDisabledProp, transformChoices} from './utils';
 const API_CLIENT = new Client({baseUrl: '', headers: {}});
 
 type AsyncSelectQueryOptions = UseQueryOptions<
-  any,
+  Array<SelectValue<string>>,
   Error,
-  ReadonlyArray<SelectValue<string>>,
+  Array<SelectValue<string>>,
+  // The queryKey shape is dynamic across consumers (URL-based default vs.
+  // customAsyncQueryOptions). TanStack's TQueryKey is contravariant inside
+  // `enabled`, so anything narrower than `any` here breaks variance with
+  // factories that build literal-tuple query keys.
   any
 >;
 

@@ -47,7 +47,8 @@ export function SentryAppExternalIssueForm({
 
   const useNewForm = organization.features.includes('sentry-app-schema-form-migration');
 
-  const handleSubmitSuccess = (issue: PlatformExternalIssue) => {
+  const handleSubmitSuccess = (response: unknown) => {
+    const issue = response as PlatformExternalIssue;
     onCreateExternalIssue(issue);
     onSubmitSuccess(issue);
   };

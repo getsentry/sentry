@@ -57,14 +57,14 @@ type SentryAppSetting = {
 };
 
 type OnSubmitSuccess = (
-  response: any,
+  response: unknown,
   instance?: unknown,
   id?: string,
   change?: {new: unknown; old: unknown}
 ) => void;
 
 type ResetValues = {
-  [key: string]: any;
+  [key: string]: unknown;
   settings?: SentryAppSetting[];
 };
 
