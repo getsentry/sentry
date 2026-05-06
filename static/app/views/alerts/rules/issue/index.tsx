@@ -436,7 +436,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           success: true,
         });
       })
-      .catch(error => {
+      .catch((error: any) => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
         this.setState({detailedError: error.responseJSON || null});
         trackAnalytics('edit_alert_rule.notification_test', {

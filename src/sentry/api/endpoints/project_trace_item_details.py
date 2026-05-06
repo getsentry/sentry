@@ -30,6 +30,7 @@ from sentry.search.eap.types import (
 )
 from sentry.search.eap.utils import (
     can_expose_attribute,
+    get_deprecated_source_internal_names,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_search_type_for_internal_column,
@@ -112,6 +113,7 @@ def convert_rpc_attribute_to_json(
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     seen_sentry_conventions: set[str] = set()
+    all_internal_names = {attr["name"] for attr in attributes}
 
     for attribute in attributes:
         internal_name = attribute["name"]
@@ -174,7 +176,11 @@ def convert_rpc_attribute_to_json(
             if external_name and is_sentry_convention_replacement_attribute(
                 external_name, trace_item_type
             ):
-                continue
+                deprecated_names = get_deprecated_source_internal_names(
+                    external_name, trace_item_type
+                )
+                if not deprecated_names.isdisjoint(all_internal_names):
+                    continue
 
         if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith("sentry."):
             internal_name = internal_name.replace("sentry.", "", count=1)

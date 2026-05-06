@@ -7,6 +7,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';
 
 import type {
@@ -54,9 +55,13 @@ class MigrateLegacySeerAction extends Component<Props, State> {
         addSuccessMessage('Legacy Seer migration complete.');
       })
       .catch(res => {
-        addErrorMessage(
-          res.responseJSON?.detail ?? res.responseText ?? 'Migration failed.'
-        );
+        if (res instanceof RequestError && typeof res.responseJSON?.detail === 'string') {
+          addErrorMessage(res.responseJSON.detail);
+        } else if (res instanceof RequestError && res.responseText) {
+          addErrorMessage(res.responseText);
+        } else {
+          addErrorMessage('Migration failed.');
+        }
       });
   };
 

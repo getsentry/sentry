@@ -6,6 +6,7 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type KeyTransaction = {
   project_id: string;
@@ -96,13 +97,17 @@ export function toggleKeyTransaction(
   promise.then(clearIndicators);
 
   promise.catch(response => {
-    const responseJSON = response?.responseJSON;
-    const errorDetails = responseJSON?.detail ?? responseJSON?.non_field_errors;
+    if (response instanceof RequestError) {
+      const responseJSON = response?.responseJSON;
+      const errorDetails = responseJSON?.detail ?? responseJSON?.non_field_errors;
 
-    if (Array.isArray(errorDetails) && errorDetails.length && errorDetails[0]) {
-      addErrorMessage(errorDetails[0]);
-    } else {
-      addErrorMessage(errorDetails ?? t('Unable to update key transaction'));
+      if (Array.isArray(errorDetails) && errorDetails.length && errorDetails[0]) {
+        addErrorMessage(errorDetails[0]);
+      } else if (typeof errorDetails === 'string') {
+        addErrorMessage(errorDetails);
+      } else {
+        addErrorMessage(t('Unable to update key transaction'));
+      }
     }
   });
 
