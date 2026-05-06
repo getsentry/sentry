@@ -273,7 +273,7 @@ const appConfig: Configuration = {
   incremental: DEV_MODE,
   experiments: {
     futureDefaults: true,
-    // https://rspack.dev/config/experiments#experimentsnativewatcher
+    // https://rspack.rs/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
   },
