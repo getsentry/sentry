@@ -41,6 +41,7 @@ from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
+from sentry.web.frontend.invoice_pdf import InvoicePdfView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
@@ -1242,6 +1243,12 @@ urlpatterns += [
         r"^_chartcuterie-config\.js$",
         serve_chartcuterie_config,
         name="sentry-chartcuterie-config",
+    ),
+    # Invoice PDF (unauthenticated access via token)
+    re_path(
+        r"^invoices/pdf/(?P<invoice_id>[^/]+)/$",
+        InvoicePdfView.as_view(),
+        name="sentry-invoice-pdf",
     ),
     # Generic
     re_path(
