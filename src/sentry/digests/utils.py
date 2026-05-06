@@ -133,7 +133,8 @@ def build_custom_digest(
     legacy_to_digest_id: dict[int, int] = {}
     for rule in original_digest:
         all_rule_ids.add(rule.id)
-        legacy_id = rule.data.get("actions", [{}])[0].get("legacy_rule_id")
+        actions = rule.data.get("actions") or []
+        legacy_id = actions[0].get("legacy_rule_id") if actions else None
         if legacy_id is not None:
             all_rule_ids.add(int(legacy_id))
             legacy_to_digest_id[int(legacy_id)] = rule.id
