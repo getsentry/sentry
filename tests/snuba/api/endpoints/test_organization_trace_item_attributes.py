@@ -5,9 +5,13 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesResponse,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.api.endpoints.organization_trace_item_attributes import (
+    OrganizationTraceItemAttributesEndpoint,
     TraceItemAttributeKey,
 )
 from sentry.exceptions import InvalidSearchQuery
@@ -52,6 +56,58 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
             return self.client.get(url, query, format="json", **kwargs)
+
+
+def test_serialize_trace_attributes_includes_replacement_attributes() -> None:
+    endpoint = OrganizationTraceItemAttributesEndpoint()
+    rpc_response = TraceItemAttributeNamesResponse(
+        attributes=[TraceItemAttributeNamesResponse.Attribute(name="sentry.segment.name")]
+    )
+
+    attributes = endpoint.serialize_trace_attributes(
+        rpc_response,
+        "string",
+        SupportedTraceItemType.SPANS,
+        False,
+        "",
+        [],
+        [],
+    )
+
+    assert len(attributes) == 1
+    assert attributes[0]["key"] == "sentry.segment.name"
+    assert attributes[0]["name"] == "sentry.segment.name"
+    assert attributes[0]["attributeType"] == "string"
+
+
+def test_serialize_trace_attributes_filters_replacements_by_name() -> None:
+    endpoint = OrganizationTraceItemAttributesEndpoint()
+    rpc_response = TraceItemAttributeNamesResponse(
+        attributes=[TraceItemAttributeNamesResponse.Attribute(name="sentry.segment.name")]
+    )
+
+    matching_attributes = endpoint.serialize_trace_attributes(
+        rpc_response,
+        "string",
+        SupportedTraceItemType.SPANS,
+        False,
+        "segment",
+        [],
+        [],
+    )
+    nonmatching_attributes = endpoint.serialize_trace_attributes(
+        rpc_response,
+        "string",
+        SupportedTraceItemType.SPANS,
+        False,
+        "transaction",
+        [],
+        [],
+    )
+
+    assert len(matching_attributes) == 1
+    assert matching_attributes[0]["key"] == "sentry.segment.name"
+    assert nonmatching_attributes == []
 
 
 class OrganizationTraceItemAttributesEndpointLogsTest(

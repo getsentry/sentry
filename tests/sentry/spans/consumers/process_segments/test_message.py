@@ -271,9 +271,55 @@ class TestSpansTask(TestCase):
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_agent_monitoring"]
 
-    def test_segment_name_propagation(self) -> None:
+    def test_segment_name_propagation_prefers_segment_name_attribute(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         segment_span["name"] = "my segment name"
+        segment_span["description"] = "my segment description"
+        segment_span["attributes"]["sentry.segment.name"] = {
+            "type": "string",
+            "value": "my segment attribute",
+        }
+
+        processed_spans = process_segment([child_span, segment_span])
+
+        assert len(processed_spans) == 2
+        child_span, segment_span = processed_spans
+        segment_attributes = segment_span["attributes"] or {}
+        assert segment_attributes["sentry.segment.name"] == {
+            "type": "string",
+            "value": "my segment attribute",
+        }
+        child_attributes = child_span["attributes"] or {}
+        assert child_attributes["sentry.segment.name"] == {
+            "type": "string",
+            "value": "my segment attribute",
+        }
+
+    def test_segment_name_propagation_falls_back_to_description(self) -> None:
+        child_span, segment_span = self.generate_basic_spans()
+        segment_span["name"] = "my segment name"
+        segment_span["description"] = "my segment description"
+        del segment_span["attributes"]["sentry.transaction"]
+
+        processed_spans = process_segment([child_span, segment_span])
+
+        assert len(processed_spans) == 2
+        child_span, segment_span = processed_spans
+        segment_attributes = segment_span["attributes"] or {}
+        assert segment_attributes["sentry.segment.name"] == {
+            "type": "string",
+            "value": "my segment description",
+        }
+        child_attributes = child_span["attributes"] or {}
+        assert child_attributes["sentry.segment.name"] == {
+            "type": "string",
+            "value": "my segment description",
+        }
+
+    def test_segment_name_propagation_falls_back_to_name(self) -> None:
+        child_span, segment_span = self.generate_basic_spans()
+        segment_span["name"] = "my segment name"
+        del segment_span["attributes"]["sentry.transaction"]
 
         processed_spans = process_segment([child_span, segment_span])
 
@@ -290,9 +336,10 @@ class TestSpansTask(TestCase):
             "value": "my segment name",
         }
 
-    def test_segment_name_propagation_when_name_missing(self) -> None:
+    def test_segment_name_propagation_when_source_missing(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         del segment_span["name"]
+        del segment_span["attributes"]["sentry.transaction"]
 
         processed_spans = process_segment([child_span, segment_span])
 
