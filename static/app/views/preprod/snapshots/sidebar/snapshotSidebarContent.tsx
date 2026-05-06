@@ -12,8 +12,8 @@ import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SidebarGroup {
   count: number;
+  displayName: string;
   key: string;
-  name: string;
 }
 
 export interface SidebarSection {
@@ -184,7 +184,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
                     ellipsis
                     onPointerEnter={setTitleOnOverflow}
                   >
-                    {group.name}
+                    {group.displayName}
                   </Text>
                 </Flex>
                 <CountBadge>

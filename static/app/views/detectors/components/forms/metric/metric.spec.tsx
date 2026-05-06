@@ -143,6 +143,36 @@ describe('NewMetricDetectorForm', () => {
     expect(within(preview).getByText('FB')).toBeInTheDocument();
   });
 
+  it('clears medium threshold error when high threshold is updated', async () => {
+    render(
+      <DetectorFormProvider detectorType="metric_issue">
+        <NewMetricDetectorForm />
+      </DetectorFormProvider>,
+      {organization}
+    );
+
+    const highThreshold = await screen.findByRole('spinbutton', {
+      name: 'High threshold',
+    });
+    const mediumThreshold = screen.getByRole('spinbutton', {
+      name: 'Medium threshold',
+    });
+
+    // Set medium higher than high (invalid for "above" condition)
+    await userEvent.type(highThreshold, '50');
+    await userEvent.type(mediumThreshold, '100');
+
+    expect(
+      screen.getByText('Medium threshold must be lower than high threshold (50)')
+    ).toBeInTheDocument();
+
+    // Update high threshold to be above medium — error should clear
+    await userEvent.clear(highThreshold);
+    await userEvent.type(highThreshold, '200');
+
+    expect(screen.queryByText(/Medium threshold must be/)).not.toBeInTheDocument();
+  });
+
   it('removes is filters when switching away from the errors dataset', async () => {
     render(
       <DetectorFormProvider detectorType="metric_issue">

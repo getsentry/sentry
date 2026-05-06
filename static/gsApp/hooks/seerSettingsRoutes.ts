@@ -8,59 +8,67 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
   component: make(() => import('getsentry/views/seerAutomation/index')),
   children: [
     {
+      // If legacy or seat-based is active, redirects to /seer/
       path: 'trial/',
       component: make(() => import('getsentry/views/seerAutomation/trial')),
     },
     {
-      index: true,
-      name: t('Overview'),
-      component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
-    },
-    {
-      path: 'scm/',
-      name: t('Repositories'),
-      component: make(() => import('getsentry/views/seerAutomation/scm')),
-    },
-    {
-      path: 'projects/',
-      name: t('Autofix'),
-      component: make(() => import('getsentry/views/seerAutomation/projects')),
-      children: [
-        {
-          path: 'defaults/',
-          name: t('Defaults'),
-          component: make(() => import('getsentry/views/seerAutomation/projectDefaults')),
-        },
-      ],
-    },
-    {
-      path: 'repos/',
-      name: t('Code Review'),
-      component: make(() => import('getsentry/views/seerAutomation/repos')),
-      children: [
-        {
-          path: ':repoId/',
-          name: t('Repository Details'),
-          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
-        },
-        {
-          path: 'defaults/',
-          name: t('Defaults'),
-          component: make(() => import('getsentry/views/seerAutomation/repoDefaults')),
-        },
-      ],
-    },
-    {
-      path: 'advanced/',
-      name: t('Advanced Settings'),
-      component: make(() => import('getsentry/views/seerAutomation/advanced')),
-    },
-    {
+      // Legacy onboarding, seat-based redirects to /seer/
       path: 'onboarding/',
       name: t('Setup Wizard'),
       component: make(
         () => import('getsentry/views/seerAutomation/onboarding/onboarding')
       ),
+    },
+    {
+      // Legacy autofix page, redirects to /seer/projects/ if seat-based is active
+      index: true,
+      name: t('Seer Automation'),
+      component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
+    },
+    {
+      // Legacy orgs will skip this check
+      component: make(() => import('getsentry/views/seerAutomation/scmRequired')),
+      children: [
+        {
+          path: 'projects/',
+          name: t('Autofix'),
+          component: make(() => import('getsentry/views/seerAutomation/projects')),
+          children: [
+            {
+              path: 'defaults/',
+              name: t('Defaults'),
+              component: make(
+                () => import('getsentry/views/seerAutomation/projectDefaults')
+              ),
+            },
+          ],
+        },
+        {
+          path: 'repos/',
+          name: t('Code Review'),
+          component: make(() => import('getsentry/views/seerAutomation/repos')),
+          children: [
+            {
+              path: ':repoId/',
+              name: t('Repository Details'),
+              component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
+            },
+            {
+              path: 'defaults/',
+              name: t('Defaults'),
+              component: make(
+                () => import('getsentry/views/seerAutomation/repoDefaults')
+              ),
+            },
+          ],
+        },
+        {
+          path: 'advanced/',
+          name: t('Advanced Settings'),
+          component: make(() => import('getsentry/views/seerAutomation/advanced')),
+        },
+      ],
     },
   ],
 });

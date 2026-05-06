@@ -114,19 +114,17 @@ def _should_stop_fetching_more_fragments(
     starting_pos: int,
 ) -> bool:
     """True when this activation should flush the chunk: no rows, size cap, or trace pagination end."""
-    if not rows:
-        return True
-    partial_batch = len(rows) < batch_size
-    partial_full_trace_batch = (
-        isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None
-    )
-    if partial_batch and not partial_full_trace_batch:
-        return True
     if tf.tell() - starting_pos >= MAX_BATCH_SIZE:
         return True
-    if isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is None:
-        return True
-    return False
+
+    if isinstance(processor, TraceItemFullExportProcessor):
+        if processor.page_token is None:
+            return True
+        return False
+    else:
+        if not rows or len(rows) < batch_size:
+            return True
+        return False
 
 
 def export_chunk_to_stored_blobs(
@@ -141,47 +139,50 @@ def export_chunk_to_stored_blobs(
     batch_size: int = SNUBA_MAX_RESULTS,
 ) -> AssembleChunkResult:
     """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
-    output_mode = OutputMode.from_value(data_export.export_format)
-    processor = get_processor(
-        data_export,
-        environment_id,
-        output_mode,
-        page_token_b64=page_token,
-    )
-
-    with tempfile.TemporaryFile(mode="w+b") as tf:
-        writer = FileWriter(
-            buffer=tf,
-            output_mode=output_mode,
-            csv_headers=processor.header_fields,
-            escapechar="\\",
-            extrasaction="ignore",
+    with sentry_sdk.start_span(op="export.chunk", name=f"offset={offset}"):
+        output_mode = OutputMode.from_value(data_export.export_format)
+        processor = get_processor(
+            data_export,
+            environment_id,
+            output_mode,
+            page_token_b64=page_token,
         )
-        if first_page:
-            writer.writeheader()
 
-        starting_pos = tf.tell()
-        fragment_offset = 0
-        next_offset = offset + fragment_offset
-        rows: list[dict[str, Any]] = []
+        with tempfile.TemporaryFile(mode="w+b") as tf:
+            writer = FileWriter(
+                buffer=tf,
+                output_mode=output_mode,
+                csv_headers=processor.header_fields,
+                escapechar="\\",
+                extrasaction="ignore",
+            )
+            if first_page:
+                writer.writeheader()
 
-        for _ in range(MAX_FRAGMENTS_PER_BATCH):
-            remaining = export_limit - next_offset
-            if remaining <= 0:
-                break
-            fragment_row_count = min(batch_size, remaining)
-            rows = process_rows(processor, data_export, fragment_row_count, next_offset)
-            writer.writerows(rows)
-
-            fragment_offset += len(rows)
+            starting_pos = tf.tell()
+            fragment_offset = 0
             next_offset = offset + fragment_offset
+            rows: list[dict[str, Any]] = []
 
-            if _should_stop_fetching_more_fragments(processor, rows, batch_size, tf, starting_pos):
-                break
+            for _ in range(MAX_FRAGMENTS_PER_BATCH):
+                remaining = export_limit - next_offset
+                if remaining <= 0:
+                    break
+                fragment_row_count = min(batch_size, remaining)
+                rows = process_rows(processor, data_export, fragment_row_count, next_offset)
+                writer.writerows(rows)
 
-        tf.seek(0)
-        new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
-        bytes_written_after_chunk = bytes_written + new_bytes_written
+                fragment_offset += len(rows)
+                next_offset = offset + fragment_offset
+
+                if _should_stop_fetching_more_fragments(
+                    processor, rows, batch_size, tf, starting_pos
+                ):
+                    break
+
+            tf.seek(0)
+            new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
+            bytes_written_after_chunk = bytes_written + new_bytes_written
 
     return AssembleChunkResult(
         processor=processor,
@@ -298,7 +299,7 @@ def assemble_download(
     # The API response to export the data contains the ID which you can use
     # to filter the GCP logs
     extra: dict[str, Any] = {"data_export_id": data_export_id}
-    with sentry_sdk.start_span(op="assemble"):
+    with sentry_sdk.start_span(op="assemble", name="Async Export Data"):
         first_page = offset == 0
         data_export = _fetch_exported_data_req_obj(data_export_id, first_page, extra)
         if data_export is None:
@@ -391,29 +392,44 @@ def export_data_to_stored_blobs_sync(
     }
     sentry_sdk.set_tag("download_type", "sync")
     sentry_sdk.set_context("data_export", extra)
-
-    try:
-        export_chunk_to_stored_blobs(
-            data_export=data_export,
-            export_limit=export_limit,
-            environment_id=environment_id,
-        )
-        merge_export_blobs(data_export_id=data_export.id, email_notif=False)
-    except Exception as error:
+    _set_data_on_scope(data_export)
+    with sentry_sdk.start_span(op="assemble", name="Sync Export Data"):
+        logger.info("dataexport.start", extra=extra)
         metrics.incr(
-            "dataexport.error",
-            tags={
-                **_export_metric_tags(data_export),
-                "error": str(error),
-                "download_type": "sync",
-                "error_type": "ExportError"
-                if isinstance(error, ExportError)
-                else type(error).__name__,
-            },
+            "dataexport.start",
+            tags={**_export_metric_tags(data_export), "success": True},
             sample_rate=1.0,
         )
-        logger.exception("export_data_sync", extra=extra)
-        raise
+        try:
+            chunk = export_chunk_to_stored_blobs(
+                data_export=data_export,
+                export_limit=export_limit,
+                environment_id=environment_id,
+            )
+            metrics.distribution("dataexport.row_count", chunk.next_offset, sample_rate=1.0)
+            metrics.distribution(
+                "dataexport.file_size",
+                chunk.bytes_written_after_chunk,
+                sample_rate=1.0,
+                unit="byte",
+            )
+            merge_export_blobs(data_export_id=data_export.id, email_notif=False)
+
+        except Exception as error:
+            metrics.incr(
+                "dataexport.error",
+                tags={
+                    **_export_metric_tags(data_export),
+                    "error": str(error),
+                    "download_type": "sync",
+                    "error_type": "ExportError"
+                    if isinstance(error, ExportError)
+                    else type(error).__name__,
+                },
+                sample_rate=1.0,
+            )
+            logger.exception("export_data_sync", extra=extra)
+            raise
 
 
 def get_processor(
@@ -640,7 +656,11 @@ def merge_export_blobs(data_export_id: int, *, email_notif: bool = True, **kwarg
                 message = "Failed to save the assembled file."
             else:
                 message = "Internal processing failure."
-            return data_export.email_failure(message=message)
+            data_export.email_failure(message=message)
+
+            if not email_notif:
+                # sync mode; propogate the error upwards
+                raise
 
 
 def _set_data_on_scope(data_export: ExportedData) -> None:

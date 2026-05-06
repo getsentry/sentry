@@ -753,7 +753,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
     // With auto refresh enabled, virtual streaming should be active
     // All data should be visible initially since all the mocked timestamps are well behind `now()`
-    expect(result.current.data).toHaveLength(3);
+    await waitFor(() => {
+      expect(result.current.data).toHaveLength(3);
+    });
   });
 
   it('should not apply virtual streaming when auto refresh is disabled', async () => {
@@ -836,7 +838,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       expect(result.current.isPending).toBe(false);
     });
 
-    expect(result.current.data).toHaveLength(3);
+    await waitFor(() => {
+      expect(result.current.data).toHaveLength(3);
+    });
     expect(initialMock).toHaveBeenCalled();
 
     // Fetch next page

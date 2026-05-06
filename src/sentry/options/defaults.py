@@ -690,6 +690,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for fetching projects in the endpoints.
+register(
+    "relay.endpoint-fetch-config.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
@@ -3648,22 +3656,6 @@ register(
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
     "workflow_engine.max_more_workflows_per_org",
-    type=Int,
-    default=10000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Tuning knobs for the periodic open-period-activity cleanup task.
-# time_limit is a wall-clock budget checked *between* batches, so a single
-# batch that exceeds it will still run to completion. Setting it to 0
-# prevents any batches from running.
-register(
-    "workflow_engine.open_period_activity_cleanup.time_limit_seconds",
-    type=Float,
-    default=5.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "workflow_engine.open_period_activity_cleanup.batch_size",
     type=Int,
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

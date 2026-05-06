@@ -7,14 +7,10 @@ import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import (
     Case,
-    Count,
     Exists,
-    F,
     IntegerField,
     OrderBy,
     OuterRef,
-    Q,
-    Subquery,
     Value,
     When,
 )
@@ -49,7 +45,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -463,28 +459,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            if features.has(
-                "organizations:dashboards-starred-reordering", organization, actor=request.user
-            ):
-                dashboards = dashboards.annotate(
-                    user_last_visited=Subquery(
-                        DashboardLastVisited.objects.filter(
-                            dashboard=OuterRef("pk"),
-                            member__user_id=request.user.id,
-                            member__organization=organization,
-                        ).values("last_visited")
-                    )
-                )
-                order_by = [
-                    (
-                        F("user_last_visited").asc(nulls_last=True)
-                        if desc
-                        else F("user_last_visited").desc(nulls_last=True)
-                    ),
-                    "-date_added",
-                ]
-            else:
-                order_by = ["last_visited" if desc else "-last_visited"]
+            order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
             user_name_dict = {
@@ -523,21 +498,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default=1),
                 "-last_visited",
-            ]
-
-        elif sort_by == "mostFavorited" and features.has(
-            "organizations:dashboards-starred-reordering", organization, actor=request.user
-        ):
-            dashboards = dashboards.annotate(
-                favorites_count=Count(
-                    "dashboardfavoriteuser",
-                    filter=Q(dashboardfavoriteuser__favorited=True),
-                    distinct=True,
-                )
-            )
-            order_by = [
-                "favorites_count" if desc else "-favorites_count",
-                "-date_added",
             ]
 
         else:
@@ -640,21 +600,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     )
 
                 dashboard = serializer.save()
-
-                if features.has(
-                    "organizations:dashboards-starred-reordering",
-                    organization,
-                    actor=request.user,
-                ):
-                    if serializer.validated_data.get("is_favorited"):
-                        try:
-                            DashboardFavoriteUser.objects.insert_favorite_dashboard(
-                                organization=organization,
-                                user_id=request.user.id,
-                                dashboard=dashboard,
-                            )
-                        except Exception as e:
-                            sentry_sdk.capture_exception(e)
 
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:

@@ -136,13 +136,13 @@ export function isSentryApp(
 export function isPlugin(
   integration: AppOrProviderOrPlugin
 ): integration is PluginWithProjectList {
-  return integration.hasOwnProperty('shortName');
+  return Object.hasOwn(integration, 'shortName');
 }
 
 export function isDocIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocIntegration {
-  return integration.hasOwnProperty('isDraft');
+  return Object.hasOwn(integration, 'isDraft');
 }
 
 /**
@@ -166,7 +166,7 @@ export function isScmPlugin(plugin: PluginNoProject): boolean {
 export function isExternalActorMapping(
   mapping: ExternalActorMappingOrSuggestion
 ): mapping is ExternalActorMapping {
-  return mapping.hasOwnProperty('id');
+  return Object.hasOwn(mapping, 'id');
 }
 
 export const getIntegrationType = (

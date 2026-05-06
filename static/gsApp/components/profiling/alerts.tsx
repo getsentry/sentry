@@ -1,21 +1,17 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getProfileDurationCategoryForPlatform} from 'sentry/utils/profiling/platforms';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -271,52 +267,6 @@ export const ProfilingBetaAlertBanner = withSubscription(
   {noLoader: true}
 );
 
-export function ContinuousProfilingBetaSDKAlertBanner() {
-  const sdkDeprecationResults = useSDKDeprecations();
-
-  const sdkDeprecations = useMemo(() => {
-    const sdks = new Map<string, SDKDeprecation>();
-
-    for (const sdk of sdkDeprecationResults.data?.data ?? []) {
-      const key = `${sdk.sdkName}:${sdk.sdkVersion}`;
-      sdks.set(key, sdk);
-    }
-
-    return sdks;
-  }, [sdkDeprecationResults.data?.data]);
-
-  if (sdkDeprecations.size <= 0) {
-    return null;
-  }
-
-  return (
-    <Alert.Container>
-      <Alert system variant="warning">
-        {tct(
-          '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
-          {
-            bold: <b />,
-          }
-        )}
-        <SDKDeprecationsContainer>
-          {sdkDeprecations.values().map(sdk => {
-            const key = `${sdk.projectId}-${sdk.sdkName}-${sdk.sdkVersion}`;
-            return (
-              <Flex as="li" align="baseline" key={key}>
-                <Dot />
-                {tct('[name] minimum version [version]', {
-                  name: <code>{sdk.sdkName}</code>,
-                  version: <code>{sdk.minimumVersion}</code>,
-                })}
-              </Flex>
-            );
-          })}
-        </SDKDeprecationsContainer>
-      </Alert>
-    </Alert.Container>
-  );
-}
-
 interface ContinuousProfilingBillingRequirementBanner {
   project: Project;
 }
@@ -535,49 +485,6 @@ function OnDemandOrPaygBanner({
     </Alert>
   );
 }
-
-interface SDKDeprecation {
-  minimumVersion: string;
-  projectId: string;
-  sdkName: string;
-  sdkVersion: string;
-}
-
-function useSDKDeprecations() {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const path = getApiUrl('/organizations/$organizationIdOrSlug/sdk-deprecations/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
-  const options = {
-    query: {
-      project: selection.projects,
-      event_type: 'profile',
-    },
-  };
-
-  return useApiQuery<{data: SDKDeprecation[]}>([path, options], {
-    staleTime: 0,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: false,
-  });
-}
-
-const SDKDeprecationsContainer = styled('ul')`
-  margin: 0;
-`;
-
-const Dot = styled('span')`
-  display: inline-block;
-  margin-right: ${p => p.theme.space.md};
-  border-radius: ${p => p.theme.radius.md};
-  width: ${p => p.theme.space.xs};
-  height: ${p => p.theme.space.xs};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background-color: ${p => p.theme.tokens.content.primary};
-`;
 
 const AlertBody = styled('div')`
   margin-bottom: ${p => p.theme.space.md};

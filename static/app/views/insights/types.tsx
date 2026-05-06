@@ -144,20 +144,31 @@ export enum SpanFields {
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
   // Mobile fields
+  DEVICE_CLASS = 'device.class',
+  DEVICE_MODEL = 'device.model',
+  DEVICE_MANUFACTURER = 'device.manufacturer',
+  APP_VITALS_START_COLD_VALUE = 'app.vitals.start.cold.value',
+  APP_VITALS_START_WARM_VALUE = 'app.vitals.start.warm.value',
+  APP_VITALS_START_TYPE = 'app.vitals.start.type',
+  APP_VITALS_TTID_VALUE = 'app.vitals.ttid.value',
+  APP_VITALS_TTFD_VALUE = 'app.vitals.ttfd.value',
+  APP_VITALS_FRAMES_SLOW_COUNT = 'app.vitals.frames.slow.count',
+  APP_VITALS_FRAMES_FROZEN_COUNT = 'app.vitals.frames.frozen.count',
+  APP_VITALS_FRAMES_TOTAL_COUNT = 'app.vitals.frames.total.count',
+  APP_VITALS_FRAMES_DELAY_VALUE = 'app.vitals.frames.delay.value',
+
+  // Mobile fields (deprecated, prefer app.vitals.* equivalents)
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
   MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
-  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
-  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
-  DEVICE_CLASS = 'device.class',
-  DEVICE_MODEL = 'device.model',
-  DEVICE_MANUFACTURER = 'device.manufacturer',
   APP_START_COLD = 'measurements.app_start_cold',
   APP_START_WARM = 'measurements.app_start_warm',
   MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
   APP_START_TYPE = 'app_start_type',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
   TTID = 'sentry.ttid',
   TTFD = 'sentry.ttfd',
 
@@ -217,6 +228,14 @@ type SpanNumberFields =
   | SpanFields.HTTP_RESPONSE_TRANSFER_SIZE
   | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanFields.CACHE_ITEM_SIZE
+  | SpanFields.APP_VITALS_START_COLD_VALUE
+  | SpanFields.APP_VITALS_START_WARM_VALUE
+  | SpanFields.APP_VITALS_TTID_VALUE
+  | SpanFields.APP_VITALS_TTFD_VALUE
+  | SpanFields.APP_VITALS_FRAMES_SLOW_COUNT
+  | SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT
+  | SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT
+  | SpanFields.APP_VITALS_FRAMES_DELAY_VALUE
   | SpanFields.MOBILE_FRAMES_DELAY
   | SpanFields.MOBILE_FROZEN_FRAMES
   | SpanFields.MOBILE_TOTAL_FRAMES
@@ -327,6 +346,7 @@ type NonNullableStringFields =
   | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
   | SpanFields.MESSAGING_MESSAGE_ID
   | SpanFields.TRACE_STATUS
+  | SpanFields.APP_VITALS_START_TYPE
   | SpanFields.APP_START_TYPE
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP

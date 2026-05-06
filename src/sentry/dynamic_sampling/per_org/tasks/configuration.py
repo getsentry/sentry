@@ -16,11 +16,16 @@ TargetSampleRate = float | None
 ProjectTargetSampleRates = Mapping[ProjectId, TargetSampleRate]
 
 
-def get_configuration(organization: Organization) -> BaseDynamicSamplingConfiguration:
+def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return NoDynamicSamplingConfiguration()
+
     if not has_custom_dynamic_sampling(organization):
         configuration = AutomaticDynamicSamplingConfiguration(organization)
         if not configuration.is_enabled:
-            return NoDynamicSamplingConfiguration(organization)
+            return NoDynamicSamplingConfiguration()
         return configuration
 
     if (
@@ -60,6 +65,9 @@ class BaseDynamicSamplingConfiguration(ABC):
 
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
+    def __init__(self) -> None:
+        pass
+
     @property
     def is_enabled(self) -> bool:
         return False
