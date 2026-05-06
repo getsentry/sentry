@@ -61,7 +61,7 @@ const Wrapper = styled('div')<{
   }
 
   &[data-expanded] ${Inner} {
-    padding-top: 1px;
+    padding-top: ${p => p.theme.space.xs};
   }
 `;
 
