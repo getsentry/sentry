@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {DetailedProject} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -20,8 +20,12 @@ const spikeProtectionSchema = z.object({
   enabled: z.boolean(),
 });
 
+export type ProjectWithOptions = Project & {
+  options?: Record<string, boolean | string>;
+};
+
 interface SpikeProtectionProjectToggleProps {
-  project: DetailedProject;
+  project: ProjectWithOptions;
   subscription: Subscription;
   analyticsView?: SpendVisibilityBaseParams['view'];
   disabled?: boolean;
@@ -31,7 +35,7 @@ interface SpikeProtectionProjectToggleProps {
 }
 
 // If the project option is True, the feature is disabled
-export const isSpikeProtectionEnabled = (p: DetailedProject) =>
+export const isSpikeProtectionEnabled = (p: ProjectWithOptions) =>
   !p?.options?.[SPIKE_PROTECTION_OPTION_DISABLED];
 
 function SpikeProtectionProjectToggle({
@@ -62,13 +66,15 @@ function SpikeProtectionProjectToggle({
             }),
           onSuccess: (_data, variables) => {
             const newValue = variables.enabled;
-            ProjectsStore.onUpdateSuccess({
-              ...project,
-              options: {
-                ...project.options,
-                [SPIKE_PROTECTION_OPTION_DISABLED]: !newValue,
-              },
-            } as Partial<DetailedProject>);
+            const updatedProject: Partial<Project> & Pick<ProjectWithOptions, 'options'> =
+              {
+                ...project,
+                options: {
+                  ...project.options,
+                  [SPIKE_PROTECTION_OPTION_DISABLED]: !newValue,
+                },
+              };
+            ProjectsStore.onUpdateSuccess(updatedProject);
             trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_PROJECT_TOGGLED, {
               organization,
               subscription,
