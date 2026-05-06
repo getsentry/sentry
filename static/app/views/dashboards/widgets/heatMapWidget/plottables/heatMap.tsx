@@ -1,6 +1,7 @@
 import type {SeriesOption} from 'echarts';
 
 import type {Theme} from 'sentry/utils/theme';
+import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
   HeatMapSeries,
@@ -49,7 +50,7 @@ export class HeatMap implements HeatMapPlottable {
         type: 'heatmap',
         data: heatMapSeries.values.map(item => {
           // NOTE: This isn't heavy, but maybe worth caching anyway
-          return [item.xAxis, item.yAxis, item.zAxis];
+          return [item.xAxis, item.yAxis, item.zAxis ?? ECHARTS_MISSING_DATA_VALUE];
         }),
         emphasis: {
           disabled: true,
