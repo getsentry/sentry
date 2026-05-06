@@ -32,6 +32,11 @@ describe('FilesChanged', () => {
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
   const organization = OrganizationFixture();
   const repos = [RepositoryFixture({integrationId: '1'})];
+  const defaultCommitFilesQuery = {
+    per_page: 40,
+    repo_id: repos[0]!.externalId,
+    repo_name: repos[0]!.name,
+  };
   const initialRouterConfig: RouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/releases/${release.version}/files-changed/`,
@@ -98,6 +103,7 @@ describe('FilesChanged', () => {
       url: `/organizations/org-slug/releases/${encodeURIComponent(
         release.version
       )}/commitfiles/`,
+      match: [MockApiClient.matchQuery(defaultCommitFilesQuery)],
       body: [],
     });
     renderComponent();
@@ -115,7 +121,8 @@ describe('FilesChanged', () => {
       url: `/organizations/org-slug/releases/${encodeURIComponent(
         release.version
       )}/commitfiles/`,
-      body: [CommitFileFixture()],
+      match: [MockApiClient.matchQuery(defaultCommitFilesQuery)],
+      body: [CommitFileFixture({repoName: repos[0]!.name})],
     });
     renderComponent();
     expect(await screen.findByText('1 file changed')).toBeInTheDocument();
@@ -140,7 +147,8 @@ describe('FilesChanged', () => {
       url: `/organizations/org-slug/releases/${encodeURIComponent(
         release.version
       )}/commitfiles/`,
-      body: [CommitFileFixture()],
+      match: [MockApiClient.matchQuery(defaultCommitFilesQuery)],
+      body: [CommitFileFixture({repoName: repos[0]!.name})],
     });
     renderComponent();
     expect(await screen.findByRole('button')).toHaveTextContent('example/repo-name');
