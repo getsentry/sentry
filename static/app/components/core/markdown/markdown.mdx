@@ -1,0 +1,160 @@
+---
+title: Markdown
+description: Renders markdown content as React elements with token-level caching, streaming support, and a component registry for customizing rendered elements.
+category: typography
+source: '@sentry/scraps/markdown'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/markdown/markdown.tsx
+  a11y:
+    WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
+    WCAG 2.3.3: https://www.w3.org/TR/WCAG22/#animation-from-interactions
+---
+
+import {Markdown} from '@sentry/scraps/markdown';
+
+import * as Storybook from 'sentry/stories';
+
+import {CustomComponentsDemo, StreamingDemo} from './__stories__/components';
+
+export const documentation = import('!!type-loader!@sentry/scraps/markdown/markdown');
+
+The `<Markdown>` component renders markdown strings as native React elements using a token-based pipeline. Instead of `dangerouslySetInnerHTML`, it lexes the input with [marked](https://marked.js.org/) and renders each token as a React component. This enables:
+
+- **Component overrides** via the `components` prop (replace any element with a custom React component)
+- **Token-level caching** so unchanged blocks skip re-rendering when content grows
+- **Streaming support** via `AsyncIterable<string>` for real-time AI/LLM output
+
+```jsx
+<Markdown raw="**Hello**, world!" />
+```
+
+## Basic Usage
+
+Pass a markdown string to the `raw` prop.
+
+<Storybook.Demo>
+  <Markdown raw={`# Welcome
+
+This is a paragraph with **bold**, _italic_, and \`inline code\`.
+
+- List item one
+- List item two
+
+> A blockquote for emphasis.
+
+\`\`\`python
+def hello():
+print("world")
+\`\`\`
+
+| Column A | Column B |
+| -------- | -------- |
+| Cell 1   | Cell 2   |
+
+`} />
+
+</Storybook.Demo>
+
+```jsx
+<Markdown raw={markdownString} />
+```
+
+## Component Overrides
+
+The `components` prop lets you replace any rendered element with a custom React component. Keys are named after design system primitives: `Heading`, `Paragraph`, `Link`, `InlineCode`, `CodeBlock`, `Text`, etc.
+
+### Custom Links and Text Transforms
+
+Use `components.Link` to control how links render (e.g., client-side navigation). Use `components.Text` to intercept plain text and inject patterns like issue linkification.
+
+<Storybook.Demo>
+  <CustomComponentsDemo />
+</Storybook.Demo>
+
+```jsx
+<Markdown
+  raw="The issue SENTRY-1234 was caused by a race condition..."
+  components={{
+    Link: ({href, children}) => <RouterLink to={href}>{children}</RouterLink>,
+    Text: ({children}) => linkifyIssueShortIds(children),
+  }}
+/>
+```
+
+### Suppress Headings
+
+Override `Heading` to render headings as bold text instead of `<h1>`-`<h6>`.
+
+<Storybook.Demo>
+  <Markdown
+    raw={`# Heading becomes bold\n\nParagraph stays normal.`}
+    components={{
+      Heading: ({children}) => <strong>{children}</strong>,
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+<Markdown
+  raw={content}
+  components={{
+    Heading: ({children}) => <strong>{children}</strong>,
+  }}
+/>
+```
+
+## Streaming
+
+Pass an `AsyncIterable<string>` to the `raw` prop for streaming content. The component buffers chunks and only parses complete blocks (split at `\n\n` boundaries). The pending tail renders as plain text until a boundary arrives, preventing flicker from half-rendered markdown syntax.
+
+<Storybook.Demo>
+  <StreamingDemo />
+</Storybook.Demo>
+
+```jsx
+async function* streamFromAPI() {
+  const response = await fetch('/api/ai/stream');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    yield decoder.decode(value);
+  }
+}
+
+<Markdown raw={streamFromAPI()} />;
+```
+
+## Security
+
+The component applies the same security model as the existing `MarkedText`:
+
+- **Links** are validated against a safe protocol allowlist (`https:`, `mailto:` only). Unsafe protocols like `javascript:` render as plain text.
+- **Images** are stripped by default. Provide a custom `Image` component to opt in.
+- **Raw HTML** in markdown is sanitized with DOMPurify using a strict allowlist of tags and attributes.
+- **React escaping** handles all other content — no `dangerouslySetInnerHTML` for markdown tokens.
+
+## Available Component Keys
+
+| Key              | Default                     | Props                       |
+| ---------------- | --------------------------- | --------------------------- |
+| `Paragraph`      | `<Text as="p">`             | `children`                  |
+| `Heading`        | `<Heading as="h1-h6">`      | `children`, `level` (1-6)   |
+| `CodeBlock`      | `<CodeBlock>` (with Prism)  | `children` (string), `lang` |
+| `InlineCode`     | `<InlineCode>`              | `children` (string)         |
+| `Link`           | `<Link>` / `<ExternalLink>` | `children`, `href`, `title` |
+| `Blockquote`     | `<Quote>`                   | `children`                  |
+| `Strong`         | `<strong>`                  | `children`                  |
+| `Emphasis`       | `<em>`                      | `children`                  |
+| `Strikethrough`  | `<del>`                     | `children`                  |
+| `Image`          | stripped                    | `src`, `alt`, `title`       |
+| `Text`           | passthrough                 | `children` (string)         |
+| `OrderedList`    | `<ol>`                      | `children`                  |
+| `UnorderedList`  | `<ul>`                      | `children`                  |
+| `ListItem`       | `<li>`                      | `children`, `checked`       |
+| `Table`          | `<table>`                   | `children`                  |
+| `HorizontalRule` | `<hr>`                      | -                           |
+| `LineBreak`      | `<br>`                      | -                           |
+| `Html`           | DOMPurify sanitized         | `html` (string)             |
