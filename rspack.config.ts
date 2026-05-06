@@ -902,6 +902,7 @@ if (IS_PRODUCTION) {
 
 // Cache rspack builds
 if (env.WEBPACK_CACHE_PATH) {
+  appConfig.cache = true;
   appConfig.cache = {
     type: 'persistent',
     // https://rspack.rs/config/cache
