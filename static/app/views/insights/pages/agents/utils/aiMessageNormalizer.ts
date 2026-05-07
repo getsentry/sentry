@@ -1,3 +1,4 @@
+import {tryParsePythonDict} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {
   parseJsonWithFix,
   tryParseJsonRecursive,
@@ -164,7 +165,16 @@ function parseAttribute(raw: string): {fixedInvalidJson: boolean; parsed: unknow
   }
   const {parsed, fixedInvalidJson}: {fixedInvalidJson: boolean; parsed: unknown} =
     parseJsonWithFix(raw);
-  return {fixedInvalidJson, parsed: parsed ?? undefined};
+  if (parsed !== null) {
+    return {fixedInvalidJson, parsed};
+  }
+
+  const pythonParsed = tryParsePythonDict(raw);
+  if (pythonParsed !== null) {
+    return {fixedInvalidJson: false, parsed: pythonParsed};
+  }
+
+  return {fixedInvalidJson, parsed: undefined};
 }
 
 /**
@@ -437,7 +447,6 @@ function appendOutputFromParts(
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const FILE_CONTENT_PART_TYPES = new Set<string>(FILE_CONTENT_PARTS);
 type FileContentPartType = (typeof FILE_CONTENT_PARTS)[number];
-
 function parseJsonContentPreservingPrimitives(value: unknown): unknown {
   const parsed = tryParseJsonRecursive(value);
   if (
