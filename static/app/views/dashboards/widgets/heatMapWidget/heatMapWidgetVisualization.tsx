@@ -47,7 +47,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     })
   );
 
-  const heatMapPlottable = plottables.find(plottable => plottable instanceof HeatMap)!;
+  const heatMapPlottable = plottables[0];
 
   const yAxisDataType = heatMapPlottable.yAxisValueType;
   const yAxisDataUnit = heatMapPlottable.yAxisValueUnit;
