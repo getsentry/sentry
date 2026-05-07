@@ -565,7 +565,7 @@ function IssueListOverviewInner({
 
   // Fetch members on mount
   useEffect(() => {
-    const projectIds = selection.projects.map(projectId => String(projectId));
+    const projectIds = selection.projects.map(String);
 
     fetchOrgMembers(api, organization.slug, projectIds).then(members => {
       setMemberList(indexMembersByProject(members));
@@ -580,7 +580,7 @@ function IssueListOverviewInner({
       return;
     }
 
-    const projectIds = selection.projects.map(projectId => String(projectId));
+    const projectIds = selection.projects.map(String);
 
     fetchOrgMembers(api, organization.slug, projectIds).then(members => {
       setMemberList(indexMembersByProject(members));
