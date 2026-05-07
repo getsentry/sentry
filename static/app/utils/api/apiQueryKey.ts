@@ -15,9 +15,7 @@ export type QueryKeyEndpointOptions = {
   query?: Record<string, unknown>;
 };
 
-const apiUrlSchema = z.custom<ApiUrl>(
-  val => typeof val === 'string' && val.startsWith('/') && val.endsWith('/')
-);
+const apiUrlSchema = z.custom<ApiUrl>(val => typeof val === 'string');
 const optionsSchema = z.custom<QueryKeyEndpointOptions>(
   val => typeof val === 'object' && val !== null && !Array.isArray(val)
 );

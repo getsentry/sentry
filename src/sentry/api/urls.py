@@ -93,15 +93,6 @@ from sentry.core.endpoints.organization_environments import OrganizationEnvironm
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
 from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
-from sentry.core.endpoints.organization_member_invite.details import (
-    OrganizationMemberInviteDetailsEndpoint,
-)
-from sentry.core.endpoints.organization_member_invite.index import (
-    OrganizationMemberInviteIndexEndpoint,
-)
-from sentry.core.endpoints.organization_member_invite.reinvite import (
-    OrganizationMemberReinviteEndpoint,
-)
 from sentry.core.endpoints.organization_member_requests_invite_details import (
     OrganizationInviteRequestDetailsEndpoint,
 )
@@ -751,6 +742,7 @@ from .endpoints.organization_events_facets_performance import (
 from .endpoints.organization_events_has_measurements import (
     OrganizationEventsHasMeasurementsEndpoint,
 )
+from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
@@ -1754,6 +1746,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-timeseries",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/events-heatmap/$",
+        OrganizationEventsHeatmapEndpoint.as_view(),
+        name="sentry-api-0-organization-events-heatmap",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events/anomalies/$",
         OrganizationEventsAnomaliesEndpoint.as_view(),
         name="sentry-api-0-organization-events-anomalies",
@@ -2039,21 +2036,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/members/$",
         OrganizationMemberIndexEndpoint.as_view(),
         name="sentry-api-0-organization-member-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/invited-members/$",
-        OrganizationMemberInviteIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-member-invite-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/invited-members/(?P<member_invite_id>[^/]+)/$",
-        OrganizationMemberInviteDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-member-invite-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/invited-members/(?P<member_invite_id>[^/]+)/reinvite/$",
-        OrganizationMemberReinviteEndpoint.as_view(),
-        name="sentry-api-0-organization-member-reinvite",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/external-users/$",

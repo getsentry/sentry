@@ -1,7 +1,8 @@
 import {useEffect, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
@@ -179,19 +180,23 @@ export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const hasConversationTimestamps =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
-  // Ignore page filters so the conversation is always found.
+  const datetimeParams = hasConversationTimestamps
+    ? {
+        start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
+        end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
+      }
+    : normalizeDateTimeParams(selection.datetime);
+
   const queryParams = {
-    project: [ALL_ACCESS_PROJECTS],
+    project: selection.projects,
     per_page: 1000,
-    ...(hasConversationTimestamps && {
-      start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
-      end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
-    }),
+    ...datetimeParams,
   };
 
   const {

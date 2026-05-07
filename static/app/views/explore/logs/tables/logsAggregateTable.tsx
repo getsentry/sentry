@@ -12,6 +12,7 @@ import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {parseCursor} from 'sentry/utils/cursor';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
@@ -26,13 +27,14 @@ import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
   getLogSeverityLevel,
   viewLogsSamplesTarget,
 } from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsAggregateCursor,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsSearch,
@@ -46,7 +48,7 @@ import {
 export function LogsAggregateTable({
   aggregatesTableResult,
 }: {
-  aggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
+  aggregatesTableResult: LogsAggregatesTableResult;
 }) {
   const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
 
@@ -63,6 +65,7 @@ export function LogsAggregateTable({
   const visualizes = useQueryParamsVisualizes();
   const setAggregateCursor = useSetQueryParamsAggregateCursor();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const aggregateCursor = useQueryParamsAggregateCursor();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const search = useQueryParamsSearch();
   const setSearch = useSetQueryParamsSearch();
@@ -209,9 +212,14 @@ export function LogsAggregateTable({
 
             return [
               <Fragment key={`sample-${rowIndex}`}>
-                {topEventsLimit && rowIndex < topEventsLimit && (
-                  <TopResultsIndicator color={palette[rowIndex]!} />
-                )}
+                {topEventsLimit &&
+                  rowIndex < topEventsLimit &&
+                  !parseCursor(aggregateCursor)?.offset && (
+                    <TopResultsIndicator
+                      data-test-id="top-results-indicator"
+                      color={palette[rowIndex]!}
+                    />
+                  )}
                 <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                   <StyledLink to={target}>
                     <IconStack />

@@ -43,7 +43,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
+import {type DashboardsLayout, DashboardsTab} from 'sentry/views/dashboards/manage/types';
+import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboardsTab';
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -65,6 +66,18 @@ export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
 const TABLE = 'table';
+
+const DASHBOARDS_TAB_TITLES: Record<DashboardsTab, string> = {
+  [DashboardsTab.CUSTOM]: t('Custom Dashboards'),
+  [DashboardsTab.ALL]: t('All Dashboards'),
+  [DashboardsTab.PREBUILT]: PREBUILT_DASHBOARD_LABEL,
+};
+
+const DASHBOARDS_TAB_API_QUERY: Record<DashboardsTab, {filter?: DashboardFilter}> = {
+  [DashboardsTab.CUSTOM]: {filter: DashboardFilter.EXCLUDE_PREBUILT},
+  [DashboardsTab.ALL]: {},
+  [DashboardsTab.PREBUILT]: {filter: DashboardFilter.ONLY_PREBUILT},
+};
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorageWrapper.getItem(LAYOUT_KEY);
@@ -118,8 +131,12 @@ function ManageDashboards() {
     'dashboards-prebuilt-insights-dashboards'
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
-  const isOnlyPrebuilt =
-    hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
+  const dashboardsTab = getDashboardsTab(hasPrebuiltDashboards, urlFilter);
+  const isOnlyPrebuilt = dashboardsTab === DashboardsTab.PREBUILT;
+  const pageTitle =
+    dashboardsTab === DashboardsTab.CUSTOM && !hasPrebuiltDashboards
+      ? t('All Dashboards')
+      : DASHBOARDS_TAB_TITLES[dashboardsTab];
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
@@ -151,9 +168,7 @@ function ManageDashboards() {
         pin: 'favorites',
         per_page:
           dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-        ...(isOnlyPrebuilt
-          ? {filter: DashboardFilter.ONLY_PREBUILT}
-          : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
+        ...DASHBOARDS_TAB_API_QUERY[dashboardsTab],
       },
     }),
     select: selectJsonWithHeaders,
@@ -530,10 +545,7 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <SentryDocumentTitle
-        title={isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
-        orgSlug={organization.slug}
-      >
+      <SentryDocumentTitle title={pageTitle} orgSlug={organization.slug}>
         <ErrorBoundary>
           {isError ? (
             <Stack flex={1} padding="2xl 3xl">
@@ -545,7 +557,7 @@ function ManageDashboards() {
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
                     <Layout.Title>
-                      {isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
+                      {pageTitle}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
                         title={

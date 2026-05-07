@@ -24,6 +24,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
     "relay.objectstore-attachments.sample-rate",
+    "relay.endpoint-fetch-config.enabled",
 ]
 
 

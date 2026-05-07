@@ -6,7 +6,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
-import {SettingsPageTabs} from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
@@ -28,8 +27,6 @@ export function SeerSettingsPageContent({children}: Props) {
   return (
     <Stack gap="lg">
       {showNoActiveSeerSubscriptionBanner ? <NoActiveSeerSubscriptionBanner /> : null}
-
-      <SettingsPageTabs />
 
       {canWrite ? null : (
         <Alert data-test-id="org-permission-alert" variant="warning">

@@ -149,7 +149,7 @@ describe('SeerNotices', () => {
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
       organization: {
         ...organization,
-        features: ['integrations-cursor'],
+        features: [],
       },
     });
     await waitFor(() => {
@@ -193,7 +193,7 @@ describe('SeerNotices', () => {
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
       organization: {
         ...organization,
-        features: ['integrations-cursor'],
+        features: [],
       },
     });
 
@@ -252,7 +252,7 @@ describe('SeerNotices', () => {
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
       organization: {
         ...organization,
-        features: ['integrations-cursor'],
+        features: [],
       },
     });
 

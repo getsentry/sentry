@@ -1,6 +1,7 @@
 import logging
 from typing import Any, cast
 
+import sentry_sdk
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
@@ -218,8 +219,13 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             token = PageToken()
             token.ParseFromString(self.page_token)
             request.page_token.CopyFrom(token)
-        http_resp = export_logs_rpc(request)
-        rows = list(iter_export_trace_items_rows(http_resp, self._supported_trace_item_type))
+        with sentry_sdk.start_span(op="snuba.rpc", name="ExportTraceItems") as span:
+            span.set_data("dataset", self.explore_query["dataset"])
+            span.set_data("limit", limit)
+            span.set_data("has_page_token", self.page_token is not None)
+            http_resp = export_logs_rpc(request)
+            self._sync_page_token_from_snuba_response(http_resp)
+            span.set_data("next_page_token", self.page_token is not None)
 
-        self._sync_page_token_from_snuba_response(http_resp)
+        rows = list(iter_export_trace_items_rows(http_resp, self._supported_trace_item_type))
         return rows or []
