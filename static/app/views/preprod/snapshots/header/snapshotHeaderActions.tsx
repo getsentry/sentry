@@ -27,6 +27,7 @@ import {
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -51,6 +52,7 @@ export function SnapshotHeaderActions({
   useEffect(() => () => clientRef.current.clear(), []);
   const navigate = useNavigate();
   const organization = useOrganization();
+  const breakpoints = useBreakpoints();
   const isSentryEmployee = useIsSentryEmployee();
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -191,28 +193,15 @@ export function SnapshotHeaderActions({
                 {t('Needs approval')}
               </Tag>
             </Container>
-            <Container display={{'2xs': 'none', xs: 'block'}}>
-              <Button
-                size="sm"
-                variant="primary"
-                icon={<IconThumb />}
-                onClick={handleApprove}
-                disabled={isApproving}
-              >
-                {t('Approve')}
-              </Button>
-            </Container>
-            <Container display={{'2xs': 'block', xs: 'none'}}>
-              <Button
-                size="xs"
-                variant="primary"
-                icon={<IconThumb />}
-                onClick={handleApprove}
-                disabled={isApproving}
-              >
-                {t('Approve')}
-              </Button>
-            </Container>
+            <Button
+              size={breakpoints.xs ? 'sm' : 'xs'}
+              variant="primary"
+              icon={<IconThumb />}
+              onClick={handleApprove}
+              disabled={isApproving}
+            >
+              {t('Approve')}
+            </Button>
           </Flex>
         ))}
 
