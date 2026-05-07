@@ -178,7 +178,7 @@ numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma 
 has_item               = text_key / search_value
 has_in_list            = open_bracket has_item (spaces comma spaces !comma has_item?)* closed_bracket &end_value
 
-
+# TODO: Wildcard will be special index syntax for array.
 array_includes_suffix = open_bracket "*" closed_bracket
 array_includes_tag_key = explicit_array_tag_key array_includes_suffix
 array_includes_attr_key = (key/ quoted_key) array_includes_suffix

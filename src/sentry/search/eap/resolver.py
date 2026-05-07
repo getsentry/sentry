@@ -896,9 +896,9 @@ class SearchResolver:
                 elif isinstance(value, bool):
                     return AttributeValue(val_bool=value)
             elif column_type == constants.ARRAY:
-                # Only array-includes (membership) is supported. Reject IN/NOT IN
-                # Snuba's TYPE_ARRAY ComparisonFilter only accepts EQUALS,
-                # NOT_EQUALS, LIKE, NOT_LIKE with a scalar value.
+                # Only scalar value membership in an array is allowed.
+                # Allowed operators: =,!=, LIKE, NOT_LIKE.
+                # TODO: Add support for scalar: >, < for numbers
                 if operator in constants.IN_OPERATORS:
                     raise InvalidSearchQuery(
                         f"{column.public_alias} (array) cannot be used with an IN filter; "
