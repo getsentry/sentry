@@ -161,7 +161,7 @@ export function SnapshotHeaderActions({
     <Flex align="center" gap="md">
       {data.approval_info &&
         (isApproved ? (
-          <Flex align="center" gap="xl" display={{'2xs': 'none', md: 'flex'}}>
+          <Flex align="center" gap="xl">
             <Flex align="center" gap="xs">
               <Tag variant="success" icon={<IconCheckmark />}>
                 {isAutoApproved ? t('Auto-approved') : t('Approved')}
@@ -179,7 +179,9 @@ export function SnapshotHeaderActions({
               )}
             </Flex>
             {approvers.length > 0 && (
-              <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+              <Container display={{'2xs': 'none', md: 'flex'}}>
+                <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+              </Container>
             )}
           </Flex>
         ) : (

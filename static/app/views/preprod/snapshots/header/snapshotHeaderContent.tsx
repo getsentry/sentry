@@ -9,7 +9,6 @@ import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
@@ -29,15 +28,13 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
   return (
     <Layout.HeaderContent unified>
       <Layout.Title>
-        <TopBar.Slot name="title">
-          {t('Snapshots')}
-          <Container display={{'2xs': 'none', xs: 'flex'}}>
-            <PageHeadingQuestionTooltip
-              docsUrl="https://docs.sentry.io/product/preprod/snapshots/"
-              title={t('Catch visual regressions before they reach users.')}
-            />
-          </Container>
-        </TopBar.Slot>
+        {t('Snapshots')}
+        <Container display={{'2xs': 'none', xs: 'flex'}}>
+          <PageHeadingQuestionTooltip
+            docsUrl="https://docs.sentry.io/product/preprod/snapshots/"
+            title={t('Catch visual regressions before they reach users.')}
+          />
+        </Container>
 
         <Flex
           align="center"
