@@ -1,9 +1,0 @@
-{
-  "referrer": "dynamic_sampling.per_org.get_eap_org_volume",
-  "query_string_by_measure": {
-    "segments": "is_transaction:true",
-    "spans": ""
-  },
-  "selected_columns": ["count()", "count_sample()"],
-  "limit": 1
-}
