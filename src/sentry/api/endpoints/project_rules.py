@@ -909,7 +909,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+        suggested_api="/api/0/organizations/:slug/workflows/",
     )
     def post(self, request: Request, project) -> Response:
         """
