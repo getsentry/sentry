@@ -2,15 +2,21 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconSentry} from 'sentry/icons';
+import {IconCheckmark} from 'sentry/icons';
+import {IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -129,45 +135,66 @@ function InvoiceDetails() {
           />
         }
       />
-      <Panel>
+      <Flex justify="center" padding="3xl">
         {isInvoiceLoading || isBillingDetailsLoading ? (
           <PanelBody withPadding>
             <LoadingIndicator />
           </PanelBody>
         ) : (
-          <PanelBody withPadding>
-            <SenderContainer>
-              <div>
-                <SenderName>
-                  <IconSentry size="lg" /> {invoice.sender.name}
-                </SenderName>
-                <StyledAddress>
-                  {invoice.sender.address.map((line, idx) => (
-                    <div key={idx}>{line}</div>
-                  ))}
-                </StyledAddress>
-                {invoice.sentryTaxIds && (
-                  <div>
-                    {invoice.sentryTaxIds.taxIdName}: {invoice.sentryTaxIds.taxId}
-                  </div>
-                )}
-                {invoice.sentryTaxIds?.region && (
-                  <div>
-                    {invoice.sentryTaxIds.region.taxIdName}:{' '}
-                    {invoice.sentryTaxIds.region.taxId}
-                  </div>
-                )}
-              </div>
-              {invoice && (
-                <InvoiceDetailsActions
-                  organization={organization}
-                  invoice={invoice}
-                  reloadInvoice={invoiceRefetch}
-                />
-              )}
-            </SenderContainer>
-            <hr />
+          <Stack maxWidth="680px" border="primary" radius="lg">
+            <Stack padding="2xl" gap="xl">
+              <Flex justify="between" align="end">
+                <Stack gap="sm" align="start">
+                  <LogoSentry height="20px" />
+                  <Text size="sm" variant="secondary">
+                    {invoice.sender.address.join(', ')}
+                  </Text>
+                  {invoice.sentryTaxIds && (
+                    <div>
+                      {invoice.sentryTaxIds.taxIdName}: {invoice.sentryTaxIds.taxId}
+                    </div>
+                  )}
+                  {invoice.sentryTaxIds?.region && (
+                    <div>
+                      {invoice.sentryTaxIds.region.taxIdName}:{' '}
+                      {invoice.sentryTaxIds.region.taxId}
+                    </div>
+                  )}
+                </Stack>
+                <Stack align="end" gap="sm">
+                  <Text size="sm" variant="muted" monospace>
+                    {invoice.id}
+                  </Text>
+                  {invoice.isPaid ? (
+                    <Tag variant="success" icon={<IconCheckmark />}>
+                      {t('Paid in full')}
+                    </Tag>
+                  ) : (
+                    <Tag variant="warning" icon={<IconTimer />}>
+                      {t('Waiting for payment')}
+                    </Tag>
+                  )}
+                </Stack>
+              </Flex>
+              <Stack>
+                <Heading as="h2" size="3xl">
+                  {displayPriceWithCents({cents: invoice.amountBilled ?? 0})} USD
+                </Heading>
+                <Text size="md" variant="secondary">
+                  {t('Charged')} <DateTime date={invoice.dateCreated} dateOnly year />.
+                </Text>
+              </Stack>
+            </Stack>
+
             <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
+
+            {invoice && (
+              <InvoiceDetailsActions
+                organization={organization}
+                invoice={invoice}
+                reloadInvoice={invoiceRefetch}
+              />
+            )}
             <FinePrint>
               {tct(
                 'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
@@ -189,9 +216,9 @@ function InvoiceDetails() {
                 }
               )}
             </FinePrint>
-          </PanelBody>
+          </Stack>
         )}
-      </Panel>
+      </Flex>
     </SubscriptionPageContainer>
   );
 }
@@ -276,9 +303,36 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
         <thead>
           <tr>
             <th>{t('Item')}</th>
+            <th>{t('Description')}</th>
             <th>{t('Price')}</th>
           </tr>
         </thead>
+        <tbody>
+          {invoice.items.map((item, i) => {
+            if (item.type === 'subscription') {
+              return (
+                <tr key={i}>
+                  <td>
+                    {tct('[description] Plan', {description: item.description})}
+                    <small>
+                      {tct('[start] – [end]', {
+                        start: <DateTime date={item.periodStart} dateOnly year />,
+                        end: <DateTime date={item.periodEnd} dateOnly year />,
+                      })}
+                    </small>
+                  </td>
+                  <td>{displayPriceWithCents({cents: item.amount})} USD</td>
+                </tr>
+              );
+            }
+            return (
+              <tr key={i}>
+                <td>{item.description}</td>
+                <td>{displayPriceWithCents({cents: item.amount})} USD</td>
+              </tr>
+            );
+          })}
+        </tbody>
         <tfoot>
           <tr>
             <th>{t('Total')}</th>
@@ -297,58 +351,12 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
             </tr>
           )}
         </tfoot>
-        <tbody>
-          {invoice.items.map((item, i) => {
-            if (item.type === 'subscription') {
-              return (
-                <tr key={i}>
-                  <td>
-                    {tct('[description] Plan', {description: item.description})}
-                    <small>
-                      {tct('[start] to [end]', {
-                        start: <DateTime date={item.periodStart} dateOnly year />,
-                        end: <DateTime date={item.periodEnd} dateOnly year />,
-                      })}
-                    </small>
-                  </td>
-                  <td>{displayPriceWithCents({cents: item.amount})} USD</td>
-                </tr>
-              );
-            }
-            return (
-              <tr key={i}>
-                <td>{item.description}</td>
-                <td>{displayPriceWithCents({cents: item.amount})} USD</td>
-              </tr>
-            );
-          })}
-        </tbody>
       </InvoiceItems>
     </Fragment>
   );
 }
 
 export default InvoiceDetails;
-
-const SenderName = styled('h3')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const SenderContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: ${p => p.theme.space.xl};
-
-  padding-left: ${p => p.theme.space.md};
-
-  /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto;
-  }
-`;
 
 const AttributeGroup = styled('div')`
   display: grid;
@@ -374,12 +382,6 @@ const Attributes = styled('dl')`
     padding: ${p => p.theme.space.md};
     margin-bottom: ${p => p.theme.space.xl};
   }
-`;
-
-const StyledAddress = styled('address')`
-  margin-bottom: 0px;
-  line-height: 1.5;
-  font-style: normal;
 `;
 
 const InvoiceItems = styled('table')`
