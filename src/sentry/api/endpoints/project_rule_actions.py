@@ -117,8 +117,6 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 actions = [Action(**action_data) for action_data in notification_actions_data]
                 action = actions[0]
                 action.id = TEST_NOTIFICATION_ID
-                # Annotate the action with the workflow id
-                setattr(action, "workflow_id", workflow.id)
             except REPORTABLE_ERROR_TYPES as e:
                 action_exceptions.append(str(e))
                 continue
@@ -127,7 +125,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 action_exceptions.append(f"An unexpected error occurred. Error ID: '{error_id}'")
                 continue
 
-            action_exceptions.extend(test_fire_action(action, event_data))
+            action_exceptions.extend(test_fire_action(action, event_data, workflow_id=workflow.id))
 
         status = None
         data = None
