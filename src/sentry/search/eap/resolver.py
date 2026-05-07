@@ -1046,11 +1046,6 @@ class SearchResolver:
             tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
             if tag_match is None:
                 tag_match = qb_constants.TAG_KEY_RE.search(column)
-                # TODO(EXP-885): array-includes intent is lost here. If the column is
-                # not registered in definitions.columns and not in tags[name,type]
-                # form, we default search_type to "string" and have no signal that
-                # the user wrote `column[*]:value` expecting array semantics. Decide
-                # how to handle array-typed but unregistered columns.
                 field_type = "string"
             else:
                 field_type = None
