@@ -4,6 +4,8 @@ import logging
 from typing import Any
 
 from django.conf import settings
+from django.db import router, transaction
+from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,10 +15,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
     SearchAgentStartRequest,
@@ -58,6 +63,39 @@ class SearchAgentStartSerializer(serializers.Serializer):
         return value
 
 
+def _build_search_agent_body(
+    org_id: int,
+    org_slug: str,
+    project_ids: list[int],
+    natural_language_query: str,
+    strategy: str = "Traces",
+    user_email: str | None = None,
+    user_timezone: str | None = None,
+    model_name: str | None = None,
+    metric_context: dict[str, Any] | None = None,
+) -> SearchAgentStartRequest:
+    body = SearchAgentStartRequest(
+        org_id=org_id,
+        org_slug=org_slug,
+        project_ids=project_ids,
+        natural_language_query=natural_language_query,
+        strategy=strategy,
+    )
+    if user_email:
+        body["user_email"] = user_email
+    if user_timezone:
+        body["timezone"] = user_timezone
+
+    options: dict[str, Any] = {}
+    if model_name is not None:
+        options["model_name"] = model_name
+    if metric_context is not None:
+        options["metric_context"] = metric_context
+    if options:
+        body["options"] = options
+    return body
+
+
 def send_search_agent_start_request(
     org_id: int,
     org_slug: str,
@@ -73,30 +111,54 @@ def send_search_agent_start_request(
     """
     Sends a request to Seer to start an async search agent and returns a run_id for polling.
     """
-    body = SearchAgentStartRequest(
+    body = _build_search_agent_body(
         org_id=org_id,
         org_slug=org_slug,
         project_ids=project_ids,
         natural_language_query=natural_language_query,
         strategy=strategy,
+        user_email=user_email,
+        user_timezone=timezone,
+        model_name=model_name,
+        metric_context=metric_context,
     )
-    if user_email:
-        body["user_email"] = user_email
-    if timezone:
-        body["timezone"] = timezone
-
-    options: dict[str, Any] = {}
-    if model_name is not None:
-        options["model_name"] = model_name
-    if metric_context is not None:
-        options["metric_context"] = metric_context
-    if options:
-        body["options"] = options
-
     response = make_search_agent_start_request(body, timeout=30, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()
+
+
+def start_search_agent_via_outbox(
+    organization: Organization,
+    user_id: int | None,
+    body: SearchAgentStartRequest,
+    viewer_context: SeerViewerContext,
+) -> int:
+    """
+    Mirror an assisted-query run into SeerRun and dispatch its start request via
+    the cell outbox. The receiver fires on commit (flush=True), makes the HTTPS
+    call to Seer with run.uuid as external_idempotency_key, and fills in
+    seer_run_state_id. Raises SeerApiError if the run did not reach LIVE.
+    """
+    with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
+        run = SeerRun.objects.create(
+            organization=organization,
+            user_id=user_id,
+            type=SeerRunType.ASSISTED_QUERY,
+            last_triggered_at=timezone.now(),
+        )
+        CellOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=organization.id,
+            category=OutboxCategory.SEER_RUN_CREATE,
+            object_identifier=run.id,
+            payload={"body": dict(body), "viewer_context": dict(viewer_context)},
+        ).save()
+
+    run.refresh_from_db()
+    if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
+        raise SeerApiError("Seer run mirror failed to materialize", 500)
+    return run.seer_run_state_id
 
 
 @cell_silo_endpoint
@@ -176,6 +238,27 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
             viewer_context = SeerViewerContext(
                 organization_id=organization.id, user_id=request.user.id
             )
+
+            if features.has("organizations:seer-run-mirror", organization, actor=request.user):
+                body = _build_search_agent_body(
+                    org_id=organization.id,
+                    org_slug=organization.slug,
+                    project_ids=project_ids,
+                    natural_language_query=natural_language_query,
+                    strategy=strategy,
+                    user_email=user_email,
+                    user_timezone=timezone,
+                    model_name=model_name,
+                    metric_context=metric_context,
+                )
+                run_id = start_search_agent_via_outbox(
+                    organization=organization,
+                    user_id=request.user.id,
+                    body=body,
+                    viewer_context=viewer_context,
+                )
+                return Response({"run_id": run_id})
+
             data = send_search_agent_start_request(
                 organization.id,
                 organization.slug,
@@ -190,8 +273,8 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
             )
 
             # Validate that run_id is present in the response
-            run_id = data.get("run_id")
-            if run_id is None:
+            response_run_id = data.get("run_id")
+            if response_run_id is None:
                 logger.error(
                     "search_agent.missing_run_id",
                     extra={
@@ -206,7 +289,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 )
 
             # Return the run_id for polling
-            return Response({"run_id": run_id})
+            return Response({"run_id": response_run_id})
 
         except SeerApiError as e:
             logger.exception(
