@@ -320,6 +320,7 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
 
         mock_provider.create_status_check.assert_called_once()
         self.artifact.refresh_from_db()
+        assert self.artifact.extras is not None
         checks = self.artifact.extras["posted_status_checks"]["snapshots"]
         assert checks["success"] is True
         assert checks["check_id"] == "check_123"
@@ -336,6 +337,7 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
             self._call_task()
 
         self.artifact.refresh_from_db()
+        assert self.artifact.extras is not None
         checks = self.artifact.extras["posted_status_checks"]["snapshots"]
         assert checks["success"] is False
         assert checks["error_type"] == "api_error"
@@ -351,6 +353,7 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
         self._call_task()
 
         self.artifact.refresh_from_db()
+        assert self.artifact.extras is not None
         checks = self.artifact.extras["posted_status_checks"]["snapshots"]
         assert checks["success"] is False
 
@@ -373,6 +376,7 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
         self._call_task()
 
         self.artifact.refresh_from_db()
+        assert self.artifact.extras is not None
         checks = self.artifact.extras["posted_status_checks"]["snapshots"]
         assert checks["success"] is False
 
