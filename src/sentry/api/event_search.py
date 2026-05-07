@@ -1929,9 +1929,15 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         if not search_value.raw_value:
             raise InvalidSearchQuery(f"Empty value for {search_key.name}[*]")
 
-        if operator_s not in ("=", "!="):
+        if operator_s not in ("=", "!=") and not node.children[5].text:
             raise InvalidSearchQuery("In Array Queries, only EQUAL/NOT_EQUAL operators are allowed")
         operator_s = handle_negation(negation, operator_s)
+
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
+            wildcard_value = gen_wildcard_value(
+                search_value.raw_value, get_wildcard_op(wildcard_op)
+            )
+            search_value = search_value._replace(raw_value=wildcard_value)
         return SearchFilter(search_key, operator_s, search_value)
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
