@@ -222,11 +222,7 @@ function DiffHunkContent({
   runId: string;
   repoId?: string;
 }) {
-  const [linesWithChanges, setLinesWithChanges] = useState<DiffLineWithChanges[]>([]);
-
-  useEffect(() => {
-    setLinesWithChanges(addChangesToDiffLines(lines));
-  }, [lines]);
+  const linesWithChanges = useMemo(() => addChangesToDiffLines(lines), [lines]);
 
   const [editingGroup, setEditingGroup] = useState<number | null>(null);
   const [editedContent, setEditedContent] = useState('');
