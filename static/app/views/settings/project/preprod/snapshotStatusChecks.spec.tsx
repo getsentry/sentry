@@ -3,7 +3,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SnapshotStatusChecks} from 'sentry/views/settings/project/preprod/snapshotStatusChecks';
 
 describe('SnapshotStatusChecks', () => {
@@ -135,7 +134,6 @@ describe('SnapshotStatusChecks', () => {
 
   it('immediately hides failure condition toggles when status checks are disabled', async () => {
     const project = ProjectFixture({options: {}});
-    ProjectsStore.loadInitialData([project]);
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,

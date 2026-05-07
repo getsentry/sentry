@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -7,11 +7,13 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {
+  makeDetailedProjectQueryKey,
+  useDetailedProject,
+} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {getSnapshotStatusChecks} from './getSnapshotStatusChecks';
@@ -34,12 +36,20 @@ type SnapshotStatusCheckField = {
 
 export function SnapshotStatusChecks() {
   const organization = useOrganization();
-  const {project: outletProject} = useProjectSettingsOutlet();
-  const project = useProjectFromId({project_id: outletProject.id}) ?? outletProject;
-  const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
-    getSnapshotStatusChecks(project);
-
+  const {project} = useProjectSettingsOutlet();
+  const queryClient = useQueryClient();
   const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+  const projectQueryKey = makeDetailedProjectQueryKey({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+  const {data: detailedProject} = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: project.slug},
+    {enabled: false}
+  );
+  const currentProject = detailedProject ?? project;
+  const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
+    getSnapshotStatusChecks(currentProject);
 
   const projectMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Schema>) =>
@@ -49,17 +59,30 @@ export function SnapshotStatusChecks() {
         data,
       }),
     onMutate: data => {
-      const previous = ProjectsStore.getById(project.id);
-      ProjectsStore.onUpdateSuccess({id: project.id, ...data});
-      return () => {
-        if (previous) {
-          ProjectsStore.onUpdateSuccess(previous);
-        }
-      };
+      const previousProject = currentProject;
+      queryClient.setQueryData(projectQueryKey, prev => {
+        return {
+          headers: prev?.headers ?? {},
+          json: {...(prev?.json ?? previousProject), ...data},
+        };
+      });
+      return previousProject;
     },
-    onSuccess: response => ProjectsStore.onUpdateSuccess(response),
-    onError: (_error, _variables, rollback) => {
-      rollback?.();
+    onSuccess: response => {
+      queryClient.setQueryData(projectQueryKey, prev => ({
+        headers: prev?.headers ?? {},
+        json: {...(prev?.json ?? project), ...response},
+      }));
+    },
+    onError: (_error, _variables, previousProject) => {
+      if (!previousProject) {
+        return;
+      }
+
+      queryClient.setQueryData(projectQueryKey, prev => ({
+        headers: prev?.headers ?? {},
+        json: previousProject,
+      }));
     },
   });
 
