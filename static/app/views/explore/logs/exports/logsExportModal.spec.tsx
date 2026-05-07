@@ -3,14 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {
   makeCloseButton,
   makeClosableHeader,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsExportModal} from 'sentry/views/explore/logs/exports/logsExportModal';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -168,11 +169,11 @@ describe('LogsExportModal', () => {
       expect.objectContaining({
         data: {
           format: 'csv',
-          query_type: 'trace_item_full_export',
+          limit: aboveSyncLimit,
+          query_type: 'Explore',
           query_info: {
             ...queryInfo,
             dataset: 'logs',
-            limit: aboveSyncLimit,
           },
         },
         method: 'POST',

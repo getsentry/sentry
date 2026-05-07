@@ -149,7 +149,7 @@ export function DrawerHeader({
       {!hideCloseButton && (
         <Fragment>
           <Button
-            priority="transparent"
+            variant="transparent"
             size="xs"
             aria-label={t('Close Drawer')}
             icon={<IconClose />}

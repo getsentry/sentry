@@ -28,6 +28,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.receivers.rule_snooze import _update_workflow_engine_models
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -91,12 +92,15 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
     permission_classes = (ProjectAlertRulePermission,)
     rule_field: str  # abstract, value comes from child class
 
-    def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
+    def convert_args(
+        self, request: Request, rule_id: str | int, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         (args, kwargs) = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
+        validated_rule_id = to_valid_int_id("rule_id", rule_id, raise_404=True)
         try:
             queryset = self.fetch_rule_list(project=project)
-            rule = queryset.get(id=rule_id)
+            rule = queryset.get(id=validated_rule_id)
         except ObjectDoesNotExist:
             raise NotFound(detail="Rule does not exist")
 

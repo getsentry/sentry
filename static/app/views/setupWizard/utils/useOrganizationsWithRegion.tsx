@@ -1,38 +1,37 @@
-import {useQuery} from '@tanstack/react-query';
+import {queryOptions, useQueries} from '@tanstack/react-query';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
-import type {Region} from 'sentry/types/system';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
-import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 export function useOrganizationsWithRegion() {
-  const api = useApi();
+  const {memberRegions} = useLegacyStore(ConfigStore);
 
-  return useQuery<OrganizationWithRegion[], RequestError>({
-    queryKey: ['/organizations/'],
-    queryFn: async () => {
-      const regions = ConfigStore.get('memberRegions');
-      const results = await Promise.all(
-        regions.map<Promise<[Region, Organization[]]>>(async region => [
-          region,
-          await api.requestPromise('/organizations/', {
-            host: region.url,
-            // Authentication errors can happen as we span regions.
-            allowAuthError: true,
-          }),
-        ])
-      );
-      return results.reduce<OrganizationWithRegion[]>((acc, [region, response]) => {
-        // Don't append error results to the org list.
-        if (response[0]) {
-          acc = acc.concat(response.map(org => ({...org, region})));
-        }
-        return acc;
-      }, []);
+  return useQueries({
+    queries: memberRegions.map(region =>
+      queryOptions({
+        ...apiOptions.as<Organization[]>()('/organizations/', {
+          host: region.url,
+          // Authentication errors can happen as we span regions.
+          allowAuthError: true,
+          staleTime: 0,
+        }),
+        refetchOnWindowFocus: false,
+        retry: false,
+        select: response =>
+          response.json.map(org => ({
+            ...org,
+            region,
+          })),
+      })
+    ),
+    combine: results => {
+      return {
+        data: results.flatMap(r => r.data ?? []),
+        isError: results.some(r => r.isError),
+        isPending: results.some(r => r.isPending),
+      };
     },
-    refetchOnWindowFocus: false,
-    retry: false,
   });
 }

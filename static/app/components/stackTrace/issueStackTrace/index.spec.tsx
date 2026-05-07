@@ -346,7 +346,7 @@ describe('IssueStackTrace', () => {
     await userEvent.hover(screen.getByLabelText('Line 112'));
 
     await waitFor(() =>
-      expect(screen.getAllByText('Line uncovered by tests')).toHaveLength(2)
+      expect(screen.getAllByText('Line uncovered by tests')).toHaveLength(1)
     );
   });
 

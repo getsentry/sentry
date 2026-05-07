@@ -28,7 +28,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-const IsPrimaryUserContext = createContext<boolean>(false);
+const IsPrimaryUserContext = createContext(false);
 
 const ENDPOINT = getApiUrl('/auth-v2/merge-accounts/');
 const VERIFICATION_CODE_ENDPOINT = getApiUrl('/auth-v2/user-merge-verification-codes/');
@@ -84,6 +84,8 @@ function MergeAccounts() {
     onSuccess: data => {
       addSuccessMessage(t('Accounts merged!'));
       setSelectedUserIds([]);
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<UserWithOrganizations[]>(
         queryClient,
         makeMergeAccountsEndpointKey(),
@@ -164,7 +166,7 @@ function MergeAccounts() {
         <div>{t("Check your email for your code. You'll need it in Step 3.")}</div>
         <ButtonSection>
           <Button
-            priority="primary"
+            variant="primary"
             disabled={verificationCodeSent}
             onClick={() => handlePostVerificationCode()}
           >
@@ -194,7 +196,7 @@ function MergeAccounts() {
         />
         <div>
           <Button
-            priority="danger"
+            variant="danger"
             onClick={() => handleSubmit(selectedUserIds, tokenValue)}
             disabled={isSubmitPending}
           >

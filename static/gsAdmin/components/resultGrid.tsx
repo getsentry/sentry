@@ -536,7 +536,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
               <Button
                 type="submit"
                 icon={<IconSearch />}
-                priority="primary"
+                variant="primary"
                 size="sm"
                 aria-label="Search"
               />

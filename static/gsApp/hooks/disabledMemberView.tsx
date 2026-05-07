@@ -117,7 +117,7 @@ function DisabledMemberView(props: Props) {
     <Button
       onClick={() => handleUpgradeRequestMutation.mutate()}
       size="sm"
-      priority="primary"
+      variant="primary"
     >
       {t('Request Upgrade')}
     </Button>
@@ -164,7 +164,7 @@ function DisabledMemberView(props: Props) {
                       orgName,
                     })}
                   >
-                    <Button size="sm" priority="danger">
+                    <Button size="sm" variant="danger">
                       {t('Leave')}
                     </Button>
                   </Confirm>

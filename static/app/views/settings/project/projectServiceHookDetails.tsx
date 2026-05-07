@@ -213,7 +213,7 @@ export default function ProjectServiceHookDetails() {
             help={t('Removing this hook is immediate and permanent.')}
           >
             <div>
-              <Button priority="danger" onClick={() => deleteMutation.mutate()}>
+              <Button variant="danger" onClick={() => deleteMutation.mutate()}>
                 {t('Delete Hook')}
               </Button>
             </div>

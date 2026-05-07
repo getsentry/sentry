@@ -1116,39 +1116,42 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 tags={"event_type": job["event"].data.get("type") or "null"},
             )
 
-        # Record processing errors to analytics at 1% sample rate
+        # Record processing errors to analytics. Sample at 100% for orgs <30 days old
+        # so new-customer cohorts are fully observable; 1% otherwise.
         processing_errors = job["data"].get("errors", [])
         event = job["event"]
-        if (
-            processing_errors
-            and features.has("organizations:processing-error-analytics", event.project.organization)
-            and random.random() < 0.01
+        if processing_errors and features.has(
+            "organizations:processing-error-analytics", event.project.organization
         ):
-            group_id = job["groups"][0].group.id if job["groups"] else None
-            for error in processing_errors:
-                try:
-                    error_type = error.get("type", "unknown")
-                    error_name = error.get("name")
-                    error_value = error.get("value")
-                    # Convert non-string values to JSON and truncate
-                    if error_value is not None:
-                        if not isinstance(error_value, str):
-                            error_value = orjson.dumps(error_value).decode()
-                        error_value = error_value[:256]
-                    analytics.record(
-                        EventProcessingErrorRecorded(
-                            organization_id=event.project.organization_id,
-                            project_id=event.project_id,
-                            event_id=event.event_id,
-                            group_id=group_id,
-                            error_type=error_type,
-                            platform=job["data"].get("platform"),
-                            name=error_name,
-                            value=error_value,
+            org_age = datetime.now(timezone.utc) - event.project.organization.date_added
+            sample_rate = 1.0 if org_age < timedelta(days=30) else 0.01
+            if random.random() < sample_rate:
+                group_id = job["groups"][0].group.id if job["groups"] else None
+                for error in processing_errors:
+                    try:
+                        error_type = error.get("type", "unknown")
+                        error_name = error.get("name")
+                        error_value = error.get("value")
+                        # Convert non-string values to JSON and truncate
+                        if error_value is not None:
+                            if not isinstance(error_value, str):
+                                error_value = orjson.dumps(error_value).decode()
+                            error_value = error_value[:256]
+                        analytics.record(
+                            EventProcessingErrorRecorded(
+                                organization_id=event.project.organization_id,
+                                project_id=event.project_id,
+                                event_id=event.event_id,
+                                group_id=group_id,
+                                error_type=error_type,
+                                platform=job["data"].get("platform"),
+                                sample_rate=sample_rate,
+                                name=error_name,
+                                value=error_value,
+                            )
                         )
-                    )
-                except Exception:
-                    logger.warning("Failed to save EventProcessingErrorRecorded", exc_info=True)
+                    except Exception:
+                        logger.warning("Failed to save EventProcessingErrorRecorded", exc_info=True)
 
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups

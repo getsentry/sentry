@@ -203,7 +203,7 @@ export function SpanDescription({
             <LinkHint value={spanURL} />
           </Flex>
           <CopyToClipboardButton
-            priority="transparent"
+            variant="transparent"
             size="zero"
             aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
@@ -234,7 +234,7 @@ export function SpanDescription({
           {span.name}
         </Flex>
         <CopyToClipboardButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={span.name}
           aria-label={t('Copy span name to clipboard')}
@@ -250,7 +250,7 @@ export function SpanDescription({
               <LinkHint value={formattedDescription} />
             </Flex>
             <CopyToClipboardButton
-              priority="transparent"
+              variant="transparent"
               size="zero"
               text={formattedDescription}
               aria-label={t('Copy formatted description to clipboard')}
@@ -355,7 +355,7 @@ function ResourceImage(props: {
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}

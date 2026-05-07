@@ -19,7 +19,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {EventView} from 'sentry/utils/discover/eventView';
@@ -64,7 +63,7 @@ import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
-import type {TraceReducer, TraceReducerState} from './traceState';
+import type {TraceReducer} from './traceState';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
@@ -102,7 +101,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const traceState = useTraceState();
 
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
@@ -114,7 +113,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
-  const projectsRef = useRef<Project[]>(projects);
+  const projectsRef = useRef(projects);
   projectsRef.current = projects;
 
   const scrollQueueRef = useTraceScrollToPath({traceSlug: props.traceSlug});

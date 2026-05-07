@@ -259,7 +259,7 @@ export function AvatarChooser({
       <Flex justify="end" gap="md">
         <Button
           size="xs"
-          priority="danger"
+          variant="danger"
           onClick={() => {
             resetToType('upload');
             setCropperOpen(false);
@@ -270,7 +270,7 @@ export function AvatarChooser({
         </Button>
         <Button
           size="xs"
-          priority="primary"
+          variant="primary"
           onClick={() => {
             setCropperOpen(false);
             handleSaveAvatar();
@@ -311,7 +311,7 @@ export function AvatarChooser({
       </AvatarChooserBody>
       <AvatarChooserFooter>
         {help && <AvatarHelp>{help}</AvatarHelp>}
-        <Button priority="primary" onClick={handleSaveAvatar} disabled={disabled}>
+        <Button variant="primary" onClick={handleSaveAvatar} disabled={disabled}>
           {t('Save Avatar')}
         </Button>
       </AvatarChooserFooter>

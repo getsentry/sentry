@@ -99,10 +99,10 @@ export default function DetectorNew() {
       </EditLayoutDeprecated.Body>
 
       <EditLayoutDeprecated.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
-        <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
+        <LinkButton variant="secondary" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
-        <Button priority="primary" type="submit">
+        <Button variant="primary" type="submit">
           {t('Next')}
         </Button>
       </EditLayoutDeprecated.Footer>

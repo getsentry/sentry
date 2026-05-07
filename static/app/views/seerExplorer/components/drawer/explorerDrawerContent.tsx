@@ -48,7 +48,7 @@ export function ExplorerDrawerContent({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const userScrolledUpRef = useRef<boolean>(false);
+  const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {

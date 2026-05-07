@@ -83,7 +83,7 @@ export function SizeCompareMainContent() {
     staleTime: 0,
     enabled: !!headArtifactId && !!baseArtifactId,
     refetchInterval: query => {
-      const mainComparison = getMainComparison(query.state.data?.[0]);
+      const mainComparison = getMainComparison(query.state.data?.json);
       return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
     },
   });
@@ -201,7 +201,7 @@ export function SizeCompareMainContent() {
         message={t("We don't have any comparison data available yet for these builds.")}
       >
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => {
             triggerComparison({
               baseArtifactId,
@@ -241,7 +241,7 @@ export function SizeCompareMainContent() {
         }
       >
         <Button
-          priority="default"
+          variant="secondary"
           onClick={() => {
             triggerComparison({
               baseArtifactId,
@@ -324,7 +324,7 @@ export function SizeCompareMainContent() {
             </Flex>
             <Flex align="center" gap="sm">
               <Button
-                priority="transparent"
+                variant="transparent"
                 size="sm"
                 onClick={() => setIsFilesExpanded(!isFilesExpanded)}
                 aria-label={isFilesExpanded ? t('Collapse items') : t('Expand items')}

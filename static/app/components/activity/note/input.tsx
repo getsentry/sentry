@@ -103,7 +103,7 @@ function NoteInput({
   );
 
   const handleCancel = useCallback(
-    (e: React.MouseEvent<Element>) => {
+    (e: React.MouseEvent) => {
       e.preventDefault();
       onEditFinish?.();
     },
@@ -210,7 +210,7 @@ function NoteInput({
         )}
         <div>
           {existingItem && (
-            <FooterButton priority="danger" onClick={handleCancel}>
+            <FooterButton variant="danger" onClick={handleCancel}>
               {t('Cancel')}
             </FooterButton>
           )}

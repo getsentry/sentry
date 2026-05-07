@@ -8,6 +8,7 @@ import mapValues from 'lodash/mapValues';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -25,6 +26,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -43,6 +45,12 @@ import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SpanFields} from 'sentry/views/insights/types';
+import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
+import {
+  getSearchInExploreTarget,
+  TraceDrawerActionKind,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
@@ -490,15 +498,54 @@ function SlowDBQueryEvidence({
   projectSlug,
   location,
 }: SpanEvidenceKeyValueListProps) {
+  const span = offendingSpans[0]!;
+  const sentryTags = 'sentry_tags' in span ? span.sentry_tags : undefined;
+  const groupHash = sentryTags?.group ?? span.hash ?? '';
+  const hasExplore = organization.features.includes('visibility-explore-view');
+
+  const queryValue = (
+    <QueryCard>
+      <NoPaddingClippedBox clipHeight={200}>
+        <StyledCodeSnippet language="sql">
+          {formatter.toString(span.description ?? '')}
+        </StyledCodeSnippet>
+      </NoPaddingClippedBox>
+      <Flex gap="md" padding="sm lg" borderTop="muted">
+        <SpanSummaryLink
+          op={span.op}
+          category={sentryTags?.category}
+          group={groupHash}
+          project_id={event.projectID}
+          organization={organization}
+        />
+        {hasExplore && span.description && (
+          <Link
+            to={getSearchInExploreTarget(
+              organization,
+              location,
+              event.projectID,
+              SpanFields.SPAN_DESCRIPTION,
+              span.description,
+              TraceDrawerActionKind.INCLUDE
+            )}
+          >
+            <Flex align="center" gap="xs">
+              <IconGraph type="scatter" size="xs" />
+              {t('More Samples')}
+            </Flex>
+          </Link>
+        )}
+      </Flex>
+    </QueryCard>
+  );
+
   return (
-    <PresortedKeyValueList
+    <KeyValueList
+      shouldSort={false}
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
-        makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0]!)),
-        makeRow(
-          t('Duration Impact'),
-          getSingleSpanDurationImpact(event, offendingSpans[0]!)
-        ),
+        makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, span)),
+        makeRow(t('Slow DB Query'), queryValue),
       ]}
     />
   );
@@ -857,4 +904,13 @@ function formatBasePath(span: Span, baseURL?: string): string {
 
 const NoPaddingClippedBox = styled(ClippedBox)`
   padding: 0;
+`;
+
+const QueryCard = styled('div')`
+  border-radius: ${p => p.theme.radius.md};
+  overflow: hidden;
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  pre {
+    margin: 0 !important;
+  }
 `;

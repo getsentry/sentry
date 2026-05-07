@@ -153,7 +153,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
               {t('Cancel')}
             </Button>
             <Button
-              priority="primary"
+              variant="primary"
               onClick={event => {
                 event.stopPropagation();
                 onConfirm();
@@ -298,7 +298,7 @@ function Task({task, hidePanel}: TaskProps) {
                 setShowSkipConfirmation(!showSkipConfirmation);
               }}
               size="zero"
-              priority="transparent"
+              variant="transparent"
               tooltipProps={{title: t('Skip Task')}}
             />
           ) : undefined
@@ -484,7 +484,7 @@ function TaskGroup({
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"
-            priority="transparent"
+            variant="transparent"
           />
         }
       />

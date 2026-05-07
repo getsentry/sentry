@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 from urllib.parse import urlparse
 
 import sentry_sdk
+from django.conf import settings
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
@@ -15,6 +16,15 @@ from sentry import features, options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.templates.sentry_app_webhook_disabled import (
+    SentryAppWebhookDisabled,
+)
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.metrics import (
@@ -25,9 +35,11 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
+from sentry.silo.base import SiloMode
 from sentry.taskworker.timeout import timeout_alarm
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
+from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.circuit_breaker import circuit_breaker_tracking
 
@@ -87,11 +99,77 @@ def _create_circuit_breaker(
         organization_context.organization,
     ):
         return None
+
+    # We don't want to make a circuit breaker in CONTROL silo as it's only used for installation webhooks which are v. low volume
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        return None
+
     config = options.get("sentry-apps.webhook.circuit-breaker.config")
     return CircuitBreaker(
         key=f"sentry-app.webhook.{sentry_app.slug}",
         config=config,
         trip_strategy=RateBasedTripStrategy.from_config(config),
+    )
+
+
+def set_dedup_key(sentry_app: SentryApp | RpcSentryApp, circuit_breaker: CircuitBreaker) -> bool:
+    """Set the dedup key for circuit breaker notification. Returns True if
+    this is the first notification in the window (caller should send email)."""
+    dedup_ttl = max(
+        circuit_breaker.broken_state_duration + circuit_breaker.recovery_duration,
+        86400,  # 24 hours
+    )
+    client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
+    dedup_key = f"sentry-app.webhook.circuit-breaker.notified.{sentry_app.slug}"
+    if not client.set(dedup_key, "1", ex=dedup_ttl, nx=True):
+        client.expire(dedup_key, dedup_ttl)
+        return False
+    return True
+
+
+def _notify_webhook_disabled(
+    circuit_breaker: CircuitBreaker,
+    sentry_app: SentryApp | RpcSentryApp,
+    owner_context: RpcUserOrganizationContext | None,
+) -> None:
+    email = sentry_app.creator_label
+    if not email or "@" not in email:
+        return
+
+    if owner_context is None:
+        return
+    owner_org = owner_context.organization
+
+    if not set_dedup_key(sentry_app, circuit_breaker):
+        return
+
+    if options.get("sentry-apps.webhook.circuit-breaker.dry-run"):
+        logger.info(
+            "sentry_app.webhook.circuit_breaker.would_email",
+            extra={"slug": sentry_app.slug},
+        )
+        return
+
+    data = SentryAppWebhookDisabled(
+        sentry_app_slug=sentry_app.slug,
+        sentry_app_name=sentry_app.name,
+        webhook_url=sentry_app.webhook_url or "",
+        settings_url=absolute_uri(
+            f"/settings/{owner_org.slug}/developer-settings/{sentry_app.slug}/"
+        ),
+    )
+
+    if not NotificationService.has_access(owner_org, data.source):
+        return
+
+    NotificationService(data=data).notify_async(
+        targets=[
+            GenericNotificationTarget(
+                provider_key=NotificationProviderKey.EMAIL,
+                resource_type=NotificationTargetResourceType.EMAIL,
+                resource_id=email,
+            )
+        ]
     )
 
 
@@ -197,19 +275,28 @@ def send_and_save_webhook_request(
 
         assert url is not None
         try:
-            organization_context = organization_service.get_organization_by_id(
-                id=app_platform_event.install.organization_id,
+            owner_context = organization_service.get_organization_by_id(
+                id=sentry_app.owner_id,
                 include_projects=False,
                 include_teams=False,
             )
-            circuit_breaker = _create_circuit_breaker(sentry_app, organization_context)
+            circuit_breaker = _create_circuit_breaker(sentry_app, owner_context)
             if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, org_id, lifecycle):
                 return Response()
 
             with circuit_breaker_tracking(circuit_breaker):
-                response = _send_webhook_request(url, app_platform_event, organization_context)
+                response = _send_webhook_request(url, app_platform_event, owner_context)
 
         except WebhookTimeoutError:
+            if circuit_breaker and circuit_breaker.is_open():
+                try:
+                    _notify_webhook_disabled(circuit_breaker, sentry_app, owner_context)
+                except Exception as email_error:
+                    lifecycle.add_extras(
+                        {"reason_str": str(SentryAppWebhookHaltReason.EMAIL_FAILED)}
+                    )
+                    lifecycle.record_failure(failure_reason=email_error)
+                    raise
             lifecycle.record_halt(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}"
             )

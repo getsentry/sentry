@@ -8,7 +8,8 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';

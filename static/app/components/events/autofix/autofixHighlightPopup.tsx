@@ -371,7 +371,7 @@ function AutofixHighlightPopupContent({
 
   useEffect(() => {
     if (onShouldPersistChange) {
-      onShouldPersistChange(!!commentThread && commentThread.is_completed !== true);
+      onShouldPersistChange(!!commentThread && !commentThread.is_completed);
     }
   }, [commentThread, onShouldPersistChange]);
 
@@ -409,7 +409,7 @@ function AutofixHighlightPopupContent({
                   <Divider />
                   <ResolveButton
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                     aria-label={t('Resolve thread')}
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
@@ -440,7 +440,7 @@ function AutofixHighlightPopupContent({
                 {allMessages.length > 0 && (
                   <ResolveButton
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                     aria-label={t('Resolve thread')}
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
@@ -506,7 +506,7 @@ function AutofixHighlightPopupContent({
               <StyledButton
                 size="zero"
                 type="submit"
-                priority="transparent"
+                variant="transparent"
                 aria-label={t('Submit Comment')}
               >
                 {'\u23CE'}
@@ -553,10 +553,7 @@ function getOptimalPosition(
 export function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{
-    left: number;
-    top: number;
-  }>({
+  const [position, setPosition] = useState({
     left: 0,
     top: 0,
   });

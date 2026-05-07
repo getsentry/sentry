@@ -27,6 +27,7 @@ const productionEntryPoints = [
   'static/app/views/settings/organizationRepositories/noIntegrationsEmptyState.tsx',
   'static/app/views/settings/organizationRepositories/scmRepositoryTable.tsx',
   'static/app/views/settings/organizationRepositories/useRepoSearch.tsx',
+  'static/app/views/settings/organizationRepositoriesV2/index.tsx',
 ];
 
 const testingEntryPoints = [

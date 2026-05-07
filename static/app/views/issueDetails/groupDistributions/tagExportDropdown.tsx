@@ -28,7 +28,7 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          priority="transparent"
+          variant="transparent"
           size="xs"
           aria-label={t('Export options')}
           icon={<IconDownload />}

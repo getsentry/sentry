@@ -143,7 +143,7 @@ export function AutofixInsightSources({
       onClick={sourceCard.onClick}
       size="xs"
       icon={sourceCard.icon}
-      priority={sourceCard.isPrimary ? 'primary' : 'default'}
+      variant={sourceCard.isPrimary ? 'primary' : 'secondary'}
     >
       {sourceCard.label}
     </SourceCard>

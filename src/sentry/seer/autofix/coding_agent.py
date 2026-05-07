@@ -62,6 +62,7 @@ from sentry.seer.autofix.utils import (
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.imports import import_string
 
@@ -105,7 +106,9 @@ def sanitize_branch_name(branch_name: str) -> str:
 
 
 def store_coding_agent_states_to_seer(
-    run_id: int, coding_agent_states: list[CodingAgentState]
+    run_id: int,
+    coding_agent_states: list[CodingAgentState],
+    organization_id: int | None = None,
 ) -> None:
     """Store multiple coding agent states via Seer batch API."""
     if not coding_agent_states:
@@ -114,7 +117,12 @@ def store_coding_agent_states_to_seer(
         run_id=run_id,
         coding_agent_states=[state.dict() for state in coding_agent_states],
     )
-    response = make_store_coding_agent_states_request(body, timeout=30)
+    viewer_context: SeerViewerContext | None = None
+    if organization_id is not None:
+        viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_store_coding_agent_states_request(
+        body, timeout=30, viewer_context=viewer_context
+    )
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
@@ -403,7 +411,11 @@ def _launch_agents_for_repos(
         )
 
     try:
-        store_coding_agent_states_to_seer(run_id=run_id, coding_agent_states=states_to_store)
+        store_coding_agent_states_to_seer(
+            run_id=run_id,
+            coding_agent_states=states_to_store,
+            organization_id=organization.id,
+        )
     except SeerApiError:
         logger.exception(
             "coding_agent.seer_storage_error",

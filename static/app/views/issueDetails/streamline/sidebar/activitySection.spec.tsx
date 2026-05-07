@@ -14,6 +14,7 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -47,6 +48,7 @@ describe('StreamlinedActivitySection', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+    MemberListStore.reset();
     localStorage.clear();
   });
 
@@ -106,6 +108,39 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.type(commentInput, comment);
     await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
     expect(postMock).toHaveBeenCalled();
+  });
+
+  it('uses loaded members for mentions in the drawer comment input', async () => {
+    const mentionedUser = UserFixture({id: '42', name: 'Jane Doe'});
+    MemberListStore.loadInitialData([mentionedUser]);
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-4',
+        user: UserFixture({id: '2'}),
+        type: 'note',
+        data: {text: '@Jane Doe'},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(<StreamlinedActivitySection group={group} isDrawer />);
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@jane');
+    await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Submit comment'}));
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/1337/comments/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          text: '**@Jane Doe** ',
+          mentions: ['user:42'],
+        },
+      })
+    );
   });
 
   it('renders note and allows for delete', async () => {

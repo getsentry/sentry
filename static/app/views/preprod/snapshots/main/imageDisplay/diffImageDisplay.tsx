@@ -2,13 +2,14 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Slider} from '@sentry/scraps/slider';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
 import {computeMaskSize} from 'sentry/views/preprod/snapshots/main/computeMaskSize';
+import {DiffOverlay} from 'sentry/views/preprod/snapshots/main/diffOverlay';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useBufferedImageGroup} from './useBufferedImageUrl';
@@ -31,6 +32,7 @@ interface DiffImageDisplayProps {
   imageBaseUrl: string;
   overlayColor: string;
   pair: SnapshotDiffPair;
+  headLabel?: string;
 }
 
 export function DiffImageDisplay({
@@ -39,6 +41,7 @@ export function DiffImageDisplay({
   diffImageBaseUrl,
   overlayColor,
   diffMode,
+  headLabel = t('Head'),
 }: DiffImageDisplayProps) {
   const [onionOpacity, setOnionOpacity] = useState(50);
 
@@ -51,7 +54,7 @@ export function DiffImageDisplay({
   const maskSize = computeMaskSize(pair.base_image, pair.head_image);
 
   return (
-    <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
+    <Flex direction="column" gap="lg" padding="0 xl xl" flex="1" minHeight="0">
       <HiddenWhenInactive active={diffMode === 'split'}>
         <SplitView
           baseImageUrl={baseImageUrl}
@@ -59,11 +62,16 @@ export function DiffImageDisplay({
           overlayColor={overlayColor}
           diffMaskUrl={diffMaskUrl}
           maskSize={maskSize}
+          headLabel={headLabel}
         />
       </HiddenWhenInactive>
 
       <HiddenWhenInactive active={diffMode === 'wipe'}>
-        <WipeView baseImageUrl={baseImageUrl} headImageUrl={headImageUrl} />
+        <WipeView
+          baseImageUrl={baseImageUrl}
+          headImageUrl={headImageUrl}
+          headLabel={headLabel}
+        />
       </HiddenWhenInactive>
 
       <HiddenWhenInactive active={diffMode === 'onion'}>
@@ -72,6 +80,7 @@ export function DiffImageDisplay({
           headImageUrl={headImageUrl}
           opacity={onionOpacity}
           onOpacityChange={setOnionOpacity}
+          headLabel={headLabel}
         />
       </HiddenWhenInactive>
     </Flex>
@@ -82,6 +91,7 @@ interface SplitViewProps {
   baseImageUrl: string;
   diffMaskUrl: string | null;
   headImageUrl: string;
+  headLabel: string;
   maskSize: string;
   overlayColor: string;
 }
@@ -89,6 +99,7 @@ interface SplitViewProps {
 function SplitView({
   baseImageUrl,
   headImageUrl,
+  headLabel,
   overlayColor,
   diffMaskUrl,
   maskSize,
@@ -101,11 +112,15 @@ function SplitView({
   ]);
   const showOverlay = displayMaskUrl && overlayColor !== TRANSPARENT_COLOR;
   return (
-    <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
-      <Flex direction="column" gap="sm" minHeight="0">
-        <Heading as="h4">{t('Base')}</Heading>
-        <ZoomableArea>
-          <ZoomContainer ref={zoom1.containerRef}>
+    <ZoomableArea>
+      <Grid columns="repeat(2, minmax(0, 1fr))" gap="0" height="100%" minHeight="0">
+        <Flex direction="column" minWidth="0" minHeight="0">
+          <Container padding="sm xl">
+            <Text size="xs" variant="muted" ellipsis monospace>
+              {t('Base')}
+            </Text>
+          </Container>
+          <ZoomContainer ref={zoom1.containerRef} style={splitZoomContainerStyle}>
             <Flex
               justify="center"
               align="center"
@@ -123,13 +138,15 @@ function SplitView({
               )}
             </Flex>
           </ZoomContainer>
-        </ZoomableArea>
-      </Flex>
+        </Flex>
 
-      <Flex direction="column" gap="sm" minHeight="0">
-        <Heading as="h4">{t('Current Branch')}</Heading>
-        <ZoomableArea>
-          <ZoomContainer ref={zoom2.containerRef}>
+        <Flex direction="column" minWidth="0" minHeight="0" borderLeft="secondary">
+          <Container padding="sm xl">
+            <Text size="xs" variant="muted" ellipsis monospace>
+              {headLabel}
+            </Text>
+          </Container>
+          <ZoomContainer ref={zoom2.containerRef} style={splitZoomContainerStyle}>
             <Flex
               justify="center"
               align="center"
@@ -141,11 +158,11 @@ function SplitView({
                 <ImageWrapper>
                   <ZoomableImage
                     src={displayHeadUrl}
-                    alt={t('Current Branch')}
+                    alt={headLabel}
                     loading="eager"
                     decoding="async"
                   />
-                  {showOverlay && displayMaskUrl && (
+                  {showOverlay && (
                     <DiffOverlay
                       $overlayColor={overlayColor}
                       $maskUrl={displayMaskUrl}
@@ -156,23 +173,31 @@ function SplitView({
               )}
             </Flex>
           </ZoomContainer>
-          <ZoomControls
-            onZoomIn={zoom2.zoomIn}
-            onZoomOut={zoom2.zoomOut}
-            onReset={zoom2.resetZoom}
-          />
-        </ZoomableArea>
-      </Flex>
-    </Grid>
+        </Flex>
+      </Grid>
+      <ZoomControls
+        onZoomIn={zoom2.zoomIn}
+        onZoomOut={zoom2.zoomOut}
+        onReset={zoom2.resetZoom}
+      />
+    </ZoomableArea>
   );
 }
+
+const splitZoomContainerStyle: React.CSSProperties = {
+  flex: '1 1 0',
+  minHeight: 0,
+  overflow: 'hidden',
+};
 
 function WipeView({
   baseImageUrl,
   headImageUrl,
+  headLabel,
 }: {
   baseImageUrl: string;
   headImageUrl: string;
+  headLabel: string;
 }) {
   const [displayBaseUrl, displayHeadUrl] = useBufferedImageGroup([
     baseImageUrl,
@@ -196,7 +221,7 @@ function WipeView({
             <Flex justify="center" align="center" height="100%">
               <ConstrainedImage
                 src={displayHeadUrl}
-                alt={t('Current Branch')}
+                alt={headLabel}
                 loading="eager"
                 decoding="async"
               />
@@ -212,11 +237,13 @@ function WipeView({
 function OnionView({
   baseImageUrl,
   headImageUrl,
+  headLabel,
   opacity,
   onOpacityChange,
 }: {
   baseImageUrl: string;
   headImageUrl: string;
+  headLabel: string;
   onOpacityChange: (value: number) => void;
   opacity: number;
 }) {
@@ -251,7 +278,7 @@ function OnionView({
             <OnionOverlayLayer style={{opacity: opacity / 100}}>
               <ConstrainedImage
                 src={displayHeadUrl}
-                alt={t('Current Branch')}
+                alt={headLabel}
                 loading="eager"
                 decoding="async"
               />
@@ -289,27 +316,6 @@ const ImageWrapper = styled('div')`
   position: relative;
   display: inline-block;
   max-width: 100%;
-`;
-
-const DiffOverlay = styled('span')<{
-  $maskSize: string;
-  $maskUrl: string;
-  $overlayColor: string;
-}>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  background-color: ${p => p.$overlayColor};
-  mask-image: url(${p => p.$maskUrl});
-  mask-size: ${p => p.$maskSize};
-  mask-position: top left;
-  mask-mode: luminance;
-  -webkit-mask-image: url(${p => p.$maskUrl});
-  -webkit-mask-size: ${p => p.$maskSize};
-  -webkit-mask-position: top left;
 `;
 
 const OnionContainer = styled('div')`

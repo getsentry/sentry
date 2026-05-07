@@ -28,7 +28,7 @@ export function Breadcrumbs() {
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
-  const [showSnippetSet, setShowSnippetSet] = useState<Set<number>>(new Set());
+  const [showSnippetSet, setShowSnippetSet] = useState(new Set());
 
   const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
   const frames = replay?.getChapterFrames();

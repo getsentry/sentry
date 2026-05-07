@@ -348,7 +348,7 @@ export class Client {
     return (...args: T) => {
       const req = this.activeRequests[id];
 
-      if (cleanup === true) {
+      if (cleanup) {
         delete this.activeRequests[id];
       }
 
@@ -648,7 +648,7 @@ export class Client {
           // Not related to errors in responses
         }
       )
-      .catch(error => {
+      .catch((error: Error) => {
         // eslint-disable-next-line no-console
         console.error(error);
 

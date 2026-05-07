@@ -856,9 +856,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardfavoriteuser": [
                 DateUpdatedComparator("date_added", "date_updated"),
             ],
-            "sentry.dashboardlastvisited": [
-                DateUpdatedComparator("last_visited", "date_added", "date_updated"),
-            ],
             "sentry.dashboardrevision": [
                 DateUpdatedComparator("date_added", "date_updated"),
             ],

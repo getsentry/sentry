@@ -748,10 +748,10 @@ function AMCheckout(props: Props) {
               <Text align="right">
                 {tct('[help:Find an answer] or [contact]', {
                   help: (
-                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                    <ExternalLink href="https://www.sentry.help/en/collections/18842102-account-billing" />
                   ),
                   contact: hasZendesk() ? (
-                    <Button size="zero" priority="link" onClick={activateZendesk}>
+                    <Button size="zero" variant="link" onClick={activateZendesk}>
                       <Text variant="accent">{t('ask Support')}</Text>
                     </Button>
                   ) : (
@@ -819,7 +819,7 @@ function AMCheckout(props: Props) {
             to={`/settings/${organization.slug}/billing/`}
             icon={<IconChevron direction="left" />}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={() => {
               trackGetsentryAnalytics('checkout.exit', {
                 subscription,

@@ -89,7 +89,6 @@ function AggregatesTable({
   const location = useLocation();
   const queries = useReadQueriesFromLocation();
 
-  const topEvents = 5;
   const {result, eventView, fields} = aggregatesTableResult;
   const {sortBys} = queryParts;
   const meta = result.meta ?? {};
@@ -180,9 +179,7 @@ function AggregatesTable({
               return (
                 <TableRow key={i}>
                   <TableBodyCell key={`samples-${i}`}>
-                    {topEvents && i < topEvents && (
-                      <TopResultsIndicator color={palette[i]!} />
-                    )}
+                    {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                       <StyledLink to={target} data-test-id="unstack-link">
                         <IconStack />

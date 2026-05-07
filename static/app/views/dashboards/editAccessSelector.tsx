@@ -65,9 +65,8 @@ export function EditAccessSelector({
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [stagedOptions, setStagedOptions] = useState<string[]>([]);
-  const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
-  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] =
-    useState<boolean>(false);
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] = useState(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
       selectedOptions[1] && selectedOptions[1] !== '_allUsers'
@@ -304,7 +303,7 @@ export function EditAccessSelector({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
-          priority={listOnly ? 'transparent' : undefined}
+          variant={listOnly ? 'transparent' : undefined}
           style={listOnly ? {padding: 2} : {}}
         >
           {listOnly
@@ -317,7 +316,7 @@ export function EditAccessSelector({
       )}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {
-        if (newOpenState === true) {
+        if (newOpenState) {
           trackAnalytics('dashboards2.edit_access.start', {organization});
         }
 

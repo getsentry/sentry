@@ -455,7 +455,7 @@ export function TimeRangeSelector({
                           {showRelative && (
                             <Button
                               size="xs"
-                              priority="transparent"
+                              variant="transparent"
                               icon={<IconArrow direction="left" />}
                               onClick={() => setShowAbsoluteSelector(false)}
                             >

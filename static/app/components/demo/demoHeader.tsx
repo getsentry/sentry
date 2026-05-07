@@ -52,7 +52,7 @@ export function DemoHeader() {
         {t('Request a Demo')}
       </NewRequestDemoBtn>
       <FreeTrialButton
-        priority="primary"
+        variant="primary"
         onClick={() => {
           const url = urlAttachQueryParams(
             'https://sentry.io/signup/',

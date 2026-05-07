@@ -11,7 +11,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
 import {
   generateLogExportRowCountOptions,
@@ -41,10 +43,11 @@ export function LogsExportModal({
   queryInfo,
   tableData,
 }: LogsExportModalProps) {
+  const organization = useOrganization();
   const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
   const payload = useMemo(
     () => ({
-      queryType: ExportQueryType.TRACE_ITEM_FULL_EXPORT,
+      queryType: ExportQueryType.EXPLORE,
       queryInfo: {
         ...queryInfo,
         dataset: TraceItemDataset.LOGS,
@@ -66,14 +69,23 @@ export function LogsExportModal({
       onDynamic: exportModalFormSchema,
     },
     onSubmit: async ({value}) => {
-      if (value.limit > ROW_COUNT_VALUE_SYNC_LIMIT) {
+      const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
+
+      trackAnalytics('explore.table_exported', {
+        organization,
+        traceItemDataset: TraceItemDataset.LOGS,
+        ...queryInfo,
+        export_row_limit: value.limit,
+        export_file_format: value.format,
+        export_type: passedSyncLimit ? 'export_download' : 'browser_sync',
+      });
+
+      if (passedSyncLimit) {
         await handleDataExport({
           format: value.format,
-          queryInfo: {
-            ...payload.queryInfo,
-            limit: value.limit,
-          },
+          queryInfo: payload.queryInfo,
           queryType: payload.queryType,
+          limit: value.limit,
         });
       } else {
         downloadLogs({
@@ -134,10 +146,20 @@ export function LogsExportModal({
       </Body>
       <Footer>
         <Flex gap="xl" justify="end">
-          <Button priority="default" onClick={closeModal}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              trackAnalytics('logs.export_modal', {
+                organization,
+                action: 'cancel',
+                close_reason: 'cancel_button',
+              });
+              closeModal();
+            }}
+          >
             {t('Cancel')}
           </Button>
-          <form.SubmitButton priority="primary">{t('Export')}</form.SubmitButton>
+          <form.SubmitButton variant="primary">{t('Export')}</form.SubmitButton>
         </Flex>
       </Footer>
     </form.AppForm>

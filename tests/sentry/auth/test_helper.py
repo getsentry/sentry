@@ -13,6 +13,7 @@ from sentry import audit_log
 from sentry.analytics.events.user_signup import UserSignUpEvent
 from sentry.auth.helper import (
     ERR_IDENTITY_CONFLICT,
+    ERR_USER_SUSPENDED,
     OK_LINK_IDENTITY,
     AuthHelper,
     AuthIdentityHandler,
@@ -688,6 +689,51 @@ class AuthHelperTest(TestCase):
             self.request,
             mock_messages.ERROR,
             f"Authentication error: {ERR_IDENTITY_CONFLICT}",
+        )
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_suspended_user_gets_error_not_redirect_loop(
+        self,
+        mock_messages: mock.MagicMock,
+    ) -> None:
+        user = self.create_user(email="suspended@example.com")
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user.update(is_suspended=True)
+
+        AuthIdentity.objects.create(
+            auth_provider=self.auth_provider_inst,
+            user=user,
+            ident="suspended@example.com",
+        )
+
+        initial_state = {
+            "org_id": self.organization.id,
+            "flow": FLOW_LOGIN,
+            "provider_model_id": self.auth_provider_inst.id,
+            "provider_key": None,
+            "referrer": None,
+        }
+        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client.set(self.auth_key, json.dumps(initial_state))
+
+        helper = AuthHelper.get_for_request(self.request)
+        assert helper is not None
+        helper.initialize()
+
+        helper.bind_state("email", "suspended@example.com")
+        helper.bind_state("email_verified", True)
+
+        helper.state.step_index = len(helper.pipeline_views)
+        result = helper.current_step()
+
+        assert result.status_code == 302
+        assert isinstance(result, HttpResponseRedirect)
+        assert result.url == f"/auth/login/{self.organization.slug}/"
+        mock_messages.add_message.assert_called_once_with(
+            self.request,
+            mock_messages.ERROR,
+            f"Authentication error: {ERR_USER_SUSPENDED}",
         )
 
 

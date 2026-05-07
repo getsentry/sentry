@@ -141,7 +141,7 @@ export function SearchDropdown({
           {runShortcut &&
             visibleShortcuts?.map(shortcut => (
               <Button
-                priority="transparent"
+                variant="transparent"
                 size="xs"
                 key={shortcut.text}
                 onClick={() => runShortcut(shortcut)}

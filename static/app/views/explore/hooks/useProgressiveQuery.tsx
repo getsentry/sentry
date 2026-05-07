@@ -1,4 +1,5 @@
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
 
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
@@ -20,13 +21,10 @@ const NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS = {
 } as const;
 
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
-export type RPCQueryExtras = {
+export type RPCQueryExtras = Partial<CrossEventQueryExtras> & {
   caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
-  logQuery?: string[];
-  metricQuery?: string[];
   samplingMode?: SamplingMode;
-  spanQuery?: string[];
 };
 
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
