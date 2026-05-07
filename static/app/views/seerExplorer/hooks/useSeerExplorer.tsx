@@ -3,18 +3,17 @@ import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
-import {
-  isSessionComplete,
-  useSeerExplorerPolling,
-} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
@@ -73,21 +72,21 @@ function supportsStructuredContext(
   );
 }
 
-const OPTIMISTIC_ASSISTANT_TEXTS = [
-  'Looking around...',
-  'One sec...',
-  'Following breadcrumbs...',
-  'Onboarding...',
-  'Hold tight...',
-  'Gathering threads...',
-  'Tracing the answer...',
-  'Stacking ideas...',
-  'Profiling your project...',
-  'Span by span...',
-  'Rolling logs...',
-  'Replaying prod...',
-  'Scanning the error-waves...',
-] as const;
+const getOptimisticAssistantTexts = () => [
+  t('Looking around...'),
+  t('One sec...'),
+  t('Following breadcrumbs...'),
+  t('Onboarding...'),
+  t('Hold tight...'),
+  t('Gathering threads...'),
+  t('Tracing the answer...'),
+  t('Stacking ideas...'),
+  t('Profiling your project...'),
+  t('Span by span...'),
+  t('Rolling logs...'),
+  t('Replaying prod...'),
+  t('Scanning the error-waves...'),
+];
 
 const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
   session: {
@@ -113,6 +112,7 @@ export const useSeerExplorer = () => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
+  const {getPageReferrer} = usePageReferrer();
   const {getLLMContext} = useLLMContext();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
     'seer-explorer.override.ctx-eng',
@@ -138,18 +138,13 @@ export const useSeerExplorer = () => {
     );
 
   const [runId, setRunId] = useSeerExplorerRunId();
-
-  const {getPageReferrer} = usePageReferrer();
-
-  const [waitingForInterrupt, setWaitingForInterrupt] = useState(false);
-  const [optimistic, setOptimistic] = useState<{
-    assistantBlockId: string;
-    assistantContent: string;
-    baselineUpdatedAt: string | undefined;
+  const [lastSentMessage, setLastSentMessage] = useState<{
     insertIndex: number;
-    userBlockId: string;
-    userQuery: string;
+    loadingPlaceholderContent: string;
+    query: string;
+    timestampMs: number;
   } | null>(null);
+  const [waitingForInterrupt, setWaitingForInterrupt] = useState(false);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   // Queries and mutations
@@ -169,9 +164,17 @@ export const useSeerExplorer = () => {
   >({
     mutationFn: async params => {
       setWaitingForInterrupt(false);
-      const {url} = parseQueryKey(
-        makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId)
-      );
+      const queryKey = makeSeerExplorerQueryKey(params.orgSlug, params.runId);
+
+      // Optimistic processing status to prevent isPolling flicker.
+      if (params.runId !== null) {
+        setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
+          prev?.session
+            ? {...prev, session: {...prev.session, status: 'processing'}}
+            : prev
+        );
+      }
+      const {url} = parseQueryKey(queryKey);
       return fetchMutation({
         url,
         method: 'POST',
@@ -186,19 +189,18 @@ export const useSeerExplorer = () => {
       });
     },
     onSuccess: (response, params) => {
-      if (params.runId) {
-        // invalidate the query so fresh data is fetched
-        queryClient.invalidateQueries({
-          queryKey: makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId),
-        });
-      } else {
+      if (params.runId === null) {
         // set run ID if this is a new session
         setRunId(response.run_id);
+      } else {
+        // invalidate the query so fresh data is fetched
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+        });
       }
     },
     onError: (e, params) => {
       setWaitingForInterrupt(false);
-      setOptimistic(null);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
         // Will be fixed soon when we get rid of setApiQueryData.
@@ -229,6 +231,18 @@ export const useSeerExplorer = () => {
   >({
     mutationFn: async params => {
       setWaitingForInterrupt(false);
+
+      // Optimistic processing status to prevent isPolling flicker.
+      if (params.runId !== null) {
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+          prev =>
+            prev?.session
+              ? {...prev, session: {...prev.session, status: 'processing'}}
+              : prev
+        );
+      }
       return fetchMutation({
         url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
         method: 'POST',
@@ -244,7 +258,7 @@ export const useSeerExplorer = () => {
     onSuccess: (_, params) => {
       // invalidate the query so fresh data is fetched
       queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId),
+        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
       });
     },
     onError: (e, params) => {
@@ -275,6 +289,18 @@ export const useSeerExplorer = () => {
   >({
     mutationFn: async params => {
       setWaitingForInterrupt(false);
+
+      // Optimistic processing status to prevent isPolling flicker.
+      if (params.runId !== null) {
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+          prev =>
+            prev?.session
+              ? {...prev, session: {...prev.session, status: 'processing'}}
+              : prev
+        );
+      }
       return fetchMutation({
         url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
         method: 'POST',
@@ -289,16 +315,20 @@ export const useSeerExplorer = () => {
     onSuccess: (_, params) => {
       // invalidate the query so fresh data is fetched
       queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId),
+        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
       });
     },
-    onError: e => {
+    onError: (e, params) => {
       setWaitingForInterrupt(false);
       addErrorMessage(
         typeof e.responseJSON?.detail === 'string'
           ? e.responseJSON.detail
           : 'Failed to create PR'
       );
+      // Clear optimistic processing status
+      queryClient.invalidateQueries({
+        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+      });
     },
   });
 
@@ -329,10 +359,11 @@ export const useSeerExplorer = () => {
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {apiData, isPolling, isError, errorStatusCode} = useSeerExplorerPolling({
-    runId,
-    isMutatePending,
-  });
+  const {apiData, isPolling, isError, errorStatusCode, isResponseComplete} =
+    useSeerExplorerPolling({
+      runId,
+      isMutatePending,
+    });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -341,11 +372,9 @@ export const useSeerExplorer = () => {
         return;
       }
 
-      // Set the new run ID
+      // Set the new run ID and clear previous request states
       setRunId(newRunId);
-
-      // Clear any optimistic state from previous run
-      setOptimistic(null);
+      setLastSentMessage(null);
       setWaitingForInterrupt(false);
 
       // Invalidate the query to force a fresh fetch
@@ -362,7 +391,7 @@ export const useSeerExplorer = () => {
   const startNewSession = useCallback(() => switchToRun(null), [switchToRun]);
 
   const sendMessage = useCallback(
-    (query: string, insertIndex?: number, explicitRunId?: number | null) => {
+    (query: string, explicitInsertIndex?: number, explicitRunId?: number | null) => {
       if (!orgSlug) {
         return;
       }
@@ -403,39 +432,29 @@ export const useSeerExplorer = () => {
         });
       }
 
-      // Calculate insert index first
-      const effectiveMessageLength = apiData?.session?.blocks.length || 0;
-      const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
+      // Calculate new insert index
+      const blocksLength = apiData?.session?.blocks.length || 0;
+      const newInsertIndex = Math.min(
+        Math.max(explicitInsertIndex ?? blocksLength, 0),
+        blocksLength
+      );
 
-      // Generate deterministic block IDs matching backend logic
-      // Backend generates: `{prefix}-{index}-{content[:16].replace(' ', '-')}`
-      const generateBlockId = (prefix: string, content: string, index: number) => {
-        const contentPrefix = content.slice(0, 16).replace(/ /g, '-');
-        return `${prefix}-${index}-${contentPrefix}`;
-      };
+      // Pick a random placeholder for the next loading block, so it's deterministic per user message
+      const texts = getOptimisticAssistantTexts();
+      const placeholderContent = texts[Math.floor(Math.random() * texts.length)]!;
 
-      // Set optimistic UI: show user's message and a thinking placeholder,
-      // and hide all real blocks after the insert point.
-      const assistantContent =
-        OPTIMISTIC_ASSISTANT_TEXTS[
-          Math.floor(Math.random() * OPTIMISTIC_ASSISTANT_TEXTS.length)
-        ];
-      setOptimistic({
-        insertIndex: calculatedInsertIndex,
-        userQuery: query,
-        userBlockId: generateBlockId('user', query, calculatedInsertIndex),
-        assistantBlockId: generateBlockId(
-          'loading',
-          assistantContent || '',
-          calculatedInsertIndex + 1
-        ),
-        assistantContent: assistantContent || 'Thinking...',
-        baselineUpdatedAt: apiData?.session?.updated_at,
+      // Update lastSentMessage for optimistic UI
+      setLastSentMessage({
+        query,
+        insertIndex: newInsertIndex,
+        timestampMs: Date.now(),
+        loadingPlaceholderContent: placeholderContent,
       });
 
+      // Send POST request
       sendMessageMutate({
         query,
-        insertIndex: calculatedInsertIndex,
+        insertIndex: newInsertIndex,
         runId: effectiveRunId,
         orgSlug,
         pageName,
@@ -455,6 +474,7 @@ export const useSeerExplorer = () => {
       overrideCtxEngEnable,
       overrideCodeModeEnable,
       sendMessageMutate,
+      setLastSentMessage,
     ]
   );
 
@@ -486,42 +506,6 @@ export const useSeerExplorer = () => {
     [orgSlug, runId, createPRMutate]
   );
 
-  // On partial response load - clear optimistic blocks once the server has persisted the user
-  // message and produced a real assistant response after the insert point.
-  useEffect(() => {
-    if (!optimistic || apiData?.session?.updated_at === optimistic.baselineUpdatedAt) {
-      return;
-    }
-
-    const serverBlocks = apiData?.session?.blocks || [];
-    const blockAtInsert = serverBlocks[optimistic.insertIndex];
-
-    const serverHasUserBlock =
-      blockAtInsert?.message.role === 'user' &&
-      blockAtInsert?.message.content === optimistic.userQuery;
-
-    if (!serverHasUserBlock) {
-      return;
-    }
-
-    const hasAssistantResponse = serverBlocks
-      .slice(optimistic.insertIndex + 1)
-      .some(b => b.message.role === 'assistant');
-
-    if (hasAssistantResponse) {
-      setOptimistic(null);
-    }
-  }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
-
-  // On any completed state
-  const isComplete = isSessionComplete(apiData?.session);
-  useEffect(() => {
-    if (isComplete) {
-      setWaitingForInterrupt(false);
-      setOptimistic(null);
-    }
-  }, [isComplete]);
-
   // Detect PR creation errors and show error messages
   useEffect(() => {
     const currentPRStates = apiData?.session?.repo_pr_states ?? {};
@@ -544,53 +528,85 @@ export const useSeerExplorer = () => {
     previousPRStatesRef.current = currentPRStates;
   }, [apiData?.session?.repo_pr_states]);
 
-  // Filtered session data for UI, applying optimistic state
-  const filteredSessionData = useMemo(() => {
-    const rawSessionData = apiData?.session ?? null;
-    const realBlocks = rawSessionData?.blocks || [];
+  // Clear interrupt button loading spinner on any completed state
+  useEffect(() => {
+    if (isResponseComplete) {
+      setWaitingForInterrupt(false);
+    }
+  }, [isResponseComplete]);
 
-    if (optimistic) {
-      const insert = Math.min(Math.max(optimistic.insertIndex, 0), realBlocks.length);
+  const rawSessionData = apiData?.session ?? null;
 
-      const optimisticUserBlock: Block = {
-        id: optimistic.userBlockId,
-        message: {role: 'user', content: optimistic.userQuery},
-        timestamp: new Date().toISOString(),
-        loading: false,
-      };
-
-      const optimisticThinkingBlock: Block = {
-        id: optimistic.assistantBlockId,
-        message: {role: 'assistant', content: optimistic.assistantContent},
-        timestamp: new Date().toISOString(),
-        loading: true,
-      };
-
-      const visibleBlocks = [
-        ...realBlocks.slice(0, insert),
-        optimisticUserBlock,
-        optimisticThinkingBlock,
-      ];
-
-      const baseSession = rawSessionData ?? {
-        run_id: runId ?? undefined,
-        blocks: [],
-        status: 'processing' as const,
-        updated_at: new Date().toISOString(),
-      };
-
-      return {
-        ...baseSession,
-        blocks: visibleBlocks,
-        status: 'processing' as const,
-      };
+  // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
+  const processedSessionData = useMemo(() => {
+    if (lastSentMessage === null || !isPolling) {
+      return rawSessionData;
     }
 
-    return rawSessionData;
-  }, [apiData?.session, optimistic, runId]);
+    const serverBlocks = rawSessionData?.blocks || [];
+
+    const {
+      insertIndex,
+      query: userQuery,
+      timestampMs: lastSentTimestampMs,
+      loadingPlaceholderContent,
+    } = lastSentMessage;
+
+    // Hydrated state - don't apply optimistic blocks once the server has persisted
+    // the last user query and at least one assistant response.
+    const blockAtInsert = serverBlocks[insertIndex];
+    const serverHasUserBlock =
+      blockAtInsert?.message.role === 'user' &&
+      blockAtInsert?.message.content === userQuery &&
+      (getDateFromTimestampAssumeUtc(blockAtInsert?.timestamp)?.getTime() ?? 0) >=
+        Math.floor(lastSentTimestampMs / 1000) * 1000;
+
+    const serverHasResponse = serverBlocks
+      .slice(insertIndex + 1)
+      .some(b => b.message.role === 'assistant' || b.message.role === 'tool_use');
+
+    if (serverHasUserBlock && serverHasResponse) {
+      return rawSessionData;
+    }
+
+    // Apply optimistic blocks with insertIndex truncation
+    const optimisticUserBlock: Block = {
+      id: `user-${insertIndex}-optimistic`,
+      message: {role: 'user', content: userQuery},
+      timestamp: new Date().toISOString(),
+      loading: false,
+    };
+
+    const optimisticThinkingBlock: Block = {
+      id: `loading-${insertIndex + 1}-optimistic`,
+      message: {role: 'assistant', content: loadingPlaceholderContent},
+      timestamp: new Date().toISOString(),
+      loading: true,
+    };
+
+    // insertIndex should be in-bounds but clamp it here just in case.
+    const validInsertIndex = Math.min(Math.max(insertIndex, 0), serverBlocks.length);
+    const visibleBlocks = [
+      ...serverBlocks.slice(0, validInsertIndex),
+      optimisticUserBlock,
+      optimisticThinkingBlock,
+    ];
+
+    const baseSession = rawSessionData ?? {
+      run_id: runId ?? undefined,
+      blocks: [],
+      status: 'processing' as const,
+      updated_at: new Date().toISOString(),
+    };
+
+    return {
+      ...baseSession,
+      blocks: visibleBlocks,
+    };
+  }, [rawSessionData, runId, lastSentMessage, isPolling]);
 
   return {
-    sessionData: filteredSessionData,
+    sessionData: processedSessionData,
     isPolling,
     isError,
     errorStatusCode,
