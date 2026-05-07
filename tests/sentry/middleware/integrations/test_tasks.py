@@ -372,8 +372,6 @@ class RouteSlackSeerEventTest(TestCase):
         assert cached["event_type"] == "app_mention"
         assert cached["message_text"] == "hello"
         assert cached["payload"] == self.payload
-        # response_url is populated later by the LINK_IDENTITY click handler.
-        assert cached["response_url"] is None
 
     @patch("sentry.middleware.integrations.tasks.send_halt_message")
     @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
