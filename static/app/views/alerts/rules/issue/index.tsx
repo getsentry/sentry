@@ -127,8 +127,6 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
-type RouteParams = {projectId?: string; ruleId?: string};
-
 type IncompatibleRule = {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
@@ -143,7 +141,7 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<RouteParams>;
+} & RouteComponentProps;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
@@ -159,7 +157,7 @@ type State = DeprecatedAsyncComponent['state'] & {
 };
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
-  return rule?.hasOwnProperty('id') ?? false;
+  return Object.hasOwn(rule ?? {}, 'id');
 }
 
 /**
@@ -438,7 +436,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           success: true,
         });
       })
-      .catch(error => {
+      .catch((error: any) => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
         this.setState({detailedError: error.responseJSON || null});
         trackAnalytics('edit_alert_rule.notification_test', {
@@ -613,7 +611,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       return false;
     }
 
-    return detailedError.hasOwnProperty(field);
+    return Object.hasOwn(detailedError, field);
   };
 
   handleEnvironmentChange = (val: string) => {

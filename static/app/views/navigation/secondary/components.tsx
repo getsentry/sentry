@@ -846,7 +846,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   // We need to hold a copy of the local state because dnd-kit does not play well
   // with the optimistic updates and async state.
   // See: https://github.com/clauderic/dnd-kit/issues/921
-  const [items, setItems] = useState<T[]>(props.items);
+  const [items, setItems] = useState(props.items);
   useEffect(() => {
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setItems(props.items);
@@ -996,7 +996,7 @@ function SecondaryNavigationReorderableLink({
   );
 }
 
-function GrabHandle(props: FlexProps<'div'>) {
+function GrabHandle(props: FlexProps) {
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
 

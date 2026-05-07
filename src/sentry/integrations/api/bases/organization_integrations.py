@@ -14,6 +14,7 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
     integration_service,
 )
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
@@ -24,6 +25,22 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
     """
 
     permission_classes = (OrganizationIntegrationsPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str | None = None,
+        integration_id: str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+
+        if integration_id is not None:
+            kwargs["integration_id"] = to_valid_int_id(
+                "integration_id", integration_id, raise_404=True
+            )
+        return args, kwargs
 
     @staticmethod
     def get_organization_integration(
@@ -82,15 +99,11 @@ class CellOrganizationIntegrationBaseEndpoint(CellIntegrationEndpoint):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
-        kwargs["integration_id"] = self.validate_integration_id(integration_id or "")
+        if integration_id is not None:
+            kwargs["integration_id"] = to_valid_int_id(
+                "integration_id", integration_id, raise_404=True
+            )
         return args, kwargs
-
-    @staticmethod
-    def validate_integration_id(integration_id: str) -> int:
-        try:
-            return int(integration_id)
-        except ValueError:
-            raise Http404
 
     @staticmethod
     def get_organization_integration(

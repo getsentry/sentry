@@ -31,7 +31,6 @@ export enum FieldKey {
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
-  DETECTOR = 'detector',
   DEVICE = 'device',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -87,6 +86,7 @@ export enum FieldKey {
   LEVEL = 'level',
   LOCATION = 'location',
   MESSAGE = 'message',
+  MONITOR = 'monitor',
   OS = 'os',
   OS_BUILD = 'os.build',
   OS_KERNEL_VERSION = 'os.kernel_version',
@@ -123,6 +123,7 @@ export enum FieldKey {
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
   TIMES_SEEN = 'timesSeen',
   TITLE = 'title',
+  USER_COUNT = 'userCount',
   TOTAL_COUNT = 'total.count',
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
@@ -178,7 +179,6 @@ type ErrorFieldKey =
   | FieldKey.ASSIGNED_OR_SUGGESTED
   | FieldKey.BOOKMARKS
   | FieldKey.CULPRIT
-  | FieldKey.DETECTOR
   | FieldKey.ERROR_HANDLED
   | FieldKey.ERROR_MECHANISM
   | FieldKey.ERROR_TYPE
@@ -199,6 +199,7 @@ type ErrorFieldKey =
   | FieldKey.LAST_SEEN
   | FieldKey.LEVEL
   | FieldKey.LOCATION
+  | FieldKey.MONITOR
   | FieldKey.STACK_ABS_PATH
   | FieldKey.STACK_COLNO
   | FieldKey.STACK_FILENAME
@@ -212,6 +213,7 @@ type ErrorFieldKey =
   | FieldKey.STATUS
   | FieldKey.SYMBOLICATED_IN_APP
   | FieldKey.TIMES_SEEN
+  | FieldKey.USER_COUNT
   | FieldKey.TYPE
   | FieldKey.UNREAL_CRASH_TYPE;
 
@@ -556,6 +558,12 @@ function validateForNumericAggregate(
 function getDynamicFieldValueType(parameters: Array<string | null>): FieldValueType {
   const column = parameters[0];
   const fieldDef = column ? getFieldDefinition(column) : null;
+  return fieldDef?.valueType ?? FieldValueType.NUMBER;
+}
+
+function getSpanDynamicFieldValueType(parameters: Array<string | null>): FieldValueType {
+  const column = parameters[0];
+  const fieldDef = column ? _getFieldFromMappings('span', column) : null;
   return fieldDef?.valueType ?? FieldValueType.NUMBER;
 }
 
@@ -1339,6 +1347,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.MIN]: {
     ...AGGREGATION_FIELDS[AggregationKey.MIN],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1349,6 +1358,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.DATE,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1357,6 +1367,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.MAX]: {
     ...AGGREGATION_FIELDS[AggregationKey.MAX],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1367,6 +1378,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.DATE,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1375,6 +1387,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.SUM]: {
     ...AGGREGATION_FIELDS[AggregationKey.SUM],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1383,6 +1396,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         required: true,
         defaultValue: 'span.duration',
@@ -1391,6 +1405,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.AVG]: {
     ...AGGREGATION_FIELDS[AggregationKey.AVG],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1399,6 +1414,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1407,6 +1423,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P50]: {
     ...AGGREGATION_FIELDS[AggregationKey.P50],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1415,6 +1432,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1423,6 +1441,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P75]: {
     ...AGGREGATION_FIELDS[AggregationKey.P75],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1431,6 +1450,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1439,6 +1459,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P90]: {
     ...AGGREGATION_FIELDS[AggregationKey.P90],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1447,6 +1468,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1455,6 +1477,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P95]: {
     ...AGGREGATION_FIELDS[AggregationKey.P95],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1463,6 +1486,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1471,6 +1495,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P99]: {
     ...AGGREGATION_FIELDS[AggregationKey.P99],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1479,6 +1504,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1487,6 +1513,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P100]: {
     ...AGGREGATION_FIELDS[AggregationKey.P100],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -1495,6 +1522,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.DURATION,
           FieldValueType.NUMBER,
           FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
         required: true,
@@ -1959,12 +1987,6 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.DETECTOR]: {
-    desc: t('The detector that triggered the issue'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
   [FieldKey.ERROR_HANDLED]: {
     desc: t('Determines handling status of the error'),
     kind: FieldKind.FIELD,
@@ -2074,6 +2096,12 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.MONITOR]: {
+    desc: t('The monitor that triggered the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.STACK_ABS_PATH]: {
     desc: t('Absolute path to the source file'),
     kind: FieldKind.FIELD,
@@ -2140,6 +2168,12 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
     keywords: ['count'],
+  },
+  [FieldKey.USER_COUNT]: {
+    desc: t('Number of unique users affected'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+    keywords: ['users', 'affected'],
   },
   [FieldKey.TYPE]: {
     desc: t('Type of event (Errors, transactions, csp and default)'),
@@ -2513,10 +2547,29 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
   },
 };
 
+const GEN_AI_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  [SpanFields.GEN_AI_COST_INPUT_TOKENS]: {
+    desc: t('The cost of the input tokens'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.CURRENCY,
+  },
+  [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: {
+    desc: t('The cost of the output tokens'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.CURRENCY,
+  },
+  [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: {
+    desc: t('The total cost of the input and output tokens'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.CURRENCY,
+  },
+};
+
 const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
   ...SPAN_HTTP_FIELD_DEFINITIONS,
+  ...GEN_AI_FIELD_DEFINITIONS,
   [SpanFields.NAME]: {
     desc: t(
       'The span name. A short, human-readable identifier for the operation being performed by the span.'
@@ -2747,7 +2800,6 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ASSIGNED_OR_SUGGESTED,
   FieldKey.ASSIGNED,
   FieldKey.BOOKMARKS,
-  FieldKey.DETECTOR,
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
   FieldKey.HAS,
@@ -2759,8 +2811,10 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ISSUE_TYPE,
   FieldKey.ISSUE,
   FieldKey.LAST_SEEN,
+  FieldKey.MONITOR,
   FieldKey.RELEASE_STAGE,
   FieldKey.TIMES_SEEN,
+  FieldKey.USER_COUNT,
 ];
 
 // Should match Snuba columns defined in sentry/snuba/events.py

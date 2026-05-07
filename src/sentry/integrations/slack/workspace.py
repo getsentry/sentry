@@ -104,6 +104,10 @@ def get_thread_history(
     channel_id: str,
     thread_ts: str,
     scopes: Sequence[str] | None = None,
+    latest: str | None = None,
+    oldest: str | None = None,
+    inclusive: bool | None = None,
+    limit: int | None = None,
 ) -> list[dict[str, Any]]:
     """Fetch thread replies via conversations.replies. Empty list on missing scope or error."""
     if not has_history_scope(integration_id=integration_id, channel_id=channel_id, scopes=scopes):
@@ -111,7 +115,14 @@ def get_thread_history(
 
     try:
         client = SlackSdkClient(integration_id=integration_id)
-        response = client.conversations_replies(channel=channel_id, ts=thread_ts)
+        response = client.conversations_replies(
+            channel=channel_id,
+            ts=thread_ts,
+            latest=latest,
+            oldest=oldest,
+            inclusive=inclusive,
+            limit=limit,
+        )
         return response.get("messages", []) or []
     except SlackApiError as e:
         _logger.warning(

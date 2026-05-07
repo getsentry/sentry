@@ -308,6 +308,8 @@ function MetadataTooltip({json}: {json: string}) {
   );
 }
 
+const METADATA_BLOCKLIST = new Set(['content_hash', 'key', 'diff_image_key']);
+
 function MetadataInfoButton({
   copyData,
   onCopy,
@@ -316,7 +318,11 @@ function MetadataInfoButton({
   onCopy?: () => void;
 }) {
   const {copy} = useCopyToClipboard();
-  const json = JSON.stringify(copyData, null, 2);
+  const json = JSON.stringify(
+    copyData,
+    (k, v) => (METADATA_BLOCKLIST.has(k) ? undefined : v),
+    2
+  );
 
   return (
     <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>

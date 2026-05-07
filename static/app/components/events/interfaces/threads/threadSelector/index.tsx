@@ -44,8 +44,8 @@ export function ThreadSelector({
   onChange,
 }: Props) {
   const organization = useOrganization({allowNull: true});
-  const [sortAttribute, setSortAttribute] = useState<SortAttribute>(SortAttribute.ID);
-  const [isSortAscending, setIsSortAscending] = useState<boolean>(true);
+  const [sortAttribute, setSortAttribute] = useState(SortAttribute.ID);
+  const [isSortAscending, setIsSortAscending] = useState(true);
 
   const hasThreadStates = threads.some(thread =>
     defined(getMappedThreadState(thread.state))

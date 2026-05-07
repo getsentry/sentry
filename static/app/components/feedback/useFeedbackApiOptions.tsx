@@ -37,7 +37,7 @@ export function FeedbackApiOptions({children, organization}: Props) {
     setHeadTimeMs(Date.now());
   }, []);
 
-  const itemApiOptionsRef = useRef<Map<string, FeedbackItemApiOptions>>(new Map());
+  const itemApiOptionsRef = useRef(new Map<string, FeedbackItemApiOptions>());
   const getItemApiOptions = useCallback(
     (feedbackId: string) => {
       if (!itemApiOptionsRef.current.has(feedbackId)) {

@@ -83,7 +83,7 @@ export function SizeCompareMainContent() {
     staleTime: 0,
     enabled: !!headArtifactId && !!baseArtifactId,
     refetchInterval: query => {
-      const mainComparison = getMainComparison(query.state.data?.[0]);
+      const mainComparison = getMainComparison(query.state.data?.json);
       return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
     },
   });

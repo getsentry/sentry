@@ -15,6 +15,7 @@ from sentry.tasks.llm_issue_detection import (
 from sentry.tasks.llm_issue_detection.detection import (
     START_TIME_DELTA_MINUTES,
     TRANSACTION_BATCH_SIZE,
+    TraceMetadataWithSpanCount,
 )
 from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
@@ -340,6 +341,50 @@ class LLMIssueDetectionTest(TestCase):
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=business" in budget_url
 
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
+    @patch(
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
+    )
+    def test_traces_sent_per_plan_tier(
+        self, mock_get_transactions, mock_seer_request, mock_budget_request
+    ):
+        mock_budget_request.return_value = self._budget_ok_response()
+        mock_get_transactions.return_value = [
+            TraceMetadataWithSpanCount(trace_id=f"t{i}", span_count=50) for i in range(4)
+        ]
+        mock_seer_request.return_value = Mock(status=202)
+
+        for plan_tier, expected in [("team", 1), ("business", 1)]:
+            detect_llm_issues_for_org(self.organization.id, plan_tier=plan_tier)
+            seer_request = mock_seer_request.call_args[0][0]
+            assert len(seer_request.traces) == expected
+            assert seer_request.plan_tier == plan_tier
+
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
+    @patch(
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
+    )
+    def test_traces_per_invocation_option_override(
+        self, mock_get_transactions, mock_seer_request, mock_budget_request
+    ):
+        mock_budget_request.return_value = self._budget_ok_response()
+        mock_get_transactions.return_value = [
+            TraceMetadataWithSpanCount(trace_id=f"t{i}", span_count=50) for i in range(4)
+        ]
+        mock_seer_request.return_value = Mock(status=202)
+
+        with self.options(
+            {"issue-detection.llm-detection.traces-per-invocation": {"team": 2, "business": 4}}
+        ):
+            for plan_tier, expected in [("team", 2), ("business", 4)]:
+                detect_llm_issues_for_org(self.organization.id, plan_tier=plan_tier)
+                seer_request = mock_seer_request.call_args[0][0]
+                assert len(seer_request.traces) == expected
+
 
 class LLMIssueDetectionProjectFilterTest(TestCase):
     @with_feature("organizations:gen-ai-features")
@@ -451,3 +496,48 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         assert len(evidence_traces) == 2
         result_trace_ids = {t.trace_id for t in evidence_traces}
         assert result_trace_ids == {trace_id_1, trace_id_2}
+
+    @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
+    def test_excludes_test_environment_traces(self, mock_span_count) -> None:
+        mock_span_count.side_effect = lambda trace_ids, *args: {tid: 50 for tid in trace_ids}
+
+        prod_trace_id = uuid.uuid4().hex
+        prod_span = self.create_span(
+            {
+                "description": "GET /api/users",
+                "sentry_tags": {
+                    "transaction": "GET /api/users",
+                    "environment": "production",
+                },
+                "trace_id": prod_trace_id,
+                "is_segment": True,
+                "exclusive_time_ms": 200,
+                "duration_ms": 200,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+
+        test_trace_id = uuid.uuid4().hex
+        test_span = self.create_span(
+            {
+                "description": "POST /api/orders",
+                "sentry_tags": {
+                    "transaction": "POST /api/orders",
+                    "environment": "test",
+                },
+                "trace_id": test_trace_id,
+                "is_segment": True,
+                "exclusive_time_ms": 150,
+                "duration_ms": 150,
+            },
+            start_ts=self.ten_mins_ago + timedelta(seconds=1),
+        )
+
+        self.store_spans([prod_span, test_span])
+
+        evidence_traces = get_project_top_transaction_traces_for_llm_detection(
+            self.project.id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=30
+        )
+
+        assert len(evidence_traces) == 1
+        assert evidence_traces[0].trace_id == prod_trace_id

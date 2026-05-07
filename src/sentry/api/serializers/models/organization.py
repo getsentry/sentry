@@ -137,7 +137,6 @@ class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
     onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
 
 
-@extend_schema_serializer(exclude_fields=["requireEmailVerification"])
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
     id: str
     slug: str
@@ -146,7 +145,6 @@ class OrganizationSummarySerializerResponse(OrganizationSummarySerializerRespons
     dateCreated: datetime
     isEarlyAdopter: bool
     require2FA: bool
-    requireEmailVerification: bool
     avatar: SerializedAvatarFields
     links: _Links
     hasAuthProvider: bool
@@ -482,8 +480,6 @@ class OrganizationSummarySerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
-            # requireEmailVerification has been deprecated
-            "requireEmailVerification": False,
             "avatar": avatar,
             "allowMemberInvite": not obj.flags.disable_member_invite,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
@@ -712,8 +708,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             ),
             "openMembership": bool(obj.flags.allow_joinleave),
             "require2FA": bool(obj.flags.require_2fa),
-            # The requireEmailVerification feature has been removed, this field is deprecated.
-            "requireEmailVerification": False,
             "allowSharedIssues": not obj.flags.disable_shared_issues,
             "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
             "dataScrubber": bool(
@@ -871,7 +865,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
 @extend_schema_serializer(
     exclude_fields=[
         "availableRoles",
-        "requireEmailVerification",
         "genAIConsent",
         "quota",
         "rollbackEnabled",
