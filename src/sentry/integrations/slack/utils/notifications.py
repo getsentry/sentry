@@ -320,8 +320,6 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
         detector_serialized_response=detector_serialized_response,
     )
-
-    # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
     return _handle_workflow_engine_notification(
         organization=organization,
         notification_context=notification_context,
