@@ -1,10 +1,7 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -21,39 +18,33 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
   const editUrl = recreateRoute(`${projectKey.id}/`, {routes, params, location});
 
   return (
-    <Fragment>
-      <FieldGroup
-        label={t('Loader Script')}
-        help={tct(
-          'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
-                {t(' What does the script provide?')}
-              </ExternalLink>
-            ),
-          }
-        )}
-        inline={false}
-        flexibleControlStateSize
-      >
-        <TextCopyInput aria-label={t('Loader Script')}>
-          {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
-        </TextCopyInput>
-
-        <HelpFooter>
+    <Stack padding="xl" gap="md">
+      <Stack gap="xs">
+        <Text>{t('Loader Script')}</Text>
+        <Text size="sm" variant="muted">
           {tct(
-            'You can [configureLink:configure] the Loader Script to enable/disable Performance, Replay, and more.',
+            'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
             {
-              configureLink: <Link to={editUrl} />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
+                  {t(' What does the script provide?')}
+                </ExternalLink>
+              ),
             }
           )}
-        </HelpFooter>
-      </FieldGroup>
-    </Fragment>
+        </Text>
+      </Stack>
+      <TextCopyInput aria-label={t('Loader Script')}>
+        {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
+      </TextCopyInput>
+      <Text size="sm" variant="muted">
+        {tct(
+          'You can [configureLink:configure] the Loader Script to enable/disable Performance, Replay, and more.',
+          {
+            configureLink: <Link to={editUrl} />,
+          }
+        )}
+      </Text>
+    </Stack>
   );
 }
-
-const HelpFooter = styled(FieldHelp)`
-  margin-top: ${p => p.theme.space.md};
-`;
