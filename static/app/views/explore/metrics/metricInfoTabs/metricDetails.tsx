@@ -8,6 +8,7 @@ import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {defined} from 'sentry/utils';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -71,7 +72,9 @@ export function MetricDetails({
   });
 
   const traceSlug = String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? '');
-  const timestamp = Number(dataRow[TraceMetricKnownFieldKey.TIMESTAMP] ?? 0);
+  const timestamp = getTimeStampFromTableDateField(
+    dataRow[TraceMetricKnownFieldKey.TIMESTAMP]
+  );
   const {data: traceMeta, isLoading: isTraceMetaLoading} = useTraceMeta(
     enableQueries && showTelemetry ? [{traceSlug, timestamp}] : []
   );
