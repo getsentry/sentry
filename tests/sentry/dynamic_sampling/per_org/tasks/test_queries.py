@@ -7,11 +7,40 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     BaseDynamicSamplingConfiguration,
     get_configuration,
 )
-from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
+from sentry.dynamic_sampling.per_org.tasks.queries import (
+    get_eap_organization_volume,
+    run_eap_spans_table_query_in_chunks,
+)
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.models.organization import Organization
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+
+
+class EAPSpansTableQueryChunkingTest(TestCase):
+    def test_iterates_query_data_in_offset_chunks(self) -> None:
+        calls: list[tuple[int, int]] = []
+        query = {"query_string": "is_transaction:true"}
+
+        def run_table_query(**kwargs):
+            calls.append((kwargs["offset"], kwargs["limit"]))
+            assert kwargs["query_string"] == "is_transaction:true"
+
+            if kwargs["offset"] == 0:
+                return {"data": [{"project.id": 1}, {"project.id": 2}, {"project.id": 3}]}
+            return {"data": [{"project.id": 3}]}
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
+            side_effect=run_table_query,
+        ):
+            batches = list(run_eap_spans_table_query_in_chunks(query, chunk_size=2))
+
+        assert batches == [
+            [{"project.id": 1}, {"project.id": 2}],
+            [{"project.id": 3}],
+        ]
+        assert calls == [(0, 3), (2, 3)]
 
 
 class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
