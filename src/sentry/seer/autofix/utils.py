@@ -33,10 +33,9 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import (
-    CODING_AGENT_ALIAS_TO_HANDOFF_TARGET,
     AutofixAutomationTuningSettings,
     AutofixStatus,
-    CodingAgentAlias,
+    CodingAgent,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import (
@@ -713,7 +712,7 @@ def bulk_read_preferences_from_sentry_db(
 
 
 class SeerProjectSettingsUpdate(TypedDict, total=False):
-    agent: CodingAgentAlias | Literal["seer"]
+    agent: CodingAgent
     integrationId: int
     stoppingPoint: AutofixStoppingPoint | Literal["off"]
     scannerAutomation: bool
@@ -736,7 +735,7 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
 
         if "agent" in data:
             agent: str = data["agent"]
-            if agent == "seer":
+            if agent == CodingAgent.SEER:
                 project.delete_option("sentry:seer_automation_handoff_point")
                 project.delete_option("sentry:seer_automation_handoff_target")
                 project.delete_option("sentry:seer_automation_handoff_integration_id")
@@ -748,10 +747,7 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
                 project.update_option(
                     "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
                 )
-                project.update_option(
-                    "sentry:seer_automation_handoff_target",
-                    CODING_AGENT_ALIAS_TO_HANDOFF_TARGET.get(agent, agent),
-                )
+                project.update_option("sentry:seer_automation_handoff_target", agent)
                 project.update_option(
                     "sentry:seer_automation_handoff_integration_id", integration_id
                 )

@@ -107,7 +107,6 @@ from sentry.organizations.services.organization.model import (
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import (
-    CODING_AGENT_ALIAS_TO_HANDOFF_TARGET,
     AutofixAutomationTuningSettings,
 )
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
@@ -389,7 +388,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_defaultCodingAgent(self, value: str | None) -> str:
         if value is None:
             return SEER_DEFAULT_CODING_AGENT_DEFAULT
-        return CODING_AGENT_ALIAS_TO_HANDOFF_TARGET.get(value, value)
+        coding_agent_aliases: dict[str, str] = {
+            "cursor": "cursor_background_agent",
+            "claude_code": "claude_code_agent",
+        }
+        return coding_agent_aliases.get(value, value)
 
     def validate_defaultCodingAgentIntegrationId(self, value: int | None) -> int | None:
         if value is None:

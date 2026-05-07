@@ -13,7 +13,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixStatus,
-    CodingAgentAlias,
+    CodingAgent,
 )
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
@@ -1584,7 +1584,7 @@ class TestUpdateSeerProjectSettings(TestCase):
         self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
         self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        update_seer_project_settings(self.project, {"agent": "seer"})
+        update_seer_project_settings(self.project, {"agent": CodingAgent.SEER})
 
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
@@ -1593,7 +1593,7 @@ class TestUpdateSeerProjectSettings(TestCase):
     def test_agent_external_sets_handoff_options(self) -> None:
         """Setting agent=cursor with integrationId should set handoff target, point, and integration ID."""
         update_seer_project_settings(
-            self.project, {"agent": CodingAgentAlias.CURSOR, "integrationId": 99}
+            self.project, {"agent": CodingAgent.CURSOR, "integrationId": 99}
         )
 
         assert (
@@ -1609,14 +1609,14 @@ class TestUpdateSeerProjectSettings(TestCase):
     def test_agent_external_requires_integration_id(self) -> None:
         """Setting an external agent without integrationId should raise ValueError."""
         with pytest.raises(ValueError):
-            update_seer_project_settings(self.project, {"agent": CodingAgentAlias.CURSOR})
+            update_seer_project_settings(self.project, {"agent": CodingAgent.CURSOR})
 
     def test_agent_external_with_open_pr_sets_auto_create_pr(self) -> None:
         """External agent + stoppingPoint=open_pr should set auto_create_pr=True."""
         update_seer_project_settings(
             self.project,
             {
-                "agent": CodingAgentAlias.CURSOR,
+                "agent": CodingAgent.CURSOR,
                 "integrationId": 99,
                 "stoppingPoint": AutofixStoppingPoint.OPEN_PR,
             },
@@ -1629,7 +1629,7 @@ class TestUpdateSeerProjectSettings(TestCase):
         update_seer_project_settings(
             self.project,
             {
-                "agent": CodingAgentAlias.CURSOR,
+                "agent": CodingAgent.CURSOR,
                 "integrationId": 99,
                 "stoppingPoint": AutofixStoppingPoint.CODE_CHANGES,
             },
