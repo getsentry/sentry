@@ -202,10 +202,10 @@ type SaveSentryAppPayload = {
   schema: Record<string, unknown>;
   scopes: string[];
   verifyInstall: boolean;
-  webhookUrl: string;
   author?: string | null;
   overview?: string | null;
   redirectUrl?: string | null;
+  webhookUrl?: string | null;
 };
 
 type RotateSecretResponse = {
@@ -509,7 +509,7 @@ export default function SentryApplicationDetails() {
       const payload: SaveSentryAppPayload = {
         name: value.name,
         organization: value.organization,
-        webhookUrl: value.webhookUrl,
+        webhookUrl: value.webhookUrl || null,
         isAlertable: value.isAlertable,
         isInternal: value.isInternal,
         verifyInstall: value.verifyInstall,
