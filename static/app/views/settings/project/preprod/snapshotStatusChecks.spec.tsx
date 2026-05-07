@@ -20,6 +20,10 @@ describe('SnapshotStatusChecks', () => {
 
   it('renders default values when the project has no preprod options', async () => {
     const project = ProjectFixture({options: {}});
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
     render(<SnapshotStatusChecks />, {
       organization,
       outletContext: {project},
@@ -52,6 +56,10 @@ describe('SnapshotStatusChecks', () => {
       preprodSnapshotStatusChecksFailOnChanged: false,
       preprodSnapshotStatusChecksFailOnRenamed: true,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
     render(<SnapshotStatusChecks />, {
       organization,
       outletContext: {project},
@@ -75,6 +83,10 @@ describe('SnapshotStatusChecks', () => {
   it('saves fail_on_changed when toggled off', async () => {
     const project = ProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -105,6 +117,10 @@ describe('SnapshotStatusChecks', () => {
   it('saves fail_on_renamed when toggled on', async () => {
     const project = ProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -135,6 +151,10 @@ describe('SnapshotStatusChecks', () => {
   it('immediately hides failure condition toggles when status checks are disabled', async () => {
     const project = ProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -147,8 +167,16 @@ describe('SnapshotStatusChecks', () => {
       initialRouterConfig,
     });
 
+    // Setup mock for after the toggle is switched off
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: {...project, preprodSnapshotStatusChecksEnabled: false},
+    });
+
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Enable Snapshot Status Checks'})
+      await screen.findByRole('checkbox', {
+        name: 'Enable Snapshot Status Checks',
+      })
     );
 
     expect(
@@ -172,6 +200,10 @@ describe('SnapshotStatusChecks', () => {
     const project = ProjectFixture({
       options: {},
       preprodSnapshotStatusChecksEnabled: false,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
     });
     render(<SnapshotStatusChecks />, {
       organization,
