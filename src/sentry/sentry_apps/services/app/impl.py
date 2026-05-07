@@ -64,7 +64,8 @@ def _get_org_owner_emails(organization_id: int) -> list[str]:
             organization_id=organization_id,
             role=organization_roles.get_top_dog().id,
             user__is_active=True,
-        ).values_list("user__email", flat=True)
+            user__emails__is_verified=True,
+        ).values_list("user__emails__email", flat=True)
     )
 
 
