@@ -8,7 +8,7 @@ import type {Project} from 'sentry/types/project';
 
 import {BuiltInRepositories} from './builtInRepositories';
 import {CustomRepositories} from './customRepositories';
-import {NativeApplySrcsrv} from './nativeApplySrcsrv';
+import {EnableNativeSourceServerMapping} from './enableNativeSourceServerMapping';
 
 type Props = {
   api: Client;
@@ -45,7 +45,7 @@ export function Sources({
         customRepositories={customRepositories}
         project={project}
       />
-      <NativeApplySrcsrv organization={organization} project={project} />
+      <EnableNativeSourceServerMapping organization={organization} project={project} />
     </Fragment>
   );
 }

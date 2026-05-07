@@ -79,6 +79,7 @@ export type Project = {
   builtinSymbolSources?: string[];
   debugFilesRole?: string | null;
   defaultEnvironment?: string;
+  enableNativeSourceServerMapping?: boolean;
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
@@ -88,7 +89,6 @@ export type Project = {
   highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
-  nativeApplySrcsrv?: boolean;
   options?: Record<string, boolean | string>;
   preprodDistributionEnabledByCustomer?: boolean;
   preprodDistributionEnabledQuery?: string | null;

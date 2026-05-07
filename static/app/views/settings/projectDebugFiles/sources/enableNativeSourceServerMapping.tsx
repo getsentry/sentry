@@ -16,13 +16,15 @@ type Props = {
   project: Project;
 };
 
-export function NativeApplySrcsrv({organization, project}: Props) {
+export function EnableNativeSourceServerMapping({organization, project}: Props) {
   return (
     <Form
       saveOnBlur
       apiMethod="PUT"
       apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-      initialData={{nativeApplySrcsrv: project.nativeApplySrcsrv ?? false}}
+      initialData={{
+        enableNativeSourceServerMapping: project.enableNativeSourceServerMapping ?? false,
+      }}
       onSubmitSuccess={response => {
         if (response) {
           ProjectsStore.onUpdateSuccess(response as Project);
@@ -35,8 +37,8 @@ export function NativeApplySrcsrv({organization, project}: Props) {
           <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <BooleanField
-                name="nativeApplySrcsrv"
-                label={t('Use source server paths')}
+                name="enableNativeSourceServerMapping"
+                label={t('Enable native source server mapping')}
                 help={t(
                   'When enabled, native symbolication rewrites each frame using the source server (srcsrv) mapping embedded in debug files and reports the per-frame VCS revision. Required for source linking from Perforce and other srcsrv-backed source control systems.'
                 )}
