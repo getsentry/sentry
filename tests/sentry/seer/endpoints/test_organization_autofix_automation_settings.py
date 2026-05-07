@@ -133,6 +133,28 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             },
         ]
 
+    def test_get_excludes_projects_user_has_no_team_access_to(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team_a = self.create_team(organization=self.organization)
+        team_b = self.create_team(organization=self.organization)
+
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, teams=[team_a])
+
+        project_a = self.create_project(
+            organization=self.organization, teams=[team_a], name="Team A Project"
+        )
+        self.create_project(organization=self.organization, teams=[team_b], name="Team B Project")
+
+        self.login_as(user=user)
+        response = self.client.get(self.url, {})
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["projectId"] == project_a.id
+
     def test_post_creates_project_preferences(self):
         project = self.create_project(organization=self.organization)
 
