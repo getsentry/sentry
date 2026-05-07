@@ -5,12 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {
-  defaultFormOptions,
-  setFieldErrors,
-  useScrapsForm,
-  useStore,
-} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -576,9 +571,6 @@ export default function SentryApplicationDetails() {
     },
   });
 
-  const webhookUrl = useStore(form.store, state => state.values.webhookUrl);
-  const webhookDisabled = isInternal() && !webhookUrl;
-
   return (
     <div>
       {hasPageFrame ? (
@@ -722,15 +714,21 @@ export default function SentryApplicationDetails() {
                     }
                   )}
                 >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={
-                      webhookDisabled
-                        ? t('Cannot enable alert rule action without a webhook url')
-                        : false
-                    }
-                  />
+                  <form.Subscribe
+                    selector={state => isInternal() && !state.values.webhookUrl}
+                  >
+                    {webhookDisabled => (
+                      <field.Switch
+                        checked={field.state.value}
+                        onChange={field.handleChange}
+                        disabled={
+                          webhookDisabled
+                            ? t('Cannot enable alert rule action without a webhook url')
+                            : false
+                        }
+                      />
+                    )}
+                  </form.Subscribe>
                 </field.Layout.Row>
               )}
             </form.AppField>
@@ -792,17 +790,21 @@ export default function SentryApplicationDetails() {
           {getAvatarChooser(true)}
           {getAvatarChooser(false)}
 
-          <PermissionsObserver
-            webhookDisabled={webhookDisabled}
-            appPublished={app ? app.status === 'published' : false}
-            scopes={app ? [...app.scopes] : []}
-            events={app ? normalize(app.events) : []}
-            newApp={!app}
-            permissionErrors={scopeErrors.permissions}
-            continuousIntegrationError={scopeErrors.continuousIntegration}
-            onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
-            onEventsChange={events => form.setFieldValue('events', events)}
-          />
+          <form.Subscribe selector={state => isInternal() && !state.values.webhookUrl}>
+            {webhookDisabled => (
+              <PermissionsObserver
+                webhookDisabled={webhookDisabled}
+                appPublished={app ? app.status === 'published' : false}
+                scopes={app ? [...app.scopes] : []}
+                events={app ? normalize(app.events) : []}
+                newApp={!app}
+                permissionErrors={scopeErrors.permissions}
+                continuousIntegrationError={scopeErrors.continuousIntegration}
+                onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
+                onEventsChange={events => form.setFieldValue('events', events)}
+              />
+            )}
+          </form.Subscribe>
 
           {app?.status === 'internal' && (
             <PanelTable
