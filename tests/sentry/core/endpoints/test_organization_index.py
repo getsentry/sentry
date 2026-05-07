@@ -234,6 +234,24 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         }
 
 
+@control_silo_test
+class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin):
+    def test_implicit_data_storage_location(self) -> None:
+        # TODO write this test. When no dataStorageLocation is provided fallback to us.
+        pass
+
+    def test_invalid_data_storage_location(self) -> None:
+        # TODO write this test. An invalid region name should fail
+        pass
+
+    def test_locality_to_cell_resolution(self) -> None:
+        # TODO write this test. The request data is a locality.
+        # The endpoint should resolve the locality into the new_org_cell Cell.
+        pass
+
+
+# TODO make this both control and cell silo
+# Will need to setup a us/de cell and
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 

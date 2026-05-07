@@ -53,6 +53,8 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
     agreeTerms = serializers.BooleanField(required=True)
     aggregatedDataConsent = serializers.BooleanField(required=False)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
+    # TODO add dataStorageLocation and validate it. If the parameter is not provided
+    # Use `us` as the locality name.
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -329,10 +331,7 @@ class OrganizationIndexEndpoint(Endpoint):
                                 terms of service and privacy policy.
         :auth: required, user-context-needed
         """
-        # TODO(cells): Move org creation to control as part of the broader
-        # org-listing/org-provisioning cutover. Since POST is private, the
-        # legacy cell-side path can be removed once the control implementation
-        # is ready.
+        # TODO remove this check as the endpoint should be safe in both silo modes now.
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return Response(status=404)
 
@@ -403,6 +402,8 @@ class OrganizationIndexEndpoint(Endpoint):
             )
 
             rpc_org = organization_provisioning_service.provision_organization_in_cell(
+                # TODO resolve the cell name from request data. The validator logic should handle
+                # the fallback to local cell (in region mode) or monolith region
                 cell_name=settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION,
                 provisioning_options=provision_args,
             )
