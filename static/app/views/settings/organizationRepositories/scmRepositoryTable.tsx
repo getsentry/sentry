@@ -273,6 +273,7 @@ function SingleInstallTableContent({
           <IntegrationSummary installation={merged} />
         </Flex>
         <Flex align="center" gap="sm">
+          <InstallationRepoCountTag installation={merged} />
           <InstallationActions installation={merged} providerName={provider.name} />
         </Flex>
       </TableHeader>
@@ -301,7 +302,7 @@ function MultiInstallTable({
           <Text bold>{provider.name}</Text>
         </Flex>
       </TableHeader>
-      <Grid role="list" columns="max-content 1fr" gap="0 md">
+      <Grid role="list" columns="max-content 1fr max-content max-content" gap="0 md">
         {installations.map(installation => {
           const hasSearchHits =
             repoMatches !== undefined &&
@@ -396,13 +397,14 @@ function InstallationRow({
         onKeyDown={handleRowKeyDown}
       >
         <IconChevron direction={expanded && !expandDisabled ? 'down' : 'right'} />
-        <Flex column="2" align="center" justify="between" gap="md">
-          <Flex align="center" gap="sm">
-            <IntegrationSummary installation={merged} />
-          </Flex>
-          <Flex align="center" gap="md">
-            <InstallationActions installation={merged} providerName={provider.name} />
-          </Flex>
+        <Flex align="center" gap="sm">
+          <IntegrationSummary installation={merged} />
+        </Flex>
+        <Flex align="center">
+          <InstallationRepoCountTag installation={merged} />
+        </Flex>
+        <Flex align="center" gap="md" justifySelf="end">
+          <InstallationActions installation={merged} providerName={provider.name} />
         </Flex>
       </RowButton>
       {expanded && !expandDisabled && (
@@ -414,6 +416,35 @@ function InstallationRow({
         />
       )}
     </Fragment>
+  );
+}
+
+function InstallationRepoCountTag({installation}: {installation: ScmInstallation}) {
+  const {repositories, reposLoading, isSyncing, integration} = installation;
+
+  if (integration.status === 'disabled') {
+    return null;
+  }
+
+  const rawLastSync = integration.configData?.last_sync;
+  const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
+  const isLoading = reposLoading || isSyncing;
+
+  return (
+    <Tooltip
+      isHoverable={!isLoading}
+      title={getRepoCountTooltip(installation, lastSync)}
+      skipWrapper
+    >
+      <Tag
+        variant="muted"
+        icon={isLoading ? <StatusIndicator variant="accent" /> : <IconInfo />}
+      >
+        <Text as="span" tabular>
+          {tn('%s repository', '%s repositories', repositories.length)}
+        </Text>
+      </Tag>
+    </Tooltip>
   );
 }
 
@@ -471,33 +502,12 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     overflowMenuItems,
     settingsButtonProps,
     uninstallButtonProps,
-    repositories,
-    reposLoading,
-    isSyncing,
     onSettings,
     onUninstall,
-    integration,
   } = installation;
-
-  const isDisabled = integration.status === 'disabled';
-  const rawLastSync = integration.configData?.last_sync;
-  const lastSync = typeof rawLastSync === 'string' ? rawLastSync : undefined;
-
-  const isLoading = reposLoading || isSyncing;
-  const repoCountTooltip = getRepoCountTooltip(installation, lastSync);
 
   return (
     <Fragment>
-      {!isDisabled && (
-        <Tooltip isHoverable={!isLoading} title={repoCountTooltip} skipWrapper>
-          <Tag
-            variant="muted"
-            icon={isLoading ? <StatusIndicator variant="accent" /> : <IconInfo />}
-          >
-            {tn('%s repository', '%s repositories', repositories.length)}
-          </Tag>
-        </Tooltip>
-      )}
       {manageUrl && (
         <LinkButton
           tooltipProps={{
@@ -641,7 +651,7 @@ function VirtualizedRepoList({
 
   const outerColumn = nested ? '1/-1' : undefined;
   const outerColumns = nested ? 'subgrid' : '1fr';
-  const contentColumn = nested ? '2' : undefined;
+  const contentColumn = nested ? '2/-1' : undefined;
 
   const items =
     visibleRepos.length === 0 ? (
