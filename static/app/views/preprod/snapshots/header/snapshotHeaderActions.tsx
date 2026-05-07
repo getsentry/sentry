@@ -161,7 +161,7 @@ export function SnapshotHeaderActions({
     <Flex align="center" gap="md">
       {data.approval_info &&
         (isApproved ? (
-          <Flex align="center" gap="xl" display={{xs: 'none', md: 'flex'}}>
+          <Flex align="center" gap="xl" display={{'2xs': 'none', md: 'flex'}}>
             <Flex align="center" gap="xs">
               <Tag variant="success" icon={<IconCheckmark />}>
                 {isAutoApproved ? t('Auto-approved') : t('Approved')}

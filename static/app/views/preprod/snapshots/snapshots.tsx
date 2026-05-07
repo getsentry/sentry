@@ -183,6 +183,7 @@ export default function SnapshotsPage() {
     'split'
   );
   const breakpoints = useBreakpoints();
+  const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
   useEffect(() => {
     if (!breakpoints.sm && diffMode === 'split') {
       setDiffMode('wipe');
@@ -702,7 +703,7 @@ export default function SnapshotsPage() {
           diffImageBaseUrl={diffImageBaseUrl}
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
-          diffMode={diffMode}
+          diffMode={effectiveDiffMode}
           onDiffModeChange={setDiffMode}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
