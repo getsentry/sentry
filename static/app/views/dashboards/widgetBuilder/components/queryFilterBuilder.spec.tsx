@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
+jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 
 describe('QueryFilterBuilder', () => {
   let organization: Organization;
