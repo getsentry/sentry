@@ -5,11 +5,10 @@ import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
@@ -30,6 +29,8 @@ export function BuiltInRepositories({
   builtinSymbolSources,
   project,
 }: Props) {
+  const {mutateAsync: updateProject} = useUpdateProject(project);
+
   // If the project details object has an unknown built-in source, this will be filtered here.
   // This prevents the UI from showing the wrong feedback message when updating the field
   const validBuiltInSymbolSources = builtinSymbolSources.filter(builtinSymbolSource =>
@@ -72,14 +73,8 @@ export function BuiltInRepositories({
         schema={schema}
         initialValue={validBuiltInSymbolSources}
         mutationOptions={{
-          mutationFn: (data: Partial<Project>) =>
-            fetchMutation<Project>({
-              url: `/projects/${organization.slug}/${project.slug}/`,
-              method: 'PUT',
-              data,
-            }),
-          onSuccess: (response, variables) => {
-            ProjectsStore.onUpdateSuccess(response);
+          mutationFn: (data: Partial<Project>) => updateProject(data),
+          onSuccess: (_response, variables) => {
             const {successMessage} = getRequestMessages(
               variables.builtinSymbolSources.length
             );
