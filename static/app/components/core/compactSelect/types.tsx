@@ -28,7 +28,7 @@ export interface SelectSection<Value extends SelectKey> {
    */
   label?: React.ReactNode;
   /**
-   * Whether to show a "Select All"/"Unselect All" button in the section header (only
+   * Whether to show a "Select All" button in the section header (only
    * applicable in multiple-selection mode).
    */
   showToggleAllButton?: boolean;

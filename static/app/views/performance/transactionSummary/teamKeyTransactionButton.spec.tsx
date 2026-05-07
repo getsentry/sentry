@@ -325,7 +325,7 @@ describe('TeamKeyTransactionButton', () => {
 
     await clickTeamKeyTransactionDropdown();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Unselect All in My Teams'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select All in My Teams'}));
 
     // all teams should be checked now
     expect(screen.getByRole('option', {name: `#${teams[0]!.slug}`})).toHaveAttribute(

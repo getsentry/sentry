@@ -351,7 +351,7 @@ export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
       tabIndex={-1}
       onClick={toggleAllOptions}
     >
-      {allOptionsSelected ? t('Unselect All') : t('Select All')}
+      {t('Select All')}
     </SectionToggleButton>
   );
 }
@@ -419,7 +419,7 @@ export function HiddenSectionToggle({
         aria-controls={listId}
         id={`${listId}-section-toggle-${item.key}`}
       >
-        {allOptionsSelected ? t('Unselect All in ') : t('Select All in ')}
+        {t('Select All in ')}
         {item.textValue || item.rendered}
       </button>
     </VisuallyHidden>

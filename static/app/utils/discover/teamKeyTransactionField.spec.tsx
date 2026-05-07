@@ -353,7 +353,7 @@ describe('TeamKeyTransactionField', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Unselect All in My Teams'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select All in My Teams'}));
 
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
