@@ -36,6 +36,13 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
           component: make(() => import('getsentry/views/seerAutomation/projects')),
           children: [
             {
+              path: ':projectSlug/',
+              name: t('Project Details'),
+              component: make(
+                () => import('getsentry/views/seerAutomation/projectFlyout')
+              ),
+            },
+            {
               path: 'defaults/',
               name: t('Defaults'),
               component: make(

@@ -200,7 +200,7 @@ class OrganizationIndexEndpoint(Endpoint):
             request=request,
             queryset=queryset,
             order_by=order_by,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, include_feature_flags=False),
             paginator_cls=paginator_cls,
         )
 

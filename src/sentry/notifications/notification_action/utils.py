@@ -122,6 +122,7 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
         action=action,
         detector=detector,
         event_data=event_data,
+        workflow_id=invocation.workflow_id,
     )
     tags = action.data.get("tags", None)
     tag_list = [tag.strip() for tag in tags.split(",")] if tags else None

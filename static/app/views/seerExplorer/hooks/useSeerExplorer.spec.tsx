@@ -222,23 +222,72 @@ describe('useSeerExplorer', () => {
     });
   });
 
-  describe('startNewSession', () => {
-    it('resets session state', () => {
+  describe('switching sessions', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'GET',
         body: {session: null},
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/456/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+    });
+
+    it('startNewSession resets session state', async () => {
+      sessionStorage.setItem('seer-explorer-run-id', JSON.stringify(123));
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
       });
 
-      act(() => {
+      await act(async () => {
+        result.current.sendMessage('Test query');
+        result.current.interruptRun();
         result.current.startNewSession();
+        // Flush interrupt mutation
+        await Promise.resolve();
       });
 
       expect(result.current.runId).toBeNull();
+      expect(result.current.waitingForInterrupt).toBe(false);
+    });
+
+    it('switchToRun sets runId and resets session state', async () => {
+      sessionStorage.setItem('seer-explorer-run-id', JSON.stringify(123));
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      await act(async () => {
+        result.current.sendMessage('Test query');
+        result.current.interruptRun();
+        result.current.switchToRun(456);
+        // Flush interrupt mutation
+        await Promise.resolve();
+      });
+
+      expect(result.current.runId).toBe(456);
+      expect(result.current.waitingForInterrupt).toBe(false);
     });
   });
 
@@ -338,7 +387,7 @@ describe('useSeerExplorer', () => {
   });
 
   describe('Optimistic Thinking Block', () => {
-    it('persists thinking block when server has no assistant response yet', async () => {
+    it('sets optimistic blocks when session is processing with no user block in DB', async () => {
       const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
 
       MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
@@ -348,17 +397,10 @@ describe('useSeerExplorer', () => {
         method: 'GET',
         body: {
           session: {
-            blocks: [
-              {
-                id: 'user-1',
-                message: {role: 'user', content: 'Test'},
-                timestamp: '2024-01-01T00:00:00Z',
-                loading: false,
-              },
-            ],
+            blocks: [],
             run_id: 456,
             status: 'processing',
-            updated_at: '2024-01-01T00:00:00Z',
+            updated_at: new Date().toISOString(),
           },
         },
       });
@@ -376,31 +418,40 @@ describe('useSeerExplorer', () => {
       });
 
       const blocks = result.current.sessionData?.blocks ?? [];
-      expect(blocks.some(b => b.message.role === 'assistant' && b.loading)).toBe(true);
+      expect(blocks).toHaveLength(2);
+      expect(
+        blocks[0]?.message.role === 'user' && blocks[0]?.id.includes('optimistic')
+      ).toBe(true);
+      expect(
+        blocks[1]?.message.role === 'assistant' &&
+          blocks[1]?.id.includes('optimistic') &&
+          blocks[1]?.loading
+      ).toBe(true);
     });
 
-    it('clears optimistic state when session completes without an assistant response', async () => {
+    it('sets optimistic blocks when session is processing with no assistant response in DB', async () => {
       const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
-      const ts = '2024-01-01T00:00:00Z';
 
       MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
-      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 321}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 456}});
       MockApiClient.addMockResponse({
-        url: `${chatUrl}321/`,
+        url: `${chatUrl}456/`,
         method: 'GET',
         body: {
           session: {
             blocks: [
+              // Persisted user block with a future timestamp.
               {
-                id: 'user-1',
+                id: 'user-0',
                 message: {role: 'user', content: 'Test'},
-                timestamp: ts,
+                timestamp: new Date(Date.now() + 30_000).toISOString(),
                 loading: false,
               },
+              // Missing assistant response.
             ],
-            run_id: 321,
-            status: 'completed',
-            updated_at: ts,
+            run_id: 456,
+            status: 'processing',
+            updated_at: new Date(Date.now() + 30_000).toISOString(),
           },
         },
       });
@@ -414,10 +465,317 @@ describe('useSeerExplorer', () => {
       });
 
       await waitFor(() => {
-        const blocks = result.current.sessionData?.blocks ?? [];
-        expect(blocks.some(b => b.loading)).toBe(false);
-        expect(blocks).toHaveLength(1);
+        expect((result.current.sessionData?.blocks ?? []).length).toBeGreaterThan(0);
       });
+
+      const blocks = result.current.sessionData?.blocks ?? [];
+      expect(blocks).toHaveLength(2);
+      expect(
+        blocks[0]?.message.role === 'user' && blocks[0]?.id.includes('optimistic')
+      ).toBe(true);
+      expect(
+        blocks[1]?.message.role === 'assistant' &&
+          blocks[1]?.id.includes('optimistic') &&
+          blocks[1]?.loading
+      ).toBe(true);
+    });
+
+    it('does not set optimistic blocks when session is processing with user and assistant blocks in DB', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const serverSessionData = {
+        blocks: [
+          // Persisted user block with a future timestamp.
+          {
+            id: 'user-0',
+            message: {role: 'user', content: 'Test'},
+            timestamp: new Date(Date.now() + 30_000).toISOString(),
+            loading: false,
+          },
+          // Assistant response with a future timestamp.
+          {
+            id: 'assistant-1-loading',
+            message: {role: 'assistant', content: 'Loading...'},
+            timestamp: new Date(Date.now() + 31_000).toISOString(),
+            loading: true,
+          },
+        ],
+        run_id: 456,
+        status: 'processing',
+        updated_at: new Date(Date.now() + 31_000).toISOString(),
+      };
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 456}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}456/`,
+        method: 'GET',
+        body: {
+          session: serverSessionData,
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toEqual(serverSessionData);
+      });
+    });
+
+    it('does not set optimistic blocks when session is processing with user and tool blocks in DB', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const serverSessionData = {
+        blocks: [
+          // Persisted user block with a future timestamp.
+          {
+            id: 'user-0',
+            message: {role: 'user', content: 'Test'},
+            timestamp: new Date(Date.now() + 30_000).toISOString(),
+            loading: false,
+          },
+          // Tool use with a future timestamp.
+          {
+            id: 'tool-1-loading',
+            message: {role: 'tool_use', content: 'Loading...'},
+            timestamp: new Date(Date.now() + 31_000).toISOString(),
+            loading: true,
+          },
+        ],
+        run_id: 456,
+        status: 'processing',
+        updated_at: new Date(Date.now() + 31_000).toISOString(),
+      };
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 456}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}456/`,
+        method: 'GET',
+        body: {
+          session: serverSessionData,
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toEqual(serverSessionData);
+      });
+    });
+
+    it('does not set optimistic blocks when session is processing with user and multiple tool blocks in DB', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const serverSessionData = {
+        blocks: [
+          // Persisted user block with a future timestamp.
+          {
+            id: 'user-0',
+            message: {role: 'user', content: 'Test'},
+            timestamp: new Date(Date.now() + 30_000).toISOString(),
+            loading: false,
+          },
+          // Tool uses with a future timestamp.
+          {
+            id: 'tool-1',
+            message: {role: 'tool_use', content: 'Tool 1 result'},
+            timestamp: new Date(Date.now() + 31_000).toISOString(),
+            loading: false,
+          },
+          {
+            id: 'tool-2',
+            message: {role: 'tool_use', content: 'Tool 2 result'},
+            timestamp: new Date(Date.now() + 32_000).toISOString(),
+            loading: false,
+          },
+          {
+            id: 'assistant-3-loading',
+            message: {role: 'assistant', content: 'loading...'},
+            timestamp: new Date(Date.now() + 33_000).toISOString(),
+            loading: true,
+          },
+        ],
+        run_id: 456,
+        status: 'processing',
+        updated_at: new Date(Date.now() + 33_000).toISOString(),
+      };
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 456}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}456/`,
+        method: 'GET',
+        body: {
+          session: serverSessionData,
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toEqual(serverSessionData);
+      });
+    });
+
+    it('does not set optimistic blocks when session completes normally', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const serverSessionData = {
+        blocks: [
+          // Persisted user block with a future timestamp.
+          {
+            id: 'user-0',
+            message: {role: 'user', content: 'Test'},
+            timestamp: new Date(Date.now() + 30_000).toISOString(),
+            loading: false,
+          },
+          // Assistant response with a future timestamp.
+          {
+            id: 'assistant-1',
+            message: {role: 'assistant', content: 'Response content'},
+            timestamp: new Date(Date.now() + 31_000).toISOString(),
+            loading: false,
+          },
+        ],
+        run_id: 456,
+        status: 'completed',
+        updated_at: new Date(Date.now() + 31_000).toISOString(),
+      };
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 456}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}456/`,
+        method: 'GET',
+        body: {
+          session: serverSessionData,
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toEqual(serverSessionData);
+      });
+    });
+
+    it('does not set optimistic blocks when session completes without response', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const serverSessionData = {
+        blocks: [],
+        run_id: 321,
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+      };
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 321}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}321/`,
+        method: 'GET',
+        body: {
+          session: serverSessionData,
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toEqual(serverSessionData);
+      });
+    });
+
+    it('does not set optimistic blocks when session errors', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+      const serverSessionData = {
+        blocks: [],
+        run_id: 321,
+        status: 'error',
+        updated_at: new Date().toISOString(),
+      };
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 321}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}321/`,
+        method: 'GET',
+        body: {
+          session: serverSessionData,
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toEqual(serverSessionData);
+      });
+    });
+
+    it('does not set optimistic blocks when send message errors', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({
+        url: chatUrl,
+        method: 'POST',
+        statusCode: 500,
+        body: {run_id: 321, detail: 'Server error'},
+      });
+
+      // runId = 321 should not be set on POST error, so it should never be fetched.
+      const getMock = MockApiClient.addMockResponse({
+        url: `${chatUrl}321/`,
+        method: 'GET',
+        body: {session: null},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData).toBeNull();
+        // Should not set api data when runId is null.
+      });
+
+      expect(getMock).not.toHaveBeenCalled();
     });
   });
 });

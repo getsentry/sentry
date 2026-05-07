@@ -82,7 +82,7 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
 
         start_time = time.time()
 
-        metrics.incr("billing.service.method.called", tags=metric_tags)
+        metrics.incr("billing.service.method.called", tags=metric_tags, sample_rate=1.0)
 
         try:
             logger.info(
@@ -105,8 +105,10 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
 
             duration_ms = (time.time() - start_time) * 1000
 
-            metrics.timing("billing.service.method.duration", duration_ms, tags=metric_tags)
-            metrics.incr("billing.service.method.success", tags=metric_tags)
+            metrics.timing(
+                "billing.service.method.duration", duration_ms, tags=metric_tags, sample_rate=1.0
+            )
+            metrics.incr("billing.service.method.success", tags=metric_tags, sample_rate=1.0)
 
             logger.info(
                 "billing.service.method.success",
@@ -123,10 +125,13 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
 
-            metrics.timing("billing.service.method.duration", duration_ms, tags=metric_tags)
+            metrics.timing(
+                "billing.service.method.duration", duration_ms, tags=metric_tags, sample_rate=1.0
+            )
             metrics.incr(
                 "billing.service.method.error",
                 tags={**metric_tags, "error_type": type(e).__name__},
+                sample_rate=1.0,
             )
 
             logger.info(

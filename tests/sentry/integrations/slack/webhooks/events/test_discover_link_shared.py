@@ -158,7 +158,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         blocks = orjson.loads(data["blocks"])
 
         assert blocks[0]["type"] == "section"
-        assert blocks[0]["text"]["text"] == "Link your Slack identity to Sentry to unfurl charts."
+        assert blocks[0]["text"]["text"] == "Link with Slack to preview charts."
 
         assert blocks[1]["type"] == "actions"
         assert len(blocks[1]["elements"]) == 2

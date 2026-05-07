@@ -42,6 +42,7 @@ import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/o
 
 import {useDeleteIntegration} from './useDeleteIntegration';
 import {useInstallationSettings} from './useInstallationSettings';
+import {useSyncRepositories} from './useSyncRepositories';
 
 function ConnectedInstallation({installation, children}: InstallationWrapperProps) {
   const organization = useOrganization();
@@ -81,6 +82,10 @@ function ConnectedInstallation({installation, children}: InstallationWrapperProp
     },
   });
 
+  const {syncNow, isSyncing} = useSyncRepositories(installation.integration, {
+    onSynced: () => queryClient.invalidateQueries({queryKey: reposOptions.queryKey}),
+  });
+
   // Settings cannot be opened until we've loaded the integrationWithConfig
   const settingsButtonProps = {
     disabled: integrationWithConfig === undefined,
@@ -103,6 +108,8 @@ function ConnectedInstallation({installation, children}: InstallationWrapperProp
     settingsButtonProps,
     onUninstall: () => handleDelete(installation.integration),
     uninstallButtonProps,
+    onSync: hasAccess ? syncNow : undefined,
+    isSyncing,
   } as const;
 
   return (

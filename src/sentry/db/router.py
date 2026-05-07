@@ -78,6 +78,7 @@ class SiloRouter:
         "sentry_code_review_event": SiloMode.CELL,
         "sentry_customdynamicsamplingrule": SiloMode.CELL,
         "sentry_customdynamicsamplingruleproject": SiloMode.CELL,
+        "sentry_dashboardlastvisited": SiloMode.CELL,
         "sentry_dashboardtombstone": SiloMode.CELL,
         "sentry_dashboardwidgetsnapshot": SiloMode.CELL,
         "sentry_datasecrecywaiver": SiloMode.CELL,

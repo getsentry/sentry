@@ -1,6 +1,12 @@
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
+import {InlineCode} from '@sentry/scraps/code';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
+
 import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {hydrateToFlagSeries, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -16,6 +22,7 @@ interface FlagSeriesProps {
 export function useFlagSeries({event, flags}: FlagSeriesProps) {
   const theme = useTheme();
   const {selection} = usePageFilters();
+  const renderToString = useRenderToString();
 
   if (!flags.length) {
     return {
@@ -55,19 +62,29 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
           ? t(' (%s after this event)', formattedDate)
           : t(' (%s before this event)', formattedDate);
 
-        return [
-          '<div class="tooltip-series">',
-          `<div><span class="tooltip-label"><strong>${t(
-            'Feature Flag'
-          )}</strong></span></div>`,
-          `<span class="tooltip-label-align-start"><code class="tooltip-code-no-margin">${data.name}</code>${data.label.formatter()}</span>`,
-          '</div>',
-          '<div class="tooltip-footer">',
-          time,
-          event?.dateCreated && suffix,
-          '</div>',
-          '<div class="tooltip-arrow"></div>',
-        ].join('');
+        return renderToString(
+          <Stack gap="lg" padding="lg 0">
+            <Stack gap="md" padding="0 lg">
+              <Text size="sm">{t('Feature Flag')}</Text>
+              <Flex gap="xs" align="baseline">
+                <Text size="sm">
+                  <InlineCode variant="neutral">{data.name}</InlineCode>
+                </Text>
+                <Text size="sm" variant="muted">
+                  {data.label.formatter()}
+                </Text>
+              </Flex>
+            </Stack>
+            <Separator orientation="horizontal" padding="0" />
+            <Flex padding="0 lg">
+              <Text size="xs" variant="muted">
+                {time}
+                {event?.dateCreated && suffix}
+              </Text>
+            </Flex>
+            <div className="tooltip-arrow" />
+          </Stack>
+        );
       },
     },
   });
