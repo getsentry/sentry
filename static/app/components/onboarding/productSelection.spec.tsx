@@ -14,8 +14,16 @@ describe('Onboarding Product Selection', () => {
     features: ['session-replay', 'performance-view', 'profiling-view'],
   });
 
+  const originalPlatformProductAvailability = {
+    ...platformProductAvailability,
+  };
+
   beforeEach(() => {
     ConfigStore.init();
+  });
+
+  afterEach(() => {
+    Object.assign(platformProductAvailability, originalPlatformProductAvailability);
   });
 
   it('renders default state', async () => {
@@ -43,7 +51,7 @@ describe('Onboarding Product Selection', () => {
 
     // Try to uncheck error monitoring - should not change URL since it's always required
     await userEvent.click(screen.getByRole('presentation', {name: 'Error Monitoring'}));
-    expect(router.location.query).toEqual(initialQuery);
+    await waitFor(() => expect(router.location.query).toEqual(initialQuery));
 
     // Tracing shall be checked and enabled by default
     expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
@@ -57,9 +65,11 @@ describe('Onboarding Product Selection', () => {
 
     // Uncheck tracing
     await userEvent.click(screen.getByRole('presentation', {name: 'Tracing'}));
-    expect(router.location.query).toEqual({
-      product: ProductSolution.SESSION_REPLAY,
-    });
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        product: ProductSolution.SESSION_REPLAY,
+      })
+    );
 
     // Session replay shall be checked and enabled by default
     expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeChecked();
@@ -67,7 +77,7 @@ describe('Onboarding Product Selection', () => {
 
     // Uncheck session replay (after tracing was already unchecked, so now both are removed)
     await userEvent.click(screen.getByRole('presentation', {name: 'Session Replay'}));
-    expect(router.location.query).toEqual({});
+    await waitFor(() => expect(router.location.query).toEqual({}));
 
     // Tooltip with explanation shall be displayed on hover
     await userEvent.hover(screen.getByRole('presentation', {name: 'Session Replay'}));
