@@ -10,6 +10,7 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.tasks.queries import (
+    ProjectVolume,
     get_eap_organization_volume,
     get_eap_project_volumes,
     run_eap_spans_table_query_in_chunks,
@@ -230,8 +231,8 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             )
 
         assert sorted(project_volumes) == [
-            (project.id, 2, 2, 0),
-            (other_project.id, 1, 1, 0),
+            ProjectVolume(project_id=project.id, total=2, keep=2, drop=0),
+            ProjectVolume(project_id=other_project.id, total=1, keep=1, drop=0),
         ]
         run_table_query.assert_called_once()
         assert sorted(run_table_query.call_args.kwargs["params"].projects, key=lambda p: p.id) == [
@@ -283,7 +284,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         ):
             project_volumes = get_eap_project_volumes(self.get_config(organization))
 
-        assert project_volumes == [(project.id, 0, 0, 0)]
+        assert project_volumes == [ProjectVolume(project_id=project.id, total=0, keep=0, drop=0)]
 
     def test_get_eap_project_volumes_without_projects(self) -> None:
         organization = self.create_organization()

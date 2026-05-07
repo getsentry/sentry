@@ -23,7 +23,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 
-@dataclass
+@dataclass(order=True)
 class ProjectVolume:
     project_id: ProjectId
     total: int
