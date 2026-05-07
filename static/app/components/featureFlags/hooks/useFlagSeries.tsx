@@ -82,6 +82,7 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
                 {event?.dateCreated && suffix}
               </Text>
             </Flex>
+            <div className="tooltip-arrow" />
           </Stack>
         );
       },
