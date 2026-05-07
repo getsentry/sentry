@@ -167,20 +167,6 @@ export function SeerProjectTable() {
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
 
-  // A default projects if you did a search for a valid project slug, but it's
-  // not configured yet.
-  const matchingProjects = useMemo(
-    () =>
-      searchTerm
-        ? allProjects.filter(project =>
-            project.slug.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        : [],
-    [allProjects, searchTerm]
-  );
-
-  const {handleAddProjectClick, isLoadingModal} = useAddProjectHandler();
-
   const queryKey = [
     'seer-projects',
     {query: {query: searchTerm, sort, agent: agentFilter}},
@@ -251,6 +237,40 @@ export function SeerProjectTable() {
 
     return filtered;
   }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
+
+  // Projects matching the search term split into two groups:
+  // - unconfigured: no setting exists in filteredProjects (not set up yet)
+  // - differentAgent: has a setting already but uses a different agent than the filter
+  const matchingProjects = useMemo(() => {
+    if (!searchTerm) {
+      return {unconfigured: [] as Project[], differentAgent: [] as Project[]};
+    }
+
+    const filteredProjectIds = new Set(filteredProjects.map(p => p.id));
+    const configuredProjectIds = new Set(projects.map(p => p.id));
+
+    const matches = allProjects.filter(project =>
+      project.slug.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const unconfigured: Project[] = [];
+    const differentAgent: Project[] = [];
+
+    for (const project of matches) {
+      if (filteredProjectIds.has(project.id)) {
+        continue;
+      }
+      if (configuredProjectIds.has(project.id)) {
+        differentAgent.push(project);
+      } else {
+        unconfigured.push(project);
+      }
+    }
+
+    return {unconfigured, differentAgent};
+  }, [allProjects, searchTerm, filteredProjects, projects]);
+
+  const {handleAddProjectClick, isLoadingModal} = useAddProjectHandler();
 
   if (
     !fetchingProjects &&
@@ -380,12 +400,12 @@ export function SeerProjectTable() {
                           })}
                     </Flex>
                     <Stack gap="md" align="center">
-                      {matchingProjects.length ? (
+                      {matchingProjects.unconfigured.length ? (
                         <Fragment>
                           <Text variant="muted" bold={false}>
-                            {t('Did you mean one of these?')}
+                            {t('Did you want to set up one of these projects?')}
                           </Text>
-                          {matchingProjects.map(matchingProject => (
+                          {matchingProjects.unconfigured.map(matchingProject => (
                             <Flex key={matchingProject.slug}>
                               <Button
                                 variant="primary"
