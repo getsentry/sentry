@@ -294,9 +294,9 @@ export function parseAggregateFromValueKey(value: string) {
 }
 
 interface VisualizeProps {
-  isEquationMode: boolean;
-  onSetEquationMode: (isEquationMode: boolean) => void;
   error?: Record<string, any>;
+  isEquationMode?: boolean;
+  onSetEquationMode?: (isEquationMode: boolean) => void;
   setError?: (error: Record<string, any>) => void;
 }
 
@@ -643,7 +643,7 @@ export function Visualize({
         tooltipText={tooltipText}
       />
       {isEquationMode && canShowTraceMetricEquations ? (
-        <MetricsEquationVisualize onEquationRemoved={() => onSetEquationMode(false)} />
+        <MetricsEquationVisualize onEquationRemoved={() => onSetEquationMode?.(false)} />
       ) : (
         <Fragment>
           <StyledFieldGroup
@@ -1183,7 +1183,7 @@ export function Visualize({
                       state.dataset === WidgetType.TRACEMETRICS &&
                       canShowTraceMetricEquations
                     ) {
-                      onSetEquationMode(true);
+                      onSetEquationMode?.(true);
                     } else {
                       dispatch({
                         type: updateAction,
