@@ -251,5 +251,5 @@ class HandleSeerRunCreateTest(TestCase):
         import orjson
 
         sent = orjson.loads(call_body[0][0])
-        assert sent["idempotency_key"] == str(run.uuid)
+        assert sent["external_idempotency_key"] == str(run.uuid)
         assert sent["key"] == "val"

@@ -52,7 +52,7 @@ def handle_seer_run_create(
     if run is None or run.seer_run_state_id:
         return
 
-    body = {**payload["body"], "idempotency_key": str(run.uuid)}
+    body = {**payload["body"], "external_idempotency_key": str(run.uuid)}
     viewer_context = payload.get("viewer_context")
 
     match run.type:
