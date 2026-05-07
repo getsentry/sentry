@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -44,9 +44,13 @@ function SentryApplicationDashboard() {
   const organization = useOrganization();
   const {appSlug} = useParams<{appSlug: string}>();
 
-  // Default time range for now: 90 days ago to now
-  const now = Math.floor(Date.now() / 1000);
-  const ninety_days_ago = 3600 * 24 * 90;
+  // Time range is captured once on mount so the queryKey stays stable across
+  // re-renders. Otherwise `now` advances every second and react-query refetches
+  // each tick.
+  const [timeRange] = useState(() => {
+    const now = Math.floor(Date.now() / 1000);
+    return {since: now - 3600 * 24 * 90, until: now};
+  });
 
   const {
     data: app,
@@ -71,7 +75,7 @@ function SentryApplicationDashboard() {
       getApiUrl('/sentry-apps/$sentryAppIdOrSlug/interaction/', {
         path: {sentryAppIdOrSlug: appSlug},
       }),
-      {query: {since: now - ninety_days_ago, until: now}},
+      {query: timeRange},
     ],
     {staleTime: 0, enabled: showInteractions}
   );
@@ -85,7 +89,7 @@ function SentryApplicationDashboard() {
       getApiUrl('/sentry-apps/$sentryAppIdOrSlug/stats/', {
         path: {sentryAppIdOrSlug: appSlug},
       }),
-      {query: {since: now - ninety_days_ago, until: now}},
+      {query: timeRange},
     ],
     {staleTime: 0, enabled: showInstallData}
   );
