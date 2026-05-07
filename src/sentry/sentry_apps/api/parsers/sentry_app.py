@@ -129,7 +129,10 @@ class SentryAppParser(Serializer):
         default=None,
     )
     overview = serializers.CharField(
-        required=False, allow_null=True, help_text="The custom integration's description."
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The custom integration's description.",
     )
     verifyInstall = serializers.BooleanField(
         required=False,
