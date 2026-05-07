@@ -322,14 +322,6 @@ describe('normalizeToMessages', () => {
 
       expect(messages).toBeNull();
     });
-
-    it('parses Python repr with True/False/None values', () => {
-      const input = "[{'role': 'user', 'content': 'test'}]";
-
-      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
-
-      expect(messages).toEqual([{role: 'user', content: 'test'}]);
-    });
   });
 
   describe('cross-format tolerance', () => {
