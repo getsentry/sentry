@@ -69,9 +69,6 @@ export function KeySettings({
     }
   };
 
-  const showOtlpTraces = organization.features.includes('relay-otlp-traces-endpoint');
-  const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
-
   return (
     <Fragment>
       <Access access={['project:write']} project={project}>
@@ -151,8 +148,8 @@ export function KeySettings({
                 <ProjectKeyCredentials
                   projectId={`${data.projectId}`}
                   data={data}
-                  showOtlpTraces={showOtlpTraces}
-                  showOtlpLogs={showOtlpLogs}
+                  showOtlpTraces
+                  showOtlpLogs
                   showPublicKey
                   showSecretKey
                   showProjectId

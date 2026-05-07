@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
@@ -6,9 +7,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -20,6 +19,14 @@ interface Props {
   values: ExceptionType['values'];
 }
 
+const appleCrashReportPlatforms: PlatformKey[] = [
+  'native',
+  'cocoa',
+  'nintendo-switch',
+  'playstation',
+  'xbox',
+];
+
 export function RawContent({
   eventId,
   projectSlug,
@@ -30,47 +37,34 @@ export function RawContent({
 }: Props) {
   const organization = useOrganization();
 
-  const isNative =
-    platform === 'native' ||
-    platform === 'cocoa' ||
-    platform === 'nintendo-switch' ||
-    platform === 'playstation' ||
-    platform === 'xbox';
-
-  const hasCrashReport = isNative && defined(organization);
+  const isNative = !!platform && appleCrashReportPlatforms.includes(platform);
 
   const {
     data: crashReport,
     isPending,
     isError,
-  } = useApiQuery<string>(
-    [
-      getApiUrl(
-        // Note that this endpoint does not have a trailing slash for some reason
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/apple-crash-report',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-            eventId,
-          },
-        }
-      ),
+  } = useQuery({
+    ...apiOptions.as<string>()(
+      // Note that this endpoint does not have a trailing slash for some reason
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/apple-crash-report',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug,
+          eventId,
+        },
         query: {
           minified: String(type === 'minified'),
           ...(threadId !== undefined && {thread_id: String(threadId)}),
         },
         headers: {Accept: '*/*; charset=utf-8'},
-      },
-    ],
-    {
-      enabled: hasCrashReport,
-      staleTime: Infinity,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    enabled: isNative,
+  });
 
-  if (isPending && hasCrashReport) {
+  if (isPending && isNative) {
     return <Placeholder height="270px" />;
   }
 
