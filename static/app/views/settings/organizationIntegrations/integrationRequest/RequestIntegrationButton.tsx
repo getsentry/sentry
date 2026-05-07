@@ -2,8 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
 
@@ -16,6 +16,8 @@ type Props = {
 };
 
 export function RequestIntegrationButton(props: Props) {
+  const {openModal} = useModal();
+
   const [isOpen, setIsOpen] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
