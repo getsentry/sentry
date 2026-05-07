@@ -55,7 +55,7 @@ register(
 # mapping embedded in the debug files, and to return the per-frame VCS
 # `revision`. Opt-in because rewriting `abs_path` can change downstream
 # behaviors such as code mapping resolution and source link generation.
-register(key="sentry:native_apply_srcsrv", default=False)
+register(key="sentry:enable_native_source_server_mapping", default=False)
 
 # Default legacy-browsers filter
 register(key="filters:legacy-browsers", epoch_defaults={1: "0"})

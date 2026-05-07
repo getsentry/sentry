@@ -200,7 +200,7 @@ class Symbolicator:
         frame's `abs_path`/`filename` and emits the per-frame `revision`.
         """
         options: dict[str, Any] = {"dif_candidates": True, **extra}
-        if self.project.get_option("sentry:native_apply_srcsrv"):
+        if self.project.get_option("sentry:enable_native_source_server_mapping"):
             options["apply_srcsrv"] = True
         return options
 
