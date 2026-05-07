@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import pytest
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -29,10 +29,16 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
 
         self.action = self.create_action()
 
-    def test_constraint_enforces_uniqueness_for_issue_alerts(self) -> None:
-        """Test that the constraint prevents duplicate issue alerts without open_period_start but allows them with different open_period_start"""
+    def test_duplicate_rule_fire_history_messages_allowed(self) -> None:
+        """The rule_fire_history/rule_action_uuid uniqueness constraint was dropped
+        in 0005; duplicate parent messages should now insert without error."""
 
-        # Create first notification without open_period_start
+        NotificationMessage.objects.create(
+            rule_fire_history_id=self.rule_fire_history.id,
+            rule_action_uuid="test-uuid-3",
+            error_code=None,
+            parent_notification_message=None,
+        )
         NotificationMessage.objects.create(
             rule_fire_history_id=self.rule_fire_history.id,
             rule_action_uuid="test-uuid-3",
@@ -40,14 +46,13 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
             parent_notification_message=None,
         )
 
-        # Attempting to create second notification without open_period_start should fail
-        with pytest.raises(IntegrityError):
-            NotificationMessage.objects.create(
+        assert (
+            NotificationMessage.objects.filter(
                 rule_fire_history_id=self.rule_fire_history.id,
                 rule_action_uuid="test-uuid-3",
-                error_code=None,
-                parent_notification_message=None,
-            )
+            ).count()
+            == 2
+        )
 
     def test_constraint_allows_action_group_with_open_period_start(self) -> None:
         """Test that the new constraint allows action group notifications"""
@@ -103,6 +108,50 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
 
         assert notification1.open_period_start == open_period_1
         assert notification2.open_period_start == open_period_2
+
+    def test_pairing_rejects_incident_without_trigger_action(self) -> None:
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(using=router.db_for_write(NotificationMessage)),
+        ):
+            NotificationMessage.objects.create(
+                incident_id=self.incident.id,
+                trigger_action=None,
+            )
+
+    def test_pairing_rejects_trigger_action_without_incident(self) -> None:
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(using=router.db_for_write(NotificationMessage)),
+        ):
+            NotificationMessage.objects.create(
+                incident=None,
+                trigger_action_id=self.alert_rule_trigger_action.id,
+            )
+
+    def test_pairing_rejects_action_without_group(self) -> None:
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(using=router.db_for_write(NotificationMessage)),
+        ):
+            NotificationMessage.objects.create(
+                action_id=self.action.id,
+                group=None,
+            )
+
+    def test_pairing_rejects_group_without_action(self) -> None:
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(using=router.db_for_write(NotificationMessage)),
+        ):
+            NotificationMessage.objects.create(
+                action=None,
+                group_id=self.group.id,
+            )
+
+    def test_pairing_allows_all_null(self) -> None:
+        msg = NotificationMessage.objects.create()
+        assert msg.id is not None
 
     def test_constraint_allows_different_action_group_combinations(self) -> None:
         """Test that different action/group combinations are allowed"""
