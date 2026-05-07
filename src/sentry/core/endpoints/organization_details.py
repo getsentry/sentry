@@ -106,9 +106,7 @@ from sentry.organizations.services.organization.model import (
 )
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.replays.models import OrganizationMemberReplayAccess
-from sentry.seer.autofix.constants import (
-    AutofixAutomationTuningSettings,
-)
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
