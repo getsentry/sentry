@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# Run linters and Warden AI review on all local changes.
+# Covers staged/unstaged working-tree changes AND unpushed branch commits.
+# Does not commit anything.
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+    cat <<'EOF'
+Usage: bin/autocheck [OPTIONS]
+
+Run linters and Warden AI review across all local changes:
+  - Staged and unstaged working-tree changes  → autofix + warden
+  - Unpushed commits on the current branch    → warden
+
+Mirrors the getsantry[bot] PR checks locally:
+  - sentry-backend-bugs (638 real production patterns)
+  - wrdn-pii, wrdn-authz, wrdn-code-execution, wrdn-data-exfil
+
+Options:
+  --no-fix      Skip bin/autofix (linting/formatting) on working-tree changes
+  --no-warden   Skip warden AI review
+  -h, --help    Show this message
+
+Requires warden CLI: npm install -g @sentry/warden
+
+Examples:
+  bin/autocheck
+  bin/autocheck --no-fix
+  bin/autocheck --no-warden
+EOF
+}
+
+WARDEN_CMD="warden"
+if ! command -v warden &>/dev/null; then
+    if command -v npx &>/dev/null; then
+        WARDEN_CMD="npx --yes @sentry/warden"
+    else
+        echo "error: warden not found — install with: npm install -g @sentry/warden" >&2
+        exit 1
+    fi
+fi
+
+RUN_FIX=true
+RUN_WARDEN=true
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-fix)    RUN_FIX=false;    shift ;;
+        --no-warden) RUN_WARDEN=false; shift ;;
+        -h|--help)   usage; exit 0 ;;
+        -*)
+            echo "error: unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            echo "error: unexpected argument '$1'" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+cd "$REPO_ROOT"
+
+# Detect what we have to work with.
+HAS_STAGED=false
+HAS_UNSTAGED=false
+MERGE_BASE=""
+LOCAL_COMMITS=""
+
+git diff --cached --quiet || HAS_STAGED=true
+git diff --quiet         || HAS_UNSTAGED=true
+
+# Find the merge base against origin/master or origin/main.
+for base in origin/master origin/main master main; do
+    mb=$(git merge-base HEAD "$base" 2>/dev/null) && { MERGE_BASE="$mb"; break; }
+done
+
+if [[ -n "$MERGE_BASE" ]]; then
+    LOCAL_COMMITS=$(git log --oneline "$MERGE_BASE..HEAD" 2>/dev/null)
+fi
+
+HAS_WORKING_TREE=$($HAS_STAGED || $HAS_UNSTAGED && echo true || echo false)
+
+if ! $HAS_STAGED && ! $HAS_UNSTAGED && [[ -z "$LOCAL_COMMITS" ]]; then
+    echo "Nothing to check — no staged changes, no unstaged changes, no local commits."
+    exit 0
+fi
+
+# Print a brief summary of scope.
+echo "==> Scope"
+if $HAS_STAGED;   then echo "    staged changes"; fi
+if $HAS_UNSTAGED; then echo "    unstaged changes"; fi
+if [[ -n "$LOCAL_COMMITS" ]]; then
+    echo "    local commits:"
+    echo "$LOCAL_COMMITS" | sed 's/^/      /'
+fi
+echo ""
+
+rc=0
+
+# ── Step 1: autofix on working-tree changes ───────────────────────────────────
+if $RUN_FIX && ($HAS_STAGED || $HAS_UNSTAGED); then
+    echo "==> Running autofix (staged + unstaged)..."
+    bin/autofix || rc=$?
+    echo ""
+fi
+
+# ── Step 2: warden on working-tree changes ────────────────────────────────────
+if $RUN_WARDEN && ($HAS_STAGED || $HAS_UNSTAGED); then
+    echo "==> Running warden on uncommitted changes..."
+    $WARDEN_CMD --fail-on high -v || rc=$?
+    echo ""
+fi
+
+# ── Step 3: warden on local branch commits ───────────────────────────────────
+if $RUN_WARDEN && [[ -n "$LOCAL_COMMITS" && -n "$MERGE_BASE" ]]; then
+    echo "==> Running warden on local commits ($MERGE_BASE..HEAD)..."
+    $WARDEN_CMD "$MERGE_BASE..HEAD" --fail-on high -v || rc=$?
+    echo ""
+fi
+
+if [[ $rc -ne 0 ]]; then
+    echo "error: one or more checks found issues — review the output above" >&2
+    exit $rc
+fi
+
+echo "All checks passed."

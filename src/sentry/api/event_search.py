@@ -1896,18 +1896,18 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         node: Node,
         children: tuple[SearchKey, str],  #  "[*]")
     ) -> SearchKey:
-        inner, suffix = children
-        return SearchKey(f"{inner.name}{suffix}")
+        inner, _ = children
+        return SearchKey(f"{inner.name}")
 
     def visit_array_includes_attr_key(
         self,
         node: Node,
         children: tuple[Any, str],
     ) -> SearchKey:
-        inner, suffix = children
+        inner, _ = children
         if isinstance(inner, list):
             inner = inner[0]
-        return SearchKey(f"{inner}{suffix}")
+        return SearchKey(f"{inner}")
 
     def visit_array_includes_key(self, node: Node, children: tuple[SearchKey]) -> SearchKey:
         return children[0]
@@ -1924,9 +1924,15 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             SearchValue,
         ],
     ) -> SearchFilter:
-        # Identical rule shape to text_filter; semantics here are equals with
-        # the array-includes meaning carried by the [*] suffix on search_key.name.
-        return self.visit_text_filter(node, children)
+        (negation, search_key, _, wildcard_op, operator, search_value) = children
+        operator_s = get_operator_value(operator)
+        if not search_value.raw_value:
+            raise InvalidSearchQuery(f"Empty value for {search_key.name}[*]")
+
+        if operator_s not in ("=", "!="):
+            raise InvalidSearchQuery("In Array Queries, only EQUAL/NOT_EQUAL operators are allowed")
+        operator_s = handle_negation(negation, operator_s)
+        return SearchFilter(search_key, operator_s, search_value)
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
         return children or node

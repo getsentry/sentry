@@ -1549,7 +1549,7 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
             "frame_filenames[*]:foo",
             [
                 SearchFilter(
-                    key=SearchKey(name="frame_filenames[*]"),
+                    key=SearchKey(name="frame_filenames"),
                     operator="=",
                     value=SearchValue("foo"),
                 )
@@ -1560,7 +1560,7 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
             '"frame_filenames"[*]:foo',
             [
                 SearchFilter(
-                    key=SearchKey(name="frame_filenames[*]"),
+                    key=SearchKey(name="frame_filenames"),
                     operator="=",
                     value=SearchValue("foo"),
                 )
@@ -1571,7 +1571,7 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
             "tags[my_tag, array][*]:foo",
             [
                 SearchFilter(
-                    key=SearchKey(name="tags[my_tag,array][*]"),
+                    key=SearchKey(name="tags[my_tag,array]"),
                     operator="=",
                     value=SearchValue("foo"),
                 )
@@ -1582,7 +1582,7 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
             "!frame_filenames[*]:foo",
             [
                 SearchFilter(
-                    key=SearchKey(name="frame_filenames[*]"),
+                    key=SearchKey(name="frame_filenames"),
                     operator="!=",
                     value=SearchValue("foo"),
                 )
@@ -1593,7 +1593,7 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
             'frame_filenames[*]:"foo bar"',
             [
                 SearchFilter(
-                    key=SearchKey(name="frame_filenames[*]"),
+                    key=SearchKey(name="frame_filenames"),
                     operator="=",
                     value=SearchValue("foo bar"),
                 )
@@ -1601,21 +1601,10 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
             id="quoted_value_with_spaces",
         ),
         pytest.param(
-            "frame_filenames[*]:>5",
-            [
-                SearchFilter(
-                    key=SearchKey(name="frame_filenames[*]"),
-                    operator="=",
-                    value=SearchValue(">5"),
-                )
-            ],
-            id="non_equals_operator_pushed_into_value",
-        ),
-        pytest.param(
             "frame_filenames[*]:foo level:error",
             [
                 SearchFilter(
-                    key=SearchKey(name="frame_filenames[*]"),
+                    key=SearchKey(name="frame_filenames"),
                     operator="=",
                     value=SearchValue("foo"),
                 ),
@@ -1631,3 +1620,16 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
 )
 def test_array_includes_filter(query, expected) -> None:
     assert parse_search_query(query) == expected
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("frame_filenames[*]:>5", id="rejects_comparison_operator"),
+        pytest.param("frame_filenames[*]:<=5", id="rejects_lte_operator"),
+        pytest.param("frame_filenames[*]:", id="rejects_empty_value"),
+    ],
+)
+def test_array_includes_filter_rejects_invalid_input(query) -> None:
+    with pytest.raises(InvalidSearchQuery):
+        parse_search_query(query)

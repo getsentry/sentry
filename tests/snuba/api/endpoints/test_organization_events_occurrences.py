@@ -511,14 +511,27 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             q["sql"] for q in ctx.captured_queries if Group._meta.db_table in q["sql"]
         ]
 
+
+class OrganizationEventsOccurrencesArrayQueryTest(
+    OrganizationEventsEndpointTestBase, OccurrenceTestCase
+):
+    callsite_name = "api.events.endpoints"
+
+    def request_with_feature_flag(self, payload: dict) -> Response:
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            response = self.do_request({**payload, "dataset": "occurrences"})
+        assert response.status_code == 200, response.content
+        return response
+
     def _create_occurrence_with_arrays(self, occurrence_count: int = 1) -> tuple[list, list[dict]]:
         occurrences = []
         expected: list[dict] = []
         for i in range(occurrence_count):
             filenames = [f"sentry/module_{i}/urls.py", f"django/views_{i}/base.py"]
             http_url = f"https://example.com/items/{i}"
-            colnos = [12 + i, i]
-            col_nums = [str(c) for c in colnos]
+            col_nums = [12 + i, i]
             in_app = True if i % 2 else False
             event_id = uuid.uuid4().hex
             trace_id = uuid.uuid4().hex
@@ -546,7 +559,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                                             "function": "dispatch",
                                             "in_app": in_app,
                                             "lineno": 45,
-                                            "colno": colnos[0],
+                                            "colno": col_nums[0],
                                         },
                                         {
                                             "abs_path": f"/usr/lib/{filenames[1]}",
@@ -555,7 +568,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                                             "function": "handler",
                                             "in_app": in_app,
                                             "lineno": 200,
-                                            "colno": colnos[1],
+                                            "colno": col_nums[1],
                                         },
                                     ]
                                 },
@@ -580,7 +593,6 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
 
         return occurrences, expected
 
-    @pytest.mark.xfail(reason="flaky: integer vs string type mismatch in EAP array attributes")
     def test_eap_occurrence_stores_exception_stack_as_array_attributes(self) -> None:
         occurrences, expected = self._create_occurrence_with_arrays(occurrence_count=1)
         occ = occurrences[0]
@@ -604,7 +616,6 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
 
         response = self.request_with_feature_flag(
             {
-                # stack.filename -> frame_filenames (array); http.url -> http_url (string)
                 "field": ["id", "stack.filename", "http.url", "stack.colno"],
                 "statsPeriod": "1h",
                 "project": [self.project.id],
@@ -617,24 +628,115 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         api_fn = data[0].get("stack.filename")
         assert api_fn == expected_filenames
         assert data[0].get("http.url") == expected_http_url
-        # EAP converts all non-string arrays to strings.
         assert data[0].get("stack.colno") == expected_col_nums
 
-    def test_eap_occurrences_array_includes_query(self) -> None:
-        """Test array `includes` query"""
-        occurrences, expected = self._create_occurrence_with_arrays(occurrence_count=2)
-        occ = occurrences[0]  # Remove
-        assert occ.attributes["http_url"].WhichOneof("value") == "string_value"
+    def test_array_includes_equality_and_inequality_across_attribute_types(self) -> None:
+        # Two occurrences:
+        #   i=0  filenames: ["sentry/module_0/urls.py", ...]  colnos: [12, 0]  in_app: [False, False]
+        #   i=1  filenames: ["sentry/module_1/urls.py", ...]  colnos: [13, 1]  in_app: [True,  True]
+        # Each query below uniquely matches exactly one of the two occurrences.
+        self._create_occurrence_with_arrays(occurrence_count=2)
+        cases = [
+            # (description, query, field, value, must_contain)
+            (
+                "string =",
+                'stack.filename[*]:"sentry/module_0/urls.py"',
+                "stack.filename",
+                "sentry/module_0/urls.py",
+                True,
+            ),
+            (
+                "string !=",
+                '!stack.filename[*]:"sentry/module_0/urls.py"',
+                "stack.filename",
+                "sentry/module_0/urls.py",
+                False,
+            ),
+            ("number =", "stack.colno[*]:12", "stack.colno", 12, True),
+            ("number !=", "!stack.colno[*]:12", "stack.colno", 12, False),
+            ("boolean =", "stack.in_app[*]:true", "stack.in_app", True, True),
+            ("boolean !=", "!stack.in_app[*]:true", "stack.in_app", True, False),
+        ]
+        for description, query, field, value, must_contain in cases:
+            response = self.request_with_feature_flag(
+                {
+                    "field": ["id", field],
+                    "query": query,
+                    "statsPeriod": "1h",
+                    "project": [self.project.id],
+                }
+            )
+            data = response.data.get("data", [])
+            assert len(data) == 1, (
+                f"{description}: query={query!r} returned {len(data)} rows, expected 1"
+            )
+            array_values = [item for item in data[0][field]]
+            is_present = value in array_values
+            assert is_present == must_contain, (
+                f"{description}: query={query!r} matched row with {field}={data[0][field]!r}; "
+                f"value {value!r} present={is_present}, expected present={must_contain}"
+            )
 
-        file_names = [exp["filenames"] for exp in expected]
-        col_nums = [exp["col_nums"] for exp in expected]
-        response = self.request_with_feature_flag(
-            {
-                "field": ["id", "stack.filename", "http.url", "stack.colno"],
-                "query": f"tags[colno, array][*]: {col_nums[0][0]}",
-                "statsPeriod": "1h",
-                "project": [self.project.id],
-            }
-        )
-        data = response.data.get("data", [])
-        assert len(data) == 1
+    def test_array_includes_substring_matching(self) -> None:
+        # i=0  filenames: ["sentry/module_0/urls.py", "django/views_0/base.py"]
+        # i=1  filenames: ["sentry/module_1/urls.py", "django/views_1/base.py"]
+        self._create_occurrence_with_arrays(occurrence_count=2)
+        field = "stack.filename"
+        substring = "module_0"
+        cases = [
+            # (description, query, must_contain_substring_in_match)
+            ("substring =", f"{field}[*]:*{substring}*", True),
+            ("substring !=", f"!{field}[*]:*{substring}*", False),
+        ]
+        for description, query, must_contain in cases:
+            response = self.request_with_feature_flag(
+                {
+                    "field": ["id", field],
+                    "query": query,
+                    "statsPeriod": "1h",
+                    "project": [self.project.id],
+                }
+            )
+            data = response.data.get("data", [])
+            assert len(data) == 1, (
+                f"{description}: query={query!r} returned {len(data)} rows, expected 1"
+            )
+            joined = " ".join(data[0][field])
+            is_present = substring in joined
+            assert is_present == must_contain, (
+                f"{description}: query={query!r} matched row with {field}={data[0][field]!r}; "
+                f"substring {substring!r} present={is_present}, expected present={must_contain}"
+            )
+
+    def test_array_includes_equality_and_inequality_for_tag_types(self) -> None:
+        # Both occurrences share the same tag-array fixture:
+        #   tags[array_tags] = ["eap_items", "occurrences"]
+        self._create_occurrence_with_arrays(occurrence_count=2)
+        field = "tags[array_tags, array]"
+        cases = [
+            # (description, query, value, expected_count, must_contain_in_each_match)
+            ("present value =", f"{field}[*]:eap_items", "eap_items", 2, True),
+            ("present value !=", f"!{field}[*]:eap_items", "eap_items", 0, False),
+            ("absent value =", f"{field}[*]:nonexistent", "nonexistent", 0, True),
+            ("absent value !=", f"!{field}[*]:nonexistent", "nonexistent", 2, False),
+        ]
+        for description, query, value, expected_count, must_contain in cases:
+            response = self.request_with_feature_flag(
+                {
+                    "field": ["id", field],
+                    "query": query,
+                    "statsPeriod": "1h",
+                    "project": [self.project.id],
+                }
+            )
+            data = response.data.get("data", [])
+            assert len(data) == expected_count, (
+                f"{description}: query={query!r} returned {len(data)} rows, expected {expected_count}"
+            )
+            for row in data:
+                array_values = [item for item in row[field]]
+                is_present = value in array_values
+                assert is_present == must_contain, (
+                    f"{description}: query={query!r} matched row with {field}={row[field]!r}; "
+                    f"value {value!r} present={is_present}, expected present={must_contain}"
+                )

@@ -895,6 +895,17 @@ class SearchResolver:
                     return AttributeValue(val_bool=bool_value)
                 elif isinstance(value, bool):
                     return AttributeValue(val_bool=value)
+            elif column_type == constants.ARRAY:
+                # Only array-includes (membership) is supported. Reject IN/NOT IN
+                # Snuba's TYPE_ARRAY ComparisonFilter only accepts EQUALS,
+                # NOT_EQUALS, LIKE, NOT_LIKE with a scalar value.
+                if operator in constants.IN_OPERATORS:
+                    raise InvalidSearchQuery(
+                        f"{column.public_alias} (array) cannot be used with an IN filter; "
+                        f"use {column.public_alias}[*]:value for membership"
+                    )
+                # All primitive types are converted to strings on EAP before comparison.
+                return AttributeValue(val_str=str(value))
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )
@@ -1035,6 +1046,11 @@ class SearchResolver:
             tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
             if tag_match is None:
                 tag_match = qb_constants.TAG_KEY_RE.search(column)
+                # TODO(EXP-885): array-includes intent is lost here. If the column is
+                # not registered in definitions.columns and not in tags[name,type]
+                # form, we default search_type to "string" and have no signal that
+                # the user wrote `column[*]:value` expecting array semantics. Decide
+                # how to handle array-typed but unregistered columns.
                 field_type = "string"
             else:
                 field_type = None
