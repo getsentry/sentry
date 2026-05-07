@@ -4,12 +4,13 @@ from collections import defaultdict
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
@@ -23,21 +24,10 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 
-@dataclass(frozen=True)
-class EAPProjectTransactionVolumes:
-    org_id: int
-    project_id: int
-    transaction_counts: list[tuple[str, float]]
-    total_num_transactions: float
-    total_num_classes: int
-    indexed: int
-
-
 @dataclass
 class _EAPProjectTransactionVolumesAccumulator:
     transaction_counts: list[tuple[str, float]] = field(default_factory=list)
     total_num_transactions: float = 0
-    indexed: int = 0
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
@@ -51,11 +41,19 @@ def _get_aggregate_float(row: Mapping[str, Any], column: str) -> float:
 def run_batched_spans_table_query(
     query: dict[str, Any],
     chunk_size: int,
+    max_results: int | None = None,
 ) -> Iterator[list[dict[str, Any]]]:
+    if max_results is not None and max_results <= 0:
+        return
+
     offset = 0
 
     while True:
-        result = Spans.run_table_query(**query, offset=offset, limit=chunk_size)
+        limit = chunk_size
+        if max_results is not None:
+            limit = min(limit, max_results - offset)
+
+        result = Spans.run_table_query(**query, offset=offset, limit=limit)
         data = result.get("data", [])
 
         if not data:
@@ -63,10 +61,13 @@ def run_batched_spans_table_query(
 
         yield data
 
-        if len(data) < chunk_size:
+        offset += len(data)
+
+        if len(data) < limit:
             return
 
-        offset += chunk_size
+        if max_results is not None and offset >= max_results:
+            return
 
 
 def get_eap_organization_volume(
@@ -117,7 +118,12 @@ def get_eap_organization_volume(
 def get_eap_transaction_volumes(
     config: BaseDynamicSamplingConfiguration,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-) -> list[EAPProjectTransactionVolumes]:
+    order_by_volume: Literal["asc", "desc"] | None = None,
+    max_transactions: int | None = None,
+) -> list[ProjectTransactions]:
+    if max_transactions is not None and max_transactions <= 0:
+        return []
+
     projects = list(
         Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
     )
@@ -130,6 +136,12 @@ def get_eap_transaction_volumes(
         _EAPProjectTransactionVolumesAccumulator
     )
 
+    orderby = ["project_id", "transaction"]
+    if order_by_volume == "asc":
+        orderby = ["count()", "project_id", "transaction"]
+    elif order_by_volume == "desc":
+        orderby = ["-count()", "project_id", "transaction"]
+
     batch_iterator = run_batched_spans_table_query(
         {
             "params": SnubaParams(
@@ -139,8 +151,8 @@ def get_eap_transaction_volumes(
                 organization=config.organization,
             ),
             "query_string": "is_transaction:true",
-            "selected_columns": ["project_id", "transaction", "count()", "count_sample()"],
-            "orderby": ["project_id", "transaction"],
+            "selected_columns": ["project_id", "transaction", "count()"],
+            "orderby": orderby,
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
             "config": SearchResolverConfig(
                 auto_fields=True,
@@ -149,6 +161,7 @@ def get_eap_transaction_volumes(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         },
         CHUNK_SIZE,
+        max_results=max_transactions,
     )
 
     for batch in batch_iterator:
@@ -165,16 +178,40 @@ def get_eap_transaction_volumes(
             project_volumes = volumes_by_project[project_id]
             project_volumes.transaction_counts.append((str(transaction), total))
             project_volumes.total_num_transactions += total
-            project_volumes.indexed += _get_aggregate_int(row, "count_sample()")
 
     return [
-        EAPProjectTransactionVolumes(
-            org_id=config.organization.id,
-            project_id=project_id,
-            transaction_counts=project_volumes.transaction_counts,
-            total_num_transactions=project_volumes.total_num_transactions,
-            total_num_classes=len(project_volumes.transaction_counts),
-            indexed=project_volumes.indexed,
-        )
+        {
+            "org_id": config.organization.id,
+            "project_id": project_id,
+            "transaction_counts": project_volumes.transaction_counts,
+            "total_num_transactions": project_volumes.total_num_transactions,
+            "total_num_classes": len(project_volumes.transaction_counts),
+        }
         for project_id, project_volumes in sorted(volumes_by_project.items())
     ]
+
+
+def get_top_eap_transaction_volumes(
+    config: BaseDynamicSamplingConfiguration,
+    max_transactions: int,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+) -> list[ProjectTransactions]:
+    return get_eap_transaction_volumes(
+        config,
+        time_interval=time_interval,
+        order_by_volume="desc",
+        max_transactions=max_transactions,
+    )
+
+
+def get_bottom_eap_transaction_volumes(
+    config: BaseDynamicSamplingConfiguration,
+    max_transactions: int,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+) -> list[ProjectTransactions]:
+    return get_eap_transaction_volumes(
+        config,
+        time_interval=time_interval,
+        order_by_volume="asc",
+        max_transactions=max_transactions,
+    )

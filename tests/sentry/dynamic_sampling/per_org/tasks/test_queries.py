@@ -8,8 +8,9 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.tasks.queries import (
-    EAPProjectTransactionVolumes,
+    get_eap_bottom_transaction_volumes,
     get_eap_organization_volume,
+    get_eap_top_transaction_volumes,
     get_eap_transaction_volumes,
     run_batched_spans_table_query,
 )
@@ -43,6 +44,29 @@ class BatchedSpansTableQueryTest(TestCase):
             [{"transaction": "c"}],
         ]
         assert calls == [(0, 2), (2, 2)]
+
+    def test_stops_after_max_results(self) -> None:
+        calls: list[tuple[int, int]] = []
+        query = {"query_string": "is_transaction:true"}
+
+        def run_table_query(**kwargs):
+            calls.append((kwargs["offset"], kwargs["limit"]))
+
+            if kwargs["offset"] == 0:
+                return {"data": [{"transaction": "a"}, {"transaction": "b"}]}
+            return {"data": [{"transaction": "c"}]}
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
+            side_effect=run_table_query,
+        ):
+            batches = list(run_batched_spans_table_query(query, 2, max_results=3))
+
+        assert batches == [
+            [{"transaction": "a"}, {"transaction": "b"}],
+            [{"transaction": "c"}],
+        ]
+        assert calls == [(0, 2), (2, 1)]
 
 
 class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
@@ -206,22 +230,20 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         assert volumes == [
-            EAPProjectTransactionVolumes(
-                org_id=organization.id,
-                project_id=project.id,
-                transaction_counts=[("checkout", 3), ("product", 1)],
-                total_num_transactions=4,
-                total_num_classes=2,
-                indexed=3,
-            ),
-            EAPProjectTransactionVolumes(
-                org_id=organization.id,
-                project_id=other_project.id,
-                transaction_counts=[("checkout", 1)],
-                total_num_transactions=1,
-                total_num_classes=1,
-                indexed=1,
-            ),
+            {
+                "org_id": organization.id,
+                "project_id": project.id,
+                "transaction_counts": [("checkout", 3), ("product", 1)],
+                "total_num_transactions": 4,
+                "total_num_classes": 2,
+            },
+            {
+                "org_id": organization.id,
+                "project_id": other_project.id,
+                "transaction_counts": [("checkout", 1)],
+                "total_num_transactions": 1,
+                "total_num_classes": 1,
+            },
         ]
 
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
@@ -232,3 +254,75 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         assert volumes == []
+
+    def test_get_eap_top_and_bottom_transaction_volumes(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        other_project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {"transaction": "checkout"},
+                        "measurements": {"server_sample_rate": {"value": 0.5}},
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=1),
+                ),
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"transaction": "product"}},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=2),
+                ),
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
+                    organization=organization,
+                    project=other_project,
+                    start_ts=timestamp + timedelta(seconds=3),
+                ),
+            ]
+        )
+
+        top_volumes = get_eap_top_transaction_volumes(
+            self.get_config(organization), 1, time_interval=timedelta(hours=1)
+        )
+        bottom_volumes = get_eap_bottom_transaction_volumes(
+            self.get_config(organization), 2, time_interval=timedelta(hours=1)
+        )
+
+        assert top_volumes == [
+            {
+                "org_id": organization.id,
+                "project_id": project.id,
+                "transaction_counts": [("checkout", 3)],
+                "total_num_transactions": 3,
+                "total_num_classes": 1,
+            }
+        ]
+        assert bottom_volumes == [
+            {
+                "org_id": organization.id,
+                "project_id": project.id,
+                "transaction_counts": [("product", 1)],
+                "total_num_transactions": 1,
+                "total_num_classes": 1,
+            },
+            {
+                "org_id": organization.id,
+                "project_id": other_project.id,
+                "transaction_counts": [("checkout", 1)],
+                "total_num_transactions": 1,
+                "total_num_classes": 1,
+            },
+        ]
