@@ -84,29 +84,6 @@ const AVATAR_STYLES = {
   },
 };
 
-type FormErrorField =
-  | 'name'
-  | 'author'
-  | 'webhookUrl'
-  | 'redirectUrl'
-  | 'verifyInstall'
-  | 'isAlertable'
-  | 'schema'
-  | 'overview'
-  | 'allowedOrigins';
-
-const FORM_ERROR_FIELDS: FormErrorField[] = [
-  'name',
-  'author',
-  'webhookUrl',
-  'redirectUrl',
-  'verifyInstall',
-  'isAlertable',
-  'schema',
-  'overview',
-  'allowedOrigins',
-];
-
 const sentryAppFormSchema = z
   .object({
     name: z.string(),
@@ -160,8 +137,6 @@ const sentryAppFormSchema = z
       }
     }
   });
-
-type SentryApplicationFormData = z.infer<typeof sentryAppFormSchema>;
 
 type SaveSentryAppPayload = {
   allowedOrigins: string[];
@@ -492,33 +467,15 @@ export default function SentryApplicationDetails() {
       };
 
       return saveSentryAppMutation.mutateAsync(payload).catch(error => {
-        const responseJSON =
-          error instanceof RequestError ? (error.responseJSON ?? {}) : {};
-
-        const fieldErrors: Partial<Record<FormErrorField, {message: string}>> = {};
-        for (const field of FORM_ERROR_FIELDS) {
-          const fieldError = responseJSON[field];
-          const message = Array.isArray(fieldError) ? fieldError[0] : fieldError;
-          if (typeof message === 'string') {
-            fieldErrors[field] = {message};
-          }
-        }
-        if (Object.keys(fieldErrors).length > 0) {
-          setFieldErrors(
-            formApi,
-            fieldErrors as Partial<
-              Record<keyof SentryApplicationFormData, {message: string}>
-            >
-          );
+        if (error instanceof RequestError && setFieldErrors(formApi, error)) {
           return;
         }
 
-        addErrorMessage(
-          (typeof responseJSON.detail === 'string' && responseJSON.detail) ||
-            (Array.isArray(responseJSON.scopes) && responseJSON.scopes[0]) ||
-            (Array.isArray(responseJSON.events) && responseJSON.events[0]) ||
-            t('Unknown Error')
-        );
+        const detail =
+          error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+            ? error.responseJSON.detail
+            : t('Unknown Error');
+        addErrorMessage(detail);
       });
     },
   });
