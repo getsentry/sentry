@@ -55,22 +55,18 @@ For large tables, set `is_post_deployment = True` on the migration as index crea
 
 ### Removing a Model (and eventually its table)
 
-This is a two-phase process. **Phase 1 is where the historical_silo_assignments entry must be added** — not phase 2.
+Two-phase process — the `historical_silo_assignments` entry must be added in phase 1.
 
 **Phase 1 — Remove the model class (`MOVE_TO_PENDING`)**
 
-This is the PR that deletes the model file. The router can no longer resolve the table → silo via the app registry, so without an explicit historical entry the migration is silently skipped on deploy.
-
 1. Remove all code references
 2. Replace `DeleteModel` with `SafeDeleteModel(..., deletion_action=DeletionAction.MOVE_TO_PENDING)`
-3. **Add the table to `historical_silo_assignments` in `src/sentry/db/router.py`** (or `getsentry/db/router.py` for getsentry models). Pick the silo the model used — usually `SiloMode.CELL`.
+3. Add the table to `historical_silo_assignments` in `src/sentry/db/router.py` (or `getsentry/db/router.py` for getsentry models). Pick the silo the model used — usually `SiloMode.CELL`.
 4. Deploy
-
-> ⚠️ The CI check that fails when `historical_silo_assignments` is missing only fires on `DeletionAction.DELETE` (phase 2). It will **not** catch a missing entry in the `MOVE_TO_PENDING` PR. Adding the entry in phase 1 is a manual discipline — the test won't save you. Skipping it causes the migration to be silently no-op'd in prod (Django sees `allow_migrate` return `None`/False and moves on). See `src/sentry/new_migrations/monkey/models.py` for the check, and the `dashboardlastvisited` incident (PR #114929 / #114930) for what this looks like in practice.
 
 **Phase 2 — Drop the table (`DELETE`)**
 
-After phase 1 has deployed, create a second migration with `SafeDeleteModel(..., deletion_action=DeletionAction.DELETE)`. The historical entry from phase 1 stays in place — the table-drop migration relies on it to resolve the silo.
+After phase 1 has deployed, create a second migration with `SafeDeleteModel(..., deletion_action=DeletionAction.DELETE)`. Leave the historical entry in place — the table-drop migration relies on it to resolve the silo.
 
 ### Renaming Columns/Tables
 
