@@ -1,3 +1,4 @@
+import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -5,10 +6,12 @@ import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
@@ -29,7 +32,11 @@ export function BuiltInRepositories({
   builtinSymbolSources,
   project,
 }: Props) {
-  const {mutateAsync: updateProject} = useUpdateProject(project);
+  const queryClient = useQueryClient();
+  const projectQueryKey = makeDetailedProjectQueryKey({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
 
   // If the project details object has an unknown built-in source, this will be filtered here.
   // This prevents the UI from showing the wrong feedback message when updating the field
@@ -73,8 +80,18 @@ export function BuiltInRepositories({
         schema={schema}
         initialValue={validBuiltInSymbolSources}
         mutationOptions={{
-          mutationFn: (data: Partial<Project>) => updateProject(data),
-          onSuccess: (_response, variables) => {
+          mutationFn: (data: Partial<Project>) =>
+            fetchMutation<Project>({
+              url: `/projects/${organization.slug}/${project.slug}/`,
+              method: 'PUT',
+              data,
+            }),
+          onSuccess: (response, variables) => {
+            ProjectsStore.onUpdateSuccess(response);
+            queryClient.setQueryData(projectQueryKey, prev => ({
+              headers: prev?.headers ?? {},
+              json: response,
+            }));
             const {successMessage} = getRequestMessages(
               variables.builtinSymbolSources.length
             );
