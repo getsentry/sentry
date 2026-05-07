@@ -42,7 +42,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
 )
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.utils import metrics
 from sentry.utils.cursored_scheduler import CursoredScheduler
@@ -135,11 +135,10 @@ def _halt_broken_integration(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.sync_repos_for_org",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def sync_repos_for_org(organization_integration_id: int) -> None:
     """
     Sync repositories for a single OrganizationIntegration.
@@ -419,11 +418,10 @@ def _get_sync_context(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.create_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def create_repos_batch(
     organization_integration_id: int,
     repo_configs: list[dict[str, object]],
@@ -460,11 +458,10 @@ def create_repos_batch(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.disable_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def disable_repos_batch(
     organization_integration_id: int,
     external_ids: list[str],
@@ -507,11 +504,10 @@ def disable_repos_batch(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.restore_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def restore_repos_batch(
     organization_integration_id: int,
     external_ids: list[str],
