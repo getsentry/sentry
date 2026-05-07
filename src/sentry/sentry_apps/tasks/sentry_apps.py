@@ -11,7 +11,7 @@ from django.urls import reverse
 from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
 from taskbroker_client.constants import CompressionType
-from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
+from taskbroker_client.retry import Retry, retry_task
 
 from sentry import analytics, nodestore, options
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
@@ -74,7 +74,7 @@ from sentry.sentry_apps.utils.webhooks import (
 from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
@@ -90,26 +90,24 @@ from sentry.utils.sentry_apps.service_hook_manager import (
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
 
-retry_decorator = retry(
-    on=(RequestException),
-    on_silent=(
-        ChunkedEncodingError,
-        Timeout,
-        ApiHostError,
-        ApiTimeoutError,
-        ConnectionError,
-        HTTPError,
-    ),
-    ignore=(
-        ClientError,
-        SentryAppSentryError,
-        AssertionError,
-        ValueError,
-        RestrictedIPAddress,
-        NoRetriesRemainingError,
-    ),
-    ignore_and_capture=(),
-    raise_on_no_retries=False,
+_SENTRY_APP_WEBHOOK_RETRY_ON = (RequestException,)
+_SENTRY_APP_WEBHOOK_RETRY_IGNORE = (
+    ClientError,
+    SentryAppSentryError,
+    AssertionError,
+    ValueError,
+    RestrictedIPAddress,
+)
+# List of exceptions to silence for reporting, though we retry on some.
+_SENTRY_APP_WEBHOOK_SILENCED = (
+    ChunkedEncodingError,
+    Timeout,
+    ApiHostError,
+    ApiTimeoutError,
+    ConnectionError,
+    HTTPError,
+    # Anything not retriable should be silenced by default
+    *_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
 )
 
 # We call some models by a different name, publicly, than their class name.
@@ -179,11 +177,16 @@ def _webhook_issue_data(
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
     processing_deadline_duration=12,
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@retry_decorator
 def send_alert_webhook_v2(
     rule_label: str,
     sentry_app_id: int,
@@ -432,11 +435,16 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound",
     namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
     processing_deadline_duration=150,
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@retry_decorator
 @sentry_sdk.trace(name="process_resource_change_bound")
 def process_resource_change_bound(
     action: str, sender: str, instance_id: str, **kwargs: Any
@@ -447,10 +455,15 @@ def process_resource_change_bound(
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.installation_webhook",
     namespace=sentryapp_control_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@retry_decorator
 def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwargs: Any) -> None:
     from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 
@@ -524,11 +537,16 @@ def clear_cell_cache(sentry_app_id: int, cell_name: str) -> None:
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
     namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
     processing_deadline_duration=15,
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@retry_decorator
 def workflow_notification(
     installation_id: int, issue_id: int, type: str, user_id: int | None, *args: Any, **kwargs: Any
 ) -> None:
@@ -584,10 +602,15 @@ def workflow_notification(
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook",
     namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@retry_decorator
 def build_comment_webhook(
     installation_id: int,
     issue_id: int,
@@ -678,12 +701,17 @@ def get_webhook_data(
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook",
     namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
     compression_type=CompressionType.ZSTD,
     processing_deadline_duration=12,
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@retry_decorator
 def send_resource_change_webhook(
     installation_id: int, event: str, data: dict[str, Any], *args: Any, **kwargs: Any
 ) -> None:
@@ -946,10 +974,15 @@ def _record_metric_alert_ui_component_analytics(
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_metric_alert_webhook",
     namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5),
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@retry_decorator
 def send_metric_alert_webhook(
     sentry_app_id: int,
     new_status: int,
