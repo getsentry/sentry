@@ -68,6 +68,7 @@ class OutboxCategory(IntEnum):
     PROJECT_KEY_UPDATE = 45
     SCM_INTEGRATION_CONFIG_BACKFILL = 46
     ORGANIZATION_AVATAR_UPDATE = 47
+    SEER_RUN_CREATE = 48
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -285,6 +286,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.PROJECT_KEY_UPDATE,
             OutboxCategory.SCM_INTEGRATION_CONFIG_BACKFILL,
             OutboxCategory.ORGANIZATION_AVATAR_UPDATE,
+            OutboxCategory.SEER_RUN_CREATE,
         },
     )
     USER_SCOPE = scope_categories(

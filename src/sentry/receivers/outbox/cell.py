@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import orjson
 from django.dispatch import receiver
 
 from sentry import options
@@ -32,11 +33,67 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
+from sentry.seer.agent.client_utils import make_agent_chat_request
+from sentry.seer.autofix.utils import make_autofix_start_request
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.seer.signed_seer_api import make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.SEER_RUN_CREATE)
+def handle_seer_run_create(
+    object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
+) -> None:
+    run = SeerRun.objects.filter(id=object_identifier).first()
+    if run is None or run.seer_run_state_id:
+        return
+
+    body = {**payload["body"], "idempotency_key": str(run.uuid)}
+    viewer_context = payload.get("viewer_context")
+
+    match run.type:
+        case SeerRunType.AUTOFIX:
+            response = make_autofix_start_request(orjson.dumps(body), viewer_context=viewer_context)
+        case SeerRunType.EXPLORER:
+            response = make_agent_chat_request(body, viewer_context=viewer_context)
+        case SeerRunType.PR_REVIEW:
+            # Open question: dispatching a Celery task from an outbox receiver
+            # shifts the retry boundary. Deferring PR_REVIEW to a follow-up.
+            raise NotImplementedError("PR_REVIEW dispatch not wired yet")
+        case SeerRunType.ASSISTED_QUERY:
+            response = make_search_agent_start_request(body, viewer_context=viewer_context)
+        case _:
+            logger.error(
+                "seer_run_create.unknown_type",
+                extra={"run_id": run.id, "type": run.type},
+            )
+            return
+
+    if response.status >= 500:
+        raise RuntimeError(f"Seer returned transient error {response.status}")
+
+    if response.status >= 400:
+        # Terminal client error — retrying won't help.
+        run.mirror_status = SeerRunMirrorStatus.FAILED
+        run.save(update_fields=["mirror_status"])
+        logger.warning(
+            "seer_run_create.terminal_failure",
+            extra={"run_id": run.id, "status": response.status},
+        )
+        return
+
+    data = response.json()
+    run_id = data.get("run_id")
+    if run_id is None:
+        raise RuntimeError("Seer response missing run_id")
+
+    run.seer_run_state_id = run_id
+    run.mirror_status = SeerRunMirrorStatus.LIVE
+    run.save(update_fields=["seer_run_state_id", "mirror_status"])
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS)
