@@ -1,4 +1,5 @@
-from typing import Any, NotRequired, TypedDict
+import math
+from typing import Any, NamedTuple, NotRequired, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -24,12 +25,18 @@ MAX_BUCKETS = 1_000
 HEATMAP_DATASETS = {TraceMetrics}
 
 
+class LimitTuple(NamedTuple):
+    min_value: float
+    max_value: float
+
+
 class AxisMeta(TypedDict):
     name: str
     start: float | None
     end: float | None
     bucketCount: NotRequired[int]
     bucketSize: NotRequired[float | int]
+    logarithmic: NotRequired[bool]
 
 
 class HeatMapMeta(TypedDict):
@@ -104,6 +111,12 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             if yAxis != "value":
                 raise ParseError("yAxis can currently only be `value`")
 
+            yLogScale = request.GET.get("yLogScale")
+            if yLogScale is not None and yLogScale.isnumeric():
+                y_log_scale = int(yLogScale)
+            else:
+                y_log_scale = None
+
             zAxis = request.GET.get("zAxis", "count()")
             if zAxis != "count()":
                 raise ParseError("zAxis can currently only be `count()`")
@@ -144,13 +157,28 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
 
         with handle_query_errors():
             bucket_ranges = self.query_y_bucket_ranges(snuba_params, dataset, query, yAxis)
-            if bucket_ranges[0] != bucket_ranges[1]:
-                # (Max - min)/y_buckets = size of each bucket
-                bucket_size = (bucket_ranges[1] - bucket_ranges[0]) / y_buckets
+            if bucket_ranges.min_value != bucket_ranges.max_value:
                 yAxes = {}
+                if y_log_scale:
+                    # log(max - min) / y_buckets = size of each bucket
+                    bucket_size = (
+                        math.log(bucket_ranges.max_value - bucket_ranges.min_value, y_log_scale)
+                        / y_buckets
+                    )
+                else:
+                    # (Max - min)/y_buckets = size of each bucket
+                    bucket_size = (bucket_ranges.max_value - bucket_ranges.min_value) / y_buckets
                 for current_bucket in range(y_buckets):
-                    lower_bound = bucket_ranges[0] + current_bucket * bucket_size
-                    upper_bound = bucket_ranges[0] + (current_bucket + 1) * bucket_size
+                    if y_log_scale:
+                        lower_bound = bucket_ranges.min_value + y_log_scale ** (
+                            current_bucket * bucket_size
+                        )
+                        upper_bound = bucket_ranges.min_value + y_log_scale ** (
+                            (current_bucket + 1) * bucket_size
+                        )
+                    else:
+                        lower_bound = bucket_ranges.min_value + current_bucket * bucket_size
+                        upper_bound = bucket_ranges.min_value + (current_bucket + 1) * bucket_size
                     if current_bucket == y_buckets - 1:
                         yAxes[lower_bound] = f"{z_function}_if(`{yAxis}:>={lower_bound}`, {yAxis})"
                     else:
@@ -162,7 +190,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 bucket_size = 0
                 y_buckets = 1
                 yAxes = {
-                    bucket_ranges[0]: f"{z_function}_if(`{yAxis}:{bucket_ranges[0]}`, {yAxis})"
+                    bucket_ranges.min_value: f"{z_function}_if(`{yAxis}:{bucket_ranges[0]}`, {yAxis})"
                 }
 
             result = dataset.run_timeseries_query(
@@ -178,7 +206,9 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             for row in result.data["data"]:
                 for y, axis in yAxes.items():
                     # just like with timeseries, multiply times by 1000 so they're in ms
-                    heatmap.append(HeatMap(xAxis=row["time"] * 1000, yAxis=y, zAxis=row[axis]))
+                    heatmap.append(
+                        HeatMap(xAxis=row["time"] * 1000, yAxis=y, zAxis=row.get(axis, 0))
+                    )
 
             # Calculate the min&max z Value
             if len(heatmap) > 0:
@@ -204,9 +234,10 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                         ),
                         yAxis=AxisMeta(
                             name=yAxis,
-                            start=bucket_ranges[0],
-                            end=bucket_ranges[1],
+                            start=bucket_ranges.min_value,
+                            end=bucket_ranges.max_value,
                             bucketCount=y_buckets,
+                            logarithmic=True,
                             bucketSize=bucket_size,
                         ),
                         zAxis=AxisMeta(
@@ -222,7 +253,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
 
     def query_y_bucket_ranges(
         self, snuba_params: SnubaParams, dataset: Any, query: str, yAxis: str
-    ) -> tuple[float, float]:
+    ) -> LimitTuple:
         """Determine across all the x buckets what ranges we see the y value go to so we can use that to make the full
         heatmap"""
         min_y = f"min({yAxis})"
@@ -239,7 +270,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             sampling_mode=snuba_params.sampling_mode,
         )
         if len(result.data["data"]) == 0:
-            return 0, 0
+            return LimitTuple(0, 0)
         min_value, max_value = None, None
         for row in result.data["data"]:
             if min_value is None:
@@ -256,4 +287,4 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         if max_value is None:
             max_value = 0
 
-        return min_value, max_value
+        return LimitTuple(min_value, max_value)

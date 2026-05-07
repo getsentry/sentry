@@ -218,3 +218,74 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
                 "end": 1,
             },
         }
+
+    def test_log_scale(self) -> None:
+        metric_values = [6, 0, 6, 3, 0, 3]
+
+        trace_metrics = []
+        for hour, value in enumerate(metric_values):
+            for i in range(value):
+                trace_metrics.append(
+                    self.create_trace_metric(
+                        "foo",
+                        10**i if i > 0 else 0,
+                        "counter",
+                        timestamp=self.start + timedelta(hours=hour),
+                    )
+                )
+        self.store_eap_items(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=6),
+                "yAxis": "value",
+                "interval": "1h",
+                "yBuckets": 5,
+                "yLogScale": 10,
+                "query": "metric.name:foo metric.type:counter",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        expected_response = []
+        for time in range(6):
+            for yAxis in range(5):
+                row = {
+                    "xAxis": (self.start.timestamp() + (3600 * time)) * 1000,
+                    "yAxis": 10**yAxis,
+                    "zAxis": 0,
+                }
+                if time in [0, 2]:
+                    if yAxis in [1, 2, 3]:
+                        row["zAxis"] = 1
+                    elif yAxis == 4:
+                        row["zAxis"] = 2
+                if time in [3, 5] and yAxis in [1, 2]:
+                    row["zAxis"] = 1
+                expected_response.append(row)
+        assert response.data["values"] == expected_response
+        assert response.data["meta"] == {
+            "dataset": "tracemetrics",
+            "xAxis": {
+                "name": "time",
+                "start": self.start.timestamp() * 1000,
+                "end": self.end.timestamp() * 1000,
+                "bucketCount": 6,
+                "bucketSize": 3600,
+            },
+            "yAxis": {
+                "name": "value",
+                "start": 0,
+                "end": 100000,
+                "bucketCount": 5,
+                "bucketSize": 1,
+                "logarithmic": True,
+            },
+            "zAxis": {
+                "name": "count()",
+                "start": 0,
+                "end": 2,
+            },
+        }
