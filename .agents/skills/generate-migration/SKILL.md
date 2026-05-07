@@ -32,6 +32,8 @@ sentry django makemigrations <app_name> --empty
 3. Run `sentry django sqlmigrate <app_name> <migration_name>` to verify the SQL
 4. Apply the migration locally with `sentry django migrate <app_name>` — Sentry's migration framework runs its safety checks on apply, so this catches unsafe ops (missing `is_post_deployment`, unsafe column changes, etc.) before CI does.
 
+When editing a generated migration (e.g. swapping `DeleteModel` for `SafeDeleteModel`), **leave the auto-generated `is_post_deployment` comment block in place**. It documents a non-obvious flag with concrete guidance for future migration authors — useful context, not fluff. Only remove a comment if it's stale or contradicts the code.
+
 ## Guidelines
 
 ### Adding Columns
