@@ -49,7 +49,7 @@ export function useIssuesTraceTree({
       setTree(t =>
         t.type === 'error'
           ? t
-          : IssuesTraceTree.Error(
+          : IssuesTraceTree.ErrorState(
               {
                 project_slug: projects?.[0]?.slug ?? '',
                 event_id: traceSlug,
