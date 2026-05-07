@@ -27,6 +27,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.objectstore import parse_accept_encoding
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.cell import get_local_cell
 
 
 @cell_silo_endpoint
@@ -76,6 +77,11 @@ class ObjectstoreEndpoint(Endpoint):
         path: str,
     ) -> Response | StreamingHttpResponse:
         assert request.method
+
+        # TODO(FS-300): Re-enable this endpoint in S4S2 after secret versions are fixed
+        if get_local_cell().name == "s4s2":
+            return Response({"detail": "Unauthorized"}, status=401)
+
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
