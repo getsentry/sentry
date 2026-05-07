@@ -33,7 +33,6 @@ from sentry.sentry_apps.metrics import (
     SentryAppWebhookHaltReason,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
-from sentry.sentry_apps.services.app.service import app_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
@@ -128,26 +127,13 @@ def set_dedup_key(sentry_app: SentryApp | RpcSentryApp, circuit_breaker: Circuit
     return True
 
 
-def _get_notification_recipients(
-    sentry_app: SentryApp | RpcSentryApp,
-) -> list[str]:
-    return app_service.get_notification_emails_for_sentry_app(
-        organization_id=sentry_app.owner_id,
-        creator_label=sentry_app.creator_label,
-    )
-
-
 def _notify_webhook_disabled(
     circuit_breaker: CircuitBreaker,
     sentry_app: SentryApp | RpcSentryApp,
     owner_context: RpcUserOrganizationContext | None,
 ) -> None:
-    recipient_emails = _get_notification_recipients(sentry_app)[:1]
-    if not recipient_emails:
-        logger.info(
-            "sentry_app.webhook.circuit_breaker.no_recipients",
-            extra={"slug": sentry_app.slug, "owner_id": sentry_app.owner_id},
-        )
+    email = sentry_app.creator_label
+    if not email or "@" not in email:
         return
 
     if owner_context is None:
@@ -183,7 +169,6 @@ def _notify_webhook_disabled(
                 resource_type=NotificationTargetResourceType.EMAIL,
                 resource_id=email,
             )
-            for email in recipient_emails
         ]
     )
 
