@@ -52,7 +52,6 @@ def build_linking_url(
     slack_id: str | None,
     channel_id: str | None,
     response_url: str | None,
-    thread_ts: str | None = None,
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-link-identity",
@@ -60,7 +59,6 @@ def build_linking_url(
         slack_id=slack_id,
         channel_id=channel_id,
         response_url=response_url,
-        thread_ts=thread_ts,
     )
 
 

@@ -304,7 +304,6 @@ def send_halt_message(
                 slack_id=slack_user_id,
                 channel_id=channel_id,
                 response_url=None,
-                thread_ts=thread_ts,
             )
             link_button = LinkButtonElement(
                 text="Connect to Sentry",
