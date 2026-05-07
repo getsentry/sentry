@@ -378,7 +378,10 @@ export const useSeerExplorer = () => {
   const {apiData, isPolling, isError, errorStatusCode, isTimedOut} =
     useSeerExplorerPolling({
       runId,
-      shouldPollOverride: isPendingSendMessage || isPendingUserInput || isPendingCreatePR,
+      shouldPollOverride:
+        isPendingSendMessage || isPendingUserInput || isPendingCreatePR
+          ? true
+          : undefined,
     });
 
   /** Switches to a different run and fetches its latest state. */
