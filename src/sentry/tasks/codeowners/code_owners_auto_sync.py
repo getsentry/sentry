@@ -10,18 +10,18 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 
 
 @instrumented_task(
     name="sentry.tasks.code_owners_auto_sync",
     namespace=issues_tasks,
-    retry=Retry(times=3, delay=60),
+    retry=Retry(times=3, delay=60, on=(Commit.DoesNotExist,)),
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(Commit.DoesNotExist,),
 )
-@retry(on=(), on_silent=(Commit.DoesNotExist,))
 def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 
