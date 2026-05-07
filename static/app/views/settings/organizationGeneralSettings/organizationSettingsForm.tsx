@@ -495,6 +495,9 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                       )}
                     </Alert>
                     <Flex gap="sm" justify="end" paddingTop="lg">
+                      <slugForm.ResetButton disabled={!hasWriteAccess}>
+                        {t('Cancel')}
+                      </slugForm.ResetButton>
                       <Button onClick={() => slugForm.reset()} disabled={!hasWriteAccess}>
                         {t('Cancel')}
                       </Button>
