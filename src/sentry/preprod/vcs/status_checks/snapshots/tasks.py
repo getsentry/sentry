@@ -52,7 +52,7 @@ FAIL_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_rena
     namespace=preprod_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(times=3, delay=60),
 )
 def create_preprod_snapshot_status_check_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any

@@ -35,7 +35,7 @@ FEATURE_FLAG = "organizations:preprod-snapshot-pr-comments"
     namespace=preprod_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(times=3, delay=60),
 )
 def create_preprod_snapshot_pr_comment_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
