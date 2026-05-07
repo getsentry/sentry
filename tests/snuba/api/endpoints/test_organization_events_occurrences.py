@@ -708,6 +708,36 @@ class OrganizationEventsOccurrencesArrayQueryTest(
                 f"substring {substring!r} present={is_present}, expected present={must_contain}"
             )
 
+    @pytest.mark.xfail(
+        reason=(
+            "EAP TYPE_ARRAY ComparisonFilter only accepts EQUALS / NOT_EQUALS / LIKE / NOT_LIKE. "
+            "Comparison operators (>, <, >=, <=) are wired through Sentry but rejected by Snuba."
+        ),
+    )
+    def test_array_includes_comparison_operators_for_numbers(self) -> None:
+        # i=0 colnos: [12, 0]
+        # i=1 colnos: [13, 1]
+        self._create_occurrence_with_arrays(occurrence_count=2)
+        field = "stack.colno"
+        cases = [
+            # (description, query, expected_count)
+            (">12 (only i=1 has 13)", f"{field}[*]:>12", 1),
+            ("<=0 (only i=0 has 0)", f"{field}[*]:<=0", 1),
+        ]
+        for description, query, expected_count in cases:
+            response = self.request_with_feature_flag(
+                {
+                    "field": ["id", field],
+                    "query": query,
+                    "statsPeriod": "1h",
+                    "project": [self.project.id],
+                }
+            )
+            data = response.data.get("data", [])
+            assert len(data) == expected_count, (
+                f"{description}: query={query!r} returned {len(data)} rows, expected {expected_count}"
+            )
+
     def test_array_includes_equality_and_inequality_for_tag_types(self) -> None:
         # Both occurrences share the same tag-array fixture:
         #   tags[array_tags] = ["eap_items", "occurrences"]

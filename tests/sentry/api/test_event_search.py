@@ -1625,11 +1625,40 @@ def test_array_includes_filter(query, expected) -> None:
 @pytest.mark.parametrize(
     "query",
     [
-        pytest.param("frame_filenames[*]:>5", id="rejects_comparison_operator"),
-        pytest.param("frame_filenames[*]:<=5", id="rejects_lte_operator"),
         pytest.param("frame_filenames[*]:", id="rejects_empty_value"),
     ],
 )
 def test_array_includes_filter_rejects_invalid_input(query) -> None:
     with pytest.raises(InvalidSearchQuery):
         parse_search_query(query)
+
+
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        pytest.param(
+            "stack.colno[*]:>5",
+            [
+                SearchFilter(
+                    key=SearchKey(name="stack.colno"),
+                    operator=">",
+                    value=SearchValue("5"),
+                )
+            ],
+            id="greater_than",
+        ),
+        pytest.param(
+            "stack.colno[*]:<=0",
+            [
+                SearchFilter(
+                    key=SearchKey(name="stack.colno"),
+                    operator="<=",
+                    value=SearchValue("0"),
+                )
+            ],
+            id="less_than_or_equal",
+        ),
+    ],
+)
+def test_array_includes_filter_passes_through_comparison_operators(query, expected) -> None:
+    assert parse_search_query(query) == expected
