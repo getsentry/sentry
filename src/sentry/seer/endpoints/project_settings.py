@@ -33,6 +33,7 @@ from sentry.models.project import Project
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
+    CodingAgentAlias,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -43,9 +44,9 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.utils import json
 
-CODING_AGENT_HANDOFF_TARGET_TO_ALIAS: dict[str, str] = {
-    "cursor_background_agent": "cursor",
-    "claude_code_agent": "claude",
+CODING_AGENT_HANDOFF_TARGET_TO_ALIAS: dict[str, CodingAgentAlias] = {
+    "cursor_background_agent": CodingAgentAlias.CURSOR,
+    "claude_code_agent": CodingAgentAlias.CLAUDE,
 }
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
@@ -275,7 +276,7 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
 
 
 class ProjectSettingsUpdateSerializer(serializers.Serializer):
-    agent = serializers.ChoiceField(choices=["seer", "cursor", "claude"], required=False)
+    agent = serializers.ChoiceField(choices=["seer", *CodingAgentAlias], required=False)
     integrationId = serializers.IntegerField(required=False)
     stoppingPoint = serializers.ChoiceField(choices=["off", *AutofixStoppingPoint], required=False)
     scannerAutomation = serializers.BooleanField(required=False)
