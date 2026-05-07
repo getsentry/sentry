@@ -96,8 +96,7 @@ def sync_repos_on_install_change(
                 repos_added=repos_added,
                 repos_removed=repos_removed,
             )
-            removals_enabled = features.has("organizations:scm-repo-auto-sync-removal", rpc_org)
-            repos_changed = bool(repos_added or (repos_removed and removals_enabled))
+            repos_changed = bool(repos_added or repos_removed)
             bump_org_integration_last_sync(oi.id, repos_changed=repos_changed)
 
 
@@ -144,7 +143,7 @@ def _sync_repos_for_org(
                     provider=integration.provider,
                 )
 
-    if repos_removed and features.has("organizations:scm-repo-auto-sync-removal", rpc_org):
+    if repos_removed:
         # Look up repos before disabling to get their IDs and names
         external_ids = [str(repo["id"]) for repo in repos_removed]
         existing_repos = repository_service.get_repositories(
