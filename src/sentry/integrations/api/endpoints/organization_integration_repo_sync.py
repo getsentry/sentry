@@ -5,9 +5,9 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.organization_integrations import (
-    CellOrganizationIntegrationBaseEndpoint,
+    OrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.source_code_management.sync_repos import (
     SCM_SYNC_PROVIDERS,
@@ -16,8 +16,8 @@ from sentry.integrations.source_code_management.sync_repos import (
 from sentry.models.organization import Organization
 
 
-@cell_silo_endpoint
-class OrganizationIntegrationRepoSyncEndpoint(CellOrganizationIntegrationBaseEndpoint):
+@control_silo_endpoint
+class OrganizationIntegrationRepoSyncEndpoint(OrganizationIntegrationBaseEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

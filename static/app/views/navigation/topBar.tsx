@@ -20,9 +20,7 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'actions', 'feedback'] as const, {
-  providers: ({children}) => <SizeProvider size="sm">{children}</SizeProvider>,
-});
+const Slot = slot(['title', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();

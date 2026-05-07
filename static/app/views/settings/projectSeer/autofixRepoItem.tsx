@@ -33,7 +33,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   const [isEditingBranch, setIsEditingBranch] = useState(false);
   const [branchInputValue, setBranchInputValue] = useState(settings.branch);
   const [instructionsValue, setInstructionsValue] = useState(settings.instructions);
-  const [branchOverridesValue, setBranchOverridesValue] = useState<BranchOverride[]>(
+  const [branchOverridesValue, setBranchOverridesValue] = useState(
     settings.branch_overrides || []
   );
   const [originalValues, setOriginalValues] = useState({

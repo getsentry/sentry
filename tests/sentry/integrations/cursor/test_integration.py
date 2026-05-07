@@ -18,7 +18,6 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
@@ -503,7 +502,6 @@ class CursorApiPipelineTest(APITestCase):
     def _advance_step(self, data: dict[str, Any]) -> Any:
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
-    @with_feature("organizations:integrations-cursor")
     def test_initialize_pipeline(self) -> None:
         resp = self._initialize_pipeline()
         assert resp.status_code == 200
@@ -512,13 +510,11 @@ class CursorApiPipelineTest(APITestCase):
         assert resp.data["totalSteps"] == 1
         assert resp.data["provider"] == "cursor"
 
-    @with_feature("organizations:integrations-cursor")
     def test_missing_api_key(self) -> None:
         self._initialize_pipeline()
         resp = self._advance_step({})
         assert resp.status_code == 400
 
-    @with_feature("organizations:integrations-cursor")
     @patch(
         "sentry.integrations.cursor.client.CursorAgentClient.verify_api_key",
         return_value=None,

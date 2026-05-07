@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Literal, NotRequired, TypedDict
 
-from sentry_sdk.types import Event, Hint
+from sentry_sdk.types import Event, Hint, Log
 
 
 class SdkConfig(TypedDict):
@@ -21,6 +21,8 @@ class SdkConfig(TypedDict):
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     before_send: NotRequired[Callable[[Event, Hint], Event | None]]
     before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
+    enable_logs: NotRequired[bool]
+    before_send_log: NotRequired[Callable[[Log, Hint], Log | None]]
     profiles_sample_rate: NotRequired[float]
     profiles_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]

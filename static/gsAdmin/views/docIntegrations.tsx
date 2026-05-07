@@ -28,8 +28,8 @@ const getRow = (doc: DocIntegration) => [
     {doc.popularity}
   </td>,
   <td key="status" style={{textAlign: 'right'}}>
-    <Tag variant={doc.isDraft === true ? 'warning' : 'success'}>
-      {doc.isDraft === false ? 'published' : 'draft'}
+    <Tag variant={doc.isDraft ? 'warning' : 'success'}>
+      {doc.isDraft ? 'draft' : 'published'}
     </Tag>
   </td>,
 ];

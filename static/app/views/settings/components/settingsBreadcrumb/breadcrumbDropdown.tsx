@@ -131,7 +131,7 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
       {flexProps => (
         <OverlayTrigger.Button
           {...mergeProps(props, flexProps)}
-          priority="link"
+          variant="link"
           showChevron={false}
           onPointerEnter={handleOpen}
           onPointerLeave={queueMenuClose}

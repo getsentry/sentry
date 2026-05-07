@@ -6,6 +6,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {
+  LOGS_AGGREGATE_CURSOR_KEY,
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
   LOGS_FIELDS_KEY,
@@ -14,9 +15,22 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 
 import {LogsAggregateTable} from './logsAggregateTable';
+
+function createAggregatesTableResult(
+  overrides: Partial<LogsAggregatesTableResult>
+): LogsAggregatesTableResult {
+  return {
+    data: undefined,
+    isError: false,
+    isLoading: false,
+    isPending: false,
+    pageLinks: undefined,
+    ...overrides,
+  } as LogsAggregatesTableResult;
+}
 
 describe('LogsAggregateTable', () => {
   const {organization, project} = initializeOrg({
@@ -27,7 +41,7 @@ describe('LogsAggregateTable', () => {
   function LogsAggregateTableWithParamsProvider({
     aggregatesTableResult,
   }: {
-    aggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
+    aggregatesTableResult: LogsAggregatesTableResult;
   }) {
     return (
       <LogsQueryParamsProvider
@@ -77,14 +91,9 @@ describe('LogsAggregateTable', () => {
   it('renders loading state', () => {
     render(
       <LogsAggregateTableWithParamsProvider
-        aggregatesTableResult={
-          {
-            isLoading: true,
-            error: null,
-            data: undefined,
-            pageLinks: undefined,
-          } as any
-        }
+        aggregatesTableResult={createAggregatesTableResult({
+          isLoading: true,
+        })}
       />,
       {initialRouterConfig}
     );
@@ -94,14 +103,9 @@ describe('LogsAggregateTable', () => {
   it('renders error state', () => {
     render(
       <LogsAggregateTableWithParamsProvider
-        aggregatesTableResult={
-          {
-            isLoading: false,
-            error: new RequestError('GET', '/', new Error('Error!')),
-            data: undefined,
-            pageLinks: undefined,
-          } as any
-        }
+        aggregatesTableResult={createAggregatesTableResult({
+          error: new RequestError('GET', '/', new Error('Error!')),
+        })}
       />,
       {initialRouterConfig}
     );
@@ -111,31 +115,26 @@ describe('LogsAggregateTable', () => {
   it('renders data rows', () => {
     render(
       <LogsAggregateTableWithParamsProvider
-        aggregatesTableResult={
-          {
-            isLoading: false,
-            error: null,
-            data: {
-              data: [
-                {
-                  'message.template': 'Fetching the latest item id failed.',
-                  'p99(severity_number)': 17.0,
-                },
-                {
-                  'message.template':
-                    '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
-                  'p99(severity_number)': 13.0,
-                },
-                {
-                  'message.template':
-                    '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
-                  'p99(severity_number)': 12.0,
-                },
-              ],
-            },
-            pageLinks: undefined,
-          } as any
-        }
+        aggregatesTableResult={createAggregatesTableResult({
+          data: {
+            data: [
+              {
+                'message.template': 'Fetching the latest item id failed.',
+                'p99(severity_number)': 17.0,
+              },
+              {
+                'message.template':
+                  '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
+                'p99(severity_number)': 13.0,
+              },
+              {
+                'message.template':
+                  '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
+                'p99(severity_number)': 12.0,
+              },
+            ],
+          },
+        })}
       />,
       {initialRouterConfig}
     );
@@ -151,5 +150,102 @@ describe('LogsAggregateTable', () => {
       expect(cells[1]).toHaveTextContent(expected[i]![0]!);
       expect(cells[2]).toHaveTextContent(expected[i]![1]!);
     });
+  });
+
+  it('renders top result colors when the page is the first one', () => {
+    const aggregatesTableResult = createAggregatesTableResult({
+      data: {
+        data: [
+          {
+            'message.template': 'Fetching the latest item id failed.',
+            'p99(severity_number)': 17.0,
+          },
+          {
+            'message.template':
+              '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
+            'p99(severity_number)': 13.0,
+          },
+          {
+            'message.template':
+              '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
+            'p99(severity_number)': 12.0,
+          },
+        ],
+      },
+    });
+
+    const {unmount} = render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={aggregatesTableResult}
+      />,
+      {initialRouterConfig}
+    );
+
+    expect(screen.getAllByTestId('top-results-indicator')).toHaveLength(3);
+
+    unmount();
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={aggregatesTableResult}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AGGREGATE_CURSOR_KEY]: '0:3:1',
+            },
+          },
+        },
+      }
+    );
+
+    expect(screen.queryByTestId('top-results-indicator')).not.toBeInTheDocument();
+  });
+
+  it('does not render top result colors when the page is after the first', () => {
+    const aggregatesTableResult = createAggregatesTableResult({
+      data: {
+        data: [
+          {
+            'message.template': 'Fetching the latest item id failed.',
+            'p99(severity_number)': 17.0,
+          },
+          {
+            'message.template':
+              '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
+            'p99(severity_number)': 13.0,
+          },
+          {
+            'message.template':
+              '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
+            'p99(severity_number)': 12.0,
+          },
+        ],
+      },
+    });
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={aggregatesTableResult}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AGGREGATE_CURSOR_KEY]: '0:3:1',
+            },
+          },
+        },
+      }
+    );
+
+    expect(screen.queryByTestId('top-results-indicator')).not.toBeInTheDocument();
   });
 });

@@ -236,7 +236,7 @@ const getDiscoverUrl = (
 };
 
 export function getSortField(field: string): string | null {
-  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
     return SPECIAL_FIELDS[field as keyof typeof SPECIAL_FIELDS].sortField;
   }
   switch (field) {
@@ -311,7 +311,7 @@ export function getIssueFieldRenderer(
   field: string,
   meta: MetaType
 ): FieldFormatterRenderFunctionPartial {
-  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }

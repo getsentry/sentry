@@ -1,68 +1,46 @@
-import {useState} from 'react';
+import {z} from 'zod';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  BooleanField,
-  type BooleanFieldProps,
-} from 'sentry/components/forms/fields/booleanField';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+
 import {t} from 'sentry/locale';
-import {useApi} from 'sentry/utils/useApi';
+import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+const schema = z.object({
+  allowSuperuserAccess: z.boolean(),
+});
+
 export function DataSecrecy() {
-  const api = useApi();
   const organization = useOrganization();
-
-  // state for the allowSuperuserAccess bit field
-  const [allowAccess, setAllowAccess] = useState(organization.allowSuperuserAccess);
-
-  const updateAllowedAccess = async (value: boolean) => {
-    try {
-      await api.requestPromise(`/organizations/${organization.slug}/`, {
-        method: 'PUT',
-        data: {allowSuperuserAccess: value},
-      });
-      setAllowAccess(value);
-      addSuccessMessage(
-        value
-          ? t('Successfully allowed support access.')
-          : t('Successfully removed support access.')
-      );
-    } catch (error) {
-      addErrorMessage(t('Unable to save changes.'));
-    }
-  };
-
-  const allowAccessProps: BooleanFieldProps = {
-    name: 'allowSuperuserAccess',
-    label: t('Allow access to Sentry employees'),
-    help: t(
-      'Sentry employees will not have access to your organization unless granted permission'
-    ),
-    'aria-label': t(
-      'Sentry employees will not have access to your data unless granted permission'
-    ),
-    value: allowAccess,
-    disabled: !organization.access.includes('org:write'),
-    onBlur: updateAllowedAccess,
-  };
+  const canEdit = organization.access.includes('org:write');
+  const mutationOptions = useOrganizationMutationOptions(organization);
 
   return (
-    <Panel>
-      <PanelHeader>{t('Support Access')}</PanelHeader>
-      <PanelBody>
-        <PanelAlert variant="info">
-          {allowAccess
-            ? t('Sentry employees have access to your organization')
-            : t('Sentry employees do not have access to your organization')}
-        </PanelAlert>
-
-        <BooleanField {...allowAccessProps} />
-      </PanelBody>
-    </Panel>
+    <FieldGroup title={t('Support Access')}>
+      <AutoSaveForm
+        name="allowSuperuserAccess"
+        schema={schema}
+        initialValue={organization.allowSuperuserAccess}
+        mutationOptions={mutationOptions}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Allow access to Sentry employees')}
+            hintText={t(
+              'Sentry employees will not have access to your organization unless granted permission'
+            )}
+          >
+            <field.Switch
+              checked={field.state.value}
+              onChange={field.handleChange}
+              disabled={!canEdit}
+              aria-label={t(
+                'Sentry employees will not have access to your data unless granted permission'
+              )}
+            />
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
+    </FieldGroup>
   );
 }

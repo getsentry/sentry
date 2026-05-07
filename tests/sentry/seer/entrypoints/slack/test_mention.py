@@ -13,13 +13,17 @@ from slack_sdk.models.blocks.block_elements import RichTextElementParts, RichTex
 
 from sentry.seer.entrypoints.slack.mention import (
     IssueLink,
+    SlackMessageLink,
     _extract_attachment_text,
     _extract_block_text,
     _extract_text_from_attachments,
     _extract_text_from_blocks,
+    build_linked_messages_context,
     build_thread_context,
     extract_issue_links,
     extract_prompt,
+    extract_slack_message_links,
+    find_message_in_attachments,
 )
 from sentry.testutils.cases import TestCase
 
@@ -482,6 +486,38 @@ class ExtractAttachmentTextTest(TestCase):
         }
         assert _extract_attachment_text(attachment) == "block content"
 
+    def test_message_unfurl_attachment_uses_message_blocks(self):
+        # Slack message-unfurl attachments embed the source message's blocks
+        # one level deeper, in ``message_blocks[0].message.blocks``.
+        attachment = {
+            "is_msg_unfurl": True,
+            "from_url": "https://acme.slack.com/archives/C0/p1700000000111111",
+            "channel_id": "C0",
+            "ts": "1700000000.111111",
+            "text": "flat fallback (should not be used)",
+            "message_blocks": [
+                {
+                    "team": "T1",
+                    "channel": "C0",
+                    "ts": "1700000000.111111",
+                    "message": {
+                        "blocks": [SectionBlock(text="rich body").to_dict()],
+                    },
+                }
+            ],
+        }
+        assert _extract_attachment_text(attachment) == "rich body"
+
+    def test_message_unfurl_falls_back_to_text_when_message_blocks_empty(self):
+        attachment = {
+            "is_msg_unfurl": True,
+            "channel_id": "C0",
+            "ts": "1700000000.111111",
+            "text": "flat fallback",
+            "message_blocks": [],
+        }
+        assert _extract_attachment_text(attachment) == "flat fallback"
+
     def test_attachment_falls_back_to_fallback_field(self):
         attachment = {"fallback": "Sentry alert: ValueError in backend"}
         assert _extract_attachment_text(attachment) == "Sentry alert: ValueError in backend"
@@ -513,3 +549,189 @@ class ExtractTextFromAttachmentsTest(TestCase):
     def test_skips_non_dict_entries(self):
         attachments: list[Any] = [{"text": "first"}, "not-a-dict", {"text": "second"}]
         assert _extract_text_from_attachments(attachments) == "first\nsecond"
+
+
+class ExtractSlackMessageLinksTest(TestCase):
+    def test_top_level_permalink(self) -> None:
+        text = "<https://acme.slack.com/archives/C0123456/p1700000000123456>"
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == [
+            SlackMessageLink(channel_id="C0123456", ts="1700000000.123456", thread_ts=None)
+        ]
+
+    def test_top_level_permalink_with_label(self) -> None:
+        text = "see <https://acme.slack.com/archives/C0123456/p1700000000123456|earlier discussion>"
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == [
+            SlackMessageLink(channel_id="C0123456", ts="1700000000.123456", thread_ts=None)
+        ]
+
+    def test_threaded_permalink(self) -> None:
+        text = (
+            "<https://acme.slack.com/archives/C0123456/p1700000000999999"
+            "?thread_ts=1700000000.123456&cid=C0123456>"
+        )
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == [
+            SlackMessageLink(
+                channel_id="C0123456",
+                ts="1700000000.999999",
+                thread_ts="1700000000.123456",
+            )
+        ]
+
+    def test_multiple_permalinks(self) -> None:
+        text = (
+            "compare <https://acme.slack.com/archives/C0123456/p1700000000111111> "
+            "and <https://acme.slack.com/archives/C0123456/p1700000000222222|second>"
+        )
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == [
+            SlackMessageLink(channel_id="C0123456", ts="1700000000.111111"),
+            SlackMessageLink(channel_id="C0123456", ts="1700000000.222222"),
+        ]
+
+    def test_dedups_same_link(self) -> None:
+        text = (
+            "<https://acme.slack.com/archives/C0123456/p1700000000111111|one> "
+            "<https://acme.slack.com/archives/C0123456/p1700000000111111|same>"
+        )
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == [SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")]
+
+    def test_filters_other_workspace_when_domain_provided(self) -> None:
+        text = (
+            "ours <https://acme.slack.com/archives/C0123456/p1700000000111111> "
+            "theirs <https://other.slack.com/archives/C0123456/p1700000000222222>"
+        )
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == [SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")]
+
+    def test_doesnt_accept_any_workspace_when_domain_missing(self) -> None:
+        text = (
+            "<https://acme.slack.com/archives/C0123456/p1700000000111111> "
+            "<https://other.slack.com/archives/C0123456/p1700000000222222>"
+        )
+        result = extract_slack_message_links(text)
+        assert len(result) == 0
+
+    def test_ignores_non_slack_urls(self) -> None:
+        text = "<https://sentry.io> <https://acme.slack.com/archives/C0123456/p1700000000111111>"
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == [SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")]
+
+    def test_ignores_non_message_slack_urls(self) -> None:
+        # Slack channel link without a /pXXXX message component should not match.
+        text = "<https://acme.slack.com/archives/C0123456>"
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == []
+
+    def test_ignores_malformed_p_ts(self) -> None:
+        text = "<https://acme.slack.com/archives/C0123456/p123>"
+        result = extract_slack_message_links(text, domain_name="acme.slack.com")
+        assert result == []
+
+    def test_no_links(self) -> None:
+        result = extract_slack_message_links("just texting", domain_name="acme.slack.com")
+        assert result == []
+
+
+class BuildLinkedMessagesContextTest(TestCase):
+    """``build_linked_messages_context`` just prepends a header per block and
+    delegates body rendering to ``build_thread_context`` (tested above), so
+    these tests cover only the header / skip / join logic it adds."""
+
+    def test_prepends_message_header(self) -> None:
+        link = SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")
+        result = build_linked_messages_context(
+            [(link, [{"user": "U1", "text": "body", "ts": "1700000000.111111"}])]
+        )
+        assert result == "User linked a Slack message in <#C0123456>:\n<@U1>: body"
+
+    def test_skips_blocks_with_empty_messages(self) -> None:
+        link_a = SlackMessageLink(channel_id="C0AAA", ts="1700000000.111111")
+        link_b = SlackMessageLink(channel_id="C0BBB", ts="1700000000.222222")
+        result = build_linked_messages_context(
+            [(link_a, []), (link_b, [{"user": "U2", "text": "kept", "ts": "1700000000.222222"}])]
+        )
+        assert "<#C0AAA>" not in result
+        assert "<#C0BBB>" in result
+
+    def test_joins_multiple_blocks_with_blank_line(self) -> None:
+        link_a = SlackMessageLink(channel_id="C0AAA", ts="1700000000.111111")
+        link_b = SlackMessageLink(channel_id="C0BBB", ts="1700000000.222222")
+        result = build_linked_messages_context(
+            [
+                (link_a, [{"user": "U1", "text": "a", "ts": "1700000000.111111"}]),
+                (link_b, [{"user": "U2", "text": "b", "ts": "1700000000.222222"}]),
+            ]
+        )
+        assert "\n\n" in result
+        assert result.index("<#C0AAA>") < result.index("<#C0BBB>")
+
+
+class FindMessageInAttachmentsTest(TestCase):
+    LINK = SlackMessageLink(channel_id="C0123456", ts="1700000000.111111")
+
+    def test_returns_none_when_attachments_missing(self) -> None:
+        assert find_message_in_attachments(self.LINK, None) is None
+        assert find_message_in_attachments(self.LINK, []) is None
+
+    def test_matches_on_channel_id_and_ts(self) -> None:
+        attachments = [
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.111111",
+                "author_id": "U123",
+                "text": "hello",
+            }
+        ]
+        result = find_message_in_attachments(self.LINK, attachments)
+        assert result == {
+            "user": "U123",
+            "ts": "1700000000.111111",
+            "text": "hello",
+        }
+
+    def test_returns_none_when_no_attachment_matches(self) -> None:
+        attachments = [
+            {
+                "channel_id": "C9999OTHER",
+                "ts": "1700000000.111111",
+                "author_id": "U123",
+                "text": "different channel",
+            },
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.999999",
+                "author_id": "U456",
+                "text": "different ts",
+            },
+        ]
+        assert find_message_in_attachments(self.LINK, attachments) is None
+
+    def test_skips_non_dict_entries(self) -> None:
+        attachments: list[Any] = [
+            "not-a-dict",
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.111111",
+                "author_id": "U123",
+                "text": "ok",
+            },
+        ]
+        result = find_message_in_attachments(self.LINK, attachments)
+        assert result is not None
+        assert result["text"] == "ok"
+
+    def test_missing_author_id_defaults_to_empty_string(self) -> None:
+        attachments = [
+            {
+                "channel_id": "C0123456",
+                "ts": "1700000000.111111",
+                "text": "no author",
+            }
+        ]
+        result = find_message_in_attachments(self.LINK, attachments)
+        assert result is not None
+        assert result["user"] == ""

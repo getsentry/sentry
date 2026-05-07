@@ -9,7 +9,6 @@ import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
 import {SupergroupRow} from 'sentry/components/stream/supergroups/supergroupRow';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -95,7 +94,6 @@ export function GroupListBody({
   onActionTaken,
   supergroupLookup,
 }: GroupListBodyProps) {
-  const api = useApi();
   const organization = useOrganization();
 
   if (loading) {
@@ -114,7 +112,6 @@ export function GroupListBody({
   if (!groupIds.length) {
     return (
       <NoGroupsHandler
-        api={api}
         organization={organization}
         query={query}
         selectedProjectIds={selectedProjectIds}

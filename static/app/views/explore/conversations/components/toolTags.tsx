@@ -18,7 +18,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
   const [expanded, setExpanded] = useState(false);
   const [hiddenCount, setHiddenCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const tagRefs = useRef<Map<number, HTMLElement>>(new Map());
+  const tagRefs = useRef(new Map<number, HTMLElement>());
 
   // Calculate how many tags are hidden (overflow beyond 2 rows)
   useEffect(() => {

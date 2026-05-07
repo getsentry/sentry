@@ -54,13 +54,13 @@ const storeConfig: AlertStoreDefinition = {
         // Remove any objects that have passed their mute duration.
         const now = Math.floor(Date.now() / 1000);
         for (const key in expirations) {
-          if (expirations.hasOwnProperty(key) && expirations[key]! < now) {
+          if (Object.hasOwn(expirations, key) && expirations[key]! < now) {
             delete expirations[key];
           }
         }
         localStorageWrapper.setItem('alerts:muted', JSON.stringify(expirations));
 
-        if (expirations.hasOwnProperty(alert.id)) {
+        if (Object.hasOwn(expirations, alert.id)) {
           return;
         }
       }

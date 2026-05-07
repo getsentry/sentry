@@ -31,6 +31,7 @@ from sentry.workflow_engine.types import (
     WorkflowEvaluation,
     WorkflowEvaluationData,
     WorkflowEventData,
+    WorkflowId,
 )
 from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -554,7 +555,9 @@ def process_workflows(
 
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
 
-    actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
+    actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
+        actions_to_trigger, event_data
+    )
 
     workflow_evaluation_data.action_groups = actions_to_trigger
     workflow_evaluation_data.triggered_actions = set(actions)
@@ -579,12 +582,17 @@ def process_workflows(
     )
 
     # Create mapping: workflow_id -> notification_uuid for propagation
-    workflow_uuid_map: dict[int, str] = {}
+    workflow_uuid_map: dict[WorkflowId, str] = {}
     if fire_histories:
         workflow_uuid_map = {
             history.workflow_id: str(history.notification_uuid) for history in fire_histories
         }
 
-    fire_actions(actions, event_data, workflow_uuid_map=workflow_uuid_map)
+    fire_actions(
+        actions,
+        event_data,
+        workflow_uuid_map=workflow_uuid_map,
+        action_to_workflow_id=action_to_workflow_id,
+    )
 
     return WorkflowEvaluation(tainted=False, data=workflow_evaluation_data)

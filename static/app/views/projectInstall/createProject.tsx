@@ -191,7 +191,7 @@ export function CreateProject() {
     };
   }, [autoFill, defaultTeam, createdProject]);
 
-  const [formData, setFormData] = useState<FormData>(initialData);
+  const [formData, setFormData] = useState(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
   const hasUserModifiedProjectName = useRef(false);
 
@@ -301,9 +301,9 @@ export function CreateProject() {
           organization,
           issue_alert: alertRuleConfig.shouldCreateCustomRule
             ? 'Custom'
-            : alertRuleConfig.shouldCreateRule === false
-              ? 'No Rule'
-              : 'Default',
+            : alertRuleConfig.shouldCreateRule
+              ? 'Default'
+              : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,

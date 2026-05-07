@@ -8,10 +8,11 @@ from uuid import uuid4
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.db.models import F
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import VALID_PLATFORMS, ObjectStatus
 from sentry.issues.grouptype import (
     AIDetectedCodeHealthGroupType,
@@ -41,6 +42,7 @@ SEER_TIMEOUT_S = 10
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
 MAX_LLM_FIELD_LENGTH = 2000
+DEFAULT_TRACES_PER_INVOCATION = 1
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -124,17 +126,17 @@ def get_base_platform(platform: str | None) -> str | None:
 
 
 TITLE_TO_GROUP_TYPE: dict[str, type[GroupType]] = {
-    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
-    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
-    "Failed HTTP Operation": AIDetectedHTTPGroupType,
+    "Blocking Operation": AIDetectedRuntimePerformanceGroupType,
     "Inefficient Database Queries": AIDetectedDBGroupType,
+    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
     "Degraded Database Operation": AIDetectedDBGroupType,
-    "Main Thread Blocking Operation": AIDetectedRuntimePerformanceGroupType,
+    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
     "Degraded UI Performance": AIDetectedRuntimePerformanceGroupType,
+    "Configuration Warning": AIDetectedCodeHealthGroupType,
     "Potential Security Leak": AIDetectedSecurityGroupType,
     "Potential Security Risk": AIDetectedSecurityGroupType,
-    "Configuration Warning": AIDetectedCodeHealthGroupType,
     "Deprecation Warning": AIDetectedCodeHealthGroupType,
+    "Failed HTTP Operation": AIDetectedHTTPGroupType,
 }
 
 GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
@@ -162,6 +164,19 @@ def create_issue_occurrence_from_detection(
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
     group_type = get_group_type_for_title(detected_issue.title)
+
+    if group_type == AIDetectedGeneralGroupType:
+        logger.info(
+            "Detected General AI Issue",
+            extra={
+                "title": detected_issue.title,
+                "explanation": detected_issue.explanation,
+                "impact": detected_issue.impact,
+                "evidence": detected_issue.evidence,
+            },
+        )
+        return None
+
     setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
     if setting_key:
         perf_settings = project.get_option("sentry:performance_issue_settings", default={})
@@ -255,7 +270,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     """
     Process a single organization for LLM issue detection.
 
-    Picks one random active project, selects 1 trace, and sends to Seer.
+    Picks one active project, selects traces based on plan tier, and sends to Seer.
     Budget enforcement happens on the Seer side.
     """
     from sentry.tasks.llm_issue_detection.trace_data import (  # circular imports
@@ -272,6 +287,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         Project.objects.filter(
             organization_id=org_id,
             status=ObjectStatus.ACTIVE,
+            flags=F("flags").bitor(Project.flags.has_transactions),
         ).values_list("id", flat=True)
     )
     if not project_ids:
@@ -303,7 +319,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
             if not body.get("has_budget", True):
                 logger.info(
                     "llm_issue_detection.budget_exceeded",
-                    extra={"organization_id": org_id},
+                    extra={"organization_id": org_id, "plan_tier": plan_tier},
                 )
                 return
         except json.JSONDecodeError:
@@ -315,7 +331,10 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     if not evidence_traces:
         return
 
-    traces_to_send = evidence_traces[:1]
+    traces_per_invocation = options.get("issue-detection.llm-detection.traces-per-invocation")
+    traces_to_send = evidence_traces[
+        : traces_per_invocation.get(plan_tier, DEFAULT_TRACES_PER_INVOCATION)
+    ]
 
     sentry_sdk.metrics.count(
         "llm_issue_detection.seer_request",

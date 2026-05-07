@@ -233,7 +233,7 @@ export function ProjectAddRepoModal({
                             <Button
                               aria-label={t('Remove repository')}
                               size="sm"
-                              priority="transparent"
+                              variant="transparent"
                               icon={<IconDelete size="xs" />}
                               onClick={() => field.removeValue(i)}
                             />
@@ -243,7 +243,7 @@ export function ProjectAddRepoModal({
                       <Flex>
                         <Button
                           size="sm"
-                          priority="transparent"
+                          variant="transparent"
                           icon={<IconAdd />}
                           onClick={() => field.pushValue({repoId: '', branch: ''})}
                         >
@@ -261,7 +261,7 @@ export function ProjectAddRepoModal({
             <form.AppField name="agent">
               {field => (
                 <field.Layout.Row
-                  label={t('Preferred Coding Agent')}
+                  label={t('Handoff to Agent')}
                   hintText={t(
                     'Seer will always triage and perform Root Cause Analysis for you, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR.'
                   )}
@@ -271,15 +271,27 @@ export function ProjectAddRepoModal({
                   ) : agentOptions.isError ? (
                     <LoadingError />
                   ) : (
-                    <field.Select
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      options={agentOptions.data}
-                      isValueEqual={(a, b) =>
-                        a === b ||
-                        (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
-                      }
-                    />
+                    <Stack gap="md">
+                      <field.Select
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        options={agentOptions.data}
+                        isValueEqual={(a, b) =>
+                          a === b ||
+                          (typeof a === 'object' &&
+                            typeof b === 'object' &&
+                            a.id === b.id)
+                        }
+                      />
+                      <Link
+                        to={{
+                          pathname: `/settings/${organization.slug}/integrations/`,
+                          query: {category: 'coding agent'},
+                        }}
+                      >
+                        {t('Manage Coding Agents')}
+                      </Link>
+                    </Stack>
                   )}
                 </field.Layout.Row>
               )}

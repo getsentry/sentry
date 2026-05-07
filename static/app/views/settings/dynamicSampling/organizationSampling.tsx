@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
+import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
@@ -20,7 +22,6 @@ import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
-import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
@@ -54,7 +55,9 @@ export function OrganizationSampling() {
     initialTargetSampleRate
   );
 
-  const {mutateAsync: updateOrganization, isPending} = useUpdateOrganization();
+  const {mutateAsync: updateOrganization, isPending} = useMutation(
+    useOrganizationMutationOptions(organization)
+  );
 
   const form = useScrapsForm({
     ...defaultFormOptions,

@@ -1440,14 +1440,14 @@ function getFieldRendererBase(
   meta: MetaType,
   isAlias = true
 ): FieldFormatterRenderFunctionPartial {
-  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
   if (isEquation(field)) {
     const strippedField = stripEquationPrefix(field);
-    if (SPECIAL_FIELDS.hasOwnProperty(strippedField)) {
+    if (Object.hasOwn(SPECIAL_FIELDS, strippedField)) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const specialRenderer = SPECIAL_FIELDS[strippedField].renderFunc;
       return (data: EventData, baggage: RenderFunctionBaggage) =>
@@ -1469,7 +1469,7 @@ function getFieldRendererBase(
     }
   }
 
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+  if (Object.hasOwn(FIELD_FORMATTERS, fieldType)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }

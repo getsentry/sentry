@@ -261,7 +261,7 @@ function DeprecatedLine({
                   is_frame_expanded: isShowFramesToggleExpanded,
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 onClick={e => {
                   onShowFramesToggle?.(e);
                 }}
@@ -275,7 +275,7 @@ function DeprecatedLine({
               <Fragment>
                 <SourceMapDebuggerModalButton
                   size="zero"
-                  priority="default"
+                  variant="secondary"
                   tooltipProps={{
                     title: t(
                       'Click to learn how to show the original source code for this stack frame.'
@@ -328,7 +328,7 @@ function DeprecatedLine({
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
-                priority="transparent"
+                variant="transparent"
               >
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>

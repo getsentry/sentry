@@ -207,7 +207,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -244,7 +244,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -365,15 +365,23 @@ function SetupCta({
     return null;
   }
 
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
+
   return (
     <Cta
       isBanner={false}
       image={seerConfigSeerImg}
       imageAlt=""
       title={t('Get started with Seer')}
-      subtitle={t(
-        'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
-      )}
+      subtitle={
+        hasGitLabSupport
+          ? t(
+              'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
+            )
+          : t(
+              'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
+            )
+      }
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
         <LinkButton

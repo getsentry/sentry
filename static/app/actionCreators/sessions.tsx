@@ -1,9 +1,9 @@
-import type {ApiResult, Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 type DoSessionsRequestOptions = {
   field: string[];
@@ -25,26 +25,23 @@ type DoSessionsRequestOptions = {
   statsPeriodStart?: string;
 };
 
-export const doSessionsRequest = (
-  api: Client,
-  {
-    field,
-    orgSlug,
-    cursor,
-    environment,
-    groupBy,
-    interval,
-    project,
-    orderBy,
-    query,
-    includeSeries,
-    includeTotals,
-    statsPeriodStart,
-    statsPeriodEnd,
-    limit,
-    ...dateTime
-  }: DoSessionsRequestOptions
-): Promise<ApiResult<SessionApiResponse>> => {
+export function sessionsApiOptions({
+  field,
+  orgSlug,
+  cursor,
+  environment,
+  groupBy,
+  interval,
+  project,
+  orderBy,
+  query,
+  includeSeries,
+  includeTotals,
+  statsPeriodStart,
+  statsPeriodEnd,
+  limit,
+  ...dateTime
+}: DoSessionsRequestOptions) {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
   });
@@ -70,8 +67,12 @@ export const doSessionsRequest = (
     }).filter(([, value]) => defined(value) && value !== '')
   );
 
-  return api.requestPromise(`/organizations/${orgSlug}/sessions/`, {
-    includeAllArgs: true,
-    query: urlQuery,
-  });
-};
+  return apiOptions.as<SessionApiResponse>()(
+    '/organizations/$organizationIdOrSlug/sessions/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      query: urlQuery,
+      staleTime: 0,
+    }
+  );
+}

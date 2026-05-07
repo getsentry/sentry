@@ -137,12 +137,19 @@ describe('SnapshotMainContent', () => {
       headBranch: 'feature/snapshot-updates',
       isSoloView: false,
       listItems: [
-        {key: 'changed-buttons', name: 'Buttons', pairs: [changedPair], type: 'changed'},
+        {
+          key: 'changed-buttons',
+          name: 'Buttons',
+          displayName: 'Buttons',
+          pairs: [changedPair],
+          type: 'changed',
+        },
       ],
       onNavigateSingleView,
       selectedItem: {
         key: 'changed-buttons',
         name: 'Buttons',
+        displayName: 'Buttons',
         pairs: [changedPair],
         type: 'changed',
       },
@@ -151,7 +158,7 @@ describe('SnapshotMainContent', () => {
 
     expect(screen.getByText('Buttons')).toBeInTheDocument();
     expect(screen.getByText('Button / light')).toBeInTheDocument();
-    expect(screen.getByText(/Modified/)).toBeInTheDocument();
+    expect(screen.getByText(/Changed/)).toBeInTheDocument();
     expect(screen.getByText('feature/snapshot-updates')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Pick overlay color'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Split'})).toBeChecked();
@@ -174,6 +181,7 @@ describe('SnapshotMainContent', () => {
       selectedItem: {
         key: 'renamed-buttons',
         name: 'Buttons',
+        displayName: 'Buttons',
         pairs: [renamedPair],
         type: 'renamed',
       },
@@ -188,6 +196,21 @@ describe('SnapshotMainContent', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Copy metadata as JSON'}));
 
     const copiedJson = mockCopy.mock.calls.at(-1)?.[0];
-    expect(JSON.parse(copiedJson)).toEqual(renamedPair);
+    expect(JSON.parse(copiedJson)).toEqual({
+      base_image: {
+        display_name: 'Button / light old',
+        height: 180,
+        image_file_name: 'button.light.old.png',
+        width: 320,
+      },
+      diff: null,
+      head_image: {
+        display_name: 'Button / light',
+        group: 'components',
+        height: 180,
+        image_file_name: 'button.light.png',
+        width: 320,
+      },
+    });
   });
 });
