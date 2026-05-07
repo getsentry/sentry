@@ -125,7 +125,7 @@ describe('Sentry Application Details', () => {
         isAlertable: true,
         allowedOrigins: [],
         schema: {},
-        overview: null,
+        overview: '',
       };
 
       expect(createAppRequest).toHaveBeenCalledWith(

@@ -198,9 +198,9 @@ type SaveSentryAppPayload = {
   scopes: string[];
   verifyInstall: boolean;
   author?: string | null;
-  overview?: string | null;
-  redirectUrl?: string | null;
-  webhookUrl?: string | null;
+  overview?: string;
+  redirectUrl?: string;
+  webhookUrl?: string;
 };
 
 type RotateSecretResponse = {
@@ -338,13 +338,25 @@ export default function SentryApplicationDetails() {
     return tct('[action] [type] Integration', {action, type});
   };
 
-  const handleSubmitSuccess = (data: Partial<SentryApp>) => {
+  const handleSubmitSuccess = (data: SentryApp) => {
     const type = isInternal() ? 'internal' : 'public';
     const baseUrl = `/settings/${organization.slug}/developer-settings/`;
     const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
 
     if (app) {
       addSuccessMessage(t('%s successfully saved.', data.name));
+
+      // Patch the index cache so the list doesn't flash the stale name
+      // on the way back to the index page.
+      queryClient.setQueryData(
+        sentryAppsApiOptions({orgSlug: organization.slug}).queryKey,
+        old =>
+          old && {
+            ...old,
+            json: old.json.map(item => (item.slug === data.slug ? data : item)),
+          }
+      );
+
       refetch();
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
@@ -504,7 +516,12 @@ export default function SentryApplicationDetails() {
       const payload: SaveSentryAppPayload = {
         name: value.name,
         organization: value.organization,
-        webhookUrl: value.webhookUrl || null,
+        // Clearable fields are submitted as '' (not null) because the
+        // backend updater treats null as "field not provided" and skips
+        // the write — sending '' lets the user actually clear the value.
+        webhookUrl: value.webhookUrl,
+        redirectUrl: value.redirectUrl,
+        overview: value.overview,
         isAlertable: value.isAlertable,
         isInternal: value.isInternal,
         verifyInstall: value.verifyInstall,
@@ -512,9 +529,9 @@ export default function SentryApplicationDetails() {
         events: value.events,
         allowedOrigins: extractMultilineFields(value.allowedOrigins),
         schema: value.schema.trim() === '' ? {} : JSON.parse(value.schema),
+        // The author parser doesn't allow_blank, so send null for empty
+        // (covers internal apps with no author).
         author: value.author || null,
-        redirectUrl: value.redirectUrl || null,
-        overview: value.overview || null,
       };
 
       return saveSentryAppMutation.mutateAsync(payload).catch(error => {
