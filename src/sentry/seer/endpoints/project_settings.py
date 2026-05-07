@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from functools import partial
 from typing import Any, TypedDict
 
-from django.db.models import Case, Count, F, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.db.models import Case, Count, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -33,7 +33,7 @@ from sentry.models.project import Project
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
-    CodingAgentAlias,
+    CodingAgent,
 )
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import (
@@ -44,11 +44,6 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.utils import json
-
-CODING_AGENT_HANDOFF_TARGET_TO_ALIAS: dict[str, CodingAgentAlias] = {
-    "cursor_background_agent": CodingAgentAlias.CURSOR,
-    "claude_code_agent": CodingAgentAlias.CLAUDE,
-}
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
     "name": "slug",
@@ -98,7 +93,7 @@ def _serialize_seer_project_settings(
         agent: str = "seer"
         integration_id: str | None = None
     else:
-        agent = CODING_AGENT_HANDOFF_TARGET_TO_ALIAS.get(handoff.target, handoff.target)
+        agent = handoff.target
         integration_id = str(handoff.integration_id)
 
     return SeerProjectSettingsResponse(
@@ -193,6 +188,7 @@ def _annotate_queryset(queryset):
             ),
             output_field=LegacyTextJSONField(),
         ),
+        # Map stopping point strings to integer ranks so we can order by them.
         stopping_point_rank=Case(
             When(_tuning=AutofixAutomationTuningSettings.OFF, then=Value(0)),
             *[
@@ -210,15 +206,9 @@ def _annotate_queryset(queryset):
             When(
                 Q(_handoff_target__isnull=True)
                 | Q(_handoff_target=Value(json.dumps(None), output_field=LegacyTextJSONField())),
-                then=Value(json.dumps("seer")),
+                then=Value(json.dumps(CodingAgent.SEER)),
             ),
-            # Convert raw handoff targets to their user-facing agent aliases.
-            *[
-                When(_handoff_target=target, then=Value(json.dumps(alias)))
-                for target, alias in CODING_AGENT_HANDOFF_TARGET_TO_ALIAS.items()
-            ],
-            # Leave unknown handoff targets as-is.
-            default=F("_handoff_target"),
+            default="_handoff_target",
             output_field=LegacyTextJSONField(),
         ),
     )
@@ -288,7 +278,7 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
 
 
 class ProjectSettingsUpdateSerializer(serializers.Serializer):
-    agent = serializers.ChoiceField(choices=["seer", *CodingAgentAlias], required=False)
+    agent = serializers.ChoiceField(choices=[*CodingAgent], required=False)
     integrationId = serializers.IntegerField(required=False)
     stoppingPoint = serializers.ChoiceField(choices=["off", *AutofixStoppingPoint], required=False)
     scannerAutomation = serializers.BooleanField(required=False)

@@ -63,7 +63,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         response = self.client.get(self.url)
 
         assert response.status_code == 200
-        assert response.data[0]["agent"] == "cursor"
+        assert response.data[0]["agent"] == "cursor_background_agent"
         assert response.data[0]["integrationId"] == "42"
 
     def test_get_stopping_point_off_when_tuning_off(self) -> None:
@@ -324,11 +324,11 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert project1.id not in ids
 
     def test_get_filter_by_agent_external(self) -> None:
-        """agent:cursor should return projects with cursor handoff target."""
+        """agent:cursor_background_agent should return projects with cursor handoff target."""
         project1 = self.create_project(organization=self.organization)
         project1.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
 
-        response = self.client.get(self.url, {"query": "agent:cursor"})
+        response = self.client.get(self.url, {"query": "agent:cursor_background_agent"})
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
@@ -357,7 +357,9 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         project2 = self.create_project(organization=self.organization)
         project2.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
 
-        response = self.client.get(self.url, {"query": "agent:cursor reposCount:>0"})
+        response = self.client.get(
+            self.url, {"query": "agent:cursor_background_agent reposCount:>0"}
+        )
 
         assert response.status_code == 200
         ids = [r["projectId"] for r in response.data]
@@ -385,7 +387,9 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         project2.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
 
         response = self.client.put(
-            self.url, data={"query": "agent:cursor", "scannerAutomation": False}, format="json"
+            self.url,
+            data={"query": "agent:cursor_background_agent", "scannerAutomation": False},
+            format="json",
         )
 
         assert response.status_code == 204
@@ -398,8 +402,10 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert response.status_code == 400
 
     def test_put_requires_integration_id_for_external_agent(self) -> None:
-        """agent=cursor without integrationId should return 400."""
-        response = self.client.put(self.url, data={"agent": "cursor"}, format="json")
+        """External agent without integrationId should return 400."""
+        response = self.client.put(
+            self.url, data={"agent": "cursor_background_agent"}, format="json"
+        )
         assert response.status_code == 400
 
     def test_put_rejects_invalid_agent(self) -> None:
@@ -502,7 +508,7 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         response = self.client.get(self.url)
 
         assert response.status_code == 200
-        assert response.data["agent"] == "cursor"
+        assert response.data["agent"] == "cursor_background_agent"
         assert response.data["integrationId"] == "42"
 
     def test_get_stopping_point_off_when_tuning_off(self) -> None:
@@ -549,8 +555,10 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         assert response.status_code == 400
 
     def test_put_requires_integration_id_for_external_agent(self) -> None:
-        """agent=cursor without integrationId should return 400."""
-        response = self.client.put(self.url, data={"agent": "cursor"}, format="json")
+        """External agent without integrationId should return 400."""
+        response = self.client.put(
+            self.url, data={"agent": "cursor_background_agent"}, format="json"
+        )
         assert response.status_code == 400
 
     def test_put_seer_agent_does_not_require_integration_id(self) -> None:
