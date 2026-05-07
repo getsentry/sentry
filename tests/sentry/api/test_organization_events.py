@@ -51,6 +51,9 @@ class OrganizationEventsEndpointTest(APITestCase):
         response = self.do_request(query, features=features)
 
         assert response.status_code == 403
+        assert response.data == {
+            "detail": "Discover, Performance, or Explore is required to access this endpoint."
+        }
 
     def test_api_key_request(self) -> None:
         self.store_event(

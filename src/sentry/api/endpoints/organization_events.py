@@ -178,7 +178,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         - The `meta` key contains information about the response, including the unit or type of the fields requested
         """
         if not self.has_feature(organization, request):
-            return Response(status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {
+                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         referrer = request.GET.get("referrer")
 
