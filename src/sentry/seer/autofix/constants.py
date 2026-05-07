@@ -12,10 +12,10 @@ class CodingAgentAlias(enum.StrEnum):
     CLAUDE = "claude"
 
 
-# Map from user-facing coding agent aliases to their handoff target strs.
+# Map from possible user-facing coding agent aliases to their handoff target strs.
 CODING_AGENT_ALIAS_TO_HANDOFF_TARGET: dict[str | CodingAgentAlias, str] = {
-    "cursor": "cursor_background_agent",
-    "claude": "claude_code_agent",
+    CodingAgentAlias.CURSOR: "cursor_background_agent",
+    CodingAgentAlias.CLAUDE: "claude_code_agent",
     "claude_code": "claude_code_agent",
 }
 
