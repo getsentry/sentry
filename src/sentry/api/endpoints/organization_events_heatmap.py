@@ -190,7 +190,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 bucket_size = 0
                 y_buckets = 1
                 yAxes = {
-                    bucket_ranges.min_value: f"{z_function}_if(`{yAxis}:{bucket_ranges[0]}`, {yAxis})"
+                    bucket_ranges.min_value: f"{z_function}_if(`{yAxis}:{bucket_ranges.min_value}`, {yAxis})"
                 }
 
             result = dataset.run_timeseries_query(
