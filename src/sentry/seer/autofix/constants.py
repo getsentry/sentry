@@ -7,12 +7,6 @@ CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr
 AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
 
 
-class CodingAgent(enum.StrEnum):
-    SEER = "seer"
-    CURSOR = "cursor_background_agent"
-    CLAUDE = "claude_code_agent"
-
-
 class FixabilityScoreThresholds(enum.Enum):
     SUPER_HIGH = 0.76
     HIGH = 0.66
