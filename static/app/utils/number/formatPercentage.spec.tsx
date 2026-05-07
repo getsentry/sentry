@@ -2,8 +2,8 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 describe('formatPercentage()', () => {
   it('should format decimals', () => {
-    expect(formatPercentage(0.0, 0)).toBe('0%');
-    expect(formatPercentage(0.0, 2)).toBe('0%');
+    expect(formatPercentage(0, 0)).toBe('0%');
+    expect(formatPercentage(0, 2)).toBe('0%');
     expect(formatPercentage(0.10513434, 1)).toBe('10.5%');
     expect(formatPercentage(0.10513494, 3)).toBe('10.513%');
     expect(formatPercentage(0.10513494, 4)).toBe('10.5135%');
