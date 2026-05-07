@@ -163,10 +163,10 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
 
         with handle_query_errors():
             bucket_ranges = self.query_y_bucket_ranges(snuba_params, dataset, query, yAxis)
+            use_log_scale: bool = bool(y_log_scale and bucket_ranges.range > 1)
             if bucket_ranges.min_value != bucket_ranges.max_value:
                 yAxes = {}
                 # Log gets weird when the range is 1 or less
-                use_log_scale: bool = bool(y_log_scale and bucket_ranges.range > 1)
                 if use_log_scale:
                     # log(max - min) / y_buckets = size of each bucket
                     bucket_size = math.log(bucket_ranges.range, y_log_scale) / y_buckets
