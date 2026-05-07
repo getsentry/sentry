@@ -73,7 +73,7 @@ function SentryApplicationDashboard() {
 
   const {
     data: interactions,
-    isPending: isInteractionsPending,
+    isLoading: isInteractionsLoading,
     isError: isInteractionsError,
   } = useApiQuery<Interactions>(
     [
@@ -87,7 +87,7 @@ function SentryApplicationDashboard() {
 
   const {
     data: stats,
-    isPending: isStatsPending,
+    isLoading: isStatsLoading,
     isError: isStatsError,
   } = useApiQuery<Stats>(
     [
@@ -99,11 +99,7 @@ function SentryApplicationDashboard() {
     {staleTime: 0, enabled: showInstallData}
   );
 
-  if (
-    isAppPending ||
-    (showInstallData && isStatsPending) ||
-    (shouldFetchInteractions && isInteractionsPending)
-  ) {
+  if (isAppPending || isStatsLoading || isInteractionsLoading) {
     return <LoadingIndicator />;
   }
 
@@ -249,7 +245,7 @@ function SentryApplicationDashboard() {
     <div>
       <SentryDocumentTitle title={t('Integration Dashboard')} />
       <SettingsPageHeader title={`${t('Integration Dashboard')} - ${app.name}`} />
-      {showInstallData && stats && renderInstallData(stats)}
+      {stats && renderInstallData(stats)}
       {showInstallData && interactions && renderIntegrationViews(interactions)}
       {app.schema.elements && interactions && renderComponentInteractions(interactions)}
       <RequestLog app={app} />
