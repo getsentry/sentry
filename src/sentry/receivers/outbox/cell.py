@@ -249,6 +249,12 @@ def process_relocation_reply_with_export(payload: Any, **kwds):
         )
 
 
+def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:
+    run.mirror_status = SeerRunMirrorStatus.FAILED
+    run.save(update_fields=["mirror_status"])
+    logger.warning(event, extra={"run_id": run.id, **extra})
+
+
 @receiver(process_cell_outbox, sender=OutboxCategory.SEER_RUN_CREATE)
 def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) -> None:
     try:
@@ -258,10 +264,21 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     if run.seer_run_state_id:
         return
 
-    body = {**payload["body"], "external_idempotency_key": str(run.uuid)}
-    viewer_context = payload.get("viewer_context")
+    # Validate the payload shape and parse run.type up front. A malformed
+    # outbox payload or out-of-band run.type value can't self-heal on retry,
+    # so any of these failures are terminal.
+    try:
+        raw_body = payload["body"]
+        if not isinstance(raw_body, dict):
+            raise TypeError("payload['body'] is not a dict")
+        body = {**raw_body, "external_idempotency_key": str(run.uuid)}
+        viewer_context = payload.get("viewer_context")
+        run_type = SeerRunType(run.type)
+    except (KeyError, TypeError, ValueError) as e:
+        _mark_seer_run_failed(run, "seer_run_create.invalid_payload", error=str(e))
+        return
 
-    match SeerRunType(run.type):
+    match run_type:
         case SeerRunType.AUTOFIX:
             response = make_autofix_start_request(orjson.dumps(body), viewer_context=viewer_context)
         case SeerRunType.EXPLORER:
@@ -283,12 +300,7 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     if response.status >= 400:
         # Terminal client error — retrying won't help.
-        run.mirror_status = SeerRunMirrorStatus.FAILED
-        run.save(update_fields=["mirror_status"])
-        logger.warning(
-            "seer_run_create.terminal_failure",
-            extra={"run_id": run.id, "status": response.status},
-        )
+        _mark_seer_run_failed(run, "seer_run_create.terminal_failure", status=response.status)
         return
 
     try:
@@ -296,12 +308,7 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     except json.JSONDecodeError:
         # 2xx with malformed body (e.g. proxy maintenance page) won't self-heal
         # on retry — treat as terminal to avoid head-of-line blocking.
-        run.mirror_status = SeerRunMirrorStatus.FAILED
-        run.save(update_fields=["mirror_status"])
-        logger.warning(
-            "seer_run_create.invalid_json_body",
-            extra={"run_id": run.id, "status": response.status},
-        )
+        _mark_seer_run_failed(run, "seer_run_create.invalid_json_body", status=response.status)
         return
 
     run_id = data.get("run_id")

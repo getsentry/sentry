@@ -270,3 +270,18 @@ class HandleSeerRunCreateTest(TestCase):
         run.refresh_from_db()
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
         assert run.seer_run_state_id is None
+
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_invalid_payload_marks_failed_without_dispatch(self, mock_request: Mock) -> None:
+        run = self._create_run()
+
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload={"viewer_context": {}},  # missing "body"
+            shard_identifier=self.organization.id,
+        )
+
+        mock_request.assert_not_called()
+        run.refresh_from_db()
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
+        assert run.seer_run_state_id is None
