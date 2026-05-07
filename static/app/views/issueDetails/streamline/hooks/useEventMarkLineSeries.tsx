@@ -202,6 +202,7 @@ export function useCurrentEventMarklineSeries({
                   {time}
                 </Text>
               </Flex>
+              <div className="tooltip-arrow" />
             </Stack>
           );
         },
