@@ -23,22 +23,20 @@ function SeriesRow({
   totalCount: string;
 }) {
   return (
-    <Flex>
-      <Flex justify="between" gap="xs" flexGrow={1}>
-        <Flex gap="xs" align="center">
-          <Container
-            width="10px"
-            height="10px"
-            radius="full"
-            display="inline-block"
-            style={{backgroundColor: color}}
-          />
-          <Text size="sm">{label}</Text>
-        </Flex>
-        <Text size="sm" variant="muted">
-          {totalCount}
-        </Text>
+    <Flex justify="between" gap="xs" flexGrow={1}>
+      <Flex gap="xs" align="center">
+        <Container
+          width="10px"
+          height="10px"
+          radius="full"
+          display="inline-block"
+          style={{backgroundColor: color}}
+        />
+        <Text size="sm">{label}</Text>
       </Flex>
+      <Text size="sm" variant="muted">
+        {totalCount}
+      </Text>
     </Flex>
   );
 }
