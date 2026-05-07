@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
@@ -41,6 +42,7 @@ import type {
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {useMedia} from 'sentry/utils/useMedia';
 
 const REPO_LIST_MAX_HEIGHT = 400;
 const ESTIMATED_REPO_ROW_HEIGHT = 32;
@@ -273,7 +275,9 @@ function SingleInstallTableContent({
           <IntegrationSummary installation={merged} />
         </Flex>
         <Flex align="center" gap="sm">
-          <InstallationRepoCountTag installation={merged} />
+          <Flex display={{xs: 'none', sm: 'flex'}}>
+            <InstallationRepoCountTag installation={merged} />
+          </Flex>
           <InstallationActions installation={merged} providerName={provider.name} />
         </Flex>
       </TableHeader>
@@ -400,7 +404,7 @@ function InstallationRow({
         <Flex align="center" gap="sm">
           <IntegrationSummary installation={merged} />
         </Flex>
-        <Flex align="center">
+        <Flex align="center" display={{xs: 'none', sm: 'flex'}}>
           <InstallationRepoCountTag installation={merged} />
         </Flex>
         <Flex align="center" gap="md" justifySelf="end">
@@ -506,6 +510,9 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onUninstall,
   } = installation;
 
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+
   return (
     <Fragment>
       {manageUrl && (
@@ -519,7 +526,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
           size="xs"
           icon={<IconOpen />}
         >
-          {t('Manage repositories')}
+          {isSmallScreen ? undefined : t('Manage repositories')}
         </LinkButton>
       )}
       {(onUninstall || onSettings || !!overflowMenuItems?.length) && (
