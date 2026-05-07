@@ -19,7 +19,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 
 from .link_all_repos import GitHubRepoInputConfig, get_repo_config
@@ -30,11 +30,11 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.integrations.github.tasks.sync_repos_on_install_change",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,), ignore=(KeyError,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=(KeyError,),
 )
-@retry(exclude=(KeyError,))
 def sync_repos_on_install_change(
     integration_id: int,
     action: str,
