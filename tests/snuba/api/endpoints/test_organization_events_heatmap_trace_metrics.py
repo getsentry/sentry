@@ -289,3 +289,20 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
                 "end": 2,
             },
         }
+
+    def test_invalid_log_scale(self):
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=6),
+                "yAxis": "value",
+                "interval": "1h",
+                "yBuckets": 5,
+                "yLogScale": 1,
+                "query": "metric.name:foo metric.type:counter",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "logScale cannot be 1"

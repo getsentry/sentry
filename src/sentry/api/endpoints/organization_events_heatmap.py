@@ -114,6 +114,8 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             yLogScale = request.GET.get("yLogScale")
             if yLogScale is not None and yLogScale.isnumeric():
                 y_log_scale = int(yLogScale)
+                if y_log_scale == 1:
+                    raise ParseError("logScale cannot be 1")
             else:
                 y_log_scale = None
 
@@ -179,6 +181,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                     else:
                         lower_bound = bucket_ranges.min_value + current_bucket * bucket_size
                         upper_bound = bucket_ranges.min_value + (current_bucket + 1) * bucket_size
+
                     if current_bucket == y_buckets - 1:
                         yAxes[lower_bound] = f"{z_function}_if(`{yAxis}:>={lower_bound}`, {yAxis})"
                     else:
