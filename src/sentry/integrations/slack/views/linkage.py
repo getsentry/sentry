@@ -55,8 +55,6 @@ class SlackIdentityLinkageView(SlackLinkageView, IdentityLinkageView, ABC):
             integration,
             external_id,
             params.get("response_url"),
-            channel_id=params.get("channel_id"),
-            thread_ts=params.get("thread_ts"),
         )
 
     @property

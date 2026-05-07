@@ -22,6 +22,7 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.message_builder.routing import SlackRoutingData, decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
@@ -365,6 +366,20 @@ class SlackRequestParser(BaseRequestParser):
             self.action_option, self.action_id = SlackActionEndpoint.get_action_option(
                 slack_request=self.slack_request
             )
+
+            if self.action_id == SlackAction.LINK_IDENTITY.value:
+                if self.response_url and self.slack_request.user_id:
+                    from sentry.integrations.slack.views.link_identity import (
+                        stash_link_identity_response_url,
+                    )
+
+                    stash_link_identity_response_url(
+                        integration_id=self.slack_request.integration.id,
+                        slack_user_id=self.slack_request.user_id,
+                        response_url=self.response_url,
+                    )
+                return HttpResponse(status=status.HTTP_200_OK)
+
             # All actions other than those below are sent to every cell
             if self.action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
                 return (
