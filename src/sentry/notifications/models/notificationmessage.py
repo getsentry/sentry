@@ -44,7 +44,7 @@ class NotificationMessage(Model):
     # Reference to another notification if we choose to modify the original message or reply to it (like start a thread)
     parent_notification_message = FlexibleForeignKey("self", null=True)
 
-    # Related information regarding Alert Rules (Metric Alerts) # this has data
+    # Related information regarding Alert Rules (Metric Alerts)
     incident = FlexibleForeignKey("sentry.Incident", null=True)
     trigger_action = FlexibleForeignKey("sentry.AlertRuleTriggerAction", null=True)
 
