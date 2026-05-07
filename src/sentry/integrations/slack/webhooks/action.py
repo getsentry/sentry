@@ -51,7 +51,6 @@ from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
@@ -130,9 +129,7 @@ def update_group(
     return resp
 
 
-def get_rule(
-    slack_request: SlackActionRequest, organization: Organization, group_type: int
-) -> Rule | None:
+def get_rule(slack_request: SlackActionRequest) -> Rule | None:
     """Get the rule that fired"""
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
@@ -359,7 +356,7 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        rule = get_rule(slack_request, group.organization, group.type)
+        rule = get_rule(slack_request)
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
