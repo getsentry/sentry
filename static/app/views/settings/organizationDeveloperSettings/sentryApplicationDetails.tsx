@@ -36,7 +36,11 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {ALLOWED_SCOPES, SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {
+  ALLOWED_SCOPES,
+  CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
+  SENTRY_APP_PERMISSIONS,
+} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Avatar} from 'sentry/types/core';
@@ -155,26 +159,34 @@ function getResourceFromScope(scope: string): PermissionResource | undefined {
   return undefined;
 }
 
+type ScopeErrors = {
+  permissions: Partial<Record<PermissionResource, string>>;
+  continuousIntegration?: string;
+};
+
 /**
  * Backend rejects oversized scope requests with messages like
  * `"Requested permission of member:write exceeds…"`. Map each one onto its
- * permission resource so the error can render under the matching dropdown,
- * matching the legacy form's behavior.
+ * permission resource (or the CI checkbox) so the error can render under
+ * the matching control, matching the legacy form's behavior.
  */
-function mapScopeErrorsToPermissions(
-  scopeErrors: unknown
-): Partial<Record<PermissionResource, string>> {
+function mapScopeErrors(scopeErrors: unknown): ScopeErrors {
+  const result: ScopeErrors = {permissions: {}};
   if (!Array.isArray(scopeErrors)) {
-    return {};
+    return result;
   }
-  const result: Partial<Record<PermissionResource, string>> = {};
   for (const message of scopeErrors) {
     if (typeof message !== 'string') continue;
     const match = message.match(/Requested permission of (\w+:\w+)/);
     if (!match) continue;
-    const resource = getResourceFromScope(match[1]!);
-    if (resource && !result[resource]) {
-      result[resource] = message;
+    const scope = match[1]!;
+    if (scope === CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope) {
+      result.continuousIntegration ??= message;
+      continue;
+    }
+    const resource = getResourceFromScope(scope);
+    if (resource && !result.permissions[resource]) {
+      result.permissions[resource] = message;
     }
   }
   return result;
@@ -259,9 +271,7 @@ export default function SentryApplicationDetails() {
     }
   );
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
-  const [permissionErrors, setPermissionErrors] = useState<
-    Partial<Record<PermissionResource, string>>
-  >({});
+  const [scopeErrors, setScopeErrors] = useState<ScopeErrors>({permissions: {}});
 
   const addTokenMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
@@ -495,7 +505,7 @@ export default function SentryApplicationDetails() {
       onDynamic: sentryAppFormSchema,
     },
     onSubmit: ({value, formApi}) => {
-      setPermissionErrors({});
+      setScopeErrors({permissions: {}});
       const payload: SaveSentryAppPayload = {
         name: value.name,
         organization: value.organization,
@@ -519,9 +529,12 @@ export default function SentryApplicationDetails() {
         }
         const responseJSON = error.responseJSON ?? {};
 
-        // Render scope errors inline under the matching permission row.
-        const scopeErrors = mapScopeErrorsToPermissions(responseJSON.scopes);
-        setPermissionErrors(scopeErrors);
+        // Render scope errors inline under each matching control.
+        const mappedScopeErrors = mapScopeErrors(responseJSON.scopes);
+        setScopeErrors(mappedScopeErrors);
+        const hadScopeErrors =
+          Object.keys(mappedScopeErrors.permissions).length > 0 ||
+          mappedScopeErrors.continuousIntegration !== undefined;
 
         // Attach the rest to their form fields. setFieldErrors also writes
         // the scopes/events values to those form fields, but no UI reads
@@ -538,7 +551,7 @@ export default function SentryApplicationDetails() {
           return;
         }
 
-        if (Object.keys(scopeErrors).length > 0 || fieldErrorsApplied) {
+        if (hadScopeErrors || fieldErrorsApplied) {
           return;
         }
 
@@ -773,7 +786,8 @@ export default function SentryApplicationDetails() {
             scopes={app ? [...app.scopes] : []}
             events={app ? normalize(app.events) : []}
             newApp={!app}
-            permissionErrors={permissionErrors}
+            permissionErrors={scopeErrors.permissions}
+            continuousIntegrationError={scopeErrors.continuousIntegration}
             onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
             onEventsChange={events => form.setFieldValue('events', events)}
           />

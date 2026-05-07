@@ -32,6 +32,7 @@ type Props = DefaultProps & {
   events: WebhookEvent[];
   newApp: boolean;
   scopes: Scope[];
+  continuousIntegrationError?: string;
   onEventsChange?: (events: WebhookEvent[]) => void;
   onScopesChange?: (scopes: Scope[]) => void;
   permissionErrors?: Partial<Record<PermissionResource, string>>;
@@ -146,6 +147,7 @@ export class PermissionsObserver extends Component<Props, State> {
               onChange={this.onPermissionChange}
               appPublished={this.props.appPublished}
               errors={this.props.permissionErrors}
+              continuousIntegrationError={this.props.continuousIntegrationError}
             />
             {this.renderCallout()}
           </PanelBody>

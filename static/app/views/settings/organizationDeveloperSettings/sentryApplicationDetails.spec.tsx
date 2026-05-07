@@ -557,7 +557,7 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('renders scope errors inline beneath the matching permission row', async () => {
+    it('renders the error', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
 
@@ -565,7 +565,7 @@ describe('Sentry Application Details', () => {
 
       expect(
         await screen.findByText(
-          "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change."
+          "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change."
         )
       ).toBeInTheDocument();
     });

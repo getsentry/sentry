@@ -99,6 +99,7 @@ type Props = {
   appPublished: boolean;
   onChange: (permissions: Permissions, hasContinuousIntegration: boolean) => void;
   permissions: Permissions;
+  continuousIntegrationError?: string;
   displaySpecialPermissions?: boolean;
   /**
    * Optional list of permissions to display in the selection.
@@ -244,6 +245,7 @@ export class PermissionSelection extends Component<Props, State> {
   render() {
     const {hasContinuousIntegration, permissions} = this.state;
     const {
+      continuousIntegrationError,
       displaySpecialPermissions = true,
       displayedPermissions = SENTRY_APP_PERMISSIONS,
       errors,
@@ -286,15 +288,22 @@ export class PermissionSelection extends Component<Props, State> {
           );
         })}
         {displaySpecialPermissions && (
-          <SpecialPermissionField
-            name={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName}
-            label={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.label}
-            help={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.help}
-            onChange={this.onContinuousIntegrationChange}
-            value={hasContinuousIntegration}
-            disabled={this.props.appPublished}
-            disabledReason={t('Cannot update permissions on a published integration')}
-          />
+          <Fragment>
+            <SpecialPermissionField
+              name={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName}
+              label={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.label}
+              help={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.help}
+              onChange={this.onContinuousIntegrationChange}
+              value={hasContinuousIntegration}
+              disabled={this.props.appPublished}
+              disabledReason={t('Cannot update permissions on a published integration')}
+            />
+            {continuousIntegrationError ? (
+              <Text variant="danger" size="sm" role="alert">
+                {continuousIntegrationError}
+              </Text>
+            ) : null}
+          </Fragment>
         )}
       </Fragment>
     );
