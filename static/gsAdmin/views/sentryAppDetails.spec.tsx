@@ -73,7 +73,7 @@ describe('SentryAppDetails', () => {
     renderSentryAppDetails({isDisabled: true});
 
     expect(await screen.findByText('Enabled:')).toBeInTheDocument();
-    expect(screen.getByText('no')).toBeInTheDocument();
+    expect(screen.getAllByText('no')).toHaveLength(2);
   });
 
   it('sends PUT with isDisabled when disable action is confirmed', async () => {
