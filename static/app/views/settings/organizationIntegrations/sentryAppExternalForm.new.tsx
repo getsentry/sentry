@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import type {Choices, Choice, SelectValue} from 'sentry/types/core';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {unreachable} from 'sentry/utils/unreachable';
 import {useApi} from 'sentry/utils/useApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
@@ -54,6 +55,12 @@ type SentryAppSetting = {
   name: string;
   value: unknown;
   label?: string;
+};
+
+type AlertRuleSubmitPayload = {
+  hasSchemaFormConfig: true;
+  sentryAppInstallationUuid: string;
+  settings: SentryAppSetting[];
 };
 
 type OnSubmitSuccess = (
@@ -598,17 +605,7 @@ export function SentryAppExternalFormNew({
             updatesForm: triggerFieldNames.has(field.name),
           };
         default:
-          return {
-            default: defaultValue,
-            disabled,
-            help: field.help,
-            label: field.label,
-            name: field.name,
-            placeholder: field.placeholder,
-            required,
-            type: 'string',
-            updatesForm: triggerFieldNames.has(field.name),
-          };
+          return unreachable(field.type);
       }
     };
 
@@ -635,7 +632,7 @@ export function SentryAppExternalFormNew({
       }
 
       nextQueryOptions[field.name] = debouncedInput =>
-        // eslint-disable-next-line @tanstack/query/exhaustive-deps -- field/default state drives the request key; refs and state setters should not affect cache identity.
+        // eslint-disable-next-line @tanstack/query/exhaustive-deps -- currentFormValuesRef.current is a ref read at request time and setAsyncOptionsCache has stable identity; neither belongs in the cache key.
         queryOptions({
           initialData: toSelectValues(mergeFieldChoices(field, normalizedResetValues)),
           queryKey: [
@@ -644,10 +641,12 @@ export function SentryAppExternalFormNew({
             field.name,
             field.uri,
             debouncedInput,
-            JSON.stringify(mergeFieldChoices(field, normalizedResetValues)),
+            mergeFieldChoices(field, normalizedResetValues),
             dynamicFieldValues,
             externalDefaultValues,
             serializedExtraRequestBody,
+            fetchFieldChoices,
+            fieldGroups,
           ],
           queryFn: async (): Promise<Array<SelectValue<string>>> => {
             if (!debouncedInput) {
@@ -882,11 +881,12 @@ export function SentryAppExternalFormNew({
           return savedSetting;
         });
 
-        onSubmitSuccess({
+        const payload: AlertRuleSubmitPayload = {
           hasSchemaFormConfig: true,
           sentryAppInstallationUuid,
           settings,
-        });
+        };
+        onSubmitSuccess(payload);
         return;
       }
 
