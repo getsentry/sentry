@@ -262,7 +262,9 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup isWarning={interruptState === 'completed' || isTimedOut}>
+        <StyledInputGroup
+          isWarningPlaceholder={interruptState === 'completed' || isTimedOut}
+        >
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
@@ -335,14 +337,15 @@ const InputRow = styled('div')`
   margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
-const StyledInputGroup = styled(InputGroup)<{isWarning?: boolean}>`
+const StyledInputGroup = styled(InputGroup)<{isWarningPlaceholder?: boolean}>`
   flex: 1;
 
   textarea {
     resize: none;
 
     &::placeholder {
-      color: ${p => (p.isWarning ? p.theme.tokens.content.warning : undefined)};
+      color: ${p =>
+        p.isWarningPlaceholder ? p.theme.tokens.content.warning : undefined};
     }
   }
 
