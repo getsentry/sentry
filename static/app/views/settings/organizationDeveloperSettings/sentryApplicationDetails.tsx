@@ -145,7 +145,7 @@ const sentryAppFormSchema = z
 
 function getResourceFromScope(scope: string): PermissionResource | undefined {
   for (const permObj of SENTRY_APP_PERMISSIONS) {
-    const allScopes = Object.values(permObj.choices).flatMap(
+    const allScopes: string[] = Object.values(permObj.choices).flatMap(
       choice => choice?.scopes ?? []
     );
     if (allScopes.includes(scope)) {
