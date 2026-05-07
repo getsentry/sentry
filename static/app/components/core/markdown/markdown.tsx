@@ -5,6 +5,7 @@ import {motion} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import type {MarkedToken} from 'sentry/utils/marked/marked';
 import {MarkedLexer} from 'sentry/utils/marked/marked';
 
 import {renderToken} from './renderToken';
@@ -70,11 +71,10 @@ function StaticMarkdown({
   const tokens = MarkedLexer.lex(raw);
   const elements: ReactNode[] = [];
 
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i]!;
+  for (const [i, token] of tokens.entries()) {
     const cached = tokenCache.current.get(token.raw);
     if (cached === undefined) {
-      const el = renderToken(token, components, i);
+      const el = renderToken(token as MarkedToken, components, i);
       tokenCache.current.set(token.raw, el);
       elements.push(el);
     } else {

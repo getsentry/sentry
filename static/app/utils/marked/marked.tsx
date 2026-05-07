@@ -1,5 +1,5 @@
 import dompurify from 'dompurify';
-import type {Token, Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
+import type {MarkedToken, Token, Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
 import {Lexer as MarkedLexer, Marked, marked} from 'marked'; // eslint-disable-line no-restricted-imports
 import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
@@ -7,7 +7,7 @@ import Prism from 'prismjs';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 export {MarkedLexer};
-export type {Token, Tokens};
+export type {MarkedToken, Token, Tokens};
 
 const SAFE_LINK_PATTERN = /^(https?:|mailto:)/i;
 
