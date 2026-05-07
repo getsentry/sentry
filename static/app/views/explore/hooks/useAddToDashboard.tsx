@@ -26,10 +26,13 @@ import {
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-export const CHART_TYPE_TO_DISPLAY_TYPE = {
+// Heat Map widgets are not yet a dashboard `DisplayType`, so they fall back to
+// LINE when adding to a dashboard.
+export const CHART_TYPE_TO_DISPLAY_TYPE: Record<ChartType, DisplayType> = {
   [ChartType.LINE]: DisplayType.LINE,
   [ChartType.BAR]: DisplayType.BAR,
   [ChartType.AREA]: DisplayType.AREA,
+  [ChartType.HEATMAP]: DisplayType.LINE,
 };
 
 export function useAddToDashboard() {
