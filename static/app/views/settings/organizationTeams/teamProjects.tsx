@@ -6,6 +6,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,7 +14,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -35,7 +35,7 @@ export default function TeamProjects() {
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
-  const [query, setQuery] = useState<string>('');
+  const [query, setQuery] = useState('');
   const {team} = useTeamDetailsOutlet();
   const {
     data: linkedProjectsResponse,
@@ -48,6 +48,7 @@ export default function TeamProjects() {
       query: {
         query: `team:${team.slug}`,
         cursor: location.query.cursor,
+        collapse: ['latestDeploys', 'unusedFeatures'],
       },
       staleTime: 0,
     }),
@@ -61,7 +62,10 @@ export default function TeamProjects() {
   } = useQuery(
     apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`},
+      query: {
+        query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`,
+        collapse: ['latestDeploys', 'unusedFeatures'],
+      },
       staleTime: 0,
     })
   );

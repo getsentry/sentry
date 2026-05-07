@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -262,8 +262,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             organization_id=org.id, key=build_pending_deletion_key(repo)
         ).exists()
 
-    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo(self, mock_cleanup_task: MagicMock) -> None:
+    def test_put_hide_repo(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -284,18 +283,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.HIDDEN
 
-        # Verify the cleanup task was called
-        mock_cleanup_task.assert_called_once_with(
-            kwargs={
-                "organization_id": org.id,
-                "repo_id": repo.id,
-                "repo_external_id": "uuid-external-id",
-                "repo_provider": "github",
-            }
-        )
-
-    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_with_commits(self, mock_cleanup_task: MagicMock) -> None:
+    def test_put_hide_repo_with_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -313,16 +301,6 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.HIDDEN
         assert len(Commit.objects.filter(repository_id=repo.id)) == 0
-
-        # Verify the cleanup task was called
-        mock_cleanup_task.assert_called_once_with(
-            kwargs={
-                "organization_id": org.id,
-                "repo_id": repo.id,
-                "repo_external_id": "abc123",
-                "repo_provider": "github",
-            }
-        )
 
     def test_put_rejects_integration_id(self) -> None:
         self.login_as(user=self.user)
@@ -348,114 +326,3 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.provider == "integrations:github"
         assert repo.integration_id is None
-
-    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_triggers_cleanup(self, mock_cleanup_task: MagicMock) -> None:
-        """Test that hiding a repository triggers Seer cleanup task."""
-        self.login_as(user=self.user)
-
-        org = self.create_organization(owner=self.user, name="baz")
-        repo = Repository.objects.create(
-            name="example-repo",
-            external_id="github-123",
-            provider="github",
-            organization_id=org.id,
-            status=ObjectStatus.ACTIVE,
-        )
-
-        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(url, data={"status": "hidden"})
-
-        assert response.status_code == 200
-
-        repo = Repository.objects.get(id=repo.id)
-        assert repo.status == ObjectStatus.HIDDEN
-
-        # Verify the cleanup task was called with correct parameters
-        mock_cleanup_task.assert_called_once_with(
-            kwargs={
-                "organization_id": org.id,
-                "repo_id": repo.id,
-                "repo_external_id": "github-123",
-                "repo_provider": "github",
-            }
-        )
-
-    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_null_fields(self, mock_cleanup_task: MagicMock) -> None:
-        """Test that hiding a repository with null external_id/provider does not trigger Seer cleanup."""
-        self.login_as(user=self.user)
-
-        org = self.create_organization(owner=self.user, name="baz")
-        repo = Repository.objects.create(
-            name="example-repo",
-            external_id=None,  # No external_id
-            provider=None,  # No provider
-            organization_id=org.id,
-            status=ObjectStatus.ACTIVE,
-        )
-
-        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(url, data={"status": "hidden"})
-
-        assert response.status_code == 200
-
-        repo = Repository.objects.get(id=repo.id)
-        assert repo.status == ObjectStatus.HIDDEN
-
-        # Verify the cleanup task was NOT called
-        mock_cleanup_task.assert_not_called()
-
-    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_external_id_null(
-        self, mock_cleanup_task: MagicMock
-    ) -> None:
-        """Test that hiding a repository with null external_id does not trigger Seer cleanup."""
-        self.login_as(user=self.user)
-
-        org = self.create_organization(owner=self.user, name="baz")
-        repo = Repository.objects.create(
-            name="example-repo",
-            external_id=None,  # No external_id
-            provider="github",
-            organization_id=org.id,
-            status=ObjectStatus.ACTIVE,
-        )
-
-        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(url, data={"status": "hidden"})
-
-        assert response.status_code == 200
-
-        repo = Repository.objects.get(id=repo.id)
-        assert repo.status == ObjectStatus.HIDDEN
-
-        # Verify the cleanup task was NOT called
-        mock_cleanup_task.assert_not_called()
-
-    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_provider_null(
-        self, mock_cleanup_task: MagicMock
-    ) -> None:
-        """Test that hiding a repository with null provider does not trigger Seer cleanup."""
-        self.login_as(user=self.user)
-
-        org = self.create_organization(owner=self.user, name="baz")
-        repo = Repository.objects.create(
-            name="example-repo",
-            external_id="github-123",
-            provider=None,  # No provider
-            organization_id=org.id,
-            status=ObjectStatus.ACTIVE,
-        )
-
-        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(url, data={"status": "hidden"})
-
-        assert response.status_code == 200
-
-        repo = Repository.objects.get(id=repo.id)
-        assert repo.status == ObjectStatus.HIDDEN
-
-        # Verify the cleanup task was NOT called
-        mock_cleanup_task.assert_not_called()

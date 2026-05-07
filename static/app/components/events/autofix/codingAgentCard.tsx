@@ -172,7 +172,7 @@ export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCa
                                 analyticsEventName="Autofix: Open Coding Agent PR"
                                 analyticsEventKey="autofix.coding_agent.open_pr"
                                 analyticsParams={{group_id: groupId}}
-                                priority="primary"
+                                variant="primary"
                               >
                                 {getResultButtonLabel(pr_url)}
                               </Button>

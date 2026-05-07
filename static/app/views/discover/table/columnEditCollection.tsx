@@ -427,11 +427,11 @@ class ColumnEditCollection extends Component<Props, State> {
     col: Column,
     i: number,
     {
-      singleColumn = false,
+      singleColumn,
       canDelete = true,
       canDrag = true,
       isGhost = false,
-      gridColumns = 2,
+      gridColumns,
       disabled = false,
     }: {
       gridColumns: number;
@@ -456,7 +456,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
     let placeholder: React.ReactNode = null;
     // Add a placeholder above the target row.
-    if (isDragging && isGhost === false && draggingTargetIndex === i) {
+    if (isDragging && !isGhost && draggingTargetIndex === i) {
       placeholder = (
         <DragPlaceholder
           key={`placeholder:${this.keyForColumn(col, isGhost)}`}
@@ -467,7 +467,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
     // If the current row is the row in the drag ghost return the placeholder
     // or a hole if the placeholder is elsewhere.
-    if (isDragging && isGhost === false && draggingIndex === i) {
+    if (isDragging && !isGhost && draggingIndex === i) {
       return placeholder;
     }
 
@@ -530,7 +530,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 tooltipProps={{title: t('Remove column')}}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                priority="transparent"
+                variant="transparent"
               />
             ) : (
               <RemoveButton
@@ -538,7 +538,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                priority="transparent"
+                variant="transparent"
               />
             )
           ) : singleColumn && showAliasField ? null : (

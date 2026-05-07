@@ -28,20 +28,26 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    HaltReason,
+    RepositoryIntegration,
+)
+from sentry.integrations.utils.metrics import IntegrationEventLifecycle
+from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import (
-    ApiError,
     ApiPaginationTruncated,
+    IntegrationError,
 )
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.utils import metrics
 from sentry.utils.cursored_scheduler import CursoredScheduler
 from sentry.utils.iterators import chunked
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -93,14 +99,46 @@ def _has_feature(flag: str, org: object) -> bool:
         return False
 
 
+def _halt_broken_integration(
+    lifecycle: IntegrationEventLifecycle,
+    exc: BaseException,
+    integration_id: int,
+    organization_id: int,
+    provider_key: str,
+    reason: HaltReason,
+) -> None:
+    """Record a known broken-integration failure without retrying or paging.
+
+    These are expected terminal states (expired OAuth token, suspended app
+    install, etc.) that the periodic sync can't recover from. We halt the
+    lifecycle so no Sentry issue is created, bump a counter that can be
+    dashboarded to watch the broken-integration population, and let the task
+    return cleanly (no retry).
+    """
+    lifecycle.record_halt(exc, create_issue=False)
+    metrics.incr(
+        "scm.repo_sync.get_repositories_failed",
+        tags={"provider": provider_key, "reason": reason},
+        sample_rate=1.0,
+    )
+    logger.info(
+        "sync_repos_for_org.broken_integration",
+        extra={
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "provider": provider_key,
+            "reason": reason,
+        },
+    )
+
+
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.sync_repos_for_org",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def sync_repos_for_org(organization_integration_id: int) -> None:
     """
     Sync repositories for a single OrganizationIntegration.
@@ -108,6 +146,23 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
     Fetches all repos from the SCM provider, diffs against Sentry's
     Repository table, then dispatches batched apply tasks.
     """
+    lock = locks.get(
+        f"repo-sync:{organization_integration_id}",
+        duration=300,
+        name="sync_repos_for_org",
+    )
+    try:
+        lock.acquire()
+    except UnableToAcquireLock:
+        return
+
+    try:
+        _sync_repos_for_org(organization_integration_id)
+    finally:
+        lock.release()
+
+
+def _sync_repos_for_org(organization_integration_id: int) -> None:
     ctx = _get_sync_context(organization_integration_id)
     if ctx is None:
         return
@@ -124,7 +179,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         integration_id=integration.id,
         organization_id=rpc_org.id,
         provider_key=provider_key,
-    ).capture():
+    ).capture() as lifecycle:
         installation = integration.get_installation(organization_id=rpc_org.id)
         assert isinstance(installation, RepositoryIntegration)
 
@@ -152,15 +207,21 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 tags={"provider": provider_key},
                 sample_rate=1.0,
             )
-        except ApiError as e:
-            if installation.is_rate_limited_error(e):
-                logger.info(
-                    "sync_repos_for_org.rate_limited",
-                    extra={
-                        "integration_id": integration.id,
-                        "organization_id": rpc_org.id,
-                    },
+        except IntegrationError as e:
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
                 )
+                return
+            raise
+        except Exception as e:
+            halt_reason = installation.is_broken_integration_error(e)
+            if halt_reason:
+                _halt_broken_integration(
+                    lifecycle, e, integration.id, rpc_org.id, provider_key, halt_reason
+                )
+                return
             raise
 
         provider_external_ids = {repo["external_id"] for repo in provider_repos}
@@ -357,11 +418,10 @@ def _get_sync_context(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.create_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def create_repos_batch(
     organization_integration_id: int,
     repo_configs: list[dict[str, object]],
@@ -398,11 +458,10 @@ def create_repos_batch(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.disable_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def disable_repos_batch(
     organization_integration_id: int,
     external_ids: list[str],
@@ -445,11 +504,10 @@ def disable_repos_batch(
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.restore_repos_batch",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3, delay=120),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry()
 def restore_repos_batch(
     organization_integration_id: int,
     external_ids: list[str],

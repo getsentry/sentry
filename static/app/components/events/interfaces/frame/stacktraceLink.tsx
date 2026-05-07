@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -44,6 +44,8 @@ interface StacktraceLinkProps {
 }
 
 export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLinkProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = useMemo(
@@ -262,7 +264,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
         <CopyFrameLink event={event} frame={frame} />
         <Button
           size={DEFAULT_BUTTON_SIZE}
-          priority="transparent"
+          variant="transparent"
           icon={
             sourceCodeProviders.length === 1
               ? getIntegrationIcon(
@@ -410,7 +412,7 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
     <Tooltip title={t('Copy file path')} skipWrapper>
       <Button
         size={DEFAULT_BUTTON_SIZE}
-        priority="transparent"
+        variant="transparent"
         aria-label={t('Copy file path')}
         icon={<IconCopy />}
         onClick={handleClick}
@@ -450,6 +452,6 @@ function StacktraceLinkWrapper({
 
 function ProviderLink(props: LinkButtonProps) {
   return (
-    <LinkButton size={DEFAULT_BUTTON_SIZE} priority="transparent" external {...props} />
+    <LinkButton size={DEFAULT_BUTTON_SIZE} variant="transparent" external {...props} />
   );
 }

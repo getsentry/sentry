@@ -20,7 +20,7 @@ const getRow = (row: any) => [
       <UserAvatar user={row} size={18} />
       <LinkButton
         external
-        priority="link"
+        variant="link"
         href={`mailto:${row.email}`}
         icon={<IconMail size="xs" />}
         tooltipProps={{title: 'Send email'}}

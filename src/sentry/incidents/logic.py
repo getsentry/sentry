@@ -2067,14 +2067,10 @@ def schedule_update_project_config(
     """
     enabled_features = on_demand_metrics_feature_flags(_unpack_organization(alert_rule))
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-    prefilling_for_deprecation = (
-        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
-    )
     if (
         not projects
         or "organizations:on-demand-metrics-extraction" not in enabled_features
         and not prefilling
-        and not prefilling_for_deprecation
     ):
         return
 
@@ -2085,7 +2081,7 @@ def schedule_update_project_config(
         alert_snuba_query.query,
         None,
         prefilling,
-        prefilling_for_deprecation=prefilling_for_deprecation,
+        prefilling_for_deprecation=False,
     )
     if should_use_on_demand:
         for project in projects:

@@ -958,9 +958,38 @@ JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = [
     "UndeliverableException",
 ]
 
-KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES = [
-    "DiagnosticCoroutineContextException",
-]
+# (module, type) pairs for diagnostic wrapper exceptions added by Kotlin Coroutines
+# and Jetpack Compose runtime tooling. They have no useful stacktrace and a
+# placeholder message, so they should never determine the issue title — the real
+# error is always reachable via the mechanism parent_id chain.
+_DIAGNOSTIC_WRAPPER_EXCEPTIONS: tuple[tuple[str, str], ...] = (
+    ("kotlinx.coroutines.internal", "DiagnosticCoroutineContextException"),
+    ("androidx.compose.runtime.tooling", "DiagnosticComposeException"),
+)
+
+
+def _is_diagnostic_wrapper(exception: SingleException) -> bool:
+    return (exception.module, exception.type) in _DIAGNOSTIC_WRAPPER_EXCEPTIONS
+
+
+def _walk_to_non_wrapper_parent(
+    exception: SingleException, exceptions_by_id: dict[int, SingleException]
+) -> int | None:
+    # Bounded by the number of known exceptions to guard against malformed cycles.
+    current = exception
+    for _ in range(len(exceptions_by_id)):
+        if not (
+            current.mechanism
+            and current.mechanism.parent_id is not None
+            and current.mechanism.parent_id in exceptions_by_id
+        ):
+            return None
+        parent_id = current.mechanism.parent_id
+        parent = exceptions_by_id[parent_id]
+        if not _is_diagnostic_wrapper(parent):
+            return parent_id
+        current = parent
+    return None
 
 
 def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int | None:
@@ -991,32 +1020,27 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
     return None
 
 
-def kotlin_coroutine_framework_exceptions(exceptions: list[SingleException]) -> int | None:
+def kotlin_diagnostic_wrapper_exceptions(exceptions: list[SingleException]) -> int | None:
     """
-    DiagnosticCoroutineContextException is added by Kotlin Coroutines for debugging.
-    It has no stacktrace and no meaningful message, so it should not determine the title.
-    When found with a parent, return the parent exception as the main one.
+    DiagnosticCoroutineContextException (Kotlin Coroutines) and DiagnosticComposeException
+    (Jetpack Compose) are debugging wrappers with no useful stacktrace or message. When
+    present in the chain, walk past any chained wrappers and return the first non-wrapper
+    ancestor as the main exception.
     """
-    if len(exceptions) < 2:
+    if len(exceptions) < 2 or not any(_is_diagnostic_wrapper(exc) for exc in exceptions):
         return None
 
-    # Build a set of valid exception IDs for validation
-    valid_exception_ids = {
-        exc.mechanism.exception_id
+    exceptions_by_id = {
+        exc.mechanism.exception_id: exc
         for exc in exceptions
         if exc.mechanism and exc.mechanism.exception_id is not None
     }
 
     for exception in exceptions:
-        if (
-            exception.module == "kotlinx.coroutines.internal"
-            and exception.type in KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES
-            and exception.mechanism
-            and exception.mechanism.parent_id is not None
-            and exception.mechanism.parent_id in valid_exception_ids
-        ):
-            # Return the parent as the main exception
-            return exception.mechanism.parent_id
+        if _is_diagnostic_wrapper(exception):
+            resolved = _walk_to_non_wrapper_parent(exception, exceptions_by_id)
+            if resolved is not None:
+                return resolved
 
     return None
 
@@ -1024,7 +1048,7 @@ def kotlin_coroutine_framework_exceptions(exceptions: list[SingleException]) -> 
 MAIN_EXCEPTION_ID_FUNCS = [
     react_error_with_cause,
     java_rxjava_framework_exceptions,
-    kotlin_coroutine_framework_exceptions,
+    kotlin_diagnostic_wrapper_exceptions,
 ]
 
 

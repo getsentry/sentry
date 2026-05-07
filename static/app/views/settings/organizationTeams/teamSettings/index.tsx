@@ -183,7 +183,7 @@ export default function TeamSettings() {
             >
               <Button
                 icon={<IconDelete />}
-                priority="danger"
+                variant="danger"
                 data-test-id="button-remove-team"
               >
                 {t('Remove Team')}

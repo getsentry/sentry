@@ -151,13 +151,18 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"], expected_response)
 
-    def test_delete_replay_from_filestore(self) -> None:
-        """Test deleting files uploaded through the filestore interface."""
-        # test deleting as a member, as they should be able to
+    def test_delete_forbidden_for_project_read_only_member(self) -> None:
+        """Members with only project:read cannot delete replays."""
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
         self.login_as(user=user)
 
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.delete(self.url)
+            assert response.status_code == 403
+
+    def test_delete_replay_from_filestore(self) -> None:
+        """Test deleting files uploaded through the filestore interface."""
         file = File.objects.create(name="recording-segment-0", type="application/octet-stream")
         file.putfile(BytesIO(b"replay-recording-segment"))
 

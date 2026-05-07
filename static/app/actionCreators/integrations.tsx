@@ -66,7 +66,7 @@ function applyRepositoryAddComplete(promise: Promise<Repository>) {
       });
       addSuccessMessage(message);
     },
-    errorData => {
+    (errorData: any) => {
       const text = errorData.responseJSON.errors
         ? errorData.responseJSON.errors.__all__
         : t('Unable to add repository.');

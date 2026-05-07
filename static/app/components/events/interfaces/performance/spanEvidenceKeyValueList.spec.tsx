@@ -1,4 +1,5 @@
 import {EntryRequestFixture} from 'sentry-fixture/eventEntry';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   MockSpan,
@@ -608,11 +609,21 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+
       render(
         <SpanEvidenceKeyValueList
           event={builder.getEventFixture()}
           projectSlug={projectSlug}
-        />
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['visibility-explore-view'],
+          }),
+        }
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -635,6 +646,8 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.slow-db-query')
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
       expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+
+      expect(screen.getByRole('link', {name: 'More Samples'})).toBeInTheDocument();
     });
   });
 

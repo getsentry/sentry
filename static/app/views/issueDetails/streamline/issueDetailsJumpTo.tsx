@@ -121,7 +121,7 @@ function JumpToLink({config}: {config: SectionConfig}) {
             ?.scrollIntoView({block: 'start', behavior: 'smooth'});
         });
       }}
-      priority="transparent"
+      variant="transparent"
       size="xs"
       css={css`
         color: ${theme.tokens.content.secondary};

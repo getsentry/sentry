@@ -31,7 +31,6 @@ interface QuestionActions {
 
 interface InputSectionProps {
   blocks: Block[];
-  canInterrupt: boolean;
   enabled: boolean;
   inputValue: string;
   onClear: () => void;
@@ -45,8 +44,8 @@ interface InputSectionProps {
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
-  waitingForInterrupt: boolean;
   fileApprovalActions?: FileApprovalActions;
+  interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   isMinimized?: boolean;
   isVisible?: boolean;
   questionActions?: QuestionActions;
@@ -57,8 +56,7 @@ export function InputSection({
   enabled,
   inputValue,
   isMinimized = false,
-  canInterrupt,
-  waitingForInterrupt,
+  interruptState = 'disabled',
   isVisible = false,
   onCreatePR,
   onInputChange,
@@ -81,7 +79,7 @@ export function InputSection({
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
     if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
-      return undefined;
+      return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,7 +107,7 @@ export function InputSection({
   // Handle keyboard shortcuts for questions
   useEffect(() => {
     if (!enabled || !questionActions || !isVisible || isMinimized) {
-      return undefined;
+      return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -195,7 +193,7 @@ export function InputSection({
               <Button size="md" onClick={onReject}>
                 {t('Reject')} <Kbd>esc</Kbd>
               </Button>
-              <Button size="md" priority="primary" onClick={onApprove}>
+              <Button size="md" variant="primary" onClick={onApprove}>
                 {t('Approve')} <Kbd>↵</Kbd>
               </Button>
             </Grid>
@@ -244,7 +242,7 @@ export function InputSection({
               )}
               <Button
                 size="md"
-                priority="primary"
+                variant="primary"
                 onClick={onNext}
                 disabled={!canSubmitQuestion}
               >
@@ -260,14 +258,18 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup>
+        <StyledInputGroup isWarning={interruptState === 'completed'}>
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={t('Ask seer a question, or press / for commands.')}
+            placeholder={
+              interruptState === 'completed'
+                ? t('Interrupted. What should Seer do instead?')
+                : t('Ask Seer a question, or press / for commands.')
+            }
             rows={1}
             maxRows={5}
             autosize
@@ -275,16 +277,17 @@ export function InputSection({
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>
-        {canInterrupt || waitingForInterrupt ? (
+        {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
           <Button
             icon={<IconPause />}
             onClick={onInterrupt}
             size="md"
-            priority="primary"
-            disabled={waitingForInterrupt}
+            variant="primary"
+            disabled={interruptState === 'requested'}
             aria-label={t('Interrupt button')}
             tooltipProps={{
-              title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
+              title:
+                interruptState === 'requested' ? t('Winding down...') : t('Interrupt'),
             }}
           />
         ) : (
@@ -292,7 +295,7 @@ export function InputSection({
             icon={<IconArrow direction="right" />}
             onClick={onSend}
             size="md"
-            priority="default"
+            variant="secondary"
             disabled={!inputValue.trim()}
             aria-label={t('Send message')}
           />
@@ -326,14 +329,14 @@ const InputRow = styled('div')`
   margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
-const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
+const StyledInputGroup = styled(InputGroup)<{isWarning?: boolean}>`
   flex: 1;
 
   textarea {
     resize: none;
 
     &::placeholder {
-      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
+      color: ${p => (p.isWarning ? p.theme.tokens.content.warning : undefined)};
     }
   }
 

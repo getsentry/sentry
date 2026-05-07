@@ -169,9 +169,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={multipleQueryWidget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -193,9 +193,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]!]}}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -216,9 +216,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={multipleQueryWidget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -250,9 +250,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -284,9 +284,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -320,9 +320,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -348,8 +348,8 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
         onDuplicate={mock}
         showContextMenu
         widgetLimitReached={false}
@@ -374,8 +374,8 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
         onDuplicate={mock}
         showContextMenu
         widgetLegendState={widgetLegendState}
@@ -400,9 +400,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
+        onDelete={() => {}}
         onEdit={mock}
-        onDuplicate={() => undefined}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -427,8 +427,8 @@ describe('Dashboards > WidgetCard', () => {
         selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -460,8 +460,8 @@ describe('Dashboards > WidgetCard', () => {
         selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -494,8 +494,8 @@ describe('Dashboards > WidgetCard', () => {
         selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -538,9 +538,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={tableWidget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -581,9 +581,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={widget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -618,9 +618,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={widget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         index="10"
@@ -687,9 +687,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -786,9 +786,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -821,9 +821,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -849,9 +849,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={transactionQueryWidget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         isPreview
@@ -890,9 +890,9 @@ describe('Dashboards > WidgetCard', () => {
           widget={spansWidget}
           selection={selection}
           isEditingDashboard={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
           showContextMenu
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
@@ -910,9 +910,9 @@ describe('Dashboards > WidgetCard', () => {
           widget={spansWidget}
           selection={selection}
           isEditingDashboard={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
           showContextMenu
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
@@ -951,9 +951,9 @@ describe('Dashboards > WidgetCard', () => {
           widget={spanWidget}
           selection={selection}
           isEditingDashboard={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
           showContextMenu
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}

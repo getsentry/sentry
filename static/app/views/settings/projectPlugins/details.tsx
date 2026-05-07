@@ -139,7 +139,7 @@ export default function ProjectPluginDetails() {
     const disable = (
       <StyledButton
         size="sm"
-        priority="danger"
+        variant="danger"
         onClick={() => togglePluginMutation.mutate({pluginId, shouldEnable: false})}
       >
         {t('Disable Plugin')}

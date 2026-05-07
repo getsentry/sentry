@@ -94,8 +94,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const navigate = useNavigate();
   const hasPageFrameFeature = useHasPageFrameFeature();
 
-  const [orgRole, setOrgRole] = useState<Member['orgRole']>(member.orgRole);
-  const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>(member.teamRoles);
+  const [orgRole, setOrgRole] = useState(member.orgRole);
+  const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
@@ -111,6 +111,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     },
     onSuccess: data => {
       addSuccessMessage(t('Saved'));
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<Member>(
         queryClient,
         getMemberQueryKey(organization.slug, member.id),
@@ -136,6 +138,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       onSuccess: data => {
         addSuccessMessage(t('Sent invite!'));
 
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<Member>(
           queryClient,
           getMemberQueryKey(organization.slug, member.id),
@@ -148,7 +152,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     }
   );
 
-  const {mutate: reset2fa, isPending: isResetting2fa} = useMutation<unknown>({
+  const {mutate: reset2fa, isPending: isResetting2fa} = useMutation({
     mutationFn: () => {
       const {user} = member;
       const promises =
@@ -244,7 +248,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
   const memberDeactivated = isMemberDisabledFromLimit(member);
   const canEdit = organization.access.includes('org:write') && !memberDeactivated;
-  const isPartnershipUser = member.flags['partnership:restricted'] === true;
+  const isPartnershipUser = member.flags['partnership:restricted'];
 
   const {email, expired, pending} = member;
   const canResend = !expired;
@@ -276,7 +280,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
             <Button
               data-test-id="resend-invite"
               size="xs"
-              priority="primary"
+              variant="primary"
               icon={<IconRefresh />}
               tooltipProps={{
                 title: t('Generate a new invite link and send a new email.'),
@@ -336,7 +340,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
                   )}
                   onConfirm={() => reset2fa()}
                 >
-                  <Button priority="danger" busy={isResetting2fa}>
+                  <Button variant="danger" busy={isResetting2fa}>
                     {t('Reset two-factor authentication')}
                   </Button>
                 </Confirm>
@@ -380,7 +384,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
       <Flex justify="end">
         <Button
-          priority="primary"
+          variant="primary"
           busy={isSaving}
           onClick={() => updatedMember()}
           disabled={!canEdit || !hasFormChanged()}

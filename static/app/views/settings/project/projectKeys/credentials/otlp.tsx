@@ -49,7 +49,7 @@ export function OtlpTab({
   }, [showOtlpLogs, showOtlpTraces, logsEndpoint, tracesEndpoint, publicKey]);
 
   if (!showOtlpLogs && !showOtlpTraces) {
-    return undefined;
+    return;
   }
 
   return (

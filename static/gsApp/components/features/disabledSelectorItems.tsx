@@ -38,7 +38,7 @@ function DisabledSelectorItems({
   const relativePeriods = relativePeriodsProp ?? DEFAULT_RELATIVE_PERIODS;
 
   const hasPremiumPeriods = PREMIUM_PERIODS.some(period =>
-    relativePeriods.hasOwnProperty(period)
+    Object.hasOwn(relativePeriods, period)
   );
   const shouldOmitPremiumPeriods = !hasFeature && hasPremiumPeriods;
   const omittedRelativePeriods = shouldOmitPremiumPeriods

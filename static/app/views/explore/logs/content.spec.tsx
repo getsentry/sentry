@@ -136,7 +136,6 @@ describe('LogsPage', () => {
     );
 
     await screen.findByTestId('logs-table');
-    await userEvent.click(screen.getByText('Expand'));
 
     expect(screen.getByTestId('global-footer')).toBe(
       document.querySelector('[data-hide-footer] ~ footer')
@@ -257,7 +256,7 @@ describe('LogsPage', () => {
             sampling: 'NORMAL',
             sort: '-count_message',
             statsPeriod: '24h',
-            topEvents: 5,
+            topEvents: 9,
             yAxis: ['count(message)'],
           }),
         })

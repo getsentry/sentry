@@ -150,7 +150,7 @@ export function OurlogsDrawer({
               <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
             </Flex>
             {exploreUrl && (
-              <LinkButton size="sm" href={exploreUrl} target="_blank">
+              <LinkButton size="sm" to={exploreUrl} openInNewTab>
                 {t('Open in explore')}
               </LinkButton>
             )}

@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+import sentry_sdk
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -22,6 +23,20 @@ from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors.detector import process_detectors
 
 logger = logging.getLogger(__name__)
+
+
+def _project_age_bucket(project: Any) -> str:
+    age_days = (timezone.now() - project.date_added).days
+    if age_days <= 7:
+        return "0-7d"
+    elif age_days <= 30:
+        return "8-30d"
+    elif age_days <= 90:
+        return "31-90d"
+    elif age_days <= 365:
+        return "91-365d"
+    return "365d+"
+
 
 # How often (seconds) to refresh date_updated when the detector is already triggered.
 # Must be much less than the staleness threshold used for resolution.
@@ -136,7 +151,21 @@ def _detect_for_config(
     if not any(e.get("type") in config.handler_cls.error_types for e in errors):
         return
 
-    metrics.incr(f"processing_errors.{config.slug}.event_with_errors")
+    matching_error_types = sorted(
+        config.handler_cls.error_types.intersection(filter(None, (e.get("type") for e in errors)))
+    )
+    sentry_sdk.metrics.count(
+        f"processing_errors.{config.slug}.event_with_errors",
+        1,
+        attributes={
+            "org_slug": event.project.organization.slug,
+            "project_id": str(event.project.id),
+            "project_slug": event.project.slug,
+            "platform": event.project.platform or "unknown",
+            "error_type": ",".join(matching_error_types),
+            "project_age_bucket": _project_age_bucket(event.project),
+        },
+    )
 
     project_id = event.project.id
 

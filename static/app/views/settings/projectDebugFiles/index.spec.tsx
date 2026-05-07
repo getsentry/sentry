@@ -123,7 +123,7 @@ describe('ProjectDebugFiles', () => {
     });
 
     render(<ProjectDebugFiles />, {
-      organization: {...organization, features: ['symbol-sources']},
+      organization,
       outletContext: {project},
       initialRouterConfig,
     });

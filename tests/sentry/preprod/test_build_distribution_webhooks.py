@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import patch
 
 from sentry.preprod.build_distribution_webhooks import (
@@ -109,6 +110,10 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["profileName"] is None
         assert payload["codesigningType"] is None
 
+        assert payload["installUrl"] is not None
+        assert payload["installUrlExpiresAt"] is not None
+        datetime.fromisoformat(payload["installUrlExpiresAt"])
+
         # No git context
         assert payload["gitInfo"] is None
 
@@ -172,6 +177,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["state"] == "COMPLETED"
         assert payload["isInstallable"] is False
         assert payload["installUrl"] is None
+        assert payload["installUrlExpiresAt"] is None
 
     # ------------------------------------------------------------------
     # Failed builds
@@ -192,6 +198,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["errorMessage"] == "Unsupported artifact type"
         assert payload["isInstallable"] is False
         assert payload["installUrl"] is None
+        assert payload["installUrlExpiresAt"] is None
 
         self._assert_no_transient_fields(payload)
 

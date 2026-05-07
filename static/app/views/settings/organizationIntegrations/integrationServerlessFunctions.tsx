@@ -77,7 +77,7 @@ export function IntegrationServerlessFunctions({
                   queryKey,
                   existingServerlessFunctions => {
                     if (!existingServerlessFunctions) {
-                      return undefined;
+                      return;
                     }
                     const newServerlessFunctions = [...existingServerlessFunctions];
                     const updatedFunction = {

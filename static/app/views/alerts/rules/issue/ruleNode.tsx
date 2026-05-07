@@ -270,7 +270,7 @@ function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
   const fieldConfig = formFields?.value;
 
   if (fieldConfig?.type !== 'choice') {
-    return undefined;
+    return;
   }
 
   return fieldConfig.choices?.find(
@@ -606,7 +606,8 @@ export function RuleNode({
           // Overwrite the choices because the user's pick is in this list.
           if (
             field.name in formData &&
-            fetchedFieldOptionsCache?.hasOwnProperty(field.name)
+            fetchedFieldOptionsCache &&
+            Object.hasOwn(fetchedFieldOptionsCache, field.name)
           ) {
             field.choices = fetchedFieldOptionsCache[field.name];
           }

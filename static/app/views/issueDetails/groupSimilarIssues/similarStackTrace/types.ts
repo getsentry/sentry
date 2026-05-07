@@ -50,9 +50,7 @@ export function processSimilarItem(
     const scores = allScores.filter(([, score]) => score !== null);
 
     const avg = scores.reduce((sum, [, score]) => sum + Number(score), 0) / scores.length;
-    acc[interfaceName] = hasSimilarityEmbeddingsFeature
-      ? (scores[0]![1] as number | string)
-      : avg;
+    acc[interfaceName] = hasSimilarityEmbeddingsFeature ? scores[0]![1]! : avg;
     return acc;
   }, {});
 

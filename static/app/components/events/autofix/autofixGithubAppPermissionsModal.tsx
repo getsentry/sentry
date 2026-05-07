@@ -41,7 +41,7 @@ export function AutofixGithubAppPermissionsModal({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Remind me later')}</Button>
-          <LinkButton href={settingsUrl} external priority="primary">
+          <LinkButton href={settingsUrl} external variant="primary">
             {t('Update Permissions')}
           </LinkButton>
         </Grid>

@@ -343,8 +343,7 @@ export const SpansConfig: DatasetConfig<
       data,
       widgetQuery,
       getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
-      getMetaField: (seriesMeta, aggregate) =>
-        seriesMeta?.fields?.[aggregate] as AggregationOutputType,
+      getMetaField: (seriesMeta, aggregate) => seriesMeta?.fields?.[aggregate]!,
     });
   },
 };
@@ -474,18 +473,11 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
 
   const filters = new MutableSearch('');
 
-  const isEap = organization.features.includes('performance-transaction-summary-eap');
   if (data[SpanFields.SPAN_OP]) {
-    filters.addFilterValue(
-      isEap ? SpanFields.SPAN_OP : SpanFields.TRANSACTION_OP,
-      data[SpanFields.SPAN_OP]
-    );
+    filters.addFilterValue(SpanFields.SPAN_OP, data[SpanFields.SPAN_OP]);
   }
   if (data[SpanFields.REQUEST_METHOD]) {
-    filters.addFilterValue(
-      isEap ? 'request.method' : 'http.method',
-      data[SpanFields.REQUEST_METHOD]
-    );
+    filters.addFilterValue('request.method', data[SpanFields.REQUEST_METHOD]);
   }
 
   const target = transactionSummaryRouteWithQuery({

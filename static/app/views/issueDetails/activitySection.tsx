@@ -69,7 +69,7 @@ export function ActivitySection(props: Props) {
                 showTime={false}
                 text={item.data.text}
                 noteId={item.id}
-                user={item.user as User}
+                user={item.user!}
                 dateCreated={item.dateCreated}
                 authorName={authorName}
                 onDelete={() => {

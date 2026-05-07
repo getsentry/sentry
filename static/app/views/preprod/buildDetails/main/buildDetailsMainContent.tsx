@@ -86,7 +86,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const handleContentChange = (value: 'treemap' | 'categories') => {
     setSelectedContentParam(value === 'treemap' ? undefined : value);
   };
-  const [searchQuery, setSearchQuery] = useQueryParamState<string>({
+  const [searchQuery, setSearchQuery] = useQueryParamState({
     fieldName: 'search',
   });
 
@@ -95,10 +95,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     parseAsBoolean.withDefault(true)
   );
 
-  const [selectedCategoriesParam, setSelectedCategoriesParam] =
-    useQueryParamState<string>({
-      fieldName: 'categories',
-    });
+  const [selectedCategoriesParam, setSelectedCategoriesParam] = useQueryParamState({
+    fieldName: 'categories',
+  });
 
   const selectedCategories = selectedCategoriesParam
     ? new Set(
@@ -196,7 +195,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           }
         >
           <Button
-            priority="primary"
+            variant="primary"
             onClick={onRerunAnalysis}
             disabled={isRerunning}
             icon={<IconRefresh />}
@@ -234,7 +233,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           }
         >
           <Button
-            priority="primary"
+            variant="primary"
             onClick={onRerunAnalysis}
             disabled={isRerunning}
             icon={<IconRefresh />}
@@ -290,7 +289,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       return t('Missing proguard mapping. Dex will not have a detailed breakdown.');
     }
 
-    return undefined;
+    return;
   };
 
   const handleAlertClick = () => {
@@ -407,7 +406,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                   <Button
                     onClick={() => setSearchQuery(undefined)}
                     aria-label="Clear search"
-                    priority="transparent"
+                    variant="transparent"
                     size="zero"
                   >
                     <IconClose size="sm" />

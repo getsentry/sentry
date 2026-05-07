@@ -222,7 +222,7 @@ export function DefaultTitle({
   }
 
   if (defined(frame.origAbsPath) && (frame.mapUrl || frame.map)) {
-    const text = (frame.mapUrl ?? frame.map) as string;
+    const text = (frame.mapUrl ?? frame.map)!;
     title.push(
       <StyledQuestionTooltip
         key="info-tooltip"

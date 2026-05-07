@@ -78,12 +78,12 @@ export enum TermOperator {
   NOT_EQUAL = '!=',
   // NOTE: These wildcard operators are internal implementation details and
   // should not be included in product docs. Users should use `*` instead.
-  CONTAINS = '\uf00dContains\uf00d',
-  DOES_NOT_CONTAIN = '\uf00dDoesNotContain\uf00d',
-  STARTS_WITH = '\uf00dStartsWith\uf00d',
-  DOES_NOT_START_WITH = '\uf00dDoesNotStartWith\uf00d',
-  ENDS_WITH = '\uf00dEndsWith\uf00d',
-  DOES_NOT_END_WITH = '\uf00dDoesNotEndWith\uf00d',
+  CONTAINS = '\uF00DContains\uF00D',
+  DOES_NOT_CONTAIN = '\uF00DDoesNotContain\uF00D',
+  STARTS_WITH = '\uF00DStartsWith\uF00D',
+  DOES_NOT_START_WITH = '\uF00DDoesNotStartWith\uF00D',
+  ENDS_WITH = '\uF00DEndsWith\uF00D',
+  DOES_NOT_END_WITH = '\uF00DDoesNotEndWith\uF00D',
 }
 
 /**
@@ -127,9 +127,9 @@ export enum FilterType {
  * Unicode Character: `\uf00d`
  */
 export enum WildcardOperators {
-  CONTAINS = '\uf00dContains\uf00d',
-  STARTS_WITH = '\uf00dStartsWith\uf00d',
-  ENDS_WITH = '\uf00dEndsWith\uf00d',
+  CONTAINS = '\uF00DContains\uF00D',
+  STARTS_WITH = '\uF00DStartsWith\uF00D',
+  ENDS_WITH = '\uF00DEndsWith\uF00D',
 }
 
 const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;

@@ -158,7 +158,7 @@ export default function ProjectOwnership() {
         type="button"
         size={buttonSize}
         icon={<IconEdit />}
-        priority="primary"
+        variant="primary"
         onClick={() =>
           openEditOwnershipRules({
             organization,

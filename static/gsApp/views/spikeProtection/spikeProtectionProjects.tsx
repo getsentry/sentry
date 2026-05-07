@@ -5,11 +5,12 @@ import debounce from 'lodash/debounce';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -207,7 +208,7 @@ function SpikeProtectionProjects({subscription}: Props) {
       >
         <Button
           disabled={!hasOrgWrite}
-          priority={isEnabling ? 'primary' : 'default'}
+          variant={isEnabling ? 'primary' : 'secondary'}
           data-test-id={`sp-${action.toLowerCase()}-all`}
           tooltipProps={{
             title: hasOrgWrite
@@ -272,7 +273,9 @@ function SpikeProtectionProjects({subscription}: Props) {
         }
         isEmpty={!projects.length}
         headers={[
-          <StyledPanelTableHeader key={0}>{t('Projects')}</StyledPanelTableHeader>,
+          <Text variant="muted" key={0}>
+            {t('Projects')}
+          </Text>,
         ]}
         isLoading={isLoading || isFetchingProjects}
       >
@@ -284,18 +287,18 @@ function SpikeProtectionProjects({subscription}: Props) {
 
           return (
             <Fragment key={project.id}>
-              <AccordionRowContainer
+              <Flex
+                gap="xl"
+                padding="xl"
                 data-test-id={`${project.slug}-accordion-row${
                   isAccordionDisabled ? '-disabled' : ''
                 }`}
               >
-                <StyledPanelToggle
+                <SpikeProtectionProjectToggle
                   project={project}
                   disabled={!hasOrgWrite && !hasProjectWrite}
                   analyticsView="spike_protection_settings"
-                  onChange={(isEnabled: any) =>
-                    toggleSpikeProtectionOption(project, isEnabled)
-                  }
+                  onChange={isEnabled => toggleSpikeProtectionOption(project, isEnabled)}
                 />
                 <AccordionRow
                   disabled={isAccordionDisabled}
@@ -306,7 +309,7 @@ function SpikeProtectionProjects({subscription}: Props) {
                     fetchProjectNotificationActions(project, notificationActionsById)
                   }
                 />
-              </AccordionRowContainer>
+              </Flex>
             </Fragment>
           );
         })}
@@ -331,28 +334,9 @@ const StyledProjectBadge = styled(ProjectBadge)`
   font-weight: bold;
 `;
 
-const AccordionRowContainer = styled('div')`
-  display: flex;
-  width: 100%;
-  padding: ${p => p.theme.space.lg};
-  padding-left: 0;
-`;
-
 const StyledAccordionDetails = styled('div')`
   margin-right: ${p => p.theme.space['2xl']};
   margin-top: ${p => p.theme.space.xl};
   padding-bottom: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const StyledPanelTableHeader = styled('div')`
-  padding-left: ${p => p.theme.space.xl};
-`;
-
-const StyledPanelToggle = styled(SpikeProtectionProjectToggle)`
-  height: 100%;
-  border-bottom: none;
-  padding: 0;
-  padding-left: ${p => p.theme.space.md};
-  align-items: start;
 `;

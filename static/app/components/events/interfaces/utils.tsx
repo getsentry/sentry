@@ -107,7 +107,7 @@ export function getLastFrameIndex(frames: Frame[]) {
       if (frame.inApp) {
         return frameIndex;
       }
-      return undefined;
+      return;
     })
     .filter(frame => frame !== undefined);
 

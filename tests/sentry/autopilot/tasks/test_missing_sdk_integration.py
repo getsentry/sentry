@@ -359,7 +359,7 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
 class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.metrics.incr")
-    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerAgentClient")
     def test_returns_none_for_nonexistent_organization(
         self, mock_seer_client: mock.MagicMock, mock_metrics_incr: mock.MagicMock
     ) -> None:
@@ -379,7 +379,7 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.metrics.incr")
-    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerAgentClient")
     def test_returns_none_for_nonexistent_project(
         self, mock_seer_client: mock.MagicMock, mock_metrics_incr: mock.MagicMock
     ) -> None:
@@ -393,7 +393,7 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.metrics.incr")
-    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerAgentClient")
     def test_returns_none_without_seer_access(
         self, mock_seer_client: mock.MagicMock, mock_metrics_incr: mock.MagicMock
     ) -> None:
@@ -411,7 +411,7 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.metrics.incr")
     @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.create_instrumentation_issue")
-    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerAgentClient")
     def test_creates_issues_for_missing_integrations(
         self,
         mock_seer_client: mock.MagicMock,
@@ -514,7 +514,7 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.metrics.incr")
-    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerAgentClient")
     def test_handles_seer_explorer_error_gracefully(
         self, mock_seer_client: mock.MagicMock, mock_metrics_incr: mock.MagicMock
     ) -> None:
@@ -541,7 +541,7 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.metrics.incr")
     @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.create_instrumentation_issue")
-    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.SeerAgentClient")
     def test_does_not_create_issues_when_no_missing_integrations(
         self,
         mock_seer_client: mock.MagicMock,

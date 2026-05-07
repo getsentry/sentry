@@ -87,7 +87,7 @@ export function InsightSourcesFooter({
           >
             <SourceCard
               size="xs"
-              priority={shouldBePrimary ? 'primary' : 'default'}
+              variant={shouldBePrimary ? 'primary' : 'secondary'}
               onClick={sourceCard.onClick}
               icon={sourceCard.icon}
               isHighlighted={shouldBePrimary}
@@ -158,7 +158,7 @@ export function InsightSourcesFooter({
               <FooterSubmitButton
                 type="submit"
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 tooltipProps={{title: t('Give feedback and rethink the answer')}}
                 disabled={!newInsightText.trim()}
               >

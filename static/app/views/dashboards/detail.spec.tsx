@@ -597,7 +597,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
@@ -769,6 +768,8 @@ describe('Dashboards > Detail', () => {
       });
 
       await activateDashboardEditMode();
+      // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+      // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
       const widget = (await screen.findByText('First Widget')).closest(
         '.react-grid-item'
       ) as HTMLElement;
@@ -980,6 +981,33 @@ describe('Dashboards > Detail', () => {
           })
         );
       });
+    });
+
+    it('closes full screen modal when releases drawer is opened from that view', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture(widgets, {id: '1', title: 'Custom Errors'}),
+      });
+
+      const {router} = render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/widget/0/',
+          route: DASHBOARD_WIDGET_ROUTE,
+          query: {...initialData.router.location.query, rd: 'show', rdRelease: '1.0.0'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/dashboard/1/');
+      });
+
+      // The releases drawer query param is preserved; widget viewer query fields are stripped
+      expect(router.location.query).toEqual(
+        expect.objectContaining({rd: 'show', rdRelease: '1.0.0'})
+      );
+      expect(openWidgetViewerModal).not.toHaveBeenCalled();
     });
 
     it('can save dashboard filters in existing dashboard', async () => {
@@ -1861,7 +1889,6 @@ describe('Dashboards > Detail', () => {
           dashboard={DashboardFixture([], {
             prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
           })}
-          dashboards={[]}
           onDashboardUpdate={jest.fn()}
         />
       );
@@ -1907,7 +1934,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1926,7 +1952,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1945,7 +1970,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1964,7 +1988,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -1994,7 +2017,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2042,7 +2064,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2096,7 +2117,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {
@@ -2154,7 +2174,6 @@ describe('Dashboards > Detail', () => {
           <DashboardDetail
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
-            dashboards={[]}
             onDashboardUpdate={jest.fn()}
           />,
           {

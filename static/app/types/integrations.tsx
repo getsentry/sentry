@@ -105,6 +105,7 @@ export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = ['on_ready_for_
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
 export type IntegrationRepository = {
+  externalId: string;
   /**
    * ex - getsentry/sentry
    */
@@ -262,6 +263,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
+  allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;

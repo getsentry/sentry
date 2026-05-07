@@ -147,15 +147,13 @@ describe('SentryMemberTeamSelectorField', () => {
 
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));
     expect(
-      within(
-        (await screen.findByText('My Teams')).parentElement as HTMLElement
-      ).getByText('#my-team')
+      within((await screen.findByText('My Teams')).parentElement!).getByText('#my-team')
     ).toBeInTheDocument();
 
     expect(
-      within(
-        (await screen.findByText('Disabled Teams')).parentElement as HTMLElement
-      ).getByText('#disabled-team')
+      within((await screen.findByText('Disabled Teams')).parentElement!).getByText(
+        '#disabled-team'
+      )
     ).toBeInTheDocument();
   });
 });

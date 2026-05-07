@@ -19,7 +19,6 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.rules.history import fetch_rule_groups_paginated
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.workflow_engine.models.workflow import Workflow
@@ -78,7 +77,7 @@ class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         per_page = self.get_per_page(request)
         cursor = self.get_cursor_from_request(request)
         try:
