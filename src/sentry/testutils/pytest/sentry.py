@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import functools
 import os
 import random
 import shutil
@@ -106,31 +107,27 @@ def _configure_test_env_cells() -> None:
     monkey_patch_single_process_silo_mode_state()
 
 
-# When SELECTED_TESTS_FILE is set, pytest_ignore_collect prevents pytest from
-# importing files that aren't in the selected list. This runs *before* module
-# import, avoiding full-collection overhead on each shard.
-_COLLECT_ALLOWED_FILES: frozenset[str] | None = None
+@functools.lru_cache(maxsize=1)
+def _load_allowed_files(path: str) -> frozenset[str] | None:
+    p = Path(path)
+    if not p.exists():
+        return None
+    with p.open() as f:
+        files = frozenset(line.strip().split("::")[0] for line in f if line.strip())
+    return files or None  # None when empty → run all tests (safe default)
 
 
 def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
-    global _COLLECT_ALLOWED_FILES
+    # Skip importing test files not in SELECTED_TESTS_FILE (selective CI runs only).
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     if not selected_file:
         return None
 
-    if _COLLECT_ALLOWED_FILES is None:
-        sel_path = Path(selected_file)
-        if not sel_path.exists():
-            return None
-        with sel_path.open() as f:
-            _COLLECT_ALLOWED_FILES = frozenset(
-                line.strip().split("::")[0] for line in f if line.strip()
-            )
-
-    if collection_path.is_dir():
-        return None
-
-    if collection_path.suffix != ".py":
+    if (
+        collection_path.is_dir()
+        or collection_path.suffix != ".py"
+        or collection_path.name == "conftest.py"
+    ):
         return None
 
     try:
@@ -138,18 +135,12 @@ def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool 
     except ValueError:
         return None
 
-    if collection_path.name == "conftest.py":
-        return None
-
     if not rel.startswith("tests/"):
         return None
 
-    # firstresult hook: return True to ignore, None to defer to other hooks.
-    # Returning False would short-circuit pytest's built-in ignore hooks
-    # (norecursedirs, collect_ignore, --ignore).
-    if rel not in _COLLECT_ALLOWED_FILES:
-        return True
-    return None
+    allowed = _load_allowed_files(selected_file)
+    # firstresult hook: True=ignore, None=defer; False short-circuits other ignore hooks.
+    return True if allowed is not None and rel not in allowed else None
 
 
 def pytest_configure(config: pytest.Config) -> None:
