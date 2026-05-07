@@ -5,7 +5,7 @@ type ToolCallPendingApproval = {
   args: Record<string, unknown>;
   function: string;
   id: string;
-  status: 'pending_approval';
+  status: 'pending approval';
 };
 
 type ToolCallRunning = {
@@ -105,15 +105,17 @@ type ChatSessionStreaming = {
 
 type ChatSessionExecutingTool = {
   queue: ToolQueue;
-  status: 'executing_tool';
+  status: 'executing tool';
 };
 
 type ChatSessionPendingInput = {
-  status: 'pending_input';
+  status: 'pending input';
+  queue?: ToolQueue;
 };
 
 type ChatSessionInterrupted = {
   status: 'interrupted';
+  queue?: ToolQueue;
 };
 
 type ChatSessionEnded = {
