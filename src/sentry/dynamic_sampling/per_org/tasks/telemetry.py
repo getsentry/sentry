@@ -40,7 +40,9 @@ class TelemetryStatus(StrEnum):
     ROLLOUT_EXCLUDED = "rollout_excluded"
 
 
-class DynamicSamplingTaskStatus(Exception):
+class DynamicSamplingException(Exception):
+    """This exception allows a task to bubble up the status to the caller, for the task decorator to emit a metric with a status that derives from the status recorded in the exception."""
+
     def __init__(self, status: TelemetryStatus) -> None:
         super().__init__(status.value)
         self.status = status
@@ -108,7 +110,7 @@ def track_dynamic_sampling(func: F) -> F:
                     result = TelemetryStatus.ROLLOUT_DISABLED
                 else:
                     result = func(*args, **kwargs)
-            except DynamicSamplingTaskStatus as exc:
+            except DynamicSamplingException as exc:
                 result = exc.status
             except Exception as exc:
                 sentry_sdk.capture_exception(exc)

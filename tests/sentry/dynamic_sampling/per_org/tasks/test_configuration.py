@@ -15,7 +15,7 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
-    DynamicSamplingTaskStatus,
+    DynamicSamplingException,
     TelemetryStatus,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
@@ -91,7 +91,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
                 side_effect=ObjectDoesNotExist,
             ),
-            pytest.raises(DynamicSamplingTaskStatus) as exc_info,
+            pytest.raises(DynamicSamplingException) as exc_info,
         ):
             get_configuration(org.id)
 

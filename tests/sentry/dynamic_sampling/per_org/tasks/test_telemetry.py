@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
-    DynamicSamplingTaskStatus,
+    DynamicSamplingException,
     TelemetryStatus,
     track_dynamic_sampling,
 )
@@ -94,7 +94,7 @@ def test_emits_returned_terminal_status_without_completed_status() -> None:
 def test_emits_terminal_status_exception_without_failed_status() -> None:
     @track_dynamic_sampling
     def skipped() -> None:
-        raise DynamicSamplingTaskStatus(TelemetryStatus.NO_SUBSCRIPTION)
+        raise DynamicSamplingException(TelemetryStatus.NO_SUBSCRIPTION)
 
     timer, timer_tags = _capture_timer_tags()
     with (
