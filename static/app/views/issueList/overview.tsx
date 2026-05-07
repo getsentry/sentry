@@ -887,7 +887,9 @@ function IssueListOverviewInner({
 
   const hasPageFrame = useHasPageFrameFeature();
 
-  const isTaxonomyView = initialQuery.includes('issue.category:');
+  // Derive from query (URL state) not initialQuery (prop) so the hint
+  // stays accurate if the user edits the search bar.
+  const isTaxonomyView = query.includes('issue.category:');
 
   useLLMContext({
     contextHint:
