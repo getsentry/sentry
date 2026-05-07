@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.utils import timezone
 from rest_framework.exceptions import NotFound
 from taskbroker_client.retry import Retry
 
@@ -84,6 +85,7 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
             repository_project_path_config=code_mapping
         )
         organization = Organization.objects.get(id=code_mapping.organization_id)
+        codeowners.date_synced = timezone.now()
         codeowners.update_schema(
             organization=organization,
             raw=codeowner_contents["raw"],

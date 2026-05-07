@@ -75,6 +75,7 @@ class CodeOwnersTest(TestCase):
                 }
             ],
         }
+        assert code_owners.date_synced is None
 
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             # delete external team mapping
@@ -86,6 +87,7 @@ class CodeOwnersTest(TestCase):
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
 
         assert code_owners.schema == {"$version": 1, "rules": []}
+        assert code_owners.date_synced is None
 
     @freeze_time("2023-01-01 00:00:00")
     @patch(
@@ -134,6 +136,8 @@ class CodeOwnersTest(TestCase):
             ],
         }
         assert code_owners.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-01-01 00:00:00"
+        assert code_owners.date_synced is not None
+        assert code_owners.date_synced.strftime("%Y-%m-%d %H:%M:%S") == "2023-01-01 00:00:00"
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
