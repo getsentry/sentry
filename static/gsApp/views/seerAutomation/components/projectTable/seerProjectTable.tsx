@@ -415,7 +415,7 @@ export function SeerProjectTable() {
                                 busy={isLoadingModal}
                                 disabled={isLoadingModal}
                               >
-                                {t('Add %s', [matchingProject.slug])}
+                                {t('Add %s', matchingProject.slug)}
                               </Button>
                             </Flex>
                           ))}
