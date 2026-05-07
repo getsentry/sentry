@@ -71,8 +71,8 @@ import {
   LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
-  PinActionButton,
-  StyledChevronButton,
+  PinIcon,
+  StyledChevronIcon,
   TraceIconStyleWrapper,
 } from 'sentry/views/explore/logs/styles';
 import {
@@ -371,14 +371,13 @@ export const LogRowContent = memo(function LogRowContent({
             {isPseudoRow ? (
               <span className="log-table-row-pseudo-row-chevron-replacement" />
             ) : blockRowExpanding ? null : shouldRenderHoverElements ? (
-              <StyledChevronButton
-                icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+              <StyledChevronIcon
                 aria-label={t('Toggle trace details')}
                 aria-expanded={expanded}
-                size="zero"
-                variant="transparent"
                 onClick={() => toggleExpanded()}
-              />
+              >
+                <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
+              </StyledChevronIcon>
             ) : (
               <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
@@ -446,17 +445,16 @@ export const LogRowContent = memo(function LogRowContent({
           const hasExtraPadding = hasPinning && !embedded && !isPseudoRow && isLastField;
 
           const pinButton = showPinButton ? (
-            <PinActionButton
-              icon={<IconPin isSolid={isPinned} size="xs" />}
-              aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
-              size="zero"
-              variant={isPinned ? 'primary' : undefined}
+            <PinIcon
               isPinned={isPinned}
+              aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 onTogglePin?.(logId);
               }}
-            />
+            >
+              <IconPin isSolid={isPinned} size="xs" />
+            </PinIcon>
           ) : null;
 
           const cellContent = shouldRenderActions ? (
