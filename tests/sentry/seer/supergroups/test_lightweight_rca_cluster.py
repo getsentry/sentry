@@ -68,6 +68,7 @@ class TriggerLightweightRCAClusterTest(TestCase):
             data={"message": "no stacktrace here", "level": "error", "fingerprint": ["no-stack"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         trigger_lightweight_rca_cluster(event.group)
 
@@ -79,6 +80,7 @@ class TriggerLightweightRCAClusterTest(TestCase):
             data={**EVENT_DATA_WITH_STACKTRACE, "platform": "other", "fingerprint": ["other-plat"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         trigger_lightweight_rca_cluster(event.group)
 
