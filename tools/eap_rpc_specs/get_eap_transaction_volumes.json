@@ -1,0 +1,10 @@
+{
+  "referrer": "dynamic_sampling.per_org.get_eap_transaction_volumes",
+  "query_string_by_measure": {
+    "segments": "is_transaction:true",
+    "spans": ""
+  },
+  "selected_columns": ["project_id", "transaction", "count()", "count_sample()"],
+  "orderby": ["project_id", "transaction"],
+  "limit": 9998
+}
