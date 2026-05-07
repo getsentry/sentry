@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -32,6 +32,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -166,6 +167,20 @@ export function SeerProjectTable() {
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
 
+  // A default projects if you did a search for a valid project slug, but it's
+  // not configured yet.
+  const matchingProjects = useMemo(
+    () =>
+      searchTerm
+        ? allProjects.filter(project =>
+            project.slug.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        : [],
+    [allProjects, searchTerm]
+  );
+
+  const {handleAddProjectClick, isLoadingModal} = useAddProjectHandler();
+
   const queryKey = [
     'seer-projects',
     {query: {query: searchTerm, sort, agent: agentFilter}},
@@ -260,7 +275,16 @@ export function SeerProjectTable() {
                 )}
               </Text>
               <Flex>
-                <AddProjectButton />
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={handleAddProjectClick()}
+                  icon={<IconAdd />}
+                  busy={isLoadingModal}
+                  disabled={isLoadingModal}
+                >
+                  {t('Add Project')}
+                </Button>
               </Flex>
             </Stack>
           </Flex>
@@ -304,7 +328,16 @@ export function SeerProjectTable() {
             />
           </InputGroup>
 
-          <AddProjectButton />
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleAddProjectClick()}
+            icon={<IconAdd />}
+            busy={isLoadingModal}
+            disabled={isLoadingModal}
+          >
+            {t('Add Project')}
+          </Button>
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
@@ -328,20 +361,56 @@ export function SeerProjectTable() {
             </SimpleTable.Empty>
           ) : filteredProjects.length === 0 ? (
             <SimpleTable.Empty>
-              {searchTerm
-                ? agentFilter
-                  ? tct('No projects found matching [searchTerm] with [agentFilter]', {
-                      searchTerm: <code>{searchTerm}</code>,
-                      agentFilter: <code>{getFilteredCodingAgentName(agentFilter)}</code>,
-                    })
-                  : tct('No projects found matching [searchTerm]', {
-                      searchTerm: <code>{searchTerm}</code>,
-                    })
-                : agentFilter
-                  ? tct('No projects found with [agentFilter]', {
-                      agentFilter: <code>{getFilteredCodingAgentName(agentFilter)}</code>,
-                    })
-                  : t('No projects found')}
+              <Text bold>
+                {searchTerm ? (
+                  <Stack gap="3xl">
+                    <Flex gap="xs" align="center">
+                      {agentFilter
+                        ? tct(
+                            'No configured projects found matching [searchTerm] with [agentFilter]',
+                            {
+                              searchTerm: <code>{searchTerm}</code>,
+                              agentFilter: (
+                                <code>{getFilteredCodingAgentName(agentFilter)}</code>
+                              ),
+                            }
+                          )
+                        : tct('No configured projects found matching [searchTerm]', {
+                            searchTerm: <code>{searchTerm}</code>,
+                          })}
+                    </Flex>
+                    <Stack gap="md" align="center">
+                      {matchingProjects.length ? (
+                        <Fragment>
+                          <Text variant="muted" bold={false}>
+                            {t('Did you mean one of these?')}
+                          </Text>
+                          {matchingProjects.map(matchingProject => (
+                            <Flex key={matchingProject.slug}>
+                              <Button
+                                variant="primary"
+                                size="xs"
+                                onClick={handleAddProjectClick(matchingProject)}
+                                icon={<IconAdd />}
+                                busy={isLoadingModal}
+                                disabled={isLoadingModal}
+                              >
+                                {t('Add %s', [matchingProject.slug])}
+                              </Button>
+                            </Flex>
+                          ))}
+                        </Fragment>
+                      ) : null}
+                    </Stack>
+                  </Stack>
+                ) : agentFilter ? (
+                  tct('No projects found with [agentFilter]', {
+                    agentFilter: <code>{getFilteredCodingAgentName(agentFilter)}</code>,
+                  })
+                ) : (
+                  t('No projects found')
+                )}
+              </Text>
             </SimpleTable.Empty>
           ) : (
             filteredProjects.map(project => (
@@ -367,21 +436,26 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   overflow: visible;
 `;
 
-function AddProjectButton() {
+function useAddProjectHandler() {
   const [isLoadingModal, setIsLoadingModal] = useState(false);
 
-  return (
-    <Button
-      variant="primary"
-      size="md"
-      onClick={async () => {
+  return {
+    isLoadingModal,
+    handleAddProjectClick: (defaultProject?: Project) => {
+      return async () => {
         setIsLoadingModal(true);
         try {
           const {ProjectAddRepoModal} =
             await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
 
           openModal(
-            deps => <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />,
+            deps => (
+              <ProjectAddRepoModal
+                {...deps}
+                title={t('Add Project to Autofix')}
+                defaultProject={defaultProject}
+              />
+            ),
             {
               modalCss: css`
                 width: 700px;
@@ -391,12 +465,7 @@ function AddProjectButton() {
         } finally {
           setIsLoadingModal(false);
         }
-      }}
-      icon={<IconAdd />}
-      busy={isLoadingModal}
-      disabled={isLoadingModal}
-    >
-      {t('Add Project')}
-    </Button>
-  );
+      };
+    },
+  };
 }

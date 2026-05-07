@@ -104,7 +104,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
           <field.Layout.Row
             label={t('Handoff to Agent')}
             hintText={
-              <Text>
+              <Text variant="muted">
                 {tct(
                   'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step.',
                   {
