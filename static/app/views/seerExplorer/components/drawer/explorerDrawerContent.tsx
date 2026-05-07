@@ -96,8 +96,8 @@ export function ExplorerDrawerContent({
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
-    sendMessage(query);
-  }, [initialQuery, isEmptyState, sendMessage]);
+    sendMessage(query, blocks.length);
+  }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
 
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
@@ -232,10 +232,10 @@ export function ExplorerDrawerContent({
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.trim());
+    sendMessage(inputValue.trim(), blocks.length);
     setInputValue('');
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue, sendMessage]);
+  }, [canSendMessage, inputValue, sendMessage, blocks.length]);
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

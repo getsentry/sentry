@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
-const STALE_TIME_MS = 90_000;
+const STALE_TIME_MS = 20_000;
 
 /** Checks if session is in a terminal state where the agent is done processing. */
 const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
@@ -42,6 +42,8 @@ const isResponseTimedOut = (sessionData: SeerExplorerResponse['session'] | undef
  * @param runId - The run ID to poll.
  * @param shouldPollOverride - Always poll when this is true. Useful for passing in a state variable to always poll
  *  when some condition is true, e.g. a mutation is pending.
+ *
+ * Callers can expect isPolling and isTimedOut to be disjoint - can never both be true.
  */
 export const useSeerExplorerPolling = ({
   runId,
