@@ -151,7 +151,7 @@ class TestGetAutofixPrompt(TestCase):
             get_autofix_prompt(self.run_id, True, True)
 
 
-class TestGetAutomationCodingAgentPrompt(TestCase):
+class TestGetCodingAgentPrompt(TestCase):
     @patch("sentry.seer.autofix.utils.get_autofix_prompt")
     def test_get_coding_agent_prompt_success(self, mock_get_autofix_prompt):
         """Test get_coding_agent_prompt with successful autofix prompt."""
