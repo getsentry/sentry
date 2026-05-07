@@ -5,6 +5,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Stack} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -26,7 +27,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
@@ -141,7 +141,7 @@ function InvoiceDetails() {
             <LoadingIndicator />
           </PanelBody>
         ) : (
-          <Stack maxWidth="680px" border="primary" radius="lg">
+          <Stack maxWidth="720px" border="primary" radius="lg">
             <Stack padding="2xl" gap="xl">
               <Flex justify="between" align="end">
                 <Stack gap="sm" align="start">
@@ -229,14 +229,6 @@ type AttributeProps = {
 };
 
 function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
-  let paymentStatus = InvoiceStatus.CLOSED;
-
-  if (invoice.isPaid) {
-    paymentStatus = InvoiceStatus.PAID;
-  } else if (!invoice.isClosed) {
-    paymentStatus = InvoiceStatus.AWAITING_PAYMENT;
-  }
-
   const contactInfo = invoice?.displayAddress || billingDetails?.displayAddress;
   const companyName = billingDetails?.companyName;
   const billingEmail = billingDetails?.billingEmail;
@@ -245,40 +237,36 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
 
   return (
-    <AttributeGroup>
-      <Attributes>
-        <dt>{t('Account:')}</dt>
-        <dd>
-          {invoice.customer?.name && <div>{invoice.customer.name}</div>}
-          {billingEmail}
-        </dd>
-        {companyName || contactInfo ? (
-          <Fragment>
-            <dt>{t('Details:')}</dt>
-            <dd>
-              {!!companyName && <div>{companyName}</div>}
-              {!!contactInfo && <div>{contactInfo}</div>}
-            </dd>
-          </Fragment>
-        ) : null}
-        {!!taxNumber && (
-          <Fragment>
-            <dt>{taxNumberName}</dt>
-            <dd>{taxNumber}</dd>
-          </Fragment>
-        )}
-      </Attributes>
-      <Attributes>
-        <dt>{t('Invoice ID:')}</dt>
-        <dd>{invoice.id}</dd>
-        <dt>{t('Status:')}</dt>
-        <dd>{paymentStatus.toUpperCase()}</dd>
-        <dt>{t('Date:')}</dt>
-        <dd>
-          <DateTime date={invoice.dateCreated} dateOnly year />
-        </dd>
-      </Attributes>
-    </AttributeGroup>
+    <Grid columns="1fr 1fr" gap="3xl" padding="2xl" borderTop="primary">
+      {(companyName || contactInfo || taxNumber) && (
+        <Stack gap="lg">
+          <Text bold>{t('Billed to')}</Text>
+          <Stack gap="sm">
+            {!!companyName && <Text>{companyName}</Text>}
+            {!!contactInfo && (
+              <Text size="sm" variant="secondary">
+                {contactInfo}
+              </Text>
+            )}
+            {!!taxNumber && (
+              <Text size="sm" variant="secondary">
+                {taxNumberName}: {taxNumber}
+              </Text>
+            )}
+          </Stack>
+        </Stack>
+      )}
+
+      <Stack gap="lg">
+        <Text bold>{t('Account')}</Text>
+        <Stack gap="sm">
+          {invoice.customer?.name && <Text>{invoice.customer.name}</Text>}
+          <Text size="sm" variant="secondary">
+            {billingEmail}
+          </Text>
+        </Stack>
+      </Stack>
+    </Grid>
   );
 }
 
@@ -357,32 +345,6 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
 }
 
 export default InvoiceDetails;
-
-const AttributeGroup = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto;
-  }
-`;
-
-const Attributes = styled('dl')`
-  overflow: hidden;
-
-  dt {
-    font-weight: bold;
-    margin: 0 0 ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-  }
-  dd {
-    background: ${p => p.theme.tokens.background.secondary};
-    padding: ${p => p.theme.space.md};
-    margin-bottom: ${p => p.theme.space.xl};
-  }
-`;
 
 const InvoiceItems = styled('table')`
   width: 100%;
