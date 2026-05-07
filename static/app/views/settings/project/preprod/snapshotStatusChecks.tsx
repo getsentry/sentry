@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -7,13 +7,8 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  makeDetailedProjectQueryKey,
-  useDetailedProject,
-} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -38,50 +33,17 @@ type SnapshotStatusCheckField = {
 export function SnapshotStatusChecks() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const queryClient = useQueryClient();
-  const projectQueryKey = makeDetailedProjectQueryKey({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: project.slug},
     {enabled: false}
   );
+  const {mutateAsync: updateProject} = useUpdateProject(project);
   const currentProject = detailedProject ?? project;
   const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
     getSnapshotStatusChecks(currentProject);
 
   const projectMutationOptions = mutationOptions({
-    mutationFn: (data: Partial<Schema>) =>
-      fetchMutation<Project>({
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
-        }),
-        method: 'PUT',
-        data,
-      }),
-    onMutate: data => {
-      const previousProject = currentProject;
-      queryClient.setQueryData(projectQueryKey, prev => {
-        return prev ? {...prev, json: {...prev.json, ...data}} : prev;
-      });
-      return () => {
-        queryClient.setQueryData(projectQueryKey, prev => {
-          return prev ? {...prev, json: previousProject} : prev;
-        });
-      };
-    },
-    onSuccess: response => {
-      queryClient.setQueryData(projectQueryKey, prev => {
-        return prev ? {...prev, json: response} : prev;
-      });
-    },
-    onError: (_error, _variables, rollback) => {
-      rollback?.();
-    },
+    mutationFn: (data: Partial<Schema>) => updateProject(data),
   });
 
   const failureConditionFields = [
