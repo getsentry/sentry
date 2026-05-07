@@ -85,7 +85,7 @@ class OutpostWebhookEndpoint(Endpoint):
         installation = integrations[0].get_installation(organization_id)
         if not isinstance(installation, OutpostAgentIntegration):
             return None
-        return installation.webhook_secret
+        return installation.callback_secret
 
     def _validate_signature(self, request: Request, raw_body: bytes, organization_id: int) -> bool:
         signature = request.headers.get("X-Outpost-Signature-256")

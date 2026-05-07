@@ -41,7 +41,8 @@ FEATURES = [
 
 class OutpostIntegrationMetadata(BaseModel):
     base_url: str
-    webhook_secret: str
+    shared_secret: str
+    callback_secret: str
 
 
 metadata = IntegrationMetadata(
@@ -57,6 +58,7 @@ metadata = IntegrationMetadata(
 
 class OutpostConfigSerializer(CamelSnakeSerializer):
     base_url = URLField(required=True, max_length=512)
+    shared_secret = CharField(required=True, max_length=255)
 
 
 class OutpostConfigApiStep:
@@ -74,7 +76,10 @@ class OutpostConfigApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        pipeline.bind_state("config", {"base_url": validated_data["base_url"]})
+        pipeline.bind_state("config", {
+            "base_url": validated_data["base_url"],
+            "shared_secret": validated_data["shared_secret"],
+        })
         return PipelineStepResult.advance()
 
 
@@ -96,11 +101,13 @@ class OutpostAgentIntegrationProvider(CodingAgentIntegrationProvider):
             raise IntegrationConfigurationError("Missing configuration data")
 
         base_url = config["base_url"].rstrip("/")
-        webhook_secret = generate_token()
+        shared_secret = config["shared_secret"]
+        callback_secret = generate_token()
 
         int_metadata = OutpostIntegrationMetadata(
             base_url=base_url,
-            webhook_secret=webhook_secret,
+            shared_secret=shared_secret,
+            callback_secret=callback_secret,
         )
 
         return {
@@ -132,28 +139,46 @@ class OutpostAgentIntegration(CodingAgentIntegration):
                 "help": _("The base URL of your Outpost (OpenTower) instance."),
                 "required": True,
                 "placeholder": "https://outpost.example.com",
-            }
+            },
+            {
+                "name": "shared_secret",
+                "type": "secret",
+                "label": _("Shared Secret"),
+                "help": _("Must match the SEER_WEBHOOK_SECRET configured on your Outpost instance."),
+                "required": True,
+                "placeholder": "***********************",
+                "formatMessageValue": False,
+            },
         ]
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         base_url = data.get("base_url")
+        shared_secret = data.get("shared_secret")
         if not base_url:
             raise IntegrationConfigurationError("Base URL is required")
+        if not shared_secret:
+            raise IntegrationConfigurationError("Shared secret is required")
 
         int_metadata = OutpostIntegrationMetadata.parse_obj(self.model.metadata or {})
         int_metadata.base_url = base_url.rstrip("/")
+        int_metadata.shared_secret = shared_secret
         self._persist_metadata(int_metadata)
         super().update_organization_config({})
 
     def get_client(self):
         return OutpostAgentClient(
             base_url=self.base_url,
-            webhook_secret=self.webhook_secret,
+            shared_secret=self.shared_secret,
+            callback_secret=self.callback_secret,
         )
 
     @property
-    def webhook_secret(self) -> str:
-        return OutpostIntegrationMetadata.parse_obj(self.model.metadata).webhook_secret
+    def shared_secret(self) -> str:
+        return OutpostIntegrationMetadata.parse_obj(self.model.metadata).shared_secret
+
+    @property
+    def callback_secret(self) -> str:
+        return OutpostIntegrationMetadata.parse_obj(self.model.metadata).callback_secret
 
     @property
     def base_url(self) -> str:

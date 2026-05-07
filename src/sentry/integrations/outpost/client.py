@@ -17,13 +17,14 @@ logger = logging.getLogger(__name__)
 class OutpostAgentClient(CodingAgentClient):
     integration_name = "outpost"
 
-    def __init__(self, base_url: str, webhook_secret: str):
+    def __init__(self, base_url: str, shared_secret: str, callback_secret: str):
         super().__init__()
         self.base_url = base_url
-        self.webhook_secret = webhook_secret
+        self.shared_secret = shared_secret
+        self.callback_secret = callback_secret
 
     def _sign_body(self, body: bytes) -> str:
-        sig = hmac.new(self.webhook_secret.encode(), body, hashlib.sha256).hexdigest()
+        sig = hmac.new(self.shared_secret.encode(), body, hashlib.sha256).hexdigest()
         return f"sha256={sig}"
 
     def launch(self, *, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
@@ -39,7 +40,7 @@ class OutpostAgentClient(CodingAgentClient):
             "branch_name": request.branch_name,
             "auto_create_pr": request.auto_create_pr,
             "webhook_url": webhook_url,
-            "webhook_secret": self.webhook_secret,
+            "webhook_secret": self.callback_secret,
         }
         body = orjson.dumps(payload)
 
