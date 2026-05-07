@@ -76,12 +76,7 @@ def send_search_agent_start_request(
     viewer_context: SeerViewerContext | None = None,
 ) -> int:
     """
-    Start an async search-agent run and return its run_id.
-
-    When organizations:seer-run-mirror is enabled, the run is mirrored into
-    the SeerRun table and dispatched via the cell outbox; the receiver makes
-    the HTTPS call with run.uuid as external_idempotency_key and fills in
-    seer_run_state_id. Otherwise the request is sent synchronously.
+    Sends a request to Seer to start an async search agent and returns a run_id for polling.
     """
     body = SearchAgentStartRequest(
         org_id=organization.id,
