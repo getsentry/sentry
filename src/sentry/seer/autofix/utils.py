@@ -755,6 +755,7 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
                 )
 
         if stopping_point is not None:
+            # Set tuning and stopping point
             if stopping_point == "off":
                 _set_if_not_default(
                     "sentry:autofix_automation_tuning",
@@ -773,7 +774,7 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
                     default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
                 )
 
-        if stopping_point is not None:
+            # Set handoff auto_create_pr
             if stopping_point == AutofixStoppingPoint.OPEN_PR:
                 # Safe to set even if no external handoff is configured
                 # since we'll only read it if the other handoff options are all non-null.
