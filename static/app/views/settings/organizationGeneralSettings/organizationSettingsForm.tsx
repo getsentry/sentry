@@ -6,7 +6,6 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -498,9 +497,6 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                       <slugForm.ResetButton disabled={!hasWriteAccess}>
                         {t('Cancel')}
                       </slugForm.ResetButton>
-                      <Button onClick={() => slugForm.reset()} disabled={!hasWriteAccess}>
-                        {t('Cancel')}
-                      </Button>
                       <slugForm.SubmitButton disabled={!hasWriteAccess}>
                         {t('Save')}
                       </slugForm.SubmitButton>
