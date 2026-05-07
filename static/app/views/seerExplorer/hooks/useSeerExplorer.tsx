@@ -166,11 +166,18 @@ export const useSeerExplorer = () => {
       setHasSentInterrupt(false);
       const queryKey = makeSeerExplorerQueryKey(params.orgSlug, params.runId);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
           prev?.session
-            ? {...prev, session: {...prev.session, status: 'processing'}}
+            ? {
+                ...prev,
+                session: {
+                  ...prev.session,
+                  status: 'processing',
+                  updated_at: new Date().toISOString(),
+                },
+              }
             : prev
         );
       }
@@ -231,14 +238,21 @@ export const useSeerExplorer = () => {
     mutationFn: async params => {
       setHasSentInterrupt(false);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           prev =>
             prev?.session
-              ? {...prev, session: {...prev.session, status: 'processing'}}
+              ? {
+                  ...prev,
+                  session: {
+                    ...prev.session,
+                    status: 'processing',
+                    updated_at: new Date().toISOString(),
+                  },
+                }
               : prev
         );
       }
@@ -288,14 +302,21 @@ export const useSeerExplorer = () => {
     mutationFn: async params => {
       setHasSentInterrupt(false);
 
-      // Optimistic processing status to prevent isPolling flicker.
+      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
       if (params.runId !== null) {
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           prev =>
             prev?.session
-              ? {...prev, session: {...prev.session, status: 'processing'}}
+              ? {
+                  ...prev,
+                  session: {
+                    ...prev.session,
+                    status: 'processing',
+                    updated_at: new Date().toISOString(),
+                  },
+                }
               : prev
         );
       }
@@ -354,12 +375,10 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
-
   const {apiData, isPolling, isError, errorStatusCode, isTimedOut} =
     useSeerExplorerPolling({
       runId,
-      isMutatePending,
+      shouldPollOverride: isPendingSendMessage || isPendingUserInput || isPendingCreatePR,
     });
 
   /** Switches to a different run and fetches its latest state. */

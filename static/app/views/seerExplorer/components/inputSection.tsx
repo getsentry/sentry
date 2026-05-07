@@ -273,7 +273,7 @@ export function InputSection({
             onClick={onInputClick}
             placeholder={
               isTimedOut
-                ? t('Request timed out. Please try again.')
+                ? t('Response timed out. Please try again.')
                 : interruptState === 'completed'
                   ? t('Interrupted. What should Seer do instead?')
                   : t('Ask Seer a question, or press / for commands.')

@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,7 +23,7 @@ const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undef
   );
 
 /** Checks if session is not complete and hasn't been updated in SESSION_STALE_TIME_MS. */
-const isTimedOut = (sessionData: SeerExplorerResponse['session'] | undefined) => {
+const isResponseTimedOut = (sessionData: SeerExplorerResponse['session'] | undefined) => {
   const updatedAt = getDateFromTimestampAssumeUtc(sessionData?.updated_at);
   if (!updatedAt) {
     return false;
@@ -31,44 +33,30 @@ const isTimedOut = (sessionData: SeerExplorerResponse['session'] | undefined) =>
   );
 };
 
-/** Checks if we should poll for state updates. */
-const isPolling = (
-  runId: number | null,
-  sessionData: SeerExplorerResponse['session'] | undefined,
-  isMutatePending: boolean,
-  isError: boolean
-) => {
-  if (isError) {
-    return false;
-  }
-  if (isMutatePending) {
-    return true;
-  }
-  if (!runId) {
-    return false;
-  }
-  // Stop polling on timeout.
-  if (isTimedOut(sessionData)) {
-    return false;
-  }
-  return !isResponseComplete(sessionData);
-};
-
 /**
  * Single source of truth for Seer session polling. Runs the shared `useApiQuery`
  * (deduped across observers by key) and derives `isPolling`. Called by both
  * `useSeerExplorer` (with mutation state) and `SeerExplorerContextProvider`
  * (without) so the session state is observable globally.
+ *
+ * @param runId - The run ID to poll.
+ * @param shouldPollOverride - Always poll when this is true. Useful for passing in a state variable to always poll
+ *  when some condition is true, e.g. a mutation is pending.
  */
 export const useSeerExplorerPolling = ({
   runId,
-  isMutatePending = false,
+  shouldPollOverride = false,
 }: {
   runId: number | null;
-  isMutatePending?: boolean;
+  shouldPollOverride?: boolean;
 }) => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
+
+  // Derive isPolling and isTimedOut a state so they can trigger rerenders.
+  const [pollingState, setPollingState] = useState<
+    'polling' | 'timed-out' | 'not-polling'
+  >('not-polling');
 
   const {
     data: apiData,
@@ -79,17 +67,25 @@ export const useSeerExplorerPolling = ({
     retry: false,
     enabled: !!runId && !!orgSlug && isSeerExplorerEnabled(organization),
     refetchInterval: query => {
-      if (
-        isPolling(
-          runId,
-          query.state.data?.json?.session,
-          isMutatePending,
-          query.state.status === 'error'
-        )
-      ) {
+      if (shouldPollOverride) {
+        setPollingState('polling');
         return POLL_INTERVAL;
       }
-      return false;
+      if (query.state.status === 'error') {
+        setPollingState('not-polling');
+        return false;
+      }
+      // Stop polling on timeout.
+      if (isResponseTimedOut(query.state.data?.json?.session)) {
+        setPollingState('timed-out');
+        return false;
+      }
+      if (isResponseComplete(query.state.data?.json?.session)) {
+        setPollingState('not-polling');
+        return false;
+      }
+      setPollingState('polling');
+      return POLL_INTERVAL;
     },
   });
 
@@ -97,7 +93,7 @@ export const useSeerExplorerPolling = ({
     apiData,
     isError,
     errorStatusCode: error?.status ?? null,
-    isPolling: isPolling(runId, apiData?.session, isMutatePending, isError),
-    isTimedOut: isTimedOut(apiData?.session),
+    isPolling: shouldPollOverride || pollingState === 'polling',
+    isTimedOut: !shouldPollOverride && pollingState === 'timed-out',
   };
 };
