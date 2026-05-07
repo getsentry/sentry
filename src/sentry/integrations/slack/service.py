@@ -43,7 +43,6 @@ from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
@@ -254,33 +253,18 @@ class SlackService:
             parent_notifications: Generator[
                 NotificationActionNotificationMessage | IssueAlertNotificationMessage
             ]
-            will_fire_workflow_actions = should_fire_workflow_actions(
-                group.organization, group.type
-            )
+
             if group.issue_type.type_id == UptimeDomainCheckFailure.type_id:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
-                if will_fire_workflow_actions:
-                    parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
-                        group_ids=[group.id],
-                        open_period_start=open_period_start,
-                    )
-                else:
-                    parent_notifications = self._issue_alert_repository.get_all_parent_notification_messages_by_filters(
-                        group_ids=[group.id],
-                        project_ids=[activity.project.id],
-                        open_period_start=open_period_start,
-                    )
+                parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
+                    group_ids=[group.id],
+                    open_period_start=open_period_start,
+                )
             else:
-                if will_fire_workflow_actions:
-                    parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
-                        group_ids=[group.id],
-                    )
-                else:
-                    parent_notifications = self._issue_alert_repository.get_all_parent_notification_messages_by_filters(
-                        group_ids=[group.id],
-                        project_ids=[activity.project.id],
-                    )
+                parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
+                    group_ids=[group.id],
+                )
 
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
         parent_notification_count = 0
@@ -312,16 +296,11 @@ class SlackService:
                             "parent notification does not have a message identifier, skipping"
                         )
                         continue
-                    if isinstance(parent_notification, NotificationActionNotificationMessage):
-                        channel_id = (
-                            self._get_channel_id_from_parent_notification_notification_action(
-                                parent_notification
-                            )
-                        )
-                    else:
-                        channel_id = self._get_channel_id_from_parent_notification(
-                            parent_notification
-                        )
+
+                    channel_id = self._get_channel_id_from_parent_notification_notification_action(
+                        parent_notification
+                    )
+
                     self._send_notification_to_slack_channel(
                         channel_id=channel_id,
                         message_identifier=parent_notification.message_identifier,
