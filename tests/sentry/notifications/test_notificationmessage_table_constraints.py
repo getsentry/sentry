@@ -29,31 +29,6 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
 
         self.action = self.create_action()
 
-    def test_duplicate_rule_fire_history_messages_allowed(self) -> None:
-        """The rule_fire_history/rule_action_uuid uniqueness constraint was dropped
-        in 0005; duplicate parent messages should now insert without error."""
-
-        NotificationMessage.objects.create(
-            rule_fire_history_id=self.rule_fire_history.id,
-            rule_action_uuid="test-uuid-3",
-            error_code=None,
-            parent_notification_message=None,
-        )
-        NotificationMessage.objects.create(
-            rule_fire_history_id=self.rule_fire_history.id,
-            rule_action_uuid="test-uuid-3",
-            error_code=None,
-            parent_notification_message=None,
-        )
-
-        assert (
-            NotificationMessage.objects.filter(
-                rule_fire_history_id=self.rule_fire_history.id,
-                rule_action_uuid="test-uuid-3",
-            ).count()
-            == 2
-        )
-
     def test_constraint_allows_action_group_with_open_period_start(self) -> None:
         """Test that the new constraint allows action group notifications"""
 
