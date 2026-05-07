@@ -81,5 +81,6 @@ export const useSeerExplorerPolling = ({
     isError,
     errorStatusCode: error?.status ?? null,
     isPolling: isPolling(runId, apiData?.session, isMutatePending, isError),
+    isResponseComplete: isResponseComplete(apiData?.session),
   };
 };

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     BUCKET_COUNT,
@@ -176,6 +178,24 @@ class SchedulePerOrgCalculationsTest(TestCase):
             result = run_calculations_per_org_task(org.id)
 
         assert result == TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
+        get_volume.assert_not_called()
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_run_calculations_per_org_skips_org_without_subscription(self) -> None:
+        org = self.create_organization()
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                side_effect=ObjectDoesNotExist,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
+            ) as get_volume,
+        ):
+            result = run_calculations_per_org_task(org.id)
+
+        assert result == TelemetryStatus.NO_SUBSCRIPTION
         get_volume.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})

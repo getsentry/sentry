@@ -54,12 +54,11 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/explore/traces/trace/:traceSlug/',
   '/issues/',
   '/issues/:groupId/',
-]);
-/** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
   '/issues/:groupId/events/',
   '/issues/:groupId/events/:eventId/',
 ]);
+/** New experimental routes where the LLMContext tree provides structured page context. */
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
 
 function supportsStructuredContext(
   referrer: string,
@@ -357,10 +356,11 @@ export const useSeerExplorer = () => {
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {apiData, isPolling, isError, errorStatusCode} = useSeerExplorerPolling({
-    runId,
-    isMutatePending,
-  });
+  const {apiData, isPolling, isError, errorStatusCode, isResponseComplete} =
+    useSeerExplorerPolling({
+      runId,
+      isMutatePending,
+    });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(

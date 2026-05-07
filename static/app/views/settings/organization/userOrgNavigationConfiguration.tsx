@@ -280,6 +280,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('integration'),
             t('internal integration'),
             t('developer settings'),
+            t('webhooks'),
           ],
           description: t('Manage custom integrations'),
           id: 'developer-settings',

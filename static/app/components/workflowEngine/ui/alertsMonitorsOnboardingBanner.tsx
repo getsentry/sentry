@@ -60,7 +60,7 @@ export function OnboardingBanner() {
           >
             {t('Take a tour')}
           </Button>
-          <ExternalLink href="https://www.sentry.help/articles/48882501173915">
+          <ExternalLink href="https://www.sentry.help/en/articles/15007504-monitors-alerts-guide-and-faq">
             {t("Read what's changed")}
           </ExternalLink>
         </Flex>
