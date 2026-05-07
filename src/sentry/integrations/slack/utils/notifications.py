@@ -359,49 +359,6 @@ def _handle_workflow_engine_notification(
     )
 
 
-def _handle_legacy_notification(
-    organization: Organization,
-    alert_context: AlertContext,
-    notification_context: NotificationContext,
-    metric_issue_context: MetricIssueContext,
-    integration: RpcIntegration,
-    attachments: str,
-    text: str,
-    channel: str,
-) -> bool:
-    repository = get_default_metric_alert_repository()
-    parent_notification_message = _fetch_parent_notification_message_for_incident(
-        organization=organization,
-        alert_context=alert_context,
-        notification_context=notification_context,
-        metric_issue_context=metric_issue_context,
-        repository=repository,
-    )
-
-    new_notification_message_object = _build_new_metric_alert_notification_message_payload(
-        notification_context=notification_context,
-        metric_issue_context=metric_issue_context,
-        parent_notification_message=parent_notification_message,
-    )
-
-    reply_broadcast, thread_ts = _get_thread_config(
-        parent_notification_message, metric_issue_context.new_status
-    )
-
-    return _send_notification(
-        integration=integration,
-        metric_issue_context=metric_issue_context,
-        attachments=attachments,
-        text=text,
-        channel=channel,
-        thread_ts=thread_ts,
-        reply_broadcast=reply_broadcast,
-        notification_message_object=new_notification_message_object,
-        save_notification_method=_save_notification_message_metric_alert,
-        repository=repository,
-    )
-
-
 def send_incident_alert_notification(
     organization: Organization,
     alert_context: AlertContext,

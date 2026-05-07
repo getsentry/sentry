@@ -9,7 +9,6 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
-from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.messaging.metrics import (
@@ -295,74 +294,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 organization_id=organization.id,
                 integration_id=integration.id,
             )
-
-    def _send_issue_alert_notification(
-        self,
-        event: GroupEvent,
-        futures: Sequence[RuleFuture],
-        tags: set,
-        integration: RpcIntegration,
-        channel: str,
-        notification_uuid: str | None = None,
-    ) -> None:
-        """Send an issue alert notification to Slack."""
-        rules = [f.rule for f in futures]
-        rule = rules[0] if rules else None
-        rule_to_use = self.rule if self.rule else rule
-        rule_id = rule_to_use.id if rule_to_use else None
-        rule_action_uuid = self.data.get(ACTION_UUID_KEY, None)
-
-        if not rule_action_uuid:
-            # We are logging because this should never happen, all actions should have an uuid
-            # We can monitor for this, and create an alert if this ever appears
-            _default_logger.info(
-                "No action uuid",
-                extra={
-                    "rule_id": rule_id,
-                    "notification_uuid": notification_uuid,
-                },
-            )
-
-        new_notification_message_object = NewIssueAlertNotificationMessage(
-            rule_fire_history_id=self.rule_fire_history.id if self.rule_fire_history else None,
-            rule_action_uuid=rule_action_uuid,
-        )
-
-        open_period_start: datetime | None = None
-        if event.group.issue_type.type_id == UptimeDomainCheckFailure.type_id:
-            open_period_start = open_period_start_for_group(event.group)
-            new_notification_message_object.open_period_start = open_period_start
-
-        # Get thread timestamp using the provided method and args
-        with MessagingInteractionEvent(
-            MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
-        ).capture() as lifecycle:
-            thread_ts = SlackNotifyServiceAction._get_issue_alert_thread_ts(
-                lifecycle=lifecycle,
-                event=event,
-                new_notification_message_object=new_notification_message_object,
-                organization=self.project.organization,
-                rule_id=rule_id,
-                rule_action_uuid=rule_action_uuid,
-                open_period_start=open_period_start,
-            )
-
-        save_method = None
-        if rule_action_uuid and rule_id:
-            save_method = SlackNotifyServiceAction._save_issue_alert_notification_message
-
-        self._send_notification(
-            event=event,
-            futures=futures,
-            tags=tags,
-            integration=integration,
-            channel=channel,
-            notification_uuid=notification_uuid,
-            notification_message_object=new_notification_message_object,
-            save_notification_method=save_method,
-            thread_ts=thread_ts,
-        )
-        self.record_notification_sent(event, channel, rule, notification_uuid)
 
     def _send_notification_action_notification(
         self,
