@@ -730,6 +730,8 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
             project.update_option(key, value)
 
     with transaction.atomic(using=router.db_for_write(ProjectOption)):
+        list(Project.objects.select_for_update().filter(id=project.id))
+
         stopping_point: str | None = data.get("stoppingPoint")
 
         if "agent" in data:
