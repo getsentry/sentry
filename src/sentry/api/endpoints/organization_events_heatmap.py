@@ -221,6 +221,15 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             else:
                 min_z_value, max_z_value = None, None
 
+            y_axis_meta = AxisMeta(
+                name=yAxis,
+                start=bucket_ranges.min_value,
+                end=bucket_ranges.max_value,
+                bucketCount=y_buckets,
+                bucketSize=bucket_size,
+            )
+            if y_log_scale:
+                y_axis_meta["logarithmic"] = True
             return Response(
                 HeatmapResponse(
                     meta=HeatMapMeta(
@@ -232,14 +241,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                             bucketCount=x_buckets,
                             bucketSize=snuba_params.granularity_secs,
                         ),
-                        yAxis=AxisMeta(
-                            name=yAxis,
-                            start=bucket_ranges.min_value,
-                            end=bucket_ranges.max_value,
-                            bucketCount=y_buckets,
-                            logarithmic=True,
-                            bucketSize=bucket_size,
-                        ),
+                        yAxis=y_axis_meta,
                         zAxis=AxisMeta(
                             name=zAxis,
                             start=min_z_value,
