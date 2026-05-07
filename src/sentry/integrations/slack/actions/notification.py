@@ -458,8 +458,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture]:
-        from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -470,16 +468,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         # integration is captured in a closure, type assert the None case is handled.
         integration: RpcIntegration = i
-
-        def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            self._send_issue_alert_notification(
-                event=event,
-                futures=futures,
-                tags=tags,
-                integration=integration,
-                channel=channel,
-                notification_uuid=notification_uuid,
-            )
 
         def send_notification_noa(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             self._send_notification_action_notification(
@@ -501,10 +489,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             },
             skip_internal=False,
         )
-        if should_fire_workflow_actions(self.project.organization, event.group.type):
-            yield self.future(send_notification_noa, key=key)
-        else:
-            yield self.future(send_notification, key=key)
+        yield self.future(send_notification_noa, key=key)
 
     def render_label(self) -> str:
         tags = self.get_tags_list()

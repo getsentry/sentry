@@ -107,28 +107,12 @@ def fetch_environment_name(rule_env: int) -> str | None:
 def get_rule_environment_param_from_rule(
     rule_id: int, rule_environment_id: int | None, organization: Organization, type_id: int
 ) -> dict[str, str]:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
     params = {}
-    if should_fire_workflow_actions(organization, type_id):
-        if (
-            rule_environment_id is not None
-            and (environment_name := fetch_environment_name(rule_environment_id)) is not None
-        ):
-            params["environment"] = environment_name
-    else:
-        try:
-            rule = Rule.objects.get(id=rule_id)
-        except Rule.DoesNotExist:
-            rule_env = None
-        else:
-            rule_env = rule.environment_id
-
-        if (
-            rule_env is not None
-            and (environment_name := fetch_environment_name(rule_env)) is not None
-        ):
-            params["environment"] = environment_name
+    if (
+        rule_environment_id is not None
+        and (environment_name := fetch_environment_name(rule_environment_id)) is not None
+    ):
+        params["environment"] = environment_name
     return params
 
 
@@ -267,19 +251,10 @@ def build_attachment_replay_link(
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
     org_slug = group.organization.slug
     project_slug = project.slug
-    if should_fire_workflow_actions(group.organization, group.type):
-        rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-        rule_url = (
-            f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
-        )
-    else:
-        rule_url = (
-            f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule.id}/details/"
-        )
+    rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
+    rule_url = f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
 
     return absolute_uri(rule_url)
 

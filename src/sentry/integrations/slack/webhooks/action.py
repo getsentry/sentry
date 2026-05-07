@@ -133,17 +133,14 @@ def update_group(
 def get_rule(
     slack_request: SlackActionRequest, organization: Organization, group_type: int
 ) -> Rule | None:
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-
     """Get the rule that fired"""
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
     try:
         rule = Rule.objects.get(id=rule_id)
-        if should_fire_workflow_actions(organization, group_type):
-            # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
-            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
     except Rule.DoesNotExist:
         return None
     return rule
