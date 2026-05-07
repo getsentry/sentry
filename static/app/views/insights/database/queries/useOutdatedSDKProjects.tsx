@@ -44,7 +44,7 @@ export function useOutdatedSDKProjects({enabled, projectId}: Options) {
       return semverCompare(update.sdkVersion, minimumRequiredVersion) === -1;
     })
     .map(update => ProjectsStore.getById(update.projectId))
-    .filter(Boolean);
+    .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   return {
     ...response,
