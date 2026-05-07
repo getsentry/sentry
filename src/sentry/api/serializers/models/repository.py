@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 
@@ -54,7 +55,9 @@ class RepositorySerializer(Serializer):
             repo_ids = [repo.id for repo in item_list]
             settings_by_repo = {
                 setting.repository_id: setting
-                for setting in RepositorySettings.objects.filter(repository_id__in=repo_ids)
+                for setting in RepositorySettings.objects.filter(
+                    repository_id__in=repo_ids, repository__status=ObjectStatus.ACTIVE
+                )
             }
             for repo in item_list:
                 result[repo]["settings"] = settings_by_repo.get(repo.id)
