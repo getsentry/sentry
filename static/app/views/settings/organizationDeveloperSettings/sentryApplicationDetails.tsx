@@ -36,11 +36,16 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {ALLOWED_SCOPES} from 'sentry/constants';
+import {ALLOWED_SCOPES, SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Avatar} from 'sentry/types/core';
-import type {SentryApp, SentryAppAvatar, WebhookEvent} from 'sentry/types/integrations';
+import type {
+  PermissionResource,
+  SentryApp,
+  SentryAppAvatar,
+  WebhookEvent,
+} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -138,6 +143,43 @@ const sentryAppFormSchema = z
     }
   });
 
+function getResourceFromScope(scope: string): PermissionResource | undefined {
+  for (const permObj of SENTRY_APP_PERMISSIONS) {
+    const allScopes = Object.values(permObj.choices).flatMap(
+      choice => choice?.scopes ?? []
+    );
+    if (allScopes.includes(scope)) {
+      return permObj.resource;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Backend rejects oversized scope requests with messages like
+ * `"Requested permission of member:write exceeds…"`. Map each one onto its
+ * permission resource so the error can render under the matching dropdown,
+ * matching the legacy form's behavior.
+ */
+function mapScopeErrorsToPermissions(
+  scopeErrors: unknown
+): Partial<Record<PermissionResource, string>> {
+  if (!Array.isArray(scopeErrors)) {
+    return {};
+  }
+  const result: Partial<Record<PermissionResource, string>> = {};
+  for (const message of scopeErrors) {
+    if (typeof message !== 'string') continue;
+    const match = message.match(/Requested permission of (\w+:\w+)/);
+    if (!match) continue;
+    const resource = getResourceFromScope(match[1]!);
+    if (resource && !result[resource]) {
+      result[resource] = message;
+    }
+  }
+  return result;
+}
+
 type SaveSentryAppPayload = {
   allowedOrigins: string[];
   events: string[];
@@ -217,6 +259,9 @@ export default function SentryApplicationDetails() {
     }
   );
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
+  const [permissionErrors, setPermissionErrors] = useState<
+    Partial<Record<PermissionResource, string>>
+  >({});
 
   const addTokenMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
@@ -450,6 +495,7 @@ export default function SentryApplicationDetails() {
       onDynamic: sentryAppFormSchema,
     },
     onSubmit: ({value, formApi}) => {
+      setPermissionErrors({});
       const payload: SaveSentryAppPayload = {
         name: value.name,
         organization: value.organization,
@@ -467,13 +513,38 @@ export default function SentryApplicationDetails() {
       };
 
       return saveSentryAppMutation.mutateAsync(payload).catch(error => {
-        if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+        if (!(error instanceof RequestError)) {
+          addErrorMessage(t('Unknown Error'));
+          return;
+        }
+        const responseJSON = error.responseJSON ?? {};
+
+        // Render scope errors inline under the matching permission row.
+        const scopeErrors = mapScopeErrorsToPermissions(responseJSON.scopes);
+        setPermissionErrors(scopeErrors);
+
+        // Attach the rest to their form fields. setFieldErrors also writes
+        // the scopes/events values to those form fields, but no UI reads
+        // them — scopes render inline above and events surface via toast
+        // below.
+        const fieldErrorsApplied = setFieldErrors(formApi, error);
+
+        // Events errors have no inline UI yet, surface via toast.
+        if (
+          Array.isArray(responseJSON.events) &&
+          typeof responseJSON.events[0] === 'string'
+        ) {
+          addErrorMessage(responseJSON.events[0]);
+          return;
+        }
+
+        if (Object.keys(scopeErrors).length > 0 || fieldErrorsApplied) {
           return;
         }
 
         const detail =
-          error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
-            ? error.responseJSON.detail
+          typeof responseJSON.detail === 'string'
+            ? responseJSON.detail
             : t('Unknown Error');
         addErrorMessage(detail);
       });
@@ -702,6 +773,7 @@ export default function SentryApplicationDetails() {
             scopes={app ? [...app.scopes] : []}
             events={app ? normalize(app.events) : []}
             newApp={!app}
+            permissionErrors={permissionErrors}
             onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
             onEventsChange={events => form.setFieldValue('events', events)}
           />

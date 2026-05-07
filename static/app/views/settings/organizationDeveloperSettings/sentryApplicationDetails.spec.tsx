@@ -12,7 +12,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', () => {
@@ -558,18 +557,17 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('surfaces scope errors in the toast', async () => {
-      const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    it('renders scope errors inline beneath the matching permission row', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
-      await waitFor(() =>
-        expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(
+        await screen.findByText(
           "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change."
         )
-      );
+      ).toBeInTheDocument();
     });
 
     it('handles client secret rotation', async () => {

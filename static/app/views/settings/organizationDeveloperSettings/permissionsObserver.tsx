@@ -8,7 +8,11 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
-import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
+import type {
+  PermissionResource,
+  Permissions,
+  WebhookEvent,
+} from 'sentry/types/integrations';
 import {
   comparePermissionLevels,
   toResourcePermissions,
@@ -30,6 +34,7 @@ type Props = DefaultProps & {
   scopes: Scope[];
   onEventsChange?: (events: WebhookEvent[]) => void;
   onScopesChange?: (scopes: Scope[]) => void;
+  permissionErrors?: Partial<Record<PermissionResource, string>>;
 };
 
 type State = {
@@ -140,6 +145,7 @@ export class PermissionsObserver extends Component<Props, State> {
               permissions={permissions}
               onChange={this.onPermissionChange}
               appPublished={this.props.appPublished}
+              errors={this.props.permissionErrors}
             />
             {this.renderCallout()}
           </PanelBody>
