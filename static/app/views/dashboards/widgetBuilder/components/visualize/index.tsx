@@ -1136,7 +1136,7 @@ export function Visualize({
           {canAddFields && (
             <AddButtons>
               <AddButton
-                priority="link"
+                variant="link"
                 disabled={disableTransactionWidget}
                 aria-label={
                   isTimeSeriesWidget
@@ -1175,7 +1175,7 @@ export function Visualize({
               </AddButton>
               {datasetConfig.enableEquations && (
                 <AddButton
-                  priority="link"
+                  variant="link"
                   disabled={disableTransactionWidget}
                   aria-label={t('Add Equation')}
                   onClick={() => {
