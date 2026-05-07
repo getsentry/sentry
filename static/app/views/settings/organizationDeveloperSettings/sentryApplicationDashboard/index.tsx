@@ -106,8 +106,8 @@ function SentryApplicationDashboard() {
     return <LoadingError />;
   }
 
-  const renderInstallData = () => {
-    const {installStats, uninstallStats, totalUninstalls, totalInstalls} = stats!;
+  const renderInstallData = (statsData: Stats) => {
+    const {installStats, uninstallStats, totalUninstalls, totalInstalls} = statsData;
     return (
       <Fragment>
         <h5>{t('Installation & Interaction Data')}</h5>
@@ -175,12 +175,12 @@ function SentryApplicationDashboard() {
     );
   };
 
-  const renderIntegrationViews = () => {
+  const renderIntegrationViews = (interactionsData: Interactions) => {
     return (
       <Panel>
         <PanelHeader>{t('Integration Views')}</PanelHeader>
         <PanelBody>
-          <InteractionsChart data={{Views: interactions!.views}} />
+          <InteractionsChart data={{Views: interactionsData.views}} />
         </PanelBody>
 
         <PanelFooter>
@@ -199,8 +199,8 @@ function SentryApplicationDashboard() {
     );
   };
 
-  const renderComponentInteractions = () => {
-    const componentInteractions = interactions!.componentInteractions;
+  const renderComponentInteractions = (interactionsData: Interactions) => {
+    const componentInteractions = interactionsData.componentInteractions;
     const componentInteractionsDetails = {
       'stacktrace-link': t(
         'Each link click or context menu open counts as one interaction'
@@ -244,9 +244,9 @@ function SentryApplicationDashboard() {
     <div>
       <SentryDocumentTitle title={t('Integration Dashboard')} />
       <SettingsPageHeader title={`${t('Integration Dashboard')} - ${app.name}`} />
-      {showInstallData && renderInstallData()}
-      {showInstallData && renderIntegrationViews()}
-      {app.schema.elements && renderComponentInteractions()}
+      {showInstallData && stats && renderInstallData(stats)}
+      {showInstallData && interactions && renderIntegrationViews(interactions)}
+      {app.schema.elements && interactions && renderComponentInteractions(interactions)}
       <RequestLog app={app} />
     </div>
   );
