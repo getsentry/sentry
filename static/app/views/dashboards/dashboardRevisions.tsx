@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -32,6 +32,8 @@ interface DashboardRevisionsButtonProps {
 }
 
 export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonProps) {
+  const theme = useTheme();
+
   if (!dashboard.id || defined(dashboard.prebuiltId)) {
     return null;
   }
@@ -41,6 +43,16 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
       modalCss: css`
         max-width: 720px;
         width: 90vw;
+
+        [role='document'] > section {
+          margin-left: -${theme.space['2xl']};
+          margin-right: -${theme.space['2xl']};
+
+          @media (min-width: ${theme.breakpoints.md}) {
+            margin-left: -${theme.space['3xl']};
+            margin-right: -${theme.space['3xl']};
+          }
+        }
       `,
     });
   };
@@ -103,10 +115,15 @@ function DashboardRevisionsModal({
       <Header closeButton>
         <Heading as="h4">{t('Edit History')}</Heading>
       </Header>
-      <Body noPadding={showList}>
+      <Body>
         {isPending && <LoadingIndicator />}
         {isError && (
-          <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
+          <Flex
+            paddingLeft={{xs: '2xl', md: '3xl'}}
+            paddingRight={{xs: '2xl', md: '3xl'}}
+          >
+            <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
+          </Flex>
         )}
         {showList && (
           <Fragment>
