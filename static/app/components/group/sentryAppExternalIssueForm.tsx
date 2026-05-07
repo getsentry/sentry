@@ -13,7 +13,6 @@ import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import SentryAppExternalForm, {
-  type FieldFromSchema,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 import {SentryAppExternalFormNew} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
@@ -53,7 +52,12 @@ export function SentryAppExternalIssueForm({
     onSubmitSuccess(issue);
   };
 
-  const getFieldDefault = (field: FieldFromSchema) => {
+  const getFieldDefault = (field: {
+    type: 'select' | 'textarea' | 'text';
+    autosize?: boolean;
+    default?: 'issue.title' | 'issue.description';
+    maxRows?: number;
+  }) => {
     if (field.type === 'textarea') {
       field.maxRows = 10;
       field.autosize = true;
@@ -105,11 +109,7 @@ export function SentryAppExternalIssueForm({
         extraFields={{groupId: group.id}}
         extraRequestBody={{projectId: group.project.id}}
         onSubmitSuccess={handleSubmitSuccess}
-        getFieldDefault={
-          getFieldDefault as ComponentProps<
-            typeof SentryAppExternalFormNew
-          >['getFieldDefault']
-        }
+        getFieldDefault={getFieldDefault}
       />
     );
   }
