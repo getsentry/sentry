@@ -44,11 +44,11 @@ class NotificationMessage(Model):
     # Reference to another notification if we choose to modify the original message or reply to it (like start a thread)
     parent_notification_message = FlexibleForeignKey("self", null=True)
 
-    # Related information regarding Alert Rules (Metric Alerts)
+    # Related information regarding Alert Rules (Metric Alerts) # this has data
     incident = FlexibleForeignKey("sentry.Incident", null=True)
     trigger_action = FlexibleForeignKey("sentry.AlertRuleTriggerAction", null=True)
 
-    # Related information regarding Rules (Issue Alerts)
+    # Related information regarding Rules (Issue Alerts) # this is all empty in redash
     rule_fire_history = FlexibleForeignKey("sentry.RuleFireHistory", null=True)
     rule_action_uuid = CharField(null=True, db_index=True)
 
