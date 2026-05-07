@@ -8,7 +8,6 @@ from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.environment import Environment
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
@@ -104,9 +103,7 @@ def fetch_environment_name(rule_env: int) -> str | None:
         return env.name
 
 
-def get_rule_environment_param_from_rule(
-    rule_id: int, rule_environment_id: int | None, organization: Organization, type_id: int
-) -> dict[str, str]:
+def get_rule_environment_param_from_rule(rule_environment_id: int | None) -> dict[str, str]:
     params = {}
     if (
         rule_environment_id is not None
@@ -130,11 +127,7 @@ def get_title_link(
     other_params = {}
     # add in rule id if we have it
     if rule_id:
-        other_params.update(
-            get_rule_environment_param_from_rule(
-                rule_id, rule_environment_id, group.organization, group.type
-            )
-        )
+        other_params.update(get_rule_environment_param_from_rule(rule_environment_id))
         # hard code for issue alerts
         other_params["alert_rule_id"] = str(rule_id)
         other_params["alert_type"] = "issue"
