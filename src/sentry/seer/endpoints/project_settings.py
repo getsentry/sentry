@@ -31,13 +31,11 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
-from sentry.seer.autofix.constants import (
-    AutofixAutomationTuningSettings,
-    CodingAgent,
-)
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    AutomationCodingAgent,
     build_automation_handoff,
     get_valid_automated_run_stopping_points,
     update_seer_project_settings,
@@ -206,7 +204,7 @@ def _annotate_queryset(queryset):
             When(
                 Q(_handoff_target__isnull=True)
                 | Q(_handoff_target=Value(json.dumps(None), output_field=LegacyTextJSONField())),
-                then=Value(json.dumps(CodingAgent.SEER)),
+                then=Value(json.dumps(AutomationCodingAgent.SEER)),
             ),
             default="_handoff_target",
             output_field=LegacyTextJSONField(),
@@ -224,6 +222,8 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
         value = f.value.value
 
         if key == "id":
+            if op in (">", "<", ">=", "<="):
+                raise InvalidSearchQuery("id does not support range operators.")
             if op == "IN":
                 queryset = queryset.filter(id__in=[int(v) for v in value])
             elif op == "NOT IN":
@@ -240,6 +240,8 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
                 queryset = queryset.exclude(Q(name__icontains=value) | Q(slug__icontains=value))
 
         elif key == "reposCount":
+            if op in ("IN", "NOT IN"):
+                raise InvalidSearchQuery("reposCount does not support IN/NOT IN operators.")
             count = int(value)
             if op == "=":
                 queryset = queryset.filter(repos_count=count)
@@ -278,7 +280,7 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
 
 
 class ProjectSettingsUpdateSerializer(serializers.Serializer):
-    agent = serializers.ChoiceField(choices=[*CodingAgent], required=False)
+    agent = serializers.ChoiceField(choices=[*AutomationCodingAgent], required=False)
     integrationId = serializers.IntegerField(required=False)
     stoppingPoint = serializers.ChoiceField(choices=["off", *AutofixStoppingPoint], required=False)
     scannerAutomation = serializers.BooleanField(required=False)
