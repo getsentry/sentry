@@ -450,7 +450,7 @@ describe('ProjectSeer', () => {
 
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
     const orgWithCursorFeature = OrganizationFixture({
-      features: ['integrations-cursor'],
+      features: [],
     });
 
     const initialProject: Project = {
@@ -708,7 +708,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {
@@ -787,7 +787,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {
@@ -895,7 +895,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {
@@ -985,7 +985,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {
@@ -1108,7 +1108,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithBothFeatures = OrganizationFixture({
-        features: ['integrations-cursor', 'integrations-claude-code'],
+        features: ['integrations-claude-code'],
       });
 
       const initialProject: Project = {
@@ -1190,7 +1190,7 @@ describe('ProjectSeer', () => {
       MockApiClient.clearMockResponses();
 
       const orgWithCursorFeature = OrganizationFixture({
-        features: ['integrations-cursor'],
+        features: [],
       });
 
       const initialProject: Project = {

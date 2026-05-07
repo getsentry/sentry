@@ -169,11 +169,11 @@ describe('LogsExportModal', () => {
       expect.objectContaining({
         data: {
           format: 'csv',
-          query_type: 'trace_item_full_export',
+          limit: aboveSyncLimit,
+          query_type: 'Explore',
           query_info: {
             ...queryInfo,
             dataset: 'logs',
-            limit: aboveSyncLimit,
           },
         },
         method: 'POST',

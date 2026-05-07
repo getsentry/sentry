@@ -150,9 +150,7 @@ export default Storybook.story('ScmRepositoryTable', story => {
             },
           },
         }))}
-        onInstallationSync={() => {}}
-        onUninstall={() => {}}
-        onSettings={() => {}}
+        // no sync button
       />
     );
   });
@@ -161,7 +159,7 @@ export default Storybook.story('ScmRepositoryTable', story => {
     <ScmRepositoryTable
       provider={GITHUB_PROVIDER}
       installations={EMPTY_INSTALLATION}
-      onInstallationSync={() => {}}
+      // no sync button
     />
   ));
 
@@ -206,9 +204,7 @@ export default Storybook.story('ScmRepositoryTable', story => {
           },
           isSyncing: i === 0,
         }))}
-        onInstallationSync={() => {}}
-        onUninstall={() => {}}
-        onSettings={() => {}}
+        // no sync button
       />
     );
   });
@@ -216,8 +212,6 @@ export default Storybook.story('ScmRepositoryTable', story => {
   story('Loading and disabled', () => (
     <ScmRepositoryTable
       provider={GITHUB_PROVIDER}
-      onUninstall={() => {}}
-      onSettings={() => {}}
       installations={[
         {
           integration: makeIntegration('1', '@org-name-123'),

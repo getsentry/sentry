@@ -223,13 +223,10 @@ class OrganizationsControlListTest(OrganizationIndexTest):
             "allowSuperuserAccess",
             "avatar",
             "dateCreated",
-            "extraOptions",
-            "features",
             "hasAuthProvider",
             "isEarlyAdopter",
             "links",
             "require2FA",
-            "requireEmailVerification",
             "status",
         }
         assert control_response.data[0] == {

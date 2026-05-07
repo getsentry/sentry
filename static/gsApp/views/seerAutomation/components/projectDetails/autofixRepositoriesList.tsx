@@ -141,7 +141,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
         <Flex padding="2xl" align="center" justify="center" gap="xl">
           <img src={seerConfigBug1} alt="" width="130px" height="130px" />
           <Stack gap="lg">
-            <Heading as="h4">{t('Get the most out of Seer')}</Heading>
+            <Heading as="h4">{t('Connect a repository')}</Heading>
             <Flex maxWidth="250px">
               {t(
                 'Connect at least one repository so Seer can gather more insights from your code.'
