@@ -3,7 +3,8 @@ import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNu
 describe('formatNumberWithDynamicDecimals', () => {
   it('rounds to two decimal points without forcing them', () => {
     expect(formatNumberWithDynamicDecimalPoints(1)).toBe('1');
-    expect(formatNumberWithDynamicDecimalPoints(1)).toBe('1');
+    // eslint-disable-next-line unicorn/no-zero-fractions
+    expect(formatNumberWithDynamicDecimalPoints(1.0)).toBe('1');
     expect(formatNumberWithDynamicDecimalPoints(1.5)).toBe('1.5');
     expect(formatNumberWithDynamicDecimalPoints(1.05)).toBe('1.05');
     expect(formatNumberWithDynamicDecimalPoints(1.004)).toBe('1');
@@ -14,7 +15,8 @@ describe('formatNumberWithDynamicDecimals', () => {
 
   it('rounds up to the maximum fraction digits passed', () => {
     expect(formatNumberWithDynamicDecimalPoints(1, 2)).toBe('1');
-    expect(formatNumberWithDynamicDecimalPoints(1, 2)).toBe('1');
+    // eslint-disable-next-line unicorn/no-zero-fractions
+    expect(formatNumberWithDynamicDecimalPoints(1.0, 2)).toBe('1');
     expect(formatNumberWithDynamicDecimalPoints(1.2345, 1)).toBe('1.2');
     expect(formatNumberWithDynamicDecimalPoints(1.2345, 2)).toBe('1.23');
     expect(formatNumberWithDynamicDecimalPoints(1.2345, 3)).toBe('1.235');
@@ -37,7 +39,8 @@ describe('formatNumberWithDynamicDecimals', () => {
 
   it('handles negative numbers', () => {
     expect(formatNumberWithDynamicDecimalPoints(-1)).toBe('-1');
-    expect(formatNumberWithDynamicDecimalPoints(-1)).toBe('-1');
+    // eslint-disable-next-line unicorn/no-zero-fractions
+    expect(formatNumberWithDynamicDecimalPoints(-1.0)).toBe('-1');
     expect(formatNumberWithDynamicDecimalPoints(-1.5)).toBe('-1.5');
     expect(formatNumberWithDynamicDecimalPoints(-1.05)).toBe('-1.05');
     expect(formatNumberWithDynamicDecimalPoints(-1.004)).toBe('-1');
