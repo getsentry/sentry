@@ -36,6 +36,7 @@ from sentry.seer.autofix.constants import (
     CODING_AGENT_ALIAS_TO_HANDOFF_TARGET,
     AutofixAutomationTuningSettings,
     AutofixStatus,
+    CodingAgentAlias,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import (
@@ -712,7 +713,7 @@ def bulk_read_preferences_from_sentry_db(
 
 
 class SeerProjectSettingsUpdate(TypedDict, total=False):
-    agent: Literal["seer", "cursor", "claude"]
+    agent: CodingAgentAlias | Literal["seer"]
     integrationId: int
     stoppingPoint: AutofixStoppingPoint | Literal["off"]
     scannerAutomation: bool
@@ -754,8 +755,9 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
                 )
 
         if stopping_point is not None:
-            # Set tuning and stopping point.
             if stopping_point == "off":
+                # Turn off tuning and leave stopping point and handoff_auto_create_pr unchanged
+                # so that reenabling restores the prior state.
                 _set_if_not_default(
                     "sentry:autofix_automation_tuning",
                     AutofixAutomationTuningSettings.OFF,
@@ -773,13 +775,12 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
                     default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
                 )
 
-            # Set handoff auto_create_pr.
-            if stopping_point == AutofixStoppingPoint.OPEN_PR:
-                # Safe to set even if no external handoff is configured
-                # since we'll only read it if the other handoff options are all non-null.
-                project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-            else:
-                project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
+                if stopping_point == AutofixStoppingPoint.OPEN_PR:
+                    # Safe to set even if no external handoff is configured
+                    # since we'll only read it if the other handoff options are all non-null.
+                    project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+                else:
+                    project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
 
         if "scannerAutomation" in data:
             _set_if_not_default(

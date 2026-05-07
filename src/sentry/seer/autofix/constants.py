@@ -6,8 +6,14 @@ CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr
 # a target for 'workflow' autofix.
 AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
 
+
+class CodingAgentAlias(enum.StrEnum):
+    CURSOR = "cursor"
+    CLAUDE = "claude"
+
+
 # Map from user-facing coding agent aliases to their handoff target strs.
-CODING_AGENT_ALIAS_TO_HANDOFF_TARGET: dict[str, str] = {
+CODING_AGENT_ALIAS_TO_HANDOFF_TARGET: dict[str | CodingAgentAlias, str] = {
     "cursor": "cursor_background_agent",
     "claude": "claude_code_agent",
     "claude_code": "claude_code_agent",
