@@ -69,7 +69,7 @@ export function ExplorerDrawerContent({
     respondToUserInput,
     createPR,
     interruptRun,
-    waitingForInterrupt,
+    hasSentInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
     setOverrideCodeModeEnable,
@@ -406,7 +406,7 @@ export function ExplorerDrawerContent({
         enabled={!readOnly}
         inputValue={inputValue}
         canInterrupt={isPolling && hasSentMessage}
-        waitingForInterrupt={waitingForInterrupt}
+        waitingForInterrupt={isPolling && hasSentInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
         isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}
