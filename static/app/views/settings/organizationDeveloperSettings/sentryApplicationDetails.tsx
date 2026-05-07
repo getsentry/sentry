@@ -551,6 +551,18 @@ export default function SentryApplicationDetails() {
           return;
         }
 
+        // Scope errors that didn't map to a permission row also have no
+        // inline UI — surface the first one via toast so the user sees
+        // something instead of a silent failure.
+        if (
+          !hadScopeErrors &&
+          Array.isArray(responseJSON.scopes) &&
+          typeof responseJSON.scopes[0] === 'string'
+        ) {
+          addErrorMessage(responseJSON.scopes[0]);
+          return;
+        }
+
         if (hadScopeErrors || fieldErrorsApplied) {
           return;
         }
