@@ -1,6 +1,12 @@
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SentryAppDetails} from 'admin/views/sentryAppDetails';
 
@@ -56,14 +62,23 @@ describe('SentryAppDetails', () => {
     expect(await screen.findByText('Enable App')).toBeInTheDocument();
   });
 
-  it('renders Enabled detail label', async () => {
+  it('shows Enabled: yes for a non-disabled app', async () => {
     renderSentryAppDetails({isDisabled: false});
 
     expect(await screen.findByText('Enabled:')).toBeInTheDocument();
+    expect(screen.getByText('yes')).toBeInTheDocument();
   });
 
-  it('sends isDisabled in mutation when disable action is selected', async () => {
+  it('shows Enabled: no for a disabled app', async () => {
+    renderSentryAppDetails({isDisabled: true});
+
+    expect(await screen.findByText('Enabled:')).toBeInTheDocument();
+    expect(screen.getByText('no')).toBeInTheDocument();
+  });
+
+  it('sends PUT with isDisabled when disable action is confirmed', async () => {
     const sentryApp = renderSentryAppDetails({isDisabled: false});
+    renderGlobalModal();
 
     const putMock = MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/`,
@@ -81,5 +96,7 @@ describe('SentryAppDetails', () => {
         expect.objectContaining({data: {isDisabled: true}})
       );
     });
+
+    expect(await screen.findByText('disabled')).toBeInTheDocument();
   });
 });
