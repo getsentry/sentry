@@ -31,7 +31,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
       <Layout.Title>
         <TopBar.Slot name="title">
           {t('Snapshots')}
-          <Container display={{'2xs': 'none', xs: 'block'}}>
+          <Container display={{'2xs': 'none', xs: 'flex'}}>
             <PageHeadingQuestionTooltip
               docsUrl="https://docs.sentry.io/product/preprod/snapshots/"
               title={t('Catch visual regressions before they reach users.')}
