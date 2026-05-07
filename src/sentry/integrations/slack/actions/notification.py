@@ -327,6 +327,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 integration=integration,
                 channel=channel,
             )
+            self.record_notification_sent(event, channel, rule, notification_uuid)
+            return
 
         try:
             action = Action.objects.get(id=action_id)
