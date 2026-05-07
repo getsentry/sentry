@@ -508,16 +508,13 @@ export function GlobalCommandPaletteActions() {
               display={{label: t('My Monitors')}}
               to={`${prefix}/monitors/my-monitors/`}
             />
+            <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
             <CMDKAction
-              display={{label: t('Errors')}}
-              to={`${prefix}/monitors/errors/`}
-            />
-            <CMDKAction
-              display={{label: t('Metrics')}}
+              display={{label: t('Metric')}}
               to={`${prefix}/monitors/metrics/`}
             />
             <CMDKAction
-              display={{label: t('Crons')}}
+              display={{label: t('Cron')}}
               keywords={[t('jobs'), t('cron jobs')]}
               to={`${prefix}/monitors/crons/`}
             />
@@ -530,7 +527,7 @@ export function GlobalCommandPaletteActions() {
             )}
             {organization.features.includes('preprod-size-monitors-frontend') && (
               <CMDKAction
-                display={{label: t('Mobile Builds')}}
+                display={{label: t('Mobile Build')}}
                 to={`${prefix}/monitors/mobile-builds/`}
               />
             )}
