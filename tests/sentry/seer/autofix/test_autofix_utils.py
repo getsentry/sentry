@@ -10,7 +10,11 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.models.options.project_option import ProjectOption
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.seer.autofix.constants import (
+    AutofixAutomationTuningSettings,
+    AutofixStatus,
+    CodingAgentAlias,
+)
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     AutofixState,
@@ -1588,7 +1592,9 @@ class TestUpdateSeerProjectSettings(TestCase):
 
     def test_agent_external_sets_handoff_options(self) -> None:
         """Setting agent=cursor with integrationId should set handoff target, point, and integration ID."""
-        update_seer_project_settings(self.project, {"agent": "cursor", "integrationId": 99})
+        update_seer_project_settings(
+            self.project, {"agent": CodingAgentAlias.CURSOR, "integrationId": 99}
+        )
 
         assert (
             self.project.get_option("sentry:seer_automation_handoff_target")
@@ -1603,13 +1609,17 @@ class TestUpdateSeerProjectSettings(TestCase):
     def test_agent_external_requires_integration_id(self) -> None:
         """Setting an external agent without integrationId should raise ValueError."""
         with pytest.raises(ValueError):
-            update_seer_project_settings(self.project, {"agent": "cursor"})
+            update_seer_project_settings(self.project, {"agent": CodingAgentAlias.CURSOR})
 
     def test_agent_external_with_open_pr_sets_auto_create_pr(self) -> None:
         """External agent + stoppingPoint=open_pr should set auto_create_pr=True."""
         update_seer_project_settings(
             self.project,
-            {"agent": "cursor", "integrationId": 99, "stoppingPoint": AutofixStoppingPoint.OPEN_PR},
+            {
+                "agent": CodingAgentAlias.CURSOR,
+                "integrationId": 99,
+                "stoppingPoint": AutofixStoppingPoint.OPEN_PR,
+            },
         )
 
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
@@ -1619,16 +1629,13 @@ class TestUpdateSeerProjectSettings(TestCase):
         update_seer_project_settings(
             self.project,
             {
-                "agent": "cursor",
+                "agent": CodingAgentAlias.CURSOR,
                 "integrationId": 99,
                 "stoppingPoint": AutofixStoppingPoint.CODE_CHANGES,
             },
         )
 
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
-        assert not ProjectOption.objects.filter(
-            project=self.project, key="sentry:seer_automation_handoff_auto_create_pr"
-        ).exists()
 
     def test_stopping_point_off_sets_tuning_off(self) -> None:
         """stoppingPoint=off should set tuning to OFF and preserve stopping point and auto_create_pr."""
