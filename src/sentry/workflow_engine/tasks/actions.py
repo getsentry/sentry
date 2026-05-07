@@ -1,5 +1,3 @@
-from dataclasses import asdict
-
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
@@ -155,4 +153,4 @@ def trigger_action(
     # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
     # in this scope is grouped properly.
     with timeout_grouping_context(action.type):
-        action.trigger(event_data, notification_uuid=notification_uuid)
+        action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)
