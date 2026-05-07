@@ -3,8 +3,7 @@ import moment from 'moment-timezone';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
-
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
@@ -44,6 +43,8 @@ const getRow = (row: any) => [
 ];
 
 export function PromoCodes() {
+  const {openModal} = useModal();
+
   return (
     <div>
       <PageHeader title="Promo Codes">

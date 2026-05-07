@@ -2,8 +2,8 @@ import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {CreateBroadcastModal} from 'admin/components/createBroadcastModal';
@@ -36,6 +36,8 @@ const getRow = (row: any) => [
 ];
 
 export function Broadcasts() {
+  const {openModal} = useModal();
+
   const hasPermission = ConfigStore.get('user').permissions.has('broadcasts.admin');
   const fields = getBroadcastSchema();
 
