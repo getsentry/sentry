@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -63,8 +63,21 @@ export function EditAccessSelector({
   const {onSearch} = useTeams();
   const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
 
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [stagedOptions, setStagedOptions] = useState<string[]>([]);
+  const derivedOptions = useMemo(() => {
+    const teamIdsList: string[] = Object.values(teamsToRender).map(team => team.id);
+    return !defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone
+      ? ['_creator', '_allUsers', ...teamIdsList]
+      : [
+          '_creator',
+          ...(dashboard.permissions.teamsWithEditAccess?.map(teamId => String(teamId)) ??
+            []),
+        ];
+  }, [dashboard.permissions, teamsToRender]);
+
+  const [pendingOptions, setPendingOptions] = useState<string[] | null>(null);
+  const selectedOptions = pendingOptions ?? derivedOptions;
+  const setSelectedOptions = setPendingOptions;
+
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] = useState(false);
   const {teams: selectedTeam} = useTeamsById({
@@ -78,21 +91,6 @@ export function EditAccessSelector({
       option => option !== '_allUsers' && option !== '_creator'
     ),
   });
-
-  // Gets selected options for the dropdown from dashboard object
-  useEffect(() => {
-    const teamIdsList: string[] = Object.values(teamsToRender).map(team => team.id);
-    const selectedOptionsFromDashboard =
-      !defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone
-        ? ['_creator', '_allUsers', ...teamIdsList]
-        : [
-            '_creator',
-            ...(dashboard.permissions.teamsWithEditAccess?.map(teamId =>
-              String(teamId)
-            ) ?? []),
-          ];
-    setSelectedOptions(selectedOptionsFromDashboard);
-  }, [dashboard, teamsToRender, isMenuOpen]); // isMenuOpen dependency ensures perms are 'refreshed'
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = (newSelectedOptions: any) => {
@@ -253,13 +251,11 @@ export function EditAccessSelector({
       />
     );
 
-  // Sorting function for team options
+  // Sorting function for team options — uses derivedOptions (the saved state)
+  // so the sort order is stable while the user interacts with checkboxes
   const listSort = useCallback(
-    (team: Team) => [
-      !stagedOptions.includes(team.id), // selected teams are shown first
-      team.slug, // sort rest alphabetically
-    ],
-    [stagedOptions]
+    (team: Team) => [!derivedOptions.includes(team.id), team.slug],
+    [derivedOptions]
   );
 
   const allDropdownOptions = useMemo(
@@ -318,15 +314,17 @@ export function EditAccessSelector({
       onOpenChange={newOpenState => {
         if (newOpenState) {
           trackAnalytics('dashboards2.edit_access.start', {organization});
+        } else {
+          setPendingOptions(null);
         }
 
-        setStagedOptions(selectedOptions);
-        setMenuOpen(!isMenuOpen);
+        setMenuOpen(newOpenState);
       }}
       menuFooter={
         <Flex gap="md" justify="end">
           <MenuComponents.CancelButton
             onClick={() => {
+              setPendingOptions(null);
               setMenuOpen(false);
             }}
             disabled={!userCanEditDashboardPermissions}
@@ -353,7 +351,8 @@ export function EditAccessSelector({
 
                 onChangeEditAccess?.(newDashboardPermissions);
               }
-              setMenuOpen(!isMenuOpen);
+              setPendingOptions(null);
+              setMenuOpen(false);
             }}
             disabled={
               disabled ||
