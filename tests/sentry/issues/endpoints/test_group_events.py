@@ -7,7 +7,9 @@ from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.group import Group
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -614,7 +616,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         response = self.do_request(url)
         assert response.status_code == 504
 
-    def _store_platform_tag_collision_events(self) -> tuple:
+    def _store_platform_tag_collision_events(self) -> tuple[Group, list[Event]]:
         events = []
         for i, ts in enumerate(
             [before_now(seconds=10), before_now(seconds=8), before_now(seconds=6)]

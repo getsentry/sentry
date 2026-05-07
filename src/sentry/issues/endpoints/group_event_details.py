@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -101,6 +101,7 @@ def issue_search_query_to_conditions(
 
     # the transformed conditions is generic and isn't 'dataset aware', we need to map the generic columns
     # being queried to the appropriate dataset column
+    column_resolver: Callable[[str], str]
     if options.get("issues.search.use-tag-aware-condition-resolver"):
         column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
     else:

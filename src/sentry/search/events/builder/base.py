@@ -307,11 +307,12 @@ class BaseQueryBuilder:
         self.end = self.params.end
 
     def resolve_column_name(self, col: str) -> str:
-        if self.builder_config.column_resolver is not None:
-            column_resolver = self.builder_config.column_resolver
-        else:
-            # TODO: when utils/snuba.py becomes typed don't need this extra annotation
-            column_resolver: Callable[[str], str] = resolve_column(self.dataset)
+        # TODO: when utils/snuba.py becomes typed don't need this extra annotation
+        column_resolver: Callable[[str], str] = (
+            self.builder_config.column_resolver
+            if self.builder_config.column_resolver is not None
+            else resolve_column(self.dataset)
+        )
         column_name = column_resolver(col)
         # If the original column was passed in as tag[X], then there won't be a conflict
         # and there's no need to prefix the tag
