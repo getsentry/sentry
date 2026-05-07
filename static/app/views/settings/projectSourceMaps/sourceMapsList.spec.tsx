@@ -153,7 +153,7 @@ describe('ProjectSourceMaps', () => {
             query: {},
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
               initializeOrg().project.slug
-            }/source-maps/artifact-bundles/`,
+            }/source-maps/`,
           },
         },
       });

@@ -862,7 +862,7 @@ export function buildToolLinkUrl(
       }
 
       return {
-        pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+        pathname: `/organizations/${orgSlug}/explore/replays/${replay_id}/`,
       };
     }
     case 'get_profile_flamegraph': {
