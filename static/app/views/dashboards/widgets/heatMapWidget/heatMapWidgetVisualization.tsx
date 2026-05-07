@@ -1,3 +1,6 @@
+import 'echarts/lib/chart/heatmap';
+import 'echarts/lib/component/visualMap';
+
 import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
