@@ -1,3 +1,4 @@
+import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -8,6 +9,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
+const STALE_TIME_MS = 90_000;
 
 /** Checks if session is in a terminal state where the agent is done processing. */
 const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
@@ -17,6 +19,17 @@ const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undef
   Object.values(sessionData?.repo_pr_states ?? {}).every(
     state => state.pr_creation_status !== 'creating'
   );
+
+/** Checks if session is not complete and hasn't been updated in SESSION_STALE_TIME_MS. */
+const isTimedOut = (sessionData: SeerExplorerResponse['session'] | undefined) => {
+  const updatedAt = getDateFromTimestampAssumeUtc(sessionData?.updated_at);
+  if (!updatedAt) {
+    return false;
+  }
+  return (
+    !isResponseComplete(sessionData) && Date.now() - updatedAt.getTime() >= STALE_TIME_MS
+  );
+};
 
 /** Checks if we should poll for state updates. */
 const isPolling = (
@@ -32,6 +45,10 @@ const isPolling = (
     return true;
   }
   if (!runId) {
+    return false;
+  }
+  // Stop polling on timeout.
+  if (isTimedOut(sessionData)) {
     return false;
   }
   return !isResponseComplete(sessionData);
@@ -81,6 +98,6 @@ export const useSeerExplorerPolling = ({
     isError,
     errorStatusCode: error?.status ?? null,
     isPolling: isPolling(runId, apiData?.session, isMutatePending, isError),
-    isResponseComplete: isResponseComplete(apiData?.session),
+    isTimedOut: isTimedOut(apiData?.session),
   };
 };

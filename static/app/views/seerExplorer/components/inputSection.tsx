@@ -44,9 +44,11 @@ interface InputSectionProps {
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  canSendMessage?: boolean;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   isMinimized?: boolean;
+  isTimedOut?: boolean;
   isVisible?: boolean;
   questionActions?: QuestionActions;
 }
@@ -55,9 +57,11 @@ export function InputSection({
   blocks,
   enabled,
   inputValue,
-  isMinimized = false,
+  canSendMessage = true,
   interruptState = 'disabled',
-  isVisible = false,
+  isTimedOut = false,
+  isMinimized = false,
+  isVisible = true,
   onCreatePR,
   onInputChange,
   onInputClick,
@@ -258,7 +262,7 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup isWarning={interruptState === 'completed'}>
+        <StyledInputGroup isWarning={interruptState === 'completed' || isTimedOut}>
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
@@ -266,9 +270,11 @@ export function InputSection({
             onKeyDown={onKeyDown}
             onClick={onInputClick}
             placeholder={
-              interruptState === 'completed'
-                ? t('Interrupted. What should Seer do instead?')
-                : t('Ask Seer a question, or press / for commands.')
+              isTimedOut
+                ? t('Request timed out. Please try again.')
+                : interruptState === 'completed'
+                  ? t('Interrupted. What should Seer do instead?')
+                  : t('Ask Seer a question, or press / for commands.')
             }
             rows={1}
             maxRows={5}
@@ -296,7 +302,7 @@ export function InputSection({
             onClick={onSend}
             size="md"
             variant="secondary"
-            disabled={!inputValue.trim()}
+            disabled={!canSendMessage}
             aria-label={t('Send message')}
           />
         )}
