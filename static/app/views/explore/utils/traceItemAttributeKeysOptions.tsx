@@ -163,7 +163,7 @@ export function getTraceItemTagCollection(
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
       !/^[\w.:-]+$/.test(attribute.key) &&
-      !/^tags\[[\w.:-]+,(number|boolean)\]$/.test(attribute.key)
+      !/^tags\[[\w.:@-]+,(number|boolean)\]$/.test(attribute.key)
     ) {
       continue;
     }
