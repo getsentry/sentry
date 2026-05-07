@@ -18,7 +18,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   waitingForInterrupt: false,
   overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
-  hasSentMessage: false,
   sendMessage: jest.fn(),
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),

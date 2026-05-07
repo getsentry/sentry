@@ -612,7 +612,6 @@ export const useSeerExplorer = () => {
     isError,
     errorStatusCode,
     sendMessage,
-    hasSentMessage: !!lastSentMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */
     switchToRun,
