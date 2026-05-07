@@ -64,7 +64,12 @@ function SentryApplicationDashboard() {
   // never displayed — those requests can hang and would otherwise leave the
   // whole page stuck on a spinner.
   const showInstallData = app?.status === 'published';
-  const showInteractions = app?.status === 'published' || Boolean(app?.schema.elements);
+  // Fetch gate: union of the conditions used to render the two panels that
+  // consume the interactions response — Integration Views needs `views`
+  // (rendered when `showInstallData`), Component Interactions needs
+  // `componentInteractions` (rendered when `app.schema.elements`).
+  const shouldFetchInteractions =
+    app?.status === 'published' || Boolean(app?.schema.elements);
 
   const {
     data: interactions,
@@ -77,7 +82,7 @@ function SentryApplicationDashboard() {
       }),
       {query: timeRange},
     ],
-    {staleTime: 0, enabled: showInteractions}
+    {staleTime: 0, enabled: shouldFetchInteractions}
   );
 
   const {
@@ -97,7 +102,7 @@ function SentryApplicationDashboard() {
   if (
     isAppPending ||
     (showInstallData && isStatsPending) ||
-    (showInteractions && isInteractionsPending)
+    (shouldFetchInteractions && isInteractionsPending)
   ) {
     return <LoadingIndicator />;
   }
@@ -105,7 +110,7 @@ function SentryApplicationDashboard() {
   if (
     isAppError ||
     (showInstallData && isStatsError) ||
-    (showInteractions && isInteractionsError)
+    (shouldFetchInteractions && isInteractionsError)
   ) {
     return <LoadingError />;
   }
