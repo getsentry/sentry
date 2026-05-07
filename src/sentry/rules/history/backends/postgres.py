@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
 from django.db import connection
-from django.db.models import Subquery
 
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.group import Group
@@ -42,13 +41,6 @@ def convert_hourly_stats(
         results.append(existing_data.get(current, TimeSeriesValue(current, 0)))
         current += timedelta(hours=1)
     return results
-
-
-# temporary hack for removing unnecessary subqueries from group by list
-# TODO: remove when upgrade to django 3.0
-class NoGroupBySubquery(Subquery):
-    def get_group_by_cols(self, alias=None) -> list:
-        return []
 
 
 class PostgresRuleHistoryBackend(RuleHistoryBackend):
