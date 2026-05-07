@@ -3,23 +3,23 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ApplyPdbSrcsrv} from 'sentry/views/settings/projectDebugFiles/sources/applyPdbSrcsrv';
+import {NativeApplySrcsrv} from 'sentry/views/settings/projectDebugFiles/sources/nativeApplySrcsrv';
 
-describe('ApplyPdbSrcsrv', () => {
+describe('NativeApplySrcsrv', () => {
   const {organization} = initializeOrg();
 
   it('reflects the current project setting and saves on toggle', async () => {
-    const project = ProjectFixture({applyPdbSrcsrv: false});
+    const project = ProjectFixture({nativeApplySrcsrv: false});
     const updateProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {...project, applyPdbSrcsrv: true},
+      body: {...project, nativeApplySrcsrv: true},
     });
 
-    render(<ApplyPdbSrcsrv organization={organization} project={project} />);
+    render(<NativeApplySrcsrv organization={organization} project={project} />);
 
-    expect(screen.getByText('Source Server (PDB srcsrv)')).toBeInTheDocument();
-    const toggle = screen.getByRole('checkbox', {name: 'Use PDB source server paths'});
+    expect(screen.getByText('Source Server (srcsrv)')).toBeInTheDocument();
+    const toggle = screen.getByRole('checkbox', {name: 'Use source server paths'});
     expect(toggle).not.toBeChecked();
 
     await userEvent.click(toggle);
@@ -29,18 +29,16 @@ describe('ApplyPdbSrcsrv', () => {
         `/projects/${organization.slug}/${project.slug}/`,
         expect.objectContaining({
           method: 'PUT',
-          data: {applyPdbSrcsrv: true},
+          data: {nativeApplySrcsrv: true},
         })
       )
     );
   });
 
   it('starts on when the project has the option enabled', () => {
-    const project = ProjectFixture({applyPdbSrcsrv: true});
-    render(<ApplyPdbSrcsrv organization={organization} project={project} />);
+    const project = ProjectFixture({nativeApplySrcsrv: true});
+    render(<NativeApplySrcsrv organization={organization} project={project} />);
 
-    expect(
-      screen.getByRole('checkbox', {name: 'Use PDB source server paths'})
-    ).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Use source server paths'})).toBeChecked();
   });
 });

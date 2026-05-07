@@ -9,20 +9,20 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-const SECTION_TITLE = t('Source Server (PDB srcsrv)');
+const SECTION_TITLE = t('Source Server (srcsrv)');
 
 type Props = {
   organization: Organization;
   project: Project;
 };
 
-export function ApplyPdbSrcsrv({organization, project}: Props) {
+export function NativeApplySrcsrv({organization, project}: Props) {
   return (
     <Form
       saveOnBlur
       apiMethod="PUT"
       apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-      initialData={{applyPdbSrcsrv: project.applyPdbSrcsrv ?? false}}
+      initialData={{nativeApplySrcsrv: project.nativeApplySrcsrv ?? false}}
       onSubmitSuccess={response => {
         if (response) {
           ProjectsStore.onUpdateSuccess(response as Project);
@@ -35,10 +35,10 @@ export function ApplyPdbSrcsrv({organization, project}: Props) {
           <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <BooleanField
-                name="applyPdbSrcsrv"
-                label={t('Use PDB source server paths')}
+                name="nativeApplySrcsrv"
+                label={t('Use source server paths')}
                 help={t(
-                  'When enabled, native symbolication rewrites each frame using the source server (srcsrv) mapping embedded in PDB debug files and reports the per-frame VCS revision. Required for source linking from Perforce and other srcsrv-backed source control systems.'
+                  'When enabled, native symbolication rewrites each frame using the source server (srcsrv) mapping embedded in debug files and reports the per-frame VCS revision. Required for source linking from Perforce and other srcsrv-backed source control systems.'
                 )}
                 disabled={!hasAccess}
                 disabledReason={t('You do not have permission to edit this setting.')}

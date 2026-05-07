@@ -74,7 +74,6 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
-  applyPdbSrcsrv?: boolean;
   attachmentsRole?: string | null;
   autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
@@ -89,6 +88,7 @@ export type Project = {
   highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
+  nativeApplySrcsrv?: boolean;
   options?: Record<string, boolean | string>;
   preprodDistributionEnabledByCustomer?: boolean;
   preprodDistributionEnabledQuery?: string | null;
