@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
@@ -38,7 +39,6 @@ export function SnapshotStatusChecks() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const queryClient = useQueryClient();
-  const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
   const projectQueryKey = makeDetailedProjectQueryKey({
     orgSlug: organization.slug,
     projectSlug: project.slug,
@@ -54,7 +54,12 @@ export function SnapshotStatusChecks() {
   const projectMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Schema>) =>
       fetchMutation<Project>({
-        url: projectEndpoint,
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+          },
+        }),
         method: 'PUT',
         data,
       }),
