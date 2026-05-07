@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState, type MouseEvent} from 'react';
+import {Fragment, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -481,14 +481,7 @@ export default function SentryApplicationDetails() {
   });
 
   const webhookUrl = useStore(form.store, state => state.values.webhookUrl);
-  const isAlertable = useStore(form.store, state => state.values.isAlertable);
   const webhookDisabled = isInternal() && !webhookUrl;
-
-  useEffect(() => {
-    if (webhookDisabled && isAlertable) {
-      form.setFieldValue('isAlertable', false);
-    }
-  }, [form, isAlertable, webhookDisabled]);
 
   return (
     <div>
@@ -550,7 +543,17 @@ export default function SentryApplicationDetails() {
               </form.AppField>
             )}
 
-            <form.AppField name="webhookUrl">
+            <form.AppField
+              name="webhookUrl"
+              listeners={{
+                onChange: ({value, fieldApi}) => {
+                  const isAlertable = fieldApi.form.getFieldValue('isAlertable');
+                  if (isInternal() && !value && isAlertable) {
+                    fieldApi.form.setFieldValue('isAlertable', false);
+                  }
+                },
+              }}
+            >
               {field => (
                 <field.Layout.Row
                   label={t('Webhook URL')}
