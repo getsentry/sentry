@@ -32,35 +32,19 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
 
     def test(self) -> None:
         workflow = self._create_workflow()
-        history = []
         for i in range(3):
-            history.append(
-                WorkflowFireHistory(
-                    workflow=workflow,
-                    group=self.group,
-                    date_added=before_now(days=i + 1),
-                )
-            )
+            wfh = WorkflowFireHistory.objects.create(workflow=workflow, group=self.group)
+            wfh.update(date_added=before_now(days=i + 1))
         group_2 = self.create_group()
-        history.append(
-            WorkflowFireHistory(workflow=workflow, group=group_2, date_added=before_now(days=1))
-        )
+        wfh = WorkflowFireHistory.objects.create(workflow=workflow, group=group_2)
+        wfh.update(date_added=before_now(days=1))
         group_3 = self.create_group()
         for i in range(2):
-            history.append(
-                WorkflowFireHistory(
-                    workflow=workflow,
-                    group=group_3,
-                    date_added=before_now(days=i + 1),
-                )
-            )
+            wfh = WorkflowFireHistory.objects.create(workflow=workflow, group=group_3)
+            wfh.update(date_added=before_now(days=i + 1))
         workflow_2 = self._create_workflow()
-        history.append(
-            WorkflowFireHistory(
-                workflow=workflow_2, group=self.group, date_added=before_now(days=0)
-            )
-        )
-        WorkflowFireHistory.objects.bulk_create(history)
+        wfh = WorkflowFireHistory.objects.create(workflow=workflow_2, group=self.group)
+        wfh.update(date_added=before_now(days=0))
 
         base_triggered_date = before_now(days=1)
 
@@ -69,9 +53,11 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
             before_now(days=6),
             before_now(days=0),
             [
-                RuleGroupHistory(self.group, count=3, last_triggered=base_triggered_date),
-                RuleGroupHistory(group_3, count=2, last_triggered=base_triggered_date),
-                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date),
+                RuleGroupHistory(
+                    self.group, count=3, last_triggered=base_triggered_date, event_id=""
+                ),
+                RuleGroupHistory(group_3, count=2, last_triggered=base_triggered_date, event_id=""),
+                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date, event_id=""),
             ],
         )
         result = self.run_test(
@@ -79,7 +65,9 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
             before_now(days=6),
             before_now(days=0),
             [
-                RuleGroupHistory(self.group, count=3, last_triggered=base_triggered_date),
+                RuleGroupHistory(
+                    self.group, count=3, last_triggered=base_triggered_date, event_id=""
+                ),
             ],
             per_page=1,
         )
@@ -88,7 +76,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
             before_now(days=6),
             before_now(days=0),
             [
-                RuleGroupHistory(group_3, count=2, last_triggered=base_triggered_date),
+                RuleGroupHistory(group_3, count=2, last_triggered=base_triggered_date, event_id=""),
             ],
             cursor=result.next,
             per_page=1,
@@ -98,7 +86,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
             before_now(days=6),
             before_now(days=0),
             [
-                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date),
+                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date, event_id=""),
             ],
             cursor=result.next,
             per_page=1,
@@ -109,9 +97,11 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
             before_now(days=1),
             before_now(days=0),
             [
-                RuleGroupHistory(self.group, count=1, last_triggered=base_triggered_date),
-                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date),
-                RuleGroupHistory(group_3, count=1, last_triggered=base_triggered_date),
+                RuleGroupHistory(
+                    self.group, count=1, last_triggered=base_triggered_date, event_id=""
+                ),
+                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date, event_id=""),
+                RuleGroupHistory(group_3, count=1, last_triggered=base_triggered_date, event_id=""),
             ],
         )
 
@@ -121,7 +111,10 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
             before_now(days=2),
             [
                 RuleGroupHistory(
-                    self.group, count=1, last_triggered=base_triggered_date - timedelta(days=2)
+                    self.group,
+                    count=1,
+                    last_triggered=base_triggered_date - timedelta(days=2),
+                    event_id="",
                 ),
             ],
         )
