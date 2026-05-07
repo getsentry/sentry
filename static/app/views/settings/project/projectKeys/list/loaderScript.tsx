@@ -19,21 +19,18 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
 
   return (
     <Stack padding="xl" gap="md">
-      <Stack gap="xs">
-        <Text>{t('Loader Script')}</Text>
-        <Text size="sm" variant="muted">
-          {tct(
-            'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
-                  {t(' What does the script provide?')}
-                </ExternalLink>
-              ),
-            }
-          )}
-        </Text>
-      </Stack>
+      <Text size="sm" variant="muted">
+        {tct(
+          'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
+                {t(' What does the script provide?')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </Text>
       <TextCopyInput aria-label={t('Loader Script')}>
         {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
       </TextCopyInput>
