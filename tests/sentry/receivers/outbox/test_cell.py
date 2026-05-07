@@ -1,3 +1,4 @@
+import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -13,7 +14,6 @@ from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 
 
 class BackfillScmIntegrationConfigReceiverTest(TestCase):

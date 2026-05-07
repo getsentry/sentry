@@ -8,6 +8,7 @@ and perform RPC calls to propagate changes to Control Silo.
 
 from __future__ import annotations
 
+import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
 import logging
 from typing import Any, cast
 
@@ -39,7 +40,6 @@ from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
-from sentry.utils import json
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
