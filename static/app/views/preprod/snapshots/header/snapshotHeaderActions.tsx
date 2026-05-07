@@ -184,9 +184,9 @@ export function SnapshotHeaderActions({
           </Flex>
         ) : (
           <Flex align="center" gap="sm">
-            <Container display={{'2xs': 'none', md: 'block'}}>
+            <Container display={{'2xs': 'none', lg: 'block'}}>
               <Tag variant="warning" icon={<IconTimer />}>
-                {t('Requires approval')}
+                {t('Needs approval')}
               </Tag>
             </Container>
             <Button

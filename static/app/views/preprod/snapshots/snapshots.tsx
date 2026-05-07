@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -181,6 +182,12 @@ export default function SnapshotsPage() {
     'snapshot-diff-mode',
     'split'
   );
+  const breakpoints = useBreakpoints();
+  useEffect(() => {
+    if (!breakpoints.sm && diffMode === 'split') {
+      setDiffMode('wipe');
+    }
+  }, [breakpoints.sm, diffMode, setDiffMode]);
   const [viewMode, setViewMode] = useQueryState(
     'view',
     parseAsStringLiteral(['list', 'single'] as const)
@@ -677,7 +684,6 @@ export default function SnapshotsPage() {
           statusCounts={statusCounts}
           activeStatuses={activeStatuses}
           onToggleStatus={handleToggleStatus}
-          data={data}
         />
       </Flex>
       <DragHandle
@@ -750,7 +756,7 @@ export default function SnapshotsPage() {
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
       <Stack flex={1} onClick={handleDeselectSnapshot}>
-        <SnapshotHeaderContent />
+        <SnapshotHeaderContent data={data} />
         <TopBar.Slot name="actions">
           <SnapshotHeaderActions
             data={data}

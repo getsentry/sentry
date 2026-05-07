@@ -23,6 +23,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
@@ -702,6 +703,7 @@ function DiffModeToggle({
   onDiffModeChange: (mode: DiffMode) => void;
 }) {
   const organization = useOrganization();
+  const breakpoints = useBreakpoints();
   return (
     <SegmentedControl
       size="xs"
@@ -714,12 +716,14 @@ function DiffModeToggle({
         });
       }}
     >
-      <SegmentedControl.Item
-        key="split"
-        icon={<IconPause />}
-        aria-label={t('Split')}
-        tooltip={t('Split')}
-      />
+      {breakpoints.sm && (
+        <SegmentedControl.Item
+          key="split"
+          icon={<IconPause />}
+          aria-label={t('Split')}
+          tooltip={t('Split')}
+        />
+      )}
       <SegmentedControl.Item
         key="wipe"
         icon={<IconInput />}
