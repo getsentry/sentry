@@ -279,7 +279,7 @@ class SlackService:
                             "parent notification does not have a message identifier, skipping"
                         )
                         continue
-                        
+
                     channel_id = self._get_channel_id_from_parent_notification_notification_action(
                         parent_notification
                     )
