@@ -52,15 +52,13 @@ function rootCauseArtifactToMarkdown(
   const parts: string[] = ['# Root Cause', '', rootCause.one_line_description];
 
   if (rootCause.five_whys.length) {
-    parts.push('');
-    parts.push('## Why did this happen?');
+    parts.push('', '## Why did this happen?');
     parts.push('');
     parts.push(...rootCause.five_whys.map(why => `- ${why}`));
   }
 
   if (rootCause.reproduction_steps?.length) {
-    parts.push('');
-    parts.push('## Reproduction Steps');
+    parts.push('', '## Reproduction Steps');
     parts.push('');
     parts.push(
       ...rootCause.reproduction_steps.map((step, index) => `${index + 1}. ${step}`)
@@ -79,8 +77,7 @@ function solutionArtifactToMarkdown(artifact: Artifact<SolutionArtifact>): strin
   const parts: string[] = ['# Plan', '', solution.one_line_summary];
 
   if (solution.steps.length) {
-    parts.push('');
-    parts.push('## Steps to Resolve');
+    parts.push('', '## Steps to Resolve');
     parts.push('');
     parts.push(
       ...solution.steps.flatMap((step, index) => [
