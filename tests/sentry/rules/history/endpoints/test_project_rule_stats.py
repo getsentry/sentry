@@ -40,26 +40,30 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase):
         workflow_2 = AlertRuleWorkflow.objects.get(rule_id=rule_2.id).workflow
 
         history = []
+        target_dates = []
         for i in range(3):
             for _ in range(i + 1):
                 history.append(
                     WorkflowFireHistory(
                         workflow=workflow,
                         group=self.group,
-                        date_added=before_now(hours=i + 1),
                     )
                 )
+                target_dates.append(before_now(hours=i + 1))
 
         for i in range(2):
             history.append(
                 WorkflowFireHistory(
                     workflow=workflow_2,
                     group=self.group,
-                    date_added=before_now(hours=i + 1),
                 )
             )
+            target_dates.append(before_now(hours=i + 1))
 
-        WorkflowFireHistory.objects.bulk_create(history)
+        # date_added uses auto_now_add, so set it after bulk_create
+        created = WorkflowFireHistory.objects.bulk_create(history)
+        for record, target_date in zip(created, target_dates):
+            record.update(date_added=target_date)
         self.login_as(self.user)
         resp = self.get_success_response(
             self.organization.slug,
