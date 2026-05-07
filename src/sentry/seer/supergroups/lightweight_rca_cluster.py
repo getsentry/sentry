@@ -11,6 +11,8 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_lightweight_rca_cluster_request,
 )
+from sentry.utils import metrics
+from sentry.utils.event import has_stacktrace
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,14 @@ def trigger_lightweight_rca_cluster(group: Group) -> None:
             "lightweight_rca_cluster.event_not_ready",
             extra={"group_id": group.id, "event_id": event.event_id},
         )
+        return
+
+    if not has_stacktrace(ready_event.data):
+        logger.info(
+            "lightweight_rca_cluster.no_stacktrace",
+            extra={"group_id": group.id, "event_id": ready_event.event_id},
+        )
+        metrics.incr("sentry.lightweight_rca_cluster.skipped", tags={"reason": "no_stacktrace"})
         return
 
     serialized_event = serialize(ready_event, None, EventSerializer())

@@ -23,6 +23,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.group import UNRESOLVED_SUBSTATUS_CHOICES
 from sentry.utils import metrics
+from sentry.utils.event import has_stacktrace
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import SnubaError, bulk_snuba_queries
 
@@ -316,26 +317,32 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
     # Batch fetch all event data from nodestore in one multi-get
     eventstore.bind_nodes(events)
 
-    # Drop events with empty data and security-report event types (CSP/HPKP/
-    # Expect-CT/Expect-Staple/NEL) — they all roll up under ErrorGroupType but
+    # Drop events with empty data, security-report event types (CSP/HPKP/
+    # Expect-CT/Expect-Staple/NEL), and events without stacktraces — they
     # don't carry the application-code signal that RCA clustering needs.
     valid_groups: list[Group] = []
     valid_events: list[Event] = []
-    skipped_security_reports = 0
     for group, event in zip(matched_groups, events):
         if not event.data:
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "no_data"},
+            )
             continue
         if event.get_event_type() in SECURITY_REPORT_INTERFACES:
-            skipped_security_reports += 1
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "security_report"},
+            )
+            continue
+        if not has_stacktrace(event.data):
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "no_stacktrace"},
+            )
             continue
         valid_groups.append(group)
         valid_events.append(event)
-
-    if skipped_security_reports:
-        metrics.incr(
-            "seer.supergroups_backfill_lightweight.security_reports_skipped",
-            amount=skipped_security_reports,
-        )
 
     if not valid_events:
         return []
