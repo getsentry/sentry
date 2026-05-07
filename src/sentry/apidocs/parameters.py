@@ -648,6 +648,15 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         location="query",
         required=True,
         type=str,
+        enum=[
+            "discover",
+            "errors",
+            "logs",
+            "profile_functions",
+            "spans",
+            "transactions",
+            "uptime_results",
+        ],
         # Not every key in DATASET_OPTIONS is listed here — internal,
         # metrics-layer, and deprecated aliases (e.g. "ourlogs",
         # "metricsEnhanced", "spansIndexed") are intentionally omitted so
@@ -655,7 +664,7 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         description="""Which dataset to query. The chosen dataset determines which fields are queryable.
 - `errors` - Error events.
 - `logs` - Structured log events.
-- `profile_functions` - Function-level Profiling data
+- `profile_functions` - Function-level Profiling data.
 - `spans` - Distributed tracing span events.
 - `tracemetrics` - Application Metrics.
 - `uptime_results` - Uptime monitoring check results.
