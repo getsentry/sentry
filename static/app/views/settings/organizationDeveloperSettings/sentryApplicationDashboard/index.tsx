@@ -54,6 +54,14 @@ function SentryApplicationDashboard() {
     isError: isAppError,
   } = useQuery(sentryAppApiOptions({appSlug}));
 
+  // Stats and interactions are only rendered for published apps (or, for
+  // component interactions, when the app declares schema elements). Gate the
+  // queries so unpublished apps don't fire backend requests for data that's
+  // never displayed — those requests can hang and would otherwise leave the
+  // whole page stuck on a spinner.
+  const showInstallData = app?.status === 'published';
+  const showInteractions = app?.status === 'published' || Boolean(app?.schema.elements);
+
   const {
     data: interactions,
     isPending: isInteractionsPending,
@@ -65,7 +73,7 @@ function SentryApplicationDashboard() {
       }),
       {query: {since: now - ninety_days_ago, until: now}},
     ],
-    {staleTime: 0}
+    {staleTime: 0, enabled: showInteractions}
   );
 
   const {
@@ -79,21 +87,27 @@ function SentryApplicationDashboard() {
       }),
       {query: {since: now - ninety_days_ago, until: now}},
     ],
-    {staleTime: 0}
+    {staleTime: 0, enabled: showInstallData}
   );
 
-  if (isAppPending || isStatsPending || isInteractionsPending) {
+  if (
+    isAppPending ||
+    (showInstallData && isStatsPending) ||
+    (showInteractions && isInteractionsPending)
+  ) {
     return <LoadingIndicator />;
   }
 
-  if (isAppError || isStatsError || isInteractionsError) {
+  if (
+    isAppError ||
+    (showInstallData && isStatsError) ||
+    (showInteractions && isInteractionsError)
+  ) {
     return <LoadingError />;
   }
 
-  const {installStats, uninstallStats, totalUninstalls, totalInstalls} = stats;
-  const {views, componentInteractions} = interactions;
-
   const renderInstallData = () => {
+    const {installStats, uninstallStats, totalUninstalls, totalInstalls} = stats!;
     return (
       <Fragment>
         <h5>{t('Installation & Interaction Data')}</h5>
@@ -113,12 +127,15 @@ function SentryApplicationDashboard() {
             <p>{totalUninstalls}</p>
           </StatsSection>
         </Flex>
-        {renderInstallCharts()}
+        {renderInstallCharts(installStats, uninstallStats)}
       </Fragment>
     );
   };
 
-  const renderInstallCharts = () => {
+  const renderInstallCharts = (
+    installStats: Array<[number, number]>,
+    uninstallStats: Array<[number, number]>
+  ) => {
     const installSeries = {
       data: installStats.map(point => ({
         name: point[0] * 1000,
@@ -163,7 +180,7 @@ function SentryApplicationDashboard() {
       <Panel>
         <PanelHeader>{t('Integration Views')}</PanelHeader>
         <PanelBody>
-          <InteractionsChart data={{Views: views}} />
+          <InteractionsChart data={{Views: interactions!.views}} />
         </PanelBody>
 
         <PanelFooter>
@@ -183,6 +200,7 @@ function SentryApplicationDashboard() {
   };
 
   const renderComponentInteractions = () => {
+    const componentInteractions = interactions!.componentInteractions;
     const componentInteractionsDetails = {
       'stacktrace-link': t(
         'Each link click or context menu open counts as one interaction'
@@ -226,8 +244,8 @@ function SentryApplicationDashboard() {
     <div>
       <SentryDocumentTitle title={t('Integration Dashboard')} />
       <SettingsPageHeader title={`${t('Integration Dashboard')} - ${app.name}`} />
-      {app.status === 'published' && renderInstallData()}
-      {app.status === 'published' && renderIntegrationViews()}
+      {showInstallData && renderInstallData()}
+      {showInstallData && renderIntegrationViews()}
       {app.schema.elements && renderComponentInteractions()}
       <RequestLog app={app} />
     </div>
