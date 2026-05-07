@@ -22,6 +22,7 @@ from snuba_sdk import (
 from urllib3 import Retry
 
 from sentry.api.event_search import parse_search_query
+from sentry.conf.types.kafka_definition import Topic
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.seer_api import ReplayDeleteSeerDataRequest, make_replay_delete_request
@@ -35,6 +36,7 @@ from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.utils import kafka_config
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -71,7 +73,10 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
     """Set the archived bit flag to true on each replay."""
     publisher = initialize_replays_publisher(is_async=True)
     for replay_id in replay_ids:
-        publisher.publish("ingest-replay-events", archive_event(project_id, replay_id))
+        publisher.publish(
+            kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)["real_topic_name"],
+            archive_event(project_id, replay_id),
+        )
     publisher.flush()
 
 

@@ -15,6 +15,7 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
+from sentry.conf.types.kafka_definition import Topic
 from sentry.exceptions import PluginError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
@@ -34,6 +35,7 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
@@ -923,7 +925,7 @@ def process_replay_link(job: PostProcessJob) -> None:
         metrics.incr("post_process.process_replay_link.id_invalid")
     else:
         publisher.publish(
-            "ingest-replay-events",
+            get_topic_definition(Topic.INGEST_REPLAY_EVENTS)["real_topic_name"],
             json.dumps(kafka_payload),
         )
 
