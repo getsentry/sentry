@@ -1,3 +1,4 @@
+import ast
 import json  # noqa: S003
 import logging
 from collections import defaultdict
@@ -72,7 +73,10 @@ def _parse_messages(messages: str | list | None) -> list | None:
         try:
             messages = json.loads(messages)
         except (json.JSONDecodeError, TypeError):
-            return None
+            try:
+                messages = ast.literal_eval(messages)
+            except (ValueError, SyntaxError):
+                return None
     if not isinstance(messages, list):
         return None
     return messages
@@ -157,7 +161,10 @@ def _extract_assistant_text(value: Any) -> str | None:
         try:
             parsed = json.loads(value)
         except (json.JSONDecodeError, TypeError):
-            return None
+            try:
+                parsed = ast.literal_eval(value)
+            except (ValueError, SyntaxError):
+                return None
 
     # JSON-encoded scalar string, e.g. '"Hello"' parses to "Hello".
     if isinstance(parsed, str):

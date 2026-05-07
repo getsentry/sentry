@@ -1,3 +1,4 @@
+import {tryParsePythonDict} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {
   parseJsonWithFix,
   tryParseJsonRecursive,
@@ -120,11 +121,16 @@ function parseAndDetect(
 
   const {parsed, fixedInvalidJson}: {fixedInvalidJson: boolean; parsed: unknown} =
     parseJsonWithFix(raw);
-  if (parsed === null) {
-    return {fixedInvalidJson, messages: []};
+  if (parsed !== null) {
+    return {fixedInvalidJson, messages: detectShape(parsed, defaultRole)};
   }
 
-  return {fixedInvalidJson, messages: detectShape(parsed, defaultRole)};
+  const pythonParsed = tryParsePythonDict(raw);
+  if (pythonParsed !== null) {
+    return {fixedInvalidJson: false, messages: detectShape(pythonParsed, defaultRole)};
+  }
+
+  return {fixedInvalidJson, messages: []};
 }
 
 /**

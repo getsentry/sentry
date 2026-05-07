@@ -306,6 +306,32 @@ describe('normalizeToMessages', () => {
     });
   });
 
+  describe('Python dict format', () => {
+    it('parses Python repr with single-quoted messages', () => {
+      const input = "[{'role': 'user', 'content': 'Hello!'}]";
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([{role: 'user', content: 'Hello!'}]);
+    });
+
+    it('parses Python repr with mixed single and double quotes', () => {
+      const input = `[{'role': 'user', 'content': "the user's message"}]`;
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([{role: 'user', content: "the user's message"}]);
+    });
+
+    it('parses Python repr with True/False/None values', () => {
+      const input = "[{'role': 'user', 'content': 'test'}]";
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([{role: 'user', content: 'test'}]);
+    });
+  });
+
   describe('cross-format tolerance', () => {
     it('accepts parts format on a field that traditionally held content format', () => {
       // Simulates: gen_ai.request.messages carrying the new parts shape.

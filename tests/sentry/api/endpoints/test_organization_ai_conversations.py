@@ -109,6 +109,14 @@ class TestExtractFirstUserMessage:
     def test_returns_filtered(self) -> None:
         assert _extract_first_user_message("[Filtered]") == "[Filtered]"
 
+    def test_python_repr_single_quotes(self) -> None:
+        messages = "[{'role': 'user', 'content': 'Hello'}]"
+        assert _extract_first_user_message(messages) == "Hello"
+
+    def test_python_repr_mixed_quotes(self) -> None:
+        messages = """[{'role': 'user', 'content': "the user's message"}]"""
+        assert _extract_first_user_message(messages) == "the user's message"
+
 
 class TestGetFirstInputMessage:
     """Unit tests for _get_first_input_message helper function"""
@@ -196,6 +204,10 @@ class TestGetLastOutput:
     def test_returns_filtered(self) -> None:
         row = {"gen_ai.output.messages": "[Filtered]"}
         assert _get_last_output(row) == "[Filtered]"
+
+    def test_python_repr_output(self) -> None:
+        row = {"gen_ai.output.messages": "[{'role': 'assistant', 'content': 'Hello!'}]"}
+        assert _get_last_output(row) == "Hello!"
 
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):

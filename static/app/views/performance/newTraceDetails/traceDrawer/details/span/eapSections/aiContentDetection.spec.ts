@@ -114,8 +114,16 @@ describe('tryParsePythonDict', () => {
     expect(tryParsePythonDict('{key: value}')).toBeNull();
   });
 
-  it('returns null when mixed quotes produce invalid JSON', () => {
-    expect(tryParsePythonDict("{'key': 'text with \"inner\" quotes'}")).toBeNull();
+  it('handles mixed quotes (double quotes inside single-quoted values)', () => {
+    expect(tryParsePythonDict("{'key': 'text with \"inner\" quotes'}")).toEqual({
+      key: 'text with "inner" quotes',
+    });
+  });
+
+  it('handles double-quoted values with apostrophes', () => {
+    expect(
+      tryParsePythonDict(`[{'role': 'user', 'content': "the user's message"}]`)
+    ).toEqual([{role: 'user', content: "the user's message"}]);
   });
 
   it('handles Python dicts where values contain markdown', () => {
