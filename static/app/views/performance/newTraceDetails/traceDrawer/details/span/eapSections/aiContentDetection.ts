@@ -19,11 +19,12 @@ interface AIContentDetectionResult {
 }
 
 /**
- * Best-effort conversion of a Python repr literal to a JSON-parseable string.
+ * Best-effort conversion of a Python repr literal to a parsed object.
  *
- * Handles mixed single/double quotes, escaped quotes, and Python-specific
- * literals (True, False, None). Uses a character-by-character walk so that
- * quotes inside already-double-quoted values are not corrupted.
+ * Uses naive string replacements — works for the common all-single-quote
+ * case but will return null for mixed-quote edge cases (e.g. double-quoted
+ * values containing apostrophes). The backend uses ast.literal_eval for
+ * full Python repr support.
  */
 export function tryParsePythonDict(text: string): unknown | null {
   const trimmed = text.trim();
@@ -36,10 +37,13 @@ export function tryParsePythonDict(text: string): unknown | null {
   }
 
   try {
-    const converted = pythonReprToJson(trimmed);
-    if (!converted) {
-      return null;
-    }
+    let converted = trimmed;
+    converted = converted.replace(/\bTrue\b/g, 'true');
+    converted = converted.replace(/\bFalse\b/g, 'false');
+    converted = converted.replace(/\bNone\b/g, 'null');
+    converted = converted.replace(/'/g, '"');
+    converted = converted.replace(/,\s*([}\]])/g, '$1');
+
     const parsed = JSON.parse(converted);
     if (typeof parsed === 'object' && parsed !== null) {
       return parsed;
@@ -48,93 +52,6 @@ export function tryParsePythonDict(text: string): unknown | null {
   } catch {
     return null;
   }
-}
-
-function pythonReprToJson(s: string): string | null {
-  let result = '';
-  let i = 0;
-
-  while (i < s.length) {
-    const ch = s[i]!;
-
-    if (ch === "'") {
-      result += '"';
-      i++;
-      while (i < s.length && s[i] !== "'") {
-        if (s[i] === '\\' && i + 1 < s.length) {
-          if (s[i + 1] === "'") {
-            result += "'";
-            i += 2;
-            continue;
-          }
-          result += s[i]!;
-          result += s[i + 1]!;
-          i += 2;
-          continue;
-        }
-        if (s[i] === '"') {
-          result += '\\"';
-          i++;
-          continue;
-        }
-        result += s[i]!;
-        i++;
-      }
-      if (i >= s.length) {
-        return null;
-      }
-      result += '"';
-      i++;
-    } else if (ch === '"') {
-      result += '"';
-      i++;
-      while (i < s.length && s[i] !== '"') {
-        if (s[i] === '\\' && i + 1 < s.length) {
-          result += s[i]!;
-          result += s[i + 1]!;
-          i += 2;
-          continue;
-        }
-        result += s[i]!;
-        i++;
-      }
-      if (i >= s.length) {
-        return null;
-      }
-      result += '"';
-      i++;
-    } else if (ch === 'T' && s.slice(i, i + 4) === 'True' && !isWordChar(s[i + 4])) {
-      result += 'true';
-      i += 4;
-    } else if (ch === 'F' && s.slice(i, i + 5) === 'False' && !isWordChar(s[i + 5])) {
-      result += 'false';
-      i += 5;
-    } else if (ch === 'N' && s.slice(i, i + 4) === 'None' && !isWordChar(s[i + 4])) {
-      result += 'null';
-      i += 4;
-    } else if (ch === ',' && i + 1 < s.length) {
-      const rest = s.slice(i + 1).match(/^\s*([}\]])/);
-      if (rest) {
-        result += rest[1]!;
-        i += 1 + rest[0].length;
-      } else {
-        result += ch;
-        i++;
-      }
-    } else {
-      result += ch;
-      i++;
-    }
-  }
-
-  return result;
-}
-
-function isWordChar(ch: string | undefined): boolean {
-  if (!ch) {
-    return false;
-  }
-  return /\w/.test(ch);
 }
 
 /** Splits text into segments of plain text and XML-like tag blocks. */
