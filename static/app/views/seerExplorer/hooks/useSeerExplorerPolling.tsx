@@ -3,6 +3,7 @@ import {useEffect, useState} from 'react';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTimeout} from 'sentry/utils/useTimeout';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
@@ -11,7 +12,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
-const STALE_TIME_MS = 20_000;
+const STALE_TIME_MS = 2_000;
 
 /** Checks if session is in a terminal state where the agent is done processing. */
 const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
@@ -22,30 +23,38 @@ const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undef
     state => state.pr_creation_status !== 'creating'
   );
 
-/** Checks if session is not complete and hasn't been updated in SESSION_STALE_TIME_MS. */
-const isResponseTimedOut = (sessionData: SeerExplorerResponse['session'] | undefined) => {
+/** Checks if session hasn't been updated in SESSION_STALE_TIME_MS. */
+const isResponseStale = (sessionData: SeerExplorerResponse['session'] | undefined) => {
   const updatedAt = getDateFromTimestampAssumeUtc(sessionData?.updated_at);
   if (!updatedAt) {
     return false;
   }
-  return (
-    !isResponseComplete(sessionData) && Date.now() - updatedAt.getTime() >= STALE_TIME_MS
-  );
+  return Date.now() - updatedAt.getTime() >= STALE_TIME_MS;
 };
 
-const isPolling = (
+const getPollingState = (
+  runId: number | null,
   sessionData: SeerExplorerResponse['session'] | undefined,
   isError: boolean,
-  isTimedOut: boolean,
+  isStale: boolean,
   override: boolean | undefined
 ) => {
+  if (runId === null) {
+    return 'not-polling';
+  }
   if (override !== undefined) {
-    return override;
+    return override ? 'polling' : 'not-polling';
   }
-  if (isError || isTimedOut) {
-    return false;
+  if (isError) {
+    return 'not-polling';
   }
-  return !isResponseComplete(sessionData);
+  if (isResponseComplete(sessionData)) {
+    return 'not-polling';
+  }
+  if (isStale) {
+    return 'timed-out';
+  }
+  return 'polling';
 };
 
 /**
@@ -62,20 +71,13 @@ const isPolling = (
  */
 export const useSeerExplorerPolling = ({
   runId,
-  shouldPollOverride = false,
+  shouldPollOverride,
 }: {
   runId: number | null;
   shouldPollOverride?: boolean;
 }) => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
-
-  // Track an isTimedOut state so it can trigger rerenders.
-  const [isTimedOut, setIsTimedOut] = useState(false);
-
-  useEffect(() => {
-    setIsTimedOut(false);
-  }, [runId, orgSlug]);
 
   const {
     data: apiData,
@@ -86,19 +88,15 @@ export const useSeerExplorerPolling = ({
     retry: false,
     enabled: !!runId && !!orgSlug && isSeerExplorerEnabled(organization),
     refetchInterval: query => {
-      const newIsTimedOut = isResponseTimedOut(query.state.data?.json?.session);
-      if (shouldPollOverride !== undefined) {
-        // Updates timeout state on every successful fetch.
-        setIsTimedOut(newIsTimedOut);
-      }
-
+      const isStale = isResponseStale(query.state.data?.json?.session);
       if (
-        isPolling(
+        getPollingState(
+          runId,
           query.state.data?.json?.session,
           query.state.status === 'error',
-          newIsTimedOut,
+          isStale,
           shouldPollOverride
-        )
+        ) === 'polling'
       ) {
         return POLL_INTERVAL;
       }
@@ -106,11 +104,39 @@ export const useSeerExplorerPolling = ({
     },
   });
 
+  // For display, track a separate isStale state, since it depends on the current time and needs to trigger rerenders.
+  const [isStale, setIsStale] = useState(false);
+
+  const {start: startStaleTimeout, cancel: cancelStaleTimeout} = useTimeout({
+    timeMs: STALE_TIME_MS,
+    onTimeout: () => {
+      setIsStale(true);
+    },
+  });
+
+  // Reset stale timer each time updated_at changes
+  useEffect(() => {
+    setIsStale(false);
+    if (apiData?.session?.updated_at) {
+      startStaleTimeout();
+    } else {
+      cancelStaleTimeout();
+    }
+  }, [apiData?.session?.updated_at, startStaleTimeout, cancelStaleTimeout]);
+
+  const pollingState = getPollingState(
+    runId,
+    apiData?.session,
+    isError,
+    isStale,
+    shouldPollOverride
+  );
+
   return {
     apiData,
     isError,
     errorStatusCode: error?.status ?? null,
-    isPolling: isPolling(apiData?.session, isError, isTimedOut, shouldPollOverride),
-    isTimedOut: !shouldPollOverride && isTimedOut,
+    isPolling: pollingState === 'polling',
+    isTimedOut: pollingState === 'timed-out',
   };
 };
