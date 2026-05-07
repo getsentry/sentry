@@ -14,6 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
@@ -378,5 +379,33 @@ describe('MetricPanel', () => {
     );
 
     await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not crash when expanded sample details have no data', () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: undefined,
+        isError: false,
+        isPending: false,
+      } as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    expect(() =>
+      render(
+        <table>
+          <tbody>
+            <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+          </tbody>
+        </table>,
+        {
+          organization,
+          additionalWrapper: createWrapper({queryParams, traceMetric}),
+        }
+      )
+    ).not.toThrow();
+
+    traceDetailSpy.mockRestore();
   });
 });

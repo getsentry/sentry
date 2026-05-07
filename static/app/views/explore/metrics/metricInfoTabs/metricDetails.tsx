@@ -99,13 +99,19 @@ export function MetricDetails({
     );
   }
 
+  if (!traceDetailsData) {
+    return (
+      <MetricsDetailsWrapper ref={ref}>
+        <LogDetailTableBodyCell colSpan={0} />
+      </MetricsDetailsWrapper>
+    );
+  }
+
   const attributes: Record<string, TraceItemResponseAttribute['value']> = {};
   const attributeTypes: Record<string, TraceItemResponseAttribute['type']> = {};
-  if (traceDetailsData) {
-    for (const attr of traceDetailsData.attributes) {
-      attributes[attr.name] = attr.value;
-      attributeTypes[attr.name] = attr.type;
-    }
+  for (const attr of traceDetailsData.attributes) {
+    attributes[attr.name] = attr.value;
+    attributeTypes[attr.name] = attr.type;
   }
 
   return (
