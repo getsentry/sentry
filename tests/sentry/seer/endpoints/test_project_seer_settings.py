@@ -196,6 +196,29 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert ids.index(project_claude.id) < ids.index(project_cursor.id)
         assert ids.index(project_cursor.id) < ids.index(project_seer.id)
 
+    def test_get_sort_by_stopping_point(self) -> None:
+        """sortBy=stoppingPoint should order by hierarchy rank (off < root_cause < code_changes < open_pr)."""
+        project_open_pr = self.create_project(organization=self.organization)
+        project_open_pr.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        project_open_pr.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+
+        project_root_cause = self.create_project(organization=self.organization)
+        project_root_cause.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        project_root_cause.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
+
+        # self.project has default tuning=OFF → stoppingPoint="off" (rank 0)
+
+        response = self.client.get(self.url, {"sortBy": "stoppingPoint"})
+
+        assert response.status_code == 200
+        ids = [r["projectId"] for r in response.data]
+        assert ids.index(self.project.id) < ids.index(project_root_cause.id)
+        assert ids.index(project_root_cause.id) < ids.index(project_open_pr.id)
+
     def test_get_sort_by_invalid_field_returns_400(self) -> None:
         """An unrecognized sortBy value should return 400."""
         response = self.client.get(self.url, {"sortBy": "invalid"})

@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from functools import partial
 from typing import Any, TypedDict
 
-from django.db.models import Case, Count, F, OuterRef, Q, Subquery, Value, When
+from django.db.models import Case, Count, F, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -35,6 +35,7 @@ from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     CodingAgentAlias,
 )
+from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     build_automation_handoff,
@@ -56,6 +57,8 @@ SORT_FIELDS_MAPPING: dict[str, str] = {
     "-reposCount": "-repos_count",
     "agent": "agent",
     "-agent": "-agent",
+    "stoppingPoint": "stopping_point_rank",
+    "-stoppingPoint": "-stopping_point_rank",
 }
 
 search_config = SearchConfig.create_from(
@@ -189,6 +192,15 @@ def _annotate_queryset(queryset):
                 output_field=LegacyTextJSONField(),
             ),
             output_field=LegacyTextJSONField(),
+        ),
+        stopping_point_rank=Case(
+            When(_tuning=AutofixAutomationTuningSettings.OFF, then=Value(0)),
+            *[
+                When(stopping_point=point, then=Value(rank))
+                for point, rank in STOPPING_POINT_HIERARCHY.items()
+            ],
+            default=Value(0),
+            output_field=IntegerField(),
         ),
         _handoff_target=_project_option_subquery("sentry:seer_automation_handoff_target"),
         # We only check handoff_target here (not handoff_point/integration_id) because the
