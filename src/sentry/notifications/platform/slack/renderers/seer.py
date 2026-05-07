@@ -55,6 +55,7 @@ HANDOFF_TARGET_LABELS: dict[CodingAgentProviderType, str] = {
     CodingAgentProviderType.CURSOR_BACKGROUND_AGENT: "Cursor",
     CodingAgentProviderType.CLAUDE_CODE_AGENT: "Claude",
     CodingAgentProviderType.GITHUB_COPILOT_AGENT: "Copilot",
+    CodingAgentProviderType.OUTPOST_AGENT: "Outpost",
 }
 
 AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {

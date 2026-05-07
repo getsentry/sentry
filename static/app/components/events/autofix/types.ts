@@ -82,6 +82,7 @@ export enum CodingAgentProvider {
   CURSOR_BACKGROUND_AGENT = 'cursor_background_agent',
   CLAUDE_CODE_AGENT = 'claude_code_agent',
   GITHUB_COPILOT_AGENT = 'github_copilot_agent',
+  OUTPOST_AGENT = 'outpost_agent',
 }
 
 export function getResultButtonLabel(url: string | null | undefined): string {
@@ -396,6 +397,7 @@ export const PROVIDER_TO_HANDOFF_TARGET: Record<
   cursor: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
   claude_code: CodingAgentProvider.CLAUDE_CODE_AGENT,
   github_copilot: CodingAgentProvider.GITHUB_COPILOT_AGENT,
+  outpost: CodingAgentProvider.OUTPOST_AGENT,
 };
 
 export interface ProjectSeerPreferences {
@@ -414,6 +416,8 @@ export function getCodingAgentName(provider: string | undefined): string {
       return t('Claude Agent');
     case CodingAgentProvider.GITHUB_COPILOT_AGENT:
       return t('GitHub Copilot');
+    case CodingAgentProvider.OUTPOST_AGENT:
+      return t('Outpost Agent');
     default:
       return t('Coding Agent');
   }
