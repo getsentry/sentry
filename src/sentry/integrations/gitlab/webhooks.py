@@ -540,10 +540,8 @@ class GitlabWebhookEndpoint(Endpoint):
                 #       been above).
                 # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
                 #       middleware has handled routing.
-                # @todo(NOW): Validate the two notes above
                 produce_event_to_scm_stream(
                     {
-                        # @todo(NOW): Verify this is the right header
                         "event_type_hint": request.META.get("HTTP_X_GITLAB_EVENT"),
                         "event": request.body.decode("utf-8"),
                         "extra": {},

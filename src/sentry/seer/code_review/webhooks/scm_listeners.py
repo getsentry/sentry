@@ -37,14 +37,14 @@ ACTIONS_ELIGIBLE_FOR_EYES_REACTION: set[PullRequestAction] = {
 
 @scm_event_stream.listen_for_pull_request
 def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
-    # Identify the event, associate it with repo, integration, and organization
+    # Identify the event
+    # ##################
+    # (associate it with repo, integration, and organization)
+
+    # Colton: this section was adapted from src/sentry/integrations/gitlab/webhooks.py and the beginning of ./handlers.py
 
     provider = e.subscription_event["type"]
     action = e.action
-
-    # @todo(When we remove the old handlers for GitHub) Remove this check, and process GitHub webhooks
-    if provider != "gitlab":
-        return
 
     if provider == "gitlab":
         sentry_meta = e.subscription_event["sentry_meta"]
@@ -65,11 +65,13 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
             external_id=f"{gitlab_host_name}:{e.pull_request['repository_id']}",
         )
     else:
-        assert False, f"Unsupported provider: {provider}"
+        # @todo(When we remove the old handlers for GitHub) Process GitHub webhooks
+        return
 
-    # Do a milion checks to decide wether to process this event
+    # Decide wether to process this event
+    # ###################################
 
-    # These checks were ported from ./handlers.py
+    # Colton: the following checks were ported from ./handlers.py
 
     if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         if not features.has("organizations:seer-code-review-github-enterprise", organization):
@@ -77,6 +79,7 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
 
     author = e.pull_request.get("author")
     # @todo(NOW) Check what's actually used as `sentry.models.organizationcontributors.OrganizationContributors.external_id`
+    # (Currently the preflight can only fail because the PR author is invalid)
     pr_author_external_id = author["username"] if author else None
     preflight = CodeReviewPreflightService(
         organization=organization,
@@ -97,7 +100,7 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
 
     org_code_review_settings = preflight.settings
 
-    # These checks were ported from ./pull_request.py
+    # Colton: the following checks were ported from ./pull_request.py
 
     if action not in WHITELISTED_ACTIONS:
         record_scm_webhook_filtered(provider, action, WebhookFilteredReason.UNSUPPORTED_ACTION)
@@ -125,6 +128,7 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
         return
 
     # Process the event
+    # #################
 
     if action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
         scm = make_scm(organization_id, repository.id, referrer="seer")
@@ -135,6 +139,7 @@ def handle_pull_request_via_scm_stream(e: PullRequestEvent) -> None:
             )
 
     # Forward the event to Seer
+    # #########################
 
     target_commit_sha = e.pull_request["head"]["sha"]
     if not isinstance(target_commit_sha, str) or not target_commit_sha:
