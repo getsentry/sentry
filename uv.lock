@@ -1496,15 +1496,15 @@ wheels = [
 
 [[package]]
 name = "pillow"
-version = "12.1.1"
+version = "12.2.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.1.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8b7e5304e34942bf62e15184219a7b5ad4ff7f3bb5cca4d984f37df1a0e1aee2" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.1.1-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:5a8eb7ed8d4198bccbd07058416eeec51686b498e784eda166395a23eb99138e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.1.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:47b94983da0c642de92ced1702c5b6c292a84bd3a8e1d1702ff923f183594717" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.1.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:f7ed2c6543bad5a7d5530eb9e78c53132f93dfa44a28492db88b41cdab885202" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.1.1-cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b574c51cf7d5d62e9be37ba446224b59a2da26dc4c1bb2ecbe936a4fb1a7cb7f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.1.1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a37691702ed687799de29a518d63d4682d9016932db66d4e90c345831b02fb4e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.2.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:56b25336f502b6ed02e889f4ece894a72612fe885889a6e8c4c80239ff6e5f5f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.2.0-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:5cdfebd752ec52bf5bb4e35d9c64b40826bc5b40a13df7c3cda20a2c03a0f5ed" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.2.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:eedf4b74eda2b5a4b2b2fb4c006d6295df3bf29e459e198c90ea48e130dc75c3" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.2.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:80b2da48193b2f33ed0c32c38140f9d3186583ce7d516526d462645fd98660ae" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.2.0-cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:8cbeb542b2ebc6fcdacabf8aca8c1a97c9b3ad3927d46b8723f9d4f033288a0f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pillow-12.2.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:4bfd07bc812fbd20395212969e41931001fd59eb55a60658b0e5710872e95286" },
 ]
 
 [[package]]
@@ -2303,7 +2303,7 @@ requires-dist = [
     { name = "parsimonious", specifier = ">=0.10.0" },
     { name = "petname", specifier = ">=2.6" },
     { name = "phonenumberslite", specifier = ">=8.12.55" },
-    { name = "pillow", specifier = ">=11.0.0" },
+    { name = "pillow", specifier = ">=12.2.0" },
     { name = "proto-plus", specifier = ">=1.25.0" },
     { name = "protobuf", specifier = ">=5.29.6" },
     { name = "psutil", specifier = ">=5.9.7" },
