@@ -71,7 +71,12 @@ export function SnapshotStatusChecks() {
           json: {...(prev?.json ?? previousProject), ...data},
         };
       });
-      return previousProject;
+      return () => {
+        queryClient.setQueryData(projectQueryKey, prev => ({
+          headers: prev?.headers ?? {},
+          json: previousProject,
+        }));
+      };
     },
     onSuccess: response => {
       queryClient.setQueryData(projectQueryKey, prev => ({
@@ -79,15 +84,8 @@ export function SnapshotStatusChecks() {
         json: {...(prev?.json ?? project), ...response},
       }));
     },
-    onError: (_error, _variables, previousProject) => {
-      if (!previousProject) {
-        return;
-      }
-
-      queryClient.setQueryData(projectQueryKey, prev => ({
-        headers: prev?.headers ?? {},
-        json: previousProject,
-      }));
+    onError: (_error, _variables, rollback) => {
+      rollback?.();
     },
   });
 
