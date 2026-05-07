@@ -87,12 +87,8 @@ describe('RelatedIssues', () => {
     expect(screen.getByText(/No new issues/i)).toBeInTheDocument();
   });
 
-  it('remaps request.method to http.method when EAP is enabled', async () => {
-    const eapOrganization = OrganizationFixture({
-      features: ['performance-transaction-summary-eap'],
-    });
+  it('remaps request.method to http.method', async () => {
     const eapData = initializeOrg({
-      organization: eapOrganization,
       router: {
         location: {
           query: {
@@ -107,12 +103,11 @@ describe('RelatedIssues', () => {
 
     render(
       <RelatedIssues
-        organization={eapOrganization}
+        organization={organization}
         location={eapData.router.location}
         transaction={transaction}
         statsPeriod="14d"
-      />,
-      {organization: eapOrganization}
+      />
     );
 
     const placeholders = screen.queryAllByTestId('loading-placeholder');

@@ -34,6 +34,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.flush-lock-ttl": 0,
     "spans.buffer.flusher-cumulative-logger-enabled": False,
     "spans.buffer.flusher.log-flushed-segments": False,
+    "spans.buffer.done-flush-conditional-zrem": True,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
     "spans.buffer.max-spans-per-evalsha": 0,
@@ -1623,7 +1624,6 @@ def test_flush_lock_detaches_subsegment(mock_project_model, buffer: SpansBuffer)
 
     with override_options(
         {
-            "spans.buffer.enforce-segment-size": True,
             "spans.buffer.flusher.flush-lock-ttl": 20,
         }
     ):

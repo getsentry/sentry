@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
@@ -14,8 +14,6 @@ function useConversationDetailQueryState() {
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
-      start: parseAsInteger,
-      end: parseAsInteger,
     },
     {history: 'replace'}
   );
@@ -25,14 +23,7 @@ function ConversationDetailPage() {
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
-  const conversation = useMemo(
-    () => ({
-      conversationId,
-      startTimestamp: queryState.start ?? undefined,
-      endTimestamp: queryState.end ?? undefined,
-    }),
-    [conversationId, queryState.start, queryState.end]
-  );
+  const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
   const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
 

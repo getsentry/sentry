@@ -168,7 +168,6 @@ export default function ProjectKeys() {
             key={key.id}
             projectId={project.slug}
             project={project}
-            organization={organization}
             data={key}
             onToggle={(isActive, data) =>
               handleToggleKeyMutation.mutate({isActive, data})
