@@ -189,15 +189,28 @@ export function SnapshotHeaderActions({
                 {t('Needs approval')}
               </Tag>
             </Container>
-            <Button
-              size="sm"
-              variant="primary"
-              icon={<IconThumb />}
-              onClick={handleApprove}
-              disabled={isApproving}
-            >
-              {t('Approve')}
-            </Button>
+            <Container display={{'2xs': 'none', xs: 'block'}}>
+              <Button
+                size="sm"
+                variant="primary"
+                icon={<IconThumb />}
+                onClick={handleApprove}
+                disabled={isApproving}
+              >
+                {t('Approve')}
+              </Button>
+            </Container>
+            <Container display={{'2xs': 'block', xs: 'none'}}>
+              <Button
+                size="xs"
+                variant="primary"
+                icon={<IconThumb />}
+                onClick={handleApprove}
+                disabled={isApproving}
+              >
+                {t('Approve')}
+              </Button>
+            </Container>
           </Flex>
         ))}
 

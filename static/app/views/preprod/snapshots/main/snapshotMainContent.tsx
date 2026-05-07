@@ -704,26 +704,41 @@ function DiffModeToggle({
 }) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
-  return (
-    <SegmentedControl
-      size="xs"
-      value={diffMode}
-      onChange={(value: DiffMode) => {
-        onDiffModeChange(value);
-        trackAnalytics('preprod.snapshots.details.diff_mode_changed', {
-          organization,
-          diff_mode: value,
-        });
-      }}
-    >
-      {breakpoints.sm && (
+  const handleChange = (value: DiffMode) => {
+    onDiffModeChange(value);
+    trackAnalytics('preprod.snapshots.details.diff_mode_changed', {
+      organization,
+      diff_mode: value,
+    });
+  };
+
+  if (!breakpoints.sm) {
+    return (
+      <SegmentedControl size="xs" value={diffMode} onChange={handleChange}>
         <SegmentedControl.Item
-          key="split"
-          icon={<IconPause />}
-          aria-label={t('Split')}
-          tooltip={t('Split')}
+          key="wipe"
+          icon={<IconInput />}
+          aria-label={t('Wipe')}
+          tooltip={t('Wipe')}
         />
-      )}
+        <SegmentedControl.Item
+          key="onion"
+          icon={<IconStack />}
+          aria-label={t('Onion')}
+          tooltip={t('Onion')}
+        />
+      </SegmentedControl>
+    );
+  }
+
+  return (
+    <SegmentedControl size="xs" value={diffMode} onChange={handleChange}>
+      <SegmentedControl.Item
+        key="split"
+        icon={<IconPause />}
+        aria-label={t('Split')}
+        tooltip={t('Split')}
+      />
       <SegmentedControl.Item
         key="wipe"
         icon={<IconInput />}
