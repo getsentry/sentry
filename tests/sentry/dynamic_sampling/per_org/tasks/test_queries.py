@@ -8,10 +8,10 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.tasks.queries import (
-    get_eap_bottom_transaction_volumes,
+    get_bottom_eap_transaction_volumes,
     get_eap_organization_volume,
-    get_eap_top_transaction_volumes,
     get_eap_transaction_volumes,
+    get_top_eap_transaction_volumes,
     run_batched_spans_table_query,
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
@@ -294,10 +294,10 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        top_volumes = get_eap_top_transaction_volumes(
+        top_volumes = get_top_eap_transaction_volumes(
             self.get_config(organization), 1, time_interval=timedelta(hours=1)
         )
-        bottom_volumes = get_eap_bottom_transaction_volumes(
+        bottom_volumes = get_bottom_eap_transaction_volumes(
             self.get_config(organization), 2, time_interval=timedelta(hours=1)
         )
 
