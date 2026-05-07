@@ -129,6 +129,14 @@ def send_search_agent_start_request(
     data = response.json()
     run_id = data.get("run_id")
     if run_id is None:
+        logger.error(
+            "search_agent.missing_run_id",
+            extra={
+                "organization_id": organization.id,
+                "project_ids": project_ids,
+                "response_data": data,
+            },
+        )
         raise SeerApiError("Seer response missing run_id", 500)
     return run_id
 
