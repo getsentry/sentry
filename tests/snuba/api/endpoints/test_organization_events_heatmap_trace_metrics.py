@@ -86,6 +86,7 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
                 "end": 720,
                 "bucketCount": 6,
                 "bucketSize": 100,
+                "logarithmic": False,
             },
             "zAxis": {
                 "name": "count()",
@@ -148,6 +149,7 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
                 "end": 100,
                 "bucketCount": 1,
                 "bucketSize": 0,
+                "logarithmic": False,
             },
             "zAxis": {
                 "name": "count()",
@@ -211,6 +213,7 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
                 "end": 600,
                 "bucketCount": 6,
                 "bucketSize": 100,
+                "logarithmic": False,
             },
             "zAxis": {
                 "name": "count()",
@@ -287,6 +290,73 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
                 "name": "count()",
                 "start": 0,
                 "end": 2,
+            },
+        }
+
+    def test_log_scale_with_min_max_less_than_one(self) -> None:
+        metric_values = [1, 1, 1, 0.5, 0.5, 0.5]
+
+        trace_metrics = []
+        for hour, value in enumerate(metric_values):
+            trace_metrics.append(
+                self.create_trace_metric(
+                    "foo",
+                    value,
+                    "counter",
+                    timestamp=self.start + timedelta(hours=hour),
+                )
+            )
+        self.store_eap_items(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=6),
+                "yAxis": "value",
+                "interval": "1h",
+                "yBuckets": 2,
+                "yLogScale": 10,
+                "query": "metric.name:foo metric.type:counter",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        expected_response = []
+        for time in range(6):
+            for yAxis in range(2):
+                expected_response.append(
+                    {
+                        "xAxis": (self.start.timestamp() + (3600 * time)) * 1000,
+                        "yAxis": 0.5 + 0.25 * yAxis,
+                        "zAxis": 1
+                        if (time < 3 and yAxis == 1) or (time >= 3 and yAxis == 0)
+                        else 0,
+                    }
+                )
+        assert response.data["values"] == expected_response
+        assert response.data["meta"] == {
+            "dataset": "tracemetrics",
+            "xAxis": {
+                "name": "time",
+                "start": self.start.timestamp() * 1000,
+                "end": self.end.timestamp() * 1000,
+                "bucketCount": 6,
+                "bucketSize": 3600,
+            },
+            "yAxis": {
+                "name": "value",
+                "start": 0.5,
+                "end": 1,
+                "bucketCount": 2,
+                "bucketSize": 0.25,
+                # Won't use log since the range is less than 1
+                "logarithmic": False,
+            },
+            "zAxis": {
+                "name": "count()",
+                "start": 0,
+                "end": 1,
             },
         }
 

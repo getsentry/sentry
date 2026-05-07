@@ -29,6 +29,10 @@ class LimitTuple(NamedTuple):
     min_value: float
     max_value: float
 
+    @property
+    def range(self) -> float:
+        return self.max_value - self.min_value
+
 
 class AxisMeta(TypedDict):
     name: str
@@ -117,7 +121,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 if y_log_scale == 1:
                     raise ParseError("logScale cannot be 1")
             else:
-                y_log_scale = None
+                y_log_scale = False
 
             zAxis = request.GET.get("zAxis", "count()")
             if zAxis != "count()":
@@ -161,17 +165,16 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             bucket_ranges = self.query_y_bucket_ranges(snuba_params, dataset, query, yAxis)
             if bucket_ranges.min_value != bucket_ranges.max_value:
                 yAxes = {}
-                if y_log_scale:
+                # Log gets weird when the range is 1 or less
+                use_log_scale: bool = bool(y_log_scale and bucket_ranges.range > 1)
+                if use_log_scale:
                     # log(max - min) / y_buckets = size of each bucket
-                    bucket_size = (
-                        math.log(bucket_ranges.max_value - bucket_ranges.min_value, y_log_scale)
-                        / y_buckets
-                    )
+                    bucket_size = math.log(bucket_ranges.range, y_log_scale) / y_buckets
                 else:
                     # (Max - min)/y_buckets = size of each bucket
-                    bucket_size = (bucket_ranges.max_value - bucket_ranges.min_value) / y_buckets
+                    bucket_size = bucket_ranges.range / y_buckets
                 for current_bucket in range(y_buckets):
-                    if y_log_scale:
+                    if use_log_scale:
                         lower_bound = bucket_ranges.min_value + y_log_scale ** (
                             current_bucket * bucket_size
                         )
@@ -224,15 +227,6 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             else:
                 min_z_value, max_z_value = None, None
 
-            y_axis_meta = AxisMeta(
-                name=yAxis,
-                start=bucket_ranges.min_value,
-                end=bucket_ranges.max_value,
-                bucketCount=y_buckets,
-                bucketSize=bucket_size,
-            )
-            if y_log_scale:
-                y_axis_meta["logarithmic"] = True
             return Response(
                 HeatmapResponse(
                     meta=HeatMapMeta(
@@ -244,7 +238,14 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                             bucketCount=x_buckets,
                             bucketSize=snuba_params.granularity_secs,
                         ),
-                        yAxis=y_axis_meta,
+                        yAxis=AxisMeta(
+                            name=yAxis,
+                            start=bucket_ranges.min_value,
+                            end=bucket_ranges.max_value,
+                            bucketCount=y_buckets,
+                            bucketSize=bucket_size,
+                            logarithmic=use_log_scale,
+                        ),
                         zAxis=AxisMeta(
                             name=zAxis,
                             start=min_z_value,
