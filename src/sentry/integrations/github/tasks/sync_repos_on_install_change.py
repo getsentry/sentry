@@ -14,13 +14,17 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
-from sentry.integrations.source_code_management.sync_repos import bump_org_integration_last_sync
+from sentry.integrations.source_code_management.sync_repos import (
+    DISABLE_ACTIVITY_CUTOFF_DAYS,
+    bump_org_integration_last_sync,
+)
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.utils import metrics
 
 from .link_all_repos import GitHubRepoInputConfig, get_repo_config
 
@@ -89,14 +93,13 @@ def sync_repos_on_install_change(
             organization_id=organization_id,
             provider_key=integration.provider,
         ).capture():
-            _sync_repos_for_org(
+            repos_changed = _sync_repos_for_org(
                 integration=integration,
                 rpc_org=rpc_org,
                 provider=provider,
                 repos_added=repos_added,
                 repos_removed=repos_removed,
             )
-            repos_changed = bool(repos_added or repos_removed)
             bump_org_integration_last_sync(oi.id, repos_changed=repos_changed)
 
 
@@ -107,7 +110,10 @@ def _sync_repos_for_org(
     provider: str,
     repos_added: list[GitHubInstallationRepo],
     repos_removed: list[GitHubInstallationRepo],
-) -> None:
+) -> bool:
+    """Returns True if any repos were created, reactivated, or disabled."""
+    changed = False
+
     if repos_added:
         integration_repo_provider = get_integration_repository_provider(integration)
         repo_configs: list[GitHubRepoInputConfig] = []
@@ -124,6 +130,7 @@ def _sync_repos_for_org(
                     configs=repo_configs, organization=rpc_org
                 )
             )
+            changed = bool(created_repos or reactivated_repos)
 
             for created_repo in created_repos:
                 log_repo_change(
@@ -143,35 +150,71 @@ def _sync_repos_for_org(
                     provider=integration.provider,
                 )
 
-    if repos_removed:
-        # Look up repos before disabling to get their IDs and names
-        external_ids = [str(repo["id"]) for repo in repos_removed]
-        existing_repos = repository_service.get_repositories(
-            organization_id=rpc_org.id,
-            integration_id=integration.id,
-            providers=[provider],
-        )
-        repo_by_eid = {
-            r.external_id: r
-            for r in existing_repos
-            if r.external_id and r.status == ObjectStatus.ACTIVE
-        }
+    if not repos_removed:
+        return changed
 
-        repository_service.disable_repositories_by_external_ids(
+    external_ids = [str(repo["id"]) for repo in repos_removed]
+
+    active_skipped = set(
+        repository_service.find_recently_active_repo_external_ids(
             organization_id=rpc_org.id,
             integration_id=integration.id,
             provider=provider,
             external_ids=external_ids,
+            cutoff_days=DISABLE_ACTIVITY_CUTOFF_DAYS,
+        )
+    )
+    safe_to_disable = [eid for eid in external_ids if eid not in active_skipped]
+
+    if active_skipped:
+        logger.info(
+            "sync_repos_on_install_change.disable_skipped_due_to_activity",
+            extra={
+                "integration_id": integration.id,
+                "organization_id": rpc_org.id,
+                "candidate_count": len(external_ids),
+                "skipped_count": len(active_skipped),
+                "skipped_ids": list(active_skipped),
+                "cutoff_days": DISABLE_ACTIVITY_CUTOFF_DAYS,
+            },
+        )
+        metrics.distribution(
+            "scm.repo_sync_on_install_change.disable_skipped_due_to_activity",
+            len(active_skipped),
+            tags={"provider": integration.provider},
+            sample_rate=1.0,
         )
 
-        for repo in repos_removed:
-            eid = str(repo["id"])
-            sentry_repo = repo_by_eid.get(eid)
-            if sentry_repo:
-                log_repo_change(
-                    event_name="REPO_DISABLED",
-                    organization_id=rpc_org.id,
-                    repo=sentry_repo,
-                    source="GitHub webhook",
-                    provider=integration.provider,
-                )
+    if not safe_to_disable:
+        return changed
+
+    existing_repos = repository_service.get_repositories(
+        organization_id=rpc_org.id,
+        integration_id=integration.id,
+        providers=[provider],
+    )
+    repo_by_eid = {
+        r.external_id: r
+        for r in existing_repos
+        if r.external_id and r.status == ObjectStatus.ACTIVE
+    }
+
+    repository_service.disable_repositories_by_external_ids(
+        organization_id=rpc_org.id,
+        integration_id=integration.id,
+        provider=provider,
+        external_ids=safe_to_disable,
+    )
+
+    for eid in safe_to_disable:
+        sentry_repo = repo_by_eid.get(eid)
+        if sentry_repo:
+            log_repo_change(
+                event_name="REPO_DISABLED",
+                organization_id=rpc_org.id,
+                repo=sentry_repo,
+                source="GitHub webhook",
+                provider=integration.provider,
+            )
+
+    return True
