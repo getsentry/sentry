@@ -4,7 +4,7 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.testutils.cases import OccurrenceTestCase, UptimeResultEAPTestCase
+from sentry.testutils.cases import OccurrenceTestCase, TraceMetricsTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -12,7 +12,7 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 
 
 class OrganizationEventsTraceMetaEndpointTest(
-    OrganizationEventsTraceEndpointBase, OccurrenceTestCase
+    OrganizationEventsTraceEndpointBase, OccurrenceTestCase, TraceMetricsTestCase
 ):
     url_name = "sentry-api-0-organization-trace-meta"
 
@@ -258,6 +258,41 @@ class OrganizationEventsTraceMetaEndpointTest(
                     format="json",
                 )
         assert response.status_code == 400, response.content
+
+    def test_trace_metrics(self) -> None:
+        self.load_trace()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    metric_name="foo",
+                    metric_value=1,
+                    metric_type="counter",
+                    trace_id=self.trace_id,
+                ),
+                self.create_trace_metric(
+                    metric_name="foo",
+                    metric_value=1,
+                    metric_type="counter",
+                    trace_id=self.trace_id,
+                ),
+                self.create_trace_metric(
+                    metric_name="foo",
+                    metric_value=1000,
+                    metric_type="counter",
+                    trace_id=self.trace_id,
+                ),
+            ]
+        )
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["metrics_count"] == 3
 
 
 class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):

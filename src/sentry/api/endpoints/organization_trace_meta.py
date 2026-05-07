@@ -27,6 +27,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_uptime_results_query, _uptime_results_query
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class SerializedResponse(TypedDict, total=False):
     errors: int
     performance_issues: int
     span_count: int
+    metrics_count: int
     transaction_child_count_map: SnubaData
     span_count_map: dict[str, int]
     uptime_checks: int  # Only present when include_uptime is True
@@ -126,7 +128,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             include_all_accessible=True,
         )
 
-    def query_span_data(
+    def query_meta_data(
         self,
         trace_id: str,
         snuba_params: SnubaParams,
@@ -134,6 +136,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         config = SearchResolverConfig(disable_aggregate_extrapolation=True)
         spans_resolver = Spans.get_resolver(snuba_params, config)
         logs_resolver = OurLogs.get_resolver(snuba_params, config)
+        trace_metrics_resolver = TraceMetrics.get_resolver(snuba_params, config)
         return RPCBase.run_bulk_table_queries(
             [
                 TableQuery(
@@ -188,6 +191,19 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                     resolver=logs_resolver,
                     name="logs_meta",
                 ),
+                TableQuery(
+                    query_string=f"trace:{trace_id}",
+                    selected_columns=[
+                        "count(value)",
+                    ],
+                    orderby=None,
+                    offset=0,
+                    limit=1,
+                    referrer=Referrer.API_TRACE_VIEW_TRACE_METRICS_META.value,
+                    sampling_mode=None,
+                    resolver=trace_metrics_resolver,
+                    name="metrics_meta",
+                ),
             ]
         )
 
@@ -212,9 +228,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                 thread_name_prefix=__name__,
                 max_workers=max_workers,
             ) as query_thread_pool:
-                spans_future = query_thread_pool.submit(
-                    self.query_span_data, trace_id, snuba_params
-                )
+                meta_future = query_thread_pool.submit(self.query_meta_data, trace_id, snuba_params)
                 perf_issues_future = query_thread_pool.submit(
                     count_performance_issues, trace_id, snuba_params
                 )
@@ -227,7 +241,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                         _run_uptime_results_query, uptime_query
                     )
 
-            results = spans_future.result()
+            results = meta_future.result()
             perf_issues = perf_issues_future.result()
             errors_count = errors_future.result()
 
@@ -253,6 +267,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             "errors": errors_count,
             "performance_issues": perf_issues,
             "span_count": results["spans_meta"]["data"][0].get("count()") or 0,
+            "metrics_count": results["metrics_meta"]["data"][0].get("count(value)") or 0,
             "transaction_child_count_map": results["transaction_children"]["data"],
             "span_count_map": {
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
