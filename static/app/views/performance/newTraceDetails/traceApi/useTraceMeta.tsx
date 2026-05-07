@@ -70,7 +70,7 @@ function getMetaQueryParams(
 type MetaArg = TraceMeta | EAPTraceMeta | null | undefined;
 type ResponseMetaArg = ResponseTraceMeta | ResponseEAPTraceMeta | null | undefined;
 
-function isEAPTraceMeta(meta: MetaArg): meta is EAPTraceMeta {
+export function isEAPTraceMeta(meta: MetaArg): meta is EAPTraceMeta {
   if (!meta) return false;
   return 'uptimeCount' in meta && !('transactions' in meta);
 }
