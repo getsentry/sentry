@@ -196,7 +196,7 @@ export function useCurrentEventMarklineSeries({
               </Stack>
               <Separator orientation="horizontal" padding="0" />
               <Flex padding="0 lg">
-                <Text size="xs" variant="muted">
+                <Text size="sm" variant="muted">
                   {time}
                 </Text>
               </Flex>
