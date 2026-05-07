@@ -10,7 +10,6 @@ from sentry.dynamic_sampling.per_org.tasks.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.tasks.queries import (
-    EAPProjectTransactionVolumes,
     get_eap_organization_volume,
     get_eap_transaction_volumes,
     run_eap_spans_table_query_in_chunks,
@@ -241,22 +240,20 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         assert volumes == [
-            EAPProjectTransactionVolumes(
-                org_id=organization.id,
-                project_id=project.id,
-                transaction_counts=[("checkout", 3), ("product", 1)],
-                total_num_transactions=4,
-                total_num_classes=2,
-                indexed=3,
-            ),
-            EAPProjectTransactionVolumes(
-                org_id=organization.id,
-                project_id=other_project.id,
-                transaction_counts=[("checkout", 1)],
-                total_num_transactions=1,
-                total_num_classes=1,
-                indexed=1,
-            ),
+            {
+                "org_id": organization.id,
+                "project_id": project.id,
+                "transaction_counts": [("checkout", 3), ("product", 1)],
+                "total_num_transactions": 4,
+                "total_num_classes": 2,
+            },
+            {
+                "org_id": organization.id,
+                "project_id": other_project.id,
+                "transaction_counts": [("checkout", 1)],
+                "total_num_transactions": 1,
+                "total_num_classes": 1,
+            },
         ]
 
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
