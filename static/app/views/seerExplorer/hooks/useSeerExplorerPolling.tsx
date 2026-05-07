@@ -9,9 +9,7 @@ import {
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 /** Checks if session is in a terminal state where the agent is done processing. */
-export const isSessionComplete = (
-  sessionData: SeerExplorerResponse['session'] | undefined
-) =>
+const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
   sessionData &&
   sessionData.status !== 'processing' &&
   sessionData.blocks.every((block: Block) => !block.loading) &&
@@ -35,7 +33,7 @@ const isPolling = (
   if (!runId) {
     return false;
   }
-  return !isSessionComplete(sessionData);
+  return !isResponseComplete(sessionData);
 };
 
 /**
@@ -82,5 +80,6 @@ export const useSeerExplorerPolling = ({
     isError,
     errorStatusCode: error?.status ?? null,
     isPolling: isPolling(runId, apiData?.session, isMutatePending, isError),
+    isResponseComplete: isResponseComplete(apiData?.session),
   };
 };
