@@ -15,6 +15,7 @@ from sentry.analytics.events.user_signup import UserSignUpEvent
 from sentry.auth.exceptions import AuthIdentityUserMismatch
 from sentry.auth.helper import (
     ERR_IDENTITY_CONFLICT,
+    ERR_MERGE_FAILED,
     ERR_USER_SUSPENDED,
     OK_LINK_IDENTITY,
     AuthHelper,
@@ -747,6 +748,77 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert not AuthIdentity.objects.filter(
             auth_provider=self.auth_provider_inst, ident=self.identity["id"]
         ).exists()
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_confirm_unauthenticated_unverified_shows_merge_error(
+        self, mock_render: mock.MagicMock, mock_messages: mock.MagicMock
+    ) -> None:
+        """op=confirm without authentication or email verification shows ERR_MERGE_FAILED."""
+        self.create_user(email=self.email)
+
+        self.request.POST = {"op": "confirm"}
+        response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_messages.add_message.assert_called_once_with(
+            self.request,
+            mock_messages.ERROR,
+            ERR_MERGE_FAILED,
+        )
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_newuser_creates_account_and_identity(self, mock_messages: mock.MagicMock) -> None:
+        """op=newuser creates a new User and links the AuthIdentity to them."""
+        self.request.POST = {"op": "newuser"}
+        self.handler.handle_unknown_identity(self.state)
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+        )
+        assert auth_identity.user.email == self.email
+
+    @mock.patch("sentry.auth.helper.auth")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_login_with_valid_credentials_returns_confirmation(
+        self, mock_render: mock.MagicMock, mock_auth: mock.MagicMock
+    ) -> None:
+        """op=login with valid credentials calls _login and re-shows the confirmation page."""
+        existing_user = self.create_user(email=self.email)
+        mock_auth.login.return_value = True
+
+        mock_form = mock.MagicMock()
+        mock_form.is_valid.return_value = True
+        mock_form.get_user.return_value = existing_user
+
+        self.request.POST = {"op": "login"}
+        with mock.patch.object(
+            type(self.handler), "_login_form", new_callable=lambda: property(lambda s: mock_form)
+        ):
+            response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_auth.login.assert_called_once()
+
+    @mock.patch("sentry.auth.helper.auth")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_login_with_invalid_credentials_returns_confirmation(
+        self, mock_render: mock.MagicMock, mock_auth: mock.MagicMock
+    ) -> None:
+        """op=login with bad credentials logs the failure and re-shows the confirmation page."""
+        self.create_user(email=self.email)
+
+        mock_form = mock.MagicMock()
+        mock_form.is_valid.return_value = False
+
+        self.request.POST = {"op": "login", "username": self.email}
+        with mock.patch.object(
+            type(self.handler), "_login_form", new_callable=lambda: property(lambda s: mock_form)
+        ):
+            response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_auth.log_auth_failure.assert_called_once()
 
 
 @control_silo_test
