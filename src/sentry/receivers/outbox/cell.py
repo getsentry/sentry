@@ -9,7 +9,7 @@ and perform RPC calls to propagate changes to Control Silo.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from django.dispatch import receiver
@@ -33,12 +33,13 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
-from sentry.seer.agent.client_utils import make_agent_chat_request
+from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
 from sentry.seer.autofix.utils import make_autofix_start_request
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
-from sentry.seer.signed_seer_api import make_search_agent_start_request
+from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
+from sentry.utils import json
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -59,13 +60,17 @@ def handle_seer_run_create(
         case SeerRunType.AUTOFIX:
             response = make_autofix_start_request(orjson.dumps(body), viewer_context=viewer_context)
         case SeerRunType.EXPLORER:
-            response = make_agent_chat_request(body, viewer_context=viewer_context)
+            response = make_agent_chat_request(
+                cast(AgentChatRequest, body), viewer_context=viewer_context
+            )
         case SeerRunType.PR_REVIEW:
             # Open question: dispatching a Celery task from an outbox receiver
             # shifts the retry boundary. Deferring PR_REVIEW to a follow-up.
             raise NotImplementedError("PR_REVIEW dispatch not wired yet")
         case SeerRunType.ASSISTED_QUERY:
-            response = make_search_agent_start_request(body, viewer_context=viewer_context)
+            response = make_search_agent_start_request(
+                cast(SearchAgentStartRequest, body), viewer_context=viewer_context
+            )
         case _:
             logger.error(
                 "seer_run_create.unknown_type",
@@ -86,7 +91,19 @@ def handle_seer_run_create(
         )
         return
 
-    data = response.json()
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        # 2xx with malformed body (e.g. proxy maintenance page) won't self-heal
+        # on retry — treat as terminal to avoid head-of-line blocking.
+        run.mirror_status = SeerRunMirrorStatus.FAILED
+        run.save(update_fields=["mirror_status"])
+        logger.warning(
+            "seer_run_create.invalid_json_body",
+            extra={"run_id": run.id, "status": response.status},
+        )
+        return
+
     run_id = data.get("run_id")
     if run_id is None:
         raise RuntimeError("Seer response missing run_id")

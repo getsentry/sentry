@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 from django.utils import timezone
 
@@ -12,6 +13,7 @@ from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils import json
 
 
 class BackfillScmIntegrationConfigReceiverTest(TestCase):
@@ -248,8 +250,23 @@ class HandleSeerRunCreateTest(TestCase):
 
         call_body = mock_request.call_args
         # For autofix the first positional arg is bytes
-        import orjson
-
         sent = orjson.loads(call_body[0][0])
         assert sent["external_idempotency_key"] == str(run.uuid)
         assert sent["key"] == "val"
+
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_2xx_with_malformed_json_marks_failed(self, mock_request: Mock) -> None:
+        response = Mock(status=200)
+        response.json.side_effect = json.JSONDecodeError("Expecting value", "", 0)
+        mock_request.return_value = response
+        run = self._create_run()
+
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload=self._make_payload(),
+            shard_identifier=self.organization.id,
+        )
+
+        run.refresh_from_db()
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
+        assert run.seer_run_state_id is None
