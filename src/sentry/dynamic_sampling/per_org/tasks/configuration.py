@@ -85,6 +85,7 @@ class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
 class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     sample_rate: TargetSampleRate
+    should_balance_projects: bool = True
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
@@ -100,13 +101,10 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def is_enabled(self) -> bool:
         return self.sample_rate is not None
 
-    @property
-    def should_balance_projects(self) -> bool:
-        return True
-
 
 class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfiguration):
     sample_rate: TargetSampleRate
+    should_balance_projects: bool = True
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
@@ -120,13 +118,10 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
     def is_enabled(self) -> bool:
         return True
 
-    @property
-    def should_balance_projects(self) -> bool:
-        return True
-
 
 class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration):
     project_target_sample_rates: ProjectTargetSampleRates
+    should_balance_projects: bool = False
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
