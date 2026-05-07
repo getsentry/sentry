@@ -45,6 +45,7 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
+    should_balance_projects: bool = True
 
     def __init__(self, organization: Organization) -> None:
         self.organization = organization
@@ -61,10 +62,6 @@ class BaseDynamicSamplingConfiguration(ABC):
     @property
     def is_segment_based(self) -> bool:
         return self.measure == SamplingMeasure.SEGMENTS
-
-    @property
-    def should_balance_projects(self) -> bool:
-        return False
 
     def _get_sampling_measure(self) -> SamplingMeasure:
         if options.get("dynamic-sampling.check_span_feature_flag") and self.organization.id in (
@@ -85,7 +82,6 @@ class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
 class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     sample_rate: TargetSampleRate
-    should_balance_projects: bool = True
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
@@ -104,7 +100,6 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
 class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfiguration):
     sample_rate: TargetSampleRate
-    should_balance_projects: bool = True
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
