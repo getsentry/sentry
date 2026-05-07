@@ -3,70 +3,80 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import patch
 
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
+
 from sentry.dynamic_sampling.per_org.tasks.configuration import (
     BaseDynamicSamplingConfiguration,
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.tasks.queries import (
-    get_bottom_eap_transaction_volumes,
     get_eap_organization_volume,
     get_eap_transaction_volumes,
-    get_top_eap_transaction_volumes,
-    run_batched_spans_table_query,
+    run_eap_spans_table_query_in_chunks,
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class BatchedSpansTableQueryTest(TestCase):
-    def test_iterates_query_data_in_offset_batches(self) -> None:
-        calls: list[tuple[int, int]] = []
-        query = {"query_string": "is_transaction:true"}
+class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
+    def test_iterates_query_data_in_offset_chunks(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        other_project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
 
-        def run_table_query(**kwargs):
-            calls.append((kwargs["offset"], kwargs["limit"]))
-            assert kwargs["query_string"] == "is_transaction:true"
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+                self.create_span(
+                    {"is_segment": True},
+                    organization=organization,
+                    project=other_project,
+                    start_ts=timestamp + timedelta(seconds=1),
+                ),
+            ]
+        )
 
-            if kwargs["offset"] == 0:
-                return {"data": [{"transaction": "a"}, {"transaction": "b"}]}
-            return {"data": [{"transaction": "c"}]}
+        batches = list(
+            run_eap_spans_table_query_in_chunks(
+                {
+                    "params": SnubaParams(
+                        start=timestamp - timedelta(minutes=1),
+                        end=timestamp + timedelta(minutes=1),
+                        projects=[project, other_project],
+                        organization=organization,
+                    ),
+                    "query_string": "is_transaction:true",
+                    "selected_columns": ["project.id", "count()", "count_sample()"],
+                    "orderby": ["project.id"],
+                    "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME.value,
+                    "config": SearchResolverConfig(
+                        auto_fields=True,
+                        extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+                    ),
+                    "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
+                },
+                chunk_size=1,
+            )
+        )
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
-            side_effect=run_table_query,
-        ):
-            batches = list(run_batched_spans_table_query(query, 2))
-
-        assert batches == [
-            [{"transaction": "a"}, {"transaction": "b"}],
-            [{"transaction": "c"}],
-        ]
-        assert calls == [(0, 2), (2, 2)]
-
-    def test_stops_after_max_results(self) -> None:
-        calls: list[tuple[int, int]] = []
-        query = {"query_string": "is_transaction:true"}
-
-        def run_table_query(**kwargs):
-            calls.append((kwargs["offset"], kwargs["limit"]))
-
-            if kwargs["offset"] == 0:
-                return {"data": [{"transaction": "a"}, {"transaction": "b"}]}
-            return {"data": [{"transaction": "c"}]}
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
-            side_effect=run_table_query,
-        ):
-            batches = list(run_batched_spans_table_query(query, 2, max_results=3))
-
-        assert batches == [
-            [{"transaction": "a"}, {"transaction": "b"}],
-            [{"transaction": "c"}],
-        ]
-        assert calls == [(0, 2), (2, 1)]
+        assert len(batches) == 2
+        assert [len(batch) for batch in batches] == [1, 1]
+        assert {row["project.id"] for batch in batches for row in batch} == {
+            project.id,
+            other_project.id,
+        }
 
 
 class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
@@ -255,74 +265,4 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert volumes == []
 
-    def test_get_eap_top_and_bottom_transaction_volumes(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        other_project = self.create_project(organization=organization)
-        timestamp = before_now(minutes=15)
 
-        self.store_spans(
-            [
-                self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
-                    organization=organization,
-                    project=project,
-                    start_ts=timestamp,
-                ),
-                self.create_span(
-                    {
-                        "is_segment": True,
-                        "sentry_tags": {"transaction": "checkout"},
-                        "measurements": {"server_sample_rate": {"value": 0.5}},
-                    },
-                    organization=organization,
-                    project=project,
-                    start_ts=timestamp + timedelta(seconds=1),
-                ),
-                self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "product"}},
-                    organization=organization,
-                    project=project,
-                    start_ts=timestamp + timedelta(seconds=2),
-                ),
-                self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "checkout"}},
-                    organization=organization,
-                    project=other_project,
-                    start_ts=timestamp + timedelta(seconds=3),
-                ),
-            ]
-        )
-
-        top_volumes = get_top_eap_transaction_volumes(
-            self.get_config(organization), 1, time_interval=timedelta(hours=1)
-        )
-        bottom_volumes = get_bottom_eap_transaction_volumes(
-            self.get_config(organization), 2, time_interval=timedelta(hours=1)
-        )
-
-        assert top_volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": project.id,
-                "transaction_counts": [("checkout", 3)],
-                "total_num_transactions": 3,
-                "total_num_classes": 1,
-            }
-        ]
-        assert bottom_volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": project.id,
-                "transaction_counts": [("product", 1)],
-                "total_num_transactions": 1,
-                "total_num_classes": 1,
-            },
-            {
-                "org_id": organization.id,
-                "project_id": other_project.id,
-                "transaction_counts": [("checkout", 1)],
-                "total_num_transactions": 1,
-                "total_num_classes": 1,
-            },
-        ]

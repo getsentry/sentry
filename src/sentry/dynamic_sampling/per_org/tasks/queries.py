@@ -38,36 +38,27 @@ def _get_aggregate_float(row: Mapping[str, Any], column: str) -> float:
     return float(row.get(column, 0))
 
 
-def run_batched_spans_table_query(
+def run_eap_spans_table_query_in_chunks(
     query: dict[str, Any],
-    chunk_size: int,
-    max_results: int | None = None,
+    chunk_size: int = 1000,
 ) -> Iterator[list[dict[str, Any]]]:
-    if max_results is not None and max_results <= 0:
-        return
-
     offset = 0
 
     while True:
-        limit = chunk_size
-        if max_results is not None:
-            limit = min(limit, max_results - offset)
-
-        result = Spans.run_table_query(**query, offset=offset, limit=limit)
+        result = Spans.run_table_query(**query, offset=offset, limit=chunk_size + 1)
         data = result.get("data", [])
+        more_results = len(data) > chunk_size
 
-        if not data:
+        if more_results:
+            data = data[:chunk_size]
+
+        if data:
+            yield data
+
+        if not more_results:
             return
 
-        yield data
-
-        offset += len(data)
-
-        if len(data) < limit:
-            return
-
-        if max_results is not None and offset >= max_results:
-            return
+        offset += chunk_size
 
 
 def get_eap_organization_volume(
@@ -142,7 +133,7 @@ def get_eap_transaction_volumes(
     elif order_by_volume == "desc":
         orderby = ["-count()", "project_id", "transaction"]
 
-    batch_iterator = run_batched_spans_table_query(
+    batch_iterator = run_eap_spans_table_query_in_chunks(
         {
             "params": SnubaParams(
                 start=start_time,
@@ -161,9 +152,9 @@ def get_eap_transaction_volumes(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         },
         CHUNK_SIZE,
-        max_results=max_transactions,
     )
 
+    num_transactions = 0
     for batch in batch_iterator:
         for row in batch:
             transaction = row.get("transaction")
@@ -178,6 +169,13 @@ def get_eap_transaction_volumes(
             project_volumes = volumes_by_project[project_id]
             project_volumes.transaction_counts.append((str(transaction), total))
             project_volumes.total_num_transactions += total
+            num_transactions += 1
+
+            if max_transactions is not None and num_transactions >= max_transactions:
+                break
+        else:
+            continue
+        break
 
     return [
         {
@@ -190,28 +188,3 @@ def get_eap_transaction_volumes(
         for project_id, project_volumes in sorted(volumes_by_project.items())
     ]
 
-
-def get_top_eap_transaction_volumes(
-    config: BaseDynamicSamplingConfiguration,
-    max_transactions: int,
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-) -> list[ProjectTransactions]:
-    return get_eap_transaction_volumes(
-        config,
-        time_interval=time_interval,
-        order_by_volume="desc",
-        max_transactions=max_transactions,
-    )
-
-
-def get_bottom_eap_transaction_volumes(
-    config: BaseDynamicSamplingConfiguration,
-    max_transactions: int,
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-) -> list[ProjectTransactions]:
-    return get_eap_transaction_volumes(
-        config,
-        time_interval=time_interval,
-        order_by_volume="asc",
-        max_transactions=max_transactions,
-    )
