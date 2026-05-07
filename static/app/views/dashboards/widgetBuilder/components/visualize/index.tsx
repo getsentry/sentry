@@ -1173,13 +1173,26 @@ export function Visualize({
                     ? t('+ Add Field')
                     : t('+ Add Column')}
               </AddButton>
-              {canShowTraceMetricEquations ? (
+              {datasetConfig.enableEquations && (
                 <AddButton
                   priority="link"
                   disabled={disableTransactionWidget}
                   aria-label={t('Add Equation')}
                   onClick={() => {
-                    onSetEquationMode(true);
+                    if (
+                      state.dataset === WidgetType.TRACEMETRICS &&
+                      canShowTraceMetricEquations
+                    ) {
+                      onSetEquationMode(true);
+                    } else {
+                      dispatch({
+                        type: updateAction,
+                        payload: [
+                          ...(fields ?? []),
+                          {kind: FieldValueKind.EQUATION, field: ''},
+                        ],
+                      });
+                    }
 
                     trackAnalytics('dashboards_views.widget_builder.change', {
                       builder_version: WidgetBuilderVersion.SLIDEOUT,
@@ -1194,35 +1207,6 @@ export function Visualize({
                 >
                   {t('+ Add Equation')}
                 </AddButton>
-              ) : (
-                datasetConfig.enableEquations && (
-                  <AddButton
-                    priority="link"
-                    disabled={disableTransactionWidget}
-                    aria-label={t('Add Equation')}
-                    onClick={() => {
-                      dispatch({
-                        type: updateAction,
-                        payload: [
-                          ...(fields ?? []),
-                          {kind: FieldValueKind.EQUATION, field: ''},
-                        ],
-                      });
-
-                      trackAnalytics('dashboards_views.widget_builder.change', {
-                        builder_version: WidgetBuilderVersion.SLIDEOUT,
-                        field: 'visualize.addEquation',
-                        from: source,
-                        new_widget: !isEditing,
-                        value: '',
-                        widget_type: state.dataset ?? '',
-                        organization,
-                      });
-                    }}
-                  >
-                    {t('+ Add Equation')}
-                  </AddButton>
-                )
               )}
             </AddButtons>
           )}
