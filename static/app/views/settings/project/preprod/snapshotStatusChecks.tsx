@@ -66,17 +66,17 @@ export function SnapshotStatusChecks() {
     onMutate: data => {
       const previousProject = currentProject;
       queryClient.setQueryData(projectQueryKey, prev => {
-        return prev ? {...prev, json: {...prev.json, ...data}} : undefined;
+        return prev ? {...prev, json: {...prev.json, ...data}} : prev;
       });
       return () => {
         queryClient.setQueryData(projectQueryKey, prev => {
-          return prev ? {...prev, json: previousProject} : undefined;
+          return prev ? {...prev, json: previousProject} : prev;
         });
       };
     },
     onSuccess: response => {
       queryClient.setQueryData(projectQueryKey, prev => {
-        return prev ? {...prev, json: response} : undefined;
+        return prev ? {...prev, json: response} : prev;
       });
     },
     onError: (_error, _variables, rollback) => {
