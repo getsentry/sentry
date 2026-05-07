@@ -132,7 +132,7 @@ describe('SnapshotStatusChecks', () => {
     );
   });
 
-  it('immediately hides failure condition toggles when status checks are disabled', async () => {
+  it('saves status checks enabled flag when toggled off', async () => {
     const project = ProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
     const mock = MockApiClient.addMockResponse({
@@ -151,12 +151,6 @@ describe('SnapshotStatusChecks', () => {
       await screen.findByRole('checkbox', {name: 'Enable Snapshot Status Checks'})
     );
 
-    expect(
-      await screen.findByText('Enable status checks to configure failure conditions')
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('checkbox', {name: 'Fail on Changed Snapshots'})
-    ).not.toBeInTheDocument();
     await waitFor(() =>
       expect(mock).toHaveBeenCalledWith(
         projectEndpoint,

@@ -7,9 +7,7 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {getSnapshotStatusChecks} from './getSnapshotStatusChecks';
@@ -31,16 +29,10 @@ type SnapshotStatusCheckField = {
 };
 
 export function SnapshotStatusChecks() {
-  const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const {data: detailedProject} = useDetailedProject(
-    {orgSlug: organization.slug, projectSlug: project.slug},
-    {enabled: false}
-  );
   const {mutateAsync: updateProject} = useUpdateProject(project);
-  const currentProject = detailedProject ?? project;
   const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
-    getSnapshotStatusChecks(currentProject);
+    getSnapshotStatusChecks(project);
 
   const projectMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Schema>) => updateProject(data),
