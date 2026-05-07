@@ -75,6 +75,7 @@ import {
   StyledChevronButton,
   TraceIconStyleWrapper,
 } from 'sentry/views/explore/logs/styles';
+import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/tables/useOurLogsPinning.tsx';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -171,6 +172,7 @@ export const LogRowContent = memo(function LogRowContent({
   const logsPinning = useLogsPinning();
   const isHoverLinked = logsPinning.hoveringRow === rowId;
   const isPinned = logsPinning.pinnedRows.has(rowId);
+  const logsPinningEnabled = useOurLogsPinningEnabled();
 
   const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(isPinned);
 
@@ -381,7 +383,7 @@ export const LogRowContent = memo(function LogRowContent({
         </LogsTableBodyFirstCell>
         {fields?.map((field, index) => {
           const pin =
-            index === fields.length - 1 ? (
+            logsPinningEnabled && index === fields.length - 1 ? (
               <PinActionButton
                 aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
                 icon={<IconPin isSolid={isPinned} size="xs" />}

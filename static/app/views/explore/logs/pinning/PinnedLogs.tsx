@@ -9,6 +9,7 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/tables/useOurLogsPinning.tsx';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
@@ -21,6 +22,7 @@ export function PinnedLogs({allRows, renderRow}: Props) {
   const logsPinning = useLogsPinning();
   const [expanded, setExpanded] = useState(true);
   const pinsCount = logsPinning.pinnedRows.size;
+  const enabled = useOurLogsPinningEnabled();
 
   useEffect(() => {
     if (!pinsCount) {
@@ -28,7 +30,7 @@ export function PinnedLogs({allRows, renderRow}: Props) {
     }
   }, [pinsCount]);
 
-  if (!pinsCount) {
+  if (!enabled || !pinsCount) {
     return null;
   }
 
