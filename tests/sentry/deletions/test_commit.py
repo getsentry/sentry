@@ -6,7 +6,6 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.defaults.commit import CommitDeletionTask
 from sentry.models.commit import Commit
 from sentry.models.commitcomparison import CommitComparison
-from sentry.models.groupcommitresolution import GroupCommitResolution
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupreaction import GroupReaction, GroupReactionType
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
@@ -98,14 +97,6 @@ class CommitDeletionTaskTest(TestCase):
         commits_to_delete = self._get_filtered_commits()
         assert head_commit not in commits_to_delete
         assert base_commit not in commits_to_delete
-
-    def test_get_query_filter_does_not_select_commit_resolving_group(self) -> None:
-        """Test that commits in GroupCommitResolution are NOT selected"""
-        commit = self._create_old_commit()
-        group = self.create_group(project=self.project)
-        GroupCommitResolution.objects.create(group_id=group.id, commit_id=commit.id)
-        commits_to_delete = self._get_filtered_commits()
-        assert commit not in commits_to_delete
 
     def test_get_query_filter_does_not_select_latest_repo_commit(self) -> None:
         """Test that commits in LatestRepoReleaseEnvironment are NOT selected"""

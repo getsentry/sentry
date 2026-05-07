@@ -60,7 +60,6 @@ DIRECT_GROUP_RELATED_MODELS = (
     # XXX: We could remove GroupHash from here since we call delete_group_hashes() in the _delete_children() method.
     models.GroupHash,
     models.GroupAssignee,
-    models.GroupCommitResolution,
     models.GroupLink,
     models.GroupHistory,
     models.GroupBookmark,

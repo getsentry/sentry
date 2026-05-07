@@ -1131,7 +1131,6 @@ module = [
     "sentry.models.files.*",
     "sentry.models.group",
     "sentry.models.groupbookmark",
-    "sentry.models.groupcommitresolution",
     "sentry.models.groupemailthread",
     "sentry.models.groupenvironment",
     "sentry.models.grouphash",

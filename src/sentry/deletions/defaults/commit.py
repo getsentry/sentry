@@ -16,13 +16,11 @@ class CommitDeletionTask(ModelDeletionTask[Commit]):
         2. Not referenced by any ReleaseHeadCommit (not a head commit of any release)
         3. Not referenced by any GroupReaction (not reacted to by any group)
         4. Not referenced by any CommitComparison (not part of any comparison)
-        5. Not referenced by any GroupCommitResolution (not resolving any group)
-        6. Not referenced by any GroupLink (not linked to any group)
-        7. Not referenced by any LatestRepoReleaseEnvironment.commit_id
-        8. Older than 90 days
+        5. Not referenced by any GroupLink (not linked to any group)
+        6. Not referenced by any LatestRepoReleaseEnvironment.commit_id
+        7. Older than 90 days
         """
         from sentry.models.commitcomparison import CommitComparison
-        from sentry.models.groupcommitresolution import GroupCommitResolution
         from sentry.models.grouplink import GroupLink
         from sentry.models.groupreaction import GroupReaction
         from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
@@ -42,9 +40,6 @@ class CommitDeletionTask(ModelDeletionTask[Commit]):
         commitcomparison_base_exists = Exists(
             CommitComparison.objects.filter(base_commit_id=OuterRef("id"))
         )
-        groupcommitresolution_exists = Exists(
-            GroupCommitResolution.objects.filter(commit_id=OuterRef("id"))
-        )
         grouplink_exists = Exists(
             GroupLink.objects.filter(
                 project__organization_id=OuterRef("organization_id"),
@@ -62,7 +57,6 @@ class CommitDeletionTask(ModelDeletionTask[Commit]):
             | groupreaction_exists
             | commitcomparison_head_exists
             | commitcomparison_base_exists
-            | groupcommitresolution_exists
             | grouplink_exists
             | latestrepo_exists
         )

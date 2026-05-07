@@ -40,7 +40,6 @@ from .files import *  # NOQA
 from .group import *  # NOQA
 from .groupassignee import *  # NOQA
 from .groupbookmark import *  # NOQA
-from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
 from .grouphash import *  # NOQA
