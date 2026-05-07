@@ -6,7 +6,10 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
-from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.slack.views.link_identity import (
+    SUCCESS_LINKED_MESSAGE,
+    build_linking_url,
+)
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, install_slack
@@ -215,6 +218,43 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         self.client.post(linking_url)
 
         mock_apply_async.assert_not_called()
+
+    def test_standard_flow_does_not_replace_original(self) -> None:
+        """When response_url comes from linking URL params (e.g. issue card flow),
+        the webhook must NOT replace the original message."""
+        linking_url = build_linking_url(
+            self.integration, self.external_id, self.channel_id, self.response_url
+        )
+        self.client.post(linking_url)
+
+        self.mock_webhook.assert_called_once()
+        _, kwargs = self.mock_webhook.call_args
+        assert kwargs["replace_original"] is False
+
+    def test_stashed_flow_replaces_original(self) -> None:
+        """When response_url comes from the stashed button click cache,
+        the webhook should replace the original ephemeral."""
+        from sentry.integrations.slack.views.link_identity import (
+            stash_link_identity_response_url,
+        )
+
+        stashed_url = "https://hooks.slack.com/actions/stashed/url"
+        stash_link_identity_response_url(
+            integration_id=self.integration.id,
+            slack_user_id=self.external_id,
+            response_url=stashed_url,
+        )
+
+        linking_url = build_linking_url(
+            self.integration, self.external_id, self.channel_id, self.response_url
+        )
+        self.client.post(linking_url)
+
+        self.mock_webhook.assert_called_once_with(
+            text=SUCCESS_LINKED_MESSAGE,
+            replace_original=True,
+            response_type="ephemeral",
+        )
 
     def test_overwrites_existing_identities_with_sdk(self) -> None:
         external_id_2 = "slack-id2"

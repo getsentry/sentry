@@ -55,6 +55,7 @@ class SlackIdentityLinkageView(SlackLinkageView, IdentityLinkageView, ABC):
             integration,
             external_id,
             params.get("response_url"),
+            replace_original=bool(params.get("replace_original")),
         )
 
     @property

@@ -105,6 +105,7 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
         notify_params = {**params}
         if stashed_response_url:
             notify_params["response_url"] = stashed_response_url
+            notify_params["replace_original"] = True
 
         super().notify_on_success(external_id, notify_params, integration)
 
