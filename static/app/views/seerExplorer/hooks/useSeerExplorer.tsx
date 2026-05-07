@@ -339,6 +339,7 @@ export const useSeerExplorer = () => {
     }
   >({
     mutationFn: async params => {
+      setHasSentInterrupt(true);
       return fetchMutation({
         url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
         method: 'POST',
@@ -348,9 +349,6 @@ export const useSeerExplorer = () => {
           },
         },
       });
-    },
-    onSuccess: () => {
-      setHasSentInterrupt(true);
     },
     onError: () => {
       addErrorMessage('Failed to interrupt');
@@ -478,11 +476,11 @@ export const useSeerExplorer = () => {
   );
 
   const interruptRun = useCallback(() => {
-    if (!orgSlug || !runId || hasSentInterrupt) {
+    if (!orgSlug || !runId) {
       return;
     }
     interruptRunMutate({orgSlug, runId});
-  }, [orgSlug, runId, hasSentInterrupt, interruptRunMutate]);
+  }, [orgSlug, runId, interruptRunMutate]);
 
   const respondToUserInput = useCallback(
     (inputId: string, responseData?: Record<string, any>) => {
