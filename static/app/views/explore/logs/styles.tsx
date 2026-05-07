@@ -66,6 +66,25 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     }
   }
 
+  &[data-row-pinned='true']:not(thead > &) {
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
+  }
+
+  &[data-row-hover-linked='true']:not(thead > &) {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.active};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
+  }
+
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
@@ -122,7 +141,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 2px ${p => p.theme.space.xl};
+    padding: 2px ${p => p.theme.space.md};
   }
 `;
 
@@ -543,5 +562,18 @@ export const TraceIconStyleWrapper = styled(Flex)`
     width: 12px;
     height: 12px;
     fill: #ffffff;
+  }
+`;
+
+export const PinActionButton = styled(Button)<{isPinned: boolean}>`
+  position: absolute;
+  right: calc(-1 * var(--logsPinButtonArea));
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition: opacity 0.1s;
+  z-index: 1;
+
+  ${LogTableRow}:focus-within,
+  ${LogTableRow}:hover & {
+    opacity: 1;
   }
 `;

@@ -332,11 +332,13 @@ export enum ActionTriggerType {
 }
 
 type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
+  pin?: React.ReactNode;
   triggerType?: ActionTriggerType;
   usePortalOnDropdown?: boolean;
 };
 
 export function CellAction({
+  pin,
   triggerType = ActionTriggerType.BOLD_HOVER,
   allowActions,
   usePortalOnDropdown,
@@ -412,12 +414,16 @@ export function CellAction({
         ) : (
           children
         )}
+        {pin}
       </Container>
     );
   }
 
   return (
-    <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
+    <Container
+      containsPin={!!pin}
+      data-test-id={cellActions === null ? undefined : 'cell-action-container'}
+    >
       {children}
       {cellActions?.length && (
         <DropdownMenu
@@ -446,13 +452,18 @@ export function CellAction({
           )}
         />
       )}
+      {pin}
     </Container>
   );
 }
 
-const Container = styled('div')`
+const Container = styled('div')<{containsPin?: boolean}>`
+  --logsPinButtonArea: 2rem;
   position: relative;
-  width: 100%;
+  width: ${p =>
+    p.containsPin
+      ? `calc(100% - var(--logsPinButtonArea) + ${p.theme.space.md})`
+      : `100%`};
   height: 100%;
   display: flex;
   flex-direction: column;

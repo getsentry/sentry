@@ -45,6 +45,8 @@ import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
+import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
+import {LogsPinningProvider} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -477,7 +479,7 @@ export function LogsInfiniteTable({
   }
 
   return (
-    <Fragment>
+    <LogsPinningProvider>
       <LogTable
         ref={tableRef}
         style={initialTableStyles}
@@ -495,6 +497,34 @@ export function LogsInfiniteTable({
             stringAttributes={stringAttributes}
             booleanAttributes={booleanAttributes}
             onResizeMouseDown={onResizeMouseDown}
+          />
+        )}
+        {!isPending && (
+          <PinnedLogs
+            allRows={data}
+            // TODO: This is a lot of copy & paste!
+            // I'd like to refactor the components to be more shared.
+            // TBD.
+            renderRow={dataRow => {
+              const pinnedId = dataRow[OurLogKnownFieldKey.ID];
+              const pinnedExpandKey = `pinned-${pinnedId}`;
+              return (
+                <LogRowContent
+                  dataRow={dataRow}
+                  meta={meta}
+                  highlightTerms={highlightTerms}
+                  embedded={false}
+                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                  expansionKey={pinnedExpandKey}
+                  onExpand={handleExpand}
+                  onCollapse={handleCollapse}
+                  isExpanded={expandedLogRows.has(pinnedExpandKey)}
+                  onExpandHeight={handleExpandHeight}
+                  logStart={logStart}
+                  logEnd={logEnd}
+                />
+              );
+            }}
           />
         )}
         <LogTableBody
@@ -537,6 +567,9 @@ export function LogsInfiniteTable({
             if (!dataRow) {
               return null;
             }
+
+            const rowId = dataRow[OurLogKnownFieldKey.ID];
+
             return (
               <Fragment key={virtualRow.key}>
                 <LogRowContent
@@ -546,12 +579,13 @@ export function LogsInfiniteTable({
                   embedded={embedded}
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                  expansionKey={rowId}
                   key={virtualRow.key}
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}
                   logEnd={logEnd}
-                  isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
+                  isExpanded={expandedLogRows.has(rowId)}
                   onExpandHeight={handleExpandHeight}
                 />
               </Fragment>
@@ -592,7 +626,7 @@ export function LogsInfiniteTable({
           <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBottomContainer>
-    </Fragment>
+    </LogsPinningProvider>
   );
 }
 
