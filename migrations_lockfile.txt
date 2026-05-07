@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0010_drop_legacy_columns
 
-sentry: 1083_remove_dashboardlastvisited
+sentry: 1084_delete_dashboardlastvisited
 
 social_auth: 0003_social_auth_json_field
 

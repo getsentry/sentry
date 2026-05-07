@@ -674,22 +674,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for expanding the unreal report in the endpoint rather than during processing.
-register(
-    "relay.unreal-report-expansion.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for fetching project configs in the minidump endpoint.
-register(
-    "relay.minidump-endpoint-fetch-config.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch for fetching projects in the endpoints.
 register(
     "relay.endpoint-fetch-config.enabled",
@@ -3298,6 +3282,18 @@ register(
     "spans.buffer.flusher.flush-lock-ttl",
     type=Int,
     default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, done_flush_segments uses Lua scripts to conditionally clean up
+# segments only if their state hasn't changed since the flush started: Phase 1
+# ZREMs the queue entry only if the score is unchanged, and Phase 2 deletes the
+# per-segment data keys (hrs, ic, ibc) only if the ingested count is unchanged.
+# When False, both phases unconditionally remove queue entries and delete data
+# keys for every flushed segment.
+register(
+    "spans.buffer.done-flush-conditional-zrem",
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

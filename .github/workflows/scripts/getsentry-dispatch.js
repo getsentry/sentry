@@ -11,6 +11,10 @@ const DISPATCHES = [
     workflow: 'backend.yml',
     pathFilterName: 'backend_all',
   },
+  {
+    workflow: 'acceptance.yml',
+    pathFilterName: 'gsapp',
+  },
 ];
 
 export async function dispatch({
@@ -27,7 +31,14 @@ export async function dispatch({
 
   const dispatches =
     targetWorkflow !== undefined
-      ? [{workflow: targetWorkflow, pathFilterName: 'backend_all'}]
+      ? [
+          {
+            workflow: targetWorkflow,
+            pathFilterName:
+              DISPATCHES.find(d => d.workflow === targetWorkflow)?.pathFilterName ??
+              'backend_all',
+          },
+        ]
       : DISPATCHES;
 
   await Promise.all(
