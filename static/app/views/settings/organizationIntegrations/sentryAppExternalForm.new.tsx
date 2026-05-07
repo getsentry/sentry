@@ -774,13 +774,37 @@ export function SentryAppExternalFormNew({
         setFormInitialValues(mergedFormValues);
         setExternalDefaultValues(updatedDefaultValues);
         setFormVersion(version => version + 1);
+      } catch (error) {
+        addErrorMessage(t('Unable to load dependent options.'));
+        Sentry.captureException(error, {
+          tags: {
+            sentry_app: appName,
+            form_element: element,
+            form_action: action,
+          },
+          extra: {
+            sentryAppInstallationUuid,
+            configUri: config.uri,
+            impactedFields: impactedFields.map(field => field.name),
+          },
+        });
       } finally {
         if (requestVersion === dependentFetchVersionRef.current) {
           setIsFetchingDependentFields(false);
         }
       }
     },
-    [externalDefaultValues, fetchFieldChoices, fieldGroups, triggerFieldNames]
+    [
+      action,
+      appName,
+      config.uri,
+      element,
+      externalDefaultValues,
+      fetchFieldChoices,
+      fieldGroups,
+      sentryAppInstallationUuid,
+      triggerFieldNames,
+    ]
   );
 
   const choicesByField = useMemo(() => {
