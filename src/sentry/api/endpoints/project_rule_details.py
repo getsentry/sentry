@@ -18,6 +18,7 @@ from sentry.api.endpoints.project_rules import (
     find_duplicate_rule,
 )
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
@@ -30,7 +31,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
-from sentry.constants import ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
@@ -127,6 +128,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+    )
     def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
         ## Deprecated
@@ -190,6 +195,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+    )
     def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
         ## Deprecated
@@ -367,6 +376,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         },
     )
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+    )
     def delete(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
         ## Deprecated

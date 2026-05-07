@@ -46,6 +46,8 @@ def instrumented_task(
     at_most_once: bool = False,
     wait_for_delivery: bool = False,
     compression_type: CompressionType = CompressionType.PLAINTEXT,
+    report_timeout_errors: bool = True,
+    silenced_exceptions: tuple[type[BaseException], ...] | None = None,
     silo_mode: SiloMode | None = None,
     **kwargs,
 ) -> Callable[[Callable[P, R]], Task[P, R]]:
@@ -110,6 +112,10 @@ def instrumented_task(
         before returning.
     compression_type : CompressionType
         The compression type to use to compress the task parameters.
+    report_timeout_errors : bool
+        Enable reporting of ProcessingDeadlineExceededError to Sentry.
+    silenced_exceptions : tuple[type[BaseException], ...] | None
+        A tuple of exception types that will not be reported by Sentry.
     silo_mode : SiloMode | None
         The silo that the task will run in. This should be the silo that the task was called from.
     """
@@ -123,6 +129,8 @@ def instrumented_task(
             at_most_once=at_most_once,
             wait_for_delivery=wait_for_delivery,
             compression_type=compression_type,
+            report_timeout_errors=report_timeout_errors,
+            silenced_exceptions=silenced_exceptions,
         )(func)
 
         if silo_mode:
@@ -144,6 +152,8 @@ def instrumented_task(
                 at_most_once=at_most_once,
                 wait_for_delivery=wait_for_delivery,
                 compression_type=compression_type,
+                report_timeout_errors=report_timeout_errors,
+                silenced_exceptions=silenced_exceptions,
             )(func)
 
             if silo_mode:

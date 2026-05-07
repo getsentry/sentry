@@ -6,6 +6,7 @@ from typing import Any
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
 from taskbroker_client.retry import Retry, retry_task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
 from sentry.locks import locks
@@ -15,7 +16,7 @@ from sentry.models.project import Project
 from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker import namespaces
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
@@ -37,10 +38,9 @@ logger = log_context.get_logger(__name__)
     name="sentry.workflow_engine.tasks.process_workflow_activity",
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=60,
-    retry=Retry(times=3, delay=5),
+    retry=Retry(times=3, delay=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
     """
     Process a workflow task identified by the given activity, group, and detector.
@@ -89,14 +89,25 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     name="sentry.workflow_engine.tasks.process_workflows_event",
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=60,
-    retry=Retry(times=3, delay=5),
+    retry=Retry(
+        times=3,
+        delay=5,
+        on=(Exception, ProcessingDeadlineExceeded),
+        ignore=(
+            EventNotFoundError,
+            Group.DoesNotExist,
+            Project.DoesNotExist,
+            ProjectNotActiveError,
+        ),
+    ),
     silo_mode=SiloMode.CELL,
-)
-@retry(
-    timeouts=True,
-    exclude=EventNotFoundError,
-    ignore=(Group.DoesNotExist, Project.DoesNotExist, ProjectNotActiveError),
-    on_silent=DataConditionGroup.DoesNotExist,
+    silenced_exceptions=(
+        EventNotFoundError,
+        DataConditionGroup.DoesNotExist,
+        Group.DoesNotExist,
+        Project.DoesNotExist,
+        ProjectNotActiveError,
+    ),
 )
 def process_workflows_event(
     event_id: str,

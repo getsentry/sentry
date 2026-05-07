@@ -1582,7 +1582,6 @@ class TestUpdateSeerProjectSettings(TestCase):
             "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
         )
         self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
         update_seer_project_settings(self.project, {"agent": AutomationCodingAgent.SEER})
 

@@ -971,52 +971,68 @@ class SpansBuffer:
             segment_key_list = list(segment_keys.items())
 
             segments_to_skip: set[SegmentKey] = set()
+            conditional_flush = options.get("spans.buffer.done-flush-conditional-zrem")
 
-            # Phase 1: Conditional ZREM on queue slot.
-            # Only remove queue entry if score hasn't changed (no new spans
-            # updated the deadline). This is an optimization to skip early.
-            done_flush_sha = self._ensure_done_flush_script()
-            with self.client.pipeline(transaction=False) as p:
-                for segment_key, flushed_segment in segment_key_list:
-                    p.execute_command(
-                        "EVALSHA",
-                        done_flush_sha,
-                        1,
-                        flushed_segment.queue_key,
-                        segment_key,
-                        flushed_segment.score,
-                    )
-                zrem_results = p.execute()
+            # Phase 1: ZREM on queue slot. When the option is enabled, the Lua
+            # script only removes the queue entry if the score hasn't changed
+            # (no new spans updated the deadline) - segments that fail this
+            # check are skipped from the rest of the cleanup. When disabled,
+            # we unconditionally ZREM every segment.
+            if conditional_flush:
+                done_flush_sha = self._ensure_done_flush_script()
+                with self.client.pipeline(transaction=False) as p:
+                    for segment_key, flushed_segment in segment_key_list:
+                        p.execute_command(
+                            "EVALSHA",
+                            done_flush_sha,
+                            1,
+                            flushed_segment.queue_key,
+                            segment_key,
+                            flushed_segment.score,
+                        )
+                    zrem_results = p.execute()
 
-            for (segment_key, _), was_removed in zip(segment_key_list, zrem_results):
-                if not was_removed:
-                    segments_to_skip.add(segment_key)
+                for (segment_key, _), was_removed in zip(segment_key_list, zrem_results):
+                    if not was_removed:
+                        segments_to_skip.add(segment_key)
+            else:
+                with self.client.pipeline(transaction=False) as p:
+                    for segment_key, flushed_segment in segment_key_list:
+                        p.zrem(flushed_segment.queue_key, segment_key)
+                    p.execute()
 
-            # Phase 2: Conditional data deletion on segment slot.
-            # Even if Phase 1 succeeded, new spans may have arrived between
-            # ZREM and now. The Lua script atomically checks ingested count
-            # and only deletes data if unchanged. This is atomic with
-            # add-buffer.lua on the same {project_id:trace_id} slot,
-            # so it cannot interleave with process_spans.
-            done_flush_data_sha = self._ensure_done_flush_data_script()
-            with self.client.pipeline(transaction=False) as p:
-                # Only run Phase 2 for segments that passed Phase 1
-                phase2_keys = [
-                    (sk, fs) for sk, fs in segment_key_list if sk not in segments_to_skip
-                ]
-                for segment_key, flushed_segment in phase2_keys:
-                    p.execute_command(
-                        "EVALSHA",
-                        done_flush_data_sha,
-                        1,
-                        segment_key,
-                        flushed_segment.ingested_count,
-                    )
-                data_delete_results = p.execute()
+            # Phase 2: Data deletion on segment slot. When the option is
+            # enabled, the Lua script atomically checks ingested count and
+            # only deletes the per-segment data keys (hrs, ic, ibc) if the
+            # count is unchanged - this is atomic with add-buffer.lua on the
+            # same {project_id:trace_id} slot so it cannot interleave with
+            # process_spans, and segments that fail this check are skipped.
+            # When disabled, we unconditionally delete those data keys for
+            # every segment that passed Phase 1.
+            phase2_keys = [(sk, fs) for sk, fs in segment_key_list if sk not in segments_to_skip]
+            if conditional_flush:
+                done_flush_data_sha = self._ensure_done_flush_data_script()
+                with self.client.pipeline(transaction=False) as p:
+                    for segment_key, flushed_segment in phase2_keys:
+                        p.execute_command(
+                            "EVALSHA",
+                            done_flush_data_sha,
+                            1,
+                            segment_key,
+                            flushed_segment.ingested_count,
+                        )
+                    data_delete_results = p.execute()
 
-            for (segment_key, _), was_deleted in zip(phase2_keys, data_delete_results):
-                if not was_deleted:
-                    segments_to_skip.add(segment_key)
+                for (segment_key, _), was_deleted in zip(phase2_keys, data_delete_results):
+                    if not was_deleted:
+                        segments_to_skip.add(segment_key)
+            else:
+                with self.client.pipeline(transaction=False) as p:
+                    for segment_key, _ in phase2_keys:
+                        p.delete(b"span-buf:hrs:" + segment_key)
+                        p.delete(b"span-buf:ic:" + segment_key)
+                        p.delete(b"span-buf:ibc:" + segment_key)
+                    p.execute()
 
             skipped = len(segments_to_skip)
             if skipped:

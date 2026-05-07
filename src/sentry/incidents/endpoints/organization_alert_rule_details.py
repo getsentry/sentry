@@ -15,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import (
@@ -25,6 +26,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
+from sentry.constants import ALERTS_API_DEPRECATION_DATE
 from sentry.incidents.endpoints.bases import WorkflowEngineOrganizationAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
@@ -385,6 +387,10 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
         examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+    )
     @_check_project_access
     def get(
         self, request: Request, organization: Organization, alert_rule: AlertRule | Detector
@@ -418,6 +424,10 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
         examples=MetricAlertExamples.UPDATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-alert-rule-details")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+    )
     @_check_project_access
     def put(
         self, request: Request, organization: Organization, alert_rule: AlertRule | Detector
@@ -454,6 +464,10 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
         },
     )
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-organization-alert-rule-details")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+    )
     @_check_project_access
     def delete(
         self, request: Request, organization: Organization, alert_rule: AlertRule | Detector
