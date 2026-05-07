@@ -144,7 +144,7 @@ export const useSeerExplorer = () => {
     query: string;
     timestampMs: number;
   } | null>(null);
-  const [waitingForInterrupt, setWaitingForInterrupt] = useState(false);
+  const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   // Queries and mutations
@@ -163,7 +163,7 @@ export const useSeerExplorer = () => {
     }
   >({
     mutationFn: async params => {
-      setWaitingForInterrupt(false);
+      setHasSentInterrupt(false);
       const queryKey = makeSeerExplorerQueryKey(params.orgSlug, params.runId);
 
       // Optimistic processing status to prevent isPolling flicker.
@@ -200,7 +200,6 @@ export const useSeerExplorer = () => {
       }
     },
     onError: (e, params) => {
-      setWaitingForInterrupt(false);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
         // Will be fixed soon when we get rid of setApiQueryData.
@@ -230,7 +229,7 @@ export const useSeerExplorer = () => {
     }
   >({
     mutationFn: async params => {
-      setWaitingForInterrupt(false);
+      setHasSentInterrupt(false);
 
       // Optimistic processing status to prevent isPolling flicker.
       if (params.runId !== null) {
@@ -262,7 +261,6 @@ export const useSeerExplorer = () => {
       });
     },
     onError: (e, params) => {
-      setWaitingForInterrupt(false);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
 
@@ -288,7 +286,7 @@ export const useSeerExplorer = () => {
     {orgSlug: string; runId: number | null; repoName?: string}
   >({
     mutationFn: async params => {
-      setWaitingForInterrupt(false);
+      setHasSentInterrupt(false);
 
       // Optimistic processing status to prevent isPolling flicker.
       if (params.runId !== null) {
@@ -319,7 +317,6 @@ export const useSeerExplorer = () => {
       });
     },
     onError: (e, params) => {
-      setWaitingForInterrupt(false);
       addErrorMessage(
         typeof e.responseJSON?.detail === 'string'
           ? e.responseJSON.detail
@@ -341,6 +338,7 @@ export const useSeerExplorer = () => {
     }
   >({
     mutationFn: async params => {
+      setHasSentInterrupt(true);
       return fetchMutation({
         url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
         method: 'POST',
@@ -352,18 +350,16 @@ export const useSeerExplorer = () => {
       });
     },
     onError: () => {
-      setWaitingForInterrupt(false);
       addErrorMessage('Failed to interrupt');
     },
   });
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {apiData, isPolling, isError, errorStatusCode, isResponseComplete} =
-    useSeerExplorerPolling({
-      runId,
-      isMutatePending,
-    });
+  const {apiData, isPolling, isError, errorStatusCode} = useSeerExplorerPolling({
+    runId,
+    isMutatePending,
+  });
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -375,7 +371,7 @@ export const useSeerExplorer = () => {
       // Set the new run ID and clear previous request states
       setRunId(newRunId);
       setLastSentMessage(null);
-      setWaitingForInterrupt(false);
+      setHasSentInterrupt(false);
 
       // Invalidate the query to force a fresh fetch
       if (orgSlug && newRunId !== null) {
@@ -479,12 +475,11 @@ export const useSeerExplorer = () => {
   );
 
   const interruptRun = useCallback(() => {
-    if (!orgSlug || !runId || waitingForInterrupt) {
+    if (!orgSlug || !runId) {
       return;
     }
-    setWaitingForInterrupt(true);
     interruptRunMutate({orgSlug, runId});
-  }, [orgSlug, runId, waitingForInterrupt, interruptRunMutate]);
+  }, [orgSlug, runId, interruptRunMutate]);
 
   const respondToUserInput = useCallback(
     (inputId: string, responseData?: Record<string, any>) => {
@@ -527,13 +522,6 @@ export const useSeerExplorer = () => {
 
     previousPRStatesRef.current = currentPRStates;
   }, [apiData?.session?.repo_pr_states]);
-
-  // Clear interrupt button loading spinner on any completed state
-  useEffect(() => {
-    if (isResponseComplete) {
-      setWaitingForInterrupt(false);
-    }
-  }, [isResponseComplete]);
 
   const rawSessionData = apiData?.session ?? null;
 
@@ -617,7 +605,7 @@ export const useSeerExplorer = () => {
     /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
     startNewSession,
     interruptRun,
-    waitingForInterrupt,
+    hasSentInterrupt,
     respondToUserInput,
     createPR,
     overrideCtxEngEnable,

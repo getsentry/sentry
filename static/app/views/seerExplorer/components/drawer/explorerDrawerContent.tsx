@@ -68,7 +68,7 @@ export function ExplorerDrawerContent({
     respondToUserInput,
     createPR,
     interruptRun,
-    waitingForInterrupt,
+    hasSentInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
     setOverrideCodeModeEnable,
@@ -310,15 +310,23 @@ export function ExplorerDrawerContent({
     return;
   }, []);
 
-  // - Keyboard listeners -----------------------------------------------------
-
   // Update block refs array when blocks change
   useEffect(() => {
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
-  // - Deep link effect -------------------------------------------------------
+  // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
+
+  // Interrupt button and placeholder state
+  const interruptState =
+    isPolling && hasSentInterrupt
+      ? 'requested'
+      : isPolling
+        ? 'can-interrupt'
+        : hasSentInterrupt
+          ? 'completed'
+          : 'disabled';
 
   return (
     <DrawerContentContainer data-seer-explorer-root="">
@@ -404,8 +412,7 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        canInterrupt={isPolling && sessionData !== null}
-        waitingForInterrupt={waitingForInterrupt}
+        interruptState={interruptState}
         isMinimized={false} // Drawer doesn't have a minimized state
         isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}
