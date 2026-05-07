@@ -13,6 +13,13 @@ describe('ClaudeCodeIntegrationCta', () => {
     features: ['integrations-claude-code'],
   });
 
+  function mockDetailedProject(detailedProject = project) {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${detailedProject.slug}/`,
+      body: detailedProject,
+    });
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
@@ -118,6 +125,7 @@ describe('ClaudeCodeIntegrationCta', () => {
 
   describe('Stage 2: Integration Installed but Not Configured', () => {
     beforeEach(() => {
+      mockDetailedProject();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         body: {
@@ -209,6 +217,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       const projectUpdateMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
@@ -256,6 +265,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      mockDetailedProject(projectWithoutAutomation);
 
       const updatedProject = {
         ...projectWithoutAutomation,
@@ -370,6 +380,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      mockDetailedProject(projectWithoutAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithoutAutomation} />, {
         organization,
@@ -423,6 +434,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
         organization,
@@ -440,6 +452,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
         organization,

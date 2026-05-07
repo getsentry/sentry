@@ -11,6 +11,13 @@ describe('CursorIntegrationCta', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture();
 
+  function mockDetailedProject(detailedProject = project) {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${detailedProject.slug}/`,
+      body: detailedProject,
+    });
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
@@ -96,6 +103,7 @@ describe('CursorIntegrationCta', () => {
 
   describe('Stage 2: Integration Installed but Not Configured', () => {
     beforeEach(() => {
+      mockDetailedProject();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         body: {
@@ -187,6 +195,7 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      mockDetailedProject(projectWithoutAutomation);
 
       const updatedProject = {
         ...projectWithoutAutomation,
@@ -271,6 +280,7 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       const projectUpdateMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
@@ -353,6 +363,7 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
+      mockDetailedProject(projectWithoutAutomation);
 
       render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
         organization,
@@ -409,6 +420,7 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,
@@ -426,6 +438,7 @@ describe('CursorIntegrationCta', () => {
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
+      mockDetailedProject(projectWithAutomation);
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,

@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -47,18 +48,23 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
       organizationIntegrationsCodingAgents(organization)
     );
-    const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
-
+    const hasFeatureFlag =
+      !config.featureFlag || organization.features.includes(config.featureFlag);
     const integration = codingAgentIntegrations?.integrations.find(
       i => i.provider === config.provider
     );
-
-    const hasFeatureFlag =
-      !config.featureFlag || organization.features.includes(config.featureFlag);
     const hasIntegration = Boolean(integration);
+    const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
+    const {data: detailedProject, isFetching: isLoadingProject} = useDetailedProject(
+      {
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+      },
+      {enabled: hasFeatureFlag && hasIntegration}
+    );
     const isAutomationEnabled =
-      project.seerScannerAutomation !== false &&
-      project.autofixAutomationTuning !== 'off';
+      detailedProject?.seerScannerAutomation !== false &&
+      detailedProject?.autofixAutomationTuning !== 'off';
     const isConfigured =
       preference?.automation_handoff?.target === config.target && isAutomationEnabled;
 
@@ -86,8 +92,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       });
 
       const isAutomationDisabled =
-        project.seerScannerAutomation === false ||
-        project.autofixAutomationTuning === 'off';
+        detailedProject?.seerScannerAutomation === false ||
+        detailedProject?.autofixAutomationTuning === 'off';
 
       if (isAutomationDisabled) {
         await updateProjectAutomation({
@@ -111,7 +117,12 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       return null;
     }
 
-    if (isLoadingPreferences || isLoadingIntegrations || isUpdatingPreferences) {
+    if (
+      isLoadingPreferences ||
+      isLoadingIntegrations ||
+      isLoadingProject ||
+      isUpdatingPreferences
+    ) {
       return (
         <Container
           padding="xl"
