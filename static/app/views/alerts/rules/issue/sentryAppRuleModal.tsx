@@ -10,10 +10,17 @@ import SentryAppExternalForm, {
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 import {SentryAppExternalFormNew} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
 
+type OnSubmitSuccess = (
+  response: any,
+  instance?: unknown,
+  id?: string,
+  change?: {new: unknown; old: unknown}
+) => void;
+
 type Props = ModalRenderProps & {
   appName: string;
   config: SchemaFormConfig;
-  onSubmitSuccess: React.ComponentProps<typeof SentryAppExternalForm>['onSubmitSuccess'];
+  onSubmitSuccess: OnSubmitSuccess;
   resetValues: Record<string, any>;
   sentryAppInstallationUuid: string;
 };
@@ -29,9 +36,7 @@ export function SentryAppRuleModal({
 }: Props) {
   const organization = useOrganization();
   const useNewForm = organization.features.includes('sentry-app-schema-form-migration');
-  const handleSubmitSuccess: React.ComponentProps<
-    typeof SentryAppExternalForm
-  >['onSubmitSuccess'] = (...params) => {
+  const handleSubmitSuccess: OnSubmitSuccess = (...params) => {
     onSubmitSuccess(...params);
     closeModal();
   };
@@ -55,11 +60,7 @@ export function SentryAppRuleModal({
             }
             element="alert-rule-action"
             action="create"
-            onSubmitSuccess={
-              handleSubmitSuccess as React.ComponentProps<
-                typeof SentryAppExternalFormNew
-              >['onSubmitSuccess']
-            }
+            onSubmitSuccess={handleSubmitSuccess}
             resetValues={{settings: resetValues?.settings}}
           />
         ) : (
