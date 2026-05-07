@@ -190,15 +190,15 @@ def _circuit_breaker_allows_request(
         "organizations:sentry-app-webhook-circuit-breaker-live-run",
         owner_org,
     )
+    metrics.incr(
+        "sentry_app.webhook.circuit_breaker.would_block",
+        tags={"slug": sentry_app.slug, "live_run": live_run},
+    )
+    logger.warning(
+        "sentry_app.webhook.circuit_breaker.would_block",
+        extra={"slug": sentry_app.slug, "org_id": org_id, "live_run": live_run},
+    )
     if not live_run:
-        metrics.incr(
-            "sentry_app.webhook.circuit_breaker.would_block",
-            tags={"slug": sentry_app.slug},
-        )
-        logger.warning(
-            "sentry_app.webhook.circuit_breaker.would_block",
-            extra={"slug": sentry_app.slug, "org_id": org_id},
-        )
         return True
 
     lifecycle.record_halt(
