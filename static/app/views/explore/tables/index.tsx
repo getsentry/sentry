@@ -12,11 +12,11 @@ import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsCrossEvents,

@@ -10,7 +10,7 @@ import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/conte
 import {
   useSpanItemAttributes,
   useTraceItemDatasetAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');

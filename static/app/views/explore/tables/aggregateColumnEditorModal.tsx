@@ -47,10 +47,10 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import type {
   AggregateField,

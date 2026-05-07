@@ -7,7 +7,7 @@ import {
   extractBaseKey,
   shouldRemoveAttributeKey,
   useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('extractBaseKey', () => {
