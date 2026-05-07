@@ -890,38 +890,13 @@ class SlackActionEndpoint(Endpoint):
         return self.respond()
 
     def handle_link_identity(self, slack_request: SlackActionRequest) -> Response:
-        """
-        Stash the response_url from the LINK_IDENTITY button click on the existing
-        pending-mention cache entry, so the post-link flow can update the original
-        ephemeral halt message via response_url + replace_original=true.
-        """
-        from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
-        from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
-        from sentry.seer.entrypoints.types import SeerEntrypointKey
-
-        entrypoint_key = str(SeerEntrypointKey.SLACK)
-        integration_id = slack_request.integration.id
-        user_ext_id = slack_request.user_id
         response_url = slack_request.response_url
-
-        if not user_ext_id or not response_url:
-            return self.respond()
-
-        pending = SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
-            entrypoint_key=entrypoint_key,
-            integration_id=integration_id,
-            user_ext_id=user_ext_id,
-        )
-        if pending is None:
-            return self.respond()
-
-        pending["response_url"] = response_url
-        SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
-            entrypoint_key=entrypoint_key,
-            integration_id=integration_id,
-            user_ext_id=user_ext_id,
-            cache_payload=pending,
-        )
+        if response_url:
+            try:
+                webhook_client = WebhookClient(response_url)
+                webhook_client.send(delete_original=True)
+            except (SlackApiError, SlackRequestError):
+                pass
         return self.respond()
 
 

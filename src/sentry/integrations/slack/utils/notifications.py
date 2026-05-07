@@ -484,16 +484,11 @@ def respond_to_slack_command(
     def log_msg(tag: str) -> str:
         return f"{command_response.log_key}.{tag}"
 
-    if response_url and thread_ts and channel_id:
+    if thread_ts and channel_id:
         _logger.info(
             log_msg("respond-thread"),
             extra={"response_url": response_url, "channel_id": channel_id, "thread_ts": thread_ts},
         )
-        try:
-            webhook_client = WebhookClient(response_url)
-            webhook_client.send(delete_original=True)
-        except (SlackApiError, SlackRequestError) as e:
-            _logger.info(log_msg("error"), extra={"error": str(e)})
         try:
             client = SlackSdkClient(integration_id=integration.id)
             client.chat_postEphemeral(

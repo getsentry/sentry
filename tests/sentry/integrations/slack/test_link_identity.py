@@ -152,7 +152,6 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
             message_ts="123.456",
             event_type="app_mention",
             message_text="hello",
-            response_url=None,
         )
         SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
             entrypoint_key=str(SeerEntrypointKey.SLACK),
@@ -166,9 +165,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
         self.client.post(linking_url)
 
-        expected_kwargs = {k: v for k, v in cached_payload.items() if k != "response_url"}
-        mock_apply_async.assert_called_once_with(kwargs=expected_kwargs)
-        assert self.mock_webhook.call_count == 1
+        mock_apply_async.assert_called_once_with(kwargs=dict(cached_payload))
         assert (
             SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
                 entrypoint_key=str(SeerEntrypointKey.SLACK),
@@ -186,7 +183,6 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
         from sentry.seer.entrypoints.types import SeerEntrypointKey
 
-        click_response_url = "https://hooks.slack.com/actions/T1/2/click-token"
         cached_payload = SlackPendingMentionPayload(
             payload={"method": "POST", "path": "/extensions/slack/event/"},
             integration_id=self.integration.id,
@@ -196,7 +192,6 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
             message_ts="123.456",
             event_type="app_mention",
             message_text="hello",
-            response_url=click_response_url,
         )
         SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
             entrypoint_key=str(SeerEntrypointKey.SLACK),

@@ -82,8 +82,6 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
             "thread_ts": cached["thread_ts"],
             "channel_id": cached["channel_id"],
         }
-        if cached.get("response_url"):
-            notify_params["response_url"] = cached["response_url"]
         super().notify_on_success(external_id, notify_params, integration)
 
         route_slack_seer_event.apply_async(
