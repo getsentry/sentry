@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
+import {z} from 'zod';
 
 import {
   OrganizationAvatar,
@@ -10,6 +11,7 @@ import {
   UserAvatar,
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -536,6 +538,25 @@ export function GlobalCommandPaletteActions() {
                 display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
                 keywords={item.keywords}
                 to={item.path}
+                schema={
+                  item.id === 'security-and-privacy'
+                    ? {
+                        description: 'Navigate to the Security & Privacy settings page.',
+                        parameters: z.object({}),
+                        onExecute: () =>
+                          navigate(item.path.replace(':orgId', organization.slug)),
+                        component: () => (
+                          <LinkButton
+                            size="xs"
+                            variant="primary"
+                            to={item.path.replace(':orgId', organization.slug)}
+                          >
+                            Security & Privacy
+                          </LinkButton>
+                        ),
+                      }
+                    : undefined
+                }
               />
             ))}
           <Hook name="cmdk:global-settings-actions" />

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -29,7 +29,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+import type {UiToolSource} from 'sentry/components/commandPalette/ui/cmdk';
 import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
+import type {ResolvedUiTool} from 'sentry/views/seerExplorer/hooks/useUiTools';
 import {
   buildToolLinkUrl,
   getExplorerUrl,
@@ -43,6 +45,8 @@ interface BlockProps {
   block: Block;
   blockIndex: number;
   getPageReferrer?: () => string;
+  resolveUiTool?: (key: string, args: Record<string, unknown>, name?: string) => ResolvedUiTool | null;
+  uiToolSource?: UiToolSource;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
   isLatestTodoBlock?: boolean;
@@ -137,6 +141,8 @@ export function BlockComponent({
   block,
   blockIndex,
   runId,
+  resolveUiTool,
+  uiToolSource,
   getPageReferrer,
   isAwaitingFileApproval,
   isAwaitingQuestion,
@@ -151,6 +157,43 @@ export function BlockComponent({
   const organization = useOrganization();
   const navigate = useNavigate();
   const {projects} = useProjects();
+
+  const resolvedUiTools = useMemo(() => {
+    const map = new Map<string, ResolvedUiTool>();
+    if (!resolveUiTool) {
+      return map;
+    }
+    const toolResults = block.tool_results || [];
+    const toolLinks = block.tool_links || [];
+    for (let i = 0; i < toolResults.length; i++) {
+      const result = toolResults[i];
+      const link = toolLinks[i];
+      if (result?.tool_call_id && link?.params?.ui_tool === true) {
+        const resolved = resolveUiTool(
+          link.params.key,
+          link.params.arguments ?? {},
+          link.params.tool_name
+        );
+        if (resolved) {
+          map.set(result.tool_call_id, resolved);
+        }
+      }
+    }
+    return map;
+  }, [block.tool_results, block.tool_links, resolveUiTool]);
+
+  const executedRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (block.loading || uiToolSource !== 'active') {
+      return;
+    }
+    for (const [toolCallId, resolved] of resolvedUiTools) {
+      if (!executedRef.current.has(toolCallId)) {
+        executedRef.current.add(toolCallId);
+        resolved.execute();
+      }
+    }
+  }, [block.loading, uiToolSource, resolvedUiTools]);
 
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
@@ -386,13 +429,19 @@ export function BlockComponent({
                       }
                     };
 
+                    const uiToolResolved = toolLinkParams?.ui_tool
+                      ? resolvedUiTools.get(toolCall.id)
+                      : undefined;
+
                     return (
                       <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
                         <ToolCallTextContainer>
                           <ToolStatusSlot>
                             {idx === 0 && <BlockStatusIndicator status={blockStatus} />}
                           </ToolStatusSlot>
-                          {hasLink ? (
+                          {uiToolResolved?.component ? (
+                            uiToolResolved.component
+                          ) : hasLink ? (
                             <ToolCallLink
                               to={toolUrl ?? ''}
                               onClick={handleToolLinkClick}

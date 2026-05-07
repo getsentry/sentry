@@ -21,6 +21,7 @@ import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {useUiTools} from 'sentry/views/seerExplorer/hooks/useUiTools';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
@@ -55,6 +56,9 @@ export function ExplorerDrawerContent({
     textareaRef.current?.focus();
   }, []);
 
+  // - UI tools ----------------------------------------------------------------
+  const {uiToolsJson, resolveUiTool} = useUiTools();
+
   // - Session data and mutators ----------------------------------------------
   const {
     runId,
@@ -62,7 +66,7 @@ export function ExplorerDrawerContent({
     isPolling,
     isError,
     errorStatusCode,
-    sendMessage,
+    sendMessage: sendMessageRaw,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -74,6 +78,13 @@ export function ExplorerDrawerContent({
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
+  const sendMessage = useCallback(
+    (query: string, insertIndex?: number, explicitRunId?: number | null) => {
+      sendMessageRaw(query, insertIndex, explicitRunId, uiToolsJson);
+    },
+    [sendMessageRaw, uiToolsJson]
+  );
+
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
     sessionData.owner_user_id !== null &&
@@ -83,6 +94,18 @@ export function ExplorerDrawerContent({
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+
+  // Track how many blocks were present on first load to distinguish history
+  // blocks (already existed) from active blocks (arrived during this session).
+  const initialBlockCountRef = useRef<number | null>(null);
+  if (initialBlockCountRef.current === null && blocks.length > 0) {
+    initialBlockCountRef.current = blocks.length;
+  }
+  const prevRunIdRef = useRef(runId);
+  if (prevRunIdRef.current !== runId) {
+    prevRunIdRef.current = runId;
+    initialBlockCountRef.current = null;
+  }
 
   // Auto-submit the initial query forwarded from the command palette, but only
   // if the session is still empty (don't clobber an active run). Tracking the
@@ -371,6 +394,13 @@ export function ExplorerDrawerContent({
                   block={block}
                   blockIndex={index}
                   runId={runId ?? undefined}
+                  resolveUiTool={resolveUiTool}
+                  uiToolSource={
+                    initialBlockCountRef.current !== null &&
+                    index < initialBlockCountRef.current
+                      ? 'history'
+                      : 'active'
+                  }
                   getPageReferrer={getPageReferrer}
                   isAwaitingFileApproval={isFileApprovalPending}
                   isAwaitingQuestion={isQuestionPending}

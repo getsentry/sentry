@@ -406,6 +406,14 @@ export function getToolsStringFromBlock(block: Block): string[] {
 
   for (const tool of toolCalls) {
     const toolLink = toolLinkByCallId.get(tool.id) ?? null;
+
+    if (toolLink?.params?.ui_tool === true) {
+      const toolName = toolLink.params.tool_name ?? tool.function;
+      const label = toolName.replace(/_/g, ' ');
+      tools.push(isLoading ? `Navigating to ${label}...` : `Navigated to ${label}`);
+      continue;
+    }
+
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {

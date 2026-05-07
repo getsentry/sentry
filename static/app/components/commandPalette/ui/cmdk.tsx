@@ -1,5 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
+import type {z} from 'zod';
 
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import type {CMDKQueryOptions} from 'sentry/components/commandPalette/types';
@@ -22,11 +23,21 @@ interface DisplayProps {
   trailingItem?: React.ReactNode;
 }
 
+export type UiToolSource = 'history' | 'active';
+
+export interface CMDKActionSchema<T extends z.ZodType = z.ZodType> {
+  description: string;
+  onExecute: (args: z.output<T>) => void;
+  parameters: T;
+  component?: (args: z.output<T>) => React.ReactNode;
+}
+
 interface CMDKActionDataBase {
   display: DisplayProps;
   keywords?: string[];
   limit?: number;
   ref?: React.RefObject<HTMLElement | null>;
+  schema?: CMDKActionSchema;
 }
 
 interface CMDKActionDataTo extends CMDKActionDataBase {
@@ -85,6 +96,7 @@ interface CMDKActionProps<TData = unknown> {
   onAction?: () => void;
   prompt?: string;
   resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
+  schema?: CMDKActionSchema;
   to?: LocationDescriptor;
 }
 
@@ -150,6 +162,7 @@ export function CMDKAction<TData = unknown>({
   prompt,
   resource,
   limit,
+  schema,
 }: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
 
@@ -161,9 +174,9 @@ export function CMDKAction<TData = unknown>({
   const nodeData: CMDKActionData<TData> =
     to === undefined
       ? onAction === undefined
-        ? {display, keywords, ref, resource, prompt, limit: effectiveLimit}
-        : {display, keywords, ref, onAction, limit: effectiveLimit}
-      : {display, keywords, ref, to, limit: effectiveLimit};
+        ? {display, keywords, ref, resource, prompt, limit: effectiveLimit, schema}
+        : {display, keywords, ref, onAction, limit: effectiveLimit, schema}
+      : {display, keywords, ref, to, limit: effectiveLimit, schema};
 
   const key = CMDKCollection.useRegisterNode(nodeData, id);
   const {query, action: navAction} = useCommandPaletteState();

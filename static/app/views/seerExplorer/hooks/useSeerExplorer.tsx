@@ -161,6 +161,7 @@ export const useSeerExplorer = () => {
       query: string;
       runId: number | null;
       screenshot: string | undefined;
+      uiTools: string | null;
     }
   >({
     mutationFn: async params => {
@@ -178,6 +179,7 @@ export const useSeerExplorer = () => {
           page_name: params.pageName,
           override_ce_enable: params.overrideCtxEngEnable,
           override_code_mode_enable: params.overrideCodeModeEnable,
+          ...(params.uiTools ? {ui_tools: params.uiTools} : {}),
         },
       });
     },
@@ -358,7 +360,12 @@ export const useSeerExplorer = () => {
   const startNewSession = useCallback(() => switchToRun(null), [switchToRun]);
 
   const sendMessage = useCallback(
-    (query: string, insertIndex?: number, explicitRunId?: number | null) => {
+    (
+      query: string,
+      insertIndex?: number,
+      explicitRunId?: number | null,
+      uiToolsJson?: string | null
+    ) => {
       if (!orgSlug) {
         return;
       }
@@ -438,6 +445,7 @@ export const useSeerExplorer = () => {
         screenshot,
         overrideCtxEngEnable,
         overrideCodeModeEnable,
+        uiTools: uiToolsJson ?? null,
       });
     },
     [
