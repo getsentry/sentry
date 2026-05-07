@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
 import {InlineCode} from '@sentry/scraps/code';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -76,12 +76,12 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
               </Flex>
             </Stack>
             <Separator orientation="horizontal" padding="0" />
-            <Container padding="0 lg">
+            <Flex padding="0 lg">
               <Text size="xs" variant="muted">
                 {time}
                 {event?.dateCreated && suffix}
               </Text>
-            </Container>
+            </Flex>
           </Stack>
         );
       },
