@@ -19,6 +19,7 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
 
   return (
     <Stack padding="xl" gap="md">
+      <Text>{t('Loader Script')}</Text>
       <Text size="sm" variant="muted">
         {tct(
           'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
