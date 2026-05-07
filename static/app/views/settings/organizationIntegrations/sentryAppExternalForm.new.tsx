@@ -7,7 +7,7 @@ import {
   type ComponentProps,
 } from 'react';
 import * as Sentry from '@sentry/react';
-import {queryOptions, useMutation} from '@tanstack/react-query';
+import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -296,6 +296,7 @@ export function SentryAppExternalFormNew({
   resetValues,
 }: Props) {
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
   const serializedExtraFields = JSON.stringify(extraFields ?? {});
   const serializedExtraRequestBody = JSON.stringify(extraRequestBody ?? {});
   const serializedResetValues = JSON.stringify(resetValues ?? {});
@@ -375,17 +376,32 @@ export function SentryAppExternalFormNew({
         query.dependentData = JSON.stringify(dependentData);
       }
 
-      const response = await api.requestPromise(
-        `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
-        {query}
-      );
+      const response = await queryClient.fetchQuery({
+        queryKey: [
+          'sentry-app-external-request',
+          sentryAppInstallationUuid,
+          field.uri,
+          query,
+        ],
+        queryFn: () =>
+          api.requestPromise(
+            `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
+            {query}
+          ),
+      });
 
       return {
         choices: Array.isArray(response?.choices) ? (response.choices as Choices) : [],
         defaultValue: response?.defaultValue,
       };
     },
-    [api, normalizedExtraRequestBody, normalizedResetValues, sentryAppInstallationUuid]
+    [
+      api,
+      normalizedExtraRequestBody,
+      normalizedResetValues,
+      queryClient,
+      sentryAppInstallationUuid,
+    ]
   );
 
   useEffect(() => {
