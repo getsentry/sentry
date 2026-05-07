@@ -4,11 +4,11 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
@@ -127,6 +127,8 @@ export function Table({
   eventView,
   theme,
 }: Props) {
+  const {openModal} = useModal();
+
   const [widths, setWidths] = useState<number[]>([]);
   const [transactionData, setTransactionData] = useState<TransactionData>();
   const [tableMetricSet, setTableMetricSet] = useState(false);
