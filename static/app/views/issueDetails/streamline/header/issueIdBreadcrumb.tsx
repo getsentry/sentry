@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
 import {IconCopy, IconGlobe} from 'sentry/icons';
@@ -25,6 +25,8 @@ interface ShortIdBreadcrumbProps {
 }
 
 export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const [isHovered, setIsHovered] = useState(false);
   const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
