@@ -184,11 +184,6 @@ export default function SnapshotsPage() {
   );
   const breakpoints = useBreakpoints();
   const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
-  useEffect(() => {
-    if (!breakpoints.sm && diffMode === 'split') {
-      setDiffMode('wipe');
-    }
-  }, [breakpoints.sm, diffMode, setDiffMode]);
   const [viewMode, setViewMode] = useQueryState(
     'view',
     parseAsStringLiteral(['list', 'single'] as const)

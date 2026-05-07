@@ -523,7 +523,7 @@ function SingleViewLayout({
           <Container
             flexShrink={0}
             onClick={e => e.stopPropagation()}
-            display={{'2xs': 'none', xs: 'none', sm: 'block'}}
+            display={{'2xs': 'none', sm: 'block'}}
           >
             <NavGutter>
               <Tooltip title={t('Previous (↑)')} skipWrapper>
@@ -712,33 +712,16 @@ function DiffModeToggle({
     });
   };
 
-  if (!breakpoints.sm) {
-    return (
-      <SegmentedControl size="xs" value={diffMode} onChange={handleChange}>
-        <SegmentedControl.Item
-          key="wipe"
-          icon={<IconInput />}
-          aria-label={t('Wipe')}
-          tooltip={t('Wipe')}
-        />
-        <SegmentedControl.Item
-          key="onion"
-          icon={<IconStack />}
-          aria-label={t('Onion')}
-          tooltip={t('Onion')}
-        />
-      </SegmentedControl>
-    );
-  }
-
   return (
     <SegmentedControl size="xs" value={diffMode} onChange={handleChange}>
-      <SegmentedControl.Item
-        key="split"
-        icon={<IconPause />}
-        aria-label={t('Split')}
-        tooltip={t('Split')}
-      />
+      {breakpoints.sm ? (
+        <SegmentedControl.Item
+          key="split"
+          icon={<IconPause />}
+          aria-label={t('Split')}
+          tooltip={t('Split')}
+        />
+      ) : null}
       <SegmentedControl.Item
         key="wipe"
         icon={<IconInput />}
