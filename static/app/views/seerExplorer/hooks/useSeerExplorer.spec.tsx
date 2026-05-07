@@ -222,23 +222,74 @@ describe('useSeerExplorer', () => {
     });
   });
 
-  describe('startNewSession', () => {
-    it('resets session state', () => {
+  describe('switching sessions', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'GET',
         body: {session: null},
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/456/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+    });
+
+    it('startNewSession resets session state', async () => {
+      sessionStorage.setItem('seer-explorer-run-id', JSON.stringify(123));
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
       });
 
-      act(() => {
+      await act(async () => {
+        result.current.sendMessage('Test query');
+        result.current.interruptRun();
         result.current.startNewSession();
+        // Flush interrupt mutation
+        await Promise.resolve();
       });
 
       expect(result.current.runId).toBeNull();
+      expect(result.current.waitingForInterrupt).toBe(false);
+      expect(result.current.hasSentMessage).toBe(false);
+    });
+
+    it('switchToRun sets runId and resets session state', async () => {
+      sessionStorage.setItem('seer-explorer-run-id', JSON.stringify(123));
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      await act(async () => {
+        result.current.sendMessage('Test query');
+        result.current.interruptRun();
+        result.current.switchToRun(456);
+        // Flush interrupt mutation
+        await Promise.resolve();
+      });
+
+      expect(result.current.runId).toBe(456);
+      expect(result.current.waitingForInterrupt).toBe(false);
+      expect(result.current.hasSentMessage).toBe(false);
     });
   });
 
@@ -727,6 +778,39 @@ describe('useSeerExplorer', () => {
       });
 
       expect(getMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('hasSentMessage', () => {
+    it('returns true when a message has been sent', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'GET',
+        body: {session: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      expect(result.current.hasSentMessage).toBe(false);
+
+      await act(async () => {
+        result.current.sendMessage('Test');
+        await Promise.resolve();
+      });
+
+      expect(result.current.hasSentMessage).toBe(true);
     });
   });
 });
