@@ -674,22 +674,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for expanding the unreal report in the endpoint rather than during processing.
-register(
-    "relay.unreal-report-expansion.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for fetching project configs in the minidump endpoint.
-register(
-    "relay.minidump-endpoint-fetch-config.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch for fetching projects in the endpoints.
 register(
     "relay.endpoint-fetch-config.enabled",
