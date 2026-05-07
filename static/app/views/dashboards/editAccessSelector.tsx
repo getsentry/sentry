@@ -67,16 +67,11 @@ export function EditAccessSelector({
     const teamIdsList: string[] = Object.values(teamsToRender).map(team => team.id);
     return !defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone
       ? ['_creator', '_allUsers', ...teamIdsList]
-      : [
-          '_creator',
-          ...(dashboard.permissions.teamsWithEditAccess?.map(teamId => String(teamId)) ??
-            []),
-        ];
+      : ['_creator', ...(dashboard.permissions.teamsWithEditAccess?.map(String) ?? [])];
   }, [dashboard.permissions, teamsToRender]);
 
   const [pendingOptions, setPendingOptions] = useState<string[] | null>(null);
   const selectedOptions = pendingOptions ?? derivedOptions;
-  const setSelectedOptions = setPendingOptions;
 
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] = useState(false);
@@ -123,7 +118,7 @@ export function EditAccessSelector({
       }
     }
 
-    setSelectedOptions(newSelectedValues);
+    setPendingOptions(newSelectedValues);
   };
 
   // Creates a permissions object based on the options selected
@@ -314,10 +309,9 @@ export function EditAccessSelector({
       onOpenChange={newOpenState => {
         if (newOpenState) {
           trackAnalytics('dashboards2.edit_access.start', {organization});
-        } else {
-          setPendingOptions(null);
         }
 
+        setPendingOptions(null);
         setMenuOpen(newOpenState);
       }}
       menuFooter={
