@@ -7,7 +7,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {Repository} from 'sentry/types/integrations';
 
 import type {ScmInstallation} from './scmRepositoryTable';
-import {ScmRepositoryTable} from './scmRepositoryTable';
+import {InstallationOverrideProvider, ScmRepositoryTable} from './scmRepositoryTable';
 
 // `useVirtualizer` only renders rows whose computed bounding rect overlaps
 // the scroll container. Without a stub it sees a 0×0 viewport and renders
@@ -111,21 +111,15 @@ describe('ScmRepositoryTable', () => {
       render(
         <ScmRepositoryTable
           provider={provider}
-          installations={[makeInstallation()]}
-          onUninstall={onUninstall}
-          onSettings={onSettings}
+          installations={[makeInstallation({onUninstall, onSettings})]}
         />
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Integration settings'}));
-      expect(onSettings).toHaveBeenCalledWith(
-        expect.objectContaining({integration: expect.anything()})
-      );
+      expect(onSettings).toHaveBeenCalled();
 
       await userEvent.click(screen.getByRole('button', {name: 'Uninstall'}));
-      expect(onUninstall).toHaveBeenCalledWith(
-        expect.objectContaining({integration: expect.anything()})
-      );
+      expect(onUninstall).toHaveBeenCalled();
     });
 
     it('shows a manage repositories link when manageUrl is provided', () => {
@@ -178,8 +172,10 @@ describe('ScmRepositoryTable', () => {
       render(
         <ScmRepositoryTable
           provider={provider}
-          installations={[makeInstallation(), second]}
-          onUninstall={jest.fn()}
+          installations={[
+            makeInstallation({onUninstall: jest.fn()}),
+            {...second, onUninstall: jest.fn()},
+          ]}
         />
       );
 
@@ -285,28 +281,69 @@ describe('ScmRepositoryTable', () => {
       expect(await screen.findByText('Repositories not yet synced.')).toBeInTheDocument();
     });
 
-    it('calls onInstallationSync when Sync now is clicked', async () => {
-      const onInstallationSync = jest.fn();
+    it('renders the sync button via onSync when Sync now is clicked', async () => {
+      const onSync = jest.fn();
       render(
         <ScmRepositoryTable
           provider={provider}
-          installations={[makeInstallation()]}
-          onInstallationSync={onInstallationSync}
+          installations={[makeInstallation({onSync})]}
         />
       );
 
       await userEvent.hover(screen.getByText('3 repositories'));
       await userEvent.click(await screen.findByRole('button', {name: 'Sync now'}));
-      expect(onInstallationSync).toHaveBeenCalledTimes(1);
+      expect(onSync).toHaveBeenCalledTimes(1);
     });
 
-    it('hides the Sync now button when onInstallationSync is not provided', async () => {
+    it('hides the sync button when onSync is not provided', async () => {
       render(
         <ScmRepositoryTable provider={provider} installations={[makeInstallation()]} />
       );
 
       await userEvent.hover(screen.getByText('3 repositories'));
       await screen.findByText('Repositories not yet synced.');
+      expect(screen.queryByRole('button', {name: 'Sync now'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('installationWrapper', () => {
+    it('injects overrides via InstallationOverrideProvider', async () => {
+      const onSync = jest.fn();
+
+      render(
+        <ScmRepositoryTable
+          provider={provider}
+          installations={[makeInstallation()]}
+          installationWrapper={({children}) => (
+            <InstallationOverrideProvider value={{isSyncing: false, onSync}}>
+              {children}
+            </InstallationOverrideProvider>
+          )}
+        />
+      );
+
+      await userEvent.hover(screen.getByText('3 repositories'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Sync now'}));
+      expect(onSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows syncing state when isSyncing override is true', async () => {
+      render(
+        <ScmRepositoryTable
+          provider={provider}
+          installations={[makeInstallation()]}
+          installationWrapper={({children}) => (
+            <InstallationOverrideProvider value={{isSyncing: true}}>
+              {children}
+            </InstallationOverrideProvider>
+          )}
+        />
+      );
+
+      await userEvent.hover(screen.getByText('3 repositories'));
+      expect(
+        await screen.findByText('Re-syncing in the background…')
+      ).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Sync now'})).not.toBeInTheDocument();
     });
   });
@@ -376,8 +413,12 @@ describe('ScmRepositoryTable', () => {
       render(
         <ScmRepositoryTable
           provider={provider}
-          installations={[makeInstallation({mappedProjectSlugsByRepoId: {}})]}
-          repoActions={() => <button aria-label="Project mappings" />}
+          installations={[
+            makeInstallation({
+              mappedProjectSlugsByRepoId: {},
+              repoActions: () => <button aria-label="Project mappings" />,
+            }),
+          ]}
         />
       );
 
@@ -388,8 +429,11 @@ describe('ScmRepositoryTable', () => {
       render(
         <ScmRepositoryTable
           provider={provider}
-          installations={[makeInstallation()]}
-          repoActions={() => <button aria-label="Project mappings" />}
+          installations={[
+            makeInstallation({
+              repoActions: () => <button aria-label="Project mappings" />,
+            }),
+          ]}
         />
       );
 

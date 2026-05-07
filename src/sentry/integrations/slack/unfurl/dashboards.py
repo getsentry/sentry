@@ -63,9 +63,7 @@ DASHBOARDS_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
 _TIMESERIES_DISPLAY_TYPES = {
     DashboardWidgetDisplayTypes.LINE_CHART: "line",
     DashboardWidgetDisplayTypes.AREA_CHART: "area",
-    DashboardWidgetDisplayTypes.STACKED_AREA_CHART: "area",
     DashboardWidgetDisplayTypes.BAR_CHART: "bar",
-    DashboardWidgetDisplayTypes.TOP_N: "area",
 }
 
 

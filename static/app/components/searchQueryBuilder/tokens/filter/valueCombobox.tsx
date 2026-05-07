@@ -423,7 +423,7 @@ function useFilterSuggestions({
 
       return {
         label:
-          typeof label === 'string' ? (
+          typeof label === 'string' && valueType === FieldValueType.STRING ? (
             <HighlightText text={label} query={filterValue} />
           ) : (
             label
@@ -448,7 +448,7 @@ function useFilterSuggestions({
         },
       };
     },
-    [canSelectMultipleValues, filterValue]
+    [canSelectMultipleValues, filterValue, valueType]
   );
 
   const suggestionGroups = useMemo(() => {

@@ -3,10 +3,9 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 import {SCREEN_RENDERING_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-
-const SPAN_OPERATIONS_CONDITION = `${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
 
 const SPAN_OPERATIONS_TABLE: Widget = {
   id: 'span-operations-table',
@@ -20,26 +19,28 @@ const SPAN_OPERATIONS_TABLE: Widget = {
       name: '',
       fields: [
         SpanFields.SPAN_OP,
+        SpanFields.NAME,
         SpanFields.SPAN_DESCRIPTION,
-        `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
+        `equation|sum(${SpanFields.APP_VITALS_FRAMES_SLOW_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
+        `equation|sum(${SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
+        `avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`,
       ],
       aggregates: [
-        `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
+        `equation|sum(${SpanFields.APP_VITALS_FRAMES_SLOW_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
+        `equation|sum(${SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
+        `avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`,
       ],
-      columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
+      columns: [SpanFields.SPAN_OP, SpanFields.NAME, SpanFields.SPAN_DESCRIPTION],
       fieldAliases: [
         t('Operation'),
+        t('Span Name'),
         t('Span Description'),
         'Slow Frame %',
         'Frozen Frame %',
         'Delay',
       ],
-      conditions: SPAN_OPERATIONS_CONDITION,
-      orderby: '-avg(mobile.frames_delay)',
+      conditions: SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION,
+      orderby: `-avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`,
     },
   ],
   layout: {
@@ -70,8 +71,8 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'transaction',
-          name: 'transaction',
+          key: SpanFields.TRANSACTION,
+          name: SpanFields.TRANSACTION,
           kind: FieldKind.TAG,
         },
         value: '',

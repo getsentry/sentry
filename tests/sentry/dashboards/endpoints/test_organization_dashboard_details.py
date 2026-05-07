@@ -1692,45 +1692,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widgets = self.get_widgets(self.dashboard.id)
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
 
-    def test_update_widget_with_deprecated_display_type_is_allowed(self) -> None:
-        # Existing widgets created via the API with deprecated display types
-        # should remain editable; the rejection only applies to new widgets.
-        deprecated_widget = DashboardWidget.objects.create(
-            dashboard=self.dashboard,
-            order=4,
-            title="Stacked area",
-            display_type=DashboardWidgetDisplayTypes.STACKED_AREA_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
-            interval="1d",
-            limit=5,
-        )
-        DashboardWidgetQuery.objects.create(
-            widget=deprecated_widget,
-            name="Transactions",
-            fields=["count()"],
-            columns=[],
-            aggregates=["count()"],
-            conditions="event.type:transaction",
-            order=0,
-        )
-
-        data: dict[str, Any] = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id)},
-                {"id": str(self.widget_2.id)},
-                {"id": str(self.widget_3.id)},
-                {"id": str(self.widget_4.id)},
-                {"id": str(deprecated_widget.id), "title": "Renamed stacked area"},
-            ],
-        }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 200, response.data
-
-        deprecated_widget.refresh_from_db()
-        assert deprecated_widget.title == "Renamed stacked area"
-        assert deprecated_widget.display_type == DashboardWidgetDisplayTypes.STACKED_AREA_CHART
-
     def test_update_widget_add_query(self) -> None:
         data: dict[str, Any] = {
             "title": "First dashboard",

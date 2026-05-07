@@ -246,6 +246,7 @@ export const SnapshotListView = memo(function SnapshotListView({
   groupsRef.current = groups;
   const flatIndexRef = useRef(flatIndex);
   flatIndexRef.current = flatIndex;
+  const visibleGroupIdxRef = useRef(0);
   const handleScroll = useCallback(() => {
     cancelAnimationFrame(rafId.current);
     rafId.current = requestAnimationFrame(() => {
@@ -259,6 +260,7 @@ export const SnapshotListView = memo(function SnapshotListView({
       const rows = el.querySelectorAll<HTMLElement>('[data-index]');
       const ROW_THRESHOLD = 100;
       let visibleItemKey = groupsRef.current[0]?.itemKey ?? null;
+      let visibleGroupIdx = 0;
       for (const row of rows) {
         const idx = parseInt(row.dataset.index ?? '', 10);
         if (isNaN(idx)) {
@@ -267,8 +269,10 @@ export const SnapshotListView = memo(function SnapshotListView({
         const rowTop = row.getBoundingClientRect().top - containerTop;
         if (rowTop <= ROW_THRESHOLD) {
           visibleItemKey = groupsRef.current[idx]?.itemKey ?? null;
+          visibleGroupIdx = idx;
         }
       }
+      visibleGroupIdxRef.current = visibleGroupIdx;
       onVisibleGroupChangeRef.current?.(visibleItemKey);
 
       if (onScrollProgressRef.current) {
@@ -308,6 +312,20 @@ export const SnapshotListView = memo(function SnapshotListView({
       cancelAnimationFrame(rafId.current);
     };
   }, [groups, handleScroll]);
+
+  const prevDiffModeRef = useRef(diffMode);
+  useEffect(() => {
+    if (prevDiffModeRef.current === diffMode) {
+      return;
+    }
+    prevDiffModeRef.current = diffMode;
+    const idx = visibleGroupIdxRef.current;
+    if (idx >= 0 && idx < groups.length) {
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(idx, {align: 'start'});
+      });
+    }
+  }, [diffMode, groups, virtualizer]);
 
   const initialSnapshotKey = useRef(selectedSnapshotKey ?? null).current;
   const didInitialScroll = useRef(false);

@@ -25,7 +25,6 @@ export const ORGANIZATION: OrganizationSummary = {
   },
   codecovAccess: false,
   dateCreated: '2021-01-01',
-  features: [],
   hideAiFeatures: false,
   isEarlyAdopter: false,
   issueAlertsThreadFlag: false,

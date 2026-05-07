@@ -38,10 +38,10 @@ function getConversationDetailUrl(orgSlug: string, conversation: Conversation): 
   const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
   if (conversation.startTimestamp) {
-    params.set('start', String(conversation.startTimestamp));
+    params.set('start', new Date(conversation.startTimestamp).toISOString());
   }
   if (conversation.endTimestamp) {
-    params.set('end', String(conversation.endTimestamp));
+    params.set('end', new Date(conversation.endTimestamp).toISOString());
   }
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
