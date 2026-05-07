@@ -966,7 +966,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     defaultEnvironment: str | None
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
-    applyPdbSrcsrv: bool
+    nativeApplySrcsrv: bool
     dynamicSamplingBiases: list[dict[str, str | bool]]
     symbolSources: str
     isDynamicallySampled: bool
@@ -1122,7 +1122,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
             ),
-            "applyPdbSrcsrv": bool(self.get_value_with_default(attrs, "sentry:apply_pdb_srcsrv")),
+            "nativeApplySrcsrv": bool(
+                self.get_value_with_default(attrs, "sentry:native_apply_srcsrv")
+            ),
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"
             ),

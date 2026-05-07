@@ -896,17 +896,17 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:scrub_ip_address") is False
         assert resp.data["scrubIPAddresses"] is False
 
-    def test_apply_pdb_srcsrv(self) -> None:
+    def test_native_apply_srcsrv(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug)
-        assert resp.data["applyPdbSrcsrv"] is False
+        assert resp.data["nativeApplySrcsrv"] is False
 
-        resp = self.get_success_response(self.org_slug, self.proj_slug, applyPdbSrcsrv=True)
-        assert self.project.get_option("sentry:apply_pdb_srcsrv") is True
-        assert resp.data["applyPdbSrcsrv"] is True
+        resp = self.get_success_response(self.org_slug, self.proj_slug, nativeApplySrcsrv=True)
+        assert self.project.get_option("sentry:native_apply_srcsrv") is True
+        assert resp.data["nativeApplySrcsrv"] is True
 
-        resp = self.get_success_response(self.org_slug, self.proj_slug, applyPdbSrcsrv=False)
-        assert self.project.get_option("sentry:apply_pdb_srcsrv") is False
-        assert resp.data["applyPdbSrcsrv"] is False
+        resp = self.get_success_response(self.org_slug, self.proj_slug, nativeApplySrcsrv=False)
+        assert self.project.get_option("sentry:native_apply_srcsrv") is False
+        assert resp.data["nativeApplySrcsrv"] is False
 
     def test_scrape_javascript(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)

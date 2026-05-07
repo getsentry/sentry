@@ -195,12 +195,12 @@ class Symbolicator:
     def _native_options(self, **extra: Any) -> dict[str, Any]:
         """Builds the `options` dict for native symbolication requests.
 
-        When the project has opted in to PDB srcsrv path rewriting, this also
-        sets `apply_srcsrv` so symbolicator rewrites each frame's
-        `abs_path`/`filename` and emits the per-frame `revision`.
+        When the project has opted in to source server (srcsrv) path
+        rewriting, this also sets `apply_srcsrv` so symbolicator rewrites each
+        frame's `abs_path`/`filename` and emits the per-frame `revision`.
         """
         options: dict[str, Any] = {"dif_candidates": True, **extra}
-        if self.project.get_option("sentry:apply_pdb_srcsrv"):
+        if self.project.get_option("sentry:native_apply_srcsrv"):
             options["apply_srcsrv"] = True
         return options
 

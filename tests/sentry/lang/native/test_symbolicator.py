@@ -52,7 +52,7 @@ def test_native_options_default_no_srcsrv(default_project) -> None:
 
 @django_db_all
 def test_native_options_with_srcsrv_enabled(default_project) -> None:
-    default_project.update_option("sentry:apply_pdb_srcsrv", True)
+    default_project.update_option("sentry:native_apply_srcsrv", True)
     options = _make_symbolicator(default_project)._native_options(
         apply_source_context=True,
         frame_order="caller_first",
