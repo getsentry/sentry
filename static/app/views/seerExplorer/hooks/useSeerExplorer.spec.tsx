@@ -259,16 +259,22 @@ describe('useSeerExplorer', () => {
         organization,
       });
 
-      await act(async () => {
+      act(() => {
         result.current.sendMessage('Test query');
         result.current.interruptRun();
+      });
+
+      // Wait for the interrupt mutation to complete before resetting
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
         result.current.startNewSession();
-        // Flush interrupt mutation
-        await Promise.resolve();
       });
 
       expect(result.current.runId).toBeNull();
-      expect(result.current.waitingForInterrupt).toBe(false);
+      expect(result.current.hasSentInterrupt).toBe(false);
       expect(result.current.hasSentMessage).toBe(false);
     });
 
@@ -279,17 +285,25 @@ describe('useSeerExplorer', () => {
         organization,
       });
 
-      await act(async () => {
+      act(() => {
         result.current.sendMessage('Test query');
         result.current.interruptRun();
-        result.current.switchToRun(456);
-        // Flush interrupt mutation
-        await Promise.resolve();
       });
 
-      expect(result.current.runId).toBe(456);
-      expect(result.current.waitingForInterrupt).toBe(false);
-      expect(result.current.hasSentMessage).toBe(false);
+      // Wait for the interrupt mutation to complete before switching
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
+        result.current.switchToRun(456);
+      });
+
+      await waitFor(() => {
+        expect(result.current.runId).toBe(456);
+        expect(result.current.hasSentInterrupt).toBe(false);
+        expect(result.current.hasSentMessage).toBe(false);
+      });
     });
   });
 
@@ -811,6 +825,99 @@ describe('useSeerExplorer', () => {
       });
 
       expect(result.current.hasSentMessage).toBe(true);
+    });
+  });
+
+  describe('hasSentInterrupt', () => {
+    beforeEach(() => {
+      sessionStorage.setItem('seer-explorer-run-id', JSON.stringify(123));
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+    });
+
+    it('clears after new message is sent', async () => {
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      expect(result.current.hasSentInterrupt).toBe(false);
+
+      act(() => {
+        result.current.interruptRun();
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
+        result.current.sendMessage('Test 2');
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(false);
+      });
+    });
+
+    it('clears after respondToUserInput is called', async () => {
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      expect(result.current.hasSentInterrupt).toBe(false);
+
+      act(() => {
+        result.current.interruptRun();
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
+        result.current.respondToUserInput('test-input-id', {});
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(false);
+      });
+    });
+
+    it('clears after createPR is called', async () => {
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
+
+      expect(result.current.hasSentInterrupt).toBe(false);
+
+      act(() => {
+        result.current.interruptRun();
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(true);
+      });
+
+      act(() => {
+        result.current.createPR('test-repo-name');
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSentInterrupt).toBe(false);
+      });
     });
   });
 });
