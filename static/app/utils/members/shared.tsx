@@ -40,10 +40,7 @@ export function selectUsersFromMembers(members: Member[]): User[] {
     .filter((member): member is Member & {user: NonNullable<Member['user']>} =>
       Boolean(member.user)
     )
-    .map(member => ({
-      ...member.user,
-      role: member.role,
-    }));
+    .map(member => member.user);
 }
 
 export type IndexedMembersByProject = Record<string, User[]>;
