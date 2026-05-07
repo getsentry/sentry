@@ -887,9 +887,14 @@ function IssueListOverviewInner({
 
   const hasPageFrame = useHasPageFrameFeature();
 
+  const isTaxonomyView = initialQuery.includes('issue.category:');
+
   useLLMContext({
     contextHint:
-      'Sentry issue list page. Shows a filterable, sortable list of grouped issues. ' +
+      (isTaxonomyView
+        ? 'Sentry issue feed — filtered taxonomy view. The query below contains the active category filter. '
+        : 'Sentry issue list page. ') +
+      'Shows a filterable, sortable list of grouped issues. ' +
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
