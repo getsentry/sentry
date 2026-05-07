@@ -8,14 +8,14 @@ import {
   useListItemCheckboxContext,
 } from 'sentry/utils/list/useListItemCheckboxState';
 
-const queryKey: QueryKeyEndpointOptions = {query: {status: 'active'}};
+const endpointOptions: QueryKeyEndpointOptions = {query: {status: 'active'}};
 
 type ProviderProps = ComponentProps<typeof ListItemCheckboxProvider>;
 
-function createWrapper(props: Omit<ProviderProps, 'children' | 'queryKey'>) {
+function createWrapper(props: Omit<ProviderProps, 'children' | 'endpointOptions'>) {
   return function Wrapper({children}: PropsWithChildren) {
     return (
-      <ListItemCheckboxProvider {...props} queryKey={queryKey}>
+      <ListItemCheckboxProvider {...props} endpointOptions={endpointOptions}>
         {children}
       </ListItemCheckboxProvider>
     );
@@ -36,7 +36,7 @@ describe('useListItemCheckboxContext', () => {
         isAnySelected: false,
         isSelected: expect.any(Function),
         knownIds: ['1', '2', '3'],
-        queryKeyRef: {current: queryKey},
+        queryKeyRef: {current: endpointOptions},
         selectAll: expect.any(Function),
         selectedIds: [],
         toggleSelected: expect.any(Function),
@@ -179,7 +179,7 @@ describe('useListItemCheckboxContext', () => {
         isAnySelected: false,
         isSelected: expect.any(Function),
         knownIds: ['1', '2', '3'],
-        queryKeyRef: {current: queryKey},
+        queryKeyRef: {current: endpointOptions},
         selectAll: expect.any(Function),
         selectedIds: [],
         toggleSelected: expect.any(Function),

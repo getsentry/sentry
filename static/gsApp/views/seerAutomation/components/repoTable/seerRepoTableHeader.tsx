@@ -74,13 +74,13 @@ export function SeerRepoTableHeader({
     countSelected,
     isAllSelected,
     isAnySelected,
-    queryKeyRef,
+    endpointOptionsRef,
     selectAll,
     selectedIds,
     knownIds,
   } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current;
-  const queryString = queryOptions?.query?.query as string | undefined;
+  const endpointOptions = endpointOptionsRef.current;
+  const queryString = endpointOptions?.query?.query as string | undefined;
 
   const selectedRepos = useMemo(() => {
     if (selectedIds === 'all') {

@@ -201,7 +201,7 @@ export function SeerRepoTable() {
       <ListItemCheckboxProvider
         hits={repositories?.length ?? 0}
         knownIds={knownIds}
-        queryKey={safeParseQueryKey(queryOptions.queryKey)?.options}
+        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
         <TablePanel>
           <SeerRepoTableHeader

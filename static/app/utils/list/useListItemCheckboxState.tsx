@@ -16,16 +16,6 @@ export type ListCheckboxQueryKeyRef = RefObject<undefined | QueryKeyEndpointOpti
 
 interface PublicProps {
   /**
-   * The total number of items the query could return
-   */
-  hits: number;
-
-  /**
-   * The number of items that are currently loaded into the browser
-   */
-  knownIds: string[];
-
-  /**
    * The cache-key that identifies the query & results.
    *
    * When the key changes, the selection will be reset. Therefore be
@@ -34,15 +24,25 @@ interface PublicProps {
    * This is not the same as ApiQueryKey. But you could use:
    * `safeParseQueryKey(apiQueryKey)?.options`.
    */
-  queryKey: undefined | QueryKeyEndpointOptions;
+  endpointOptions: undefined | QueryKeyEndpointOptions;
+
+  /**
+   * The total number of items the query could return
+   */
+  hits: number;
+
+  /**
+   * The number of items that are currently loaded into the browser
+   */
+  knownIds: string[];
 }
 
 interface InternalProps {
-  queryKeyRef: ListCheckboxQueryKeyRef;
+  endpointOptionsRef: ListCheckboxQueryKeyRef;
   setState: Dispatch<SetStateAction<State>>;
   state: State;
 }
-type MergedProps = Omit<PublicProps, 'queryKey'> & InternalProps;
+type MergedProps = Omit<PublicProps, 'endpointOptions'> & InternalProps;
 
 /**
  * We can either have a list of ids, or have all selected.
@@ -60,6 +60,13 @@ export interface ListItemCheckboxState {
    * Ensure nothing is selected, no matter the state prior
    */
   deselectAll: () => void;
+
+  /**
+   * Stable ref to the query key that fetches the list.
+   *
+   * Read `.current` to access the value.
+   */
+  endpointOptionsRef: ListCheckboxQueryKeyRef;
 
   /**
    * The total number of items the query could return
@@ -95,13 +102,6 @@ export interface ListItemCheckboxState {
   knownIds: string[];
 
   /**
-   * Stable ref to the query key that fetches the list.
-   *
-   * Read `.current` to access the value.
-   */
-  queryKeyRef: ListCheckboxQueryKeyRef;
-
-  /**
    * Record that all are selected, wether or not all feedback ids are loaded or not
    */
   selectAll: () => void;
@@ -123,7 +123,7 @@ const defaultQueryKeyRef: ListCheckboxQueryKeyRef = {current: undefined};
 const ListItemCheckboxContext = createContext<MergedProps>({
   hits: 0,
   knownIds: [],
-  queryKeyRef: defaultQueryKeyRef,
+  endpointOptionsRef: defaultQueryKeyRef,
   setState: () => {},
   state: {ids: new Set()},
 });
@@ -132,23 +132,23 @@ export function ListItemCheckboxProvider({
   children,
   hits,
   knownIds,
-  queryKey,
+  endpointOptions,
 }: {
   children: React.ReactNode;
 } & PublicProps) {
   const [state, setState] = useState<State>({ids: new Set()});
-  const queryKeyRef = useRef(queryKey);
+  const endpointOptionsRef = useRef(endpointOptions);
 
-  const serializedQueryKey = JSON.stringify(queryKey);
+  const serializedEndpointOptions = JSON.stringify(endpointOptions);
   useEffect(() => {
-    queryKeyRef.current = queryKey;
+    endpointOptionsRef.current = endpointOptions;
     setState({ids: new Set()});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serializedQueryKey]);
+  }, [serializedEndpointOptions]);
 
   return (
     <ListItemCheckboxContext.Provider
-      value={{state, setState, hits, knownIds, queryKeyRef}}
+      value={{state, setState, hits, knownIds, endpointOptionsRef}}
     >
       {children}
     </ListItemCheckboxContext.Provider>
@@ -156,7 +156,7 @@ export function ListItemCheckboxProvider({
 }
 
 export function useListItemCheckboxContext(): ListItemCheckboxState {
-  const {state, setState, hits, knownIds, queryKeyRef} = useContext(
+  const {state, setState, hits, knownIds, endpointOptionsRef} = useContext(
     ListItemCheckboxContext
   );
 
@@ -248,7 +248,7 @@ export function useListItemCheckboxContext(): ListItemCheckboxState {
     isAnySelected,
     isSelected,
     knownIds,
-    queryKeyRef,
+    endpointOptionsRef,
     selectAll,
     selectedIds,
     toggleSelected,

@@ -49,11 +49,11 @@ describe('ReplayBulkViewedActions', () => {
   const replay = createReplay();
 
   const deselectAll = jest.fn();
-  const queryOptionsRef: ListCheckboxQueryKeyRef = {current: {query: {}}};
+  const endpointOptionsRef: ListCheckboxQueryKeyRef = {current: {query: {}}};
 
   const renderWithOrganization = (
     overrides: {
-      queryOptionsRef?: ListCheckboxQueryKeyRef;
+      endpointOptionsRef?: ListCheckboxQueryKeyRef;
       replays?: ReplayListRecord[];
       selectedIds?: string[];
     } = {}
@@ -61,7 +61,7 @@ describe('ReplayBulkViewedActions', () => {
     render(
       <ReplayBulkViewedActions
         deselectAll={deselectAll}
-        queryOptionsRef={overrides.queryOptionsRef ?? queryOptionsRef}
+        endpointOptionsRef={overrides.endpointOptionsRef ?? endpointOptionsRef}
         replays={overrides.replays ?? [replay]}
         selectedIds={overrides.selectedIds ?? [replay.id]}
       />,

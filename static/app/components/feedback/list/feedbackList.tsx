@@ -49,7 +49,7 @@ export function FeedbackList({onItemSelect}: Props) {
     <ListItemCheckboxProvider
       hits={Number(queryResult.data?.pages[0]?.headers['X-Hits'] ?? issues.length)}
       knownIds={issues.map(issue => issue.id)}
-      queryKey={safeParseQueryKey(listApiOptions.queryKey)?.options}
+      endpointOptions={safeParseQueryKey(listApiOptions.queryKey)?.options}
     >
       <FeedbackListHeader />
       <Stack flexGrow={1} paddingBottom="xs">

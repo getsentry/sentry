@@ -37,12 +37,12 @@ export function ReplayTableHeader({
     deselectAll,
     isAllSelected,
     isAnySelected,
-    queryKeyRef,
+    endpointOptionsRef,
     selectAll,
     selectedIds,
   } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current;
-  const queryString = queryOptions?.query?.query as string | undefined;
+  const endpointOptions = endpointOptionsRef.current;
+  const queryString = endpointOptions?.query?.query as string | undefined;
 
   const headerStyle: React.CSSProperties = stickyHeader
     ? {position: 'sticky', top: 0}
@@ -86,13 +86,13 @@ export function ReplayTableHeader({
             {selectedIds !== 'all' && (
               <ReplayBulkViewedActions
                 deselectAll={deselectAll}
-                queryOptionsRef={queryKeyRef}
+                endpointOptionsRef={endpointOptionsRef}
                 replays={replays}
                 selectedIds={selectedIds}
               />
             )}
             <DeleteReplays
-              queryOptions={queryKeyRef.current}
+              queryOptions={endpointOptionsRef.current}
               replays={replays}
               selectedIds={selectedIds}
             />

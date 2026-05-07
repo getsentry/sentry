@@ -16,7 +16,7 @@ import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   deselectAll: () => void;
-  queryOptionsRef: ListCheckboxQueryKeyRef;
+  endpointOptionsRef: ListCheckboxQueryKeyRef;
   replays: ReplayListRecord[];
   selectedIds: string[];
 }
@@ -25,7 +25,7 @@ export function ReplayBulkViewedActions({
   deselectAll,
   replays,
   selectedIds,
-  queryOptionsRef,
+  endpointOptionsRef,
 }: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -52,9 +52,9 @@ export function ReplayBulkViewedActions({
     );
 
     if (succeededIds.size) {
-      if (queryOptionsRef.current) {
+      if (endpointOptionsRef.current) {
         const replayListOptions = replayListApiOptions({
-          options: queryOptionsRef.current,
+          options: endpointOptionsRef.current,
           organization,
           queryReferrer: 'replayList',
         });

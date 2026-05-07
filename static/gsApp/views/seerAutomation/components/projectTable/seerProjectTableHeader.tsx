@@ -113,12 +113,12 @@ export function ProjectTableHeader({
     countSelected,
     isAllSelected,
     isAnySelected,
-    queryKeyRef,
+    endpointOptionsRef,
     selectAll,
     selectedIds,
   } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current;
-  const queryString = queryOptions?.query?.query as string | undefined;
+  const endpointOptions = endpointOptionsRef.current;
+  const queryString = endpointOptions?.query?.query as string | undefined;
 
   const projectIds = useMemo(
     () => (selectedIds === 'all' ? projects.map(project => project.id) : selectedIds),

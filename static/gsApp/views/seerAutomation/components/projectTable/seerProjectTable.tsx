@@ -275,7 +275,7 @@ export function SeerProjectTable() {
     <ListItemCheckboxProvider
       hits={filteredProjects.length}
       knownIds={filteredProjects.map(project => project.id)}
-      queryKey={safeParseQueryKey(queryKey)?.options}
+      endpointOptions={safeParseQueryKey(queryKey)?.options}
     >
       <Stack gap="lg">
         <Flex gap="md">
