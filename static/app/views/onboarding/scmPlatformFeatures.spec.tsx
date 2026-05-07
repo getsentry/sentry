@@ -147,7 +147,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     expect(
-      await screen.findByText('What do you want to instrument?')
+      await screen.findByText('Features available for this platform')
     ).toBeInTheDocument();
   });
 
@@ -569,7 +569,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByText('What do you want to instrument?');
+      await screen.findByText('Features available for this platform');
 
       const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
         ([event, params]) =>
