@@ -250,9 +250,7 @@ def process_relocation_reply_with_export(payload: Any, **kwds):
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.SEER_RUN_CREATE)
-def handle_seer_run_create(
-    object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
-) -> None:
+def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) -> None:
     try:
         run = SeerRun.objects.get(id=object_identifier)
     except SeerRun.DoesNotExist:
