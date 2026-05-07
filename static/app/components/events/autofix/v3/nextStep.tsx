@@ -321,7 +321,7 @@ function NextStepTemplate({
           </Button>
           <Button
             variant="primary"
-            disabled={isProcessing}
+            disabled={isProcessing || !userContext.trim()}
             onClick={() => onClickNo(userContext)}
           >
             {labelRethink}
