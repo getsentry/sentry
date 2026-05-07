@@ -7,7 +7,9 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {getSnapshotStatusChecks} from './getSnapshotStatusChecks';
@@ -29,8 +31,13 @@ type SnapshotStatusCheckField = {
 };
 
 export function SnapshotStatusChecks() {
-  const {project} = useProjectSettingsOutlet();
-  const {mutateAsync: updateProject} = useUpdateProject(project);
+  const organization = useOrganization();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const {data: project = outletProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: outletProject.slug,
+  });
+  const {mutateAsync: updateProject} = useUpdateProject(outletProject);
   const {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed} =
     getSnapshotStatusChecks(project);
 
