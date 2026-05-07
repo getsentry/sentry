@@ -107,11 +107,7 @@ function SentryApplicationDashboard() {
     return <LoadingIndicator />;
   }
 
-  if (
-    isAppError ||
-    (showInstallData && isStatsError) ||
-    (shouldFetchInteractions && isInteractionsError)
-  ) {
+  if (isAppError || isStatsError || isInteractionsError) {
     return <LoadingError />;
   }
 
