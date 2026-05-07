@@ -29,7 +29,7 @@ export type AvatarProject = {
  * present when the corresponding query params (`statsPeriod`, etc.) are passed.
  * `latestDeploys` is excluded when `collapse=latestDeploys` is sent.
  */
-export interface ProjectSummary extends AvatarProject {
+interface ProjectSummary extends AvatarProject {
   access: Scope[];
   dateCreated: string;
   environments: string[];
