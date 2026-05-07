@@ -34,13 +34,13 @@ import {
   defaultMetricQuery,
   type BaseMetricQuery,
   type MetricQuery,
-  type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsQueryParamsProvider,
   useMetricVisualize,
   useSetMetricVisualize,
+  useSetTraceMetric,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
@@ -86,15 +86,13 @@ function dispatchYAxisUpdate(
   dispatch: (...args: any[]) => void
 ) {
   const actionType = getTraceMetricAggregateActionType(displayType);
-  const column = explodeFieldString(yAxis);
-  if (actionType === BuilderStateAction.SET_Y_AXIS) {
-    dispatch({type: actionType, payload: [column]});
-  } else if (actionType === BuilderStateAction.SET_CATEGORICAL_AGGREGATE) {
-    dispatch({type: actionType, payload: [column]});
-  } else {
+  const aggregate = explodeFieldString(yAxis);
+  if (actionType === BuilderStateAction.SET_FIELDS) {
     const currentNonAggregates =
       fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
-    dispatch({type: actionType, payload: [...currentNonAggregates, column]});
+    dispatch({type: actionType, payload: [...currentNonAggregates, aggregate]});
+  } else {
+    dispatch({type: actionType, payload: [aggregate]});
   }
 }
 
@@ -119,9 +117,10 @@ export function MetricsEquationVisualize({
     : '';
 
   const initialQueries = useMemo(() => {
-    const firstField = aggregateSource?.[0];
-    if (firstField?.kind === FieldValueKind.EQUATION) {
-      const parsed = parseAggregateExpression(generateFieldAsString(firstField));
+    // If there's an equation, we can parse it to get the metric queries and equation row
+    const equationField = aggregateSource?.find(f => f.kind === FieldValueKind.EQUATION);
+    if (equationField) {
+      const parsed = parseAggregateExpression(generateFieldAsString(equationField));
       return parsed.equationRow
         ? [
             ...parsed.metricQueries,
@@ -135,6 +134,8 @@ export function MetricsEquationVisualize({
         : parsed.metricQueries;
     }
 
+    // Otherwise, we parse each function to get the available metric queries and
+    // add a default equation row
     const metricQueries: BaseMetricQuery[] = (aggregateSource ?? [])
       .filter(f => f.kind === FieldValueKind.FUNCTION)
       .map(f => {
@@ -265,6 +266,7 @@ function MetricsEquationVisualizeContent({
     () => new Set(equationReferencedLabels),
     [equationReferencedLabels]
   );
+  const isEquationSelected = selectedLabel === equationQuery?.label;
 
   return (
     <Stack gap="lg" flex="1">
@@ -284,7 +286,7 @@ function MetricsEquationVisualizeContent({
             onQueryParamsChange={handleMetricParamsChange}
           >
             <MetricToolbar
-              metricQuery={metricQuery}
+              label={metricQuery.label ?? ''}
               referenceMap={referenceMap}
               deleteDisabledReason={deleteDisabledReason}
               isSelected={isSelected}
@@ -296,13 +298,13 @@ function MetricsEquationVisualizeContent({
       {equationQuery && (
         <RowProvider
           metricQuery={equationQuery}
-          isSelected={selectedLabel === equationQuery.label}
+          isSelected={isEquationSelected}
           onQueryParamsChange={handleMetricParamsChange}
         >
           <MetricToolbar
-            metricQuery={equationQuery}
+            label={equationQuery.label ?? ''}
             referenceMap={referenceMap}
-            isSelected={selectedLabel === equationQuery.label}
+            isSelected={isEquationSelected}
             onRowSelection={onRowSelection}
             onReferenceLabelsChange={setEquationReferencedLabels}
           />
@@ -358,7 +360,7 @@ function RowProvider({
 }
 
 function MetricToolbar({
-  metricQuery,
+  label,
   referenceMap,
   deleteDisabledReason,
   isSelected,
@@ -366,7 +368,7 @@ function MetricToolbar({
   onReferenceLabelsChange,
 }: {
   isSelected: boolean;
-  metricQuery: MetricQuery;
+  label: string;
   onRowSelection: (label: string) => void;
   referenceMap: Record<string, string>;
   deleteDisabledReason?: string;
@@ -375,14 +377,7 @@ function MetricToolbar({
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
   const traceMetric = useTraceMetric();
-  const queryLabel = metricQuery.label ?? '';
-
-  const setTraceMetric = useCallback(
-    (newTraceMetric: TraceMetric) => {
-      metricQuery.setTraceMetric(newTraceMetric);
-    },
-    [metricQuery]
-  );
+  const setTraceMetric = useSetTraceMetric();
 
   const handleExpressionChange = (
     resolvedExpression: Expression,
@@ -407,12 +402,12 @@ function MetricToolbar({
         <Radio
           name="metricAggregateRow"
           checked={isSelected}
-          onChange={() => onRowSelection(isEquation ? EQUATION_LABEL : queryLabel)}
-          aria-label={t('Use row %s as the widget aggregate', queryLabel)}
+          onChange={() => onRowSelection(isEquation ? EQUATION_LABEL : label)}
+          aria-label={t('Use row %s as the widget aggregate', label)}
           disabled={isFunction && traceMetric.name === ''}
         />
         <VisualizeLabel
-          label={queryLabel}
+          label={label}
           visualize={visualize}
           onClick={noop}
           disableCollapse
