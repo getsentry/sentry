@@ -61,7 +61,7 @@ export function InputSection({
   interruptState = 'disabled',
   isTimedOut = false,
   isMinimized = false,
-  isVisible = true,
+  isVisible = false,
   onCreatePR,
   onInputChange,
   onInputClick,
