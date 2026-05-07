@@ -7,17 +7,10 @@ CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr
 AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
 
 
-class CodingAgentAlias(enum.StrEnum):
-    CURSOR = "cursor"
-    CLAUDE = "claude"
-
-
-# Map from possible user-facing coding agent aliases to their handoff target strs.
-CODING_AGENT_ALIAS_TO_HANDOFF_TARGET: dict[str | CodingAgentAlias, str] = {
-    CodingAgentAlias.CURSOR: "cursor_background_agent",
-    CodingAgentAlias.CLAUDE: "claude_code_agent",
-    "claude_code": "claude_code_agent",
-}
+class CodingAgent(enum.StrEnum):
+    SEER = "seer"
+    CURSOR = "cursor_background_agent"
+    CLAUDE = "claude_code_agent"
 
 
 class FixabilityScoreThresholds(enum.Enum):
