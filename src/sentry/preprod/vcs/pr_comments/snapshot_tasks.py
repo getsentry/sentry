@@ -8,11 +8,11 @@ from taskbroker_client.retry import Retry
 
 from sentry import features
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.organization import Organization
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import build_changes_map
-from sentry.preprod.vcs.github_retry import github_api_call_with_retries
 from sentry.preprod.vcs.pr_comments.snapshot_templates import format_snapshot_pr_comment
 from sentry.preprod.vcs.pr_comments.tasks import find_existing_comment_id, save_pr_comment_result
 from sentry.shared_integrations.exceptions import ApiError
@@ -103,8 +103,6 @@ def create_preprod_snapshot_pr_comment_task(
         return
 
     db_alias = router.db_for_write(CommitComparison)
-    api_error: Exception | None = None
-    comment_id: str | None = None
 
     with transaction.atomic(db_alias):
         all_for_pr = list(
@@ -198,60 +196,103 @@ def create_preprod_snapshot_pr_comment_task(
         existing_comment_id = find_existing_comment_id(all_for_pr, "snapshots")
         cc_id = cc.id
 
+    post_snapshot_pr_comment_task.delay(
+        organization_id=organization.id,
+        repo_name=commit_comparison.head_repo_name,
+        provider=commit_comparison.provider,
+        pr_number=commit_comparison.pr_number,
+        commit_comparison_id=cc_id,
+        comment_body=comment_body,
+        existing_comment_id=existing_comment_id,
+    )
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.post_snapshot_pr_comment",
+    namespace=preprod_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.CELL,
+    retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),
+)
+def post_snapshot_pr_comment_task(
+    *,
+    organization_id: int,
+    repo_name: str,
+    provider: str,
+    pr_number: int,
+    commit_comparison_id: int,
+    comment_body: str,
+    existing_comment_id: str | None,
+    **kwargs: Any,
+) -> None:
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.info(
+            "preprod.snapshot_pr_comments.post.org_not_found",
+            extra={"organization_id": organization_id},
+        )
+        return
+
+    client = get_commit_context_client(organization, repo_name, provider)
+    if not client:
+        logger.info(
+            "preprod.snapshot_pr_comments.post.no_client",
+            extra={"organization_id": organization_id, "repo_name": repo_name},
+        )
+        return
+
+    comment_id: str | None = None
+    api_error: Exception | None = None
+
     try:
         if existing_comment_id:
-            github_api_call_with_retries(
-                lambda: client.update_comment(
-                    repo=commit_comparison.head_repo_name,
-                    issue_id=str(commit_comparison.pr_number),
-                    comment_id=str(existing_comment_id),
-                    data={"body": comment_body},
-                ),
-                log_prefix="preprod.snapshot_pr_comments",
+            client.update_comment(
+                repo=repo_name,
+                issue_id=str(pr_number),
+                comment_id=str(existing_comment_id),
+                data={"body": comment_body},
             )
             comment_id = existing_comment_id
-            logger.info(
-                "preprod.snapshot_pr_comments.create.updated",
-                extra={"artifact_id": artifact.id, "comment_id": comment_id},
-            )
         else:
-            resp = github_api_call_with_retries(
-                lambda: client.create_comment(
-                    repo=commit_comparison.head_repo_name,
-                    issue_id=str(commit_comparison.pr_number),
-                    data={"body": comment_body},
-                ),
-                log_prefix="preprod.snapshot_pr_comments",
+            resp = client.create_comment(
+                repo=repo_name,
+                issue_id=str(pr_number),
+                data={"body": comment_body},
             )
             comment_id = str(resp["id"])
-            logger.info(
-                "preprod.snapshot_pr_comments.create.created",
-                extra={"artifact_id": artifact.id, "comment_id": comment_id},
-            )
     except Exception as e:
         extra: dict[str, Any] = {
-            "artifact_id": artifact.id,
-            "organization_id": organization.id,
+            "commit_comparison_id": commit_comparison_id,
+            "organization_id": organization_id,
             "error_type": type(e).__name__,
         }
         if isinstance(e, ApiError):
             extra["status_code"] = e.code
-        logger.exception("preprod.snapshot_pr_comments.create.failed", extra=extra)
+        logger.exception("preprod.snapshot_pr_comments.post.failed", extra=extra)
         api_error = e
 
+    db_alias = router.db_for_write(CommitComparison)
     try:
         with transaction.atomic(db_alias):
-            cc = CommitComparison.objects.select_for_update().get(id=cc_id)
+            cc = CommitComparison.objects.select_for_update().get(id=commit_comparison_id)
             if api_error is not None:
                 save_pr_comment_result(cc, "snapshots", success=False, error=api_error)
             else:
                 save_pr_comment_result(cc, "snapshots", success=True, comment_id=comment_id)
     except CommitComparison.DoesNotExist:
         logger.info(
-            "preprod.snapshot_pr_comments.create.cc_deleted_during_api_call",
-            extra={"cc_id": cc_id, "artifact_id": artifact.id},
+            "preprod.snapshot_pr_comments.post.cc_deleted",
+            extra={"commit_comparison_id": commit_comparison_id},
         )
         return
 
     if api_error is not None:
+        if (
+            isinstance(api_error, ApiError)
+            and api_error.code
+            and 400 <= api_error.code < 500
+            and api_error.code != 429
+        ):
+            return
         raise api_error
