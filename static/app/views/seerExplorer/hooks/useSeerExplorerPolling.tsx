@@ -23,13 +23,13 @@ const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undef
     state => state.pr_creation_status !== 'creating'
   );
 
-/** Checks if session hasn't been updated in SESSION_STALE_TIME_MS. */
-const isResponseStale = (sessionData: SeerExplorerResponse['session'] | undefined) => {
-  const updatedAt = getDateFromTimestampAssumeUtc(sessionData?.updated_at);
-  if (!updatedAt) {
+/** Checks if a timestamp is older than SESSION_STALE_TIME_MS. */
+const isTimestampStale = (updatedAt: string | undefined) => {
+  const date = getDateFromTimestampAssumeUtc(updatedAt);
+  if (!date) {
     return false;
   }
-  return Date.now() - updatedAt.getTime() >= STALE_TIME_MS;
+  return Date.now() - date.getTime() >= STALE_TIME_MS;
 };
 
 const getPollingState = (
@@ -38,7 +38,7 @@ const getPollingState = (
   isError: boolean,
   isStale: boolean,
   override: boolean | undefined
-) => {
+): 'polling' | 'not-polling' | 'timed-out' => {
   if (runId === null) {
     return 'not-polling';
   }
@@ -88,13 +88,12 @@ export const useSeerExplorerPolling = ({
     retry: false,
     enabled: !!runId && !!orgSlug && isSeerExplorerEnabled(organization),
     refetchInterval: query => {
-      const isStale = isResponseStale(query.state.data?.json?.session);
       if (
         getPollingState(
           runId,
           query.state.data?.json?.session,
           query.state.status === 'error',
-          isStale,
+          isTimestampStale(query.state.data?.json?.session?.updated_at),
           shouldPollOverride
         ) === 'polling'
       ) {
@@ -104,7 +103,8 @@ export const useSeerExplorerPolling = ({
     },
   });
 
-  // For display, track a separate isStale state, since it depends on the current time and needs to trigger rerenders.
+  // Track a separate isStale state for return value.
+  // This allows us to trigger rerenders, and timeout after updated_at stops changing.
   const [isStale, setIsStale] = useState(false);
 
   const {start: startStaleTimeout, cancel: cancelStaleTimeout} = useTimeout({
@@ -114,15 +114,21 @@ export const useSeerExplorerPolling = ({
     },
   });
 
-  // Reset stale timer each time updated_at changes
+  // Update isStale on any timestamp or runId change
   useEffect(() => {
-    setIsStale(false);
-    if (apiData?.session?.updated_at) {
-      startStaleTimeout();
+    if (isTimestampStale(apiData?.session?.updated_at)) {
+      // Already stale
+      setIsStale(true);
+    } else if (runId !== null && apiData?.session?.updated_at) {
+      // Start a timeout to set isStale after STALE_TIME_MS
+      setIsStale(false);
+      startStaleTimeout(); // overwrites any existing timeout
     } else {
+      // Empty state or no data
+      setIsStale(false);
       cancelStaleTimeout();
     }
-  }, [apiData?.session?.updated_at, startStaleTimeout, cancelStaleTimeout]);
+  }, [runId, apiData?.session?.updated_at, startStaleTimeout, cancelStaleTimeout]);
 
   const pollingState = getPollingState(
     runId,
