@@ -193,6 +193,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         onInputChange={e => setInputValue(e.target.value)}
         maxOptions={50}
         shouldFilterResults={false}
+        shouldFocusFirstOptionOnInputChange
         autoFocus
         openOnFocus
       >

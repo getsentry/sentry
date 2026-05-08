@@ -207,6 +207,10 @@ function shouldHideInvalidTooltip({
   }
 }
 
+function shouldFocusFirstOptionOnInputChange(value: string) {
+  return /^[^\s():]{3,}$/.test(value);
+}
+
 // Because the text input may be larger than the actual text, we use a hidden div
 // with the same text content to measure the width of the text. This is used for
 // centering the invalid tooltip, as well as for placing the selection background.
@@ -691,6 +695,7 @@ function SearchQueryBuilderInputInternal({
           return true;
         }}
         onClick={onClick}
+        shouldFocusFirstOptionOnInputChange={shouldFocusFirstOptionOnInputChange}
         data-test-id={
           state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
         }
