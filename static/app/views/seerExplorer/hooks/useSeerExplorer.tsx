@@ -6,7 +6,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -145,8 +144,8 @@ export const useSeerExplorer = () => {
   const [lastSentMessage, setLastSentMessage] = useState<{
     insertIndex: number;
     loadingPlaceholderContent: string;
+    prevInsertIndexBlockId: string | undefined;
     query: string;
-    timestampMs: number;
   } | null>(null);
   const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
@@ -433,10 +432,10 @@ export const useSeerExplorer = () => {
       }
 
       // Calculate new insert index
-      const blocksLength = apiData?.session?.blocks.length || 0;
+      const blocks = apiData?.session?.blocks || [];
       const newInsertIndex = Math.min(
-        Math.max(explicitInsertIndex ?? blocksLength, 0),
-        blocksLength
+        Math.max(explicitInsertIndex ?? blocks.length, 0),
+        blocks.length
       );
 
       // Pick a random placeholder for the next loading block, so it's deterministic per user message
@@ -447,7 +446,7 @@ export const useSeerExplorer = () => {
       setLastSentMessage({
         query,
         insertIndex: newInsertIndex,
-        timestampMs: Date.now(),
+        prevInsertIndexBlockId: blocks[newInsertIndex]?.id,
         loadingPlaceholderContent: placeholderContent,
       });
 
@@ -540,7 +539,7 @@ export const useSeerExplorer = () => {
     const {
       insertIndex,
       query: userQuery,
-      timestampMs: lastSentTimestampMs,
+      prevInsertIndexBlockId,
       loadingPlaceholderContent,
     } = lastSentMessage;
 
@@ -549,9 +548,8 @@ export const useSeerExplorer = () => {
     const blockAtInsert = serverBlocks[insertIndex];
     const serverHasUserBlock =
       blockAtInsert?.message.role === 'user' &&
-      blockAtInsert?.message.content === userQuery &&
-      (getDateFromTimestampAssumeUtc(blockAtInsert?.timestamp)?.getTime() ?? 0) >=
-        Math.floor(lastSentTimestampMs / 1000) * 1000;
+      blockAtInsert.message.content === userQuery &&
+      blockAtInsert.id !== prevInsertIndexBlockId; // block ID has changed (should be unique for each query)
 
     const serverHasResponse = serverBlocks
       .slice(insertIndex + 1)
