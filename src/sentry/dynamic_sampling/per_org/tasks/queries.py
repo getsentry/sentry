@@ -112,8 +112,6 @@ def get_eap_transaction_volumes(
     order_by_volume: Literal["asc", "desc"] | None = None,
     max_transactions: int | None = None,
 ) -> list[ProjectTransactions]:
-    if max_transactions is not None and max_transactions <= 0:
-        return []
 
     projects = list(
         Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
